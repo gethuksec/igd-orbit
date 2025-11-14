@@ -10,17 +10,363 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Example model - will be expanded in later phases
-model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  username  String?  @unique
-  password  String
-  fullName  String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// ============================================
+// 1. AUTHENTICATION & USERS
+// ============================================
 
+model User {
+  id                  String    @id @default(uuid())
+  email               String    @unique
+  username            String?   @unique
+  passwordHash        String    @map("password_hash")
+  fullName            String?   @map("full_name")
+  phone               String?
+  profilePhotoUrl     String?   @map("profile_photo_url")
+  isActive            Boolean   @default(true) @map("is_active")
+  isVerified          Boolean   @default(false) @map("is_verified")
+  twoFactorEnabled    Boolean   @default(false) @map("two_factor_enabled")
+  twoFactorSecret     String?   @map("two_factor_secret")
+  failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime? @map("locked_until")
+  lastLoginAt         DateTime? @map("last_login_at")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  deletedAt           DateTime? @map("deleted_at")
+
+  // Relations
+  userRoles UserRole[]
+  employee  Employee?
+
+  @@index([email])
+  @@index([username])
+  @@index([isActive])
+  @@index([deletedAt])
   @@map("users")
 }
 
+model Role {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  name         String
+  description  String?
+  level        Int // Hierarchical level (0=SUPERADMIN, 1=OWNER, etc.)
+  isSystemRole Boolean  @default(false) @map("is_system_role")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+
+  @@index([code])
+  @@index([level])
+  @@index([isActive])
+  @@map("roles")
+}
+
+model UserRole {
+  id         String    @id @default(uuid())
+  userId     String    @map("user_id")
+  roleId     String    @map("role_id")
+  branchId   String?   @map("branch_id") // null = all branches
+  isPrimary  Boolean   @default(false) @map("is_primary")
+  validFrom  DateTime  @default(now()) @map("valid_from")
+  validUntil DateTime? @map("valid_until") // null = no expiration
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  branch Branch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, roleId, branchId])
+  @@index([userId])
+  @@index([roleId])
+  @@index([branchId])
+  @@index([isPrimary])
+  @@map("user_roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  module      String // e.g., "inventory", "sales", "service"
+  submodule   String? // e.g., "stock_transfer", "pos", "repair"
+  action      String // e.g., "view", "create", "edit", "delete", "approve", "export"
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  rolePermissions RolePermission[]
+
+  @@unique([module, submodule, action])
+  @@index([module])
+  @@index([submodule])
+  @@index([action])
+  @@map("permissions")
+}
+
+model RolePermission {
+  id               String   @id @default(uuid())
+  roleId           String   @map("role_id")
+  permissionId     String   @map("permission_id")
+  maxAmount        Decimal? @map("max_amount") @db.Decimal(15, 2) // For amount-based permissions
+  requiresApproval Boolean  @default(false) @map("requires_approval")
+  conditions       Json? // JSONB for flexible conditions (e.g., {"approverRoles": ["HS", "SPV"]})
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+// ============================================
+// 2. ORGANIZATION
+// ============================================
+
+model Branch {
+  id             String   @id @default(uuid())
+  code           String   @unique
+  name           String
+  type           String // e.g., "store", "warehouse", "office"
+  phone          String?
+  email          String?
+  address        String?
+  city           String?
+  province       String?
+  isActive       Boolean  @default(true) @map("is_active")
+  isWarehouse    Boolean  @default(false) @map("is_warehouse") // Warehouse capability flag
+  operatingHours Json?    @map("operating_hours") // JSONB: {"monday": {"open": "08:00", "close": "22:00"}, ...}
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  userRoles       UserRole[]
+  departments     Department[]
+  productStocks   ProductStock[]
+  preferredCustomers Customer[]
+
+  @@index([code])
+  @@index([isActive])
+  @@map("branches")
+}
+
+model Department {
+  id                 String   @id @default(uuid())
+  code               String   @unique
+  name               String
+  parentDepartmentId String?  @map("parent_department_id") // For hierarchical structure
+  branchId           String?  @map("branch_id") // null = company-wide department
+  isActive           Boolean  @default(true) @map("is_active")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  parentDepartment Department?  @relation("DepartmentHierarchy", fields: [parentDepartmentId], references: [id], onDelete: SetNull)
+  childDepartments Department[] @relation("DepartmentHierarchy")
+  branch           Branch?      @relation(fields: [branchId], references: [id], onDelete: SetNull)
+
+  @@index([code])
+  @@index([parentDepartmentId])
+  @@index([branchId])
+  @@index([isActive])
+  @@map("departments")
+}
+
+// ============================================
+// 3. PRODUCTS & INVENTORY
+// ============================================
+
+model Category {
+  id               String   @id @default(uuid())
+  code             String   @unique
+  name             String
+  parentCategoryId String?  @map("parent_category_id") // For hierarchical categories
+  description      String?
+  isActive         Boolean  @default(true) @map("is_active")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  parentCategory  Category?  @relation("CategoryHierarchy", fields: [parentCategoryId], references: [id], onDelete: SetNull)
+  childCategories Category[] @relation("CategoryHierarchy")
+  products        Product[]
+
+  @@index([code])
+  @@index([parentCategoryId])
+  @@index([isActive])
+  @@map("categories")
+}
+
+model Brand {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  logoUrl     String?  @map("logo_url")
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  products Product[]
+
+  @@index([code])
+  @@index([isActive])
+  @@map("brands")
+}
+
+model Product {
+  id            String    @id @default(uuid())
+  barcode       String?   @unique
+  sku           String    @unique
+  name          String
+  categoryId    String    @map("category_id")
+  brandId       String?   @map("brand_id")
+  costPrice     Decimal   @map("cost_price") @db.Decimal(15, 2)
+  sellingPrice  Decimal   @map("selling_price") @db.Decimal(15, 2)
+  unit          String    @default("pcs") // e.g., "pcs", "box", "kg"
+  isActive      Boolean   @default(true) @map("is_active")
+  trackSerial   Boolean   @default(false) @map("track_serial") // Track by serial number
+  trackBatch    Boolean   @default(false) @map("track_batch") // Track by batch number
+  memberPricing Json?     @map("member_pricing") // JSONB: {"platinum": {"discount": 10}, "gold": {"discount": 5}, ...}
+  images        Json? // JSONB array: ["url1", "url2", ...]
+  description   String?   @db.Text
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  // Relations
+  category      Category       @relation(fields: [categoryId], references: [id])
+  brand         Brand?         @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  productStocks ProductStock[]
+
+  @@index([barcode])
+  @@index([sku])
+  @@index([categoryId])
+  @@index([brandId])
+  @@index([isActive])
+  @@index([deletedAt])
+  @@map("products")
+}
+
+model ProductStock {
+  id                String   @id @default(uuid())
+  productId         String   @map("product_id")
+  branchId          String   @map("branch_id")
+  quantityAvailable Decimal  @default(0) @map("quantity_available") @db.Decimal(15, 3)
+  quantityReserved  Decimal  @default(0) @map("quantity_reserved") @db.Decimal(15, 3)
+  quantityDamaged   Decimal  @default(0) @map("quantity_damaged") @db.Decimal(15, 3)
+  minStock          Decimal? @map("min_stock") @db.Decimal(15, 3)
+  maxStock          Decimal? @map("max_stock") @db.Decimal(15, 3)
+  reorderPoint      Decimal? @map("reorder_point") @db.Decimal(15, 3)
+  branchPrice       Decimal? @map("branch_price") @db.Decimal(15, 2) // Branch-specific pricing override
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  branch  Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, branchId])
+  @@index([productId])
+  @@index([branchId])
+  @@index([reorderPoint])
+  @@map("product_stock")
+}
+
+// ============================================
+// 4. CUSTOMERS
+// ============================================
+
+model CustomerTier {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  description String?
+  discountPercentage Decimal @map("discount_percentage") @db.Decimal(5, 2) // e.g., 15.00 for 15%
+  creditLimit Decimal  @map("credit_limit") @db.Decimal(15, 2)
+  minPurchaseAmount Decimal? @map("min_purchase_amount") @db.Decimal(15, 2) // Minimum purchase to qualify
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  customers Customer[]
+
+  @@index([code])
+  @@index([isActive])
+  @@map("customer_tiers")
+}
+
+model Customer {
+  id                String    @id @default(uuid())
+  customerCode      String    @unique @map("customer_code")
+  customerType      String    @map("customer_type") // 'retail', 'wholesale', 'corporate'
+  tierId            String?   @map("tier_id")
+  name              String
+  email             String?
+  phone             String
+  alternatePhone    String?   @map("alternate_phone")
+  dateOfBirth       DateTime? @map("date_of_birth")
+  gender            String? // 'L', 'P'
+  address           String?
+  city              String?
+  province          String?
+  postalCode        String?   @map("postal_code")
+  country           String?   @default("Indonesia")
+  taxId             String?   @map("tax_id") // NPWP
+  taxName           String?   @map("tax_name")
+  taxAddress        String?   @map("tax_address")
+  creditLimit       Decimal   @default(0) @map("credit_limit") @db.Decimal(15, 2)
+  creditUsed        Decimal   @default(0) @map("credit_used") @db.Decimal(15, 2)
+  paymentTermDays   Int?      @map("payment_term_days")
+  preferredBranchId String?   @map("preferred_branch_id")
+  isBlacklisted     Boolean   @default(false) @map("is_blacklisted")
+  blacklistReason   String?   @map("blacklist_reason")
+  blacklistUntil    DateTime? @map("blacklist_until")
+  isActive          Boolean   @default(true) @map("is_active")
+  notes             String?   @db.Text
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
+
+  // Relations
+  tier            CustomerTier? @relation(fields: [tierId], references: [id], onDelete: SetNull)
+  preferredBranch Branch?       @relation(fields: [preferredBranchId], references: [id], onDelete: SetNull)
+
+  @@index([customerCode])
+  @@index([email])
+  @@index([phone])
+  @@index([tierId])
+  @@index([customerType])
+  @@index([isActive])
+  @@index([isBlacklisted])
+  @@index([deletedAt])
+  @@map("customers")
+}
+
+// ============================================
+// Placeholder for Employee (will be expanded in later phases)
+// ============================================
+
+model Employee {
+  id        String   @id @default(uuid())
+  userId    String   @unique @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("employees")
+}

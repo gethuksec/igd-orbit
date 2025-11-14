@@ -53,3 +53,6 @@ prd/
 
 # Reference files (may contain sensitive data)
 ref/
+
+# Documentation (testing files, etc)
+docs/

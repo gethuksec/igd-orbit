@@ -1,5 +1,4 @@
 /**
- * Shared decorators
+ * Shared decorators exports
  */
-// Decorators will be added here as needed
-
+export { Roles, ROLES_KEY } from './roles.decorator';

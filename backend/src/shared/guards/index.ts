@@ -1,5 +1,5 @@
 /**
- * Shared guards
+ * Shared guards exports
  */
-// Guards will be added here as needed
-
+export { JwtAuthGuard } from './jwt-auth.guard';
+export { RolesGuard } from './roles.guard';
