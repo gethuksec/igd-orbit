@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /sales/
+Disallow: /api/
+
+Sitemap: https://yourdomain.com/sitemap.xml
+

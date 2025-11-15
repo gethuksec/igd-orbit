@@ -1,0 +1,169 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Request,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import { Request as ExpressRequest } from 'express';
+import { SalesTransactionsService } from './sales-transactions.service';
+import { JwtAuthGuard, RolesGuard } from '../../shared/guards';
+import { Roles } from '../../shared/decorators';
+import {
+  CreateSalesTransactionDto,
+  VoidTransactionDto,
+  HoldTransactionDto,
+} from './dto';
+
+/**
+ * Sales Transactions Controller
+ * Handles POS transaction endpoints
+ */
+@Controller('sales/transactions')
+@UseGuards(JwtAuthGuard)
+export class SalesTransactionsController {
+  constructor(private readonly salesTransactionsService: SalesTransactionsService) {}
+
+  /**
+   * Create POS transaction
+   * POST /api/v1/sales/transactions
+   * Permissions: CS, CR, HS, SPV
+   */
+  @Post()
+  @UseGuards(RolesGuard)
+  @Roles('CS', 'CR', 'HS', 'SPV')
+  @HttpCode(HttpStatus.CREATED)
+  async create(
+    @Body() createDto: CreateSalesTransactionDto,
+    @Request() req: ExpressRequest & { user: any },
+  ) {
+    // Get branch ID from user context or use from DTO
+    const branchId = createDto.branchId || (req.user as any).branchId;
+    if (!branchId) {
+      throw new Error('Branch ID is required');
+    }
+
+    return this.salesTransactionsService.create(createDto, req.user.id, branchId);
+  }
+
+  /**
+   * List transactions
+   * GET /api/v1/sales/transactions
+   * Permissions: All authenticated users
+   */
+  @Get()
+  async findAll(@Query() query: any) {
+    return this.salesTransactionsService.findAll(query);
+  }
+
+  /**
+   * Get transaction detail
+   * GET /api/v1/sales/transactions/:id
+   * Permissions: All authenticated users
+   */
+  @Get(':id')
+  async findById(@Param('id') id: string) {
+    return this.salesTransactionsService.findById(id);
+  }
+
+  /**
+   * Update transaction (if status = pending)
+   * PUT /api/v1/sales/transactions/:id
+   * Permissions: CS, CR, HS, SPV
+   */
+  @Put(':id')
+  @UseGuards(RolesGuard)
+  @Roles('CS', 'CR', 'HS', 'SPV')
+  async update(
+    @Param('id') id: string,
+    @Body() updateDto: any,
+    @Request() req: ExpressRequest & { user: any },
+  ) {
+    return this.salesTransactionsService.update(id, updateDto, req.user.id);
+  }
+
+  /**
+   * Void transaction
+   * POST /api/v1/sales/transactions/:id/void
+   * Permissions: HS (same day), SPV (past)
+   */
+  @Post(':id/void')
+  @UseGuards(RolesGuard)
+  @Roles('HS', 'SPV', 'CMO')
+  @HttpCode(HttpStatus.OK)
+  async void(
+    @Param('id') id: string,
+    @Body() voidDto: VoidTransactionDto,
+    @Request() req: ExpressRequest & { user: any },
+  ) {
+    await this.salesTransactionsService.void(id, voidDto, req.user.id);
+    return { message: 'Transaction voided successfully' };
+  }
+
+  /**
+   * Hold current transaction
+   * POST /api/v1/sales/transactions/:id/hold
+   * Permissions: CS, CR, HS, SPV
+   */
+  @Post(':id/hold')
+  @UseGuards(RolesGuard)
+  @Roles('CS', 'CR', 'HS', 'SPV')
+  @HttpCode(HttpStatus.OK)
+  async hold(
+    @Param('id') id: string,
+    @Body() holdDto: HoldTransactionDto,
+    @Request() req: ExpressRequest & { user: any },
+  ) {
+    const branchId = (req.user as any).branchId;
+    if (!branchId) {
+      throw new Error('Branch ID is required');
+    }
+
+    const holdId = await this.salesTransactionsService.hold(id, holdDto, req.user.id, branchId);
+    return { holdId, message: 'Transaction held successfully' };
+  }
+
+  /**
+   * Resume held transaction
+   * POST /api/v1/sales/transactions/:id/resume
+   * Permissions: CS, CR, HS, SPV
+   */
+  @Post(':id/resume')
+  @UseGuards(RolesGuard)
+  @Roles('CS', 'CR', 'HS', 'SPV')
+  @HttpCode(HttpStatus.OK)
+  async resume(@Param('id') id: string) {
+    return this.salesTransactionsService.resume(id);
+  }
+
+  /**
+   * List held transactions
+   * GET /api/v1/sales/held-transactions
+   * Permissions: CS, CR, HS, SPV
+   */
+  @Get('held/list')
+  @UseGuards(RolesGuard)
+  @Roles('CS', 'CR', 'HS', 'SPV')
+  async listHeldTransactions(@Query('branchId') branchId?: string) {
+    return this.salesTransactionsService.listHeldTransactions(branchId);
+  }
+
+  /**
+   * Generate/print receipt
+   * POST /api/v1/sales/transactions/:id/receipt
+   * Permissions: All authenticated users
+   */
+  @Post(':id/receipt')
+  @HttpCode(HttpStatus.OK)
+  async generateReceipt(@Param('id') id: string) {
+    const receiptUrl = await this.salesTransactionsService.generateReceipt(id);
+    return { receiptUrl, message: 'Receipt generated successfully' };
+  }
+}
+
