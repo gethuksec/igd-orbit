@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, Search } from 'lucide-react';
 
@@ -65,17 +64,17 @@ export default function ServiceSearch({ onSearch, isLoading, error }: ServiceSea
             <p className="mt-1 text-sm text-red-500">{displayError}</p>
           )}
         </div>
-        <Button
+        <button
           onClick={handleSearch}
           disabled={isLoading}
-          className="px-6"
+          className="px-6 py-2 bg-gradient-to-r from-primary-600 to-primary-500 text-white rounded-lg font-semibold hover:from-primary-700 hover:to-primary-600 shadow-lg transition-all disabled:opacity-50 flex items-center justify-center"
         >
           {isLoading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
             <Search className="w-4 h-4" />
           )}
-        </Button>
+        </button>
       </div>
       <p className="mt-2 text-xs text-gray-500 text-center">
         Find your service number on your receipt or confirmation email

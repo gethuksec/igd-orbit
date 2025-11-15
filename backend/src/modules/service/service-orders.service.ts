@@ -681,23 +681,24 @@ export class ServiceOrdersService {
   }
 
   async trackService(serviceNumber: string) {
-    const serviceOrder = await this.prisma.serviceOrder.findUnique({
-      where: { serviceNumber },
-      include: {
-        statusHistory: {
-          orderBy: { createdAt: 'desc' },
-          select: {
-            status: true,
-            createdAt: true,
-            notes: true,
+    try {
+      const serviceOrder = await this.prisma.serviceOrder.findUnique({
+        where: { serviceNumber },
+        include: {
+          statusHistory: {
+            orderBy: { createdAt: 'desc' },
+            select: {
+              status: true,
+              createdAt: true,
+              notes: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    if (!serviceOrder) {
-      throw new NotFoundException('Service order not found');
-    }
+      if (!serviceOrder) {
+        throw new NotFoundException(`Service order with number ${serviceNumber} not found`);
+      }
 
     // Return sanitized data for public tracking
     return {
@@ -712,6 +713,10 @@ export class ServiceOrdersService {
       estimatedCompletion: serviceOrder.promisedDate,
       // DO NOT expose: prices, technician names, internal notes, customer details
     };
+    } catch (error) {
+      console.error('Error tracking service:', serviceNumber, error);
+      throw error;
+    }
   }
 
   async qcCheck(serviceOrderId: string, dto: QcCheckDto, userId: string) {

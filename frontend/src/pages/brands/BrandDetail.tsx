@@ -1,0 +1,109 @@
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { ArrowLeft, Edit, Award, Loader2 } from 'lucide-react';
+import { api } from '../../services/api';
+
+export default function BrandDetail() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+
+  const { data: brand, isLoading } = useQuery({
+    queryKey: ['brand', id],
+    queryFn: async () => {
+      const res = await api.get(`/brands/${id}`);
+      return res.data.data || res.data;
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!brand) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-gray-500">Brand tidak ditemukan</p>
+        <button
+          onClick={() => navigate('/brands')}
+          className="mt-4 text-primary-600 hover:text-primary-700"
+        >
+          Kembali ke daftar brand
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full space-y-3">
+      {/* Page Header */}
+      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate('/brands')}
+              className="p-2 text-white/80 hover:bg-white/20 rounded-lg transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div>
+              <h1 className="text-3xl font-bold mb-1">{brand.name}</h1>
+              <p className="text-primary-100">Detail Brand</p>
+            </div>
+          </div>
+          <Link
+            to={`/brands/${id}/edit`}
+            className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm text-white rounded-lg hover:bg-white/20 transition-all"
+          >
+            <Edit className="w-4 h-4" />
+            <span>Edit</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* Detail Card */}
+      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg">
+            <Award className="w-5 h-5 text-white" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900">Informasi Brand</h2>
+        </div>
+        <div className="space-y-3">
+          <div>
+            <label className="text-sm text-gray-500">Nama Brand</label>
+            <p className="text-base font-semibold text-gray-900">{brand.name}</p>
+          </div>
+          {brand.code && (
+            <div>
+              <label className="text-sm text-gray-500">Kode Brand</label>
+              <p className="text-base font-semibold text-gray-900">{brand.code}</p>
+            </div>
+          )}
+          {brand.description && (
+            <div>
+              <label className="text-sm text-gray-500">Deskripsi</label>
+              <p className="text-base text-gray-900">{brand.description}</p>
+            </div>
+          )}
+          <div>
+            <label className="text-sm text-gray-500">Status</label>
+            <span
+              className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+                brand.isActive
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-red-100 text-red-800'
+              }`}
+            >
+              {brand.isActive ? 'Aktif' : 'Tidak Aktif'}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+

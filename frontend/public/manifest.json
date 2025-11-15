@@ -1,0 +1,35 @@
+{
+  "name": "IGD Group - Sistem ERP",
+  "short_name": "IGD ERP",
+  "description": "Sistem Manajemen ERP Terpadu untuk IGD Group",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#dc2626",
+  "theme_color": "#dc2626",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/dashboard.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "label": "Dasbor Utama"
+    },
+    {
+      "src": "/screenshots/pos.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "label": "Point of Sale"
+    }
+  ],
+  "categories": ["business", "finance", "productivity"],
+  "lang": "id-ID",
+  "dir": "ltr"
+}
+

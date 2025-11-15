@@ -57,8 +57,12 @@ export class BrandsService {
    */
   async findAll(query: ListBrandsDto) {
     const { page = 1, limit = 20, search } = query;
+    
+    // Ensure page and limit are numbers (fallback if transform didn't work)
+    const pageNum = typeof page === 'string' ? parseInt(page, 10) : page || 1;
+    const limitNum = typeof limit === 'string' ? parseInt(limit, 10) : limit || 20;
 
-    const skip = (page - 1) * limit;
+    const skip = (pageNum - 1) * limitNum;
     const where: Prisma.BrandWhereInput = {
       isActive: true,
     };
@@ -75,7 +79,7 @@ export class BrandsService {
       this.prisma.brand.findMany({
         where,
         skip,
-        take: limit,
+        take: limitNum,
         orderBy: { name: 'asc' },
         include: {
           _count: {
@@ -103,9 +107,9 @@ export class BrandsService {
       })),
       meta: {
         total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum),
       },
     };
   }

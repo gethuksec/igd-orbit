@@ -40,7 +40,12 @@ export class CustomersController {
    */
   @Get()
   async findAll(@Query() query: ListCustomersDto) {
-    return this.customersService.findAll(query);
+    try {
+      return await this.customersService.findAll(query);
+    } catch (error) {
+      console.error('Error in customers.findAll:', error);
+      throw error;
+    }
   }
 
   /**

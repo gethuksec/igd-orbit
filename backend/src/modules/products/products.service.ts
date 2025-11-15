@@ -177,7 +177,11 @@ export class ProductsService {
       include = ['category', 'brand'],
     } = query;
 
-    const skip = (page - 1) * limit;
+    // Ensure page and limit are numbers (fallback if transform didn't work)
+    const pageNum = typeof page === 'string' ? parseInt(page, 10) : page || 1;
+    const limitNum = typeof limit === 'string' ? parseInt(limit, 10) : limit || 20;
+
+    const skip = (pageNum - 1) * limitNum;
     const where: Prisma.ProductWhereInput = {
       deletedAt: filterStatus === 'all' ? undefined : filterStatus === 'active' ? null : { not: null },
     };
@@ -248,26 +252,37 @@ export class ProductsService {
       orderBy = { name: order };
     }
 
-    const [products, total] = await Promise.all([
-      this.prisma.product.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy,
-        include: includeObj,
-      }),
-      this.prisma.product.count({ where }),
-    ]);
+    let products, total;
+    try {
+      [products, total] = await Promise.all([
+        this.prisma.product.findMany({
+          where,
+          skip,
+          take: limitNum,
+          orderBy,
+          include: includeObj,
+        }),
+        this.prisma.product.count({ where }),
+      ]);
+    } catch (error) {
+      console.error('Database error in products.findAll:', error);
+      throw error;
+    }
 
-    return {
-      data: ProductTransformer.transformMany(products, include.includes('stock')),
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
+    try {
+      return {
+        data: ProductTransformer.transformMany(products, include.includes('stock')),
+        meta: {
+          total,
+          page: pageNum,
+          limit: limitNum,
+          totalPages: Math.ceil(total / limitNum),
+        },
+      };
+    } catch (error) {
+      console.error('Error transforming products:', error);
+      throw error;
+    }
   }
 
   /**

@@ -37,7 +37,12 @@ export class ProductsController {
    */
   @Get()
   async findAll(@Query() query: ListProductsDto) {
-    return this.productsService.findAll(query);
+    try {
+      return await this.productsService.findAll(query);
+    } catch (error) {
+      console.error('Error in products.findAll:', error);
+      throw error;
+    }
   }
 
   /**

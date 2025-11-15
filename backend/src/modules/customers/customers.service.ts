@@ -145,7 +145,7 @@ export class CustomersService {
     // Find the highest tier the customer qualifies for
     let newTierId: string | null = null;
     for (const tier of tiers) {
-      if (tier.minPurchaseAmount && stats.totalPurchases >= tier.minPurchaseAmount.toNumber()) {
+      if (tier.minPurchaseAmount && tier.minPurchaseAmount.toNumber() && stats.totalPurchases >= tier.minPurchaseAmount.toNumber()) {
         newTierId = tier.id;
         break;
       }
@@ -192,7 +192,11 @@ export class CustomersService {
       order = 'asc',
     } = query;
 
-    const skip = (page - 1) * limit;
+    // Ensure page and limit are numbers (fallback if transform didn't work)
+    const pageNum = typeof page === 'string' ? parseInt(page, 10) : page || 1;
+    const limitNum = typeof limit === 'string' ? parseInt(limit, 10) : limit || 20;
+
+    const skip = (pageNum - 1) * limitNum;
     const where: Prisma.CustomerWhereInput = {
       deletedAt: filterStatus === 'active' ? null : { not: null },
     };
@@ -239,57 +243,91 @@ export class CustomersService {
       orderBy = { name: order };
     }
 
-    const [customers, total] = await Promise.all([
-      this.prisma.customer.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy,
-        include: {
-          tier: true,
-          preferredBranch: {
-            select: {
-              id: true,
-              name: true,
-              code: true,
+    let customers, total;
+    try {
+      [customers, total] = await Promise.all([
+        this.prisma.customer.findMany({
+          where,
+          skip,
+          take: limitNum,
+          orderBy,
+          include: {
+            tier: true,
+            preferredBranch: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+              },
             },
           },
-        },
-      }),
-      this.prisma.customer.count({ where }),
-    ]);
+        }),
+        this.prisma.customer.count({ where }),
+      ]);
+    } catch (error) {
+      console.error('Database error in customers.findAll:', error);
+      throw error;
+    }
 
     return {
-      data: customers.map((customer) => ({
-        id: customer.id,
-        customerCode: customer.customerCode,
-        customerType: customer.customerType,
-        name: customer.name,
-        email: customer.email,
-        phone: customer.phone,
-        tier: customer.tier
-          ? {
-              id: customer.tier.id,
-              code: customer.tier.code,
-              name: customer.tier.name,
-              discountPercentage: customer.tier.discountPercentage.toNumber(),
-            }
-          : null,
-        creditLimit: customer.creditLimit.toNumber(),
-        creditUsed: customer.creditUsed.toNumber(),
-        creditAvailable: customer.creditLimit.toNumber() - customer.creditUsed.toNumber(),
-        isBlacklisted: customer.isBlacklisted,
-        isActive: customer.isActive,
-        preferredBranch: customer.preferredBranch,
-        createdAt: customer.createdAt,
-        updatedAt: customer.updatedAt,
-      })),
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
+      data: customers.map((customer) => {
+        try {
+          return {
+            id: customer.id,
+            customerCode: customer.customerCode,
+            customerType: customer.customerType,
+            name: customer.name,
+            email: customer.email,
+            phone: customer.phone,
+            tier: customer.tier
+              ? {
+                  id: customer.tier.id,
+                  code: customer.tier.code,
+                  name: customer.tier.name,
+                  discountPercentage: customer.tier.discountPercentage
+                    ? customer.tier.discountPercentage.toNumber()
+                    : 0,
+                }
+              : null,
+            creditLimit: customer.creditLimit ? customer.creditLimit.toNumber() : 0,
+            creditUsed: customer.creditUsed ? customer.creditUsed.toNumber() : 0,
+            creditAvailable: customer.creditLimit && customer.creditUsed
+              ? customer.creditLimit.toNumber() - customer.creditUsed.toNumber()
+              : 0,
+            isBlacklisted: customer.isBlacklisted,
+            isActive: customer.isActive,
+            preferredBranch: customer.preferredBranch,
+            createdAt: customer.createdAt,
+            updatedAt: customer.updatedAt,
+          };
+        } catch (error) {
+          console.error('Error mapping customer:', customer.id, error);
+          // Return safe fallback
+          return {
+            id: customer.id,
+            customerCode: customer.customerCode || '',
+            customerType: customer.customerType,
+            name: customer.name || '',
+            email: customer.email || null,
+            phone: customer.phone || '',
+            tier: null,
+            creditLimit: 0,
+            creditUsed: 0,
+            creditAvailable: 0,
+            isBlacklisted: customer.isBlacklisted || false,
+            isActive: customer.isActive || false,
+            preferredBranch: customer.preferredBranch || null,
+            createdAt: customer.createdAt,
+            updatedAt: customer.updatedAt,
+          };
+        }
+      }),
+        meta: {
+          total,
+          page: pageNum,
+          limit: limitNum,
+          totalPages: Math.ceil(total / limitNum),
+        },
     };
   }
 
@@ -329,8 +367,12 @@ export class CustomersService {
             id: customer.tier.id,
             code: customer.tier.code,
             name: customer.tier.name,
-            discountPercentage: customer.tier.discountPercentage.toNumber(),
-            creditLimit: customer.tier.creditLimit.toNumber(),
+            discountPercentage: customer.tier.discountPercentage
+              ? customer.tier.discountPercentage.toNumber()
+              : 0,
+            creditLimit: customer.tier.creditLimit
+              ? customer.tier.creditLimit.toNumber()
+              : 0,
           }
         : null,
       name: customer.name,
@@ -347,9 +389,11 @@ export class CustomersService {
       taxId: customer.taxId,
       taxName: customer.taxName,
       taxAddress: customer.taxAddress,
-      creditLimit: customer.creditLimit.toNumber(),
-      creditUsed: customer.creditUsed.toNumber(),
-      creditAvailable: customer.creditLimit.toNumber() - customer.creditUsed.toNumber(),
+      creditLimit: customer.creditLimit ? customer.creditLimit.toNumber() : 0,
+      creditUsed: customer.creditUsed ? customer.creditUsed.toNumber() : 0,
+      creditAvailable: customer.creditLimit && customer.creditUsed
+        ? customer.creditLimit.toNumber() - customer.creditUsed.toNumber()
+        : 0,
       paymentTermDays: customer.paymentTermDays,
       preferredBranch: customer.preferredBranch,
       isBlacklisted: customer.isBlacklisted,
@@ -511,8 +555,8 @@ export class CustomersService {
             name: customer.tier.name,
           }
         : null,
-      creditLimit: customer.creditLimit.toNumber(),
-      creditUsed: customer.creditUsed.toNumber(),
+      creditLimit: customer.creditLimit ? customer.creditLimit.toNumber() : 0,
+      creditUsed: customer.creditUsed ? customer.creditUsed.toNumber() : 0,
       createdAt: customer.createdAt,
     };
   }
@@ -674,10 +718,10 @@ export class CustomersService {
             name: updatedCustomer.tier.name,
           }
         : null,
-      creditLimit: updatedCustomer.creditLimit.toNumber(),
-      creditUsed: updatedCustomer.creditUsed.toNumber(),
+      creditLimit: updatedCustomer.creditLimit ? updatedCustomer.creditLimit.toNumber() : 0,
+      creditUsed: updatedCustomer.creditUsed ? updatedCustomer.creditUsed.toNumber() : 0,
       creditAvailable:
-        updatedCustomer.creditLimit.toNumber() - updatedCustomer.creditUsed.toNumber(),
+        (updatedCustomer.creditLimit ? updatedCustomer.creditLimit.toNumber() : 0) - (updatedCustomer.creditUsed ? updatedCustomer.creditUsed.toNumber() : 0),
       isBlacklisted: updatedCustomer.isBlacklisted,
       isActive: updatedCustomer.isActive,
       updatedAt: updatedCustomer.updatedAt,
@@ -699,7 +743,7 @@ export class CustomersService {
     }
 
     // Check outstanding balance
-    if (customer.creditUsed.toNumber() > 0) {
+    if (customer.creditUsed && customer.creditUsed.toNumber() > 0) {
       throw new BadRequestException(
         `Cannot delete customer with outstanding balance (Rp ${customer.creditUsed.toNumber()}). Please clear balance first.`,
       );
@@ -776,7 +820,7 @@ export class CustomersService {
       throw new ForbiddenException('Customer is blacklisted and cannot make purchases');
     }
 
-    const availableCredit = customer.creditLimit.toNumber() - customer.creditUsed.toNumber();
+    const availableCredit = (customer.creditLimit ? customer.creditLimit.toNumber() : 0) - (customer.creditUsed ? customer.creditUsed.toNumber() : 0);
     return amount <= availableCredit;
   }
 

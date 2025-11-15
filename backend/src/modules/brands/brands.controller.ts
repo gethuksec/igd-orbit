@@ -32,7 +32,12 @@ export class BrandsController {
    */
   @Get()
   async findAll(@Query() query: ListBrandsDto) {
-    return this.brandsService.findAll(query);
+    try {
+      return await this.brandsService.findAll(query);
+    } catch (error) {
+      console.error('Error in brands.findAll:', error);
+      throw error;
+    }
   }
 
   /**

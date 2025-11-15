@@ -31,7 +31,12 @@ export class CategoriesController {
    */
   @Get()
   async findAll() {
-    return this.categoriesService.findAll();
+    try {
+      return await this.categoriesService.findAll();
+    } catch (error) {
+      console.error('Error in categories.findAll:', error);
+      throw error;
+    }
   }
 
   /**

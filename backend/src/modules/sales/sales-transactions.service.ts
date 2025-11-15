@@ -748,7 +748,12 @@ export class SalesTransactionsService {
    */
   async findAll(query: any) {
     const { page = 1, limit = 20, branchId, customerId, status, transactionType } = query;
-    const skip = (page - 1) * limit;
+    
+    // Ensure page and limit are numbers (fallback if transform didn't work)
+    const pageNum = typeof page === 'string' ? parseInt(page, 10) : page || 1;
+    const limitNum = typeof limit === 'string' ? parseInt(limit, 10) : limit || 20;
+    
+    const skip = (pageNum - 1) * limitNum;
 
     const where: any = {};
     if (branchId) {
@@ -768,7 +773,7 @@ export class SalesTransactionsService {
       this.prisma.salesTransaction.findMany({
         where,
         skip,
-        take: limit,
+        take: limitNum,
         orderBy: { createdAt: 'desc' },
         include: {
           branch: {
@@ -817,9 +822,9 @@ export class SalesTransactionsService {
       })),
       meta: {
         total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum),
       },
     };
   }

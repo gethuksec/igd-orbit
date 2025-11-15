@@ -56,3 +56,6 @@ ref/
 
 # Documentation (testing files, etc)
 docs/
+
+# Apps Ref
+apps-examples/

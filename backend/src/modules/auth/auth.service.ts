@@ -178,14 +178,24 @@ export class AuthService {
     const refreshExpiresIn =
       this.configService.get<string>('jwt.refreshExpiresIn') || '7d';
 
-    // Store refresh token in Redis
+    // Store refresh token in Redis (with error handling)
     const refreshTokenKey = `${this.refreshTokenPrefix}${user.id}`;
-    await this.redis.set(
-      refreshTokenKey,
-      refreshToken,
-      'EX',
-      this.parseExpiration(refreshExpiresIn),
-    );
+    try {
+      await this.redis.set(
+        refreshTokenKey,
+        refreshToken,
+        'EX',
+        this.parseExpiration(refreshExpiresIn),
+      );
+    } catch (error) {
+      // Log Redis error but don't fail login if Redis is unavailable
+      console.warn('Redis unavailable, refresh token not stored:', error);
+      // Continue with login - refresh token will still be returned but won't be stored
+    }
+
+    // Get primary role for user object
+    const primaryRole = userRoles.find((ur) => ur.isPrimary) || userRoles[0];
+    const role = primaryRole?.role;
 
     return {
       accessToken,
@@ -198,6 +208,14 @@ export class AuthService {
         phone: user.phone,
         profilePhotoUrl: user.profilePhotoUrl,
         roles,
+        role: role
+          ? {
+              id: role.id,
+              code: role.code,
+              name: role.name,
+              level: role.level,
+            }
+          : null,
         permissions,
         branchIds: branchIds.length > 0 ? branchIds : null,
       },

@@ -16,6 +16,9 @@ import { BranchesModule } from './modules/branches/branches.module';
 import { PublicModule } from './modules/public/public.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { HRModule } from './modules/hr/hr.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { SuppliersModule } from './modules/suppliers/suppliers.module';
+import { WebSocketModule } from './modules/websocket/websocket.module';
 
 @Module({
   imports: [
@@ -30,6 +33,7 @@ import { HRModule } from './modules/hr/hr.module';
     CategoriesModule,
     BrandsModule,
     CustomersModule,
+    SuppliersModule,
     SalesModule,
     InventoryModule,
     ServiceModule,
@@ -37,6 +41,8 @@ import { HRModule } from './modules/hr/hr.module';
     PublicModule,
     FinanceModule,
     HRModule,
+    DashboardModule,
+    WebSocketModule,
   ],
   controllers: [AppController],
   providers: [AppService],

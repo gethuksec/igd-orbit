@@ -1,0 +1,82 @@
+import { Link } from 'react-router-dom';
+import { FileText, ReceiptText, Wallet, CreditCard, Receipt, BarChart3 } from 'lucide-react';
+
+export default function FinanceLanding() {
+  const menuItems = [
+    {
+      icon: FileText,
+      title: 'Chart of Accounts',
+      description: 'Kelola chart of accounts',
+      path: '/finance/coa',
+      color: 'from-primary-500 to-primary-600',
+    },
+    {
+      icon: ReceiptText,
+      title: 'Jurnal Umum',
+      description: 'Kelola jurnal akuntansi',
+      path: '/finance/journal',
+      color: 'from-blue-500 to-blue-600',
+    },
+    {
+      icon: Wallet,
+      title: 'Pengeluaran',
+      description: 'Kelola pengeluaran dan biaya',
+      path: '/finance/expenses',
+      color: 'from-green-500 to-green-600',
+    },
+    {
+      icon: CreditCard,
+      title: 'Petty Cash',
+      description: 'Kelola kas kecil',
+      path: '/finance/petty-cash',
+      color: 'from-yellow-500 to-yellow-600',
+    },
+    {
+      icon: Receipt,
+      title: 'Accounts Receivable',
+      description: 'Kelola piutang usaha',
+      path: '/finance/ar',
+      color: 'from-purple-500 to-purple-600',
+    },
+    {
+      icon: BarChart3,
+      title: 'Laporan Keuangan',
+      description: 'Laporan keuangan dan analisis',
+      path: '/finance/reports',
+      color: 'from-red-500 to-red-600',
+    },
+  ];
+
+  return (
+    <div className="w-full space-y-3">
+      {/* Page Header */}
+      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
+        <div>
+          <h1 className="text-4xl font-bold mb-2">Keuangan</h1>
+          <p className="text-primary-100 text-lg">Kelola keuangan dan akuntansi</p>
+        </div>
+      </div>
+
+      {/* Menu Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        {menuItems.map((item) => {
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              className="bg-white rounded-xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-all duration-300 group"
+            >
+              <div className={`p-4 bg-gradient-to-br ${item.color} rounded-xl mb-4 group-hover:scale-110 transition-transform`}>
+                <Icon className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">{item.title}</h3>
+              <p className="text-sm text-gray-600">{item.description}</p>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+

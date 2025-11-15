@@ -1,5 +1,5 @@
 import { IsOptional, IsString, IsInt, Min, Max, IsIn, IsArray } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 
 /**
  * List Products DTO
@@ -62,6 +62,15 @@ export class ListProductsDto {
   @IsOptional()
   order?: 'asc' | 'desc' = 'asc';
 
+  @Transform(({ value }) => {
+    if (!value) return ['category', 'brand'];
+    if (Array.isArray(value)) return value;
+    if (typeof value === 'string') {
+      // Handle comma-separated string: "category,brand" -> ["category", "brand"]
+      return value.split(',').map((item) => item.trim()).filter(Boolean);
+    }
+    return ['category', 'brand'];
+  })
   @IsArray({ message: 'Include must be an array' })
   @IsString({ each: true, message: 'Each include value must be a string' })
   @IsIn(['category', 'brand', 'stock'], {

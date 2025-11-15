@@ -1,0 +1,456 @@
+import { useState, useEffect, type ReactNode } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import {
+  LayoutDashboard,
+  Users,
+  Package,
+  Warehouse,
+  ShoppingCart,
+  Wrench,
+  Bell,
+  Search,
+  Menu,
+  X,
+  ChevronDown,
+  ChevronRight,
+  LogOut,
+  Settings,
+  User,
+  UserCog,
+  Shield,
+  DollarSign,
+  FileText,
+  CreditCard,
+  Receipt,
+  Building2,
+  Calendar,
+  TrendingUp,
+  Tag,
+  Award,
+  Boxes,
+  ArrowRightLeft,
+  ClipboardCheck,
+  PackageSearch,
+  Store,
+  Truck,
+  ReceiptText,
+  Wallet,
+  BarChart3,
+  Briefcase,
+  Clock,
+  CalendarDays,
+  Banknote,
+  Target,
+  Plus,
+} from 'lucide-react';
+
+interface DashboardLayoutProps {
+  children: ReactNode;
+}
+
+// Get user from localStorage or auth store
+const getUser = () => {
+  try {
+    const userStr = localStorage.getItem('user');
+    if (userStr) return JSON.parse(userStr);
+  } catch {
+    // Ignore
+  }
+  return { fullName: 'Admin', role: { name: 'Administrator', code: 'ADMIN' } };
+};
+
+const SIDEBAR_WIDTH = 280;
+
+interface MenuItem {
+  icon: any;
+  label: string;
+  path?: string;
+  roles: string[];
+  children?: MenuItem[];
+}
+
+export default function DashboardLayout({ children }: DashboardLayoutProps) {
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({
+    masterData: true,
+    sales: true,
+    service: true,
+    inventory: true,
+    finance: true,
+    purchasing: true,
+    hr: true,
+  });
+  const user = getUser();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Handle responsive behavior
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+      // Auto-close sidebar on mobile
+      if (window.innerWidth < 1024) {
+        setSidebarOpen(false);
+      } else {
+        setSidebarOpen(true);
+      }
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
+
+  // Menu structure with submenus based on PRD
+  const allMenuItems: MenuItem[] = [
+    {
+      icon: LayoutDashboard,
+      label: 'Dashboard',
+      path: '/dashboard',
+      roles: ['*'],
+    },
+    {
+      icon: Package,
+      label: 'Master Data',
+      roles: ['*'],
+      children: [
+        { icon: Users, label: 'Pelanggan', path: '/customers', roles: ['*'] },
+        { icon: Package, label: 'Produk', path: '/products', roles: ['*'] },
+        { icon: Building2, label: 'Supplier', path: '/suppliers', roles: ['*'] },
+        { icon: Tag, label: 'Kategori', path: '/categories', roles: ['*'] },
+        { icon: Award, label: 'Brand', path: '/brands', roles: ['*'] },
+      ],
+    },
+    {
+      icon: ShoppingCart,
+      label: 'Penjualan',
+      roles: ['*'],
+      children: [
+        { icon: ShoppingCart, label: 'POS', path: '/sales/pos', roles: ['*'] },
+        { icon: Receipt, label: 'Riwayat Penjualan', path: '/sales/history', roles: ['*'] },
+        { icon: ArrowRightLeft, label: 'Retur Penjualan', path: '/sales/returns', roles: ['*'] },
+      ],
+    },
+    {
+      icon: Wrench,
+      label: 'Servis',
+      roles: ['*'],
+      children: [
+        { icon: Wrench, label: 'Service Order', path: '/service-orders', roles: ['*'] },
+        { icon: Plus, label: 'Tambah Service', path: '/service-orders/new', roles: ['*'] },
+      ],
+    },
+    {
+      icon: Warehouse,
+      label: 'Gudang',
+      roles: ['*'],
+      children: [
+        { icon: Boxes, label: 'Stok', path: '/inventory/stock', roles: ['*'] },
+        { icon: ArrowRightLeft, label: 'Transfer Stok', path: '/inventory/transfer', roles: ['*'] },
+        { icon: ClipboardCheck, label: 'Stock Opname', path: '/inventory/opname', roles: ['*'] },
+        { icon: PackageSearch, label: 'Stock Adjustment', path: '/inventory/adjustment', roles: ['*'] },
+      ],
+    },
+    {
+      icon: DollarSign,
+      label: 'Keuangan',
+      roles: ['*'],
+      children: [
+        { icon: FileText, label: 'Chart of Accounts', path: '/finance/coa', roles: ['*'] },
+        { icon: ReceiptText, label: 'Jurnal Umum', path: '/finance/journal', roles: ['*'] },
+        { icon: Wallet, label: 'Pengeluaran', path: '/finance/expenses', roles: ['*'] },
+        { icon: CreditCard, label: 'Petty Cash', path: '/finance/petty-cash', roles: ['*'] },
+        { icon: Receipt, label: 'Accounts Receivable', path: '/finance/ar', roles: ['*'] },
+        { icon: BarChart3, label: 'Laporan Keuangan', path: '/finance/reports', roles: ['*'] },
+      ],
+    },
+    {
+      icon: FileText,
+      label: 'Pembelian',
+      roles: ['*'],
+      children: [
+        { icon: Building2, label: 'Supplier', path: '/purchasing/suppliers', roles: ['*'] },
+        { icon: FileText, label: 'Purchase Order', path: '/purchasing/po', roles: ['*'] },
+        { icon: Truck, label: 'Goods Receipt', path: '/purchasing/goods-receipt', roles: ['*'] },
+      ],
+    },
+    {
+      icon: UserCog,
+      label: 'Karyawan',
+      roles: ['*'],
+      children: [
+        { icon: Users, label: 'Data Karyawan', path: '/hr/employees', roles: ['*'] },
+        { icon: Clock, label: 'Absensi', path: '/hr/attendance', roles: ['*'] },
+        { icon: CalendarDays, label: 'Cuti', path: '/hr/leave', roles: ['*'] },
+        { icon: Banknote, label: 'Payroll', path: '/hr/payroll', roles: ['*'] },
+        { icon: Target, label: 'KPI', path: '/hr/kpi', roles: ['*'] },
+      ],
+    },
+    {
+      icon: Shield,
+      label: 'User & Role',
+      path: '/users',
+      roles: ['*'],
+    },
+  ];
+
+  // Filter menu based on user role (for now, show all)
+  const userRole = user?.role?.code || 'ADMIN';
+  const menuItems = allMenuItems.filter(
+    (item) => item.roles.includes('*') || item.roles.includes(userRole),
+  );
+
+  const isActive = (path?: string) => {
+    if (!path) return false;
+    return location.pathname === path || location.pathname.startsWith(path + '/');
+  };
+
+  const isParentActive = (item: MenuItem): boolean => {
+    if (item.path && isActive(item.path)) return true;
+    if (item.children) {
+      return item.children.some((child) => isParentActive(child));
+    }
+    return false;
+  };
+
+  const toggleMenu = (menuKey: string) => {
+    setExpandedMenus((prev) => ({
+      ...prev,
+      [menuKey]: !prev[menuKey],
+    }));
+  };
+
+  const getMenuKey = (label: string) => {
+    return label.toLowerCase().replace(/\s+/g, '');
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 w-full overflow-x-hidden">
+      {/* Sidebar */}
+      <aside
+        className={`fixed top-0 left-0 z-40 h-screen transition-all duration-300 ease-in-out ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } bg-white border-r border-gray-200 shadow-xl`}
+        style={{ width: `${SIDEBAR_WIDTH}px` }}
+      >
+        {/* Logo */}
+        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl">
+              <span className="text-lg font-bold text-white">IGD</span>
+            </div>
+            <div>
+              <h1 className="text-lg font-display font-bold text-gray-900">IGD ERP</h1>
+              <p className="text-xs text-gray-500">System v1.0</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation Menu */}
+        <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto overflow-x-hidden" style={{ maxHeight: 'calc(100vh - 8rem)' }}>
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const menuKey = getMenuKey(item.label);
+            const hasChildren = item.children && item.children.length > 0;
+            const isExpanded = expandedMenus[menuKey] ?? false;
+            const parentActive = isParentActive(item);
+            const itemActive = item.path ? isActive(item.path) : false;
+
+            if (hasChildren) {
+              return (
+                <div key={menuKey}>
+                  <button
+                    onClick={() => toggleMenu(menuKey)}
+                    className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg transition-all ${
+                      parentActive
+                        ? 'bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow-lg'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon className="w-5 h-5" />
+                      <span className="font-medium">{item.label}</span>
+                    </div>
+                    {isExpanded ? (
+                      <ChevronDown className="w-4 h-4" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4" />
+                    )}
+                  </button>
+                  {isExpanded && (
+                    <div className="ml-4 mt-1 space-y-1 border-l-2 border-gray-200 pl-4">
+                      {item.children!.map((child) => {
+                        const ChildIcon = child.icon;
+                        const childActive = child.path ? isActive(child.path) : false;
+                        return (
+                          <Link
+                            key={child.path || child.label}
+                            to={child.path || '#'}
+                            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all text-sm ${
+                              childActive
+                                ? 'bg-primary-50 text-primary-700 font-semibold border-l-2 border-primary-600'
+                                : 'text-gray-600 hover:bg-gray-50'
+                            }`}
+                          >
+                            <ChildIcon className="w-4 h-4" />
+                            <span>{child.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            return (
+              <Link
+                key={item.path || item.label}
+                to={item.path || '#'}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                  itemActive
+                    ? 'bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow-lg'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <Icon className="w-5 h-5" />
+                <span className="font-medium">{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* User Info at Bottom */}
+        <div className="border-t border-gray-200 p-4">
+          <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-gray-50">
+            <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-r from-primary-600 to-primary-500 rounded-full text-white text-sm font-semibold">
+              {user?.fullName?.charAt(0).toUpperCase() || 'A'}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-gray-900 truncate">
+                {user?.fullName || 'Admin'}
+              </p>
+              <p className="text-xs text-gray-500 truncate">
+                {user?.role?.name || 'Administrator'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content - Dynamic Width */}
+      <div
+        className="transition-all duration-300 ease-in-out w-full"
+        style={{
+          marginLeft: sidebarOpen ? `${SIDEBAR_WIDTH}px` : '0px',
+          width: sidebarOpen ? `calc(100% - ${SIDEBAR_WIDTH}px)` : '100%',
+        }}
+      >
+        {/* Top Bar */}
+        <header className="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between h-16 px-4">
+            {/* Left: Toggle & Search */}
+            <div className="flex items-center gap-4 flex-1 min-w-0">
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                aria-label="Toggle sidebar"
+              >
+                {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+
+              <div className="relative flex-1 max-w-md">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Cari pelanggan, produk, atau transaksi..."
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            {/* Right: Notifications & User */}
+            <div className="flex items-center gap-3 flex-shrink-0">
+              {/* Notifications */}
+              <button className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                <Bell className="w-5 h-5" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-primary-600 rounded-full"></span>
+              </button>
+
+              {/* User Menu */}
+              <div className="relative">
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-r from-primary-600 to-primary-500 rounded-full text-white text-sm font-semibold">
+                    {user?.fullName?.charAt(0).toUpperCase() || 'A'}
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-gray-600" />
+                </button>
+
+                {userMenuOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setUserMenuOpen(false)}
+                    ></div>
+                    <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden z-20">
+                      <Link
+                        to="/profile"
+                        className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        <User className="w-4 h-4 text-gray-600" />
+                        <span className="text-sm text-gray-700">Profil</span>
+                      </Link>
+                      <Link
+                        to="/settings"
+                        className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        <Settings className="w-4 h-4 text-gray-600" />
+                        <span className="text-sm text-gray-700">Pengaturan</span>
+                      </Link>
+                      <hr className="border-gray-200" />
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+                      >
+                        <LogOut className="w-4 h-4 text-red-600" />
+                        <span className="text-sm text-red-600 font-medium">Keluar</span>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Page Content - Full Width */}
+        <main className="min-h-[calc(100vh-4rem)] p-3 bg-gray-50 w-full overflow-x-hidden">
+          {children}
+        </main>
+      </div>
+
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && isMobile && (
+        <div
+          className="fixed inset-0 z-30 bg-black bg-opacity-50 transition-opacity duration-300"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+    </div>
+  );
+}
