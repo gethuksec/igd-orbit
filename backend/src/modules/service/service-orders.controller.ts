@@ -12,6 +12,7 @@ import {
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../shared/guards/roles.guard';
 import { Roles } from '../../shared/decorators/roles.decorator';
+import { Public } from '../../shared/decorators/public.decorator';
 import { ServiceOrdersService } from './service-orders.service';
 import { CreateServiceOrderDto } from './dto/create-service-order.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
@@ -120,8 +121,8 @@ export class ServiceOrdersController {
     return this.serviceOrdersService.completeService(id, req.user.id);
   }
 
+  @Public()
   @Get('track/:serviceNumber')
-  // Public endpoint - no auth required
   async trackService(@Param('serviceNumber') serviceNumber: string) {
     return this.serviceOrdersService.trackService(serviceNumber);
   }
@@ -144,8 +145,8 @@ export class ServiceOrdersController {
     return this.serviceOrdersService.deliverService(id, req.user.id);
   }
 
+  @Public()
   @Post(':id/feedback')
-  // Public endpoint - no auth required for customer feedback
   async collectFeedback(
     @Param('id') id: string,
     @Body() dto: CustomerFeedbackDto,

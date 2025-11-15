@@ -13,6 +13,9 @@ import { SalesModule } from './modules/sales/sales.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { ServiceModule } from './modules/service/service.module';
 import { BranchesModule } from './modules/branches/branches.module';
+import { PublicModule } from './modules/public/public.module';
+import { FinanceModule } from './modules/finance/finance.module';
+import { HRModule } from './modules/hr/hr.module';
 
 @Module({
   imports: [
@@ -31,6 +34,9 @@ import { BranchesModule } from './modules/branches/branches.module';
     InventoryModule,
     ServiceModule,
     BranchesModule,
+    PublicModule,
+    FinanceModule,
+    HRModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -24,7 +24,7 @@ export function POSCart() {
 
   // Handle barcode scan (rapid input)
   const [barcodeBuffer, setBarcodeBuffer] = useState('');
-  const barcodeTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const barcodeTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
     if (barcodeBuffer.length > 0) {

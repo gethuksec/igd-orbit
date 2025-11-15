@@ -1,4 +1,4 @@
-import api from './api';
+import { api } from './api';
 
 export interface ServiceTrackingData {
   serviceNumber: string;
@@ -64,7 +64,7 @@ class PublicService {
    * Track service by service number (public endpoint - no auth)
    */
   async trackService(serviceNumber: string): Promise<ServiceTrackingData> {
-    const response = await api.get(`/service-orders/track/${serviceNumber}`);
+    const response = await api.get(`/public/service-tracking/${serviceNumber}`);
     return response.data;
   }
 
@@ -93,10 +93,8 @@ class PublicService {
    * Get all service types
    */
   async getServiceTypes(): Promise<ServiceType[]> {
-    // This endpoint needs to be created in backend
-    // For now, return empty array or mock data
     try {
-      const response = await api.get('/service-types');
+      const response = await api.get('/public/service-types');
       return response.data || [];
     } catch (error) {
       // If endpoint doesn't exist yet, return empty
@@ -108,10 +106,8 @@ class PublicService {
    * Get all branches
    */
   async getBranches(): Promise<Branch[]> {
-    // This endpoint needs to be created in backend
-    // For now, return empty array or mock data
     try {
-      const response = await api.get('/branches');
+      const response = await api.get('/public/branches');
       return response.data || [];
     } catch (error) {
       return [];

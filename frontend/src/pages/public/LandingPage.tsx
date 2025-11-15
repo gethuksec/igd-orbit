@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { publicService, ServiceType, Branch } from '@/services/public.service';
+import { publicService } from '@/services/public.service';
+import type { ServiceType, Branch } from '@/services/public.service';
 import { Button } from '@/components/ui/button';
-import { Search, Shield, Clock, Wrench, Star, MapPin, Phone } from 'lucide-react';
+import { Shield, Clock, Wrench, MapPin, Phone } from 'lucide-react';
 import ProductShowcase from './components/ProductShowcase';
 import AIChatbot from './components/AIChatbot';
 import SEOHead from './components/SEOHead';

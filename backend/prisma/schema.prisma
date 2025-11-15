@@ -163,6 +163,11 @@ model Branch {
   stockTransfersTo   StockTransfer[] @relation("StockTransferTo")
   stockOpnames        StockOpname[]
   serviceOrders       ServiceOrder[]
+  journalEntryLines   JournalEntryLine[]
+  expenses            Expense[]
+  pettyCash           PettyCash[]
+  employees           Employee[]
+  attendances         Attendance[]
 
   @@index([code])
   @@index([isActive])
@@ -183,6 +188,9 @@ model Department {
   parentDepartment Department?  @relation("DepartmentHierarchy", fields: [parentDepartmentId], references: [id], onDelete: SetNull)
   childDepartments Department[] @relation("DepartmentHierarchy")
   branch           Branch?      @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  journalEntryLines JournalEntryLine[]
+  expenses          Expense[]
+  employees         Employee[]
 
   @@index([code])
   @@index([parentDepartmentId])
@@ -359,6 +367,8 @@ model Customer {
   preferredBranch Branch?            @relation(fields: [preferredBranchId], references: [id], onDelete: SetNull)
   transactions    SalesTransaction[]
   serviceOrders   ServiceOrder[]
+  arPayments      ARPayment[]
+  writeOffs       WriteOff[]
 
   @@index([customerCode])
   @@index([email])
@@ -517,15 +527,40 @@ model HeldTransaction {
 // ============================================
 
 model Employee {
-  id        String   @id @default(uuid())
-  userId    String   @unique @map("user_id")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id                String    @id @default(uuid())
+  userId            String    @unique @map("user_id")
+  employeeCode      String    @unique @map("employee_code") // EMP-XXXX
+  branchId          String?   @map("branch_id")
+  departmentId      String?   @map("department_id")
+  position          String?   // Job title
+  hireDate          DateTime? @map("hire_date")
+  employmentType    String?   @map("employment_type") // 'full-time', 'part-time', 'contract'
+  basicSalary       Decimal?  @map("basic_salary") @db.Decimal(15, 2)
+  hourlyRate        Decimal?  @map("hourly_rate") @db.Decimal(15, 2)
+  bankAccount       String?   @map("bank_account")
+  bankName          String?   @map("bank_name")
+  taxId             String?   @map("tax_id") // NPWP
+  bpjsNumber        String?   @map("bpjs_number")
+  isActive          Boolean   @default(true) @map("is_active")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
 
   // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch            Branch?           @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  department        Department?       @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  attendances       Attendance[]
+  leaveRequests     LeaveRequest[]
+  overtimeRequests  OvertimeRequest[]
+  payrolls          Payroll[]
+  kpiRecords        KPIRecord[]
 
   @@index([userId])
+  @@index([employeeCode])
+  @@index([branchId])
+  @@index([departmentId])
+  @@index([isActive])
   @@map("employees")
 }
 
@@ -824,4 +859,431 @@ model ServicePhoto {
   @@index([serviceOrderId])
   @@index([photoType])
   @@map("service_photos")
+}
+
+// ============================================
+// 8. FINANCE & ACCOUNTING
+// ============================================
+
+model ChartOfAccount {
+  id              String   @id @default(uuid())
+  code            String   @unique // e.g., "10100", "40100"
+  name            String
+  accountType     String   @map("account_type") // 'ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'
+  parentId        String?  @map("parent_id")
+  isHeader        Boolean  @default(false) @map("is_header") // Header account (no transactions)
+  isActive        Boolean  @default(true) @map("is_active")
+  description     String?  @db.Text
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  parent          ChartOfAccount?  @relation("ChartOfAccountHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children        ChartOfAccount[]  @relation("ChartOfAccountHierarchy")
+  journalLines    JournalEntryLine[]
+  expenses        Expense[]
+  arPayments      ARPayment[]
+
+  @@index([code])
+  @@index([accountType])
+  @@index([parentId])
+  @@index([isActive])
+  @@map("chart_of_accounts")
+}
+
+model JournalEntry {
+  id              String   @id @default(uuid())
+  entryNumber     String   @unique @map("entry_number") // JE-YYYYMMDD-XXXXXX
+  entryDate       DateTime @map("entry_date")
+  entryType       String   @map("entry_type") // 'manual', 'auto'
+  status          String   @default("draft") // 'draft', 'posted', 'reversed'
+  description     String   @db.Text
+  referenceType   String?  @map("reference_type") // 'sales', 'purchase', 'expense', etc.
+  referenceId     String?  @map("reference_id")
+  notes           String?  @db.Text
+  postedAt        DateTime? @map("posted_at")
+  postedBy        String?  @map("posted_by") // User ID
+  reversedAt      DateTime? @map("reversed_at")
+  reversedBy      String?  @map("reversed_by") // User ID
+  reversalReason  String?  @map("reversal_reason") @db.Text
+  originalEntryId String?  @unique @map("original_entry_id") // For reversal entries (one-to-one)
+  createdBy       String   @map("created_by") // User ID
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  lines           JournalEntryLine[]
+  originalEntry   JournalEntry?  @relation("JournalEntryReversal", fields: [originalEntryId], references: [id], onDelete: SetNull)
+  reversalEntry   JournalEntry?   @relation("JournalEntryReversal")
+  expenses        Expense[]
+  arPayments      ARPayment[]
+  writeOffs       WriteOff[]
+  payrolls        Payroll[]
+
+  @@index([entryNumber])
+  @@index([entryDate])
+  @@index([status])
+  @@index([entryType])
+  @@index([referenceType, referenceId])
+  @@map("journal_entries")
+}
+
+model JournalEntryLine {
+  id              String   @id @default(uuid())
+  journalEntryId  String   @map("journal_entry_id")
+  accountId       String   @map("account_id")
+  debitAmount     Decimal  @default(0) @map("debit_amount") @db.Decimal(15, 2)
+  creditAmount    Decimal  @default(0) @map("credit_amount") @db.Decimal(15, 2)
+  lineDescription String?  @map("line_description") @db.Text
+  branchId        String?  @map("branch_id")
+  departmentId    String?  @map("department_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relations
+  journalEntry    JournalEntry    @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  account         ChartOfAccount   @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  branch          Branch?          @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  department      Department?      @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  @@index([journalEntryId])
+  @@index([accountId])
+  @@index([branchId])
+  @@map("journal_entry_lines")
+}
+
+model Expense {
+  id              String   @id @default(uuid())
+  expenseNumber   String   @unique @map("expense_number") // EXP-YYYYMMDD-XXXXXX
+  expenseCategory String   @map("expense_category")
+  expenseDate     DateTime @map("expense_date")
+  amount          Decimal  @map("amount") @db.Decimal(15, 2)
+  taxAmount       Decimal  @default(0) @map("tax_amount") @db.Decimal(15, 2)
+  totalAmount     Decimal  @map("total_amount") @db.Decimal(15, 2)
+  paymentMethod   String?  @map("payment_method") // 'cash', 'transfer', 'petty-cash'
+  bankAccountId   String?  @map("bank_account_id") // Chart of Account ID for bank
+  branchId        String?  @map("branch_id")
+  departmentId    String?  @map("department_id")
+  glAccountId     String   @map("gl_account_id") // Expense account
+  description     String   @db.Text
+  receiptUrl      String?  @map("receipt_url")
+  notes           String?  @db.Text
+  status          String   @default("pending") // 'pending', 'approved', 'rejected', 'paid'
+  requestedBy     String   @map("requested_by") // User ID
+  approvedBy      String?  @map("approved_by") // User ID
+  approvedAt      DateTime? @map("approved_at")
+  rejectedBy      String?  @map("rejected_by") // User ID
+  rejectedAt      DateTime? @map("rejected_at")
+  rejectionReason String?  @map("rejection_reason") @db.Text
+  paidAt          DateTime? @map("paid_at")
+  paidBy          String?  @map("paid_by") // User ID
+  journalEntryId  String?  @map("journal_entry_id") // Linked journal entry when paid
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  branch          Branch?          @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  department      Department?      @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  glAccount       ChartOfAccount   @relation(fields: [glAccountId], references: [id], onDelete: Restrict)
+  journalEntry    JournalEntry?    @relation(fields: [journalEntryId], references: [id], onDelete: SetNull)
+
+  @@index([expenseNumber])
+  @@index([expenseDate])
+  @@index([status])
+  @@index([requestedBy])
+  @@index([branchId])
+  @@map("expenses")
+}
+
+model PettyCash {
+  id              String   @id @default(uuid())
+  fundNumber      String   @unique @map("fund_number") // PC-{BRANCH}-{YYYY}{MM}
+  branchId        String   @map("branch_id")
+  custodianId     String   @map("custodian_id") // User ID
+  openingBalance  Decimal  @map("opening_balance") @db.Decimal(15, 2)
+  currentBalance  Decimal  @map("current_balance") @db.Decimal(15, 2)
+  periodStart     DateTime @map("period_start")
+  periodEnd       DateTime? @map("period_end")
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  branch          Branch                  @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  transactions    PettyCashTransaction[]
+
+  @@index([fundNumber])
+  @@index([branchId])
+  @@index([custodianId])
+  @@index([isActive])
+  @@map("petty_cash")
+}
+
+model PettyCashTransaction {
+  id              String   @id @default(uuid())
+  pettyCashId     String   @map("petty_cash_id")
+  transactionNumber String @unique @map("transaction_number") // PCT-YYYYMMDD-XXXXXX
+  transactionType String   @map("transaction_type") // 'disbursement', 'replenishment'
+  amount          Decimal  @map("amount") @db.Decimal(15, 2)
+  category        String
+  description     String   @db.Text
+  receiptUrl      String?  @map("receipt_url")
+  balanceBefore   Decimal  @map("balance_before") @db.Decimal(15, 2)
+  balanceAfter    Decimal  @map("balance_after") @db.Decimal(15, 2)
+  recordedBy      String   @map("recorded_by") // User ID
+  approvedBy      String?  @map("approved_by") // User ID
+  approvedAt      DateTime? @map("approved_at")
+  status          String   @default("pending") // 'pending', 'approved', 'rejected'
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relations
+  pettyCash       PettyCash @relation(fields: [pettyCashId], references: [id], onDelete: Cascade)
+
+  @@index([pettyCashId])
+  @@index([transactionNumber])
+  @@index([transactionType])
+  @@index([recordedBy])
+  @@map("petty_cash_transactions")
+}
+
+model ARPayment {
+  id              String   @id @default(uuid())
+  invoiceId       String   @map("invoice_id") // SalesTransaction ID
+  customerId      String   @map("customer_id")
+  paymentNumber   String   @unique @map("payment_number") // ARP-YYYYMMDD-XXXXXX
+  paymentDate     DateTime @map("payment_date")
+  amount          Decimal  @map("amount") @db.Decimal(15, 2)
+  paymentMethod   String   @map("payment_method") // 'cash', 'transfer', 'check'
+  bankAccountId   String?  @map("bank_account_id") // Chart of Account ID
+  referenceNumber String?  @map("reference_number") // Check number, transfer reference
+  notes           String?  @db.Text
+  journalEntryId  String?  @map("journal_entry_id")
+  recordedBy      String   @map("recorded_by") // User ID
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relations
+  customer        Customer        @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  bankAccount     ChartOfAccount? @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+  journalEntry    JournalEntry?   @relation(fields: [journalEntryId], references: [id], onDelete: SetNull)
+
+  @@index([invoiceId])
+  @@index([customerId])
+  @@index([paymentNumber])
+  @@index([paymentDate])
+  @@map("ar_payments")
+}
+
+model WriteOff {
+  id              String   @id @default(uuid())
+  invoiceId       String   @map("invoice_id") // SalesTransaction ID
+  customerId      String   @map("customer_id")
+  writeOffNumber  String   @unique @map("write_off_number") // WO-YYYYMMDD-XXXXXX
+  writeOffDate    DateTime @map("write_off_date")
+  amount          Decimal  @map("amount") @db.Decimal(15, 2)
+  reason          String   @db.Text
+  journalEntryId  String?  @map("journal_entry_id")
+  approvedBy      String   @map("approved_by") // User ID (CFO)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relations
+  customer        Customer      @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  journalEntry    JournalEntry? @relation(fields: [journalEntryId], references: [id], onDelete: SetNull)
+
+  @@index([invoiceId])
+  @@index([customerId])
+  @@index([writeOffNumber])
+  @@map("write_offs")
+}
+
+// ============================================
+// 8. HR & PAYROLL MANAGEMENT
+// ============================================
+
+model Attendance {
+  id                  String    @id @default(uuid())
+  employeeId          String    @map("employee_id")
+  date                DateTime  @db.Date
+  branchId            String    @map("branch_id")
+  clockIn             DateTime? @map("clock_in")
+  clockOut            DateTime? @map("clock_out")
+  clockInMethod       String?   @map("clock_in_method") // 'fingerprint', 'manual'
+  clockOutMethod      String?   @map("clock_out_method")
+  clockInLocation     String?   @map("clock_in_location") // GPS or branch
+  clockOutLocation    String?   @map("clock_out_location")
+  status              String    @default("present") // 'present', 'absent', 'leave', 'holiday'
+  isLate              Boolean   @default(false) @map("is_late")
+  lateMinutes         Int       @default(0) @map("late_minutes")
+  isEarlyLeave        Boolean   @default(false) @map("is_early_leave")
+  earlyLeaveMinutes   Int       @default(0) @map("early_leave_minutes")
+  totalHours          Decimal?  @map("total_hours") @db.Decimal(5, 2)
+  breakTime           Decimal?  @default(1) @map("break_time") @db.Decimal(5, 2) // Hours
+  overtimeHours       Decimal?  @default(0) @map("overtime_hours") @db.Decimal(5, 2)
+  overtimeApproved    Boolean   @default(false) @map("overtime_approved")
+  overtimeApprovedBy  String?   @map("overtime_approved_by") // User ID
+  notes               String?   @db.Text
+  adjustedBy          String?   @map("adjusted_by") // User ID
+  adjustmentReason    String?   @map("adjustment_reason") @db.Text
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  employee            Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  branch              Branch    @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  overtimeRequest     OvertimeRequest?
+
+  @@unique([employeeId, date])
+  @@index([employeeId])
+  @@index([date])
+  @@index([branchId])
+  @@index([status])
+  @@map("attendances")
+}
+
+model LeaveRequest {
+  id                String    @id @default(uuid())
+  employeeId        String    @map("employee_id")
+  leaveType         String    @map("leave_type") // 'annual', 'sick', 'emergency', 'unpaid'
+  startDate        DateTime  @map("start_date") @db.Date
+  endDate           DateTime  @map("end_date") @db.Date
+  totalDays         Int       @map("total_days")
+  reason            String    @db.Text
+  attachmentUrl     String?   @map("attachment_url")
+  status            String    @default("pending") // 'pending', 'approved', 'rejected', 'cancelled'
+  requestedBy       String    @map("requested_by") // User ID
+  approvedBy        String?   @map("approved_by") // User ID
+  rejectedBy        String?   @map("rejected_by") // User ID
+  rejectionReason   String?   @map("rejection_reason") @db.Text
+  approvedAt        DateTime? @map("approved_at")
+  rejectedAt        DateTime? @map("rejected_at")
+  cancelledAt       DateTime? @map("cancelled_at")
+  cancelledBy       String?   @map("cancelled_by") // User ID
+  cancellationReason String?  @map("cancellation_reason") @db.Text
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  employee          Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId])
+  @@index([status])
+  @@index([leaveType])
+  @@index([startDate])
+  @@index([endDate])
+  @@map("leave_requests")
+}
+
+model OvertimeRequest {
+  id                String    @id @default(uuid())
+  employeeId        String    @map("employee_id")
+  attendanceId      String?   @unique @map("attendance_id")
+  date              DateTime  @db.Date
+  hours             Decimal   @db.Decimal(5, 2)
+  reason            String    @db.Text
+  estimatedAmount   Decimal?  @map("estimated_amount") @db.Decimal(15, 2)
+  status            String    @default("pending") // 'pending', 'approved', 'rejected'
+  requestedBy       String    @map("requested_by") // User ID
+  approvedBy        String?   @map("approved_by") // User ID
+  approvedAt        DateTime? @map("approved_at")
+  rejectedBy     String?   @map("rejected_by") // User ID
+  rejectedAt        DateTime? @map("rejected_at")
+  rejectionReason   String?   @map("rejection_reason") @db.Text
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  employee          Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  attendance        Attendance? @relation(fields: [attendanceId], references: [id], onDelete: SetNull)
+
+  @@index([employeeId])
+  @@index([date])
+  @@index([status])
+  @@map("overtime_requests")
+}
+
+model Payroll {
+  id                String    @id @default(uuid())
+  employeeId        String    @map("employee_id")
+  periodMonth       Int       @map("period_month")
+  periodYear        Int       @map("period_year")
+  payrollNumber     String    @unique @map("payroll_number") // PAY-YYYYMM-XXXXXX
+  status            String    @default("draft") // 'draft', 'approved', 'paid', 'cancelled'
+  totalEarnings     Decimal   @map("total_earnings") @db.Decimal(15, 2)
+  totalDeductions   Decimal   @map("total_deductions") @db.Decimal(15, 2)
+  nettSalary        Decimal   @map("nett_salary") @db.Decimal(15, 2)
+  attendanceDays    Int       @default(0) @map("attendance_days")
+  lateCount         Int       @default(0) @map("late_count")
+  lateMinutes       Int       @default(0) @map("late_minutes")
+  earlyLeaveCount   Int       @default(0) @map("early_leave_count")
+  absenceCount      Int       @default(0) @map("absence_count")
+  overtimeHours     Decimal   @default(0) @map("overtime_hours") @db.Decimal(5, 2)
+  unpaidLeaveDays   Int       @default(0) @map("unpaid_leave_days")
+  calculatedBy      String    @map("calculated_by") // User ID
+  calculatedAt      DateTime  @map("calculated_at")
+  approvedBy        String?   @map("approved_by") // User ID (CHR)
+  approvedBy2       String?   @map("approved_by_2") // User ID (CFO)
+  approvedAt        DateTime? @map("approved_at")
+  processedBy       String?   @map("processed_by") // User ID
+  processedAt       DateTime? @map("processed_at")
+  journalEntryId    String?   @map("journal_entry_id")
+  payslipUrl        String?   @map("payslip_url")
+  notes             String?   @db.Text
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  employee          Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  components        PayrollComponent[]
+  journalEntry      JournalEntry?    @relation(fields: [journalEntryId], references: [id], onDelete: SetNull)
+
+  @@unique([employeeId, periodMonth, periodYear])
+  @@index([employeeId])
+  @@index([periodMonth, periodYear])
+  @@index([status])
+  @@index([payrollNumber])
+  @@map("payrolls")
+}
+
+model PayrollComponent {
+  id                String    @id @default(uuid())
+  payrollId         String    @map("payroll_id")
+  type              String    // 'earning', 'deduction'
+  name              String
+  amount            Decimal   @db.Decimal(15, 2)
+  formula           String?   @db.Text // Calculation formula
+  notes             String?   @db.Text
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  payroll           Payroll  @relation(fields: [payrollId], references: [id], onDelete: Cascade)
+
+  @@index([payrollId])
+  @@index([type])
+  @@map("payroll_components")
+}
+
+model KPIRecord {
+  id                        String    @id @default(uuid())
+  employeeId                String    @map("employee_id")
+  periodMonth               Int       @map("period_month")
+  periodYear                Int       @map("period_year")
+  salesTargetAchievement    Decimal?  @map("sales_target_achievement") @db.Decimal(15, 2)
+  serviceQualityScore       Decimal?  @map("service_quality_score") @db.Decimal(5, 2)
+  customerSatisfaction       Decimal?  @map("customer_satisfaction") @db.Decimal(5, 2)
+  attendanceScore            Decimal?  @map("attendance_score") @db.Decimal(5, 2)
+  overallScore               Decimal   @map("overall_score") @db.Decimal(5, 2) // 0-100
+  targetBonus                Decimal?  @map("target_bonus") @db.Decimal(15, 2)
+  calculatedBonus            Decimal?  @map("calculated_bonus") @db.Decimal(15, 2)
+  bonusMultiplier            Decimal?  @default(1.0) @map("bonus_multiplier") @db.Decimal(3, 2)
+  recordedBy                 String    @map("recorded_by") // User ID
+  notes                      String?   @db.Text
+  createdAt                  DateTime  @default(now()) @map("created_at")
+  updatedAt                  DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  employee                  Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, periodMonth, periodYear])
+  @@index([employeeId])
+  @@index([periodMonth, periodYear])
+  @@index([overallScore])
+  @@map("kpi_records")
 }

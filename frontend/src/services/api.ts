@@ -33,7 +33,16 @@ api.interceptors.response.use(
     // Handle 401 unauthorized
     if (error.response?.status === 401) {
       localStorage.removeItem('access_token');
-      window.location.href = '/login';
+      // Only redirect to login if not on a public page
+      const currentPath = window.location.pathname;
+      const publicPaths = ['/', '/track'];
+      const isPublicPath = publicPaths.some(path => currentPath === path || currentPath.startsWith('/track'));
+      
+      if (!isPublicPath) {
+        // Only redirect if login route exists, otherwise just clear token
+        // For now, we'll just clear the token and let the app handle it
+        // window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

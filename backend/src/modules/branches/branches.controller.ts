@@ -1,8 +1,6 @@
-import { Controller, Get, Param, SetMetadata } from '@nestjs/common';
+import { Controller, Get, Param } from '@nestjs/common';
 import { PrismaService } from '../../shared/services/prisma.service';
-
-// Public decorator for public endpoints
-const Public = () => SetMetadata('isPublic', true);
+import { Public } from '../../shared/decorators/public.decorator';
 
 @Controller('branches')
 export class BranchesController {

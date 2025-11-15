@@ -1,5 +1,5 @@
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Package, Smartphone } from 'lucide-react';
+import { Calendar, Smartphone } from 'lucide-react';
 
 interface ServiceInfoProps {
   serviceNumber: string;

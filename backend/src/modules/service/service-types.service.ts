@@ -85,16 +85,50 @@ export class ServiceTypesService {
   }
 
   async findAll() {
-    return this.prisma.serviceType.findMany({
+    const serviceTypes = await this.prisma.serviceType.findMany({
       where: { isActive: true },
       orderBy: { name: 'asc' },
     });
+
+    // Transform Decimal values to numbers for JSON serialization
+    return serviceTypes.map((st) => ({
+      id: st.id,
+      code: st.code,
+      name: st.name,
+      description: st.description,
+      basePrice: st.basePrice.toNumber(),
+      minPrice: st.minPrice ? st.minPrice.toNumber() : null,
+      maxPrice: st.maxPrice ? st.maxPrice.toNumber() : null,
+      slaHours: st.slaHours,
+      isActive: st.isActive,
+      createdAt: st.createdAt,
+      updatedAt: st.updatedAt,
+    }));
   }
 
   async findById(id: string) {
-    return this.prisma.serviceType.findUnique({
+    const serviceType = await this.prisma.serviceType.findUnique({
       where: { id },
     });
+
+    if (!serviceType) {
+      return null;
+    }
+
+    // Transform Decimal values to numbers for JSON serialization
+    return {
+      id: serviceType.id,
+      code: serviceType.code,
+      name: serviceType.name,
+      description: serviceType.description,
+      basePrice: serviceType.basePrice.toNumber(),
+      minPrice: serviceType.minPrice ? serviceType.minPrice.toNumber() : null,
+      maxPrice: serviceType.maxPrice ? serviceType.maxPrice.toNumber() : null,
+      slaHours: serviceType.slaHours,
+      isActive: serviceType.isActive,
+      createdAt: serviceType.createdAt,
+      updatedAt: serviceType.updatedAt,
+    };
   }
 }
 

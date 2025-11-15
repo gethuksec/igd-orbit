@@ -65,7 +65,6 @@ export default function StatusTimeline({ currentStatus, statusHistory }: StatusT
           const statusIndex = getStatusIndex(status);
           const isCompleted = statusIndex < currentIndex;
           const isCurrent = statusIndex === currentIndex;
-          const isPending = statusIndex > currentIndex;
           const statusDate = getStatusDate(status);
 
           return (

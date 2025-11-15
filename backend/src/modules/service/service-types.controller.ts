@@ -1,8 +1,6 @@
-import { Controller, Get, Param, SetMetadata } from '@nestjs/common';
+import { Controller, Get, Param, Post } from '@nestjs/common';
 import { ServiceTypesService } from './service-types.service';
-
-// Public decorator for public endpoints
-const Public = () => SetMetadata('isPublic', true);
+import { Public } from '../../shared/decorators/public.decorator';
 
 @Controller('service-types')
 export class ServiceTypesController {
@@ -26,6 +24,16 @@ export class ServiceTypesController {
   @Public()
   async findById(@Param('id') id: string) {
     return this.serviceTypesService.findById(id);
+  }
+
+  /**
+   * Seed service types (development only)
+   * POST /api/v1/service-types/seed
+   */
+  @Public()
+  @Post('seed')
+  async seed() {
+    return this.serviceTypesService.seedServiceTypes();
   }
 }
 

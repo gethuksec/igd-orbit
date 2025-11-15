@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { publicService, ServiceTrackingData } from '@/services/public.service';
+import { publicService } from '@/services/public.service';
+import type { ServiceTrackingData } from '@/services/public.service';
 import ServiceSearch from './components/ServiceSearch';
 import ServiceInfo from './components/ServiceInfo';
 import StatusTimeline from './components/StatusTimeline';
 import ContactSupport from './components/ContactSupport';
-import { toast } from 'sonner';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { trackPageView, trackServiceSearch } from '@/utils/analytics';
@@ -22,7 +22,6 @@ export default function ServiceTracking() {
     data: serviceData,
     isLoading,
     error,
-    refetch,
   } = useQuery<ServiceTrackingData>({
     queryKey: ['serviceTracking', searchServiceNumber],
     queryFn: () => publicService.trackService(searchServiceNumber),

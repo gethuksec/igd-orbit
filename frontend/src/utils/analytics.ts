@@ -23,7 +23,9 @@ export const initAnalytics = (measurementId: string) => {
 
   window.dataLayer = window.dataLayer || [];
   window.gtag = function () {
-    window.dataLayer.push(arguments);
+    if (window.dataLayer) {
+      window.dataLayer.push(arguments);
+    }
   };
   window.gtag('js', new Date());
   window.gtag('config', measurementId);
@@ -31,9 +33,12 @@ export const initAnalytics = (measurementId: string) => {
 
 export const trackPageView = (path: string) => {
   if (window.gtag) {
-    window.gtag('config', process.env.VITE_GA_MEASUREMENT_ID || '', {
-      page_path: path,
-    });
+    const gaId = import.meta.env.VITE_GA_MEASUREMENT_ID;
+    if (gaId) {
+      window.gtag('config', gaId, {
+        page_path: path,
+      });
+    }
   }
 };
 
@@ -57,7 +62,7 @@ export const trackServiceSearch = (serviceNumber: string) => {
   trackEvent('service_search', 'Service Tracking', serviceNumber);
 };
 
-export const trackProductView = (productId: string, productName: string) => {
+export const trackProductView = (_productId: string, productName: string) => {
   trackEvent('product_view', 'Product', productName, undefined);
 };
 

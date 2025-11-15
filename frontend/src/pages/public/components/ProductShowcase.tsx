@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { publicService, FeaturedProduct } from '@/services/public.service';
+import { publicService } from '@/services/public.service';
+import type { FeaturedProduct } from '@/services/public.service';
 import { formatCurrency } from '@/utils/format';
 import { Button } from '@/components/ui/button';
 import { Eye, ShoppingCart } from 'lucide-react';
