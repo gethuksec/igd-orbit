@@ -13,7 +13,7 @@ export default function ServiceSearch({ onSearch, isLoading, error }: ServiceSea
   const [localError, setLocalError] = useState('');
 
   const validateServiceNumber = (value: string): boolean => {
-    // Format: SRV-YYYYMMDD-XXXXXX
+    // Format default: SRV-YYYYMMDD-XXXXXX (contoh: SRV-20251115-123456)
     const pattern = /^SRV-\d{8}-\d{6}$/;
     return pattern.test(value);
   };
@@ -22,14 +22,14 @@ export default function ServiceSearch({ onSearch, isLoading, error }: ServiceSea
     setLocalError('');
     
     if (!serviceNumber.trim()) {
-      setLocalError('Please enter a service number');
+      setLocalError('Mohon isi nomor nota / nomor service terlebih dahulu');
       return;
     }
 
     const trimmed = serviceNumber.trim().toUpperCase();
     
     if (!validateServiceNumber(trimmed)) {
-      setLocalError('Invalid service number format. Expected: SRV-YYYYMMDD-XXXXXX');
+      setLocalError('Format nomor service tidak valid. Contoh: SRV-20251115-123456');
       return;
     }
 
@@ -45,19 +45,19 @@ export default function ServiceSearch({ onSearch, isLoading, error }: ServiceSea
   const displayError = error || localError;
 
   return (
-    <div className="w-full max-w-md mx-auto">
+    <div className="w-full max-w-2xl mx-auto">
       <div className="flex gap-2">
         <div className="flex-1">
           <Input
             type="text"
-            placeholder="Enter service number (e.g., SRV-20251115-123456)"
+            placeholder="Masukkan nomor nota / nomor service (contoh: SRV-20251115-123456)"
             value={serviceNumber}
             onChange={(e) => {
               setServiceNumber(e.target.value);
               setLocalError('');
             }}
             onKeyPress={handleKeyPress}
-            className={`${displayError ? 'border-red-500' : ''}`}
+            className={`bg-white/95 text-gray-900 placeholder:text-red-300/90 border-2 ${displayError ? 'border-yellow-300 ring-2 ring-yellow-300/60' : 'border-white/70 focus:border-white focus:ring-2 focus:ring-white/80'} shadow-lg`}
             disabled={isLoading}
           />
           {displayError && (
@@ -76,8 +76,8 @@ export default function ServiceSearch({ onSearch, isLoading, error }: ServiceSea
           )}
         </button>
       </div>
-      <p className="mt-2 text-xs text-gray-500 text-center">
-        Find your service number on your receipt or confirmation email
+      <p className="mt-2 text-xs text-red-50/90 text-center drop-shadow">
+        Nomor unik ini tercetak di nota servis / invoice Anda (kolom <strong>No. Service</strong> atau <strong>No. Nota</strong>).
       </p>
     </div>
   );

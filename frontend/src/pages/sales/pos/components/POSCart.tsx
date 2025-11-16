@@ -105,7 +105,7 @@ export function POSCart() {
         {/* Search Results Dropdown */}
         {searchQuery.length >= 2 && searchResults.length > 0 && (
           <div className="absolute z-10 mt-1 w-full max-w-md bg-white border rounded-md shadow-lg max-h-64 overflow-y-auto">
-            {searchResults.map((product) => (
+            {searchResults.map((product: ProductSearchResult) => (
               <button
                 key={product.id}
                 onClick={() => handleAddProduct(product)}

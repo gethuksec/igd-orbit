@@ -11,15 +11,13 @@ import {
   DollarSign,
   Barcode,
   Download,
-  Upload,
-  Loader2,
   Filter,
-  MoreVertical,
+  Loader2,
   TrendingUp,
   AlertTriangle,
   CheckCircle2,
 } from 'lucide-react';
-import { productsService, type Product } from '../../services/products.service';
+import { productsService } from '../../services/products.service';
 import { api } from '../../services/api';
 
 export default function ProductList() {

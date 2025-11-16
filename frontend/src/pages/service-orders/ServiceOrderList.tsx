@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Search, Edit, Eye, Wrench, Loader2, Filter, TrendingUp } from 'lucide-react';
-import { serviceOrdersService, type ServiceOrder } from '../../services/service-orders.service';
+import { serviceOrdersService } from '../../services/service-orders.service';
 
 export default function ServiceOrderList() {
   const [searchTerm, setSearchTerm] = useState('');

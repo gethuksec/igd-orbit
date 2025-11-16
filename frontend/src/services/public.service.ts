@@ -30,6 +30,11 @@ export interface FeaturedProduct {
   };
 }
 
+export interface PopularProduct extends FeaturedProduct {
+  totalSold: number;
+  totalRevenue: number;
+}
+
 export interface ServiceType {
   id: string;
   code: string;
@@ -85,6 +90,19 @@ class PublicService {
       return response.data.data || [];
     } catch (error) {
       // If endpoint doesn't exist or fails, return empty array
+      return [];
+    }
+  }
+
+  /**
+   * Get popular products (aggregated from transactions, public)
+   */
+  async getPopularProducts(limit = 5): Promise<PopularProduct[]> {
+    try {
+      const response = await api.get('/public/popular-products');
+      const data: PopularProduct[] = response.data || [];
+      return data.slice(0, limit);
+    } catch (error) {
       return [];
     }
   }

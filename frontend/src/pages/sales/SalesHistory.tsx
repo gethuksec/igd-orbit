@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Search, Eye, Receipt, Loader2, TrendingUp, DollarSign, ShoppingCart } from 'lucide-react';
-import { salesService, type SalesTransaction } from '../../services/sales.service';
+import { salesService } from '../../services/sales.service';
 
 export default function SalesHistory() {
   const [searchTerm, setSearchTerm] = useState('');

@@ -29,7 +29,17 @@ export function POSCustomer() {
       name: customerData.name,
       phone: customerData.phone,
       email: customerData.email,
-      tier: customerData.tier,
+      tier:
+        typeof customerData.tier === 'string'
+          ? { code: customerData.tier, name: customerData.tier, discountPercentage: 0 }
+          : customerData.tier
+          ? {
+              code: customerData.tier.code,
+              name: customerData.tier.name,
+              discountPercentage:
+                (customerData.tier as any).discountPercentage ?? 0,
+            }
+          : undefined,
       creditLimit: customerData.creditLimit,
       creditUsed: customerData.creditUsed,
     });
@@ -56,7 +66,7 @@ export function POSCustomer() {
         {/* Search Results */}
         {searchQuery.length >= 2 && searchResults.length > 0 && (
           <div className="absolute z-10 mt-1 w-full max-w-sm bg-white border rounded-md shadow-lg max-h-64 overflow-y-auto">
-            {searchResults.map((customerData) => (
+            {searchResults.map((customerData: CustomerSearchResult) => (
               <button
                 key={customerData.id}
                 onClick={() => handleSelectCustomer(customerData)}
@@ -66,7 +76,9 @@ export function POSCustomer() {
                 <div className="text-sm text-gray-500">{formatPhone(customerData.phone)}</div>
                 {customerData.tier && (
                   <Badge variant="secondary" className="mt-1">
-                    {customerData.tier.name}
+                    {typeof customerData.tier === 'string'
+                      ? customerData.tier
+                      : customerData.tier.name}
                   </Badge>
                 )}
               </button>

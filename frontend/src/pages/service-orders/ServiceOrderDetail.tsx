@@ -1,6 +1,6 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Edit, Wrench, User, Phone, Mail, Package, Loader2, Calendar, DollarSign } from 'lucide-react';
+import { ArrowLeft, Edit, Wrench, User, Phone, Mail, Package, Loader2 } from 'lucide-react';
 import { serviceOrdersService } from '../../services/service-orders.service';
 
 export default function ServiceOrderDetail() {

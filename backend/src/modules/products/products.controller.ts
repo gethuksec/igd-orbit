@@ -141,7 +141,7 @@ export class ProductsController {
   @UseInterceptors(FileInterceptor('file'))
   @HttpCode(HttpStatus.OK)
   async import(
-    @UploadedFile() _file: Express.Multer.File,
+    @UploadedFile() _file: any,
     @Request() _req: ExpressRequest & { user: any },
   ) {
     // TODO: Implement CSV parsing

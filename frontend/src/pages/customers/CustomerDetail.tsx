@@ -9,7 +9,6 @@ import {
   MapPin,
   Loader2,
   Award,
-  Calendar,
   Crown,
   Sparkles,
 } from 'lucide-react';
@@ -19,14 +18,17 @@ export default function CustomerDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const { data: customer, isLoading } = useQuery({
+  const { data: customer, isLoading, error } = useQuery({
     queryKey: ['customer', id],
     queryFn: () => customersService.getById(id!),
     enabled: !!id,
+    retry: 1,
   });
 
-  const getTierColor = (tier: string) => {
-    switch (tier) {
+  const getTierColor = (tier: { code: string; name: string } | null | string) => {
+    if (!tier) return 'bg-gradient-to-r from-blue-400 to-blue-500 text-white border-blue-500';
+    const tierCode = typeof tier === 'string' ? tier : tier.code?.toUpperCase();
+    switch (tierCode) {
       case 'PLATINUM':
         return 'bg-gradient-to-r from-purple-500 to-purple-600 text-white border-purple-600';
       case 'GOLD':
@@ -38,8 +40,10 @@ export default function CustomerDetail() {
     }
   };
 
-  const getTierIcon = (tier: string) => {
-    switch (tier) {
+  const getTierIcon = (tier: { code: string; name: string } | null | string) => {
+    if (!tier) return null;
+    const tierCode = typeof tier === 'string' ? tier : tier.code?.toUpperCase();
+    switch (tierCode) {
       case 'PLATINUM':
         return <Crown className="w-5 h-5" />;
       case 'GOLD':
@@ -55,6 +59,24 @@ export default function CustomerDetail() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full text-center py-12">
+        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm max-w-md mx-auto">
+          <p className="text-red-800 font-medium">
+            {(error as Error).message || 'Terjadi kesalahan saat memuat data pelanggan'}
+          </p>
+        </div>
+        <button
+          onClick={() => navigate('/customers')}
+          className="mt-4 text-primary-600 hover:text-primary-700 font-medium"
+        >
+          Kembali ke daftar pelanggan
+        </button>
       </div>
     );
   }
@@ -166,9 +188,16 @@ export default function CustomerDetail() {
                 )}`}
               >
                 {getTierIcon(customer.tier)}
-                {customer.tier}
+                {typeof customer.tier === 'object' && customer.tier !== null
+                  ? customer.tier.name
+                  : customer.tier || 'No Tier'}
               </span>
-              {customer.tier === 'PLATINUM' || customer.tier === 'GOLD' ? (
+              {(typeof customer.tier === 'object' && customer.tier !== null
+                ? customer.tier.code
+                : customer.tier) === 'PLATINUM' ||
+              (typeof customer.tier === 'object' && customer.tier !== null
+                ? customer.tier.code
+                : customer.tier) === 'GOLD' ? (
                 <div className="flex items-center gap-1 mt-3">
                   <Sparkles className="w-4 h-4 text-yellow-500" />
                   <span className="text-xs font-semibold text-gray-600">Pelanggan Premium</span>
@@ -186,7 +215,9 @@ export default function CustomerDetail() {
               <h2 className="text-lg font-bold text-gray-900">Kode Pelanggan</h2>
             </div>
             <div className="p-4 bg-gray-50 rounded-xl border-2 border-gray-200">
-              <p className="text-2xl font-bold text-gray-900 font-mono text-center">{customer.code}</p>
+              <p className="text-2xl font-bold text-gray-900 font-mono text-center">
+                {customer.customerCode || '-'}
+              </p>
             </div>
           </div>
         </div>

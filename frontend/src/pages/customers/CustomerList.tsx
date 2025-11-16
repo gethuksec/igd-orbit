@@ -17,7 +17,7 @@ import {
   Crown,
   Sparkles,
 } from 'lucide-react';
-import { customersService, type Customer } from '../../services/customers.service';
+import { customersService } from '../../services/customers.service';
 
 export default function CustomerList() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -57,13 +57,6 @@ export default function CustomerList() {
   const customers = data?.data || [];
   const pagination = data?.meta || { page: 1, limit: 20, total: 0, totalPages: 1 };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
 
   const getTierColor = (tier: { code: string; name: string } | null) => {
     if (!tier) return 'bg-gray-100 text-gray-700 border-gray-300';

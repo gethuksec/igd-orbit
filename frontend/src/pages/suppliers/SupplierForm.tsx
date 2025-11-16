@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Save, X, Loader2, ArrowLeft, Building2, Phone, Mail, MapPin } from 'lucide-react';
+import { Save, X, Loader2, ArrowLeft, Building2, Phone, MapPin } from 'lucide-react';
 import { api } from '../../services/api';
 import { toast } from 'sonner';
 

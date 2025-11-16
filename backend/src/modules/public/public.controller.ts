@@ -103,5 +103,73 @@ export class PublicController {
       );
     }
   }
+
+  /**
+   * Get most popular products based on sales transactions (public, read‑only)
+   * GET /api/v1/public/popular-products
+   */
+  @Get('popular-products')
+  async getPopularProducts() {
+    // Ambil semua item transaksi beserta produk terkait, lalu agregasi di memory.
+    const items = await this.prisma.salesTransactionItem.findMany({
+      include: {
+        product: {
+          select: {
+            id: true,
+            name: true,
+            sku: true,
+            sellingPrice: true,
+            brand: { select: { name: true } },
+            category: { select: { name: true } },
+          },
+        },
+      },
+    });
+
+    const map = new Map<
+      string,
+      {
+        id: string;
+        name: string;
+        sku: string;
+        sellingPrice: number;
+        brandName?: string | null;
+        categoryName?: string | null;
+        totalSold: number;
+        totalRevenue: number;
+      }
+    >();
+
+    for (const item of items) {
+      if (!item.product) continue;
+      const key = item.product.id;
+      const quantity = Number(item.quantity ?? 0);
+      const unitPrice = Number(item.unitPrice ?? 0);
+
+      if (!map.has(key)) {
+        map.set(key, {
+          id: item.product.id,
+          name: item.product.name,
+          sku: item.product.sku,
+          sellingPrice: Number(item.product.sellingPrice ?? 0),
+          brandName: item.product.brand?.name ?? null,
+          categoryName: item.product.category?.name ?? null,
+          totalSold: 0,
+          totalRevenue: 0,
+        });
+      }
+
+      const agg = map.get(key)!;
+      agg.totalSold += quantity;
+      agg.totalRevenue += quantity * unitPrice;
+    }
+
+    const result = Array.from(map.values())
+      .filter((p) => p.totalSold > 0)
+      .sort((a, b) => b.totalSold - a.totalSold)
+      .slice(0, 10);
+
+    return result;
+  }
 }
 

@@ -1,0 +1,19 @@
+# Backend Dockerfile for Development (with hot reload)
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install dependencies
+COPY package.json package-lock.json* ./
+COPY prisma ./prisma/
+# Use --legacy-peer-deps to handle peer dependency conflicts
+RUN if [ -f package-lock.json ]; then npm ci --legacy-peer-deps; else npm install --legacy-peer-deps; fi
+
+# Generate Prisma Client
+RUN npx prisma generate
+
+EXPOSE 3000
+
+# Use nodemon or nest start --watch for hot reload
+CMD ["npm", "run", "start:dev"]
+

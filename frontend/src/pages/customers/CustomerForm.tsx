@@ -31,7 +31,7 @@ export default function CustomerForm() {
         phone: customer.phone || '',
         email: customer.email || '',
         address: customer.address || '',
-        tier: customer.tier || 'REGULAR',
+        tier: typeof customer.tier === 'object' && customer.tier !== null ? customer.tier.code : customer.tier || 'REGULAR',
       });
     }
   }, [customer]);

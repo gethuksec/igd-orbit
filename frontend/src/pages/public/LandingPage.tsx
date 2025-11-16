@@ -1,14 +1,25 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Clock, Wrench, MapPin, Phone, Star, TrendingUp, Award, Users, ArrowRight, Sparkles } from 'lucide-react';
-import ProductShowcase from './components/ProductShowcase';
+import {
+  Shield,
+  Clock,
+  Wrench,
+  MapPin,
+  Phone,
+  Star,
+  Award,
+  Sparkles,
+  Instagram,
+  Facebook,
+} from 'lucide-react';
+// import ProductShowcase from './components/ProductShowcase';
 import AIChatbot from './components/AIChatbot';
 import SEOHead from './components/SEOHead';
 import ServiceSearch from './components/ServiceSearch';
 import { trackPageView } from '@/utils/analytics';
 import { publicService } from '@/services/public.service';
-import type { ServiceType, Branch } from '@/services/public.service';
+import type { ServiceType, PopularProduct } from '@/services/public.service';
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -22,9 +33,9 @@ export default function LandingPage() {
     queryFn: () => publicService.getServiceTypes(),
   });
 
-  const { data: branches } = useQuery<Branch[]>({
-    queryKey: ['branches'],
-    queryFn: () => publicService.getBranches(),
+  const { data: popularProducts } = useQuery<PopularProduct[]>({
+    queryKey: ['popular-products'],
+    queryFn: () => publicService.getPopularProducts(5),
   });
 
   const handleTrackService = (serviceNumber: string) => {
@@ -34,9 +45,42 @@ export default function LandingPage() {
   return (
     <>
       <SEOHead />
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-white flex flex-col">
+        {/* Top Navigation */}
+        <header className="w-full border-b border-gray-100 bg-white/80 backdrop-blur z-20">
+          <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {/* Logo utama di navbar */}
+              <img
+                src="/logo/igd-1.jpg"
+                alt="IGD Ponsel Logo"
+                className="h-8 w-auto object-contain"
+              />
+              <div className="leading-tight">
+                <p className="text-sm font-semibold text-gray-900">IGD Ponsel</p>
+                <p className="text-xs text-gray-500">Servis • Sparepart • Accessories</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div className="hidden md:flex items-center gap-4 text-xs text-gray-500">
+                <div className="flex items-center gap-2">
+                  <span className="inline-block w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  <span>Buka setiap hari 08.00 – 21.00 WIB</span>
+                </div>
+              </div>
+              <button
+                onClick={() => navigate('/login')}
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-primary-600 border border-primary-200 bg-white hover:bg-primary-50 transition-colors"
+              >
+                Masuk / Login
+              </button>
+            </div>
+          </div>
+        </header>
+
         {/* Hero Section - Enhanced */}
-        <section className="relative bg-gradient-to-r from-primary-600 via-primary-500 to-primary-600 text-white py-24 overflow-hidden">
+        <section className="relative bg-gradient-to-r from-[#b9051f] via-[#e11b22] to-[#b9051f] text-white py-24 overflow-hidden">
           {/* Animated Background Elements */}
           <div className="absolute inset-0 overflow-hidden">
             <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
@@ -45,28 +89,30 @@ export default function LandingPage() {
           </div>
 
           <div className="container mx-auto px-4 text-center relative z-10">
-            {/* Logo & Brand */}
+            {/* Brand */}
             <div className="flex items-center justify-center gap-4 mb-6 animate-fade-in">
-              <div className="flex items-center justify-center w-20 h-20 bg-white/20 backdrop-blur-md rounded-2xl shadow-xl border border-white/30">
-                <Wrench className="w-10 h-10" />
-              </div>
               <div>
-                <h1 className="text-6xl font-bold mb-2 bg-gradient-to-r from-white to-primary-100 bg-clip-text text-transparent">
-                  IGD Group
+                <h1 className="text-5xl md:text-6xl font-extrabold mb-2 tracking-tight bg-gradient-to-r from-white to-red-100 bg-clip-text text-transparent">
+                  IGD Ponsel
                 </h1>
-                <div className="flex items-center justify-center gap-2 text-primary-100">
+                <div className="flex flex-wrap items-center justify-center gap-2 text-red-50">
                   <Star className="w-4 h-4 fill-current" />
-                  <span className="text-sm font-medium">Trusted Since 2010</span>
+                  <span className="text-sm font-medium uppercase tracking-wide">Servis • Aksesoris • Sparepart</span>
                   <Star className="w-4 h-4 fill-current" />
                 </div>
               </div>
             </div>
 
-            <p className="text-2xl mb-4 text-primary-100 font-light">
-              Your Trusted Electronics Retail & Service Partner
+            <p className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-sm font-semibold text-red-50 mb-4">
+              <Sparkles className="w-4 h-4" />
+              Servis handphone, sparepart & aksesoris di Jember & Kalisat
             </p>
-            <p className="text-lg mb-10 text-white/80 max-w-2xl mx-auto">
-              Solusi lengkap untuk kebutuhan elektronik Anda. Dari penjualan hingga perbaikan, kami hadir dengan layanan terbaik.
+            <p className="text-2xl mb-4 text-red-50 font-semibold">
+              Servis cepat, bergaransi, dan sparepart asli dengan pelayanan ramah
+            </p>
+            <p className="text-lg mb-10 text-white/80 max-w-3xl mx-auto">
+              Dari ganti LCD, baterai, hingga perbaikan kerusakan berat – IGD Ponsel siap membantu Anda setiap hari
+              dengan teknisi berpengalaman dan jaringan cabang yang mudah dijangkau.
             </p>
 
             {/* Service Search - Enhanced */}
@@ -74,23 +120,6 @@ export default function LandingPage() {
               <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 shadow-2xl">
                 <ServiceSearch onSearch={handleTrackService} />
               </div>
-            </div>
-
-            {/* CTA Buttons */}
-            <div className="flex flex-wrap gap-4 justify-center">
-              <button
-                onClick={() => navigate('/login')}
-                className="group px-8 py-4 bg-white text-primary-600 rounded-xl font-bold hover:bg-primary-50 transition-all shadow-xl hover:shadow-2xl hover:scale-105 flex items-center gap-2"
-              >
-                <span>Masuk ke Dashboard</span>
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </button>
-              <button
-                onClick={() => navigate('/products')}
-                className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white border-2 border-white rounded-xl font-bold hover:bg-white/20 transition-all shadow-lg hover:shadow-xl"
-              >
-                Jelajahi Produk
-              </button>
             </div>
 
             {/* Stats Bar */}
@@ -112,19 +141,6 @@ export default function LandingPage() {
                 <div className="text-sm text-primary-100">Kepuasan</div>
               </div>
             </div>
-          </div>
-        </section>
-
-        {/* Featured Products - Enhanced */}
-        <section className="py-20 bg-gradient-to-b from-gray-50 to-white">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-12">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">Produk Unggulan</h2>
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                Temukan produk elektronik terbaik dengan kualitas premium dan harga terbaik
-              </p>
-            </div>
-            <ProductShowcase limit={6} showViewAll={true} />
           </div>
         </section>
 
@@ -182,6 +198,60 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* Best Seller Products (Public Carousel) */}
+        <section className="py-20 bg-gradient-to-b from-gray-50 to-white">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-3">
+              <h2 className="text-4xl font-bold text-gray-900 mb-2">Produk Best Seller</h2>
+              <p className="text-sm text-gray-600">
+                Produk yang paling sering terjual di IGD Ponsel dalam beberapa waktu terakhir.
+              </p>
+            </div>
+            <div className="relative -mx-4">
+              <div className="overflow-x-auto px-4 pb-2">
+                <div className="flex gap-6">
+                  {popularProducts && popularProducts.length > 0 ? (
+                    popularProducts.map((product) => (
+                      <div
+                        key={product.id}
+                        className="min-w-[240px] max-w-xs bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-200 flex-shrink-0"
+                      >
+                        <div className="aspect-square bg-gray-100 rounded-t-2xl overflow-hidden">
+                          <img
+                            src={(product.images && product.images[0]) || '/logo/igd-1.jpg'}
+                            alt={product.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="p-4 space-y-2">
+                          <div>
+                            <p className="text-xs text-gray-500 font-mono">{product.sku}</p>
+                            <h3 className="text-sm font-semibold text-gray-900 line-clamp-2">{product.name}</h3>
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-gray-500">
+                            <span>{product.brand?.name || '-'}</span>
+                            <span>{product.category?.name || '-'}</span>
+                          </div>
+                          <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
+                            <span className="text-xs text-gray-500">Terjual</span>
+                            <span className="text-sm font-bold text-gray-900">
+                              {product.totalSold.toLocaleString('id-ID')}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="w-full text-center text-gray-500 text-sm py-8">
+                      Data penjualan belum tersedia untuk ditampilkan.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Why Choose Us - Enhanced */}
         <section className="py-20 bg-gradient-to-br from-primary-50 via-white to-accent-50">
           <div className="container mx-auto px-4">
@@ -233,105 +303,159 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Branch Information - Enhanced */}
-        <section className="py-20 bg-white">
+        {/* Branch & Contact Information - Enhanced */}
+        <section className="py-20 bg-white border-t border-gray-100">
           <div className="container mx-auto px-4">
-            <div className="text-center mb-12">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">Cabang Kami</h2>
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                Temukan cabang terdekat untuk melayani kebutuhan Anda
-              </p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {branches && branches.length > 0 ? (
-                branches.map((branch) => (
-                  <div
-                    key={branch.id}
-                    className="bg-gradient-to-br from-white to-gray-50 border-2 border-gray-200 rounded-2xl p-8 hover:border-primary-300 hover:shadow-xl transition-all duration-300"
-                  >
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center">
-                        <MapPin className="w-6 h-6 text-white" />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 items-start">
+              <div className="lg:col-span-2">
+                <div className="text-left mb-8">
+                  <h2 className="text-4xl font-bold text-gray-900 mb-4">Cabang & Jam Operasional</h2>
+                  <p className="text-lg text-gray-600 max-w-2xl">
+                    Kami melayani Anda setiap hari dari pukul <strong>08.00 – 21.00 WIB</strong> di beberapa cabang berikut:
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-2xl p-6 shadow-sm">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center">
+                        <MapPin className="w-5 h-5 text-white" />
                       </div>
-                      <h3 className="text-2xl font-bold text-gray-900">{branch.name}</h3>
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900">IGD Ponsel Sumbersari</h3>
+                        <p className="text-xs text-gray-500">Timoritel Lt.2 – Sumbersari</p>
+                      </div>
                     </div>
-                    <div className="space-y-4 text-sm">
-                      {branch.address && (
-                        <div className="flex items-start gap-3">
-                          <MapPin className="w-5 h-5 mt-0.5 text-primary-600 flex-shrink-0" />
-                          <div>
-                            <p className="text-gray-900 font-medium">{branch.address}</p>
-                            {branch.city && branch.province && (
-                              <p className="text-gray-600 mt-1">
-                                {branch.city}, {branch.province}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                      {branch.phone && (
-                        <div className="flex items-center gap-3">
-                          <Phone className="w-5 h-5 text-primary-600 flex-shrink-0" />
-                          <a
-                            href={`tel:${branch.phone}`}
-                            className="text-primary-600 hover:text-primary-700 hover:underline transition-colors font-medium"
-                          >
-                            {branch.phone}
-                          </a>
-                        </div>
-                      )}
-                      {branch.email && (
-                        <div className="flex items-center gap-3">
-                          <span className="text-primary-600">✉</span>
-                          <a
-                            href={`mailto:${branch.email}`}
-                            className="text-primary-600 hover:text-primary-700 hover:underline transition-colors font-medium"
-                          >
-                            {branch.email}
-                          </a>
-                        </div>
-                      )}
+                    <p className="text-sm text-gray-700 mb-3">
+                      Jl. Jawa No.66B (Timortel Lt.2), Sumbersari
+                    </p>
+                    <p className="text-xs text-gray-500">Buka setiap hari • 08.00 – 21.00 WIB</p>
+                    <div className="mt-4 rounded-xl overflow-hidden border border-gray-200">
+                      <iframe
+                        title="Peta IGD Ponsel Jember"
+                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3949.8124582650657!2d113.716710!3d-8.170632!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2dd695745b026179%3A0xa8960dabfd1a9ddb!2sIGD%20PONSEL%20JEMBER!5e0!3m2!1sid!2sid!4v1731760000000!5m2!1sid!2sid"
+                        width="100%"
+                        height="200"
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                      ></iframe>
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="col-span-full text-center text-gray-600 py-12">
-                  <MapPin className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                  <p className="text-lg">Informasi cabang akan segera tersedia</p>
+                  <div className="bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-2xl p-6 shadow-sm">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center">
+                        <MapPin className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900">IGD Ponsel Kalisat</h3>
+                        <p className="text-xs text-gray-500">Depan IGD RSU Kalisat</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-700 mb-3">
+                      Jl. PB. Sudirman No.2, Kalisat
+                    </p>
+                    <p className="text-xs text-gray-500">Buka setiap hari • 08.00 – 21.00 WIB</p>
+                    <div className="mt-4 rounded-xl overflow-hidden border border-gray-200">
+                      <iframe
+                        title="Peta IGD Ponsel II"
+                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3949.616776895647!2d113.818454!3d-8.134098!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2dd6bfae66f266cf%3A0x5636899b4e7ab959!2sIGD%20PONSEL%20II!5e0!3m2!1sid!2sid!4v1731760000001!5m2!1sid!2sid"
+                        width="100%"
+                        height="200"
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                      ></iframe>
+                    </div>
+                  </div>
                 </div>
-              )}
-            </div>
-          </div>
-        </section>
+              </div>
 
-        {/* CTA Section */}
-        <section className="py-20 bg-gradient-to-r from-primary-600 to-primary-500 text-white">
-          <div className="container mx-auto px-4 text-center">
-            <Sparkles className="w-16 h-16 mx-auto mb-6 text-white/80" />
-            <h2 className="text-4xl font-bold mb-4">Siap Memulai?</h2>
-            <p className="text-xl text-primary-100 mb-8 max-w-2xl mx-auto">
-              Bergabunglah dengan ribuan pelanggan yang telah mempercayai IGD Group untuk kebutuhan elektronik mereka
-            </p>
-            <div className="flex flex-wrap gap-4 justify-center">
-              <button
-                onClick={() => navigate('/login')}
-                className="px-8 py-4 bg-white text-primary-600 rounded-xl font-bold hover:bg-primary-50 transition-all shadow-xl hover:shadow-2xl hover:scale-105 flex items-center gap-2"
-              >
-                <span>Masuk Sekarang</span>
-                <ArrowRight className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => navigate('/track')}
-                className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white border-2 border-white rounded-xl font-bold hover:bg-white/20 transition-all shadow-lg"
-              >
-                Lacak Service
-              </button>
+              <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 shadow-sm h-full flex flex-col justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">Kontak & Media Sosial</h3>
+                  <div className="space-y-4 text-sm">
+                    <div className="flex items-center gap-3">
+                      <Phone className="w-4 h-4 text-primary-600" />
+                      <a
+                        href="https://wa.me/6285705340555"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary-600 hover:text-primary-700 font-semibold"
+                      >
+                        Admin (Fast Response) – Klik untuk WhatsApp
+                      </a>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Instagram className="w-4 h-4 text-primary-600" />
+                      <a
+                        href="https://instagram.com/igdponsel"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-gray-700 hover:text-primary-700"
+                      >
+                        @igdponsel
+                      </a>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Instagram className="w-4 h-4 text-primary-600" />
+                      <a
+                        href="https://tiktok.com/@igdponsel.id"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-gray-700 hover:text-primary-700"
+                      >
+                        @igdponsel.id (TikTok)
+                      </a>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Facebook className="w-4 h-4 text-primary-600" />
+                      <span className="text-gray-700">
+                        Facebook: <span className="font-medium">servicehandphonejember</span>
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Facebook className="w-4 h-4 text-primary-600" />
+                      <span className="text-gray-700">
+                        Facebook: <span className="font-medium">Timoritel Servis (IGD Ponsel Sumbersari)</span>
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Facebook className="w-4 h-4 text-primary-600" />
+                      <span className="text-gray-700">
+                        Facebook: <span className="font-medium">Servis HP Kalisat (IGD Ponsel Kalisat)</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="pt-4 mt-4 border-t border-gray-200 text-xs text-gray-500">
+                  Info lengkap kontak dan cabang juga tersedia di{' '}
+                  <a
+                    href="https://kontak.link/igdponsel"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-primary-600 hover:text-primary-700 font-semibold"
+                  >
+                    kontak.link/igdponsel
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
         {/* AI Chatbot */}
         <AIChatbot />
+
+        {/* Footer */}
+        <footer className="mt-auto border-t border-gray-200 bg-white">
+          <div className="container mx-auto px-4 py-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-500">
+            <div className="flex items-center gap-2">
+              <span>© {new Date().getFullYear()} IGD Ponsel. All rights reserved.</span>
+            </div>
+            <div className="flex flex-wrap gap-4 text-[11px] md:text-xs">
+              <span>IGD Ponsel™ adalah merek dagang milik pemilik sahnya.</span>
+              <span>IGD ERP Web App ini digunakan untuk demo dan operasional internal.</span>
+            </div>
+          </div>
+        </footer>
       </div>
     </>
   );

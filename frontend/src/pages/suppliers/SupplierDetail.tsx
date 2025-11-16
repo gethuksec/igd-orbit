@@ -1,6 +1,6 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Edit, Building2, Phone, Mail, MapPin, Package, Loader2 } from 'lucide-react';
+import { ArrowLeft, Edit, Building2, Phone, Mail, MapPin, Loader2 } from 'lucide-react';
 import { api } from '../../services/api';
 
 export default function SupplierDetail() {

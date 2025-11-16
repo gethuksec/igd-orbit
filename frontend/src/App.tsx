@@ -27,12 +27,14 @@ import CustomerForm from './pages/customers/CustomerForm';
 import CustomerDetail from './pages/customers/CustomerDetail';
 // Sales
 import SalesHistory from './pages/sales/SalesHistory';
+import ReturnsList from './pages/sales/ReturnsList';
 // Service Orders
 import ServiceOrderList from './pages/service-orders/ServiceOrderList';
 import ServiceOrderForm from './pages/service-orders/ServiceOrderForm';
 import ServiceOrderDetail from './pages/service-orders/ServiceOrderDetail';
 // Inventory
 import StockList from './pages/inventory/StockList';
+import StockTransfer from './pages/inventory/StockTransfer';
 // Placeholder
 import PlaceholderPage from './pages/placeholder/PlaceholderPage';
 // Master Data - Suppliers, Categories, Brands
@@ -391,7 +393,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <PlaceholderPage title="Retur Penjualan" description="Kelola retur dan refund penjualan" />
+                    <ReturnsList />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
@@ -477,7 +479,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <PlaceholderPage title="Transfer Stok" description="Transfer stok antar cabang" />
+                    <StockTransfer />
                   </DashboardLayout>
                 </ProtectedRoute>
               }

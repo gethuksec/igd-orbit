@@ -11,9 +11,7 @@ import {
   Phone,
   Mail,
   Loader2,
-  Filter,
   TrendingUp,
-  MapPin,
 } from 'lucide-react';
 import { suppliersService } from '../../services/suppliers.service';
 

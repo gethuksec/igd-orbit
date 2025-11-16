@@ -5,13 +5,12 @@ import {
   ArrowLeft,
   Package,
   DollarSign,
-  TrendingUp,
   Loader2,
   Barcode,
   Tag,
   AlertTriangle,
   CheckCircle2,
-  TrendingDown,
+  TrendingUp,
 } from 'lucide-react';
 import { productsService } from '../../services/products.service';
 

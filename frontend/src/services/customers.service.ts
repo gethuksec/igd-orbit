@@ -62,8 +62,12 @@ export const customersService = {
   },
 
   async getById(id: string): Promise<Customer> {
-    const response = await api.get(`/customers/${id}`);
-    return response.data.data || response.data;
+    try {
+      const response = await api.get(`/customers/${id}`);
+      return response.data.data || response.data;
+    } catch (error: any) {
+      throw error;
+    }
   },
 
   async create(data: any): Promise<Customer> {

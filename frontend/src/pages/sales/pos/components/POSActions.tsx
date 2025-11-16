@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { usePOSStore } from '@/stores/posStore';
-import { salesService } from '@/services/sales.service';
+import { salesService, type SalesTransaction } from '@/services/sales.service';
 import { useQuery } from '@tanstack/react-query';
 
 /**
@@ -70,7 +70,7 @@ export function POSActions({ branchId, transactionId }: POSActionsProps) {
         <div className="mt-4">
           <div className="text-sm font-medium mb-2">Held Transactions</div>
           <div className="space-y-1 max-h-32 overflow-y-auto">
-            {heldTransactions.map((held) => (
+            {heldTransactions.map((held: SalesTransaction) => (
               <HeldTransactionItem key={held.id} held={held} />
             ))}
           </div>
@@ -226,11 +226,9 @@ function DiscountModalContent({ currentDiscount, onApply, onRemove }: DiscountMo
  * Held Transaction Item Component
  */
 interface HeldTransactionItemProps {
-  held: {
-    id: string;
+  held: SalesTransaction & {
     reference?: string;
-    createdAt: string;
-    expiresAt: string;
+    expiresAt?: string;
   };
 }
 
