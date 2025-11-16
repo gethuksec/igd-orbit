@@ -7,8 +7,10 @@ export class DashboardService {
 
   /**
    * Get Dashboard KPIs
+   * If branchId is provided, all metrics are filtered to that branch.
+   * Otherwise, metrics are calculated across all branches.
    */
-  async getKPIs(startDate?: string, endDate?: string) {
+  async getKPIs(startDate?: string, endDate?: string, branchId?: string) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const yesterday = new Date(today);
@@ -18,26 +20,35 @@ export class DashboardService {
     const end = endDate ? new Date(endDate) : today;
     end.setHours(23, 59, 59, 999);
 
-    // Today's revenue (sales + service)
-    const todaySales = await this.prisma.salesTransaction.aggregate({
-      where: {
-        status: 'completed',
-        createdAt: {
-          gte: today,
-        },
+    const baseSalesWhere: any = {
+      status: 'completed',
+      createdAt: {
+        gte: today,
       },
+    };
+
+    const baseServiceWhere: any = {
+      status: { in: ['completed', 'delivered'] },
+      createdAt: {
+        gte: today,
+      },
+    };
+
+    if (branchId) {
+      baseSalesWhere.branchId = branchId;
+      baseServiceWhere.branchId = branchId;
+    }
+
+    // Today's revenue (sales + service) - filtered by branch if provided
+    const todaySales = await this.prisma.salesTransaction.aggregate({
+      where: baseSalesWhere,
       _sum: {
         total: true,
       },
     });
 
     const todayService = await this.prisma.serviceOrder.aggregate({
-      where: {
-        status: { in: ['completed', 'delivered'] },
-        createdAt: {
-          gte: today,
-        },
-      },
+      where: baseServiceWhere,
       _sum: {
         totalPrice: true,
       },
@@ -48,27 +59,36 @@ export class DashboardService {
       (todayService._sum.totalPrice?.toNumber() || 0);
 
     // Yesterday's revenue
-    const yesterdaySales = await this.prisma.salesTransaction.aggregate({
-      where: {
-        status: 'completed',
-        createdAt: {
-          gte: yesterday,
-          lt: today,
-        },
+    const yesterdaySalesWhere: any = {
+      status: 'completed',
+      createdAt: {
+        gte: yesterday,
+        lt: today,
       },
+    };
+
+    const yesterdayServiceWhere: any = {
+      status: { in: ['completed', 'delivered'] },
+      createdAt: {
+        gte: yesterday,
+        lt: today,
+      },
+    };
+
+    if (branchId) {
+      yesterdaySalesWhere.branchId = branchId;
+      yesterdayServiceWhere.branchId = branchId;
+    }
+
+    const yesterdaySales = await this.prisma.salesTransaction.aggregate({
+      where: yesterdaySalesWhere,
       _sum: {
         total: true,
       },
     });
 
     const yesterdayService = await this.prisma.serviceOrder.aggregate({
-      where: {
-        status: { in: ['completed', 'delivered'] },
-        createdAt: {
-          gte: yesterday,
-          lt: today,
-        },
-      },
+      where: yesterdayServiceWhere,
       _sum: {
         totalPrice: true,
       },
@@ -78,56 +98,86 @@ export class DashboardService {
       (yesterdaySales._sum.total?.toNumber() || 0) +
       (yesterdayService._sum.totalPrice?.toNumber() || 0);
 
-    // Total transactions
-    const totalTransactions = await this.prisma.salesTransaction.count({
-      where: {
-        status: 'completed',
-        createdAt: {
-          gte: start,
-          lte: end,
-        },
+    // Total transactions (sales) in selected period
+    const totalTransactionsWhere: any = {
+      status: 'completed',
+      createdAt: {
+        gte: start,
+        lte: end,
       },
+    };
+
+    if (branchId) {
+      totalTransactionsWhere.branchId = branchId;
+    }
+
+    const totalTransactions = await this.prisma.salesTransaction.count({
+      where: totalTransactionsWhere,
     });
+
+    const yesterdayTransactionsWhere: any = {
+      status: 'completed',
+      createdAt: {
+        gte: yesterday,
+        lt: today,
+      },
+    };
+
+    if (branchId) {
+      yesterdayTransactionsWhere.branchId = branchId;
+    }
 
     const yesterdayTransactions = await this.prisma.salesTransaction.count({
-      where: {
-        status: 'completed',
-        createdAt: {
-          gte: yesterday,
-          lt: today,
-        },
-      },
+      where: yesterdayTransactionsWhere,
     });
 
-    // Active services
-    const activeServices = await this.prisma.serviceOrder.count({
-      where: {
-        status: { in: ['pending', 'in_progress', 'ready'] },
+    // Active services (optionally filtered by branch)
+    const baseActiveServiceWhere: any = {
+      status: { in: ['pending', 'in_progress', 'ready'] },
+    };
+
+    const basePendingServiceWhere: any = {
+      status: 'pending',
+    };
+
+    const baseOverdueServiceWhere: any = {
+      status: { in: ['pending', 'in_progress'] },
+      slaDueDate: {
+        lt: new Date(),
       },
+    };
+
+    if (branchId) {
+      baseActiveServiceWhere.branchId = branchId;
+      basePendingServiceWhere.branchId = branchId;
+      baseOverdueServiceWhere.branchId = branchId;
+    }
+
+    const activeServices = await this.prisma.serviceOrder.count({
+      where: baseActiveServiceWhere,
     });
 
     const pendingServices = await this.prisma.serviceOrder.count({
-      where: {
-        status: 'pending',
-      },
+      where: basePendingServiceWhere,
     });
 
     const overdueServices = await this.prisma.serviceOrder.count({
-      where: {
-        status: { in: ['pending', 'in_progress'] },
-        slaDueDate: {
-          lt: new Date(),
-        },
-      },
+      where: baseOverdueServiceWhere,
     });
 
-    // Stock alerts
-    const allStocks = await this.prisma.productStock.findMany({
-      where: {
-        quantityAvailable: {
-          gt: 0,
-        },
+    // Stock alerts - filter by branch if provided
+    const stockWhere: any = {
+      quantityAvailable: {
+        gt: 0,
       },
+    };
+
+    if (branchId) {
+      stockWhere.branchId = branchId;
+    }
+
+    const allStocks = await this.prisma.productStock.findMany({
+      where: stockWhere,
       select: {
         quantityAvailable: true,
         reorderPoint: true,
@@ -140,12 +190,18 @@ export class DashboardService {
       return qty > 0 && qty <= reorder;
     }).length;
 
-    const outOfStockItems = await this.prisma.productStock.count({
-      where: {
-        quantityAvailable: {
-          lte: 0,
-        },
+    const outOfStockWhere: any = {
+      quantityAvailable: {
+        lte: 0,
       },
+    };
+
+    if (branchId) {
+      outOfStockWhere.branchId = branchId;
+    }
+
+    const outOfStockItems = await this.prisma.productStock.count({
+      where: outOfStockWhere,
     });
 
     return {
@@ -248,20 +304,27 @@ export class DashboardService {
     startDate?: string,
     endDate?: string,
     limit: number = 5,
+    branchId?: string,
   ) {
     const start = startDate ? new Date(startDate) : new Date();
     start.setDate(start.getDate() - 30);
     const end = endDate ? new Date(endDate) : new Date();
     end.setHours(23, 59, 59, 999);
 
-    const transactions = await this.prisma.salesTransaction.findMany({
-      where: {
-        status: 'completed',
-        createdAt: {
-          gte: start,
-          lte: end,
-        },
+    const salesWhere: any = {
+      status: 'completed',
+      createdAt: {
+        gte: start,
+        lte: end,
       },
+    };
+
+    if (branchId) {
+      salesWhere.branchId = branchId;
+    }
+
+    const transactions = await this.prisma.salesTransaction.findMany({
+      where: salesWhere,
       include: {
         items: {
           include: {
@@ -311,7 +374,11 @@ export class DashboardService {
   /**
    * Get Top Products
    */
-  async getTopProducts(days: number = 30, limit: number = 10) {
+  async getTopProducts(
+    days: number = 30,
+    limit: number = 10,
+    branchId?: string,
+  ) {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
@@ -323,6 +390,7 @@ export class DashboardService {
           createdAt: {
             gte: startDate,
           },
+          ...(branchId ? { branchId } : {}),
         },
       },
       _sum: {

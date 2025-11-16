@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import type { SalesTransaction } from '../../services/sales.service';
 import { api } from '../../services/api';
+import { useBranchStore } from '@/stores/branchStore';
 
 interface ReturnTransaction extends SalesTransaction {
   returnNumber?: string;
@@ -31,9 +32,10 @@ export default function ReturnsList() {
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [page, setPage] = useState(1);
   const limit = 20;
+  const { currentBranchId } = useBranchStore();
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['sales-returns', page, searchTerm, selectedStatus],
+    queryKey: ['sales-returns', page, searchTerm, selectedStatus, currentBranchId],
     queryFn: async () => {
       try {
         // Filter transactions with return status or void status
@@ -43,6 +45,7 @@ export default function ReturnsList() {
             limit,
             search: searchTerm || undefined,
             status: selectedStatus !== 'all' ? selectedStatus : undefined,
+            branchId: currentBranchId || undefined,
           },
         });
         // Filter for returns/voids

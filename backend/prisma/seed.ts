@@ -18,13 +18,23 @@ async function main() {
   console.log('📦 Creating branches...');
   const branch1 = await prisma.branch.upsert({
     where: { code: 'BR-001' },
-    update: {},
+    update: {
+      name: 'IGD Jember Pusat',
+      type: 'store',
+      phone: '0331-123456',
+      email: 'jember.pusat@igdgroup.com',
+      address: 'Jl. Sudirman No. 123',
+      city: 'Jember',
+      province: 'Jawa Timur',
+      isActive: true,
+      isWarehouse: true,
+    },
     create: {
       code: 'BR-001',
       name: 'IGD Jember Pusat',
       type: 'store',
       phone: '0331-123456',
-      email: 'jember@igdgroup.com',
+      email: 'jember.pusat@igdgroup.com',
       address: 'Jl. Sudirman No. 123',
       city: 'Jember',
       province: 'Jawa Timur',
@@ -35,15 +45,25 @@ async function main() {
 
   const branch2 = await prisma.branch.upsert({
     where: { code: 'BR-002' },
-    update: {},
+    update: {
+      name: 'IGD Jember Kalisat',
+      type: 'store',
+      phone: '0331-234567',
+      email: 'jember.kalisat@igdgroup.com',
+      address: 'Jl. PB. Sudirman No. 2, Kalisat',
+      city: 'Jember',
+      province: 'Jawa Timur',
+      isActive: true,
+      isWarehouse: false,
+    },
     create: {
       code: 'BR-002',
-      name: 'IGD Surabaya',
+      name: 'IGD Jember Kalisat',
       type: 'store',
-      phone: '031-789012',
-      email: 'surabaya@igdgroup.com',
-      address: 'Jl. Pemuda No. 456',
-      city: 'Surabaya',
+      phone: '0331-234567',
+      email: 'jember.kalisat@igdgroup.com',
+      address: 'Jl. PB. Sudirman No. 2, Kalisat',
+      city: 'Jember',
       province: 'Jawa Timur',
       isActive: true,
     },
@@ -51,15 +71,25 @@ async function main() {
 
   await prisma.branch.upsert({
     where: { code: 'BR-003' },
-    update: {},
+    update: {
+      name: 'IGD Jember iSaid',
+      type: 'store',
+      phone: '0331-345678',
+      email: 'jember.isaid@igdgroup.com',
+      address: 'Jl. Imam Bonjol No. 10, Jember',
+      city: 'Jember',
+      province: 'Jawa Timur',
+      isActive: true,
+      isWarehouse: false,
+    },
     create: {
       code: 'BR-003',
-      name: 'IGD Malang',
+      name: 'IGD Jember iSaid',
       type: 'store',
-      phone: '0341-345678',
-      email: 'malang@igdgroup.com',
-      address: 'Jl. Merdeka No. 789',
-      city: 'Malang',
+      phone: '0331-345678',
+      email: 'jember.isaid@igdgroup.com',
+      address: 'Jl. Imam Bonjol No. 10, Jember',
+      city: 'Jember',
       province: 'Jawa Timur',
       isActive: true,
     },
@@ -131,6 +161,151 @@ async function main() {
     },
   });
 
+  // Additional roles based on PRD matrix
+  const csoRole = await prisma.role.upsert({
+    where: { code: 'CSO' },
+    update: {},
+    create: {
+      code: 'CSO',
+      name: 'Chief Sales Officer',
+      description: 'Sales & commercial leadership',
+      level: 2,
+      isActive: true,
+    },
+  });
+
+  const cmoRole = await prisma.role.upsert({
+    where: { code: 'CMO' },
+    update: {},
+    create: {
+      code: 'CMO',
+      name: 'Chief Marketing Officer',
+      description: 'Marketing & customer strategy',
+      level: 2,
+      isActive: true,
+    },
+  });
+
+  const chrRole = await prisma.role.upsert({
+    where: { code: 'CHR' },
+    update: {},
+    create: {
+      code: 'CHR',
+      name: 'HR Manager',
+      description: 'Human resources & payroll',
+      level: 3,
+      isActive: true,
+    },
+  });
+
+  const spvRole = await prisma.role.upsert({
+    where: { code: 'SPV' },
+    update: {},
+    create: {
+      code: 'SPV',
+      name: 'Supervisor',
+      description: 'Store / area supervisor',
+      level: 3,
+      isActive: true,
+    },
+  });
+
+  const hsRole = await prisma.role.upsert({
+    where: { code: 'HS' },
+    update: {},
+    create: {
+      code: 'HS',
+      name: 'Head of Store',
+      description: 'Kepala toko per cabang',
+      level: 4,
+      isActive: true,
+    },
+  });
+
+  const arRole = await prisma.role.upsert({
+    where: { code: 'AR' },
+    update: {},
+    create: {
+      code: 'AR',
+      name: 'Account Receivable',
+      description: 'Pengelolaan piutang',
+      level: 4,
+      isActive: true,
+    },
+  });
+
+  const tcRole = await prisma.role.upsert({
+    where: { code: 'TC' },
+    update: {},
+    create: {
+      code: 'TC',
+      name: 'Technician',
+      description: 'Teknisi servis',
+      level: 5,
+      isActive: true,
+    },
+  });
+
+  const sodoRole = await prisma.role.upsert({
+    where: { code: 'SODO' },
+    update: {},
+    create: {
+      code: 'SODO',
+      name: 'Service & Operations',
+      description: 'Koordinator service & operasional',
+      level: 4,
+      isActive: true,
+    },
+  });
+
+  const asaRole = await prisma.role.upsert({
+    where: { code: 'ASA' },
+    update: {},
+    create: {
+      code: 'ASA',
+      name: 'Assistant Store Admin',
+      description: 'Admin produk & stok',
+      level: 5,
+      isActive: true,
+    },
+  });
+
+  const smoRole = await prisma.role.upsert({
+    where: { code: 'SMO' },
+    update: {},
+    create: {
+      code: 'SMO',
+      name: 'Sales & Marketing Officer',
+      description: 'Promosi & campaign',
+      level: 5,
+      isActive: true,
+    },
+  });
+
+  const asRole = await prisma.role.upsert({
+    where: { code: 'AS' },
+    update: {},
+    create: {
+      code: 'AS',
+      name: 'Accounting Staff',
+      description: 'Pembukuan & jurnal',
+      level: 5,
+      isActive: true,
+    },
+  });
+
+  const crRole = await prisma.role.upsert({
+    where: { code: 'CR' },
+    update: {},
+    create: {
+      code: 'CR',
+      name: 'Cashier',
+      description: 'Kasir POS',
+      level: 5,
+      isActive: true,
+    },
+  });
+
   const cfo = await prisma.user.upsert({
     where: { email: 'cfo@igdgroup.com' },
     update: {},
@@ -152,8 +327,22 @@ async function main() {
       email: 'manager@igdgroup.com',
       username: 'manager',
       passwordHash: defaultPassword,
-      fullName: 'Manager IGD',
+      fullName: 'Manager IGD (Cabang Jember)',
       phone: '081234567892',
+      isActive: true,
+      isVerified: true,
+    },
+  });
+
+  const regionalManager = await prisma.user.upsert({
+    where: { email: 'regional@igdgroup.com' },
+    update: {},
+    create: {
+      email: 'regional@igdgroup.com',
+      username: 'regional',
+      passwordHash: defaultPassword,
+      fullName: 'Regional Manager IGD (Multi Cabang)',
+      phone: '081234567894',
       isActive: true,
       isVerified: true,
     },
@@ -168,6 +357,175 @@ async function main() {
       passwordHash: defaultPassword,
       fullName: 'Customer Service',
       phone: '081234567893',
+      isActive: true,
+      isVerified: true,
+    },
+  });
+
+  // Additional demo users per PRD roles (single-branch unless noted)
+  const csoUser = await prisma.user.upsert({
+    where: { email: 'cso@igdgroup.com' },
+    update: {},
+    create: {
+      email: 'cso@igdgroup.com',
+      username: 'cso',
+      passwordHash: defaultPassword,
+      fullName: 'Chief Sales Officer',
+      phone: '081234567895',
+      isActive: true,
+      isVerified: true,
+    },
+  });
+
+  const cmoUser = await prisma.user.upsert({
+    where: { email: 'cmo@igdgroup.com' },
+    update: {},
+    create: {
+      email: 'cmo@igdgroup.com',
+      username: 'cmo',
+      passwordHash: defaultPassword,
+      fullName: 'Chief Marketing Officer',
+      phone: '081234567896',
+      isActive: true,
+      isVerified: true,
+    },
+  });
+
+  const chrUser = await prisma.user.upsert({
+    where: { email: 'hr@igdgroup.com' },
+    update: {},
+    create: {
+      email: 'hr@igdgroup.com',
+      username: 'hr',
+      passwordHash: defaultPassword,
+      fullName: 'HR Manager',
+      phone: '081234567897',
+      isActive: true,
+      isVerified: true,
+    },
+  });
+
+  const spvUser = await prisma.user.upsert({
+    where: { email: 'spv@igdgroup.com' },
+    update: {},
+    create: {
+      email: 'spv@igdgroup.com',
+      username: 'spv',
+      passwordHash: defaultPassword,
+      fullName: 'Supervisor Cabang',
+      phone: '081234567898',
+      isActive: true,
+      isVerified: true,
+    },
+  });
+
+  const hsUser = await prisma.user.upsert({
+    where: { email: 'hs@igdgroup.com' },
+    update: {},
+    create: {
+      email: 'hs@igdgroup.com',
+      username: 'hs',
+      passwordHash: defaultPassword,
+      fullName: 'Head of Store Jember Pusat',
+      phone: '081234567899',
+      isActive: true,
+      isVerified: true,
+    },
+  });
+
+  const arUser = await prisma.user.upsert({
+    where: { email: 'ar@igdgroup.com' },
+    update: {},
+    create: {
+      email: 'ar@igdgroup.com',
+      username: 'ar',
+      passwordHash: defaultPassword,
+      fullName: 'Account Receivable',
+      phone: '081234567810',
+      isActive: true,
+      isVerified: true,
+    },
+  });
+
+  const tcUser = await prisma.user.upsert({
+    where: { email: 'tech@igdgroup.com' },
+    update: {},
+    create: {
+      email: 'tech@igdgroup.com',
+      username: 'tech',
+      passwordHash: defaultPassword,
+      fullName: 'Teknisi Servis',
+      phone: '081234567811',
+      isActive: true,
+      isVerified: true,
+    },
+  });
+
+  const sodoUser = await prisma.user.upsert({
+    where: { email: 'sodo@igdgroup.com' },
+    update: {},
+    create: {
+      email: 'sodo@igdgroup.com',
+      username: 'sodo',
+      passwordHash: defaultPassword,
+      fullName: 'Service & Operations',
+      phone: '081234567812',
+      isActive: true,
+      isVerified: true,
+    },
+  });
+
+  const asaUser = await prisma.user.upsert({
+    where: { email: 'asa@igdgroup.com' },
+    update: {},
+    create: {
+      email: 'asa@igdgroup.com',
+      username: 'asa',
+      passwordHash: defaultPassword,
+      fullName: 'Assistant Store Admin',
+      phone: '081234567813',
+      isActive: true,
+      isVerified: true,
+    },
+  });
+
+  const smoUser = await prisma.user.upsert({
+    where: { email: 'smo@igdgroup.com' },
+    update: {},
+    create: {
+      email: 'smo@igdgroup.com',
+      username: 'smo',
+      passwordHash: defaultPassword,
+      fullName: 'Sales & Marketing Officer',
+      phone: '081234567814',
+      isActive: true,
+      isVerified: true,
+    },
+  });
+
+  const asUser = await prisma.user.upsert({
+    where: { email: 'as@igdgroup.com' },
+    update: {},
+    create: {
+      email: 'as@igdgroup.com',
+      username: 'as',
+      passwordHash: defaultPassword,
+      fullName: 'Accounting Staff',
+      phone: '081234567815',
+      isActive: true,
+      isVerified: true,
+    },
+  });
+
+  const crUser = await prisma.user.upsert({
+    where: { email: 'cashier@igdgroup.com' },
+    update: {},
+    create: {
+      email: 'cashier@igdgroup.com',
+      username: 'cashier',
+      passwordHash: defaultPassword,
+      fullName: 'Kasir POS',
+      phone: '081234567816',
       isActive: true,
       isVerified: true,
     },
@@ -226,6 +584,7 @@ async function main() {
     });
   }
 
+  // Manager cabang tunggal (hanya Jember)
   await prisma.userRole.upsert({
     where: {
       userId_roleId_branchId: {
@@ -239,6 +598,42 @@ async function main() {
       userId: manager.id,
       roleId: managerRole.id,
       branchId: branch1.id,
+      isPrimary: true,
+    },
+  });
+
+  // Regional manager dengan akses multi cabang (Jember + Surabaya)
+  await prisma.userRole.upsert({
+    where: {
+      userId_roleId_branchId: {
+        userId: regionalManager.id,
+        roleId: managerRole.id,
+        branchId: branch1.id,
+      },
+    },
+    update: {},
+    create: {
+      userId: regionalManager.id,
+      roleId: managerRole.id,
+      branchId: branch1.id,
+      isPrimary: true,
+    },
+  });
+
+  await prisma.userRole.upsert({
+    where: {
+      userId_roleId_branchId: {
+        userId: regionalManager.id,
+        roleId: managerRole.id,
+        branchId: branch2.id,
+      },
+    },
+    update: {},
+    create: {
+      userId: regionalManager.id,
+      roleId: managerRole.id,
+      branchId: branch2.id,
+      isPrimary: false,
     },
   });
 
@@ -255,8 +650,44 @@ async function main() {
       userId: cs.id,
       roleId: csRole.id,
       branchId: branch1.id,
+      isPrimary: true,
     },
   });
+
+  // Map additional demo users to roles & branches
+  const singleBranchUsers: Array<{ userId: string; roleId: string }> = [
+    { userId: csoUser.id, roleId: csoRole.id },
+    { userId: cmoUser.id, roleId: cmoRole.id },
+    { userId: chrUser.id, roleId: chrRole.id },
+    { userId: spvUser.id, roleId: spvRole.id },
+    { userId: hsUser.id, roleId: hsRole.id },
+    { userId: arUser.id, roleId: arRole.id },
+    { userId: tcUser.id, roleId: tcRole.id },
+    { userId: sodoUser.id, roleId: sodoRole.id },
+    { userId: asaUser.id, roleId: asaRole.id },
+    { userId: smoUser.id, roleId: smoRole.id },
+    { userId: asUser.id, roleId: asRole.id },
+    { userId: crUser.id, roleId: crRole.id },
+  ];
+
+  for (const entry of singleBranchUsers) {
+    await prisma.userRole.upsert({
+      where: {
+        userId_roleId_branchId: {
+          userId: entry.userId,
+          roleId: entry.roleId,
+          branchId: branch1.id,
+        },
+      },
+      update: {},
+      create: {
+        userId: entry.userId,
+        roleId: entry.roleId,
+        branchId: branch1.id,
+        isPrimary: true,
+      },
+    });
+  }
 
   // 5. Create Categories
   console.log('📁 Creating categories...');
@@ -801,10 +1232,23 @@ async function main() {
 
   console.log('✅ Database seed completed!');
   console.log('\n📋 Demo Credentials:');
-  console.log('  Email: cfo@igdgroup.com');
-  console.log('  Password: Test@1234');
-  console.log('\n  Email: owner@igdgroup.com');
-  console.log('  Password: Test@1234');
+  console.log('  Owner (semua cabang)      : owner@igdgroup.com / Test@1234');
+  console.log('  CFO (semua cabang)        : cfo@igdgroup.com / Test@1234');
+  console.log('  Manager Jember (1 cabang) : manager@igdgroup.com / Test@1234');
+  console.log('  Regional (multi cabang)   : regional@igdgroup.com / Test@1234');
+  console.log('  CS Jember (1 cabang)      : cs@igdgroup.com / Test@1234');
+  console.log('  CSO (sales director)      : cso@igdgroup.com / Test@1234');
+  console.log('  CMO (marketing)           : cmo@igdgroup.com / Test@1234');
+  console.log('  HR Manager                : hr@igdgroup.com / Test@1234');
+  console.log('  Supervisor                : spv@igdgroup.com / Test@1234');
+  console.log('  Head of Store             : hs@igdgroup.com / Test@1234');
+  console.log('  AR Staff                  : ar@igdgroup.com / Test@1234');
+  console.log('  Technician                : tech@igdgroup.com / Test@1234');
+  console.log('  Service Ops               : sodo@igdgroup.com / Test@1234');
+  console.log('  Assistant Store Admin     : asa@igdgroup.com / Test@1234');
+  console.log('  Sales & Marketing Officer : smo@igdgroup.com / Test@1234');
+  console.log('  Accounting Staff          : as@igdgroup.com / Test@1234');
+  console.log('  Cashier POS               : cashier@igdgroup.com / Test@1234');
 }
 
 main()

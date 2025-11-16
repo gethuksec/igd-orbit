@@ -11,7 +11,7 @@ import { useQuery } from '@tanstack/react-query';
  */
 interface POSActionsProps {
   onShowPayment?: () => void;
-  branchId: string;
+  branchId?: string;
   transactionId?: string;
 }
 
@@ -25,7 +25,8 @@ export function POSActions({ branchId, transactionId }: POSActionsProps) {
   // Get held transactions
   const { data: heldTransactions = [] } = useQuery({
     queryKey: ['held-transactions', branchId],
-    queryFn: () => salesService.getHeldTransactions(branchId),
+    queryFn: () => salesService.getHeldTransactions(branchId!),
+    enabled: !!branchId,
   });
 
   const handleClearCart = () => {
@@ -57,18 +58,51 @@ export function POSActions({ branchId, transactionId }: POSActionsProps) {
 
   return (
     <div className="space-y-2">
-      <Button onClick={() => setShowNoteModal(true)} variant="outline" className="w-full" size="lg">
-        📝 Add Note
+      <Button
+        onClick={() => setShowNoteModal(true)}
+        variant="outline"
+        className="w-full justify-start gap-2"
+        size="lg"
+      >
+        <span className="text-lg">📝</span>
+        <div className="flex flex-col items-start text-left">
+          <span className="text-sm font-semibold">Catatan Transaksi</span>
+          <span className="text-[11px] text-gray-500">
+            Tambahkan info penting untuk kasir / manajemen
+          </span>
+        </div>
       </Button>
-      <Button onClick={() => setShowDiscountModal(true)} variant="outline" className="w-full" size="lg">
-        🎟️ Apply Discount
+      <Button
+        onClick={() => setShowDiscountModal(true)}
+        variant="outline"
+        className="w-full justify-start gap-2"
+        size="lg"
+      >
+        <span className="text-lg">🎟️</span>
+        <div className="flex flex-col items-start text-left">
+          <span className="text-sm font-semibold">Diskon Transaksi</span>
+          <span className="text-[11px] text-gray-500">
+            Atur diskon total (persen / nominal)
+          </span>
+        </div>
       </Button>
-      <Button onClick={() => setShowHoldModal(true)} variant="outline" className="w-full" size="lg">
-        💾 Hold Transaction
+      <Button
+        onClick={() => setShowHoldModal(true)}
+        variant="outline"
+        className="w-full justify-start gap-2"
+        size="lg"
+      >
+        <span className="text-lg">💾</span>
+        <div className="flex flex-col items-start text-left">
+          <span className="text-sm font-semibold">Tahan Transaksi</span>
+          <span className="text-[11px] text-gray-500">
+            Simpan dulu, bisa dilanjut nanti
+          </span>
+        </div>
       </Button>
       {heldTransactions.length > 0 && (
         <div className="mt-4">
-          <div className="text-sm font-medium mb-2">Held Transactions</div>
+          <div className="text-sm font-medium mb-2">Transaksi Ditahan</div>
           <div className="space-y-1 max-h-32 overflow-y-auto">
             {heldTransactions.map((held: SalesTransaction) => (
               <HeldTransactionItem key={held.id} held={held} />
@@ -76,28 +110,40 @@ export function POSActions({ branchId, transactionId }: POSActionsProps) {
           </div>
         </div>
       )}
-      <Button onClick={handleClearCart} variant="destructive" className="w-full" size="lg" disabled={cart.length === 0}>
-        🗑️ Clear Cart
+      <Button
+        onClick={handleClearCart}
+        variant="destructive"
+        className="w-full justify-start gap-2"
+        size="lg"
+        disabled={cart.length === 0}
+      >
+        <span className="text-lg">🗑️</span>
+        <div className="flex flex-col items-start text-left">
+          <span className="text-sm font-semibold">Kosongkan Keranjang</span>
+          <span className="text-[11px] text-red-100">
+            Hapus semua item dari transaksi ini
+          </span>
+        </div>
       </Button>
 
       {/* Note Modal */}
       <Modal open={showNoteModal} onClose={() => setShowNoteModal(false)} title="Add Note" size="md">
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Transaction Notes</label>
+            <label className="block text-sm font-medium mb-2">Catatan Transaksi</label>
             <textarea
               value={notes || ''}
               onChange={(e) => setNotes(e.target.value)}
               className="w-full min-h-24 px-3 py-2 border rounded-md"
-              placeholder="Add notes for this transaction..."
+              placeholder="Contoh: klaim garansi, permintaan khusus, dll."
             />
           </div>
           <div className="flex gap-2">
             <Button onClick={() => setShowNoteModal(false)} variant="outline" className="flex-1">
-              Cancel
+              Batal
             </Button>
             <Button onClick={() => setShowNoteModal(false)} className="flex-1">
-              Save
+              Simpan
             </Button>
           </div>
         </div>
@@ -122,23 +168,24 @@ export function POSActions({ branchId, transactionId }: POSActionsProps) {
       <Modal open={showHoldModal} onClose={() => setShowHoldModal(false)} title="Hold Transaction" size="md">
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Reference (Optional)</label>
+            <label className="block text-sm font-medium mb-2">Referensi (Opsional)</label>
             <Input
               type="text"
               value={holdReference}
               onChange={(e) => setHoldReference(e.target.value)}
-              placeholder="e.g., Customer name, order number"
+              placeholder="Contoh: Nama customer, nomor antrian, nomor HP"
             />
           </div>
           <div className="text-sm text-gray-500">
-            Transaction will be held for 24 hours. You can resume it later.
+            Transaksi akan ditahan selama 24 jam dan bisa dilanjutkan kembali dari daftar
+            &quot;Transaksi Ditahan&quot;.
           </div>
           <div className="flex gap-2">
             <Button onClick={() => setShowHoldModal(false)} variant="outline" className="flex-1">
-              Cancel
+              Batal
             </Button>
             <Button onClick={handleHoldTransaction} className="flex-1">
-              Hold
+              Tahan
             </Button>
           </div>
         </div>
@@ -170,7 +217,7 @@ function DiscountModalContent({ currentDiscount, onApply, onRemove }: DiscountMo
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium mb-2">Discount Type</label>
+        <label className="block text-sm font-medium mb-2">Tipe Diskon</label>
         <div className="flex gap-2">
           <button
             onClick={() => setType('percentage')}
@@ -192,7 +239,7 @@ function DiscountModalContent({ currentDiscount, onApply, onRemove }: DiscountMo
       </div>
       <div>
         <label className="block text-sm font-medium mb-2">
-          {type === 'percentage' ? 'Percentage (%)' : 'Amount (Rp)'}
+          {type === 'percentage' ? 'Persentase (%)' : 'Nominal (Rp)'}
         </label>
         <Input
           type="number"
@@ -205,17 +252,19 @@ function DiscountModalContent({ currentDiscount, onApply, onRemove }: DiscountMo
       </div>
       {currentDiscount && (
         <div className="p-3 bg-yellow-50 rounded-lg text-sm">
-          Current discount: {currentDiscount.type === 'percentage' ? `${currentDiscount.value}%` : `Rp ${currentDiscount.value.toLocaleString()}`}
+          Diskon aktif: {currentDiscount.type === 'percentage'
+            ? `${currentDiscount.value}%`
+            : `Rp ${currentDiscount.value.toLocaleString()}`}
         </div>
       )}
       <div className="flex gap-2">
         {currentDiscount && (
           <Button onClick={onRemove} variant="destructive" className="flex-1">
-            Remove
+            Hapus Diskon
           </Button>
         )}
         <Button onClick={handleApply} className="flex-1">
-          Apply
+          Terapkan
         </Button>
       </div>
     </div>
@@ -262,7 +311,7 @@ function HeldTransactionItem({ held }: HeldTransactionItemProps) {
           </div>
         </div>
         <Button onClick={handleResume} size="sm" disabled={isResuming}>
-          Resume
+          Lanjutkan
         </Button>
       </div>
     </div>

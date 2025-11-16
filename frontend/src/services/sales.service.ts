@@ -57,6 +57,7 @@ export const salesService = {
     limit?: number;
     search?: string;
     status?: string;
+    branchId?: string;
   }): Promise<SalesTransactionListResponse> {
     const response = await api.get('/sales/transactions', { params });
     return response.data;
@@ -106,18 +107,16 @@ export const salesService = {
   },
 
   async holdTransaction(transactionId: string, reference?: string): Promise<void> {
-    await api.put(`/sales/transactions/${transactionId}/hold`, { reference });
+    await api.post(`/sales/transactions/${transactionId}/hold`, { reference });
   },
 
   async resumeTransaction(transactionId: string): Promise<SalesTransaction> {
-    const response = await api.put(`/sales/transactions/${transactionId}/resume`);
+    const response = await api.post(`/sales/transactions/${transactionId}/resume`);
     return response.data.data || response.data;
   },
 
   async generateReceipt(transactionId: string): Promise<Blob> {
-    const response = await api.get(`/sales/transactions/${transactionId}/receipt`, {
-      responseType: 'blob',
-    });
+    const response = await api.post(`/sales/transactions/${transactionId}/receipt`);
     return response.data;
   },
 };

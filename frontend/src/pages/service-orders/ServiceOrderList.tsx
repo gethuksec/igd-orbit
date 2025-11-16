@@ -1,24 +1,53 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Search, Edit, Eye, Wrench, Loader2, Filter, TrendingUp } from 'lucide-react';
+import { Plus, Search, Edit, Eye, Wrench, Loader2, Filter, TrendingUp, UserCircle } from 'lucide-react';
 import { serviceOrdersService } from '../../services/service-orders.service';
+import { useBranchStore } from '@/stores/branchStore';
+import { api } from '@/services/api';
 
 export default function ServiceOrderList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
+  const [selectedTechnician, setSelectedTechnician] = useState<string>('ALL');
   const [page, setPage] = useState(1);
   const limit = 20;
+  const { currentBranchId } = useBranchStore();
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['service-orders', page, searchTerm, selectedStatus],
+    queryKey: ['service-orders', page, searchTerm, selectedStatus, selectedTechnician, currentBranchId],
     queryFn: () =>
       serviceOrdersService.getAll({
         page,
         limit,
         search: searchTerm || undefined,
         status: selectedStatus !== 'ALL' ? selectedStatus : undefined,
+        branchId: currentBranchId || undefined,
+        technicianId: selectedTechnician !== 'ALL' ? selectedTechnician : undefined,
       }),
+  });
+
+  const { data: technicians } = useQuery({
+    queryKey: ['technicians'],
+    queryFn: async () => {
+      try {
+        const res = await api.get('/users', {
+          params: {
+            page: 1,
+            limit: 100,
+            'filter[role]': 'TC',
+          },
+        });
+        const raw = res.data?.data || res.data || [];
+        // Extra safety: filter client-side to only technician roles
+        return raw.filter((user: any) =>
+          Array.isArray(user.roles) &&
+          user.roles.some((r: any) => r.code === 'TC'),
+        );
+      } catch (error) {
+        return [];
+      }
+    },
   });
 
   useEffect(() => {
@@ -27,29 +56,44 @@ export default function ServiceOrderList() {
       refetch();
     }, 500);
     return () => clearTimeout(debounce);
-  }, [searchTerm, selectedStatus]);
+  }, [searchTerm, selectedStatus, selectedTechnician, refetch]);
 
   const orders = data?.data || [];
   const pagination = data?.meta || { page: 1, limit: 20, total: 0, totalPages: 1 };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'PENDING':
+    const s = String(status || '').toLowerCase();
+    switch (s) {
+      case 'pending':
+      case 'diagnosed':
+      case 'quoted':
+      case 'approved':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'IN_PROGRESS':
+      case 'in-progress':
+      case 'qc':
         return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'COMPLETED':
+      case 'completed':
+      case 'delivered':
         return 'bg-green-100 text-green-800 border-green-200';
-      case 'CANCELLED':
+      case 'cancelled':
         return 'bg-red-100 text-red-800 border-red-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
-  const pendingCount = orders.filter((o) => o.status === 'PENDING').length;
-  const inProgressCount = orders.filter((o) => o.status === 'IN_PROGRESS').length;
-  const completedCount = orders.filter((o) => o.status === 'COMPLETED').length;
+  // Grouped counts by phase
+  const pendingCount = orders.filter((o) =>
+    ['pending', 'diagnosed', 'quoted', 'approved'].includes(
+      String(o.status || '').toLowerCase(),
+    ),
+  ).length;
+  const inProgressCount = orders.filter((o) =>
+    ['in-progress', 'qc'].includes(String(o.status || '').toLowerCase()),
+  ).length;
+  const completedCount = orders.filter((o) =>
+    ['completed', 'delivered'].includes(String(o.status || '').toLowerCase()),
+  ).length;
 
   return (
     <div className="w-full space-y-3">
@@ -164,10 +208,36 @@ export default function ServiceOrderList() {
                 className="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white transition-all"
               >
                 <option value="ALL">Semua Status</option>
-                <option value="PENDING">Pending</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="COMPLETED">Completed</option>
-                <option value="CANCELLED">Cancelled</option>
+                <option value="pending">Pending</option>
+                <option value="diagnosed">Diagnosed</option>
+                <option value="quoted">Quoted</option>
+                <option value="approved">Approved</option>
+                <option value="in-progress">In Progress</option>
+                <option value="qc">QC</option>
+                <option value="completed">Completed</option>
+                <option value="delivered">Delivered</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="lg:w-64">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Teknisi</label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <UserCircle className="h-5 w-5 text-gray-400" />
+              </div>
+              <select
+                value={selectedTechnician}
+                onChange={(e) => setSelectedTechnician(e.target.value)}
+                className="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white transition-all"
+              >
+                <option value="ALL">Semua Teknisi</option>
+                {(technicians || []).map((tech: any) => (
+                  <option key={tech.id} value={tech.id}>
+                    {tech.fullName || tech.email}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -229,10 +299,12 @@ export default function ServiceOrderList() {
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
-                        {order.customer?.name || 'Walk-in Customer'}
+                        {order.customerName || order.customer?.name || 'Walk-in Customer'}
                       </div>
-                      {order.customer?.phone && (
-                        <div className="text-xs text-gray-500">{order.customer.phone}</div>
+                      {(order.customerPhone || order.customer?.phone) && (
+                        <div className="text-xs text-gray-500">
+                          {order.customerPhone || order.customer?.phone}
+                        </div>
                       )}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">

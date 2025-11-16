@@ -10,6 +10,7 @@ import {
   Request,
   HttpCode,
   HttpStatus,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Request as ExpressRequest } from 'express';
 import { SalesTransactionsService } from './sales-transactions.service';
@@ -20,6 +21,34 @@ import {
   VoidTransactionDto,
   HoldTransactionDto,
 } from './dto';
+
+// Helper to check branch access similar to DashboardController
+const ensureBranchAccess = (req: ExpressRequest & { user: any }, branchId?: string) => {
+  const userBranchIds: string[] = (req.user as any)?.branchIds || [];
+  const userRoles: string[] = (req.user as any)?.roles || [];
+
+  const isGlobalRole = userRoles.includes('OWNER') || userRoles.includes('CFO');
+
+  // Global roles can access any / all branches
+  if (isGlobalRole) {
+    return branchId;
+  }
+
+  if (!userBranchIds || userBranchIds.length === 0) {
+    throw new ForbiddenException('You do not have any branch access.');
+  }
+
+  // If specific branch requested, ensure it is allowed
+  if (branchId) {
+    if (!userBranchIds.includes(branchId)) {
+      throw new ForbiddenException('You do not have access to this branch.');
+    }
+    return branchId;
+  }
+
+  // No branch specified → default to first allowed branch
+  return userBranchIds[0];
+};
 
 /**
  * Sales Transactions Controller
@@ -43,10 +72,10 @@ export class SalesTransactionsController {
     @Body() createDto: CreateSalesTransactionDto,
     @Request() req: ExpressRequest & { user: any },
   ) {
-    // Get branch ID from user context or use from DTO
-    const branchId = createDto.branchId || (req.user as any).branchId;
+    // Validate branch access: use branch from DTO but enforce against user branchIds
+    const branchId = ensureBranchAccess(req, createDto.branchId) as string;
     if (!branchId) {
-      throw new Error('Branch ID is required');
+      throw new ForbiddenException('Branch ID is required for creating transactions.');
     }
 
     return this.salesTransactionsService.create(createDto, req.user.id, branchId);
@@ -58,8 +87,17 @@ export class SalesTransactionsController {
    * Permissions: All authenticated users
    */
   @Get()
-  async findAll(@Query() query: any) {
-    return this.salesTransactionsService.findAll(query);
+  async findAll(
+    @Query() query: any,
+    @Request() req: ExpressRequest & { user: any },
+  ) {
+    // Enforce branch access for non-global roles
+    const effectiveBranchId = ensureBranchAccess(req, query.branchId);
+    const finalQuery = {
+      ...query,
+      branchId: effectiveBranchId,
+    };
+    return this.salesTransactionsService.findAll(finalQuery);
   }
 
   /**
@@ -150,8 +188,12 @@ export class SalesTransactionsController {
   @Get('held/list')
   @UseGuards(RolesGuard)
   @Roles('CS', 'CR', 'HS', 'SPV')
-  async listHeldTransactions(@Query('branchId') branchId?: string) {
-    return this.salesTransactionsService.listHeldTransactions(branchId);
+  async listHeldTransactions(
+    @Query('branchId') branchId: string | undefined,
+    @Request() req: ExpressRequest & { user: any },
+  ) {
+    const effectiveBranchId = ensureBranchAccess(req, branchId);
+    return this.salesTransactionsService.listHeldTransactions(effectiveBranchId);
   }
 
   /**

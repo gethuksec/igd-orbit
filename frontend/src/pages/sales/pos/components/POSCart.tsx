@@ -91,40 +91,62 @@ export function POSCart() {
   return (
     <div className="flex flex-col h-full">
       {/* Search Bar */}
-      <div className="p-4 border-b">
-        <Input
-          ref={searchInputRef}
-          type="text"
-          placeholder="Scan barcode or search product..."
-          value={searchQuery}
-          onChange={(e) => handleSearchChange(e.target.value)}
-          className="w-full text-lg h-12"
-          autoFocus
-        />
-
-        {/* Search Results Dropdown */}
-        {searchQuery.length >= 2 && searchResults.length > 0 && (
-          <div className="absolute z-10 mt-1 w-full max-w-md bg-white border rounded-md shadow-lg max-h-64 overflow-y-auto">
-            {searchResults.map((product: ProductSearchResult) => (
-              <button
-                key={product.id}
-                onClick={() => handleAddProduct(product)}
-                className="w-full p-3 text-left hover:bg-gray-100 flex items-center gap-3"
-              >
-                {product.images?.[0] && (
-                  <img src={product.images[0]} alt={product.name} className="w-12 h-12 object-cover rounded" />
-                )}
-                <div className="flex-1">
-                  <div className="font-medium">{product.name}</div>
-                  <div className="text-sm text-gray-500">
-                    SKU: {product.sku} | Stock: {product.stock?.quantityAvailable || 0}
-                  </div>
-                  <div className="text-sm font-semibold text-primary">{formatCurrency(product.sellingPrice)}</div>
-                </div>
-              </button>
-            ))}
+      <div className="p-4 border-b bg-gray-50">
+        <div className="relative">
+          <Input
+            ref={searchInputRef}
+            type="text"
+            placeholder="Scan barcode atau cari produk..."
+            value={searchQuery}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            className="w-full text-base md:text-lg h-11 md:h-12 pl-3 pr-28"
+            autoFocus
+          />
+          <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+            <div className="px-2 py-1 rounded-md bg-gray-100 border text-[10px] md:text-xs text-gray-500">
+              F1 · Scan / Cari
+            </div>
           </div>
-        )}
+
+          {/* Search Results Dropdown */}
+          {searchQuery.length >= 2 && (
+            <div className="absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto z-10">
+              {searchResults.length === 0 ? (
+                <div className="px-4 py-3 text-sm text-gray-500">Tidak ada produk ditemukan.</div>
+              ) : (
+                searchResults.map((product: ProductSearchResult) => (
+                  <button
+                    key={product.id}
+                    type="button"
+                    onClick={() => handleAddProduct(product)}
+                    className="w-full px-3 py-2.5 text-left hover:bg-gray-50 flex items-center gap-3 text-sm"
+                  >
+                    {product.images?.[0] && (
+                      <img
+                        src={product.images[0]}
+                        alt={product.name}
+                        className="w-10 h-10 md:w-12 md:h-12 object-cover rounded-md border"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium truncate">{product.name}</div>
+                      <div className="text-[11px] md:text-xs text-gray-500 flex flex-wrap gap-2">
+                        <span>SKU: {product.sku}</span>
+                        <span>·</span>
+                        <span>Stock: {product.stock?.quantityAvailable || 0}</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs md:text-sm font-semibold text-primary">
+                        {formatCurrency(product.sellingPrice)}
+                      </div>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Cart Items */}

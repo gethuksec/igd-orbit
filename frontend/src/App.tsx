@@ -32,6 +32,7 @@ import ReturnsList from './pages/sales/ReturnsList';
 import ServiceOrderList from './pages/service-orders/ServiceOrderList';
 import ServiceOrderForm from './pages/service-orders/ServiceOrderForm';
 import ServiceOrderDetail from './pages/service-orders/ServiceOrderDetail';
+import MyServiceOrders from './pages/service-orders/MyServiceOrders';
 // Inventory
 import StockList from './pages/inventory/StockList';
 import StockTransfer from './pages/inventory/StockTransfer';
@@ -420,6 +421,16 @@ function App() {
                   </DashboardLayout>
                 </ProtectedRoute>
               }
+            />
+            <Route
+              path="/service-orders/my"
+              element={
+              <ProtectedRoute>
+                <DashboardLayout>
+                  <MyServiceOrders />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
             />
             <Route
               path="/service-orders/new"

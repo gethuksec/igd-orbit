@@ -30,7 +30,7 @@ const statusLabels: Record<string, string> = {
   'in-progress': 'In Progress',
   qc: 'Quality Check',
   completed: 'Completed',
-  delivered: 'Ready for Pickup',
+  delivered: 'Delivered',
 };
 
 export default function StatusTimeline({ currentStatus, statusHistory }: StatusTimelineProps) {

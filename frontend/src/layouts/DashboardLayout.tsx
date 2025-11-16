@@ -39,6 +39,9 @@ import {
   Target,
   Plus,
 } from 'lucide-react';
+import type { Branch } from '@/services/public.service';
+import { publicService } from '@/services/public.service';
+import { useBranchStore } from '@/stores/branchStore';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -61,7 +64,7 @@ interface MenuItem {
   icon: any;
   label: string;
   path?: string;
-  roles: string[];
+  roles: string[]; // allowed role codes, '*' = all
   children?: MenuItem[];
 }
 
@@ -79,6 +82,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     hr: true,
   });
   const user = getUser();
+  const { availableBranches, currentBranchId, setBranches, setCurrentBranchId } = useBranchStore();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -105,104 +109,191 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     navigate('/login');
   };
 
+  // Load branches based on user access
+  useEffect(() => {
+    const loadBranches = async () => {
+      try {
+        // Use public branches endpoint so dropdown tetap muncul walau endpoint private belum siap
+        const data = await publicService.getBranches();
+        let branches: Branch[] = data || [];
+
+        // If user has specific branchIds, filter to allowed branches only.
+        // Fallback: jika hasil filter kosong (mungkin mismatch id/code), pakai semua cabang.
+        if (user?.branchIds && Array.isArray(user.branchIds) && user.branchIds.length > 0) {
+          const filtered = branches.filter((b: Branch) => user.branchIds.includes(b.id));
+          branches = filtered.length > 0 ? filtered : branches;
+        }
+
+        setBranches(branches);
+
+        // Default selection: jika hanya satu cabang → pilih cabang itu, jika lebih dari satu → semua cabang (null)
+        if (branches.length === 1) {
+          setCurrentBranchId(branches[0].id);
+        } else if (branches.length > 1) {
+          setCurrentBranchId(null);
+        }
+      } catch (error) {
+        console.error('Failed to load branches:', error);
+      }
+    };
+
+    loadBranches();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Menu structure with submenus based on PRD
   const allMenuItems: MenuItem[] = [
     {
       icon: LayoutDashboard,
       label: 'Dashboard',
       path: '/dashboard',
-      roles: ['*'],
+      roles: ['OWNER', 'CFO', 'MGR'],
     },
     {
       icon: Package,
       label: 'Master Data',
-      roles: ['*'],
+      roles: ['OWNER', 'CFO', 'MGR', 'CS'],
       children: [
-        { icon: Users, label: 'Pelanggan', path: '/customers', roles: ['*'] },
-        { icon: Package, label: 'Produk', path: '/products', roles: ['*'] },
-        { icon: Building2, label: 'Supplier', path: '/suppliers', roles: ['*'] },
-        { icon: Tag, label: 'Kategori', path: '/categories', roles: ['*'] },
-        { icon: Award, label: 'Brand', path: '/brands', roles: ['*'] },
+        { icon: Users, label: 'Pelanggan', path: '/customers', roles: ['OWNER', 'CFO', 'MGR', 'CS'] },
+        { icon: Package, label: 'Produk', path: '/products', roles: ['OWNER', 'CFO', 'MGR'] },
+        { icon: Building2, label: 'Supplier', path: '/suppliers', roles: ['OWNER', 'CFO', 'MGR'] },
+        { icon: Tag, label: 'Kategori', path: '/categories', roles: ['OWNER', 'CFO', 'MGR'] },
+        { icon: Award, label: 'Brand', path: '/brands', roles: ['OWNER', 'CFO', 'MGR'] },
       ],
     },
     {
       icon: ShoppingCart,
       label: 'Penjualan',
-      roles: ['*'],
+      // POS & sales pages: kasir dan tim frontliner (CS, CR, HS, SPV) + manajemen
+      roles: ['OWNER', 'CFO', 'MGR', 'CS', 'CR', 'HS', 'SPV'],
       children: [
-        { icon: ShoppingCart, label: 'POS', path: '/sales/pos', roles: ['*'] },
-        { icon: Receipt, label: 'Riwayat Penjualan', path: '/sales/history', roles: ['*'] },
-        { icon: ArrowRightLeft, label: 'Retur Penjualan', path: '/sales/returns', roles: ['*'] },
+        {
+          icon: ShoppingCart,
+          label: 'POS',
+          path: '/sales/pos',
+          roles: ['OWNER', 'CFO', 'MGR', 'CS', 'CR', 'HS', 'SPV'],
+        },
+        {
+          icon: Receipt,
+          label: 'Riwayat Penjualan',
+          path: '/sales/history',
+          roles: ['OWNER', 'CFO', 'MGR', 'CS', 'CR', 'HS', 'SPV'],
+        },
+        {
+          icon: ArrowRightLeft,
+          label: 'Retur Penjualan',
+          path: '/sales/returns',
+          roles: ['OWNER', 'CFO', 'MGR', 'HS', 'SPV'],
+        },
       ],
     },
     {
       icon: Wrench,
       label: 'Servis',
-      roles: ['*'],
+      // CS: create/update service order; TC/HS/SPV: manage assigned services; OWNER/MGR: overview
+      roles: ['OWNER', 'MGR', 'CS', 'TC', 'HS', 'SPV'],
       children: [
-        { icon: Wrench, label: 'Service Order', path: '/service-orders', roles: ['*'] },
-        { icon: Plus, label: 'Tambah Service', path: '/service-orders/new', roles: ['*'] },
+        {
+          icon: Wrench,
+          label: 'Semua Service Order',
+          path: '/service-orders',
+          roles: ['OWNER', 'MGR', 'CS', 'HS', 'SPV'],
+        },
+        {
+          icon: UserCog,
+          label: 'Service Saya',
+          path: '/service-orders/my',
+          roles: ['TC', 'HS', 'SPV'],
+        },
+        {
+          icon: Plus,
+          label: 'Tambah Service',
+          path: '/service-orders/new',
+          roles: ['OWNER', 'MGR', 'CS'],
+        },
       ],
     },
     {
       icon: Warehouse,
       label: 'Gudang',
-      roles: ['*'],
+      roles: ['OWNER', 'CFO', 'MGR'],
       children: [
-        { icon: Boxes, label: 'Stok', path: '/inventory/stock', roles: ['*'] },
-        { icon: ArrowRightLeft, label: 'Transfer Stok', path: '/inventory/transfer', roles: ['*'] },
-        { icon: ClipboardCheck, label: 'Stock Opname', path: '/inventory/opname', roles: ['*'] },
-        { icon: PackageSearch, label: 'Stock Adjustment', path: '/inventory/adjustment', roles: ['*'] },
+        { icon: Boxes, label: 'Stok', path: '/inventory/stock', roles: ['OWNER', 'CFO', 'MGR'] },
+        { icon: ArrowRightLeft, label: 'Transfer Stok', path: '/inventory/transfer', roles: ['OWNER', 'CFO', 'MGR'] },
+        { icon: ClipboardCheck, label: 'Stock Opname', path: '/inventory/opname', roles: ['OWNER', 'CFO', 'MGR'] },
+        { icon: PackageSearch, label: 'Stock Adjustment', path: '/inventory/adjustment', roles: ['OWNER', 'CFO', 'MGR'] },
       ],
     },
     {
       icon: DollarSign,
       label: 'Keuangan',
-      roles: ['*'],
+      roles: ['OWNER', 'CFO'],
       children: [
-        { icon: FileText, label: 'Chart of Accounts', path: '/finance/coa', roles: ['*'] },
-        { icon: ReceiptText, label: 'Jurnal Umum', path: '/finance/journal', roles: ['*'] },
-        { icon: Wallet, label: 'Pengeluaran', path: '/finance/expenses', roles: ['*'] },
-        { icon: CreditCard, label: 'Petty Cash', path: '/finance/petty-cash', roles: ['*'] },
-        { icon: Receipt, label: 'Accounts Receivable', path: '/finance/ar', roles: ['*'] },
-        { icon: BarChart3, label: 'Laporan Keuangan', path: '/finance/reports', roles: ['*'] },
+        { icon: FileText, label: 'Chart of Accounts', path: '/finance/coa', roles: ['OWNER', 'CFO'] },
+        { icon: ReceiptText, label: 'Jurnal Umum', path: '/finance/journal', roles: ['OWNER', 'CFO'] },
+        { icon: Wallet, label: 'Pengeluaran', path: '/finance/expenses', roles: ['OWNER', 'CFO'] },
+        { icon: CreditCard, label: 'Petty Cash', path: '/finance/petty-cash', roles: ['OWNER', 'CFO'] },
+        { icon: Receipt, label: 'Accounts Receivable', path: '/finance/ar', roles: ['OWNER', 'CFO'] },
+        { icon: BarChart3, label: 'Laporan Keuangan', path: '/finance/reports', roles: ['OWNER', 'CFO'] },
       ],
     },
     {
       icon: FileText,
       label: 'Pembelian',
-      roles: ['*'],
+      roles: ['OWNER', 'CFO', 'MGR'],
       children: [
-        { icon: Building2, label: 'Supplier', path: '/purchasing/suppliers', roles: ['*'] },
-        { icon: FileText, label: 'Purchase Order', path: '/purchasing/po', roles: ['*'] },
-        { icon: Truck, label: 'Goods Receipt', path: '/purchasing/goods-receipt', roles: ['*'] },
+        { icon: Building2, label: 'Supplier', path: '/purchasing/suppliers', roles: ['OWNER', 'CFO', 'MGR'] },
+        { icon: FileText, label: 'Purchase Order', path: '/purchasing/po', roles: ['OWNER', 'CFO', 'MGR'] },
+        { icon: Truck, label: 'Goods Receipt', path: '/purchasing/goods-receipt', roles: ['OWNER', 'CFO', 'MGR'] },
       ],
     },
     {
       icon: UserCog,
       label: 'Karyawan',
-      roles: ['*'],
+      roles: ['OWNER', 'CFO'],
       children: [
-        { icon: Users, label: 'Data Karyawan', path: '/hr/employees', roles: ['*'] },
-        { icon: Clock, label: 'Absensi', path: '/hr/attendance', roles: ['*'] },
-        { icon: CalendarDays, label: 'Cuti', path: '/hr/leave', roles: ['*'] },
-        { icon: Banknote, label: 'Payroll', path: '/hr/payroll', roles: ['*'] },
-        { icon: Target, label: 'KPI', path: '/hr/kpi', roles: ['*'] },
+        { icon: Users, label: 'Data Karyawan', path: '/hr/employees', roles: ['OWNER', 'CFO'] },
+        { icon: Clock, label: 'Absensi', path: '/hr/attendance', roles: ['OWNER', 'CFO'] },
+        { icon: CalendarDays, label: 'Cuti', path: '/hr/leave', roles: ['OWNER', 'CFO'] },
+        { icon: Banknote, label: 'Payroll', path: '/hr/payroll', roles: ['OWNER', 'CFO'] },
+        { icon: Target, label: 'KPI', path: '/hr/kpi', roles: ['OWNER', 'CFO'] },
       ],
     },
     {
       icon: Shield,
       label: 'User & Role',
       path: '/users',
-      roles: ['*'],
+      roles: ['OWNER'],
     },
   ];
 
-  // Filter menu based on user role (for now, show all)
-  const userRole = user?.role?.code || 'ADMIN';
-  const menuItems = allMenuItems.filter(
-    (item) => item.roles.includes('*') || item.roles.includes(userRole),
-  );
+  // Flatten user roles: array of codes + primary role code (from backend JWT payload)
+  const userRoleCodes: string[] = (() => {
+    const codes: string[] = [];
+    if (Array.isArray(user?.roles)) {
+      codes.push(...user.roles);
+    }
+    if (user?.role?.code && !codes.includes(user.role.code)) {
+      codes.push(user.role.code);
+    }
+    // Fallback default
+    if (codes.length === 0) {
+      codes.push('ADMIN');
+    }
+    return codes;
+  })();
+
+  const hasAccess = (itemRoles: string[]) =>
+    itemRoles.includes('*') || itemRoles.some((r) => userRoleCodes.includes(r));
+
+  // Filter menu based on Access Control Matrix (simplified per-role)
+  const menuItems = allMenuItems
+    .filter((item) => hasAccess(item.roles))
+    .map((item) => ({
+      ...item,
+      children: item.children?.filter((child) => hasAccess(child.roles || ['*'])),
+    }))
+    .filter((item) => !item.children || item.children.length > 0);
 
   const isActive = (path?: string) => {
     if (!path) return false;
@@ -377,6 +468,29 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
             {/* Right: Notifications & User */}
             <div className="flex items-center gap-3 flex-shrink-0">
+              {/* Branch selector */}
+              {availableBranches.length > 0 && (
+                <div className="hidden md:flex items-center gap-2 text-xs">
+                  <span className="text-gray-500">Cabang:</span>
+                  <select
+                    value={currentBranchId || ''}
+                    onChange={(e) =>
+                      setCurrentBranchId(e.target.value === '' ? null : e.target.value)
+                    }
+                    className="border border-gray-300 rounded-lg px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  >
+                    {availableBranches.length > 1 && (
+                      <option value="">Semua Cabang</option>
+                    )}
+                    {availableBranches.map((branch) => (
+                      <option key={branch.id} value={branch.id}>
+                        {branch.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               {/* Notifications */}
               <button className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                 <Bell className="w-5 h-5" />

@@ -448,11 +448,7 @@ export default function LandingPage() {
         <footer className="mt-auto border-t border-gray-200 bg-white">
           <div className="container mx-auto px-4 py-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-500">
             <div className="flex items-center gap-2">
-              <span>© {new Date().getFullYear()} IGD Ponsel. All rights reserved.</span>
-            </div>
-            <div className="flex flex-wrap gap-4 text-[11px] md:text-xs">
-              <span>IGD Ponsel™ adalah merek dagang milik pemilik sahnya.</span>
-              <span>IGD ERP Web App ini digunakan untuk demo dan operasional internal.</span>
+              <span>© {new Date().getFullYear()} IGD Ponsel.</span>
             </div>
           </div>
         </footer>

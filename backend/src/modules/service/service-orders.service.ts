@@ -146,7 +146,7 @@ export class ServiceOrdersService {
     });
   }
 
-  async findAll(branchId?: string, status?: string, technicianId?: string) {
+  async findAll(branchId?: string, status?: string, technicianId?: string, search?: string) {
     const where: any = {};
 
     if (branchId) {
@@ -159,6 +159,20 @@ export class ServiceOrdersService {
 
     if (technicianId) {
       where.assignedTechnicianId = technicianId;
+    }
+
+    if (search) {
+      const q = search.trim();
+      if (q.length > 0) {
+        where.OR = [
+          { serviceNumber: { contains: q, mode: 'insensitive' } },
+          { internalNumber: { contains: q, mode: 'insensitive' } },
+          { customerName: { contains: q, mode: 'insensitive' } },
+          { customerPhone: { contains: q, mode: 'insensitive' } },
+          { deviceBrand: { contains: q, mode: 'insensitive' } },
+          { deviceModel: { contains: q, mode: 'insensitive' } },
+        ];
+      }
     }
 
     return this.prisma.serviceOrder.findMany({
@@ -314,6 +328,20 @@ export class ServiceOrdersService {
       throw new NotFoundException('Technician not found');
     }
 
+    // Extra safety: ensure selected user has technician role (TC)
+    const technicianRole = await this.prisma.userRole.findFirst({
+      where: {
+        userId: dto.technicianId,
+        role: { code: 'TC' },
+        OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
+      },
+      include: { role: true },
+    });
+
+    if (!technicianRole) {
+      throw new BadRequestException('Selected user is not a technician');
+    }
+
     // Check technician workload (optional - can be enhanced)
     // const activeServices = await this.prisma.serviceOrder.count({
     //   where: {
@@ -386,11 +414,15 @@ export class ServiceOrdersService {
     }
 
     // Check required fields for specific statuses
-    if (dto.status === 'quoted' && !serviceOrder.quotedPrice) {
+    if (dto.status === 'quoted' && dto.quotedPrice === undefined && !serviceOrder.quotedPrice) {
       throw new BadRequestException('Quoted price is required for quoted status');
     }
 
-    if (dto.status === 'approved' && !serviceOrder.customerApprovedPrice) {
+    if (
+      dto.status === 'approved' &&
+      dto.customerApprovedPrice === undefined &&
+      !serviceOrder.customerApprovedPrice
+    ) {
       throw new BadRequestException('Customer approved price is required for approved status');
     }
 
@@ -402,6 +434,15 @@ export class ServiceOrdersService {
       const updateData: any = {
         status: dto.status,
       };
+
+      // Monetary fields coming from DTO (if provided)
+      if (dto.quotedPrice !== undefined) {
+        updateData.quotedPrice = new Decimal(dto.quotedPrice);
+      }
+
+      if (dto.customerApprovedPrice !== undefined) {
+        updateData.customerApprovedPrice = new Decimal(dto.customerApprovedPrice);
+      }
 
       // Update relevant timestamps
       if (dto.status === 'quoted') {

@@ -3,19 +3,22 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Search, Eye, Receipt, Loader2, TrendingUp, DollarSign, ShoppingCart } from 'lucide-react';
 import { salesService } from '../../services/sales.service';
+import { useBranchStore } from '@/stores/branchStore';
 
 export default function SalesHistory() {
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const limit = 20;
+  const { currentBranchId } = useBranchStore();
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['sales-transactions', page, searchTerm],
+    queryKey: ['sales-transactions', page, searchTerm, currentBranchId],
     queryFn: () =>
       salesService.getAll({
         page,
         limit,
         search: searchTerm || undefined,
+        branchId: currentBranchId || undefined,
       }),
   });
 

@@ -15,11 +15,13 @@ import { RefreshButton } from '../../components/dashboard/RefreshButton';
 import { dashboardService } from '../../services/dashboard.service';
 import { formatCurrency, formatNumber } from '../../utils/format';
 import { io } from 'socket.io-client';
+import { useBranchStore } from '@/stores/branchStore';
 
 const API_URL = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
 
 export function ExecutiveDashboard() {
   const { t } = useTranslation();
+  const { currentBranchId } = useBranchStore();
   const [dateRange, setDateRange] = useState<{ startDate: Date; endDate: Date }>({
     startDate: new Date(),
     endDate: new Date(),
@@ -77,50 +79,53 @@ export function ExecutiveDashboard() {
 
   // Fetch KPIs
   const { data: kpis, isLoading: kpisLoading } = useQuery({
-    queryKey: ['dashboard', 'kpis', dateRange],
+    queryKey: ['dashboard', 'kpis', dateRange, currentBranchId],
     queryFn: () =>
       dashboardService.getKPIs({
         startDate: dateRange.startDate.toISOString(),
         endDate: dateRange.endDate.toISOString(),
+        branchId: currentBranchId || undefined,
       }),
   });
 
   // Fetch revenue trend
   const { data: revenueTrend } = useQuery({
-    queryKey: ['dashboard', 'revenue-trend'],
-    queryFn: () => dashboardService.getRevenueTrend(30),
+    queryKey: ['dashboard', 'revenue-trend', currentBranchId],
+    queryFn: () => dashboardService.getRevenueTrend(30, currentBranchId || undefined),
   });
 
   // Fetch sales by category
   const { data: salesByCategory } = useQuery({
-    queryKey: ['dashboard', 'sales-by-category', dateRange],
+    queryKey: ['dashboard', 'sales-by-category', dateRange, currentBranchId],
     queryFn: () =>
       dashboardService.getSalesByCategory({
         startDate: dateRange.startDate.toISOString(),
         endDate: dateRange.endDate.toISOString(),
+        branchId: currentBranchId || undefined,
       }),
   });
 
   // Fetch top products
   const { data: topProducts } = useQuery({
-    queryKey: ['dashboard', 'top-products'],
-    queryFn: () => dashboardService.getTopProducts(30),
+    queryKey: ['dashboard', 'top-products', currentBranchId],
+    queryFn: () => dashboardService.getTopProducts(30, 10, currentBranchId || undefined),
   });
 
   // Fetch branch performance
   const { data: branchPerformance } = useQuery({
-    queryKey: ['dashboard', 'branch-performance', dateRange],
+    queryKey: ['dashboard', 'branch-performance', dateRange, currentBranchId],
     queryFn: () =>
       dashboardService.getBranchPerformance({
         startDate: dateRange.startDate.toISOString(),
         endDate: dateRange.endDate.toISOString(),
+        branchId: currentBranchId || undefined,
       }),
   });
 
   // Fetch recent transactions
   const { data: recentTransactions } = useQuery({
-    queryKey: ['dashboard', 'recent-transactions'],
-    queryFn: () => dashboardService.getRecentTransactions(10),
+    queryKey: ['dashboard', 'recent-transactions', currentBranchId],
+    queryFn: () => dashboardService.getRecentTransactions(10, currentBranchId || undefined),
   });
 
   // Fetch pending approvals

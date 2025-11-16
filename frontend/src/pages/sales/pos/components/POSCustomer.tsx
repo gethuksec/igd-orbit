@@ -49,42 +49,62 @@ export function POSCustomer() {
   return (
     <div className="h-full flex flex-col">
       {/* Search Section */}
-      <div className="p-4 border-b">
+      <div className="p-4 border-b bg-gray-50">
         <div className="flex gap-2 mb-2">
-          <Input
-            type="text"
-            placeholder="Search customer..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1"
-          />
-          <Button onClick={() => setShowCreateModal(true)} size="sm">
-            + New
+          <div className="relative flex-1">
+            <Input
+              type="text"
+              placeholder="Cari customer..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pr-24"
+            />
+            <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+              <div className="px-2 py-1 rounded-md bg-gray-100 border text-[10px] md:text-xs text-gray-500">
+                F2 · Cari
+              </div>
+            </div>
+
+            {/* Search Results */}
+            {searchQuery.length >= 2 && (
+              <div className="absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto z-10">
+                {searchResults.length === 0 ? (
+                  <div className="px-4 py-3 text-sm text-gray-500">
+                    Tidak ada customer ditemukan.
+                  </div>
+                ) : (
+                  searchResults.map((customerData: CustomerSearchResult) => (
+                    <button
+                      key={customerData.id}
+                      type="button"
+                      onClick={() => handleSelectCustomer(customerData)}
+                      className="w-full px-3 py-2.5 text-left hover:bg-gray-50 text-sm"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <div className="font-medium">{customerData.name}</div>
+                          <div className="text-[11px] md:text-xs text-gray-500">
+                            {formatPhone(customerData.phone)}
+                          </div>
+                        </div>
+                        {customerData.tier && (
+                          <Badge variant="secondary" className="text-[10px] md:text-xs">
+                            {typeof customerData.tier === 'string'
+                              ? customerData.tier
+                              : customerData.tier.name}
+                          </Badge>
+                        )}
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+          <Button onClick={() => setShowCreateModal(true)} size="sm" variant="outline">
+            + Customer
           </Button>
         </div>
-
-        {/* Search Results */}
-        {searchQuery.length >= 2 && searchResults.length > 0 && (
-          <div className="absolute z-10 mt-1 w-full max-w-sm bg-white border rounded-md shadow-lg max-h-64 overflow-y-auto">
-            {searchResults.map((customerData: CustomerSearchResult) => (
-              <button
-                key={customerData.id}
-                onClick={() => handleSelectCustomer(customerData)}
-                className="w-full p-3 text-left hover:bg-gray-100"
-              >
-                <div className="font-medium">{customerData.name}</div>
-                <div className="text-sm text-gray-500">{formatPhone(customerData.phone)}</div>
-                {customerData.tier && (
-                  <Badge variant="secondary" className="mt-1">
-                    {typeof customerData.tier === 'string'
-                      ? customerData.tier
-                      : customerData.tier.name}
-                  </Badge>
-                )}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Selected Customer Display */}

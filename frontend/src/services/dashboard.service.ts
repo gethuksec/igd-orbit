@@ -55,12 +55,16 @@ export interface PendingApproval {
 }
 
 export const dashboardService = {
-  async getKPIs(dateRange?: { startDate: string; endDate: string }): Promise<DashboardKPIs> {
+  async getKPIs(
+    dateRange?: { startDate: string; endDate: string; branchId?: string },
+  ): Promise<DashboardKPIs> {
     try {
-      const params = dateRange
-        ? `?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`
-        : '';
-      const response = await api.get(`/dashboard/kpis${params}`);
+      const params = new URLSearchParams();
+      if (dateRange?.startDate) params.append('startDate', dateRange.startDate);
+      if (dateRange?.endDate) params.append('endDate', dateRange.endDate);
+      if (dateRange?.branchId) params.append('branchId', dateRange.branchId);
+      const query = params.toString();
+      const response = await api.get(`/dashboard/kpis${query ? `?${query}` : ''}`);
       return response.data;
     } catch (error: any) {
       return handleApiError(error, {
@@ -93,17 +97,16 @@ export const dashboardService = {
   },
 
   async getSalesByCategory(
-    dateRange?: { startDate: string; endDate: string },
+    paramsInput?: { startDate: string; endDate: string; branchId?: string },
     limit: number = 5,
   ): Promise<SalesByCategory[]> {
     try {
       const params = new URLSearchParams();
       params.append('limit', limit.toString());
-      if (dateRange) {
-        params.append('startDate', dateRange.startDate);
-        params.append('endDate', dateRange.endDate);
-      }
-      const response = await api.get(`/dashboard/sales-by-category?${params}`);
+      if (paramsInput?.startDate) params.append('startDate', paramsInput.startDate);
+      if (paramsInput?.endDate) params.append('endDate', paramsInput.endDate);
+      if (paramsInput?.branchId) params.append('branchId', paramsInput.branchId);
+      const response = await api.get(`/dashboard/sales-by-category?${params.toString()}`);
       return response.data;
     } catch (error: any) {
       return handleApiError(error, []);
@@ -113,9 +116,14 @@ export const dashboardService = {
   async getTopProducts(
     days: number = 30,
     limit: number = 10,
+    branchId?: string,
   ): Promise<TopProduct[]> {
     try {
-      const response = await api.get(`/dashboard/top-products?days=${days}&limit=${limit}`);
+      const params = new URLSearchParams();
+      params.append('days', days.toString());
+      params.append('limit', limit.toString());
+      if (branchId) params.append('branchId', branchId);
+      const response = await api.get(`/dashboard/top-products?${params.toString()}`);
       return response.data;
     } catch (error: any) {
       return handleApiError(error, []);
@@ -123,22 +131,32 @@ export const dashboardService = {
   },
 
   async getBranchPerformance(
-    dateRange?: { startDate: string; endDate: string },
+    dateRange?: { startDate: string; endDate: string; branchId?: string },
   ): Promise<BranchPerformance[]> {
     try {
-      const params = dateRange
-        ? `?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`
-        : '';
-      const response = await api.get(`/dashboard/branch-performance${params}`);
+      const params = new URLSearchParams();
+      if (dateRange?.startDate) params.append('startDate', dateRange.startDate);
+      if (dateRange?.endDate) params.append('endDate', dateRange.endDate);
+      if (dateRange?.branchId) params.append('branchId', dateRange.branchId);
+      const query = params.toString();
+      const response = await api.get(
+        `/dashboard/branch-performance${query ? `?${query}` : ''}`,
+      );
       return response.data;
     } catch (error: any) {
       return handleApiError(error, []);
     }
   },
 
-  async getRecentTransactions(limit: number = 10): Promise<RecentTransaction[]> {
+  async getRecentTransactions(
+    limit: number = 10,
+    branchId?: string,
+  ): Promise<RecentTransaction[]> {
     try {
-      const response = await api.get(`/dashboard/recent-transactions?limit=${limit}`);
+      const params = new URLSearchParams();
+      params.append('limit', limit.toString());
+      if (branchId) params.append('branchId', branchId);
+      const response = await api.get(`/dashboard/recent-transactions?${params.toString()}`);
       return response.data;
     } catch (error: any) {
       return handleApiError(error, []);

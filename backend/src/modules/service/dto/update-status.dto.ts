@@ -3,6 +3,8 @@ import {
   IsOptional,
   IsArray,
   IsString,
+  IsNumber,
+  Min,
 } from 'class-validator';
 
 export class UpdateStatusDto {
@@ -36,6 +38,16 @@ export class UpdateStatusDto {
   @IsString({ each: true })
   @IsOptional()
   photos?: string[];
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  quotedPrice?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  customerApprovedPrice?: number;
 }
 
 

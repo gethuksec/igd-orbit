@@ -91,6 +91,27 @@ export default function ServiceOrderForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Basic client-side validation
+    if (
+      formData.customerPhone &&
+      formData.customerAlternatePhone &&
+      formData.customerPhone === formData.customerAlternatePhone
+    ) {
+      toast.error('Telepon dan Telepon Alternatif tidak boleh sama');
+      return;
+    }
+
+    if (!formData.serviceTypeId) {
+      toast.error('Service Type wajib dipilih');
+      return;
+    }
+
+    if (!formData.promisedDate) {
+      toast.error('Promised Date wajib diisi');
+      return;
+    }
+
     mutation.mutate(formData);
   };
 
@@ -309,10 +330,11 @@ export default function ServiceOrderForm() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Service Type
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Service Type <span className="text-red-500">*</span>
                 </label>
                 <select
+                  required
                   value={formData.serviceTypeId}
                   onChange={(e) => setFormData({ ...formData, serviceTypeId: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
@@ -353,10 +375,11 @@ export default function ServiceOrderForm() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Promised Date
+                  Promised Date <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="date"
+                  required
                   value={formData.promisedDate}
                   onChange={(e) => setFormData({ ...formData, promisedDate: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
