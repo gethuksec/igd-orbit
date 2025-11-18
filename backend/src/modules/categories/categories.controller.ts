@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -26,15 +27,25 @@ export class CategoriesController {
 
   /**
    * List categories in tree structure
-   * GET /api/v1/categories
+   * GET /api/v1/categories?tree=true
    * Permissions: OWNER, CFO, MGR, CSO, CMO, SPV, HS, ASA
    */
   @Get()
   @UseGuards(RolesGuard)
   @Roles('OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA')
-  async findAll() {
+  async findAll(@Query('tree') tree?: string, @Query('page') page?: string, @Query('limit') limit?: string, @Query('search') search?: string, @Query('filter[isActive]') isActive?: string) {
     try {
-      return await this.categoriesService.findAll();
+      // If tree=true, return tree structure
+      if (tree === 'true') {
+        return await this.categoriesService.findAll();
+      }
+      
+      // Otherwise return paginated list
+      const pageNum = page ? parseInt(page) : 1;
+      const limitNum = limit ? parseInt(limit) : 20;
+      const isActiveBool = isActive === 'true' ? true : isActive === 'false' ? false : undefined;
+      
+      return await this.categoriesService.findAllPaginated(pageNum, limitNum, search, isActiveBool);
     } catch (error) {
       console.error('Error in categories.findAll:', error);
       throw error;

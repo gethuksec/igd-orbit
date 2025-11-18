@@ -159,6 +159,93 @@ export class CategoriesService {
   }
 
   /**
+   * Find all categories as flat list with pagination
+   * @param page - Page number (1-based)
+   * @param limit - Items per page
+   * @param search - Search term for name/code
+   * @param isActive - Filter by active status (optional)
+   * @returns Paginated flat list
+   */
+  async findAllPaginated(
+    page: number = 1,
+    limit: number = 20,
+    search?: string,
+    isActive?: boolean,
+  ) {
+    const skip = (page - 1) * limit;
+    const where: any = {};
+
+    // Filter by active status if provided
+    if (isActive !== undefined) {
+      where.isActive = isActive;
+    }
+
+    // Search filter
+    if (search && search.trim().length > 0) {
+      where.OR = [
+        { name: { contains: search.trim(), mode: 'insensitive' } },
+        { code: { contains: search.trim(), mode: 'insensitive' } },
+        { description: { contains: search.trim(), mode: 'insensitive' } },
+      ];
+    }
+
+    const [categories, total] = await Promise.all([
+      this.prisma.category.findMany({
+        where,
+        include: {
+          parentCategory: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
+          _count: {
+            select: {
+              products: true,
+            },
+          },
+        },
+        orderBy: [
+          { createdAt: 'desc' },
+        ],
+        skip,
+        take: limit,
+      }),
+      this.prisma.category.count({ where }),
+    ]);
+
+    const categoriesWithCount = categories.map((cat) => ({
+      id: cat.id,
+      code: cat.code,
+      name: cat.name,
+      description: cat.description,
+      parentCategoryId: cat.parentCategoryId,
+      parentCategory: cat.parentCategory
+        ? {
+            id: cat.parentCategory.id,
+            name: cat.parentCategory.name,
+            code: cat.parentCategory.code,
+          }
+        : null,
+      productCount: cat._count.products,
+      isActive: cat.isActive,
+      createdAt: cat.createdAt,
+      updatedAt: cat.updatedAt,
+    }));
+
+    return {
+      data: categoriesWithCount,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /**
    * Find category tree (alias for findAll)
    * @returns Tree structure
    */
@@ -263,19 +350,24 @@ export class CategoriesService {
       }
     }
 
-    // Check name uniqueness within same parent
+    // Check name uniqueness within same parent (check all categories, not just active)
+    // Allow duplicate name if existing category is inactive
     const existingName = await this.prisma.category.findFirst({
       where: {
         name: createCategoryDto.name,
         parentCategoryId: createCategoryDto.parentCategoryId || null,
-        isActive: true,
       },
     });
 
     if (existingName) {
-      throw new ConflictException(
-        'Category name must be unique within the same parent category',
-      );
+      // If existing category is active, throw error
+      if (existingName.isActive) {
+        throw new ConflictException(
+          'Category name must be unique within the same parent category',
+        );
+      }
+      // If existing category is inactive, we can still create, but log a warning
+      // (or optionally reactivate the existing one - for now we allow creation)
     }
 
     // Prepare category data

@@ -91,6 +91,18 @@ export class ProductsController {
   }
 
   /**
+   * Get product sales statistics (total sold, total revenue)
+   * GET /api/v1/products/:id/sales-stats
+   * Permissions: OWNER, CFO, MGR, CSO, CMO, SPV, HS, ASA
+   */
+  @Get(':id/sales-stats')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA')
+  async getSalesStats(@Param('id') id: string) {
+    return this.productsService.getProductSalesStats(id);
+  }
+
+  /**
    * Create new product
    * POST /api/v1/products
    * Permissions: OWNER, CSO, CMO, SPV, HS, ASA

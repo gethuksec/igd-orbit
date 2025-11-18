@@ -13,7 +13,6 @@ export default function CategoryForm() {
 
   const [formData, setFormData] = useState({
     name: '',
-    code: '',
     description: '',
     isActive: true,
   });
@@ -31,7 +30,6 @@ export default function CategoryForm() {
     if (category) {
       setFormData({
         name: category.name || '',
-        code: category.code || '',
         description: category.description || '',
         isActive: category.isActive !== false,
       });
@@ -40,10 +38,13 @@ export default function CategoryForm() {
 
   const mutation = useMutation({
     mutationFn: (data: any) => {
+      // Remove code from data - backend will auto-generate
+      const submitData = { ...data };
+      delete submitData.code;
       if (isEdit) {
-        return api.put(`/categories/${id}`, data);
+        return api.put(`/categories/${id}`, submitData);
       }
-      return api.post('/categories', data);
+      return api.post('/categories', submitData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
@@ -122,18 +123,21 @@ export default function CategoryForm() {
                 placeholder="Nama kategori"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Kode Kategori
-              </label>
-              <input
-                type="text"
-                value={formData.code}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                placeholder="Kode kategori (opsional)"
-              />
-            </div>
+            {isEdit && category?.code && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Kode Kategori
+                </label>
+                <input
+                  type="text"
+                  value={category.code}
+                  disabled
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
+                  placeholder="Kode kategori (auto-generated)"
+                />
+                <p className="text-xs text-gray-500 mt-1">Kode kategori dibuat otomatis dan tidak dapat diubah</p>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Deskripsi

@@ -1,6 +1,6 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Edit, Award, Loader2 } from 'lucide-react';
+import { ArrowLeft, Edit, Award, Loader2, Package, Calendar } from 'lucide-react';
 import { api } from '../../services/api';
 
 export default function BrandDetail() {
@@ -38,7 +38,7 @@ export default function BrandDetail() {
   }
 
   return (
-    <div className="w-full space-y-3">
+    <div className="w-full space-y-4">
       {/* Page Header */}
       <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
         <div className="flex items-center justify-between">
@@ -64,46 +64,101 @@ export default function BrandDetail() {
         </div>
       </div>
 
-      {/* Detail Card */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg">
-            <Award className="w-5 h-5 text-white" />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Left Column - Informasi Brand */}
+        <div className="space-y-4">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Award className="w-5 h-5 text-primary-600" />
+              Informasi Brand
+            </h2>
+            <div className="space-y-4">
+              <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="text-xs text-gray-500 mb-1">Nama Brand</p>
+                <p className="text-sm font-semibold text-gray-900">{brand.name}</p>
+              </div>
+
+              {brand.code && (
+                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="text-xs text-gray-500 mb-1">Kode Brand</p>
+                  <p className="text-sm font-semibold text-gray-900 font-mono">{brand.code}</p>
+                </div>
+              )}
+
+              {brand.description && (
+                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="text-xs text-gray-500 mb-1">Deskripsi</p>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{brand.description}</p>
+                </div>
+              )}
+
+              <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="text-xs text-gray-500 mb-1">Status</p>
+                <span
+                  className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+                    brand.isActive
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}
+                >
+                  {brand.isActive ? 'Aktif' : 'Tidak Aktif'}
+                </span>
+              </div>
+            </div>
           </div>
-          <h2 className="text-xl font-bold text-gray-900">Informasi Brand</h2>
         </div>
-        <div className="space-y-3">
-          <div>
-            <label className="text-sm text-gray-500">Nama Brand</label>
-            <p className="text-base font-semibold text-gray-900">{brand.name}</p>
+
+        {/* Right Column - Statistics & Info */}
+        <div className="space-y-4">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Package className="w-5 h-5 text-primary-600" />
+              Statistik
+            </h2>
+            <div className="space-y-3">
+              <div className="p-3 bg-gradient-to-br from-primary-50 to-primary-100 rounded-lg border border-primary-200">
+                <p className="text-xs text-primary-600 mb-1">Total Produk</p>
+                <p className="text-2xl font-bold text-primary-900">{brand.productCount || 0}</p>
+                <p className="text-xs text-primary-600 mt-1">Produk dengan brand ini</p>
+              </div>
+            </div>
           </div>
-          {brand.code && (
-            <div>
-              <label className="text-sm text-gray-500">Kode Brand</label>
-              <p className="text-base font-semibold text-gray-900">{brand.code}</p>
+
+          {/* Timestamps */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-primary-600" />
+              Informasi Tambahan
+            </h2>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Dibuat</span>
+                <span className="font-semibold text-gray-900">
+                  {new Date(brand.createdAt).toLocaleDateString('id-ID', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Diupdate</span>
+                <span className="font-semibold text-gray-900">
+                  {new Date(brand.updatedAt).toLocaleDateString('id-ID', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </span>
+              </div>
             </div>
-          )}
-          {brand.description && (
-            <div>
-              <label className="text-sm text-gray-500">Deskripsi</label>
-              <p className="text-base text-gray-900">{brand.description}</p>
-            </div>
-          )}
-          <div>
-            <label className="text-sm text-gray-500">Status</label>
-            <span
-              className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-                brand.isActive
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-red-100 text-red-800'
-              }`}
-            >
-              {brand.isActive ? 'Aktif' : 'Tidak Aktif'}
-            </span>
           </div>
         </div>
       </div>
     </div>
   );
 }
-

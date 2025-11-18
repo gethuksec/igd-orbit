@@ -49,6 +49,10 @@ import CategoryDetail from './pages/categories/CategoryDetail';
 import BrandList from './pages/brands/BrandList';
 import BrandForm from './pages/brands/BrandForm';
 import BrandDetail from './pages/brands/BrandDetail';
+// Master Data - Service Types
+import ServiceTypeList from './pages/service-types/ServiceTypeList';
+import ServiceTypeForm from './pages/service-types/ServiceTypeForm';
+import ServiceTypeDetail from './pages/service-types/ServiceTypeDetail';
 // Landing Pages
 import WarehouseLanding from './pages/warehouse/WarehouseLanding';
 import SalesLanding from './pages/sales/SalesLanding';
@@ -374,6 +378,48 @@ function App() {
                 <ProtectedRoute>
                   <DashboardLayout>
                     <BrandForm />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            
+            {/* Master Data - Service Types */}
+            <Route
+              path="/service-types"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <ServiceTypeList />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/service-types/new"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <ServiceTypeForm />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/service-types/:id"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <ServiceTypeDetail />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/service-types/:id/edit"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <ServiceTypeForm />
                   </DashboardLayout>
                 </ProtectedRoute>
               }

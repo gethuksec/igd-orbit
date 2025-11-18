@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Plus,
   Search,
@@ -22,6 +22,7 @@ import {
 import { api } from '../../services/api';
 import { productsService } from '../../services/products.service';
 import { toast } from 'sonner';
+import { Modal } from '../../components/ui/modal';
 
 export default function ProductList() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -114,6 +115,9 @@ export default function ProductList() {
 
   const [showImportModal, setShowImportModal] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<{ id: string; name: string } | null>(null);
+  const queryClient = useQueryClient();
 
   const handleExport = async () => {
     try {
@@ -176,6 +180,19 @@ export default function ProductList() {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Gagal mengimport data');
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => productsService.delete(id),
+    onSuccess: () => {
+      toast.success('Produk berhasil dihapus');
+      setDeleteModalOpen(false);
+      setProductToDelete(null);
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Gagal menghapus produk');
     },
   });
 
@@ -543,6 +560,11 @@ export default function ProductList() {
                           </button>
                         </Link>
                         <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setProductToDelete({ id: product.id, name: product.name });
+                            setDeleteModalOpen(true);
+                          }}
                           className="p-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-all"
                           title="Hapus"
                         >
@@ -670,6 +692,63 @@ export default function ProductList() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        open={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setProductToDelete(null);
+        }}
+        title="Konfirmasi Hapus"
+        size="md"
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm text-gray-700 mb-2">
+                Apakah Anda yakin ingin menghapus produk <strong>{productToDelete?.name}</strong>?
+              </p>
+              <p className="text-xs text-gray-500">
+                Tindakan ini akan melakukan soft delete. Data produk tidak akan muncul di daftar, tetapi masih tersimpan di database.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={() => {
+                setDeleteModalOpen(false);
+                setProductToDelete(null);
+              }}
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+              disabled={deleteMutation.isPending}
+            >
+              Batal
+            </button>
+            <button
+              onClick={() => {
+                if (productToDelete) {
+                  deleteMutation.mutate(productToDelete.id);
+                }
+              }}
+              disabled={deleteMutation.isPending}
+              className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {deleteMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Menghapus...
+                </>
+              ) : (
+                'Hapus'
+              )}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

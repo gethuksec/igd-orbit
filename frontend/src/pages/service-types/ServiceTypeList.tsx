@@ -7,71 +7,90 @@ import {
   Edit,
   Trash2,
   Eye,
-  Tag,
+  Wrench,
   Loader2,
   TrendingUp,
-  Package,
+  Clock,
   AlertTriangle,
 } from 'lucide-react';
-import { categoriesService } from '../../services/categories.service';
+import { serviceTypesService } from '../../services/service-types.service';
 import { toast } from 'sonner';
 import { Modal } from '../../components/ui/modal';
 
-export default function CategoryList() {
+export default function ServiceTypeList() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
-  const [page, setPage] = useState(1);
-  const limit = 20;
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [categoryToDelete, setCategoryToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [serviceTypeToDelete, setServiceTypeToDelete] = useState<{ id: string; name: string } | null>(null);
   const queryClient = useQueryClient();
 
-  const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['categories', page, searchTerm],
-    queryFn: () => categoriesService.getAll({
-      page,
-      limit,
-      search: searchTerm || undefined,
-    }),
+  const { data: serviceTypes = [], isLoading, error, refetch } = useQuery({
+    queryKey: ['service-types', searchTerm],
+    queryFn: () => serviceTypesService.getAll(),
   });
 
   useEffect(() => {
     const debounce = setTimeout(() => {
-      setPage(1);
       refetch();
     }, 500);
     return () => clearTimeout(debounce);
-  }, [searchTerm]);
+  }, [searchTerm, refetch]);
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => categoriesService.delete(id),
+    mutationFn: (id: string) => serviceTypesService.delete(id),
     onSuccess: () => {
-      toast.success('Kategori berhasil dihapus');
+      toast.success('Layanan berhasil dihapus');
       setDeleteModalOpen(false);
-      setCategoryToDelete(null);
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      setServiceTypeToDelete(null);
+      queryClient.invalidateQueries({ queryKey: ['service-types'] });
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Gagal menghapus kategori');
+      toast.error(error.response?.data?.message || 'Gagal menghapus layanan');
     },
   });
 
-  const categories = data?.data || [];
-  const pagination = data?.meta || { page: 1, limit: 20, total: 0, totalPages: 1 };
+  // Filter by search term
+  const filteredServiceTypes = serviceTypes.filter((st) => {
+    if (!searchTerm) return true;
+    const search = searchTerm.toLowerCase();
+    return (
+      st.name.toLowerCase().includes(search) ||
+      st.code.toLowerCase().includes(search) ||
+      (st.description && st.description.toLowerCase().includes(search))
+    );
+  });
+
+  const activeCount = serviceTypes.filter((st) => st.isActive).length;
+  const totalServiceOrders = serviceTypes.reduce((acc, st) => acc + (st.serviceOrderCount || 0), 0);
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(price);
+  };
+
+  const formatSLA = (hours: number) => {
+    if (hours < 24) {
+      return `${hours} jam`;
+    }
+    return `${Math.floor(hours / 24)} hari`;
+  };
 
   return (
     <div className="w-full space-y-3">
-      {/* Page Header - Enhanced */}
+      {/* Page Header */}
       <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold mb-2">Manajemen Kategori</h1>
-            <p className="text-primary-100 text-lg">Kelola kategori produk</p>
+            <h1 className="text-4xl font-bold mb-2">Manajemen Layanan</h1>
+            <p className="text-primary-100 text-lg">Kelola jenis layanan servis</p>
           </div>
-          <Link to="/categories/new">
+          <Link to="/service-types/new">
             <button className="flex items-center gap-2 px-6 py-3 bg-white text-primary-600 rounded-lg font-semibold hover:bg-primary-50 transition-all shadow-lg hover:shadow-xl">
               <Plus className="w-5 h-5" />
-              <span>Tambah Kategori</span>
+              <span>Tambah Layanan</span>
             </button>
           </Link>
         </div>
@@ -89,44 +108,38 @@ export default function CategoryList() {
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-all duration-300 group">
           <div className="flex items-center justify-between mb-4">
             <div className="p-3 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl group-hover:scale-110 transition-transform">
-              <Tag className="w-6 h-6 text-white" />
+              <Wrench className="w-6 h-6 text-white" />
             </div>
             <TrendingUp className="w-5 h-5 text-primary-500" />
           </div>
-          <p className="text-sm font-medium text-gray-600 mb-1">Total Kategori</p>
-          <h3 className="text-3xl font-bold text-gray-900 mb-1">{isLoading ? '-' : pagination.total}</h3>
-          <p className="text-xs text-gray-500">Semua kategori terdaftar</p>
+          <p className="text-sm font-medium text-gray-600 mb-1">Total Layanan</p>
+          <h3 className="text-3xl font-bold text-gray-900 mb-1">{isLoading ? '-' : serviceTypes.length}</h3>
+          <p className="text-xs text-gray-500">Semua layanan terdaftar</p>
         </div>
 
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-all duration-300 group">
           <div className="flex items-center justify-between mb-4">
             <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl group-hover:scale-110 transition-transform">
-              <Package className="w-6 h-6 text-white" />
+              <Clock className="w-6 h-6 text-white" />
             </div>
             <TrendingUp className="w-5 h-5 text-green-500" />
           </div>
-          <p className="text-sm font-medium text-gray-600 mb-1">Total Produk</p>
-          <h3 className="text-3xl font-bold text-gray-900 mb-1">
-            {isLoading
-              ? '-'
-              : categories.reduce((acc: number, c: any) => acc + (c.productCount || 0), 0)}
-          </h3>
-          <p className="text-xs text-gray-500">Dari semua kategori</p>
+          <p className="text-sm font-medium text-gray-600 mb-1">Total Service Order</p>
+          <h3 className="text-3xl font-bold text-gray-900 mb-1">{isLoading ? '-' : totalServiceOrders}</h3>
+          <p className="text-xs text-gray-500">Dari semua layanan</p>
         </div>
 
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-all duration-300 group">
           <div className="flex items-center justify-between mb-4">
             <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl group-hover:scale-110 transition-transform">
-              <Tag className="w-6 h-6 text-white" />
+              <Wrench className="w-6 h-6 text-white" />
             </div>
             <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
               Active
             </span>
           </div>
-          <p className="text-sm font-medium text-gray-600 mb-1">Kategori Aktif</p>
-          <h3 className="text-3xl font-bold text-gray-900 mb-1">
-            {isLoading ? '-' : categories.filter((c: any) => c.isActive).length}
-          </h3>
+          <p className="text-sm font-medium text-gray-600 mb-1">Layanan Aktif</p>
+          <h3 className="text-3xl font-bold text-gray-900 mb-1">{isLoading ? '-' : activeCount}</h3>
           <p className="text-xs text-gray-500">Sedang aktif</p>
         </div>
       </div>
@@ -141,26 +154,29 @@ export default function CategoryList() {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Cari nama kategori..."
+            placeholder="Cari nama layanan, kode, atau deskripsi..."
             className="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
           />
         </div>
       </div>
 
-      {/* Categories Table */}
+      {/* Service Types Table */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gradient-to-r from-gray-50 via-gray-50 to-gray-100">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                  Kategori
+                  Layanan
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                  Deskripsi
+                  Harga
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                  Produk
+                  SLA
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  Service Order
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                   Status
@@ -173,70 +189,82 @@ export default function CategoryList() {
             <tbody className="bg-white divide-y divide-gray-100">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-16 text-center">
+                  <td colSpan={6} className="px-4 py-16 text-center">
                     <div className="flex flex-col items-center gap-4">
                       <Loader2 className="w-16 h-16 text-primary-600 animate-spin" />
-                      <p className="text-gray-600 font-semibold text-lg">Memuat data kategori...</p>
+                      <p className="text-gray-600 font-semibold text-lg">Memuat data layanan...</p>
                     </div>
                   </td>
                 </tr>
-              ) : categories.length === 0 ? (
+              ) : filteredServiceTypes.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-16 text-center">
+                  <td colSpan={6} className="px-4 py-16 text-center">
                     <div className="flex flex-col items-center gap-4">
                       <div className="p-4 bg-gray-100 rounded-full">
-                        <Tag className="w-16 h-16 text-gray-400" />
+                        <Wrench className="w-16 h-16 text-gray-400" />
                       </div>
-                      <p className="text-gray-600 font-semibold text-lg">Tidak ada kategori ditemukan</p>
-                      <Link to="/categories/new">
+                      <p className="text-gray-600 font-semibold text-lg">Tidak ada layanan ditemukan</p>
+                      <Link to="/service-types/new">
                         <button className="mt-2 flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-primary-600 to-primary-500 text-white rounded-lg font-semibold hover:from-primary-700 hover:to-primary-600 shadow-lg transition-all">
                           <Plus className="w-5 h-5" />
-                          <span>Tambah Kategori Pertama</span>
+                          <span>Tambah Layanan Pertama</span>
                         </button>
                       </Link>
                     </div>
                   </td>
                 </tr>
               ) : (
-                categories.map((category: any) => (
+                filteredServiceTypes.map((serviceType) => (
                   <tr
-                    key={category.id}
-                    onClick={() => navigate(`/categories/${category.id}`)}
+                    key={serviceType.id}
+                    onClick={() => navigate(`/service-types/${serviceType.id}`)}
                     className="hover:bg-gradient-to-r hover:from-gray-50 hover:to-white transition-all duration-200 border-b border-gray-100 cursor-pointer"
                   >
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center gap-4">
                         <div className="flex-shrink-0 h-14 w-14 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white shadow-md">
-                          <Tag className="w-7 h-7" />
+                          <Wrench className="w-7 h-7" />
                         </div>
                         <div>
-                          <div className="text-base font-semibold text-gray-900">{category.name}</div>
-                          <div className="text-xs text-gray-500 mt-1 font-mono">{category.code || '-'}</div>
+                          <div className="text-base font-semibold text-gray-900">{serviceType.name}</div>
+                          <div className="text-xs text-gray-500 mt-1 font-mono">{serviceType.code}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="text-sm text-gray-600 max-w-md truncate">
-                        {category.description || '-'}
+                      <div className="text-sm">
+                        {serviceType.minPrice && serviceType.maxPrice ? (
+                          <div>
+                            <div className="font-semibold text-gray-900">
+                              {formatPrice(serviceType.minPrice)} - {formatPrice(serviceType.maxPrice)}
+                            </div>
+                            <div className="text-xs text-gray-500">Base: {formatPrice(serviceType.basePrice)}</div>
+                          </div>
+                        ) : (
+                          <div className="font-semibold text-gray-900">{formatPrice(serviceType.basePrice)}</div>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="text-sm font-semibold text-gray-900">{category.productCount || 0}</div>
+                      <div className="text-sm font-semibold text-gray-900">{formatSLA(serviceType.slaHours)}</div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="text-sm font-semibold text-gray-900">{serviceType.serviceOrderCount || 0}</div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span
                         className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${
-                          category.isActive
+                          serviceType.isActive
                             ? 'bg-green-100 text-green-800 border-green-200'
                             : 'bg-gray-100 text-gray-800 border-gray-200'
                         }`}
                       >
-                        {category.isActive ? 'Aktif' : 'Tidak Aktif'}
+                        {serviceType.isActive ? 'Aktif' : 'Tidak Aktif'}
                       </span>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Link to={`/categories/${category.id}`}>
+                        <Link to={`/service-types/${serviceType.id}`}>
                           <button
                             className="p-2.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                             title="Lihat Detail"
@@ -244,7 +272,7 @@ export default function CategoryList() {
                             <Eye className="w-4 h-4" />
                           </button>
                         </Link>
-                        <Link to={`/categories/${category.id}/edit`}>
+                        <Link to={`/service-types/${serviceType.id}/edit`}>
                           <button
                             className="p-2.5 text-green-600 hover:bg-green-50 rounded-lg transition-all"
                             title="Edit"
@@ -255,7 +283,7 @@ export default function CategoryList() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setCategoryToDelete({ id: category.id, name: category.name });
+                            setServiceTypeToDelete({ id: serviceType.id, name: serviceType.name });
                             setDeleteModalOpen(true);
                           }}
                           className="p-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-all"
@@ -271,37 +299,6 @@ export default function CategoryList() {
             </tbody>
           </table>
         </div>
-
-        {/* Pagination */}
-        {!isLoading && categories.length > 0 && (
-          <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 border-t border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-600">
-                Menampilkan <span className="font-bold text-gray-900">{categories.length}</span> dari{' '}
-                <span className="font-bold text-gray-900">{pagination.total}</span> kategori
-                <span className="ml-2 text-gray-500">
-                  (Halaman {pagination.page} dari {pagination.totalPages})
-                </span>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setPage(page - 1)}
-                  disabled={page === 1}
-                  className="px-5 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-white hover:border-primary-500 hover:text-primary-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
-                >
-                  Sebelumnya
-                </button>
-                <button
-                  onClick={() => setPage(page + 1)}
-                  disabled={page >= pagination.totalPages}
-                  className="px-5 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-white hover:border-primary-500 hover:text-primary-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
-                >
-                  Selanjutnya
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Delete Confirmation Modal */}
@@ -309,7 +306,7 @@ export default function CategoryList() {
         open={deleteModalOpen}
         onClose={() => {
           setDeleteModalOpen(false);
-          setCategoryToDelete(null);
+          setServiceTypeToDelete(null);
         }}
         title="Konfirmasi Hapus"
         size="md"
@@ -321,10 +318,10 @@ export default function CategoryList() {
             </div>
             <div className="flex-1">
               <p className="text-sm text-gray-700 mb-2">
-                Apakah Anda yakin ingin menghapus kategori <strong>{categoryToDelete?.name}</strong>?
+                Apakah Anda yakin ingin menghapus layanan <strong>{serviceTypeToDelete?.name}</strong>?
               </p>
               <p className="text-xs text-gray-500">
-                Tindakan ini akan menghapus kategori secara permanen. Pastikan kategori tidak memiliki produk atau subkategori yang terkait.
+                Tindakan ini akan melakukan soft delete (set isActive = false). Layanan tidak akan muncul di daftar, tetapi masih tersimpan di database.
               </p>
             </div>
           </div>
@@ -332,7 +329,7 @@ export default function CategoryList() {
             <button
               onClick={() => {
                 setDeleteModalOpen(false);
-                setCategoryToDelete(null);
+                setServiceTypeToDelete(null);
               }}
               className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
               disabled={deleteMutation.isPending}
@@ -341,8 +338,8 @@ export default function CategoryList() {
             </button>
             <button
               onClick={() => {
-                if (categoryToDelete) {
-                  deleteMutation.mutate(categoryToDelete.id);
+                if (serviceTypeToDelete) {
+                  deleteMutation.mutate(serviceTypeToDelete.id);
                 }
               }}
               disabled={deleteMutation.isPending}

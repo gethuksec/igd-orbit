@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Plus,
@@ -15,6 +15,7 @@ import {
 import { brandsService } from '../../services/brands.service';
 
 export default function BrandList() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const limit = 20;
@@ -179,7 +180,8 @@ export default function BrandList() {
                 brands.map((brand: any) => (
                   <tr
                     key={brand.id}
-                    className="hover:bg-gradient-to-r hover:from-gray-50 hover:to-white transition-all duration-200 border-b border-gray-100"
+                    onClick={() => navigate(`/brands/${brand.id}`)}
+                    className="hover:bg-gradient-to-r hover:from-gray-50 hover:to-white transition-all duration-200 border-b border-gray-100 cursor-pointer"
                   >
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center gap-4">

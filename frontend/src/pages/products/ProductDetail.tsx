@@ -46,6 +46,17 @@ export default function ProductDetail() {
     staleTime: 30000, // Cache for 30 seconds
   });
 
+  // Fetch sales statistics (total sold)
+  const { data: salesStats } = useQuery({
+    queryKey: ['product-sales-stats', id],
+    queryFn: async () => {
+      const response = await api.get(`/products/${id}/sales-stats`);
+      return response.data;
+    },
+    enabled: !!id,
+    staleTime: 60000, // Cache for 1 minute
+  });
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -301,6 +312,50 @@ export default function ProductDetail() {
                 </div>
               </div>
             </div>
+
+            {/* Sales Statistics */}
+            {salesStats && (
+              <div className="pt-4 border-t border-gray-200">
+                <p className="text-xs font-semibold text-gray-700 mb-2">Statistik Penjualan & Penggunaan</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {/* Left Column - Penjualan */}
+                  <div className="space-y-3">
+                    <div className="p-2.5 bg-blue-50 rounded-lg border border-blue-200">
+                      <p className="text-xs text-blue-600 mb-1">Total Terjual (Penjualan)</p>
+                      <p className="text-lg font-bold text-blue-600">
+                        {salesStats.totalSold?.toLocaleString('id-ID') || 0}
+                      </p>
+                      <p className="text-xs text-blue-500 mt-0.5">Dari transaksi penjualan</p>
+                    </div>
+                    <div className="p-2.5 bg-purple-50 rounded-lg border border-purple-200">
+                      <p className="text-xs text-purple-600 mb-1">Total Revenue (Penjualan)</p>
+                      <p className="text-lg font-bold text-purple-600">
+                        {formatCurrency(salesStats.totalRevenue || 0)}
+                      </p>
+                      <p className="text-xs text-purple-500 mt-0.5">Dari penjualan produk ini</p>
+                    </div>
+                  </div>
+                  
+                  {/* Right Column - Service */}
+                  <div className="space-y-3">
+                    <div className="p-2.5 bg-green-50 rounded-lg border border-green-200">
+                      <p className="text-xs text-green-600 mb-1">Total Terjual (Service)</p>
+                      <p className="text-lg font-bold text-green-600">
+                        {salesStats.totalUsedInService?.toLocaleString('id-ID') || 0}
+                      </p>
+                      <p className="text-xs text-green-500 mt-0.5">Dari penggunaan service order</p>
+                    </div>
+                    <div className="p-2.5 bg-orange-50 rounded-lg border border-orange-200">
+                      <p className="text-xs text-orange-600 mb-1">Total Revenue (Service)</p>
+                      <p className="text-lg font-bold text-orange-600">
+                        {formatCurrency(salesStats.totalServiceRevenue || 0)}
+                      </p>
+                      <p className="text-xs text-orange-500 mt-0.5">Dari service order</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

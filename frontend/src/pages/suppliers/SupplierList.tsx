@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Plus,
   Search,
@@ -12,8 +12,11 @@ import {
   Mail,
   Loader2,
   TrendingUp,
+  AlertTriangle,
 } from 'lucide-react';
 import { suppliersService } from '../../services/suppliers.service';
+import { toast } from 'sonner';
+import { Modal } from '../../components/ui/modal';
 
 export default function SupplierList() {
   const navigate = useNavigate();
@@ -22,6 +25,9 @@ export default function SupplierList() {
   const [limit, setLimit] = useState<10 | 20 | 50 | 100>(20);
   const [sortBy, setSortBy] = useState<'createdAt' | 'name'>('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [supplierToDelete, setSupplierToDelete] = useState<{ id: string; name: string } | null>(null);
+  const queryClient = useQueryClient();
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['suppliers', page, limit, searchTerm, sortBy, sortOrder],
@@ -41,6 +47,19 @@ export default function SupplierList() {
     }, 500);
     return () => clearTimeout(debounce);
   }, [searchTerm]);
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => suppliersService.delete(id),
+    onSuccess: () => {
+      toast.success('Supplier berhasil dihapus');
+      setDeleteModalOpen(false);
+      setSupplierToDelete(null);
+      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Gagal menghapus supplier');
+    },
+  });
 
   const suppliers = data?.data || [];
   const pagination = data?.meta || { page: 1, limit: 20, total: 0, totalPages: 1 };
@@ -329,6 +348,11 @@ export default function SupplierList() {
                           </button>
                         </Link>
                         <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSupplierToDelete({ id: supplier.id, name: supplier.name });
+                            setDeleteModalOpen(true);
+                          }}
                           className="p-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-all"
                           title="Hapus"
                         >
@@ -374,6 +398,63 @@ export default function SupplierList() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        open={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setSupplierToDelete(null);
+        }}
+        title="Konfirmasi Hapus"
+        size="md"
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm text-gray-700 mb-2">
+                Apakah Anda yakin ingin menghapus supplier <strong>{supplierToDelete?.name}</strong>?
+              </p>
+              <p className="text-xs text-gray-500">
+                Tindakan ini akan melakukan soft delete. Data supplier tidak akan muncul di daftar, tetapi masih tersimpan di database.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={() => {
+                setDeleteModalOpen(false);
+                setSupplierToDelete(null);
+              }}
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+              disabled={deleteMutation.isPending}
+            >
+              Batal
+            </button>
+            <button
+              onClick={() => {
+                if (supplierToDelete) {
+                  deleteMutation.mutate(supplierToDelete.id);
+                }
+              }}
+              disabled={deleteMutation.isPending}
+              className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {deleteMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Menghapus...
+                </>
+              ) : (
+                'Hapus'
+              )}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

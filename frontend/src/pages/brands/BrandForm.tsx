@@ -13,7 +13,6 @@ export default function BrandForm() {
 
   const [formData, setFormData] = useState({
     name: '',
-    code: '',
     description: '',
     isActive: true,
   });
@@ -31,7 +30,6 @@ export default function BrandForm() {
     if (brand) {
       setFormData({
         name: brand.name || '',
-        code: brand.code || '',
         description: brand.description || '',
         isActive: brand.isActive !== false,
       });
@@ -40,10 +38,13 @@ export default function BrandForm() {
 
   const mutation = useMutation({
     mutationFn: (data: any) => {
+      // Remove code from data - backend will auto-generate
+      const submitData = { ...data };
+      delete submitData.code;
       if (isEdit) {
-        return api.put(`/brands/${id}`, data);
+        return api.put(`/brands/${id}`, submitData);
       }
-      return api.post('/brands', data);
+      return api.post('/brands', submitData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['brands'] });
@@ -122,18 +123,21 @@ export default function BrandForm() {
                 placeholder="Nama brand"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Kode Brand
-              </label>
-              <input
-                type="text"
-                value={formData.code}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                placeholder="Kode brand (opsional)"
-              />
-            </div>
+            {isEdit && brand?.code && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Kode Brand
+                </label>
+                <input
+                  type="text"
+                  value={brand.code}
+                  disabled
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
+                  placeholder="Kode brand (auto-generated)"
+                />
+                <p className="text-xs text-gray-500 mt-1">Kode brand dibuat otomatis dan tidak dapat diubah</p>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Deskripsi

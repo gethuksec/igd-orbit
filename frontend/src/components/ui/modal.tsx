@@ -19,7 +19,7 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
     >
       <div
         className={cn(
-          'bg-background rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto',
+          'bg-white rounded-lg shadow-xl p-6 max-h-[90vh] overflow-y-auto border border-gray-200',
           {
             'w-full max-w-sm': size === 'sm',
             'w-full max-w-md': size === 'md',
@@ -31,10 +31,10 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
       >
         {title && (
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">{title}</h2>
+            <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
             <button
               onClick={onClose}
-              className="text-muted-foreground hover:text-foreground"
+              className="text-gray-500 hover:text-gray-700 transition-colors"
               aria-label="Close"
             >
               ✕

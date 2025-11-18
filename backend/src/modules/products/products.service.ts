@@ -351,6 +351,68 @@ export class ProductsService {
   }
 
   /**
+   * Get product sales statistics (total sold, total revenue)
+   * Includes both sales transactions and service order usage
+   * @param id - Product ID
+   * @returns Sales statistics
+   */
+  async getProductSalesStats(id: string): Promise<{
+    totalSold: number;
+    totalRevenue: number;
+    totalUsedInService: number;
+    totalServiceRevenue: number;
+  }> {
+    // Get from sales transactions
+    const salesItems = await this.prisma.salesTransactionItem.findMany({
+      where: {
+        productId: id,
+        transaction: {
+          status: 'completed', // Only count completed transactions
+        },
+      },
+      select: {
+        quantity: true,
+        unitPrice: true,
+      },
+    });
+
+    const totalSold = salesItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+    const totalRevenue = salesItems.reduce(
+      (sum, item) => sum + Number(item.quantity || 0) * Number(item.unitPrice || 0),
+      0,
+    );
+
+    // Get from service orders (parts used)
+    const serviceParts = await this.prisma.servicePartsUsed.findMany({
+      where: {
+        productId: id,
+        serviceOrder: {
+          status: {
+            in: ['completed', 'delivered'], // Only count completed/delivered service orders
+          },
+        },
+      },
+      select: {
+        quantity: true,
+        unitPrice: true,
+      },
+    });
+
+    const totalUsedInService = serviceParts.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+    const totalServiceRevenue = serviceParts.reduce(
+      (sum, item) => sum + Number(item.quantity || 0) * Number(item.unitPrice || 0),
+      0,
+    );
+
+    return {
+      totalSold,
+      totalRevenue,
+      totalUsedInService,
+      totalServiceRevenue,
+    };
+  }
+
+  /**
    * Create new product
    * @param createProductDto - Product creation data
    * @param _userId - User ID who created this product (for audit trail)

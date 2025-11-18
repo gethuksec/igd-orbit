@@ -1,6 +1,6 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Edit, Tag, Loader2 } from 'lucide-react';
+import { ArrowLeft, Edit, Tag, Loader2, Package, FolderTree, Calendar } from 'lucide-react';
 import { api } from '../../services/api';
 
 export default function CategoryDetail() {
@@ -38,7 +38,7 @@ export default function CategoryDetail() {
   }
 
   return (
-    <div className="w-full space-y-3">
+    <div className="w-full space-y-4">
       {/* Page Header */}
       <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
         <div className="flex items-center justify-between">
@@ -64,46 +64,126 @@ export default function CategoryDetail() {
         </div>
       </div>
 
-      {/* Detail Card */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg">
-            <Tag className="w-5 h-5 text-white" />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Left Column - Informasi Kategori */}
+        <div className="space-y-4">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Tag className="w-5 h-5 text-primary-600" />
+              Informasi Kategori
+            </h2>
+            <div className="space-y-4">
+              <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="text-xs text-gray-500 mb-1">Nama Kategori</p>
+                <p className="text-sm font-semibold text-gray-900">{category.name}</p>
+              </div>
+
+              {category.code && (
+                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="text-xs text-gray-500 mb-1">Kode Kategori</p>
+                  <p className="text-sm font-semibold text-gray-900 font-mono">{category.code}</p>
+                </div>
+              )}
+
+              {category.description && (
+                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="text-xs text-gray-500 mb-1">Deskripsi</p>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{category.description}</p>
+                </div>
+              )}
+
+              <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="text-xs text-gray-500 mb-1">Status</p>
+                <span
+                  className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+                    category.isActive
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}
+                >
+                  {category.isActive ? 'Aktif' : 'Tidak Aktif'}
+                </span>
+              </div>
+            </div>
           </div>
-          <h2 className="text-xl font-bold text-gray-900">Informasi Kategori</h2>
+
+          {/* Parent Category */}
+          {category.parentCategory && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <FolderTree className="w-5 h-5 text-primary-600" />
+                Kategori Induk
+              </h2>
+              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-xs text-blue-600 mb-1">Nama Kategori Induk</p>
+                <p className="text-sm font-semibold text-blue-900">{category.parentCategory.name}</p>
+                {category.parentCategory.code && (
+                  <p className="text-xs text-blue-600 mt-1 font-mono">{category.parentCategory.code}</p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
-        <div className="space-y-3">
-          <div>
-            <label className="text-sm text-gray-500">Nama Kategori</label>
-            <p className="text-base font-semibold text-gray-900">{category.name}</p>
+
+        {/* Right Column - Statistics & Info */}
+        <div className="space-y-4">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Package className="w-5 h-5 text-primary-600" />
+              Statistik
+            </h2>
+            <div className="space-y-3">
+              <div className="p-3 bg-gradient-to-br from-primary-50 to-primary-100 rounded-lg border border-primary-200">
+                <p className="text-xs text-primary-600 mb-1">Total Produk</p>
+                <p className="text-2xl font-bold text-primary-900">{category.productCount || 0}</p>
+                <p className="text-xs text-primary-600 mt-1">Produk dalam kategori ini</p>
+              </div>
+
+              {category.childCategories && category.childCategories.length > 0 && (
+                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="text-xs text-gray-500 mb-1">Sub Kategori</p>
+                  <p className="text-2xl font-bold text-gray-900">{category.childCategories.length}</p>
+                  <p className="text-xs text-gray-500 mt-1">Kategori di bawah ini</p>
+                </div>
+              )}
+            </div>
           </div>
-          {category.code && (
-            <div>
-              <label className="text-sm text-gray-500">Kode Kategori</label>
-              <p className="text-base font-semibold text-gray-900">{category.code}</p>
+
+          {/* Timestamps */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-primary-600" />
+              Informasi Tambahan
+            </h2>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Dibuat</span>
+                <span className="font-semibold text-gray-900">
+                  {new Date(category.createdAt).toLocaleDateString('id-ID', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Diupdate</span>
+                <span className="font-semibold text-gray-900">
+                  {new Date(category.updatedAt).toLocaleDateString('id-ID', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </span>
+              </div>
             </div>
-          )}
-          {category.description && (
-            <div>
-              <label className="text-sm text-gray-500">Deskripsi</label>
-              <p className="text-base text-gray-900">{category.description}</p>
-            </div>
-          )}
-          <div>
-            <label className="text-sm text-gray-500">Status</label>
-            <span
-              className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-                category.isActive
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-red-100 text-red-800'
-              }`}
-            >
-              {category.isActive ? 'Aktif' : 'Tidak Aktif'}
-            </span>
           </div>
         </div>
       </div>
     </div>
   );
 }
-

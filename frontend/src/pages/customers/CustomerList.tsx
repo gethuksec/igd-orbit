@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Plus,
   Search,
@@ -14,10 +14,11 @@ import {
   Upload,
   Download,
   X,
+  AlertTriangle,
 } from 'lucide-react';
 import { customersService } from '../../services/customers.service';
 import { toast } from 'sonner';
-import { useMutation } from '@tanstack/react-query';
+import { Modal } from '../../components/ui/modal';
 
 export default function CustomerList() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -27,6 +28,9 @@ export default function CustomerList() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showImportModal, setShowImportModal] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [customerToDelete, setCustomerToDelete] = useState<{ id: string; name: string } | null>(null);
+  const queryClient = useQueryClient();
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['customers', page, limit, searchTerm, sortBy, sortOrder],
@@ -112,6 +116,20 @@ export default function CustomerList() {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Gagal mengimport data');
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => customersService.delete(id),
+    onSuccess: () => {
+      toast.success('Pelanggan berhasil dihapus');
+      setDeleteModalOpen(false);
+      setCustomerToDelete(null);
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      queryClient.invalidateQueries({ queryKey: ['customers-statistics'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Gagal menghapus pelanggan');
     },
   });
 
@@ -410,6 +428,11 @@ export default function CustomerList() {
                           </button>
                         </Link>
                         <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCustomerToDelete({ id: customer.id, name: customer.name });
+                            setDeleteModalOpen(true);
+                          }}
                           className="p-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-all"
                           title="Hapus"
                         >
@@ -537,6 +560,63 @@ export default function CustomerList() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        open={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setCustomerToDelete(null);
+        }}
+        title="Konfirmasi Hapus"
+        size="md"
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm text-gray-700 mb-2">
+                Apakah Anda yakin ingin menghapus pelanggan <strong>{customerToDelete?.name}</strong>?
+              </p>
+              <p className="text-xs text-gray-500">
+                Tindakan ini akan melakukan soft delete. Data pelanggan tidak akan muncul di daftar, tetapi masih tersimpan di database.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={() => {
+                setDeleteModalOpen(false);
+                setCustomerToDelete(null);
+              }}
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+              disabled={deleteMutation.isPending}
+            >
+              Batal
+            </button>
+            <button
+              onClick={() => {
+                if (customerToDelete) {
+                  deleteMutation.mutate(customerToDelete.id);
+                }
+              }}
+              disabled={deleteMutation.isPending}
+              className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {deleteMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Menghapus...
+                </>
+              ) : (
+                'Hapus'
+              )}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -159,6 +159,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         { icon: Building2, label: 'Supplier', path: '/suppliers', roles: ['OWNER', 'CFO', 'MGR'] },
         { icon: Tag, label: 'Kategori', path: '/categories', roles: ['OWNER', 'CFO', 'MGR'] },
         { icon: Award, label: 'Brand', path: '/brands', roles: ['OWNER', 'CFO', 'MGR'] },
+        { icon: Wrench, label: 'Layanan', path: '/service-types', roles: ['OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS'] },
       ],
     },
     {
