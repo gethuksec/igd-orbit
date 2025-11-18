@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
+import { KPICardSkeleton } from './LoadingSkeleton';
 
 interface KPICardProps {
   title: string;
@@ -12,6 +13,7 @@ interface KPICardProps {
   gradient?: string;
   textColor?: string;
   border?: string;
+  isLoading?: boolean;
 }
 
 export function KPICard({
@@ -25,7 +27,12 @@ export function KPICard({
   gradient,
   textColor,
   border,
+  isLoading = false,
 }: KPICardProps) {
+  if (isLoading) {
+    return <KPICardSkeleton />;
+  }
+
   const changeColor =
     changeType === 'positive'
       ? 'text-success-600'

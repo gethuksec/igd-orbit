@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsInt, Min, Max, IsIn, IsArray, IsBoolean } from 'class-validator';
+import { IsOptional, IsString, IsInt, Min, IsIn, IsArray, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
 
 /**
@@ -14,8 +14,7 @@ export class ListCustomersDto {
 
   @Type(() => Number)
   @IsInt({ message: 'Limit must be an integer' })
-  @Min(1, { message: 'Limit must be at least 1' })
-  @Max(100, { message: 'Limit cannot exceed 100' })
+  @IsIn([10, 20, 50, 100], { message: 'Limit must be one of: 10, 20, 50, 100' })
   @IsOptional()
   limit?: number = 20;
 
@@ -54,11 +53,11 @@ export class ListCustomersDto {
   'filter[blacklisted]'?: boolean;
 
   @IsString({ message: 'Sort must be a string' })
-  @IsIn(['name', 'totalPurchases', 'lastPurchase'], {
-    message: 'Sort must be one of: name, totalPurchases, lastPurchase',
+  @IsIn(['name', 'createdAt'], {
+    message: 'Sort must be one of: name, createdAt',
   })
   @IsOptional()
-  sort?: string = 'name';
+  sort?: string = 'createdAt';
 
   @IsString({ message: 'Order must be a string' })
   @IsIn(['asc', 'desc'], { message: 'Order must be either asc or desc' })

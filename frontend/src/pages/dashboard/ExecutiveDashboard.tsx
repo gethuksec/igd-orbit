@@ -12,6 +12,7 @@ import { KPICard } from '../../components/dashboard/KPICard';
 import { ChartCard } from '../../components/dashboard/ChartCard';
 import { DateRangePicker } from '../../components/dashboard/DateRangePicker';
 import { RefreshButton } from '../../components/dashboard/RefreshButton';
+import { TableEmptyState } from '../../components/dashboard/EmptyState';
 import { dashboardService } from '../../services/dashboard.service';
 import { formatCurrency, formatNumber } from '../../utils/format';
 import { io } from 'socket.io-client';
@@ -179,7 +180,7 @@ export function ExecutiveDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard
           title={t('dashboard.executive.todayRevenue')}
-          value={kpisLoading ? '...' : formatCurrency(kpis?.todayRevenue || 0)}
+          value={formatCurrency(kpis?.todayRevenue || 0)}
           change={
             revenueChange !== 0
               ? `${revenueChange > 0 ? '↑' : '↓'} ${Math.abs(revenueChange).toFixed(1)}%`
@@ -190,10 +191,11 @@ export function ExecutiveDashboard() {
           icon={DollarSign}
           gradient="from-indonesia-red-500 to-indonesia-red-600"
           textColor="text-white"
+          isLoading={kpisLoading}
         />
         <KPICard
           title={t('dashboard.executive.totalTransactions')}
-          value={kpisLoading ? '...' : formatNumber(kpis?.totalTransactions || 0)}
+          value={formatNumber(kpis?.totalTransactions || 0)}
           change={
             transactionChange !== 0
               ? `${transactionChange > 0 ? '↑' : '↓'} ${Math.abs(transactionChange).toFixed(1)}%`
@@ -206,10 +208,11 @@ export function ExecutiveDashboard() {
           gradient="from-white to-gray-100"
           textColor="text-indonesia-red-600"
           border="border-l-4 border-indonesia-red-600"
+          isLoading={kpisLoading}
         />
         <KPICard
           title={t('dashboard.executive.activeServices')}
-          value={kpisLoading ? '...' : `${kpis?.pendingServices || 0} / ${kpis?.activeServices || 0}`}
+          value={`${kpis?.pendingServices || 0} / ${kpis?.activeServices || 0}`}
           change={
             kpis && kpis.activeServices > 0
               ? `${((kpis.pendingServices / kpis.activeServices) * 100).toFixed(0)}% pending`
@@ -219,14 +222,11 @@ export function ExecutiveDashboard() {
           icon={Wrench}
           gradient="from-indonesia-red-500 to-indonesia-red-600"
           textColor="text-white"
+          isLoading={kpisLoading}
         />
         <KPICard
           title={t('dashboard.executive.stockAlerts')}
-          value={
-            kpisLoading
-              ? '...'
-              : `${kpis?.lowStockItems || 0} low / ${kpis?.outOfStockItems || 0} out`
-          }
+          value={`${kpis?.lowStockItems || 0} low / ${kpis?.outOfStockItems || 0} out`}
           change={
             kpis && (kpis.lowStockItems > 0 || kpis.outOfStockItems > 0)
               ? `${kpis.lowStockItems + kpis.outOfStockItems} items need attention`
@@ -239,6 +239,7 @@ export function ExecutiveDashboard() {
           gradient="from-white to-gray-100"
           textColor="text-indonesia-red-600"
           border="border-l-4 border-indonesia-red-600"
+          isLoading={kpisLoading}
         />
       </div>
 
@@ -246,6 +247,8 @@ export function ExecutiveDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <ChartCard
           title={t('dashboard.executive.revenueTrend')}
+          isLoading={!revenueTrend}
+          isEmpty={!revenueTrend || revenueTrend.length === 0}
           chart={
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={revenueTrend}>
@@ -281,6 +284,8 @@ export function ExecutiveDashboard() {
         />
         <ChartCard
           title={t('dashboard.executive.salesByCategory')}
+          isLoading={!salesByCategory}
+          isEmpty={!salesByCategory || salesByCategory.length === 0}
           chart={
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -322,14 +327,22 @@ export function ExecutiveDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {topProducts?.map((product) => (
-                  <tr key={product.rank} className="border-b hover:bg-gray-50">
-                    <td className="py-2 px-4">{product.rank}</td>
-                    <td className="py-2 px-4">{product.productName}</td>
-                    <td className="text-right py-2 px-4">{formatNumber(product.quantitySold)}</td>
-                    <td className="text-right py-2 px-4">{formatCurrency(product.revenue)}</td>
+                {!topProducts || topProducts.length === 0 ? (
+                  <tr>
+                    <td colSpan={4}>
+                      <TableEmptyState message="Tidak ada data produk" />
+                    </td>
                   </tr>
-                ))}
+                ) : (
+                  topProducts.map((product) => (
+                    <tr key={product.rank} className="border-b hover:bg-gray-50">
+                      <td className="py-2 px-4">{product.rank}</td>
+                      <td className="py-2 px-4">{product.productName}</td>
+                      <td className="text-right py-2 px-4">{formatNumber(product.quantitySold)}</td>
+                      <td className="text-right py-2 px-4">{formatCurrency(product.revenue)}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -337,6 +350,8 @@ export function ExecutiveDashboard() {
 
         <ChartCard
           title={t('dashboard.executive.branchPerformance')}
+          isLoading={!branchPerformance}
+          isEmpty={!branchPerformance || branchPerformance.length === 0}
           chart={
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={branchPerformance}>
@@ -359,29 +374,33 @@ export function ExecutiveDashboard() {
             {t('dashboard.executive.recentTransactions')}
           </h3>
           <div className="space-y-2">
-            {recentTransactions?.map((txn) => (
-              <div
-                key={txn.id}
-                className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg"
-              >
-                <div>
-                  <p className="font-medium">{txn.customer}</p>
-                  <p className="text-sm text-gray-500">{txn.time}</p>
+            {!recentTransactions || recentTransactions.length === 0 ? (
+              <TableEmptyState message="Tidak ada transaksi terbaru" />
+            ) : (
+              recentTransactions.map((txn) => (
+                <div
+                  key={txn.id}
+                  className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg"
+                >
+                  <div>
+                    <p className="font-medium">{txn.customer}</p>
+                    <p className="text-sm text-gray-500">{txn.time}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold">{formatCurrency(txn.amount)}</p>
+                    <span
+                      className={`text-xs px-2 py-1 rounded ${
+                        txn.status === 'completed'
+                          ? 'bg-success-100 text-success-700'
+                          : 'bg-warning-100 text-warning-700'
+                      }`}
+                    >
+                      {txn.status}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-bold">{formatCurrency(txn.amount)}</p>
-                  <span
-                    className={`text-xs px-2 py-1 rounded ${
-                      txn.status === 'completed'
-                        ? 'bg-success-100 text-success-700'
-                        : 'bg-warning-100 text-warning-700'
-                    }`}
-                  >
-                    {txn.status}
-                  </span>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
@@ -390,26 +409,30 @@ export function ExecutiveDashboard() {
             {t('dashboard.executive.pendingApprovals')}
           </h3>
           <div className="space-y-2">
-            {pendingApprovals?.map((approval) => (
-              <div
-                key={approval.id}
-                className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg"
-              >
-                <div>
-                  <p className="font-medium">{approval.requester}</p>
-                  <p className="text-sm text-gray-500 capitalize">{approval.type}</p>
+            {!pendingApprovals || pendingApprovals.length === 0 ? (
+              <TableEmptyState message="Tidak ada approval yang menunggu" />
+            ) : (
+              pendingApprovals.map((approval) => (
+                <div
+                  key={approval.id}
+                  className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg"
+                >
+                  <div>
+                    <p className="font-medium">{approval.requester}</p>
+                    <p className="text-sm text-gray-500 capitalize">{approval.type}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <span className="font-bold">{formatCurrency(approval.amount)}</span>
+                    <button className="px-3 py-1 bg-success-500 text-white rounded hover:bg-success-600 text-sm">
+                      Approve
+                    </button>
+                    <button className="px-3 py-1 bg-danger-500 text-white rounded hover:bg-danger-600 text-sm">
+                      Reject
+                    </button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <span className="font-bold">{formatCurrency(approval.amount)}</span>
-                  <button className="px-3 py-1 bg-success-500 text-white rounded hover:bg-success-600 text-sm">
-                    Approve
-                  </button>
-                  <button className="px-3 py-1 bg-danger-500 text-white rounded hover:bg-danger-600 text-sm">
-                    Reject
-                  </button>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>

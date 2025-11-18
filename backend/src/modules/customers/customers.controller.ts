@@ -11,8 +11,13 @@ import {
   Request,
   HttpCode,
   HttpStatus,
+  Res,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import { Request as ExpressRequest } from 'express';
+import type { Response } from 'express';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { CustomersService } from './customers.service';
 import { JwtAuthGuard, RolesGuard } from '../../shared/guards';
 import { Roles } from '../../shared/decorators';
@@ -34,6 +39,16 @@ export class CustomersController {
   constructor(private readonly customersService: CustomersService) {}
 
   /**
+   * Get overall customer statistics
+   * GET /api/v1/customers/statistics
+   * Permissions: All authenticated users
+   */
+  @Get('statistics')
+  async getOverallStatistics() {
+    return await this.customersService.getOverallStatistics();
+  }
+
+  /**
    * List customers with filters and search
    * GET /api/v1/customers
    * Permissions: All authenticated users
@@ -49,6 +64,22 @@ export class CustomersController {
   }
 
   /**
+   * Export filtered customer data
+   * GET /api/v1/customers/export
+   * Permissions: OWNER, CMO, CFO, SPV, HS
+   * NOTE: Must be before @Get(':id') to avoid route conflict
+   */
+  @Get('export')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'CMO', 'CFO', 'SPV', 'HS')
+  async export(@Query() query: ListCustomersDto, @Res() res: Response): Promise<void> {
+    const csv = await this.customersService.exportToCSV(query);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="customers-${new Date().toISOString().split('T')[0]}.csv"`);
+    res.send('\uFEFF' + csv); // BOM for Excel UTF-8 support
+  }
+
+  /**
    * Get customer detail with statistics
    * GET /api/v1/customers/:id
    * Permissions: All authenticated users
@@ -61,11 +92,11 @@ export class CustomersController {
   /**
    * Create new customer
    * POST /api/v1/customers
-   * Permissions: CMO, SPV, HS, CS, ASA, CR
+   * Permissions: OWNER, CMO, SPV, HS, CS, ASA, CR
    */
   @Post()
   @UseGuards(RolesGuard)
-  @Roles('CMO', 'SPV', 'HS', 'CS', 'ASA', 'CR')
+  @Roles('OWNER', 'CMO', 'SPV', 'HS', 'CS', 'ASA', 'CR')
   @HttpCode(HttpStatus.CREATED)
   async create(
     @Body() createCustomerDto: CreateCustomerDto,
@@ -77,11 +108,11 @@ export class CustomersController {
   /**
    * Update customer info
    * PUT /api/v1/customers/:id
-   * Permissions: CMO, SPV, HS, CS, ASA
+   * Permissions: OWNER, CMO, SPV, HS, CS, ASA
    */
   @Put(':id')
   @UseGuards(RolesGuard)
-  @Roles('CMO', 'SPV', 'HS', 'CS', 'ASA')
+  @Roles('OWNER', 'CMO', 'SPV', 'HS', 'CS', 'ASA')
   async update(
     @Param('id') id: string,
     @Body() updateCustomerDto: UpdateCustomerDto,
@@ -164,35 +195,23 @@ export class CustomersController {
   /**
    * Bulk import customers
    * POST /api/v1/customers/import
-   * Permissions: CMO, SPV, HS, ASA
-   * TODO: Implement CSV parsing and bulk import
+   * Permissions: OWNER, CMO, SPV, HS, ASA
    */
   @Post('import')
   @UseGuards(RolesGuard)
-  @Roles('CMO', 'SPV', 'HS', 'ASA')
+  @Roles('OWNER', 'CMO', 'SPV', 'HS', 'ASA')
+  @UseInterceptors(FileInterceptor('file'))
   @HttpCode(HttpStatus.OK)
-  async import(@Request() _req: ExpressRequest & { user: any }) {
-    return {
-      message: 'Import functionality will be implemented in next phase',
-      note: 'This endpoint accepts CSV file upload for bulk customer import',
-    };
+  async import(
+    @UploadedFile() file: any,
+    @Request() req: ExpressRequest & { user: any },
+  ) {
+    if (!file) {
+      throw new Error('No file uploaded');
+    }
+    return this.customersService.importFromCSV(file.buffer.toString('utf-8'), req.user.id);
   }
 
-  /**
-   * Export filtered customer data
-   * GET /api/v1/customers/export
-   * Permissions: CMO, CFO, SPV, HS
-   * TODO: Implement export functionality
-   */
-  @Get('export')
-  @UseGuards(RolesGuard)
-  @Roles('CMO', 'CFO', 'SPV', 'HS')
-  async export(@Query() _query: ListCustomersDto) {
-    return {
-      message: 'Export functionality will be implemented in next phase',
-      note: 'This endpoint will export customers to CSV/Excel format based on current filters',
-    };
-  }
 
   /**
    * Merge duplicate customers

@@ -4,6 +4,11 @@ interface StatusHistory {
   status: string;
   createdAt: string;
   notes?: string;
+  changedByUser?: {
+    id: string;
+    fullName: string | null;
+    email: string | null;
+  };
 }
 
 interface StatusTimelineProps {
@@ -105,6 +110,30 @@ export default function StatusTimeline({ currentStatus, statusHistory }: StatusT
                     {formatDate(statusDate)}
                   </div>
                 )}
+                {/* Show user info */}
+                {(() => {
+                  const history = statusHistory.find((h) => h.status === status);
+                  if (history?.changedByUser) {
+                    const user = history.changedByUser;
+                    return (
+                      <div className="text-xs text-gray-500 mt-1">
+                        <span className="font-semibold">Oleh: </span>
+                        {user.fullName || user.email || 'Unknown'}
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+                {/* Show notes if available */}
+                {(() => {
+                  const history = statusHistory.find((h) => h.status === status);
+                  return history?.notes ? (
+                    <div className="text-xs text-gray-600 mt-2 p-2 bg-gray-50 rounded border border-gray-200">
+                      <span className="font-semibold">Catatan: </span>
+                      {history.notes}
+                    </div>
+                  ) : null;
+                })()}
                 {isCurrent && (
                   <div className="text-sm text-blue-600 mt-1 font-medium">
                     Current Status

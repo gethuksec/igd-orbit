@@ -295,7 +295,12 @@ export default function ServiceOrderList() {
                     className="hover:bg-gradient-to-r hover:from-gray-50 hover:to-white transition-all duration-200 border-b border-gray-100"
                   >
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="text-sm font-semibold text-gray-900">{order.serviceNumber}</div>
+                      <Link
+                        to={`/service-orders/${order.id}`}
+                        className="text-sm font-semibold text-primary-600 hover:text-primary-700 hover:underline transition-colors"
+                      >
+                        {order.serviceNumber}
+                      </Link>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">

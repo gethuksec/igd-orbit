@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Delete,
   Body,
   Param,
   Query,
@@ -23,6 +24,7 @@ import { QcCheckDto } from './dto/qc-check.dto';
 import { CustomerFeedbackDto } from './dto/customer-feedback.dto';
 import { AssignTechnicianDto } from './dto/assign-technician.dto';
 import { UploadPhotosDto } from './dto/upload-photos.dto';
+import { ProcessPaymentDto } from './dto/payment.dto';
 
 // Helper to enforce branch access and prevent IDOR
 const ensureBranchAccess = (req: ExpressRequest & { user: any }, branchId?: string) => {
@@ -153,6 +155,17 @@ export class ServiceOrdersController {
     return this.serviceOrdersService.addParts(id, dto, req.user.id);
   }
 
+  @Delete(':id/parts/:partId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('TC', 'HS', 'SPV')
+  async removePart(
+    @Param('id') id: string,
+    @Param('partId') partId: string,
+    @Request() req: any,
+  ) {
+    return this.serviceOrdersService.removePart(id, partId, req.user.id);
+  }
+
   @Post(':id/photos')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('CS', 'TC', 'HS', 'SPV')
@@ -202,6 +215,17 @@ export class ServiceOrdersController {
     @Body() dto: CustomerFeedbackDto,
   ) {
     return this.serviceOrdersService.collectFeedback(id, dto);
+  }
+
+  @Post(':id/payment')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('CS', 'HS', 'SPV', 'CMO', 'CFO', 'OWNER')
+  async processPayment(
+    @Param('id') id: string,
+    @Body() dto: ProcessPaymentDto,
+    @Request() req: any,
+  ) {
+    return this.serviceOrdersService.processPayment(id, dto, req.user.id);
   }
 }
 

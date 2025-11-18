@@ -114,5 +114,35 @@ export const serviceOrdersService = {
     const response = await api.post(`/service-orders/${id}/deliver`, {});
     return response.data.data || response.data;
   },
+
+  async addParts(id: string, payload: {
+    parts: Array<{
+      productId: string;
+      quantity: number;
+      unitCost: number;
+      unitPrice: number;
+      batchNumber?: string;
+      serialNumber?: string;
+      notes?: string;
+    }>;
+  }) {
+    const response = await api.post(`/service-orders/${id}/parts`, payload);
+    return response.data.data || response.data;
+  },
+
+  async removePart(id: string, partId: string) {
+    const response = await api.delete(`/service-orders/${id}/parts/${partId}`);
+    return response.data.data || response.data;
+  },
+
+  async processPayment(id: string, payload: {
+    paymentMethod: 'cash' | 'transfer' | 'e_wallet' | 'credit_card' | 'debit_card';
+    amount: number;
+    reference?: string;
+    notes?: string;
+  }) {
+    const response = await api.post(`/service-orders/${id}/payment`, payload);
+    return response.data.data || response.data;
+  },
 };
 

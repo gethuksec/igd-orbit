@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { POSCart } from './components/POSCart';
 import { POSCustomer } from './components/POSCustomer';
@@ -9,15 +10,48 @@ import { usePOSStore } from '@/stores/posStore';
 import { useBranchStore } from '@/stores/branchStore';
 import { formatCurrency } from '@/utils/format';
 import { Toaster, toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
+import { customersService } from '@/services/customers.service';
 
 /**
  * POS Page Component
  * Main Point of Sale interface
  */
 export default function POSPage() {
-  const { cart, total, clearCart } = usePOSStore();
+  const [searchParams] = useSearchParams();
+  const customerIdFromUrl = searchParams.get('customerId');
+  const { cart, total, clearCart, setCustomer } = usePOSStore();
   const { currentBranchId } = useBranchStore();
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+
+  // Fetch customer data if customerId is provided in URL
+  const { data: customerFromUrl } = useQuery({
+    queryKey: ['customer', customerIdFromUrl],
+    queryFn: () => customersService.getById(customerIdFromUrl!),
+    enabled: !!customerIdFromUrl,
+  });
+
+  // Auto-set customer from URL parameter
+  useEffect(() => {
+    if (customerFromUrl) {
+      setCustomer({
+        id: customerFromUrl.id,
+        customerCode: customerFromUrl.customerCode,
+        name: customerFromUrl.name,
+        phone: customerFromUrl.phone,
+        email: customerFromUrl.email || '',
+        tier: customerFromUrl.tier
+          ? {
+              code: customerFromUrl.tier.code,
+              name: customerFromUrl.tier.name,
+              discountPercentage: customerFromUrl.tier.discountPercentage || 0,
+            }
+          : undefined,
+        creditLimit: customerFromUrl.creditLimit || 0,
+        creditUsed: customerFromUrl.creditUsed || 0,
+      });
+    }
+  }, [customerFromUrl, setCustomer]);
 
   const canCheckout = cart.length > 0 && !!currentBranchId;
 

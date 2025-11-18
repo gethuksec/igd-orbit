@@ -37,6 +37,10 @@ export class ServicePartDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @IsString()
+  @IsOptional()
+  purchaseType?: 'internal' | 'external'; // 'internal' = stok sendiri, 'external' = beli di luar
 }
 
 export class AddPartsDto {

@@ -25,9 +25,14 @@ export class HttpExceptionFilter implements ExceptionFilter {
     let message = 'Internal server error';
     let error: string | object = 'Internal Server Error';
 
+    let requiredRoles: string[] | undefined;
+
     if (exception instanceof HttpException) {
       status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
+      
+      // Extract requiredRoles from exception if available
+      requiredRoles = (exception as any).requiredRoles;
       
       if (typeof exceptionResponse === 'string') {
         message = exceptionResponse;
@@ -54,14 +59,21 @@ export class HttpExceptionFilter implements ExceptionFilter {
       exception instanceof Error ? exception.stack : undefined,
     );
 
-    response.status(status).json({
+    const responseBody: any = {
       statusCode: status,
       timestamp: new Date().toISOString(),
       path: request.url,
       method: request.method,
       message,
       ...(typeof error === 'object' ? error : { error }),
-    });
+    };
+
+    // Include required roles in 403 Forbidden responses
+    if (status === 403 && requiredRoles) {
+      responseBody.requiredRoles = requiredRoles;
+    }
+
+    response.status(status).json(responseBody);
   }
 }
 

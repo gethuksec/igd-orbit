@@ -13,6 +13,7 @@ import { AssignTechnicianDto } from './dto/assign-technician.dto';
 import { UploadPhotosDto } from './dto/upload-photos.dto';
 import { encryptPassword, decryptPassword } from './utils/password-encryption.util';
 import { Decimal } from '@prisma/client/runtime/library';
+import { ProcessPaymentDto } from './dto/payment.dto';
 
 @Injectable()
 export class ServiceOrdersService {
@@ -32,6 +33,66 @@ export class ServiceOrdersService {
       .toString()
       .padStart(6, '0');
     return `INT-${random}`;
+  }
+
+  private async generateQuotationNumber(branchId: string): Promise<string> {
+    const branch = await this.prisma.branch.findUnique({
+      where: { id: branchId },
+      select: { code: true },
+    });
+
+    const year = new Date().getFullYear();
+    const month = String(new Date().getMonth() + 1).padStart(2, '0');
+
+    const lastOrder = await this.prisma.serviceOrder.findFirst({
+      where: {
+        quotationNumber: {
+          startsWith: `Q-SRV-${branch?.code || 'BR'}-${year}${month}`,
+        },
+      },
+      orderBy: {
+        quotationNumber: 'desc',
+      },
+    });
+
+    let nextNumber = 1;
+    if (lastOrder && lastOrder.quotationNumber) {
+      const parts = lastOrder.quotationNumber.split('-');
+      const lastNum = parseInt(parts[parts.length - 1] || '0');
+      nextNumber = lastNum + 1;
+    }
+
+    return `Q-SRV-${branch?.code || 'BR'}-${year}${month}-${String(nextNumber).padStart(6, '0')}`;
+  }
+
+  private async generateInvoiceNumber(branchId: string): Promise<string> {
+    const branch = await this.prisma.branch.findUnique({
+      where: { id: branchId },
+      select: { code: true },
+    });
+
+    const year = new Date().getFullYear();
+    const month = String(new Date().getMonth() + 1).padStart(2, '0');
+
+    const lastOrder = await this.prisma.serviceOrder.findFirst({
+      where: {
+        invoiceNumber: {
+          startsWith: `INV-SRV-${branch?.code || 'BR'}-${year}${month}`,
+        },
+      },
+      orderBy: {
+        invoiceNumber: 'desc',
+      },
+    });
+
+    let nextNumber = 1;
+    if (lastOrder && lastOrder.invoiceNumber) {
+      const parts = lastOrder.invoiceNumber.split('-');
+      const lastNum = parseInt(parts[parts.length - 1] || '0');
+      nextNumber = lastNum + 1;
+    }
+
+    return `INV-SRV-${branch?.code || 'BR'}-${year}${month}-${String(nextNumber).padStart(6, '0')}`;
   }
 
 
@@ -219,6 +280,15 @@ export class ServiceOrdersService {
         },
         statusHistory: {
           orderBy: { createdAt: 'desc' },
+          include: {
+            changedByUser: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+              },
+            },
+          },
         },
         partsUsed: {
           include: {
@@ -414,9 +484,8 @@ export class ServiceOrdersService {
     }
 
     // Check required fields for specific statuses
-    if (dto.status === 'quoted' && dto.quotedPrice === undefined && !serviceOrder.quotedPrice) {
-      throw new BadRequestException('Quoted price is required for quoted status');
-    }
+    // Quoted price is now auto-calculated from laborCost + partsCost
+    // No need to check quotedPrice input
 
     if (
       dto.status === 'approved' &&
@@ -436,19 +505,41 @@ export class ServiceOrdersService {
       };
 
       // Monetary fields coming from DTO (if provided)
-      if (dto.quotedPrice !== undefined) {
-        updateData.quotedPrice = new Decimal(dto.quotedPrice);
+      // Labor cost can be set after diagnosed status
+      if (dto.laborCost !== undefined) {
+        if (dto.status === 'diagnosed' || serviceOrder.status === 'diagnosed') {
+          updateData.laborCost = new Decimal(dto.laborCost);
+        }
       }
 
-      if (dto.customerApprovedPrice !== undefined) {
-        updateData.customerApprovedPrice = new Decimal(dto.customerApprovedPrice);
+      // Discount and promo code
+      if (dto.discountAmount !== undefined) {
+        updateData.discountAmount = new Decimal(dto.discountAmount);
       }
 
-      // Update relevant timestamps
+      if (dto.promoCode !== undefined) {
+        updateData.promoCode = dto.promoCode;
+      }
+
+      // Update relevant timestamps and generate numbers
       if (dto.status === 'quoted') {
         updateData.quotedAt = new Date();
+        // Generate quotation number if not already set
+        if (!serviceOrder.quotationNumber) {
+          updateData.quotationNumber = await this.generateQuotationNumber(serviceOrder.branchId);
+        }
+        // Auto-calculate quoted price: laborCost + partsCost
+        const laborCost = dto.laborCost !== undefined 
+          ? Number(dto.laborCost) 
+          : Number(serviceOrder.laborCost || 0);
+        const partsCost = Number(serviceOrder.partsCost || 0);
+        updateData.quotedPrice = new Decimal(laborCost + partsCost);
       } else if (dto.status === 'approved') {
         updateData.approvedAt = new Date();
+        // Approved price can be different from quoted price (with discount)
+        if (dto.customerApprovedPrice !== undefined) {
+          updateData.customerApprovedPrice = new Decimal(dto.customerApprovedPrice);
+        }
       } else if (dto.status === 'in-progress') {
         updateData.startedAt = new Date();
       } else if (dto.status === 'completed') {
@@ -563,11 +654,16 @@ export class ServiceOrdersService {
         const totalCost = quantity.mul(unitCost);
         const totalPrice = quantity.mul(unitPrice);
 
+        // Determine purchase type: internal if stock available, external if not
+        // For now, default to internal if stock exists, but can be overridden by DTO
+        const purchaseType = part.purchaseType || (available >= part.quantity ? 'internal' : 'external');
+
         // Create service parts used record
         await tx.servicePartsUsed.create({
           data: {
             serviceOrderId,
             productId: part.productId,
+            purchaseType,
             quantity,
             unitCost,
             unitPrice,
@@ -579,49 +675,168 @@ export class ServiceOrdersService {
           },
         });
 
-        // Deduct from inventory
-        const quantityBefore = Number(stock.quantityAvailable);
-        const quantityAfter = quantityBefore - part.quantity;
+        // Deduct from inventory ONLY if purchase type is 'internal'
+        if (purchaseType === 'internal') {
+          const quantityBefore = Number(stock.quantityAvailable);
+          const quantityAfter = quantityBefore - part.quantity;
 
-        await tx.productStock.update({
-          where: {
-            productId_branchId: {
+          await tx.productStock.update({
+            where: {
+              productId_branchId: {
+                productId: part.productId,
+                branchId: serviceOrder.branchId,
+              },
+            },
+            data: {
+              quantityAvailable: new Decimal(quantityAfter),
+            },
+          });
+
+          // Create stock movement ONLY for internal purchases
+          await tx.stockMovement.create({
+            data: {
               productId: part.productId,
               branchId: serviceOrder.branchId,
+              movementType: 'OUT',
+              referenceType: 'SERVICE',
+              referenceId: null, // Foreign key constraint only for SalesTransaction, so set null for SERVICE
+              quantityChange: new Decimal(-part.quantity),
+              quantityBefore: new Decimal(quantityBefore),
+              quantityAfter: new Decimal(quantityAfter),
+              batchNumber: part.batchNumber,
+              serialNumber: part.serialNumber,
+              notes: `Parts used for service ${serviceOrder.serviceNumber} (ID: ${serviceOrderId}) - Internal`,
+              createdBy: userId,
             },
-          },
-          data: {
-            quantityAvailable: new Decimal(quantityAfter),
-          },
-        });
-
-        // Create stock movement
-        await tx.stockMovement.create({
-          data: {
-            productId: part.productId,
-            branchId: serviceOrder.branchId,
-            movementType: 'OUT',
-            referenceType: 'SERVICE',
-            referenceId: serviceOrderId,
-            quantityChange: new Decimal(-part.quantity),
-            quantityBefore: new Decimal(quantityBefore),
-            quantityAfter: new Decimal(quantityAfter),
-            batchNumber: part.batchNumber,
-            serialNumber: part.serialNumber,
-            notes: `Parts used for service ${serviceOrder.serviceNumber}`,
-            createdBy: userId,
-          },
-        });
+          });
+        }
 
         totalPartsCost += Number(totalCost);
         totalPartsPrice += Number(totalPrice);
       }
 
-      // Update service order with total parts cost
+      // Update service order with total parts price (selling price, not cost)
+      // partsCost field stores the price charged to customer, not the cost
+      const newPartsCost = Number(serviceOrder.partsCost) + totalPartsPrice;
+      
       return tx.serviceOrder.update({
         where: { id: serviceOrderId },
         data: {
-          partsCost: new Decimal(totalPartsCost),
+          partsCost: new Decimal(newPartsCost),
+        },
+        include: {
+          partsUsed: {
+            include: {
+              product: true,
+            },
+          },
+        },
+      });
+    });
+  }
+
+  async removePart(serviceOrderId: string, partId: string, userId: string) {
+    const serviceOrder = await this.prisma.serviceOrder.findUnique({
+      where: { id: serviceOrderId },
+      include: {
+        branch: true,
+      },
+    });
+
+    if (!serviceOrder) {
+      throw new NotFoundException('Service order not found');
+    }
+
+    if (serviceOrder.status === 'delivered' || serviceOrder.status === 'cancelled') {
+      throw new BadRequestException(
+        `Cannot remove parts from service order with status: ${serviceOrder.status}`,
+      );
+    }
+
+    const part = await this.prisma.servicePartsUsed.findUnique({
+      where: { id: partId },
+      include: {
+        product: true,
+      },
+    });
+
+    if (!part) {
+      throw new NotFoundException('Service part not found');
+    }
+
+    if (part.serviceOrderId !== serviceOrderId) {
+      throw new BadRequestException('Part does not belong to this service order');
+    }
+
+    return await this.prisma.$transaction(async (tx) => {
+      // Get current stock
+      const stock = await tx.productStock.findUnique({
+        where: {
+          productId_branchId: {
+            productId: part.productId,
+            branchId: serviceOrder.branchId,
+          },
+        },
+      });
+
+      if (!stock) {
+        throw new BadRequestException('Product stock not found');
+      }
+
+      // Restore stock
+      const quantityBefore = Number(stock.quantityAvailable);
+      const quantityAfter = quantityBefore + Number(part.quantity);
+
+      await tx.productStock.update({
+        where: {
+          productId_branchId: {
+            productId: part.productId,
+            branchId: serviceOrder.branchId,
+          },
+        },
+        data: {
+          quantityAvailable: new Decimal(quantityAfter),
+        },
+      });
+
+      // Create stock movement for return
+      await tx.stockMovement.create({
+        data: {
+          productId: part.productId,
+          branchId: serviceOrder.branchId,
+          movementType: 'IN',
+          referenceType: 'SERVICE',
+          referenceId: null,
+          quantityChange: new Decimal(Number(part.quantity)),
+          quantityBefore: new Decimal(quantityBefore),
+          quantityAfter: new Decimal(quantityAfter),
+          batchNumber: part.batchNumber,
+          serialNumber: part.serialNumber,
+          notes: `Part removed from service ${serviceOrder.serviceNumber} (ID: ${serviceOrderId})`,
+          createdBy: userId,
+        },
+      });
+
+      // Delete service part
+      await tx.servicePartsUsed.delete({
+        where: { id: partId },
+      });
+
+      // Recalculate total parts cost
+      const remainingParts = await tx.servicePartsUsed.findMany({
+        where: { serviceOrderId },
+      });
+
+      const newPartsCost = remainingParts.reduce(
+        (sum, p) => sum + Number(p.totalPrice),
+        0,
+      );
+
+      // Update service order
+      return tx.serviceOrder.update({
+        where: { id: serviceOrderId },
+        data: {
+          partsCost: new Decimal(newPartsCost),
         },
         include: {
           partsUsed: {
@@ -686,12 +901,14 @@ export class ServiceOrdersService {
     }
 
     // Calculate final price
-    const laborCost = Number(serviceOrder.laborCost || 0);
-    const partsCost = Number(serviceOrder.partsCost || 0);
-    const otherCost = Number(serviceOrder.otherCost || 0);
-    const subtotal = laborCost + partsCost + otherCost;
-    const taxAmount = subtotal * 0.11;
-    const totalPrice = subtotal + taxAmount;
+    // Total = (approvedPrice or quotedPrice) * 1.11 (11% tax)
+    // approvedPrice = quotedPrice - discountAmount
+    const quotedPrice = Number(serviceOrder.quotedPrice || 0);
+    const approvedPrice = Number(serviceOrder.customerApprovedPrice || quotedPrice);
+    const discountAmount = Number(serviceOrder.discountAmount || 0);
+    const finalPrice = approvedPrice - discountAmount; // Price after discount
+    const taxAmount = Math.round(finalPrice * 0.11);
+    const totalPrice = Math.round(finalPrice * 1.11); // Total includes 11% tax (rounded)
 
     // Calculate warranty expiry date
     const warrantyExpiryDate = new Date();
@@ -702,7 +919,7 @@ export class ServiceOrdersService {
       data: {
         status: 'completed',
         completedAt: new Date(),
-        finalPrice: new Decimal(subtotal),
+        finalPrice: new Decimal(finalPrice),
         taxAmount: new Decimal(taxAmount),
         totalPrice: new Decimal(totalPrice),
         warrantyExpiryDate,
@@ -860,6 +1077,70 @@ export class ServiceOrdersService {
         serviceType: true,
         assignedTechnician: true,
       },
+    });
+  }
+
+  async processPayment(serviceOrderId: string, dto: ProcessPaymentDto, _userId: string) {
+    const serviceOrder = await this.prisma.serviceOrder.findUnique({
+      where: { id: serviceOrderId },
+      include: {
+        branch: true,
+      },
+    });
+
+    if (!serviceOrder) {
+      throw new NotFoundException('Service order not found');
+    }
+
+    if (serviceOrder.paymentStatus === 'paid') {
+      throw new BadRequestException('Service order is already paid');
+    }
+
+    const totalPrice = Number(serviceOrder.totalPrice || 0);
+    if (dto.amount <= 0) {
+      throw new BadRequestException('Payment amount must be greater than 0');
+    }
+
+    if (dto.amount > totalPrice) {
+      throw new BadRequestException('Payment amount cannot exceed total price');
+    }
+
+    return await this.prisma.$transaction(async (tx) => {
+      // Generate invoice number if not already set
+      let invoiceNumber = serviceOrder.invoiceNumber;
+      if (!invoiceNumber) {
+        invoiceNumber = await this.generateInvoiceNumber(serviceOrder.branchId);
+      }
+
+      // Determine payment status
+      let paymentStatus: 'pending' | 'partial' | 'paid' = 'paid';
+      if (dto.amount < totalPrice) {
+        paymentStatus = 'partial';
+      }
+
+      const updated = await tx.serviceOrder.update({
+        where: { id: serviceOrderId },
+        data: {
+          invoiceNumber,
+          paymentStatus,
+          paymentMethod: dto.paymentMethod,
+          paidAt: paymentStatus === 'paid' ? new Date() : serviceOrder.paidAt,
+          internalNotes: serviceOrder.internalNotes
+            ? `${serviceOrder.internalNotes}\n\nPayment: ${dto.amount.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })} via ${dto.paymentMethod}${dto.reference ? ` (Ref: ${dto.reference})` : ''}${dto.notes ? `\nNotes: ${dto.notes}` : ''}`
+            : `Payment: ${dto.amount.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })} via ${dto.paymentMethod}${dto.reference ? ` (Ref: ${dto.reference})` : ''}${dto.notes ? `\nNotes: ${dto.notes}` : ''}`,
+        },
+        include: {
+          branch: true,
+          customer: true,
+          partsUsed: {
+            include: {
+              product: true,
+            },
+          },
+        },
+      });
+
+      return updated;
     });
   }
 

@@ -32,6 +32,7 @@ import ReturnsList from './pages/sales/ReturnsList';
 import ServiceOrderList from './pages/service-orders/ServiceOrderList';
 import ServiceOrderForm from './pages/service-orders/ServiceOrderForm';
 import ServiceOrderDetail from './pages/service-orders/ServiceOrderDetail';
+import ServiceOrderPrint from './pages/service-orders/ServiceOrderPrint';
 import MyServiceOrders from './pages/service-orders/MyServiceOrders';
 // Inventory
 import StockList from './pages/inventory/StockList';
@@ -461,6 +462,10 @@ function App() {
                   </DashboardLayout>
                 </ProtectedRoute>
               }
+            />
+            <Route
+              path="/service-orders/:id/print"
+              element={<ServiceOrderPrint />}
             />
             
             {/* Warehouse Landing */}

@@ -48,6 +48,19 @@ export class UpdateStatusDto {
   @Min(0)
   @IsOptional()
   customerApprovedPrice?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  laborCost?: number;
+
+  @IsNumber()
+  @IsOptional()
+  discountAmount?: number; // Diskon dalam rupiah
+
+  @IsString()
+  @IsOptional()
+  promoCode?: string; // Kode promo/diskon
 }
 
 

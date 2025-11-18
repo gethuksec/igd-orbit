@@ -39,6 +39,7 @@ model User {
   cashierTransactions SalesTransaction[]
   heldTransactions  HeldTransaction[]
   assignedServices  ServiceOrder[] @relation("ServiceTechnician")
+  statusHistoryChanges ServiceStatusHistory[] @relation("ServiceStatusHistoryChangedBy")
 
   @@index([email])
   @@index([username])
@@ -338,18 +339,26 @@ model Customer {
   name              String
   email             String?
   phone             String
-  alternatePhone    String?   @map("alternate_phone")
+  alternatePhone    String?   @map("alternate_phone") // No HP (untuk import/export)
   dateOfBirth       DateTime? @map("date_of_birth")
   gender            String? // 'L', 'P'
   address           String?
+  subdistrict       String?   @map("subdistrict") // Kecamatan
   city              String?
   province          String?
   postalCode        String?   @map("postal_code")
   country           String?   @default("Indonesia")
-  taxId             String?   @map("tax_id") // NPWP
-  taxName           String?   @map("tax_name")
-  taxAddress        String?   @map("tax_address")
-  creditLimit       Decimal   @default(0) @map("credit_limit") @db.Decimal(15, 2)
+  religion          String? // Agama
+  idType            String?   @map("id_type") // Jenis Identitas (KTP, SIM, dll)
+  idNumber          String?   @map("id_number") // Nomor Identitas
+  taxId             String?   @map("tax_id") // No NPWP/KTP
+  taxName           String?   @map("tax_name") // Nama (Pajak)
+  taxIdType         String?   @map("tax_id_type") // Jenis Identitas Pajak (NPWP/KTP)
+  taxAddress        String?   @map("tax_address") // Alamat (Pajak)
+  idTKU             String?   @map("id_tku") // IDTKU
+  taxTransactionDetail String? @map("tax_transaction_detail") // Detail Transaksi Pajak (01/02/03..dst)
+  creditLimit       Decimal   @default(0) @map("credit_limit") @db.Decimal(15, 2) // Plafon Nilai
+  creditLimitNoteCount Int?   @map("credit_limit_note_count") // Plafon Jumlah Nota
   creditUsed        Decimal   @default(0) @map("credit_used") @db.Decimal(15, 2)
   paymentTermDays   Int?      @map("payment_term_days")
   preferredBranchId String?   @map("preferred_branch_id")
@@ -357,7 +366,7 @@ model Customer {
   blacklistReason   String?   @map("blacklist_reason")
   blacklistUntil    DateTime? @map("blacklist_until")
   isActive          Boolean   @default(true) @map("is_active")
-  notes             String?   @db.Text
+  notes             String?   @db.Text // Keterangan
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
   deletedAt         DateTime? @map("deleted_at")
@@ -733,6 +742,8 @@ model ServiceOrder {
   laborCost             Decimal? @map("labor_cost") @db.Decimal(15, 2)
   partsCost             Decimal  @default(0) @map("parts_cost") @db.Decimal(15, 2)
   otherCost             Decimal? @map("other_cost") @db.Decimal(15, 2)
+  discountAmount        Decimal? @default(0) @map("discount_amount") @db.Decimal(15, 2)
+  promoCode             String?  @map("promo_code")
   finalPrice            Decimal? @map("final_price") @db.Decimal(15, 2)
   taxAmount             Decimal  @default(0) @map("tax_amount") @db.Decimal(15, 2)
   totalPrice            Decimal? @map("total_price") @db.Decimal(15, 2)
@@ -761,6 +772,8 @@ model ServiceOrder {
   warrantyExpiryDate    DateTime? @map("warranty_expiry_date")
   
   // Payment
+  quotationNumber       String?  @unique @map("quotation_number") // Q-SRV-YYYYMM-XXXXXX
+  invoiceNumber         String?  @unique @map("invoice_number") // INV-SRV-YYYYMM-XXXXXX
   paymentStatus         String   @default("pending") @map("payment_status") // 'pending', 'partial', 'paid'
   paymentMethod         String?  @map("payment_method")
   paidAt                DateTime? @map("paid_at")
@@ -791,6 +804,8 @@ model ServiceOrder {
 
   @@index([serviceNumber])
   @@index([internalNumber])
+  @@index([quotationNumber])
+  @@index([invoiceNumber])
   @@index([branchId])
   @@index([customerId])
   @@index([assignedTechnicianId])
@@ -813,6 +828,7 @@ model ServiceStatusHistory {
 
   // Relations
   serviceOrder ServiceOrder @relation(fields: [serviceOrderId], references: [id], onDelete: Cascade)
+  changedByUser User?       @relation("ServiceStatusHistoryChangedBy", fields: [changedBy], references: [id], onDelete: SetNull)
 
   @@index([serviceOrderId])
   @@index([status])
@@ -824,6 +840,7 @@ model ServicePartsUsed {
   id            String   @id @default(uuid())
   serviceOrderId String  @map("service_order_id")
   productId     String   @map("product_id")
+  purchaseType  String   @default("internal") @map("purchase_type") // 'internal' (stok sendiri) or 'external' (beli di luar)
   quantity      Decimal  @db.Decimal(15, 3)
   unitCost     Decimal  @map("unit_cost") @db.Decimal(15, 2)
   unitPrice     Decimal  @map("unit_price") @db.Decimal(15, 2) // Price charged to customer

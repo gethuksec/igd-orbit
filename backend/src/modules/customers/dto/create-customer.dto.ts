@@ -65,6 +65,10 @@ export class CreateCustomerDto {
   @IsOptional()
   address?: string;
 
+  @IsString({ message: 'Subdistrict must be a string' })
+  @IsOptional()
+  subdistrict?: string; // Kecamatan
+
   @IsString({ message: 'City must be a string' })
   @IsOptional()
   city?: string;
@@ -81,22 +85,51 @@ export class CreateCustomerDto {
   @IsOptional()
   country?: string;
 
+  @IsString({ message: 'Religion must be a string' })
+  @IsOptional()
+  religion?: string; // Agama
+
+  @IsString({ message: 'ID type must be a string' })
+  @IsOptional()
+  idType?: string; // Jenis Identitas (KTP, SIM, dll)
+
+  @IsString({ message: 'ID number must be a string' })
+  @IsOptional()
+  idNumber?: string; // Nomor Identitas
+
   @IsString({ message: 'Tax ID must be a string' })
   @IsOptional()
-  taxId?: string;
+  taxId?: string; // No NPWP/KTP
 
   @IsString({ message: 'Tax name must be a string' })
   @IsOptional()
-  taxName?: string;
+  taxName?: string; // Nama (Pajak)
+
+  @IsString({ message: 'Tax ID type must be a string' })
+  @IsOptional()
+  taxIdType?: string; // Jenis Identitas Pajak (NPWP/KTP)
 
   @IsString({ message: 'Tax address must be a string' })
   @IsOptional()
-  taxAddress?: string;
+  taxAddress?: string; // Alamat (Pajak)
+
+  @IsString({ message: 'IDTKU must be a string' })
+  @IsOptional()
+  idTKU?: string; // IDTKU
+
+  @IsString({ message: 'Tax transaction detail must be a string' })
+  @IsOptional()
+  taxTransactionDetail?: string; // Detail Transaksi Pajak (01/02/03..dst)
 
   @IsNumber({}, { message: 'Credit limit must be a number' })
   @Min(0, { message: 'Credit limit must be greater than or equal to 0' })
   @IsOptional()
-  creditLimit?: number;
+  creditLimit?: number; // Plafon Nilai
+
+  @IsInt({ message: 'Credit limit note count must be an integer' })
+  @Min(0, { message: 'Credit limit note count must be greater than or equal to 0' })
+  @IsOptional()
+  creditLimitNoteCount?: number; // Plafon Jumlah Nota
 
   @IsInt({ message: 'Payment term days must be an integer' })
   @Min(0, { message: 'Payment term days must be greater than or equal to 0' })
