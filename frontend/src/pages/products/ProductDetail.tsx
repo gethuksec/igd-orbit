@@ -4,24 +4,46 @@ import {
   Edit,
   ArrowLeft,
   Package,
-  DollarSign,
   Loader2,
-  Barcode,
-  Tag,
   AlertTriangle,
   CheckCircle2,
   TrendingUp,
+  Warehouse,
+  History,
+  ArrowUp,
+  ArrowDown,
+  ArrowRightLeft,
+  Settings,
 } from 'lucide-react';
 import { productsService } from '../../services/products.service';
+import { api } from '../../services/api';
+import { useState } from 'react';
 
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [activityPage, setActivityPage] = useState(1);
 
   const { data: product, isLoading } = useQuery({
     queryKey: ['product', id],
     queryFn: () => productsService.getById(id!),
     enabled: !!id,
+  });
+
+  // Lazy load activity - only fetch when needed
+  const { data: activityData, isLoading: loadingActivity } = useQuery({
+    queryKey: ['product-activity', id, activityPage],
+    queryFn: async () => {
+      const response = await api.get(`/products/${id}/activity`, {
+        params: {
+          page: activityPage,
+          limit: 3, // Show only 3 latest per page
+        },
+      });
+      return response.data;
+    },
+    enabled: !!id,
+    staleTime: 30000, // Cache for 30 seconds
   });
 
   const formatCurrency = (amount: number) => {
@@ -56,146 +78,149 @@ export default function ProductDetail() {
 
   const margin = product.sellingPrice - product.costPrice;
   const marginPercent = ((margin / product.costPrice) * 100).toFixed(1);
-  const isLowStock = (product.stock || 0) < (product.minStock || 0);
+  const totalStock = (product as any).totalStock || 0;
+  const stockSummary = (product as any).stockSummary;
+  const minStock = (product as any).minStock || 0;
+  const isLowStock = totalStock < minStock;
 
   return (
     <div className="w-full space-y-4">
-      {/* Page Header - Enhanced */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-2xl shadow-lg p-8 text-white">
+      {/* Compact Header - Same as CustomerDetail */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate('/products')}
-              className="p-2 text-white/80 hover:bg-white/20 rounded-lg transition-colors"
+              className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <div>
-              <h1 className="text-4xl font-bold mb-2">{product.name}</h1>
-              <p className="text-primary-100 text-lg">Detail produk dan informasi stok</p>
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-md">
+                <Package className="w-6 h-6" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">{product.name}</h1>
+                <div className="flex items-center gap-3 mt-1">
+                  <span className="text-sm text-gray-500 font-mono">{product.sku}</span>
+                  {product.barcode && (
+                    <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded font-mono">
+                      {product.barcode}
+                    </span>
+                  )}
+                  <span
+                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold border ${
+                      (product as any).isActive
+                        ? 'bg-green-100 text-green-800 border-green-200'
+                        : 'bg-gray-100 text-gray-800 border-gray-200'
+                    }`}
+                  >
+                    {(product as any).isActive ? (
+                      <>
+                        <CheckCircle2 className="w-3 h-3" />
+                        Aktif
+                      </>
+                    ) : (
+                      'Tidak Aktif'
+                    )}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
           <Link to={`/products/${id}/edit`}>
-            <button className="flex items-center gap-2 px-6 py-3 bg-white text-primary-600 rounded-lg font-semibold hover:bg-primary-50 transition-all shadow-lg hover:shadow-xl">
-              <Edit className="w-5 h-5" />
-              <span>Edit Produk</span>
+            <button className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-all shadow-sm">
+              <Edit className="w-4 h-4" />
+              <span>Edit</span>
             </button>
           </Link>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Info - Enhanced */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Product Information */}
-          <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-8">
-            <div className="flex items-center gap-4 mb-6 pb-4 border-b border-gray-200">
-              <div className="p-3 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl shadow-md">
-                <Package className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">Informasi Produk</h2>
-                <p className="text-sm text-gray-600 mt-1">Data utama produk</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
-                <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-                  <Barcode className="w-4 h-4" />
-                  <span className="font-semibold">SKU</span>
-                </div>
-                <p className="text-lg font-bold text-gray-900 font-mono">{product.sku}</p>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Left Column - Informasi Produk, Stok, Stok Per Cabang */}
+        <div className="space-y-4">
+          {/* Product Information & Pricing - Combined */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Package className="w-5 h-5 text-primary-600" />
+              Informasi Produk
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+              <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="text-xs text-gray-500 mb-1">SKU</p>
+                <p className="text-sm font-semibold text-gray-900 font-mono">{product.sku}</p>
               </div>
               {product.barcode && (
-                <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
-                  <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-                    <Barcode className="w-4 h-4" />
-                    <span className="font-semibold">Barcode</span>
-                  </div>
-                  <p className="text-lg font-bold text-gray-900 font-mono">{product.barcode}</p>
+                <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="text-xs text-gray-500 mb-1">Barcode</p>
+                  <p className="text-sm font-semibold text-gray-900 font-mono">{product.barcode}</p>
                 </div>
               )}
-              <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
-                <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-                  <Tag className="w-4 h-4" />
-                  <span className="font-semibold">Kategori</span>
-                </div>
-                <p className="text-lg font-bold text-gray-900">{product.category?.name || product.categoryId}</p>
+              <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="text-xs text-gray-500 mb-1">Kategori</p>
+                <p className="text-sm font-semibold text-gray-900">{product.category?.name || product.categoryId}</p>
               </div>
               {product.brand && (
-                <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
-                  <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-                    <Tag className="w-4 h-4" />
-                    <span className="font-semibold">Brand</span>
-                  </div>
-                  <p className="text-lg font-bold text-gray-900">{product.brand.name}</p>
+                <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="text-xs text-gray-500 mb-1">Brand</p>
+                  <p className="text-sm font-semibold text-gray-900">{product.brand.name}</p>
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Pricing - Enhanced */}
-          <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-8">
-            <div className="flex items-center gap-4 mb-6 pb-4 border-b border-gray-200">
-              <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-md">
-                <DollarSign className="w-6 h-6 text-white" />
+            {/* Pricing - Inline */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-4 border-t border-gray-200">
+              <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="text-xs text-gray-500 mb-1">Harga Beli</p>
+                <p className="text-sm font-bold text-gray-900">{formatCurrency(product.costPrice)}</p>
               </div>
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">Harga & Margin</h2>
-                <p className="text-sm text-gray-600 mt-1">Analisis harga dan profitabilitas</p>
+              <div className="p-2.5 bg-primary-50 rounded-lg border border-primary-200">
+                <p className="text-xs text-primary-600 mb-1">Harga Jual</p>
+                <p className="text-sm font-bold text-primary-600">{formatCurrency(product.sellingPrice)}</p>
               </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border-2 border-gray-200">
-                <p className="text-sm font-semibold text-gray-600 mb-2">Harga Beli</p>
-                <p className="text-3xl font-bold text-gray-900">{formatCurrency(product.costPrice)}</p>
-              </div>
-              <div className="p-6 bg-gradient-to-br from-primary-50 to-primary-100 rounded-xl border-2 border-primary-200">
-                <p className="text-sm font-semibold text-primary-700 mb-2">Harga Jual</p>
-                <p className="text-3xl font-bold text-primary-600">{formatCurrency(product.sellingPrice)}</p>
-              </div>
-              <div className="p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border-2 border-green-200">
-                <p className="text-sm font-semibold text-green-700 mb-2">Margin</p>
-                <p className="text-3xl font-bold text-green-600">{formatCurrency(margin)}</p>
-                <div className="flex items-center gap-1 mt-2">
-                  <TrendingUp className="w-4 h-4 text-green-600" />
-                  <p className="text-sm font-semibold text-green-700">{marginPercent}%</p>
+              <div className="p-2.5 bg-green-50 rounded-lg border border-green-200">
+                <p className="text-xs text-green-600 mb-1">Margin</p>
+                <p className="text-sm font-bold text-green-600">{formatCurrency(margin)}</p>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <TrendingUp className="w-3 h-3 text-green-600" />
+                  <p className="text-xs font-semibold text-green-700">{marginPercent}%</p>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Sidebar - Enhanced */}
-        <div className="space-y-6">
-          {/* Stock Card */}
-          <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
-            <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-200">
-              <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl">
-                <Package className="w-5 h-5 text-white" />
-              </div>
-              <h2 className="text-lg font-bold text-gray-900">Stok</h2>
-            </div>
-            <div className="space-y-4">
+          {/* Stock Card - Enhanced with Branch Details */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+              <Package className="w-5 h-5 text-primary-600" />
+              Stok
+            </h2>
+            <div className="space-y-2">
               <div>
-                <p className="text-sm text-gray-600 mb-2">Stok Tersedia</p>
-                <p className={`text-5xl font-bold ${isLowStock ? 'text-red-600' : 'text-gray-900'}`}>
-                  {product.stock || 0}
+                <p className="text-xs text-gray-500 mb-1">Total Stok Tersedia</p>
+                <p className={`text-2xl font-bold ${isLowStock ? 'text-red-600' : 'text-gray-900'}`}>
+                  {totalStock}
                 </p>
+                {stockSummary && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Tersedia: {stockSummary.totalAvailable || 0} | Reserved: {stockSummary.totalReserved || 0}
+                  </p>
+                )}
               </div>
-              {product.minStock && (
-                <div className="pt-4 border-t border-gray-200">
-                  <p className="text-sm text-gray-600 mb-1">Min Stock</p>
-                  <p className="text-2xl font-semibold text-gray-900">{product.minStock}</p>
+              {minStock > 0 && (
+                <div className="pt-2 border-t border-gray-200">
+                  <p className="text-xs text-gray-500 mb-0.5">Min Stock</p>
+                  <p className="text-base font-semibold text-gray-900">{minStock}</p>
                 </div>
               )}
               {isLowStock && (
-                <div className="p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
+                <div className="p-2 bg-red-50 border-l-4 border-red-500 rounded-lg mt-2">
                   <div className="flex items-start gap-2">
-                    <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                    <AlertTriangle className="w-3.5 h-3.5 text-red-600 flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-sm font-semibold text-red-800">Stok Rendah</p>
-                      <p className="text-xs text-red-600 mt-1">Perlu restock segera</p>
+                      <p className="text-xs font-semibold text-red-800">Stok Rendah</p>
+                      <p className="text-xs text-red-600 mt-0.5">Perlu restock segera</p>
                     </div>
                   </div>
                 </div>
@@ -203,30 +228,161 @@ export default function ProductDetail() {
             </div>
           </div>
 
-          {/* Status Card */}
-          <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
-            <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-200">
-              <div className="p-2 bg-gradient-to-br from-gray-400 to-gray-500 rounded-xl">
-                <Tag className="w-5 h-5 text-white" />
+          {/* Stock Per Branch - Compact */}
+          {stockSummary && stockSummary.branches && stockSummary.branches.length > 0 && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+              <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+                <Warehouse className="w-5 h-5 text-primary-600" />
+                Stok Per Cabang
+              </h2>
+              <div className="space-y-2">
+                {stockSummary.branches.map((branch: any) => {
+                  const branchStock = branch.available - branch.reserved;
+                  const branchIsLow = branchStock < (branch.minStock || 0);
+                  return (
+                    <div key={branch.branchId} className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs font-semibold text-gray-900">{branch.branchName}</p>
+                        <p className={`text-base font-bold ${branchIsLow ? 'text-red-600' : 'text-gray-900'}`}>
+                          {branchStock}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-gray-600">
+                        <span>Tersedia: {branch.available}</span>
+                        {branch.reserved > 0 && <span>R: {branch.reserved}</span>}
+                        {branch.damaged > 0 && <span className="text-red-600">Rusak: {branch.damaged}</span>}
+                      </div>
+                      {branch.minStock && branchStock < branch.minStock && (
+                        <p className="text-xs text-red-600 mt-1">⚠️ Di bawah min ({branch.minStock})</p>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-              <h2 className="text-lg font-bold text-gray-900">Status</h2>
             </div>
-            <span
-              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border ${
-                product.status === 'ACTIVE' || product.status === 'active'
-                  ? 'bg-green-100 text-green-800 border-green-200'
-                  : 'bg-gray-100 text-gray-800 border-gray-200'
-              }`}
-            >
-              {product.status === 'ACTIVE' || product.status === 'active' ? (
-                <>
-                  <CheckCircle2 className="w-4 h-4" />
-                  Aktif
-                </>
-              ) : (
-                'Tidak Aktif'
+          )}
+        </div>
+
+        {/* Right Column - Riwayat Aktivitas */}
+        <div className="space-y-4">
+          {/* Activity Log - Vertical Layout */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <History className="w-5 h-5 text-primary-600" />
+                Riwayat Aktivitas
+              </h2>
+              {activityData?.meta && activityData.meta.totalPages > 1 && (
+                <span className="text-xs text-gray-500">
+                  Halaman {activityData.meta.page} dari {activityData.meta.totalPages}
+                </span>
               )}
-            </span>
+            </div>
+            {loadingActivity ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 text-primary-500 animate-spin" />
+              </div>
+            ) : activityData?.data && activityData.data.length > 0 ? (
+              <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                {activityData.data.map((activity: any) => {
+                  const getActivityIcon = () => {
+                    switch (activity.type) {
+                      case 'STOCK_IN':
+                        return <ArrowUp className="w-4 h-4 text-green-600" />;
+                      case 'STOCK_OUT':
+                        return <ArrowDown className="w-4 h-4 text-red-600" />;
+                      case 'STOCK_TRANSFER':
+                        return <ArrowRightLeft className="w-4 h-4 text-blue-600" />;
+                      case 'STOCK_ADJUSTMENT':
+                        return <Settings className="w-4 h-4 text-yellow-600" />;
+                      default:
+                        return <Package className="w-4 h-4 text-gray-600" />;
+                    }
+                  };
+
+                  const getActivityColor = () => {
+                    switch (activity.type) {
+                      case 'STOCK_IN':
+                        return 'bg-green-50 border-green-200';
+                      case 'STOCK_OUT':
+                        return 'bg-red-50 border-red-200';
+                      case 'STOCK_TRANSFER':
+                        return 'bg-blue-50 border-blue-200';
+                      case 'STOCK_ADJUSTMENT':
+                        return 'bg-yellow-50 border-yellow-200';
+                      default:
+                        return 'bg-gray-50 border-gray-200';
+                    }
+                  };
+
+                  return (
+                    <div
+                      key={activity.id}
+                      className={`p-2.5 rounded-lg border ${getActivityColor()}`}
+                    >
+                      <div className="flex items-start gap-2 mb-1.5">
+                        <div className="mt-0.5 flex-shrink-0">{getActivityIcon()}</div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900">{activity.description}</p>
+                          {activity.branch && (
+                            <p className="text-xs text-gray-600 mt-0.5">
+                              {activity.branch.name}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                        <span>
+                          {activity.quantityBefore} → <span className="font-semibold">{activity.quantityAfter}</span>
+                        </span>
+                        <span>
+                          {new Date(activity.createdAt).toLocaleDateString('id-ID', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      </div>
+                      {activity.notes && (
+                        <p className="text-xs text-gray-400 italic mt-1" title={activity.notes}>
+                          {activity.notes}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-400">
+                <History className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                <p className="text-sm font-medium">Belum ada aktivitas</p>
+              </div>
+            )}
+
+            {/* Pagination - Bottom */}
+            {activityData?.meta && activityData.meta.totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 pt-3 border-t border-gray-200 mt-3">
+                <button
+                  onClick={() => setActivityPage((prev) => Math.max(1, prev - 1))}
+                  disabled={activityPage === 1}
+                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  ← Sebelumnya
+                </button>
+                <span className="text-sm text-gray-600">
+                  {activityData.meta.page} / {activityData.meta.totalPages}
+                </span>
+                <button
+                  onClick={() => setActivityPage((prev) => prev + 1)}
+                  disabled={activityPage >= activityData.meta.totalPages}
+                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Selanjutnya →
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

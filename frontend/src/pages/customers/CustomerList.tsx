@@ -232,11 +232,11 @@ export default function CustomerList() {
 
       {/* Customer Table - Enhanced */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 table-fixed">
+        <div className="overflow-x-auto overflow-y-visible scroll-smooth">
+          <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gradient-to-r from-gray-50 via-gray-50 to-gray-100">
               <tr>
-                <th className="w-[250px] px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                   <button
                     onClick={() => {
                       if (sortBy === 'name') {
@@ -256,13 +256,13 @@ export default function CustomerList() {
                     )}
                   </button>
                 </th>
-                <th className="w-[200px] px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                   Telepon & Email
                 </th>
-                <th className="w-[300px] px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                   Alamat
                 </th>
-                <th className="w-[150px] px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                   <button
                     onClick={() => {
                       if (sortBy === 'createdAt') {
@@ -282,7 +282,7 @@ export default function CustomerList() {
                     )}
                   </button>
                 </th>
-                <th className="w-[120px] px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <th className="px-8 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">
                   Aksi
                 </th>
               </tr>
@@ -290,9 +290,9 @@ export default function CustomerList() {
             <tbody className="bg-white divide-y divide-gray-100">
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="px-8 py-20 text-center">
+                  <td colSpan={5} className="px-8 py-20 text-center">
                     <div className="flex flex-col items-center gap-4">
-                      <Loader2 className="w-16 h-16 text-primary-600 animate-spin" />
+                      <Loader2 className="w-10 h-10 text-primary-500 animate-spin" />
                       <p className="text-gray-600 font-semibold text-lg">Memuat data pelanggan...</p>
                       <p className="text-sm text-gray-500">Mohon tunggu sebentar</p>
                     </div>
@@ -300,7 +300,7 @@ export default function CustomerList() {
                 </tr>
               ) : customers.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-8 py-20 text-center">
+                  <td colSpan={5} className="px-8 py-20 text-center">
                     <div className="flex flex-col items-center gap-4">
                       <div className="p-4 bg-gray-100 rounded-full">
                         <Users className="w-16 h-16 text-gray-400" />
@@ -391,7 +391,7 @@ export default function CustomerList() {
                           : ''}
                       </div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-right">
+                    <td className="px-8 py-5 whitespace-nowrap text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Link to={`/customers/${customer.id}`}>
                           <button

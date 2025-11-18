@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   Plus,
   Search,
@@ -16,25 +16,58 @@ import {
   TrendingUp,
   AlertTriangle,
   CheckCircle2,
+  Upload,
+  X,
 } from 'lucide-react';
-import { productsService } from '../../services/products.service';
 import { api } from '../../services/api';
+import { productsService } from '../../services/products.service';
 
 export default function ProductList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('active');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [page, setPage] = useState(1);
   const limit = 20;
 
+  // Fetch categories for filter
+  const { data: categoriesData } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const res = await api.get('/categories');
+      return res.data.data || res.data || [];
+    },
+  });
+
+  // Flatten categories tree for dropdown
+  const flattenCategories = (cats: any[]): any[] => {
+    const result: any[] = [];
+    cats?.forEach((cat) => {
+      result.push({ id: cat.id, name: cat.name });
+      if (cat.children && cat.children.length > 0) {
+        result.push(...flattenCategories(cat.children));
+      }
+    });
+    return result;
+  };
+
+  const categories = categoriesData ? flattenCategories(Array.isArray(categoriesData) ? categoriesData : [categoriesData]) : [];
+
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['products', page, searchTerm, selectedStatus],
-    queryFn: () =>
-      productsService.getAll({
-        page,
-        limit,
-        search: searchTerm || undefined,
-        'filter[status]': selectedStatus,
-      }),
+    queryKey: ['products', page, searchTerm, selectedStatus, selectedCategory],
+    queryFn: async () => {
+      const response = await api.get('/products', {
+        params: {
+          page,
+          limit,
+          search: searchTerm || undefined,
+          'filter[status]': selectedStatus,
+          'filter[category]': selectedCategory || undefined,
+          include: 'category,brand,stock', // Include stock for accurate calculation - send as comma-separated string
+        },
+      });
+      return response.data;
+    },
+    staleTime: 10000, // Cache for 10 seconds to reduce unnecessary refetches
   });
 
   // Debug logging
@@ -53,14 +86,22 @@ export default function ProductList() {
       refetch();
     }, 500);
     return () => clearTimeout(debounce);
-  }, [searchTerm, selectedStatus]);
+  }, [searchTerm, selectedStatus, selectedCategory]);
 
   const products = data?.data || [];
   const pagination = data?.meta || { page: 1, limit: 20, total: 0, totalPages: 1 };
 
-  const totalStockValue = products.reduce((acc, p) => acc + (p.costPrice * (p.stock || 0)), 0);
-  const lowStockCount = products.filter((p) => (p.stock || 0) < (p.minStock || 0)).length;
-  const activeCount = products.filter((p) => p.status === 'ACTIVE' || p.status === 'active').length;
+  // Fetch statistics separately (from entire database, not paginated)
+  const { data: statistics } = useQuery({
+    queryKey: ['products-statistics'],
+    queryFn: () => productsService.getStatistics(),
+  });
+
+  // Use statistics from API (entire database) instead of filtered page data
+  const totalProducts = statistics?.total || pagination.total;
+  const totalStockValue = statistics?.totalStockValue || 0;
+  const lowStockCount = statistics?.lowStockCount || 0;
+  const activeCount = statistics?.activeCount || 0;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -70,23 +111,70 @@ export default function ProductList() {
     }).format(amount);
   };
 
-  const handleExport = async (format: 'excel' | 'csv') => {
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+
+  const handleExport = async () => {
     try {
       const response = await api.get('/products/export', {
-        params: { format },
+        params: {
+          page,
+          limit,
+          search: searchTerm || undefined,
+          'filter[status]': selectedStatus,
+          'filter[category]': selectedCategory || undefined,
+        },
         responseType: 'blob',
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `products.${format === 'excel' ? 'xlsx' : 'csv'}`);
+      link.setAttribute('download', `products_${new Date().toISOString().split('T')[0]}.csv`);
       document.body.appendChild(link);
       link.click();
       link.remove();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Export failed:', err);
+      if (err.response?.status === 404) {
+        // Backend not implemented yet
+        alert('Fitur export belum tersedia. Silakan hubungi administrator.');
+      }
     }
   };
+
+  const importMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await api.post('/products/import', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    },
+    onSuccess: (result: any) => {
+      const createdText = result.created > 0 ? `${result.created} dibuat` : '';
+      const updatedText = result.updated > 0 ? `${result.updated} diupdate` : '';
+      const successText = [createdText, updatedText].filter(Boolean).join(', ');
+      const failedText = result.failed > 0 ? `, ${result.failed} gagal` : '';
+      
+      alert(`Import berhasil! ${successText}${failedText}`);
+      
+      if (result.errors && result.errors.length > 0) {
+        console.error('Import errors:', result.errors);
+        const errorDetails = result.errors.slice(0, 5).map((e: any) => `Baris ${e.row}: ${e.error}`).join('; ');
+        alert(`Beberapa data gagal: ${errorDetails}${result.errors.length > 5 ? '...' : ''}`);
+      }
+      
+      setShowImportModal(false);
+      setImportFile(null);
+      refetch();
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.message || 'Gagal mengimport data');
+    },
+  });
 
   return (
     <div className="w-full space-y-3">
@@ -99,20 +187,19 @@ export default function ProductList() {
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => handleExport('excel')}
-              className="flex items-center gap-2 px-5 py-2.5 bg-white/10 backdrop-blur-sm text-white rounded-lg font-medium hover:bg-white/20 transition-all border border-white/20"
-              disabled={isLoading}
+              onClick={() => setShowImportModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm text-white rounded-lg hover:bg-white/20 transition-all border border-white/20"
             >
-              <Download className="w-4 h-4" />
-              <span>Excel</span>
+              <Upload className="w-4 h-4" />
+              <span>Import</span>
             </button>
             <button
-              onClick={() => handleExport('csv')}
-              className="flex items-center gap-2 px-5 py-2.5 bg-white/10 backdrop-blur-sm text-white rounded-lg font-medium hover:bg-white/20 transition-all border border-white/20"
+              onClick={handleExport}
+              className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm text-white rounded-lg hover:bg-white/20 transition-all border border-white/20"
               disabled={isLoading}
             >
               <Download className="w-4 h-4" />
-              <span>CSV</span>
+              <span>Export</span>
             </button>
             <Link to="/products/new">
               <button className="flex items-center gap-2 px-6 py-3 bg-white text-primary-600 rounded-lg font-semibold hover:bg-primary-50 transition-all shadow-lg hover:shadow-xl">
@@ -144,7 +231,7 @@ export default function ProductList() {
             <TrendingUp className="w-5 h-5 text-green-500" />
           </div>
           <p className="text-sm font-medium text-gray-600 mb-1">Total Produk</p>
-          <h3 className="text-3xl font-bold text-gray-900 mb-1">{isLoading ? '-' : pagination.total}</h3>
+          <h3 className="text-3xl font-bold text-gray-900 mb-1">{isLoading ? '-' : totalProducts}</h3>
           <p className="text-xs text-gray-500">Semua produk terdaftar</p>
         </div>
 
@@ -211,6 +298,30 @@ export default function ProductList() {
           </div>
 
           <div className="lg:w-64">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Kategori</label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Filter className="h-5 w-5 text-gray-400" />
+              </div>
+              <select
+                value={selectedCategory}
+                onChange={(e) => {
+                  setSelectedCategory(e.target.value);
+                  setPage(1);
+                }}
+                className="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white transition-all"
+              >
+                <option value="">Semua Kategori</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="lg:w-64">
             <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -218,7 +329,10 @@ export default function ProductList() {
               </div>
               <select
                 value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
+                onChange={(e) => {
+                  setSelectedStatus(e.target.value);
+                  setPage(1);
+                }}
                 className="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white transition-all"
               >
                 <option value="active">Aktif</option>
@@ -232,7 +346,7 @@ export default function ProductList() {
 
       {/* Product Table - Enhanced */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overflow-y-hidden">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gradient-to-r from-gray-50 via-gray-50 to-gray-100">
               <tr>
@@ -291,24 +405,24 @@ export default function ProductList() {
                   </td>
                 </tr>
               ) : (
-                products.map((product) => (
+                products.map((product: any) => (
                   <tr
                     key={product.id}
                     className="hover:bg-gradient-to-r hover:from-gray-50 hover:to-white transition-all duration-200 border-b border-gray-100"
                   >
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="flex items-center gap-4">
+                      <Link to={`/products/${product.id}`} className="flex items-center gap-4 hover:opacity-80 transition-opacity cursor-pointer">
                         <div className="flex-shrink-0 h-14 w-14 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white shadow-md">
                           <Package className="w-7 h-7" />
                         </div>
                         <div>
-                          <div className="text-base font-semibold text-gray-900">{product.name}</div>
+                          <div className="text-base font-semibold text-gray-900 hover:text-primary-600 transition-colors">{product.name}</div>
                           <div className="text-xs text-gray-500 flex items-center gap-1.5 mt-1">
                             <Barcode className="w-3.5 h-3.5" />
                             <span className="font-mono">{product.sku}</span>
                           </div>
                         </div>
-                      </div>
+                      </Link>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-200">
@@ -323,16 +437,47 @@ export default function ProductList() {
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center gap-2">
-                        <span
-                          className={`text-base font-bold ${
-                            (product.stock || 0) < (product.minStock || 0)
-                              ? 'text-red-600'
-                              : 'text-gray-900'
-                          }`}
-                        >
-                          {product.stock || 0}
-                        </span>
-                        {(product.stock || 0) < (product.minStock || 0) && (
+                        {(product as any).stockSummary && (product as any).stockSummary.branches ? (
+                          <div className="group relative">
+                            <span
+                              className={`text-base font-bold cursor-help ${
+                                ((product as any).totalStock || 0) < ((product as any).minStock || 0)
+                                  ? 'text-red-600'
+                                  : 'text-gray-900'
+                              }`}
+                            >
+                              {(product as any).totalStock || 0}
+                            </span>
+                            {/* Tooltip dengan stok per cabang */}
+                            <div className="absolute left-0 top-full mt-2 w-64 bg-gray-900 text-white text-xs rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 p-3">
+                              <div className="font-semibold mb-2 pb-2 border-b border-gray-700">Stok Per Cabang</div>
+                              {(product as any).stockSummary.branches.map((branch: any) => {
+                                const branchStock = branch.available - branch.reserved;
+                                return (
+                                  <div key={branch.branchId} className="flex justify-between items-center py-1">
+                                    <span className="text-gray-300">{branch.branchName}:</span>
+                                    <span className="font-semibold">{branchStock}</span>
+                                  </div>
+                                );
+                              })}
+                              <div className="mt-2 pt-2 border-t border-gray-700 text-gray-400 text-xs">
+                                Tersedia: {(product as any).stockSummary.totalAvailable || 0} | 
+                                Reserved: {(product as any).stockSummary.totalReserved || 0}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <span
+                            className={`text-base font-bold ${
+                              ((product as any).totalStock || 0) < ((product as any).minStock || 0)
+                                ? 'text-red-600'
+                                : 'text-gray-900'
+                            }`}
+                          >
+                            {(product as any).totalStock || 0}
+                          </span>
+                        )}
+                        {((product as any).totalStock || 0) < ((product as any).minStock || 0) && (
                           <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-red-100 text-red-800 border border-red-200">
                             <AlertTriangle className="w-3 h-3 mr-1" />
                             Rendah
@@ -343,12 +488,12 @@ export default function ProductList() {
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span
                         className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${
-                          product.status === 'ACTIVE' || product.status === 'active'
+                          (product as any).isActive
                             ? 'bg-green-100 text-green-800 border-green-200'
                             : 'bg-gray-100 text-gray-800 border-gray-200'
                         }`}
                       >
-                        {product.status === 'ACTIVE' || product.status === 'active' ? (
+                        {(product as any).isActive ? (
                           <>
                             <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
                             Aktif
@@ -422,6 +567,91 @@ export default function ProductList() {
           </div>
         )}
       </div>
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setShowImportModal(false)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Import Produk</h3>
+              <button
+                onClick={() => {
+                  setShowImportModal(false);
+                  setImportFile(null);
+                }}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Pilih File CSV</label>
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setImportFile(file);
+                    }
+                  }}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  Format: CSV dengan header sesuai template. Download contoh file di{' '}
+                  <a href="/ref/example_import_produk.csv" download className="text-primary-600 hover:underline">
+                    sini
+                  </a>
+                </p>
+              </div>
+              {importFile && (
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-sm font-medium">{importFile.name}</p>
+                  <p className="text-xs text-gray-500">{(importFile.size / 1024).toFixed(2)} KB</p>
+                </div>
+              )}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowImportModal(false);
+                    setImportFile(null);
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (importFile) {
+                      importMutation.mutate(importFile);
+                    }
+                  }}
+                  disabled={!importFile || importMutation.isPending}
+                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                >
+                  {importMutation.isPending ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Mengimport...
+                    </span>
+                  ) : (
+                    'Import'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -71,5 +71,15 @@ export const productsService = {
   async delete(id: string): Promise<void> {
     await api.delete(`/products/${id}`);
   },
+
+  async getStatistics(): Promise<{
+    total: number;
+    totalStockValue: number;
+    lowStockCount: number;
+    activeCount: number;
+  }> {
+    const response = await api.get('/products/statistics');
+    return response.data;
+  },
 };
 

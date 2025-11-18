@@ -78,8 +78,8 @@ export class CreateProductDto {
   weightGrams?: number;
 
   @IsBoolean({ message: 'isService must be a boolean' })
-  @IsNotEmpty({ message: 'isService is required' })
-  isService!: boolean;
+  @IsOptional()
+  isService?: boolean = false;
 
   @IsBoolean({ message: 'trackSerial must be a boolean' })
   @IsOptional()

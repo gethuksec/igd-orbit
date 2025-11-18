@@ -13,7 +13,9 @@ import {
   HttpStatus,
   UseInterceptors,
   UploadedFile,
+  Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Request as ExpressRequest } from 'express';
 import { ProductsService } from './products.service';
@@ -31,6 +33,16 @@ export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   /**
+   * Get overall product statistics
+   * GET /api/v1/products/statistics
+   * Permissions: All authenticated users
+   */
+  @Get('statistics')
+  async getStatistics() {
+    return this.productsService.getStatistics();
+  }
+
+  /**
    * List products with advanced filtering
    * GET /api/v1/products
    * Permissions: All authenticated users
@@ -46,6 +58,22 @@ export class ProductsController {
   }
 
   /**
+   * Export to CSV/Excel
+   * GET /api/v1/products/export
+   * Permissions: OWNER, CSO, CMO, SPV, HS, ASA
+   * NOTE: Must be before @Get(':id') to avoid route conflict
+   */
+  @Get('export')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'CSO', 'CMO', 'SPV', 'HS', 'ASA')
+  async export(@Query() query: ListProductsDto, @Res() res: Response): Promise<void> {
+    const csv = await this.productsService.exportToCSV(query);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="products-${new Date().toISOString().split('T')[0]}.csv"`);
+    res.send('\uFEFF' + csv); // BOM for Excel UTF-8 support
+  }
+
+  /**
    * Get product detail with stock info
    * GET /api/v1/products/:id
    * Permissions: All authenticated users
@@ -58,11 +86,11 @@ export class ProductsController {
   /**
    * Create new product
    * POST /api/v1/products
-   * Permissions: CSO, CMO, SPV, HS, ASA
+   * Permissions: OWNER, CSO, CMO, SPV, HS, ASA
    */
   @Post()
   @UseGuards(RolesGuard)
-  @Roles('CSO', 'CMO', 'SPV', 'HS', 'ASA')
+  @Roles('OWNER', 'CSO', 'CMO', 'SPV', 'HS', 'ASA')
   @HttpCode(HttpStatus.CREATED)
   async create(
     @Body() createProductDto: CreateProductDto,
@@ -130,6 +158,22 @@ export class ProductsController {
   }
 
   /**
+   * Get product activity history
+   * GET /api/v1/products/:id/activity
+   * Permissions: All authenticated users
+   */
+  @Get(':id/activity')
+  async getActivityHistory(
+    @Param('id') id: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 10;
+    return this.productsService.getActivityHistory(id, pageNum, limitNum);
+  }
+
+  /**
    * Bulk import via CSV
    * POST /api/v1/products/import
    * Permissions: CSO, CMO, SPV, ASA
@@ -157,25 +201,5 @@ export class ProductsController {
     };
   }
 
-  /**
-   * Export to CSV/Excel
-   * GET /api/v1/products/export
-   * Permissions: CSO, CMO, SPV, HS, ASA
-   * TODO: Implement export functionality
-   */
-  @Get('export')
-  @UseGuards(RolesGuard)
-  @Roles('CSO', 'CMO', 'SPV', 'HS', 'ASA')
-  async export(@Query() _query: ListProductsDto) {
-    // TODO: Implement export functionality
-    // 1. Get products based on filters
-    // 2. Format as CSV/Excel
-    // 3. Return file download
-
-    return {
-      message: 'Export functionality will be implemented in next phase',
-      note: 'This endpoint will export products to CSV/Excel format based on current filters',
-    };
-  }
 }
 
