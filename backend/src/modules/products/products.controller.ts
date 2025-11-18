@@ -14,6 +14,7 @@ import {
   UseInterceptors,
   UploadedFile,
   Res,
+  BadRequestException,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -35,9 +36,11 @@ export class ProductsController {
   /**
    * Get overall product statistics
    * GET /api/v1/products/statistics
-   * Permissions: All authenticated users
+   * Permissions: OWNER, CFO, MGR, CSO, CMO, SPV, HS, ASA
    */
   @Get('statistics')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA')
   async getStatistics() {
     return this.productsService.getStatistics();
   }
@@ -45,9 +48,11 @@ export class ProductsController {
   /**
    * List products with advanced filtering
    * GET /api/v1/products
-   * Permissions: All authenticated users
+   * Permissions: OWNER, CFO, MGR, CSO, CMO, SPV, HS, ASA
    */
   @Get()
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA')
   async findAll(@Query() query: ListProductsDto) {
     try {
       return await this.productsService.findAll(query);
@@ -76,9 +81,11 @@ export class ProductsController {
   /**
    * Get product detail with stock info
    * GET /api/v1/products/:id
-   * Permissions: All authenticated users
+   * Permissions: OWNER, CFO, MGR, CSO, CMO, SPV, HS, ASA
    */
   @Get(':id')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA')
   async findById(@Param('id') id: string) {
     return this.productsService.findById(id, true);
   }
@@ -150,9 +157,11 @@ export class ProductsController {
   /**
    * Get stock across all branches
    * GET /api/v1/products/:id/stock
-   * Permissions: All authenticated users
+   * Permissions: OWNER, CFO, MGR, CSO, CMO, SPV, HS, ASA
    */
   @Get(':id/stock')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA')
   async getStock(@Param('id') id: string) {
     return this.productsService.getStock(id);
   }
@@ -160,9 +169,11 @@ export class ProductsController {
   /**
    * Get product activity history
    * GET /api/v1/products/:id/activity
-   * Permissions: All authenticated users
+   * Permissions: OWNER, CFO, MGR, CSO, CMO, SPV, HS, ASA
    */
   @Get(':id/activity')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA')
   async getActivityHistory(
     @Param('id') id: string,
     @Query('page') page?: string,
@@ -177,7 +188,6 @@ export class ProductsController {
    * Bulk import via CSV
    * POST /api/v1/products/import
    * Permissions: CSO, CMO, SPV, ASA
-   * TODO: Implement CSV parsing and bulk import
    */
   @Post('import')
   @UseGuards(RolesGuard)
@@ -185,20 +195,13 @@ export class ProductsController {
   @UseInterceptors(FileInterceptor('file'))
   @HttpCode(HttpStatus.OK)
   async import(
-    @UploadedFile() _file: any,
-    @Request() _req: ExpressRequest & { user: any },
+    @UploadedFile() file: any,
+    @Request() req: ExpressRequest & { user: any },
   ) {
-    // TODO: Implement CSV parsing
-    // 1. Parse CSV file
-    // 2. Validate each row
-    // 3. Check for duplicates
-    // 4. Bulk create products
-    // 5. Return import results
-
-    return {
-      message: 'Import functionality will be implemented in next phase',
-      note: 'This endpoint accepts CSV file upload for bulk product import',
-    };
+    if (!file) {
+      throw new BadRequestException('File is required');
+    }
+    return this.productsService.importFromCSV(file.buffer.toString('utf-8'), req.user.id);
   }
 
 }

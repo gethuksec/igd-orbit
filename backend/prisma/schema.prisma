@@ -218,6 +218,7 @@ model Category {
   parentCategory  Category?  @relation("CategoryHierarchy", fields: [parentCategoryId], references: [id], onDelete: SetNull)
   childCategories Category[] @relation("CategoryHierarchy")
   products        Product[]
+  subCategoryProducts Product[] @relation("ProductSubCategory")
 
   @@index([code])
   @@index([parentCategoryId])
@@ -248,14 +249,28 @@ model Product {
   barcode       String?   @unique
   sku           String    @unique
   name          String
+  printedName   String?   @map("printed_name") // Nama Tercetak
   categoryId    String    @map("category_id")
+  subCategoryId String?   @map("sub_category_id") // Sub Kategori
   brandId       String?   @map("brand_id")
+  supplierId    String?   @map("supplier_id") // Supplier (relation ke Customer dengan customerType='wholesale')
   costPrice     Decimal   @map("cost_price") @db.Decimal(15, 2)
   sellingPrice  Decimal   @map("selling_price") @db.Decimal(15, 2)
+  minSellingPrice Decimal? @map("min_selling_price") @db.Decimal(15, 2) // Harga Jual Minimum
   unit          String    @default("pcs") // e.g., "pcs", "box", "kg"
+  size          String?   // Ukuran
+  color         String?   // Warna
+  lengthCm      Decimal?  @map("length_cm") @db.Decimal(10, 2) // Panjang(cm)
+  widthCm       Decimal?  @map("width_cm") @db.Decimal(10, 2) // Lebar(cm)
+  heightCm      Decimal?  @map("height_cm") @db.Decimal(10, 2) // Tinggi(cm)
+  weightGrams   Decimal?  @map("weight_grams") @db.Decimal(10, 2) // Berat Barang (gram)
+  packageWeightGrams Decimal? @map("package_weight_grams") @db.Decimal(10, 2) // Berat Paket (gram)
   isActive      Boolean   @default(true) @map("is_active")
-  trackSerial   Boolean   @default(false) @map("track_serial") // Track by serial number
+  isService     Boolean   @default(false) @map("is_service") // Jasa(Y/N)
+  trackSerial   Boolean   @default(false) @map("track_serial") // Track by serial number (SN(1)/Bahan(2))
   trackBatch    Boolean   @default(false) @map("track_batch") // Track by batch number
+  trackExpiry   Boolean   @default(false) @map("track_expiry") // Menggunakan Tgl Kadaluarsa(Y/N)
+  expiryReturnLimitDays Int? @map("expiry_return_limit_days") // Batas Retur Kadaluarsa (hari)
   memberPricing Json?     @map("member_pricing") // JSONB: {"platinum": {"discount": 10}, "gold": {"discount": 5}, ...}
   images        Json? // JSONB array: ["url1", "url2", ...]
   description   String?   @db.Text
@@ -265,7 +280,9 @@ model Product {
 
   // Relations
   category        Category           @relation(fields: [categoryId], references: [id])
+  subCategory     Category?         @relation("ProductSubCategory", fields: [subCategoryId], references: [id], onDelete: SetNull)
   brand           Brand?             @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  supplier        Customer?          @relation("ProductSupplier", fields: [supplierId], references: [id], onDelete: SetNull)
   productStocks   ProductStock[]
   transactionItems SalesTransactionItem[]
   stockMovements  StockMovement[]
@@ -276,7 +293,9 @@ model Product {
   @@index([barcode])
   @@index([sku])
   @@index([categoryId])
+  @@index([subCategoryId])
   @@index([brandId])
+  @@index([supplierId])
   @@index([isActive])
   @@index([deletedAt])
   @@map("products")
@@ -378,6 +397,7 @@ model Customer {
   serviceOrders   ServiceOrder[]
   arPayments      ARPayment[]
   writeOffs       WriteOff[]
+  supplierProducts Product[]         @relation("ProductSupplier")
 
   @@index([customerCode])
   @@index([email])

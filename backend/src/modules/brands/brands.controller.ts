@@ -28,9 +28,11 @@ export class BrandsController {
   /**
    * List all brands
    * GET /api/v1/brands
-   * Permissions: All authenticated users
+   * Permissions: OWNER, CFO, MGR, CSO, CMO, SPV, HS, ASA
    */
   @Get()
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA')
   async findAll(@Query() query: ListBrandsDto) {
     try {
       return await this.brandsService.findAll(query);
@@ -43,9 +45,11 @@ export class BrandsController {
   /**
    * Get brand detail
    * GET /api/v1/brands/:id
-   * Permissions: All authenticated users
+   * Permissions: OWNER, CFO, MGR, CSO, CMO, SPV, HS, ASA
    */
   @Get(':id')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA')
   async findById(@Param('id') id: string) {
     return this.brandsService.findById(id);
   }

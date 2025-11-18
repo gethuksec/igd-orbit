@@ -312,7 +312,21 @@ export class ProductsService {
       where: { id },
       include: {
         category: true,
+        subCategory: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
         brand: true,
+        supplier: {
+          select: {
+            id: true,
+            name: true,
+            customerCode: true,
+          },
+        },
         productStocks: includeStock
           ? {
               include: {
@@ -393,22 +407,32 @@ export class ProductsService {
       sku,
       barcode: createProductDto.barcode || null,
       name: createProductDto.name,
+      printedName: createProductDto.printedName || null,
       description: createProductDto.description || null,
       categoryId: createProductDto.categoryId,
+      subCategoryId: createProductDto.subCategoryId || null,
       brandId: createProductDto.brandId || null,
+      supplierId: createProductDto.supplierId || null,
       costPrice: createProductDto.costPrice,
       sellingPrice: createProductDto.sellingPrice,
+      minSellingPrice: createProductDto.minSellingPrice ? new Prisma.Decimal(createProductDto.minSellingPrice) : null,
       unit: createProductDto.unit || 'pcs',
+      size: createProductDto.size || null,
+      color: createProductDto.color || null,
+      lengthCm: createProductDto.lengthCm ? new Prisma.Decimal(createProductDto.lengthCm) : null,
+      widthCm: createProductDto.widthCm ? new Prisma.Decimal(createProductDto.widthCm) : null,
+      heightCm: createProductDto.heightCm ? new Prisma.Decimal(createProductDto.heightCm) : null,
+      weightGrams: createProductDto.weightGrams ? new Prisma.Decimal(createProductDto.weightGrams) : null,
+      packageWeightGrams: createProductDto.packageWeightGrams ? new Prisma.Decimal(createProductDto.packageWeightGrams) : null,
       isActive: createProductDto.isActive !== undefined ? createProductDto.isActive : true,
+      isService: createProductDto.isService !== undefined ? createProductDto.isService : false,
       trackSerial: createProductDto.trackSerial || false,
       trackBatch: createProductDto.trackBatch || false,
+      trackExpiry: createProductDto.trackExpiry || false,
+      expiryReturnLimitDays: createProductDto.expiryReturnLimitDays || null,
       memberPricing: createProductDto.memberPricing || null,
       images: createProductDto.images || null,
     };
-
-    // Note: size, color, weightGrams, isService, discountPercentage are not in Prisma Product schema
-    // These fields might be stored in memberPricing JSON or calculated from category
-    // They are kept in DTO for future use but not saved to Product table directly
 
     // Create product
     const product = await this.prisma.product.create({
@@ -492,20 +516,32 @@ export class ProductsService {
     if (updateProductDto.name !== undefined) {
       updateData.name = updateProductDto.name;
     }
+    if (updateProductDto.printedName !== undefined) {
+      updateData.printedName = updateProductDto.printedName || null;
+    }
     if (updateProductDto.description !== undefined) {
       updateData.description = updateProductDto.description || null;
     }
     if (updateProductDto.categoryId !== undefined) {
       updateData.categoryId = updateProductDto.categoryId;
     }
+    if (updateProductDto.subCategoryId !== undefined) {
+      updateData.subCategoryId = updateProductDto.subCategoryId || null;
+    }
     if (updateProductDto.brandId !== undefined) {
       updateData.brandId = updateProductDto.brandId || null;
+    }
+    if (updateProductDto.supplierId !== undefined) {
+      updateData.supplierId = updateProductDto.supplierId || null;
     }
     if (updateProductDto.costPrice !== undefined) {
       updateData.costPrice = updateProductDto.costPrice;
     }
     if (updateProductDto.sellingPrice !== undefined) {
       updateData.sellingPrice = updateProductDto.sellingPrice;
+    }
+    if (updateProductDto.minSellingPrice !== undefined) {
+      updateData.minSellingPrice = updateProductDto.minSellingPrice ? new Prisma.Decimal(updateProductDto.minSellingPrice) : null;
     }
     if (updateProductDto.unit !== undefined) {
       updateData.unit = updateProductDto.unit;
@@ -522,12 +558,39 @@ export class ProductsService {
     if (updateProductDto.images !== undefined) {
       updateData.images = updateProductDto.images || null;
     }
+    if (updateProductDto.size !== undefined) {
+      updateData.size = updateProductDto.size || null;
+    }
+    if (updateProductDto.color !== undefined) {
+      updateData.color = updateProductDto.color || null;
+    }
+    if (updateProductDto.lengthCm !== undefined) {
+      updateData.lengthCm = updateProductDto.lengthCm ? new Prisma.Decimal(updateProductDto.lengthCm) : null;
+    }
+    if (updateProductDto.widthCm !== undefined) {
+      updateData.widthCm = updateProductDto.widthCm ? new Prisma.Decimal(updateProductDto.widthCm) : null;
+    }
+    if (updateProductDto.heightCm !== undefined) {
+      updateData.heightCm = updateProductDto.heightCm ? new Prisma.Decimal(updateProductDto.heightCm) : null;
+    }
+    if (updateProductDto.weightGrams !== undefined) {
+      updateData.weightGrams = updateProductDto.weightGrams ? new Prisma.Decimal(updateProductDto.weightGrams) : null;
+    }
+    if (updateProductDto.packageWeightGrams !== undefined) {
+      updateData.packageWeightGrams = updateProductDto.packageWeightGrams ? new Prisma.Decimal(updateProductDto.packageWeightGrams) : null;
+    }
     if (updateProductDto.isActive !== undefined) {
       updateData.isActive = updateProductDto.isActive;
     }
-    // Note: size, color, weightGrams, isService, discountPercentage are not in Prisma Product schema
-    // These fields might be stored in memberPricing JSON or calculated from category
-    // They are kept in DTO for future use but not saved to Product table directly
+    if (updateProductDto.isService !== undefined) {
+      updateData.isService = updateProductDto.isService;
+    }
+    if (updateProductDto.trackExpiry !== undefined) {
+      updateData.trackExpiry = updateProductDto.trackExpiry;
+    }
+    if (updateProductDto.expiryReturnLimitDays !== undefined) {
+      updateData.expiryReturnLimitDays = updateProductDto.expiryReturnLimitDays || null;
+    }
 
     // Update product
     const updatedProduct = await this.prisma.product.update({
@@ -811,15 +874,41 @@ export class ProductsService {
 
   /**
    * Export products to CSV
-   * @param query - List products query parameters
+   * @param _query - List products query parameters (not used, exports all products)
    * @returns CSV string
    */
-  async exportToCSV(query: ListProductsDto): Promise<string> {
-    // Get all products (no pagination for export) with stock summary
-    const products = await this.findAll({ ...query, page: 1, limit: 10000, include: ['category', 'brand', 'stock'] });
-    const data = products.data || [];
+  async exportToCSV(_query: ListProductsDto): Promise<string> {
+    // Get all products (no pagination for export) with all relations
+    const products = await this.prisma.product.findMany({
+      where: {
+        deletedAt: null,
+      },
+      include: {
+        category: true,
+        subCategory: true,
+        brand: true,
+        supplier: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        productStocks: {
+          include: {
+            branch: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    const data = products;
 
-    // CSV Headers based on template (semicolon-separated)
+    // CSV Headers - sesuai dengan example_import_produk.csv
     const headers = [
       'Barcode',
       'Kode Ref',
@@ -886,24 +975,25 @@ export class ProductsService {
     // Build CSV content (semicolon-separated)
     const csvLines = [headers.join(';')];
 
+    // Get all branches for stock mapping (if needed in future)
+    // const branches = await this.prisma.branch.findMany();
+
     for (const product of data) {
       // Get member pricing
-      const memberPricing = (product as any).memberPricing || {};
+      const memberPricing = (product.memberPricing as any) || {};
       const platinum = memberPricing.platinum?.discount || '';
       const gold = memberPricing.gold?.discount || '';
       const silver = memberPricing.silver?.discount || '';
 
-      // Get stock per branch (simplified - would need branch mapping)
-      const stockSummary = (product as any).stockSummary;
+      // Get stock per branch
       const branchStocks: Record<string, number> = {};
-      if (stockSummary?.branches) {
-        stockSummary.branches.forEach((branch: any) => {
-          branchStocks[branch.branchName] = branch.available - branch.reserved;
-        });
-      }
+      product.productStocks.forEach((stock) => {
+        const branchName = stock.branch.name;
+        branchStocks[branchName] = stock.quantityAvailable.toNumber() - stock.quantityReserved.toNumber();
+      });
 
-      // Get quantity pricing (from memberPricing or default)
-      const qtyPricing: Record<string, { qty: string; price: string }> = {};
+      // Get quantity pricing (from memberPricing)
+      const qtyPricing: Record<number, { qty: string; price: string }> = {};
       for (let i = 1; i <= 10; i++) {
         const qtyKey = `qty${i}`;
         if (memberPricing[qtyKey]) {
@@ -916,72 +1006,317 @@ export class ProductsService {
         }
       }
 
+      // Calculate effective price (selling price - discount)
+      const discountPercent = (product as any).discountPercentage || 0;
+      const effectivePrice = product.sellingPrice.toNumber() * (1 - discountPercent / 100);
+
       const row = [
         this.escapeCSV(product.barcode || '', ';'),
         this.escapeCSV(product.sku || '', ';'),
         this.escapeCSV(product.name || '', ';'),
-        this.escapeCSV((product as any).printedName || product.name || '', ';'),
+        this.escapeCSV(product.printedName || product.name || '', ';'),
         product.unit || 'pcs',
         product.category?.name || '',
-        '', // Sub Kategori - not in schema
+        product.subCategory?.name || '',
         product.brand?.name || '',
-        (product as any).size || '',
-        (product as any).color || '',
-        '', // Panjang(cm) - not in schema
-        '', // Lebar(cm) - not in schema
-        '', // Tinggi(cm) - not in schema
-        (product as any).weightGrams ? String((product as any).weightGrams) : '',
-        '', // Berat Paket (gram) - not in schema
-        product.sellingPrice ? String(product.sellingPrice) : '',
-        product.discountPercentage ? String(product.discountPercentage) : '',
-        product.effectivePrice ? String(product.effectivePrice) : '',
-        product.sellingPrice ? String(product.sellingPrice) : '', // Harga Jual Minimum
-        (product as any).isService ? 'Y' : 'N',
+        product.size || '',
+        product.color || '',
+        product.lengthCm ? String(product.lengthCm.toNumber()) : '',
+        product.widthCm ? String(product.widthCm.toNumber()) : '',
+        product.heightCm ? String(product.heightCm.toNumber()) : '',
+        product.weightGrams ? String(product.weightGrams.toNumber()) : '',
+        product.packageWeightGrams ? String(product.packageWeightGrams.toNumber()) : '',
+        product.sellingPrice ? String(product.sellingPrice.toNumber()) : '',
+        discountPercent ? String(discountPercent) : '0',
+        String(effectivePrice),
+        product.minSellingPrice ? String(product.minSellingPrice.toNumber()) : '',
+        product.isService ? 'Y' : 'N',
         product.trackSerial ? '1' : '2',
         product.trackBatch ? 'Y' : 'N',
-        'N', // Menggunakan Tgl Kadaluarsa - not in schema
-        '', // Batas Retur Kadaluarsa - not in schema
-        product.costPrice ? String(product.costPrice) : '',
-        '', // Supplier - not in schema
+        product.trackExpiry ? 'Y' : 'N',
+        product.expiryReturnLimitDays ? String(product.expiryReturnLimitDays) : '0',
+        product.costPrice ? String(product.costPrice.toNumber()) : '',
+        product.supplier?.name || '',
         String(branchStocks['IGD Jember - Spare Part - IGD Group MWH'] || 0),
         String(branchStocks['IGD Kalisat - Spare Part - IGD Kalisat - Spare Part'] || 0),
         String(branchStocks['IGD Jember - Spare Part - IGD Jember - Spare Part'] || 0),
         String(branchStocks['IGD Kalisat - Service - IGD Kalisat - Service'] || 0),
-        '', // IGD Jember - Spare Part - Harga Outlet
-        '', // IGD Jember - Spare Part - Diskon
-        '', // IGD Kalisat - Service - Harga Outlet
-        '', // IGD Kalisat - Service - Diskon
-        '', // IGD Kalisat - Spare Part - Harga Outlet
-        '', // IGD Kalisat - Spare Part - Diskon
+        '', // IGD Jember - Spare Part - Harga Outlet (not in schema)
+        '', // IGD Jember - Spare Part - Diskon (not in schema)
+        '', // IGD Kalisat - Service - Harga Outlet (not in schema)
+        '', // IGD Kalisat - Service - Diskon (not in schema)
+        '', // IGD Kalisat - Spare Part - Harga Outlet (not in schema)
+        '', // IGD Kalisat - Spare Part - Diskon (not in schema)
         platinum ? String(platinum) : '',
         gold ? String(gold) : '',
         silver ? String(silver) : '',
-        '', // User - not in schema
-        qtyPricing[1].qty,
-        qtyPricing[1].price,
-        qtyPricing[2].qty,
-        qtyPricing[2].price,
-        qtyPricing[3].qty,
-        qtyPricing[3].price,
-        qtyPricing[4].qty,
-        qtyPricing[4].price,
-        qtyPricing[5].qty,
-        qtyPricing[5].price,
-        qtyPricing[6].qty,
-        qtyPricing[6].price,
-        qtyPricing[7].qty,
-        qtyPricing[7].price,
-        qtyPricing[8].qty,
-        qtyPricing[8].price,
-        qtyPricing[9].qty,
-        qtyPricing[9].price,
-        qtyPricing[10].qty,
-        qtyPricing[10].price,
+        '', // User (not in schema)
+        qtyPricing[1].qty, qtyPricing[1].price,
+        qtyPricing[2].qty, qtyPricing[2].price,
+        qtyPricing[3].qty, qtyPricing[3].price,
+        qtyPricing[4].qty, qtyPricing[4].price,
+        qtyPricing[5].qty, qtyPricing[5].price,
+        qtyPricing[6].qty, qtyPricing[6].price,
+        qtyPricing[7].qty, qtyPricing[7].price,
+        qtyPricing[8].qty, qtyPricing[8].price,
+        qtyPricing[9].qty, qtyPricing[9].price,
+        qtyPricing[10].qty, qtyPricing[10].price,
       ];
       csvLines.push(row.join(';'));
     }
 
     return csvLines.join('\n');
+  }
+
+  /**
+   * Import products from CSV
+   * @param csvContent - CSV file content
+   * @param userId - User ID performing the import
+   */
+  async importFromCSV(csvContent: string, userId: string): Promise<{
+    success: number;
+    updated: number;
+    created: number;
+    failed: number;
+    errors: Array<{ row: number; error: string }>;
+  }> {
+    const lines = csvContent.split('\n').filter((line) => line.trim());
+    if (lines.length < 2) {
+      throw new BadRequestException('CSV file is empty or invalid');
+    }
+
+    // Detect delimiter (semicolon or comma)
+    const firstLine = lines[0];
+    const isSemicolonDelimited = firstLine.includes(';') && firstLine.split(';').length > firstLine.split(',').length;
+    const delimiter = isSemicolonDelimited ? ';' : ',';
+
+    // Parse header
+    const headers = this.parseCSVLine(lines[0], delimiter);
+    const headerMap: Record<string, number> = {};
+    headers.forEach((h, i) => {
+      headerMap[h.toLowerCase().trim()] = i;
+    });
+
+    // Validate required headers (name in any language)
+    const hasName = headerMap['nama produk'] !== undefined || headerMap['nama_produk'] !== undefined || headerMap['name'] !== undefined;
+    
+    if (!hasName) {
+      throw new BadRequestException('Required column "Nama Produk" or "Name" not found in CSV');
+    }
+
+    const results = {
+      success: 0,
+      updated: 0,
+      created: 0,
+      failed: 0,
+      errors: [] as Array<{ row: number; error: string }>,
+    };
+
+    // Get all categories and brands for lookup
+    const categories = await this.prisma.category.findMany();
+    const brands = await this.prisma.brand.findMany();
+    const categoryMap = new Map(categories.map(c => [c.name.toLowerCase(), c.id]));
+    const brandMap = new Map(brands.map(b => [b.name.toLowerCase(), b.id]));
+
+    // Process each row
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+
+      try {
+        const values = this.parseCSVLine(line, delimiter);
+        const rowData: any = {};
+        headers.forEach((header, index) => {
+          const value = values[index]?.trim() || '';
+          rowData[header.toLowerCase().trim()] = value;
+        });
+
+        // Map CSV columns to DTO - support both Indonesian and English column names
+        const productName = rowData['nama produk'] || rowData['nama_produk'] || rowData['name'] || '';
+        if (!productName) {
+          throw new BadRequestException('Nama Produk wajib diisi');
+        }
+
+        // Find or create category
+        const categoryName = rowData['kategori'] || rowData['category'] || '';
+        let categoryId: string | undefined;
+        if (categoryName) {
+          const categoryLower = categoryName.toLowerCase();
+          categoryId = categoryMap.get(categoryLower);
+          if (!categoryId) {
+            // Try to find by partial match
+            const foundCategory = categories.find(c => c.name.toLowerCase().includes(categoryLower) || categoryLower.includes(c.name.toLowerCase()));
+            if (foundCategory) {
+              categoryId = foundCategory.id;
+            } else {
+              throw new BadRequestException(`Kategori "${categoryName}" tidak ditemukan`);
+            }
+          }
+        }
+
+        // Find brand (optional)
+        let brandId: string | undefined;
+        const brandName = rowData['merek'] || rowData['brand'] || '';
+        if (brandName) {
+          const brandLower = brandName.toLowerCase();
+          brandId = brandMap.get(brandLower);
+          if (!brandId) {
+            const foundBrand = brands.find(b => b.name.toLowerCase().includes(brandLower) || brandLower.includes(b.name.toLowerCase()));
+            if (foundBrand) {
+              brandId = foundBrand.id;
+            }
+          }
+        }
+
+        // Find sub category (optional)
+        let subCategoryId: string | undefined;
+        const subCategoryName = rowData['sub kategori'] || rowData['sub_kategori'] || rowData['subcategory'] || '';
+        if (subCategoryName && categoryId) {
+          const subCategoryLower = subCategoryName.toLowerCase();
+          const foundSubCategory = categories.find(c => 
+            c.parentCategoryId === categoryId && 
+            (c.name.toLowerCase() === subCategoryLower || c.name.toLowerCase().includes(subCategoryLower))
+          );
+          if (foundSubCategory) {
+            subCategoryId = foundSubCategory.id;
+          }
+        }
+
+        // Find supplier (optional) - lookup by name in customers with customerType='wholesale'
+        let supplierId: string | undefined;
+        const supplierName = rowData['supplier'] || '';
+        if (supplierName) {
+          const supplier = await this.prisma.customer.findFirst({
+            where: {
+              name: { equals: supplierName, mode: 'insensitive' },
+              customerType: 'wholesale',
+              deletedAt: null,
+            },
+          });
+          if (supplier) {
+            supplierId = supplier.id;
+          }
+        }
+
+        const productData: any = {
+          name: productName,
+          printedName: rowData['nama tercetak'] || rowData['nama_tercetak'] || rowData['printed_name'] || productName,
+          sku: rowData['kode ref'] || rowData['kode_ref'] || rowData['sku'] || undefined,
+          barcode: rowData['barcode'] || undefined,
+          categoryId: categoryId!,
+          subCategoryId: subCategoryId || undefined,
+          brandId: brandId || undefined,
+          supplierId: supplierId || undefined,
+          unit: rowData['satuan'] || rowData['unit'] || 'pcs',
+          size: rowData['ukuran'] || rowData['size'] || undefined,
+          color: rowData['warna'] || rowData['color'] || undefined,
+          lengthCm: rowData['panjang(cm)'] || rowData['panjang'] || rowData['length_cm'] ? parseFloat(rowData['panjang(cm)'] || rowData['panjang'] || rowData['length_cm']) || undefined : undefined,
+          widthCm: rowData['lebar(cm)'] || rowData['lebar'] || rowData['width_cm'] ? parseFloat(rowData['lebar(cm)'] || rowData['lebar'] || rowData['width_cm']) || undefined : undefined,
+          heightCm: rowData['tinggi(cm)'] || rowData['tinggi'] || rowData['height_cm'] ? parseFloat(rowData['tinggi(cm)'] || rowData['tinggi'] || rowData['height_cm']) || undefined : undefined,
+          weightGrams: rowData['berat barang (gram)'] || rowData['berat_barang'] || rowData['weight_grams'] ? parseFloat(rowData['berat barang (gram)'] || rowData['berat_barang'] || rowData['weight_grams']) || undefined : undefined,
+          packageWeightGrams: rowData['berat paket (gram)'] || rowData['berat_paket'] || rowData['package_weight_grams'] ? parseFloat(rowData['berat paket (gram)'] || rowData['berat_paket'] || rowData['package_weight_grams']) || undefined : undefined,
+          costPrice: rowData['harga modal'] || rowData['harga_modal'] || rowData['cost_price'] ? parseFloat(rowData['harga modal'] || rowData['harga_modal'] || rowData['cost_price']) || 0 : 0,
+          sellingPrice: rowData['harga jual'] || rowData['harga_jual'] || rowData['selling_price'] ? parseFloat(rowData['harga jual'] || rowData['harga_jual'] || rowData['selling_price']) || 0 : 0,
+          minSellingPrice: rowData['harga jual minimum'] || rowData['harga_jual_minimum'] || rowData['min_selling_price'] ? parseFloat(rowData['harga jual minimum'] || rowData['harga_jual_minimum'] || rowData['min_selling_price']) || undefined : undefined,
+          discountPercentage: rowData['diskon'] || rowData['discount'] ? parseFloat(rowData['diskon'] || rowData['discount']) || 0 : 0,
+          description: rowData['deskripsi'] || rowData['description'] || undefined,
+          isActive: true, // Default to active
+          isService: rowData['jasa(y/n)'] || rowData['jasa'] ? (rowData['jasa(y/n)'] || rowData['jasa']).toUpperCase() === 'Y' : false,
+          trackSerial: rowData['sn(1)/bahan(2)'] || rowData['sn'] ? (rowData['sn(1)/bahan(2)'] || rowData['sn']) === '1' : false,
+          trackBatch: rowData['menggunakan no batch(y/n)'] || rowData['batch'] ? (rowData['menggunakan no batch(y/n)'] || rowData['batch']).toUpperCase() === 'Y' : false,
+          trackExpiry: rowData['menggunakan tgl kadaluarsa(y/n)'] || rowData['expiry'] ? (rowData['menggunakan tgl kadaluarsa(y/n)'] || rowData['expiry']).toUpperCase() === 'Y' : false,
+          expiryReturnLimitDays: rowData['batas retur kadaluarsa'] || rowData['expiry_return_limit'] ? parseInt(rowData['batas retur kadaluarsa'] || rowData['expiry_return_limit']) || undefined : undefined,
+        };
+
+        // Validate required fields
+        if (!productData.categoryId) {
+          throw new BadRequestException('Kategori wajib diisi');
+        }
+        if (!productData.costPrice || productData.costPrice <= 0) {
+          throw new BadRequestException('Harga Modal wajib diisi dan harus lebih dari 0');
+        }
+        if (!productData.sellingPrice || productData.sellingPrice <= 0) {
+          throw new BadRequestException('Harga Jual wajib diisi dan harus lebih dari 0');
+        }
+
+        // Check for duplicate - by SKU or barcode or name
+        let existing = null;
+        if (productData.sku) {
+          existing = await this.prisma.product.findFirst({
+            where: {
+              sku: productData.sku,
+              deletedAt: null,
+            },
+          });
+        }
+        if (!existing && productData.barcode) {
+          existing = await this.prisma.product.findFirst({
+            where: {
+              barcode: productData.barcode,
+              deletedAt: null,
+            },
+          });
+        }
+        if (!existing) {
+          existing = await this.prisma.product.findFirst({
+            where: {
+              name: { equals: productData.name, mode: 'insensitive' },
+              deletedAt: null,
+            },
+          });
+        }
+
+        if (existing) {
+          // Update existing product
+          await this.update(existing.id, productData, userId);
+          results.updated++;
+          results.success++;
+        } else {
+          // Create new product
+          await this.create(productData, userId);
+          results.created++;
+          results.success++;
+        }
+      } catch (error: any) {
+        results.failed++;
+        results.errors.push({
+          row: i + 1,
+          error: error.message || 'Unknown error',
+        });
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Parse CSV line handling quoted values
+   */
+  private parseCSVLine(line: string, delimiter: string = ','): string[] {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      const nextChar = line[i + 1];
+
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          current += '"';
+          i++; // Skip next quote
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === delimiter && !inQuotes) {
+        result.push(current);
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    result.push(current);
+    return result;
   }
 
   /**

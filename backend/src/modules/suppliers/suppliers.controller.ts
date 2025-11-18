@@ -11,9 +11,11 @@ import {
   Request,
   HttpCode,
   HttpStatus,
+  NotFoundException,
 } from '@nestjs/common';
 import { Request as ExpressRequest } from 'express';
 import { CustomersService } from '../customers/customers.service';
+import { PrismaService } from '../../shared/services';
 import { JwtAuthGuard, RolesGuard } from '../../shared/guards';
 import { Roles } from '../../shared/decorators';
 import {
@@ -21,7 +23,6 @@ import {
   UpdateCustomerDto,
   ListCustomersDto,
 } from '../customers/dto';
-import { NotFoundException } from '@nestjs/common';
 
 /**
  * Suppliers Controller
@@ -31,7 +32,10 @@ import { NotFoundException } from '@nestjs/common';
 @Controller('suppliers')
 @UseGuards(JwtAuthGuard)
 export class SuppliersController {
-  constructor(private readonly customersService: CustomersService) {}
+  constructor(
+    private readonly customersService: CustomersService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   /**
    * List suppliers with filters and search
@@ -68,6 +72,177 @@ export class SuppliersController {
       }
       throw new NotFoundException('Supplier not found');
     }
+  }
+
+  /**
+   * Get products from supplier
+   * GET /api/v1/suppliers/:id/products
+   * Permissions: All authenticated users
+   */
+  @Get(':id/products')
+  async getProducts(@Param('id') id: string) {
+    // Verify it's a supplier
+    const customer = await this.customersService.findById(id);
+    if (customer.customerType !== 'wholesale') {
+      throw new NotFoundException('Supplier not found');
+    }
+    
+    // Get products where supplierId matches
+    const products = await this.prisma.product.findMany({
+      where: {
+        supplierId: id,
+        deletedAt: null,
+      },
+      include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
+        brand: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
+        productStocks: {
+          include: {
+            branch: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+    
+    return {
+      data: products.map((p) => ({
+        id: p.id,
+        sku: p.sku,
+        barcode: p.barcode,
+        name: p.name,
+        category: p.category,
+        brand: p.brand,
+        costPrice: p.costPrice.toNumber(),
+        sellingPrice: p.sellingPrice.toNumber(),
+        totalStock: p.productStocks.reduce(
+          (sum, stock) => sum + stock.quantityAvailable.toNumber() - stock.quantityReserved.toNumber(),
+          0,
+        ),
+        isActive: p.isActive,
+        createdAt: p.createdAt,
+        updatedAt: p.updatedAt,
+      })),
+    };
+  }
+
+  /**
+   * Get purchase history (stock movements where supplier is involved)
+   * GET /api/v1/suppliers/:id/purchases
+   * Permissions: All authenticated users
+   */
+  @Get(':id/purchases')
+  async getPurchaseHistory(
+    @Param('id') id: string,
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '10',
+  ) {
+    // Verify it's a supplier
+    const customer = await this.customersService.findById(id);
+    if (customer.customerType !== 'wholesale') {
+      throw new NotFoundException('Supplier not found');
+    }
+    
+    const pageNum = parseInt(page) || 1;
+    const limitNum = parseInt(limit) || 10;
+    const skip = (pageNum - 1) * limitNum;
+    
+    // Get product IDs from this supplier
+    const supplierProductIds = await this.prisma.product.findMany({
+      where: {
+        supplierId: id,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+      },
+    });
+    
+    const productIds = supplierProductIds.map((p) => p.id);
+    
+    const [movements, total] = await Promise.all([
+      this.prisma.stockMovement.findMany({
+        where: {
+          productId: { in: productIds },
+          OR: [
+            { referenceType: 'PURCHASE' },
+            { movementType: 'IN', referenceType: 'ADJUSTMENT' },
+          ],
+        },
+        include: {
+          product: {
+            select: {
+              id: true,
+              name: true,
+              sku: true,
+            },
+          },
+          branch: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take: limitNum,
+      }),
+      this.prisma.stockMovement.count({
+        where: {
+          productId: { in: productIds },
+          OR: [
+            { referenceType: 'PURCHASE' },
+            { movementType: 'IN', referenceType: 'ADJUSTMENT' },
+          ],
+        },
+      }),
+    ]);
+    
+    return {
+      data: movements.map((m) => ({
+        id: m.id,
+        product: m.product,
+        branch: m.branch,
+        movementType: m.movementType,
+        referenceType: m.referenceType,
+        quantity: m.quantityChange.toNumber(),
+        quantityBefore: m.quantityBefore.toNumber(),
+        quantityAfter: m.quantityAfter.toNumber(),
+        notes: m.notes,
+        createdBy: m.createdBy,
+        createdAt: m.createdAt,
+      })),
+      meta: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum),
+      },
+    };
   }
 
   /**

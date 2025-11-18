@@ -138,7 +138,7 @@ export default function ProductDetail() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Left Column - Informasi Produk, Stok, Stok Per Cabang */}
+        {/* Left Column - Informasi Produk */}
         <div className="space-y-4">
           {/* Product Information & Pricing - Combined */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
@@ -146,50 +146,166 @@ export default function ProductDetail() {
               <Package className="w-5 h-5 text-primary-600" />
               Informasi Produk
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-              <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
-                <p className="text-xs text-gray-500 mb-1">SKU</p>
-                <p className="text-sm font-semibold text-gray-900 font-mono">{product.sku}</p>
-              </div>
-              {product.barcode && (
+            <div className="space-y-4">
+              {/* Basic Info Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-xs text-gray-500 mb-1">Barcode</p>
-                  <p className="text-sm font-semibold text-gray-900 font-mono">{product.barcode}</p>
+                  <p className="text-xs text-gray-500 mb-1">SKU</p>
+                  <p className="text-sm font-semibold text-gray-900 font-mono">{product.sku}</p>
+                </div>
+                {product.barcode && (
+                  <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                    <p className="text-xs text-gray-500 mb-1">Barcode</p>
+                    <p className="text-sm font-semibold text-gray-900 font-mono">{product.barcode}</p>
+                  </div>
+                )}
+                <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="text-xs text-gray-500 mb-1">Satuan</p>
+                  <p className="text-sm font-semibold text-gray-900">{(product as any).unit || 'pcs'}</p>
+                </div>
+                <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="text-xs text-gray-500 mb-1">Jasa</p>
+                  <p className="text-sm font-semibold text-gray-900">{(product as any).isService ? 'Ya' : 'Tidak'}</p>
+                </div>
+              </div>
+
+              {/* Category & Brand */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="text-xs text-gray-500 mb-1">Kategori</p>
+                  <p className="text-sm font-semibold text-gray-900">{product.category?.name || product.categoryId}</p>
+                </div>
+                {(product as any).subCategory && (
+                  <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                    <p className="text-xs text-gray-500 mb-1">Sub Kategori</p>
+                    <p className="text-sm font-semibold text-gray-900">{(product as any).subCategory?.name || ''}</p>
+                  </div>
+                )}
+                {product.brand && (
+                  <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                    <p className="text-xs text-gray-500 mb-1">Brand</p>
+                    <p className="text-sm font-semibold text-gray-900">{product.brand.name}</p>
+                  </div>
+                )}
+                {(product as any).supplier && (
+                  <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                    <p className="text-xs text-gray-500 mb-1">Supplier</p>
+                    <p className="text-sm font-semibold text-gray-900">{(product as any).supplier?.name || ''}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Physical Attributes */}
+              {((product as any).size || (product as any).color || (product as any).lengthCm || (product as any).weightGrams) && (
+                <div className="pt-3 border-t border-gray-200">
+                  <p className="text-xs font-semibold text-gray-700 mb-2">Atribut Fisik</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {(product as any).size && (
+                      <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                        <p className="text-xs text-gray-500 mb-1">Ukuran</p>
+                        <p className="text-sm font-semibold text-gray-900">{(product as any).size}</p>
+                      </div>
+                    )}
+                    {(product as any).color && (
+                      <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                        <p className="text-xs text-gray-500 mb-1">Warna</p>
+                        <p className="text-sm font-semibold text-gray-900">{(product as any).color}</p>
+                      </div>
+                    )}
+                    {((product as any).lengthCm || (product as any).widthCm || (product as any).heightCm) && (
+                      <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                        <p className="text-xs text-gray-500 mb-1">Dimensi (cm)</p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {(product as any).lengthCm || 0} × {(product as any).widthCm || 0} × {(product as any).heightCm || 0}
+                        </p>
+                      </div>
+                    )}
+                    {((product as any).weightGrams || (product as any).packageWeightGrams) && (
+                      <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                        <p className="text-xs text-gray-500 mb-1">Berat</p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {(product as any).weightGrams ? `${(product as any).weightGrams}g` : '-'}
+                          {(product as any).packageWeightGrams && ` / ${(product as any).packageWeightGrams}g (paket)`}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
-              <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
-                <p className="text-xs text-gray-500 mb-1">Kategori</p>
-                <p className="text-sm font-semibold text-gray-900">{product.category?.name || product.categoryId}</p>
-              </div>
-              {product.brand && (
-                <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-xs text-gray-500 mb-1">Brand</p>
-                  <p className="text-sm font-semibold text-gray-900">{product.brand.name}</p>
+
+              {/* Tracking Settings */}
+              {((product as any).trackSerial || (product as any).trackBatch || (product as any).trackExpiry) && (
+                <div className="pt-3 border-t border-gray-200">
+                  <p className="text-xs font-semibold text-gray-700 mb-2">Pengaturan Tracking</p>
+                  <div className="flex flex-wrap gap-2">
+                    {(product as any).trackSerial && (
+                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-xs font-semibold">
+                        Track Serial Number
+                      </span>
+                    )}
+                    {(product as any).trackBatch && (
+                      <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded-md text-xs font-semibold">
+                        Track Batch Number
+                      </span>
+                    )}
+                    {(product as any).trackExpiry && (
+                      <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded-md text-xs font-semibold">
+                        Track Expiry Date
+                        {(product as any).expiryReturnLimitDays && ` (${(product as any).expiryReturnLimitDays} hari)`}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Additional Info */}
+              {(product as any).printedName && (
+                <div className="pt-3 border-t border-gray-200">
+                  <p className="text-xs text-gray-500 mb-1">Nama Tercetak</p>
+                  <p className="text-sm font-semibold text-gray-900">{(product as any).printedName}</p>
+                </div>
+              )}
+              {(product as any).description && (
+                <div className="pt-3 border-t border-gray-200">
+                  <p className="text-xs text-gray-500 mb-1">Deskripsi</p>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{(product as any).description}</p>
                 </div>
               )}
             </div>
 
-            {/* Pricing - Inline */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-4 border-t border-gray-200">
-              <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
-                <p className="text-xs text-gray-500 mb-1">Harga Beli</p>
-                <p className="text-sm font-bold text-gray-900">{formatCurrency(product.costPrice)}</p>
-              </div>
-              <div className="p-2.5 bg-primary-50 rounded-lg border border-primary-200">
-                <p className="text-xs text-primary-600 mb-1">Harga Jual</p>
-                <p className="text-sm font-bold text-primary-600">{formatCurrency(product.sellingPrice)}</p>
-              </div>
-              <div className="p-2.5 bg-green-50 rounded-lg border border-green-200">
-                <p className="text-xs text-green-600 mb-1">Margin</p>
-                <p className="text-sm font-bold text-green-600">{formatCurrency(margin)}</p>
-                <div className="flex items-center gap-1 mt-0.5">
-                  <TrendingUp className="w-3 h-3 text-green-600" />
-                  <p className="text-xs font-semibold text-green-700">{marginPercent}%</p>
+            {/* Pricing - Enhanced */}
+            <div className="pt-4 border-t border-gray-200">
+              <p className="text-xs font-semibold text-gray-700 mb-2">Informasi Harga</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="text-xs text-gray-500 mb-1">Harga Beli</p>
+                  <p className="text-sm font-bold text-gray-900">{formatCurrency(product.costPrice)}</p>
+                </div>
+                <div className="p-2.5 bg-primary-50 rounded-lg border border-primary-200">
+                  <p className="text-xs text-primary-600 mb-1">Harga Jual</p>
+                  <p className="text-sm font-bold text-primary-600">{formatCurrency(product.sellingPrice)}</p>
+                </div>
+                {(product as any).minSellingPrice && (
+                  <div className="p-2.5 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <p className="text-xs text-yellow-600 mb-1">Harga Jual Minimum</p>
+                    <p className="text-sm font-bold text-yellow-600">{formatCurrency((product as any).minSellingPrice)}</p>
+                  </div>
+                )}
+                <div className="p-2.5 bg-green-50 rounded-lg border border-green-200">
+                  <p className="text-xs text-green-600 mb-1">Margin</p>
+                  <p className="text-sm font-bold text-green-600">{formatCurrency(margin)}</p>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <TrendingUp className="w-3 h-3 text-green-600" />
+                    <p className="text-xs font-semibold text-green-700">{marginPercent}%</p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+        </div>
 
+        {/* Right Column - Stok, Stok Per Cabang, Riwayat Aktivitas */}
+        <div className="space-y-4">
           {/* Stock Card - Enhanced with Branch Details */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
             <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
@@ -261,10 +377,6 @@ export default function ProductDetail() {
               </div>
             </div>
           )}
-        </div>
-
-        {/* Right Column - Riwayat Aktivitas */}
-        <div className="space-y-4">
           {/* Activity Log - Vertical Layout */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
             <div className="flex items-center justify-between mb-3">

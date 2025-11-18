@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Plus,
@@ -16,16 +16,21 @@ import {
 import { suppliersService } from '../../services/suppliers.service';
 
 export default function SupplierList() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
-  const limit = 20;
+  const [limit, setLimit] = useState<10 | 20 | 50 | 100>(20);
+  const [sortBy, setSortBy] = useState<'createdAt' | 'name'>('createdAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['suppliers', page, searchTerm],
+    queryKey: ['suppliers', page, limit, searchTerm, sortBy, sortOrder],
     queryFn: () => suppliersService.getAll({
       page,
       limit,
       search: searchTerm || undefined,
+      sort: sortBy,
+      order: sortOrder,
     }),
   });
 
@@ -112,17 +117,39 @@ export default function SupplierList() {
 
       {/* Filters & Search */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-gray-400" />
+        <div className="flex flex-col lg:flex-row gap-4 items-end">
+          <div className="flex-1 w-full">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Cari Supplier</label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Cari nama supplier, kontak, atau alamat..."
+                className="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+              />
+            </div>
           </div>
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Cari nama supplier, kontak, atau alamat..."
-            className="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-          />
+          <div className="lg:w-64 w-full">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Per Halaman</label>
+            <select
+              value={limit}
+              onChange={(e) => {
+                const newLimit = parseInt(e.target.value) as 10 | 20 | 50 | 100;
+                setLimit(newLimit);
+                setPage(1);
+              }}
+              className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all bg-white"
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -133,7 +160,24 @@ export default function SupplierList() {
             <thead className="bg-gradient-to-r from-gray-50 via-gray-50 to-gray-100">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                  Supplier
+                  <button
+                    onClick={() => {
+                      if (sortBy === 'name') {
+                        setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                      } else {
+                        setSortBy('name');
+                        setSortOrder('asc');
+                      }
+                      setPage(1);
+                    }}
+                    className="flex items-center gap-2 hover:text-primary-600 transition-colors w-full text-left"
+                    title="Klik untuk mengurutkan berdasarkan nama (a-z / z-a)"
+                  >
+                    Kode & Nama
+                    {sortBy === 'name' && (
+                      <span className="text-primary-600">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                    )}
+                  </button>
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                   Kontak
@@ -142,9 +186,26 @@ export default function SupplierList() {
                   Alamat
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                  Status
+                  <button
+                    onClick={() => {
+                      if (sortBy === 'createdAt') {
+                        setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                      } else {
+                        setSortBy('createdAt');
+                        setSortOrder('desc');
+                      }
+                      setPage(1);
+                    }}
+                    className="flex items-center gap-2 hover:text-primary-600 transition-colors w-full text-left"
+                    title="Klik untuk mengurutkan berdasarkan tanggal (terbaru / terlama)"
+                  >
+                    Tanggal Dibuat
+                    {sortBy === 'createdAt' && (
+                      <span className="text-primary-600">{sortOrder === 'desc' ? '↓' : '↑'}</span>
+                    )}
+                  </button>
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <th className="px-8 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">
                   Aksi
                 </th>
               </tr>
@@ -180,18 +241,19 @@ export default function SupplierList() {
                 suppliers.map((supplier: any) => (
                   <tr
                     key={supplier.id}
-                    className="hover:bg-gradient-to-r hover:from-gray-50 hover:to-white transition-all duration-200 border-b border-gray-100"
+                    onClick={() => navigate(`/suppliers/${supplier.id}`)}
+                    className="hover:bg-gradient-to-r hover:from-gray-50 hover:to-white transition-all duration-200 border-b border-gray-100 cursor-pointer"
                   >
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="flex items-center gap-4">
+                      <Link to={`/suppliers/${supplier.id}`} className="flex items-center gap-4 hover:opacity-80 transition-opacity cursor-pointer" onClick={(e) => e.stopPropagation()}>
                         <div className="flex-shrink-0 h-14 w-14 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md">
                           {supplier.name?.charAt(0).toUpperCase() || 'S'}
                         </div>
                         <div>
-                          <div className="text-base font-semibold text-gray-900">{supplier.name}</div>
-                          <div className="text-xs text-gray-500 mt-1">{supplier.code || '-'}</div>
+                          <div className="text-base font-semibold text-gray-900 hover:text-primary-600 transition-colors">{supplier.name}</div>
+                          <div className="text-xs text-gray-500 mt-1 font-mono">{supplier.customerCode || supplier.code || '-'}</div>
                         </div>
-                      </div>
+                      </Link>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex flex-col gap-2">
@@ -199,6 +261,12 @@ export default function SupplierList() {
                           <div className="flex items-center gap-2 text-sm text-gray-900">
                             <Phone className="w-4 h-4 text-gray-400" />
                             <span className="font-medium">{supplier.phone}</span>
+                          </div>
+                        )}
+                        {supplier.alternatePhone && (
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Phone className="w-4 h-4 text-gray-400" />
+                            <span className="truncate max-w-xs">{supplier.alternatePhone}</span>
                           </div>
                         )}
                         {supplier.email && (
@@ -210,23 +278,40 @@ export default function SupplierList() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="text-sm text-gray-600 max-w-md truncate">
-                        {supplier.address || '-'}
+                      <div className="text-sm text-gray-600">
+                        {supplier.address ? (
+                          <div className="truncate">{supplier.address}</div>
+                        ) : (
+                          <div className="text-gray-400 italic">-</div>
+                        )}
+                        {(supplier.city || supplier.province) && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            {[supplier.city, supplier.province].filter(Boolean).join(', ')}
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <span
-                        className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${
-                          supplier.isActive
-                            ? 'bg-green-100 text-green-800 border-green-200'
-                            : 'bg-gray-100 text-gray-800 border-gray-200'
-                        }`}
-                      >
-                        {supplier.isActive ? 'Aktif' : 'Tidak Aktif'}
-                      </span>
+                      <div className="text-sm text-gray-900">
+                        {supplier.createdAt
+                          ? new Date(supplier.createdAt).toLocaleDateString('id-ID', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                            })
+                          : '-'}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {supplier.createdAt
+                          ? new Date(supplier.createdAt).toLocaleTimeString('id-ID', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })
+                          : ''}
+                      </div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-right">
-                      <div className="flex items-center justify-end gap-1">
+                    <td className="px-8 py-5 whitespace-nowrap text-right">
+                      <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                         <Link to={`/suppliers/${supplier.id}`}>
                           <button
                             className="p-2.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"

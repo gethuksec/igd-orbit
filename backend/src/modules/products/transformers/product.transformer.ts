@@ -6,8 +6,10 @@ import { Decimal } from '@prisma/client/runtime/library';
  */
 type ProductWithRelations = Product & {
   category?: Category;
+  subCategory?: { id: string; code: string; name: string } | null;
   brand?: Brand | null;
-  productStocks?: ProductStock[];
+  supplier?: { id: string; name: string; customerCode: string } | null;
+  productStocks?: (ProductStock & { branch?: { id: string; name: string; code: string } })[];
 };
 
 /**
@@ -42,6 +44,12 @@ export interface TransformedProduct {
     code: string;
     name: string;
   } | null;
+  subCategoryId?: string | null;
+  subCategory?: {
+    id: string;
+    code: string;
+    name: string;
+  } | null;
   brandId: string | null;
   brand?: {
     id: string;
@@ -49,18 +57,31 @@ export interface TransformedProduct {
     name: string;
     logoUrl: string | null;
   } | null;
+  supplierId?: string | null;
+  supplier?: {
+    id: string;
+    name: string;
+    customerCode: string;
+  } | null;
   costPrice: number;
   sellingPrice: number;
+  minSellingPrice?: number | null;
   discountPercentage?: number | null;
   discountAmount?: number | null;
   effectivePrice: number;
   unit: string;
   size?: string | null;
   color?: string | null;
+  lengthCm?: number | null;
+  widthCm?: number | null;
+  heightCm?: number | null;
   weightGrams?: number | null;
+  packageWeightGrams?: number | null;
   isService: boolean;
   trackSerial: boolean;
   trackBatch: boolean;
+  trackExpiry?: boolean;
+  expiryReturnLimitDays?: number | null;
   memberPricing: Record<string, any> | null;
   images: string[] | null;
   isActive: boolean;
@@ -181,6 +202,14 @@ export class ProductTransformer {
             name: product.category.name,
           }
         : null,
+      subCategoryId: (product as any).subCategoryId || null,
+      subCategory: (product as any).subCategory
+        ? {
+            id: (product as any).subCategory.id,
+            code: (product as any).subCategory.code,
+            name: (product as any).subCategory.name,
+          }
+        : null,
       brandId: product.brandId,
       brand: product.brand
         ? {
@@ -190,18 +219,33 @@ export class ProductTransformer {
             logoUrl: product.brand.logoUrl,
           }
         : null,
+      supplierId: (product as any).supplierId || null,
+      supplier: (product as any).supplier
+        ? {
+            id: (product as any).supplier.id,
+            name: (product as any).supplier.name,
+            customerCode: (product as any).supplier.customerCode,
+          }
+        : null,
       costPrice: this.toNumber(product.costPrice),
       sellingPrice,
+      minSellingPrice: (product as any).minSellingPrice ? this.toNumber((product as any).minSellingPrice) : null,
       discountPercentage: discountPercentage > 0 ? discountPercentage : null,
       discountAmount: discountAmount > 0 ? discountAmount : null,
       effectivePrice,
       unit: product.unit,
       size: (product as any).size || null,
       color: (product as any).color || null,
-      weightGrams: (product as any).weightGrams || null,
+      lengthCm: (product as any).lengthCm ? this.toNumber((product as any).lengthCm) : null,
+      widthCm: (product as any).widthCm ? this.toNumber((product as any).widthCm) : null,
+      heightCm: (product as any).heightCm ? this.toNumber((product as any).heightCm) : null,
+      weightGrams: (product as any).weightGrams ? this.toNumber((product as any).weightGrams) : null,
+      packageWeightGrams: (product as any).packageWeightGrams ? this.toNumber((product as any).packageWeightGrams) : null,
       isService: (product as any).isService || false,
       trackSerial: product.trackSerial,
       trackBatch: product.trackBatch,
+      trackExpiry: (product as any).trackExpiry || false,
+      expiryReturnLimitDays: (product as any).expiryReturnLimitDays || null,
       memberPricing: product.memberPricing as Record<string, any> | null,
       images,
       isActive: product.isActive,

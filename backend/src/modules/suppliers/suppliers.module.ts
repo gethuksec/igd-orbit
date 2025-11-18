@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { SuppliersController } from './suppliers.controller';
 import { CustomersModule } from '../customers/customers.module';
+import { PrismaService } from '../../shared/services';
 
 /**
  * Suppliers Module
@@ -10,6 +11,7 @@ import { CustomersModule } from '../customers/customers.module';
 @Module({
   imports: [CustomersModule],
   controllers: [SuppliersController],
+  providers: [PrismaService],
 })
 export class SuppliersModule {}
 

@@ -21,13 +21,14 @@ import {
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { productsService } from '../../services/products.service';
+import { toast } from 'sonner';
 
 export default function ProductList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('active');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [page, setPage] = useState(1);
-  const limit = 20;
+  const [limit, setLimit] = useState<10 | 20 | 50 | 100>(20);
 
   // Fetch categories for filter
   const { data: categoriesData } = useQuery({
@@ -53,7 +54,7 @@ export default function ProductList() {
   const categories = categoriesData ? flattenCategories(Array.isArray(categoriesData) ? categoriesData : [categoriesData]) : [];
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['products', page, searchTerm, selectedStatus, selectedCategory],
+    queryKey: ['products', page, limit, searchTerm, selectedStatus, selectedCategory],
     queryFn: async () => {
       const response = await api.get('/products', {
         params: {
@@ -137,7 +138,7 @@ export default function ProductList() {
       console.error('Export failed:', err);
       if (err.response?.status === 404) {
         // Backend not implemented yet
-        alert('Fitur export belum tersedia. Silakan hubungi administrator.');
+        toast.error('Fitur export belum tersedia. Silakan hubungi administrator.');
       }
     }
   };
@@ -159,12 +160,14 @@ export default function ProductList() {
       const successText = [createdText, updatedText].filter(Boolean).join(', ');
       const failedText = result.failed > 0 ? `, ${result.failed} gagal` : '';
       
-      alert(`Import berhasil! ${successText}${failedText}`);
+      toast.success(`Import berhasil! ${successText}${failedText}`);
       
       if (result.errors && result.errors.length > 0) {
         console.error('Import errors:', result.errors);
         const errorDetails = result.errors.slice(0, 5).map((e: any) => `Baris ${e.row}: ${e.error}`).join('; ');
-        alert(`Beberapa data gagal: ${errorDetails}${result.errors.length > 5 ? '...' : ''}`);
+        toast.warning(`Beberapa data gagal: ${errorDetails}${result.errors.length > 5 ? '...' : ''}`, {
+          duration: 5000,
+        });
       }
       
       setShowImportModal(false);
@@ -172,7 +175,7 @@ export default function ProductList() {
       refetch();
     },
     onError: (error: any) => {
-      alert(error.response?.data?.message || 'Gagal mengimport data');
+      toast.error(error.response?.data?.message || 'Gagal mengimport data');
     },
   });
 
@@ -340,6 +343,24 @@ export default function ProductList() {
                 <option value="all">Semua</option>
               </select>
             </div>
+          </div>
+
+          <div className="lg:w-64">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Per Halaman</label>
+            <select
+              value={limit}
+              onChange={(e) => {
+                const newLimit = parseInt(e.target.value) as 10 | 20 | 50 | 100;
+                setLimit(newLimit);
+                setPage(1);
+              }}
+              className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all bg-white"
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
           </div>
         </div>
       </div>
@@ -605,10 +626,7 @@ export default function ProductList() {
                   className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
                 />
                 <p className="text-xs text-gray-500 mt-2">
-                  Format: CSV dengan header sesuai template. Download contoh file di{' '}
-                  <a href="/ref/example_import_produk.csv" download className="text-primary-600 hover:underline">
-                    sini
-                  </a>
+                  Format: CSV dengan header sesuai template.
                 </p>
               </div>
               {importFile && (

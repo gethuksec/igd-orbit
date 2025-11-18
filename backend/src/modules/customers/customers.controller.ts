@@ -41,9 +41,11 @@ export class CustomersController {
   /**
    * Get overall customer statistics
    * GET /api/v1/customers/statistics
-   * Permissions: All authenticated users
+   * Permissions: OWNER, CFO, MGR, CMO, SPV, HS, CS, ASA, CR
    */
   @Get('statistics')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'CFO', 'MGR', 'CMO', 'SPV', 'HS', 'CS', 'ASA', 'CR')
   async getOverallStatistics() {
     return await this.customersService.getOverallStatistics();
   }
@@ -51,9 +53,11 @@ export class CustomersController {
   /**
    * List customers with filters and search
    * GET /api/v1/customers
-   * Permissions: All authenticated users
+   * Permissions: OWNER, CFO, MGR, CMO, SPV, HS, CS, ASA, CR
    */
   @Get()
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'CFO', 'MGR', 'CMO', 'SPV', 'HS', 'CS', 'ASA', 'CR')
   async findAll(@Query() query: ListCustomersDto) {
     try {
       return await this.customersService.findAll(query);
@@ -82,9 +86,11 @@ export class CustomersController {
   /**
    * Get customer detail with statistics
    * GET /api/v1/customers/:id
-   * Permissions: All authenticated users
+   * Permissions: OWNER, CFO, MGR, CMO, SPV, HS, CS, ASA, CR
    */
   @Get(':id')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'CFO', 'MGR', 'CMO', 'SPV', 'HS', 'CS', 'ASA', 'CR')
   async findById(@Param('id') id: string) {
     return this.customersService.findById(id);
   }
@@ -140,9 +146,11 @@ export class CustomersController {
   /**
    * Get purchase statistics
    * GET /api/v1/customers/:id/stats
-   * Permissions: All authenticated users
+   * Permissions: OWNER, CFO, MGR, CMO, SPV, HS, CS, ASA, CR
    */
   @Get(':id/stats')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'CFO', 'MGR', 'CMO', 'SPV', 'HS', 'CS', 'ASA', 'CR')
   async getStatistics(@Param('id') id: string) {
     return this.customersService.getStatistics(id);
   }
@@ -150,9 +158,11 @@ export class CustomersController {
   /**
    * Get transaction history
    * GET /api/v1/customers/:id/transactions
-   * Permissions: All authenticated users
+   * Permissions: OWNER, CFO, MGR, CMO, SPV, HS, CS, ASA, CR
    */
   @Get(':id/transactions')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'CFO', 'MGR', 'CMO', 'SPV', 'HS', 'CS', 'ASA', 'CR')
   async getTransactionHistory(@Param('id') id: string, @Query() query: any) {
     return this.customersService.getTransactionHistory(id, query);
   }

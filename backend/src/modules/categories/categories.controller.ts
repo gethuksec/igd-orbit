@@ -27,9 +27,11 @@ export class CategoriesController {
   /**
    * List categories in tree structure
    * GET /api/v1/categories
-   * Permissions: All authenticated users
+   * Permissions: OWNER, CFO, MGR, CSO, CMO, SPV, HS, ASA
    */
   @Get()
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA')
   async findAll() {
     try {
       return await this.categoriesService.findAll();
@@ -42,9 +44,11 @@ export class CategoriesController {
   /**
    * Get category tree (alias for findAll)
    * GET /api/v1/categories/tree
-   * Permissions: All authenticated users
+   * Permissions: OWNER, CFO, MGR, CSO, CMO, SPV, HS, ASA
    */
   @Get('tree')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA')
   async findTree() {
     return this.categoriesService.findTree();
   }
@@ -52,9 +56,11 @@ export class CategoriesController {
   /**
    * Get category with subcategories
    * GET /api/v1/categories/:id
-   * Permissions: All authenticated users
+   * Permissions: OWNER, CFO, MGR, CSO, CMO, SPV, HS, ASA
    */
   @Get(':id')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA')
   async findById(@Param('id') id: string) {
     return this.categoriesService.findById(id);
   }

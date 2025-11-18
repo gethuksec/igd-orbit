@@ -40,9 +40,17 @@ export class CreateProductDto {
   @IsNotEmpty({ message: 'Category ID is required' })
   categoryId!: string;
 
+  @IsUUID('4', { message: 'Sub Category ID must be a valid UUID' })
+  @IsOptional()
+  subCategoryId?: string;
+
   @IsUUID('4', { message: 'Brand ID must be a valid UUID' })
   @IsOptional()
   brandId?: string;
+
+  @IsUUID('4', { message: 'Supplier ID must be a valid UUID' })
+  @IsOptional()
+  supplierId?: string;
 
   @IsString({ message: 'Unit must be a string' })
   @IsOptional()
@@ -58,6 +66,11 @@ export class CreateProductDto {
   @IsNotEmpty({ message: 'Selling price is required' })
   sellingPrice!: number;
 
+  @IsNumber({}, { message: 'Minimum selling price must be a number' })
+  @Min(0, { message: 'Minimum selling price must be greater than or equal to 0' })
+  @IsOptional()
+  minSellingPrice?: number;
+
   @IsNumber({}, { message: 'Discount percentage must be a number' })
   @Min(0, { message: 'Discount percentage must be greater than or equal to 0' })
   @Max(100, { message: 'Discount percentage must be less than or equal to 100' })
@@ -72,10 +85,30 @@ export class CreateProductDto {
   @IsOptional()
   color?: string;
 
+  @IsNumber({}, { message: 'Length must be a number' })
+  @Min(0, { message: 'Length must be greater than or equal to 0' })
+  @IsOptional()
+  lengthCm?: number;
+
+  @IsNumber({}, { message: 'Width must be a number' })
+  @Min(0, { message: 'Width must be greater than or equal to 0' })
+  @IsOptional()
+  widthCm?: number;
+
+  @IsNumber({}, { message: 'Height must be a number' })
+  @Min(0, { message: 'Height must be greater than or equal to 0' })
+  @IsOptional()
+  heightCm?: number;
+
   @IsNumber({}, { message: 'Weight must be a number' })
   @Min(0, { message: 'Weight must be greater than or equal to 0' })
   @IsOptional()
   weightGrams?: number;
+
+  @IsNumber({}, { message: 'Package weight must be a number' })
+  @Min(0, { message: 'Package weight must be greater than or equal to 0' })
+  @IsOptional()
+  packageWeightGrams?: number;
 
   @IsBoolean({ message: 'isService must be a boolean' })
   @IsOptional()
@@ -88,6 +121,15 @@ export class CreateProductDto {
   @IsBoolean({ message: 'trackBatch must be a boolean' })
   @IsOptional()
   trackBatch?: boolean = false;
+
+  @IsBoolean({ message: 'trackExpiry must be a boolean' })
+  @IsOptional()
+  trackExpiry?: boolean = false;
+
+  @IsNumber({}, { message: 'Expiry return limit days must be a number' })
+  @Min(0, { message: 'Expiry return limit days must be greater than or equal to 0' })
+  @IsOptional()
+  expiryReturnLimitDays?: number;
 
   @IsObject({ message: 'Member pricing must be an object' })
   @IsOptional()
