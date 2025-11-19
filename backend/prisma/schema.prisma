@@ -40,6 +40,7 @@ model User {
   heldTransactions  HeldTransaction[]
   assignedServices  ServiceOrder[] @relation("ServiceTechnician")
   statusHistoryChanges ServiceStatusHistory[] @relation("ServiceStatusHistoryChangedBy")
+  branchHeadOfService Branch[] @relation("BranchHeadOfService")
 
   @@index([email])
   @@index([username])
@@ -146,6 +147,7 @@ model Branch {
   address        String?
   city           String?
   province       String?
+  headOfServiceId String? @map("head_of_service_id") // HS (Head of Store) responsible for this branch
   isActive       Boolean  @default(true) @map("is_active")
   isWarehouse    Boolean  @default(false) @map("is_warehouse") // Warehouse capability flag
   operatingHours Json?    @map("operating_hours") // JSONB: {"monday": {"open": "08:00", "close": "22:00"}, ...}
@@ -153,6 +155,7 @@ model Branch {
   updatedAt      DateTime @updatedAt @map("updated_at")
 
   // Relations
+  headOfService    User?   @relation("BranchHeadOfService", fields: [headOfServiceId], references: [id], onDelete: SetNull)
   userRoles         UserRole[]
   departments       Department[]
   productStocks     ProductStock[]
@@ -172,6 +175,7 @@ model Branch {
 
   @@index([code])
   @@index([isActive])
+  @@index([headOfServiceId])
   @@map("branches")
 }
 

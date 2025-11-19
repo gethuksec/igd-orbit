@@ -25,6 +25,7 @@ import {
   Building2,
   Tag,
   Award,
+  Store,
   Boxes,
   ArrowRightLeft,
   ClipboardCheck,
@@ -259,6 +260,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         { icon: Banknote, label: 'Payroll', path: '/hr/payroll', roles: ['OWNER', 'CFO'] },
         { icon: Target, label: 'KPI', path: '/hr/kpi', roles: ['OWNER', 'CFO'] },
       ],
+    },
+    {
+      icon: Store,
+      label: 'Cabang',
+      path: '/branches',
+      roles: ['OWNER', 'CFO', 'MGR'],
     },
     {
       icon: Shield,

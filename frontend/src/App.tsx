@@ -53,6 +53,10 @@ import BrandDetail from './pages/brands/BrandDetail';
 import ServiceTypeList from './pages/service-types/ServiceTypeList';
 import ServiceTypeForm from './pages/service-types/ServiceTypeForm';
 import ServiceTypeDetail from './pages/service-types/ServiceTypeDetail';
+// Branches
+import BranchList from './pages/branches/BranchList';
+import BranchForm from './pages/branches/BranchForm';
+import BranchDetail from './pages/branches/BranchDetail';
 // Landing Pages
 import WarehouseLanding from './pages/warehouse/WarehouseLanding';
 import SalesLanding from './pages/sales/SalesLanding';
@@ -420,6 +424,48 @@ function App() {
                 <ProtectedRoute>
                   <DashboardLayout>
                     <ServiceTypeForm />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            
+            {/* Branches */}
+            <Route
+              path="/branches"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <BranchList />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/branches/new"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <BranchForm />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/branches/:id"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <BranchDetail />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/branches/:id/edit"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <BranchForm />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
