@@ -5,12 +5,21 @@ export interface SalesTransaction {
   transactionNumber: string;
   customerId?: string;
   customer?: { id: string; name: string; customerCode?: string };
+  branch?: { id: string; name: string; code?: string };
   total?: number;
   totalPrice?: number;
   status: string;
   paymentStatus?: string;
   itemCount?: number;
-  items?: Array<{ id: string; productId: string; quantity: number; unitPrice: number }>;
+  items?: Array<{
+    id: string;
+    productId: string;
+    product?: { id: string; name: string; sku?: string };
+    productName?: string;
+    productSku?: string;
+    quantity: number;
+    unitPrice: number;
+  }>;
   createdAt: string;
 }
 

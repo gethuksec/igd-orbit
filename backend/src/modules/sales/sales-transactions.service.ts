@@ -833,6 +833,9 @@ export class SalesTransactionsService {
       where.transactionType = transactionType;
     }
 
+    // Check if items should be included (for returns page)
+    const includeItems = query.includeItems === 'true' || query.includeItems === true;
+
     const [transactions, total] = await Promise.all([
       this.prisma.salesTransaction.findMany({
         where,
@@ -865,6 +868,19 @@ export class SalesTransactionsService {
               items: true,
             },
           },
+          ...(includeItems ? {
+            items: {
+              include: {
+                product: {
+                  select: {
+                    id: true,
+                    name: true,
+                    sku: true,
+                  },
+                },
+              },
+            },
+          } : {}),
         },
       }),
       this.prisma.salesTransaction.count({ where }),
@@ -882,6 +898,17 @@ export class SalesTransactionsService {
         total: tx.total.toNumber(),
         paymentStatus: tx.paymentStatus,
         itemCount: tx._count.items,
+        ...(includeItems && 'items' in tx ? {
+          items: tx.items.map((item: any) => ({
+            id: item.id,
+            productId: item.productId,
+            product: item.product,
+            productName: item.productName,
+            productSku: item.productSku,
+            quantity: item.quantity.toNumber(),
+            unitPrice: item.unitPrice.toNumber(),
+          })),
+        } : {}),
         createdAt: tx.createdAt,
       })),
       meta: {

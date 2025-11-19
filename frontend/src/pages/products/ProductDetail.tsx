@@ -325,14 +325,26 @@ export default function ProductDetail() {
                       <p className="text-lg font-bold text-blue-600">
                         {salesStats.totalSold?.toLocaleString('id-ID') || 0}
                       </p>
-                      <p className="text-xs text-blue-500 mt-0.5">Dari transaksi penjualan</p>
+                      <p className="text-xs text-blue-500 mt-0.5">
+                        {salesStats.totalReturned > 0 && (
+                          <span className="text-red-600">({salesStats.totalReturned} dikembalikan)</span>
+                        )}
+                        {!salesStats.totalReturned && 'Dari transaksi penjualan'}
+                      </p>
                     </div>
                     <div className="p-2.5 bg-purple-50 rounded-lg border border-purple-200">
                       <p className="text-xs text-purple-600 mb-1">Total Revenue (Penjualan)</p>
                       <p className="text-lg font-bold text-purple-600">
                         {formatCurrency(salesStats.totalRevenue || 0)}
                       </p>
-                      <p className="text-xs text-purple-500 mt-0.5">Dari penjualan produk ini</p>
+                      <p className="text-xs text-purple-500 mt-0.5">
+                        {salesStats.totalReturnedRevenue > 0 && (
+                          <span className="text-red-600">
+                            ({formatCurrency(salesStats.totalReturnedRevenue)} dikembalikan)
+                          </span>
+                        )}
+                        {!salesStats.totalReturnedRevenue && 'Dari penjualan produk ini'}
+                      </p>
                     </div>
                   </div>
                   

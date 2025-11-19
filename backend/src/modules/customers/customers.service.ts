@@ -930,12 +930,12 @@ export class CustomersService {
     const limitNum = typeof limit === 'string' ? parseInt(limit, 10) : limit || 20;
     const skip = (pageNum - 1) * limitNum;
 
-    // Get sales transactions
+    // Get sales transactions (include void/cancelled to show return history)
     const [salesTransactions, salesCount] = await Promise.all([
       this.prisma.salesTransaction.findMany({
         where: {
           customerId,
-          status: { not: 'void' }, // Exclude voided transactions
+          // Include all transactions including void/cancelled to show return history
         },
         skip,
         take: limitNum,
@@ -959,7 +959,7 @@ export class CustomersService {
       this.prisma.salesTransaction.count({
         where: {
           customerId,
-          status: { not: 'void' },
+          // Include all transactions including void/cancelled
         },
       }),
     ]);

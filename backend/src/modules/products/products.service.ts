@@ -361,26 +361,53 @@ export class ProductsService {
     totalRevenue: number;
     totalUsedInService: number;
     totalServiceRevenue: number;
+    totalReturned: number;
+    totalReturnedRevenue: number;
   }> {
-    // Get from sales transactions - count both completed transactions and paid transactions
-    const salesItems = await this.prisma.salesTransactionItem.findMany({
+    // Get ALL sales items that were ever sold (including those later returned)
+    // This includes completed/paid transactions, even if they were later voided/cancelled
+    // We need to check the transaction status at the time of sale, not current status
+    // Since we can't track historical status, we'll count all completed/paid transactions
+    // and separately count void/cancelled transactions
+    
+    // Get all items from completed/paid transactions (regardless of current status)
+    // This represents all items that were ever sold
+    const allSoldItems = await this.prisma.salesTransactionItem.findMany({
       where: {
         productId: id,
         transaction: {
           OR: [
-            { status: 'completed' }, // Completed transactions
-            { paymentStatus: 'paid' }, // Paid transactions (even if status is not completed)
+            { status: 'completed' },
+            { paymentStatus: 'paid' },
           ],
         },
       },
       select: {
         quantity: true,
         unitPrice: true,
+        transaction: {
+          select: {
+            status: true,
+          },
+        },
       },
     });
 
-    const totalSold = salesItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
-    const totalRevenue = salesItems.reduce(
+    // Get items from void/cancelled transactions (returns)
+    const returnedItems = allSoldItems.filter((item) =>
+      ['void', 'cancelled'].includes(item.transaction.status),
+    );
+
+    // Total sold = all items that were ever sold (from active + returned transactions)
+    const totalSold = allSoldItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+    const totalRevenue = allSoldItems.reduce(
+      (sum, item) => sum + Number(item.quantity || 0) * Number(item.unitPrice || 0),
+      0,
+    );
+
+    // Total returned = items from void/cancelled transactions
+    const totalReturned = returnedItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+    const totalReturnedRevenue = returnedItems.reduce(
       (sum, item) => sum + Number(item.quantity || 0) * Number(item.unitPrice || 0),
       0,
     );
@@ -407,11 +434,18 @@ export class ProductsService {
       0,
     );
 
+    // Net sold = total sold - total returned
+    // This gives us the actual quantity still "sold" (not returned)
+    const netSold = totalSold - totalReturned;
+    const netRevenue = totalRevenue - totalReturnedRevenue;
+
     return {
-      totalSold,
-      totalRevenue,
+      totalSold: netSold, // Net sold (total ever sold minus returns)
+      totalRevenue: netRevenue, // Net revenue (total revenue minus returns)
       totalUsedInService,
       totalServiceRevenue,
+      totalReturned,
+      totalReturnedRevenue,
     };
   }
 

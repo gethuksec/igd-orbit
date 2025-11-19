@@ -459,6 +459,11 @@ export default function CustomerDetail() {
                         }`}>
                           {transaction.type === 'sales' ? 'Penjualan' : 'Service'}
                         </span>
+                        {(transaction.status === 'void' || transaction.status === 'cancelled') && (
+                          <span className="px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-700">
+                            Retur
+                          </span>
+                        )}
                         {transaction.branch && (
                           <span className="text-xs text-gray-500">({transaction.branch.name})</span>
                         )}
@@ -478,12 +483,20 @@ export default function CustomerDetail() {
                             ? 'bg-green-100 text-green-700' 
                             : transaction.paymentStatus === 'partial'
                             ? 'bg-yellow-100 text-yellow-700'
+                            : transaction.paymentStatus === 'refunded'
+                            ? 'bg-orange-100 text-orange-700'
                             : 'bg-gray-100 text-gray-700'
                         }`}>
-                          {transaction.paymentStatus === 'paid' ? 'Lunas' : transaction.paymentStatus === 'partial' ? 'Cicilan' : 'Belum Bayar'}
+                          {transaction.paymentStatus === 'paid' ? 'Lunas' : transaction.paymentStatus === 'partial' ? 'Cicilan' : transaction.paymentStatus === 'refunded' ? 'Refund' : 'Belum Bayar'}
                         </span>
-                        <span className="text-xs text-gray-500">
-                          Status: {transaction.status}
+                        <span className={`text-xs px-2 py-0.5 rounded ${
+                          transaction.status === 'void' || transaction.status === 'cancelled'
+                            ? 'bg-red-100 text-red-700'
+                            : transaction.status === 'completed'
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-gray-100 text-gray-700'
+                        }`}>
+                          {transaction.status === 'void' ? 'Void' : transaction.status === 'cancelled' ? 'Dibatalkan' : transaction.status === 'completed' ? 'Selesai' : transaction.status}
                         </span>
                       </div>
                     </div>
