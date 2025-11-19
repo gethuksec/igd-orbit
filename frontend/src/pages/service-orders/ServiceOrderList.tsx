@@ -303,9 +303,18 @@ export default function ServiceOrderList() {
                       </Link>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {order.customerName || order.customer?.name || 'Walk-in Customer'}
-                      </div>
+                      {order.customerId ? (
+                        <Link
+                          to={`/customers/${order.customerId}`}
+                          className="text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline transition-colors"
+                        >
+                          {order.customerName || order.customer?.name || 'Walk-in Customer'}
+                        </Link>
+                      ) : (
+                        <div className="text-sm font-medium text-gray-900">
+                          {order.customerName || order.customer?.name || 'Walk-in Customer'}
+                        </div>
+                      )}
                       {(order.customerPhone || order.customer?.phone) && (
                         <div className="text-xs text-gray-500">
                           {order.customerPhone || order.customer?.phone}

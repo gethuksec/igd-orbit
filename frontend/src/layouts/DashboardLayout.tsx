@@ -39,6 +39,7 @@ import {
   Banknote,
   Target,
   Plus,
+  RefreshCw,
 } from 'lucide-react';
 import type { Branch } from '@/services/public.service';
 import { publicService } from '@/services/public.service';
@@ -212,6 +213,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           label: 'Tambah Service',
           path: '/service-orders/new',
           roles: ['OWNER', 'MGR', 'CS'],
+        },
+        {
+          icon: RefreshCw,
+          label: 'Retur & Komplain',
+          path: '/service-returns',
+          roles: ['OWNER', 'MGR', 'CS', 'HS', 'SPV'],
         },
       ],
     },
