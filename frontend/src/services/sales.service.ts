@@ -4,9 +4,12 @@ export interface SalesTransaction {
   id: string;
   transactionNumber: string;
   customerId?: string;
-  customer?: { id: string; name: string };
-  totalPrice: number;
+  customer?: { id: string; name: string; customerCode?: string };
+  total?: number;
+  totalPrice?: number;
   status: string;
+  paymentStatus?: string;
+  itemCount?: number;
   items?: Array<{ id: string; productId: string; quantity: number; unitPrice: number }>;
   createdAt: string;
 }
@@ -73,20 +76,111 @@ export const salesService = {
     return response.data.data || response.data;
   },
 
-  async searchProducts(query: string): Promise<ProductSearchResult[]> {
+  async searchProducts(query: string, branchId?: string): Promise<ProductSearchResult[]> {
     const response = await api.get('/products', {
-      params: { search: query, limit: 10 },
+      params: { 
+        search: query, 
+        limit: 10,
+        include: 'stock',
+        ...(branchId ? { 'filter[branchId]': branchId } : {}),
+      },
     });
-    return response.data.data || [];
+    const products = response.data.data || [];
+    
+    // Transform to match ProductSearchResult interface with stock info
+    return products.map((p: any) => {
+      // Get stock for specific branch or total stock
+      let stockInfo = null;
+      if (branchId && p.stockSummary?.branches) {
+        const branchStock = p.stockSummary.branches.find(
+          (b: any) => b.branchId === branchId
+        );
+        if (branchStock) {
+          stockInfo = {
+            quantityAvailable: branchStock.available,
+            quantityReserved: branchStock.reserved,
+          };
+        }
+      }
+      
+      // Fallback to total stock if no branch-specific stock
+      if (!stockInfo && p.stockSummary) {
+        stockInfo = {
+          quantityAvailable: p.stockSummary.totalAvailable - p.stockSummary.totalReserved,
+          quantityReserved: p.stockSummary.totalReserved,
+        };
+      }
+      
+      // Fallback to totalStock if no stockSummary
+      if (!stockInfo) {
+        stockInfo = {
+          quantityAvailable: p.totalStock || 0,
+          quantityReserved: 0,
+        };
+      }
+      
+      return {
+        id: p.id,
+        name: p.name,
+        sku: p.sku,
+        sellingPrice: p.sellingPrice || p.effectivePrice || 0,
+        stock: stockInfo,
+        images: p.images || [],
+      };
+    });
   },
 
-  async getProductByBarcode(barcode: string): Promise<ProductSearchResult | null> {
+  async getProductByBarcode(barcode: string, branchId?: string): Promise<ProductSearchResult | null> {
     try {
       const response = await api.get('/products', {
-        params: { search: barcode, limit: 1 },
+        params: { 
+          search: barcode, 
+          limit: 1,
+          include: 'stock',
+          ...(branchId ? { 'filter[branchId]': branchId } : {}),
+        },
       });
       const products = response.data.data || [];
-      return products.find((p: any) => p.sku === barcode || p.barcode === barcode) || null;
+      const product = products.find((p: any) => p.sku === barcode || p.barcode === barcode);
+      
+      if (!product) return null;
+      
+      // Transform stock info similar to searchProducts
+      let stockInfo = null;
+      if (branchId && product.stockSummary?.branches) {
+        const branchStock = product.stockSummary.branches.find(
+          (b: any) => b.branchId === branchId
+        );
+        if (branchStock) {
+          stockInfo = {
+            quantityAvailable: branchStock.available,
+            quantityReserved: branchStock.reserved,
+          };
+        }
+      }
+      
+      if (!stockInfo && product.stockSummary) {
+        stockInfo = {
+          quantityAvailable: product.stockSummary.totalAvailable - product.stockSummary.totalReserved,
+          quantityReserved: product.stockSummary.totalReserved,
+        };
+      }
+      
+      if (!stockInfo) {
+        stockInfo = {
+          quantityAvailable: product.totalStock || 0,
+          quantityReserved: 0,
+        };
+      }
+      
+      return {
+        id: product.id,
+        name: product.name,
+        sku: product.sku,
+        sellingPrice: product.sellingPrice || product.effectivePrice || 0,
+        stock: stockInfo,
+        images: product.images || [],
+      };
     } catch {
       return null;
     }
@@ -118,5 +212,9 @@ export const salesService = {
   async generateReceipt(transactionId: string): Promise<Blob> {
     const response = await api.post(`/sales/transactions/${transactionId}/receipt`);
     return response.data;
+  },
+
+  async voidTransaction(transactionId: string, reason: string): Promise<void> {
+    await api.post(`/sales/transactions/${transactionId}/void`, { reason });
   },
 };

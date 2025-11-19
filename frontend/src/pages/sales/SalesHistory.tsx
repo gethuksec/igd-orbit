@@ -41,7 +41,7 @@ export default function SalesHistory() {
     }).format(amount);
   };
 
-  const totalRevenue = transactions.reduce((acc, t) => acc + (t.totalPrice || 0), 0);
+  const totalRevenue = transactions.reduce((acc, t) => acc + (t.total || t.totalPrice || 0), 0);
   const totalTransactions = pagination.total;
 
   return (
@@ -162,7 +162,12 @@ export default function SalesHistory() {
                     className="hover:bg-gradient-to-r hover:from-gray-50 hover:to-white transition-all duration-200 border-b border-gray-100"
                   >
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="text-sm font-semibold text-gray-900">{transaction.transactionNumber}</div>
+                      <Link
+                        to={`/sales/transactions/${transaction.id}`}
+                        className="text-sm font-semibold text-primary-600 hover:text-primary-700 hover:underline transition-colors"
+                      >
+                        {transaction.transactionNumber}
+                      </Link>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
@@ -170,18 +175,27 @@ export default function SalesHistory() {
                       </div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{transaction.customer?.name || '-'}</div>
+                      {transaction.customer?.id ? (
+                        <Link
+                          to={`/customers/${transaction.customer.id}`}
+                          className="text-sm text-primary-600 hover:text-primary-700 hover:underline transition-colors font-medium"
+                        >
+                          {transaction.customer.name || '-'}
+                        </Link>
+                      ) : (
+                        <div className="text-sm text-gray-900">-</div>
+                      )}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{transaction.items?.length || 0} item</div>
+                      <div className="text-sm text-gray-900">{transaction.itemCount || transaction.items?.length || 0} item</div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-right">
                       <div className="text-sm font-bold text-primary-600">
-                        {formatCurrency(transaction.totalPrice || 0)}
+                        {formatCurrency(transaction.total || transaction.totalPrice || 0)}
                       </div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-right">
-                      <Link to={`/sales/${transaction.id}`}>
+                      <Link to={`/sales/transactions/${transaction.id}`}>
                         <button
                           className="p-2.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                           title="Lihat Detail"

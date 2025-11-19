@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { usePOSStore, type Customer } from '@/stores/posStore';
 import { salesService, type CustomerSearchResult } from '@/services/sales.service';
+import { customersService } from '@/services/customers.service';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useQuery } from '@tanstack/react-query';
+import { Modal } from '@/components/ui/modal';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatPhone, formatCurrency } from '@/utils/format';
+import { toast } from 'sonner';
 
 /**
  * POS Customer Panel Component
@@ -187,78 +190,128 @@ interface CreateCustomerModalProps {
 }
 
 function CreateCustomerModal({ onClose, onCreated }: CreateCustomerModalProps) {
+  const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
     email: '',
   });
-  const [isCreating, setIsCreating] = useState(false);
+
+  const createMutation = useMutation({
+    mutationFn: async (data: { name: string; phone: string; email?: string }) => {
+      return await customersService.create({
+        customerType: 'retail',
+        name: data.name,
+        phone: data.phone,
+        email: data.email || undefined,
+      });
+    },
+    onSuccess: (newCustomer) => {
+      // Invalidate customer search queries
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      
+      // Transform to POS Customer format
+      const posCustomer: Customer = {
+        id: newCustomer.id,
+        customerCode: newCustomer.customerCode,
+        name: newCustomer.name,
+        phone: newCustomer.phone,
+        email: newCustomer.email,
+        tier: newCustomer.tier
+          ? {
+              code: newCustomer.tier.code,
+              name: newCustomer.tier.name,
+              discountPercentage: newCustomer.tier.discountPercentage || 0,
+            }
+          : undefined,
+        creditLimit: newCustomer.creditLimit || 0,
+        creditUsed: newCustomer.creditUsed || 0,
+      };
+      
+      toast.success('Customer berhasil dibuat');
+      onCreated(posCustomer);
+    },
+    onError: (error: any) => {
+      const errorMessage = error.response?.data?.message || 'Gagal membuat customer';
+      toast.error(errorMessage);
+    },
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsCreating(true);
-
-    try {
-      // TODO: Call create customer API
-      // For now, create a mock customer
-      const newCustomer: Customer = {
-        id: `temp-${Date.now()}`,
-        customerCode: `CUST-${Date.now()}`,
-        name: formData.name,
-        phone: formData.phone,
-        email: formData.email || undefined,
-      };
-      onCreated(newCustomer);
-    } catch (error) {
-      console.error('Failed to create customer:', error);
-      alert('Failed to create customer');
-    } finally {
-      setIsCreating(false);
+    
+    // Basic validation
+    if (!formData.name.trim()) {
+      toast.error('Nama customer wajib diisi');
+      return;
     }
+    
+    if (!formData.phone.trim()) {
+      toast.error('Nomor telepon wajib diisi');
+      return;
+    }
+
+    createMutation.mutate({
+      name: formData.name.trim(),
+      phone: formData.phone.trim(),
+      email: formData.email.trim() || undefined,
+    });
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
-      <div className="bg-white rounded-lg p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-lg font-semibold mb-4">Create New Customer</h3>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Name *</label>
-            <Input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Phone *</label>
-            <Input
-              type="tel"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Email</label>
-            <Input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button type="button" onClick={onClose} variant="outline" className="flex-1">
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isCreating} className="flex-1">
-              {isCreating ? 'Creating...' : 'Create'}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <Modal open={true} onClose={onClose} title="Tambah Customer Baru" size="md">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-2 text-gray-700">
+            Nama <span className="text-red-500">*</span>
+          </label>
+          <Input
+            type="text"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            placeholder="Masukkan nama customer"
+            required
+            autoFocus
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2 text-gray-700">
+            Nomor Telepon <span className="text-red-500">*</span>
+          </label>
+          <Input
+            type="tel"
+            value={formData.phone}
+            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            placeholder="081234567890"
+            required
+          />
+          <p className="text-xs text-gray-500 mt-1">Format: 0XXXXXXXXX atau +62XXXXXXXXX</p>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2 text-gray-700">
+            Email <span className="text-gray-400 text-xs">(Opsional)</span>
+          </label>
+          <Input
+            type="email"
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            placeholder="customer@example.com"
+          />
+        </div>
+        <div className="flex gap-2 pt-2">
+          <Button type="button" onClick={onClose} variant="outline" className="flex-1">
+            Batal
+          </Button>
+          <Button 
+            type="submit" 
+            disabled={createMutation.isPending} 
+            className="flex-1"
+          >
+            {createMutation.isPending ? 'Menyimpan...' : 'Simpan'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 

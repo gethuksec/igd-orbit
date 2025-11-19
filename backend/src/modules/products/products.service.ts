@@ -362,12 +362,15 @@ export class ProductsService {
     totalUsedInService: number;
     totalServiceRevenue: number;
   }> {
-    // Get from sales transactions
+    // Get from sales transactions - count both completed transactions and paid transactions
     const salesItems = await this.prisma.salesTransactionItem.findMany({
       where: {
         productId: id,
         transaction: {
-          status: 'completed', // Only count completed transactions
+          OR: [
+            { status: 'completed' }, // Completed transactions
+            { paymentStatus: 'paid' }, // Paid transactions (even if status is not completed)
+          ],
         },
       },
       select: {

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { usePOSStore, type CartItem } from '@/stores/posStore';
 import { salesService, type ProductSearchResult } from '@/services/sales.service';
+import { useBranchStore } from '@/stores/branchStore';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
@@ -11,14 +12,15 @@ import { formatCurrency } from '@/utils/format';
  */
 export function POSCart() {
   const { cart, addItem, updateQuantity, removeItem, applyItemDiscount, subtotal, discountAmount, taxAmount, total } = usePOSStore();
+  const { currentBranchId } = useBranchStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [showDiscountModal, setShowDiscountModal] = useState<number | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Product search query
   const { data: searchResults = [] } = useQuery({
-    queryKey: ['products', 'search', searchQuery],
-    queryFn: () => salesService.searchProducts(searchQuery),
+    queryKey: ['products', 'search', searchQuery, currentBranchId],
+    queryFn: () => salesService.searchProducts(searchQuery, currentBranchId || undefined),
     enabled: searchQuery.length >= 2,
   });
 
@@ -34,7 +36,7 @@ export function POSCart() {
       barcodeTimeoutRef.current = setTimeout(async () => {
         if (barcodeBuffer.length >= 8) {
           // Likely a barcode
-          const product = await salesService.getProductByBarcode(barcodeBuffer);
+          const product = await salesService.getProductByBarcode(barcodeBuffer, currentBranchId || undefined);
           if (product) {
             handleAddProduct(product);
             setBarcodeBuffer('');
@@ -133,7 +135,9 @@ export function POSCart() {
                       <div className="text-[11px] md:text-xs text-gray-500 flex flex-wrap gap-2">
                         <span>SKU: {product.sku}</span>
                         <span>·</span>
-                        <span>Stock: {product.stock?.quantityAvailable || 0}</span>
+                        <span className={product.stock && product.stock.quantityAvailable > 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                          Stok: {product.stock?.quantityAvailable || 0}
+                        </span>
                       </div>
                     </div>
                     <div className="text-right">

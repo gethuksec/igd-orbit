@@ -32,14 +32,78 @@ export class SalesTransactionsService {
 
   /**
    * Generate unique transaction number
-   * Format: TRX-{YYYYMMDD}-{sequence}
+   * Format: TRX-{YYYYMMDD}-{UserInitials}-{sequence}
+   * @param userId - User ID to get initials from
    * @returns Generated transaction number
    */
-  async generateTransactionNumber(): Promise<string> {
+  async generateTransactionNumber(userId?: string): Promise<string> {
     const today = new Date();
     const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
-    const random = randomBytes(3).toString('hex').toUpperCase();
-    return `TRX-${dateStr}-${random}`;
+    
+    // Get user initials if userId provided
+    let userInitials = '';
+    if (userId) {
+      try {
+        const user = await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { fullName: true },
+        });
+        
+        if (user?.fullName) {
+          // Extract initials from fullName (first 2 letters, uppercase)
+          const nameParts = user.fullName.trim().split(/\s+/);
+          if (nameParts.length >= 2) {
+            // First letter of first name + first letter of last name
+            userInitials = (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase();
+          } else if (nameParts.length === 1 && nameParts[0].length >= 2) {
+            // First 2 letters of single name
+            userInitials = nameParts[0].substring(0, 2).toUpperCase();
+          } else {
+            // Fallback: use first 2 characters
+            userInitials = user.fullName.substring(0, 2).toUpperCase().padEnd(2, 'X');
+          }
+        }
+      } catch (error) {
+        console.error('Error getting user initials:', error);
+        // Continue with empty initials if error
+      }
+    }
+    
+    // Generate sequence number (4 digits, zero-padded)
+    // Count transactions for today with same user initials
+    const startOfDay = new Date(today);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(today);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    let sequence = 1;
+    if (userInitials) {
+      try {
+        const todayTransactions = await this.prisma.salesTransaction.count({
+          where: {
+            transactionNumber: {
+              startsWith: `TRX-${dateStr}-${userInitials}-`,
+            },
+            createdAt: {
+              gte: startOfDay,
+              lte: endOfDay,
+            },
+          },
+        });
+        sequence = todayTransactions + 1;
+      } catch (error) {
+        console.error('Error counting transactions:', error);
+        // Use random fallback
+        const random = randomBytes(2).toString('hex').toUpperCase();
+        return `TRX-${dateStr}-${userInitials || 'XX'}-${random}`;
+      }
+    } else {
+      // Fallback: use random if no user initials
+      const random = randomBytes(2).toString('hex').toUpperCase();
+      return `TRX-${dateStr}-XX-${random}`;
+    }
+    
+    return `TRX-${dateStr}-${userInitials || 'XX'}-${sequence.toString().padStart(4, '0')}`;
   }
 
   /**
@@ -195,8 +259,8 @@ export class SalesTransactionsService {
       }
     }
 
-    // Generate transaction number
-    const transactionNumber = await this.generateTransactionNumber();
+    // Generate transaction number with user initials
+    const transactionNumber = await this.generateTransactionNumber(userId);
 
     // Start database transaction
     return await this.prisma.$transaction(async (tx) => {
@@ -208,7 +272,7 @@ export class SalesTransactionsService {
           branchId,
           customerId: createDto.customerId || null,
           cashierId: userId,
-          status: createDto.payment.method === 'credit' ? 'completed' : 'pending',
+          status: 'completed', // All transactions are completed once created (pending is for held transactions)
           subtotal: calculation.subtotal,
           discountAmount: calculation.discount,
           discountPercentage: createDto.discountPercentage || null,

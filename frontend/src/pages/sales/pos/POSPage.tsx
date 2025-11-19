@@ -107,21 +107,6 @@ export default function POSPage() {
     [handleOpenPayment, canCheckout],
   );
 
-  useHotkeys(
-    'ctrl+n',
-    (e) => {
-      e.preventDefault();
-      if (confirm('Mulai transaksi baru? Keranjang saat ini akan dikosongkan.')) {
-        clearCart();
-        toast.success('Transaksi baru dimulai');
-      }
-    },
-    {
-      enableOnFormTags: true,
-      preventDefault: true,
-    },
-    [clearCart],
-  );
 
   useHotkeys(
     'escape',
@@ -145,26 +130,26 @@ export default function POSPage() {
       <Toaster position="top-right" />
 
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg px-6 py-4 flex items-center justify-between text-white">
+      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg px-6 py-5 flex items-center justify-between text-white">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Point of Sale</h1>
-          <div className="text-xs md:text-sm text-primary-100">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-1">Point of Sale</h1>
+          <div className="text-xs md:text-sm text-primary-100/90">
             Transaksi hari ini · No. sementara{' '}
-            <span className="font-semibold">
+            <span className="font-semibold text-white">
               {new Date().toISOString().slice(0, 10).replace(/-/g, '')}
             </span>
           </div>
           {!currentBranchId && (
-            <div className="mt-2 text-xs bg-red-500/20 border border-red-300/60 text-red-50 px-3 py-1.5 rounded-lg inline-flex items-center gap-2">
-              <span className="inline-block h-2 w-2 rounded-full bg-red-300" />
+            <div className="mt-2 text-xs bg-red-500/20 backdrop-blur-sm border border-red-300/60 text-red-50 px-3 py-1.5 rounded-lg inline-flex items-center gap-2 shadow-sm">
+              <span className="inline-block h-2 w-2 rounded-full bg-red-300 animate-pulse" />
               <span>Pilih cabang di kanan atas dulu sebelum memulai transaksi.</span>
             </div>
           )}
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-5">
           <div className="text-right">
-            <div className="text-xs uppercase tracking-wide text-primary-100">Grand Total</div>
-            <div className="text-2xl md:text-3xl font-extrabold">
+            <div className="text-xs uppercase tracking-wide text-primary-100/90 mb-1">Grand Total</div>
+            <div className="text-2xl md:text-3xl font-extrabold drop-shadow-sm">
               {formatCurrency(total)}
             </div>
           </div>
@@ -172,7 +157,7 @@ export default function POSPage() {
             onClick={handleOpenPayment}
             disabled={!canCheckout}
             size="lg"
-            className="h-12 md:h-14 px-6 md:px-8 text-sm md:text-lg bg-white text-primary-600 hover:bg-primary-50 disabled:opacity-60"
+            className="h-12 md:h-14 px-6 md:px-8 text-sm md:text-lg bg-white text-primary-600 hover:bg-primary-50 disabled:opacity-60 shadow-lg hover:shadow-xl transition-all duration-200 font-semibold"
           >
             💰 Bayar
           </Button>
@@ -182,16 +167,16 @@ export default function POSPage() {
       {/* Main Content */}
       <div className="grid grid-cols-1 xl:grid-cols-[3fr_2fr] gap-4 items-start">
         {/* Left Panel - Cart */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-          <div className="border-b px-4 py-3 flex items-center justify-between bg-gray-50">
+        <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden transition-shadow hover:shadow-lg">
+          <div className="border-b px-4 py-3.5 flex items-center justify-between bg-gradient-to-r from-gray-50 to-gray-100/50">
             <div>
-              <h2 className="font-semibold text-sm md:text-base">Daftar Item</h2>
-              <p className="text-xs text-gray-500">
+              <h2 className="font-semibold text-sm md:text-base text-gray-900 mb-0.5">Daftar Item</h2>
+              <p className="text-xs text-gray-600">
                 Scan barcode atau cari produk untuk menambahkan ke keranjang
               </p>
             </div>
-            <div className="text-xs text-gray-500 hidden md:block">
-              F1: Produk · F12: Pembayaran · Ctrl+N: Transaksi baru
+            <div className="text-xs text-gray-500 hidden md:block font-mono">
+              F1: Produk · F12: Pembayaran
             </div>
           </div>
           <div className="h-[420px] md:h-[520px]">
@@ -202,10 +187,10 @@ export default function POSPage() {
         {/* Right Panel - Customer & Actions */}
         <div className="space-y-4">
           {/* Customer Section */}
-          <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-            <div className="px-4 py-3 border-b bg-gray-50 flex items-center justify-between">
-              <h2 className="font-semibold text-sm md:text-base">Customer</h2>
-              <span className="text-[10px] md:text-xs text-gray-500">
+          <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden transition-shadow hover:shadow-lg">
+            <div className="px-4 py-3 border-b bg-gradient-to-r from-gray-50 to-gray-100/50 flex items-center justify-between">
+              <h2 className="font-semibold text-sm md:text-base text-gray-900">Customer</h2>
+              <span className="text-[10px] md:text-xs text-gray-500 font-mono">
                 F2: Cari customer
               </span>
             </div>
@@ -215,9 +200,9 @@ export default function POSPage() {
           </div>
 
           {/* Actions Section */}
-          <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-            <div className="px-4 py-3 border-b bg-gray-50 flex items-center justify-between">
-              <h2 className="font-semibold text-sm md:text-base">Aksi Cepat</h2>
+          <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden transition-shadow hover:shadow-lg">
+            <div className="px-4 py-3 border-b bg-gradient-to-r from-gray-50 to-gray-100/50 flex items-center justify-between">
+              <h2 className="font-semibold text-sm md:text-base text-gray-900">Aksi Cepat</h2>
               <span className="text-[10px] md:text-xs text-gray-500">
                 Catatan, diskon, dan hold transaksi
               </span>
@@ -231,7 +216,7 @@ export default function POSPage() {
           </div>
 
           {/* Bottom Summary */}
-          <div className="bg-white rounded-xl shadow-md border border-gray-100 px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div className="bg-white rounded-xl shadow-md border border-gray-100 px-4 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 transition-shadow hover:shadow-lg">
             <div className="flex items-center gap-4 text-xs md:text-sm">
               <div>
                 <span className="text-gray-500">Items: </span>

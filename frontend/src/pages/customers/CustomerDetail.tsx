@@ -437,7 +437,7 @@ export default function CustomerDetail() {
                       <div className="flex items-center gap-2">
                         {transaction.type === 'sales' ? (
                           <Link
-                            to={`/sales/${transaction.id}`}
+                            to={`/sales/transactions/${transaction.id}`}
                             className="text-sm font-semibold text-primary-600 hover:text-primary-700 hover:underline transition-colors"
                             title="Lihat detail transaksi penjualan"
                           >

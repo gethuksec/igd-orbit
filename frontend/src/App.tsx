@@ -27,7 +27,9 @@ import CustomerForm from './pages/customers/CustomerForm';
 import CustomerDetail from './pages/customers/CustomerDetail';
 // Sales
 import SalesHistory from './pages/sales/SalesHistory';
+import SalesTransactionDetail from './pages/sales/SalesTransactionDetail';
 import ReturnsList from './pages/sales/ReturnsList';
+import SalesReceiptPrint from './pages/sales/SalesReceiptPrint';
 // Service Orders
 import ServiceOrderList from './pages/service-orders/ServiceOrderList';
 import ServiceOrderForm from './pages/service-orders/ServiceOrderForm';
@@ -481,6 +483,20 @@ function App() {
                   </DashboardLayout>
                 </ProtectedRoute>
               }
+            />
+            <Route
+              path="/sales/transactions/:id"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <SalesTransactionDetail />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/sales/transactions/:id/print"
+              element={<SalesReceiptPrint />}
             />
             <Route
               path="/sales/returns"

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Search,
   Eye,
@@ -13,10 +13,16 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
+  Plus,
 } from 'lucide-react';
 import type { SalesTransaction } from '../../services/sales.service';
+import { salesService } from '../../services/sales.service';
 import { api } from '../../services/api';
 import { useBranchStore } from '@/stores/branchStore';
+import { Modal } from '@/components/ui/modal';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 interface ReturnTransaction extends SalesTransaction {
   returnNumber?: string;
@@ -33,6 +39,11 @@ export default function ReturnsList() {
   const [page, setPage] = useState(1);
   const limit = 20;
   const { currentBranchId } = useBranchStore();
+  const [showCreateReturnModal, setShowCreateReturnModal] = useState(false);
+  const [returnTransactionSearch, setReturnTransactionSearch] = useState('');
+  const [selectedTransaction, setSelectedTransaction] = useState<SalesTransaction | null>(null);
+  const [returnReason, setReturnReason] = useState('');
+  const queryClient = useQueryClient();
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['sales-returns', page, searchTerm, selectedStatus, currentBranchId],
@@ -44,14 +55,26 @@ export default function ReturnsList() {
             page,
             limit,
             search: searchTerm || undefined,
-            status: selectedStatus !== 'all' ? selectedStatus : undefined,
             branchId: currentBranchId || undefined,
           },
         });
-        // Filter for returns/voids
-        const transactions = (response.data.data || []).filter(
-          (t: SalesTransaction) => t.status === 'void' || t.status === 'returned',
-        );
+        // Filter for returns/voids based on selectedStatus
+        let transactions = response.data.data || [];
+        if (selectedStatus === 'all') {
+          transactions = transactions.filter(
+            (t: SalesTransaction) => t.status === 'void' || t.status === 'cancelled' || t.paymentStatus === 'refunded',
+          );
+        } else if (selectedStatus === 'void') {
+          transactions = transactions.filter((t: SalesTransaction) => t.status === 'void');
+        } else if (selectedStatus === 'cancelled') {
+          transactions = transactions.filter((t: SalesTransaction) => t.status === 'cancelled');
+        } else if (selectedStatus === 'refunded') {
+          transactions = transactions.filter((t: SalesTransaction) => t.paymentStatus === 'refunded');
+        } else {
+          transactions = transactions.filter(
+            (t: SalesTransaction) => t.status === selectedStatus || t.paymentStatus === selectedStatus,
+          );
+        }
         return {
           data: transactions,
           meta: response.data.meta || { page, limit, total: transactions.length, totalPages: 1 },
@@ -127,7 +150,38 @@ export default function ReturnsList() {
   };
 
   const totalReturns = pagination.total;
-  const totalRefundAmount = returns.reduce((acc, r) => acc + (r.refundAmount || r.totalPrice || 0), 0);
+  const totalRefundAmount = returns.reduce((acc, r) => acc + (r.refundAmount || r.total || r.totalPrice || 0), 0);
+
+  // Search transactions for return
+  const { data: transactionSearchResults } = useQuery({
+    queryKey: ['sales-transactions-search', returnTransactionSearch, currentBranchId],
+    queryFn: () =>
+      salesService.getAll({
+        page: 1,
+        limit: 10,
+        search: returnTransactionSearch || undefined,
+        branchId: currentBranchId || undefined,
+      }),
+    enabled: showCreateReturnModal && returnTransactionSearch.length >= 3,
+  });
+
+  // Void transaction mutation
+  const voidTransactionMutation = useMutation({
+    mutationFn: ({ transactionId, reason }: { transactionId: string; reason: string }) =>
+      salesService.voidTransaction(transactionId, reason),
+    onSuccess: () => {
+      toast.success('Retur berhasil dibuat');
+      queryClient.invalidateQueries({ queryKey: ['sales-returns'] });
+      queryClient.invalidateQueries({ queryKey: ['sales-transactions'] });
+      setShowCreateReturnModal(false);
+      setSelectedTransaction(null);
+      setReturnTransactionSearch('');
+      setReturnReason('');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Gagal membuat retur');
+    },
+  });
 
   return (
     <div className="w-full space-y-3">
@@ -138,6 +192,13 @@ export default function ReturnsList() {
             <h1 className="text-4xl font-bold mb-2">Retur Penjualan</h1>
             <p className="text-primary-100 text-lg">Kelola retur dan refund penjualan</p>
           </div>
+          <button
+            onClick={() => setShowCreateReturnModal(true)}
+            className="flex items-center gap-2 px-6 py-3 bg-white text-primary-600 rounded-lg font-semibold hover:bg-primary-50 transition-all shadow-lg hover:shadow-xl"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Buat Retur</span>
+          </button>
         </div>
       </div>
 
@@ -271,7 +332,7 @@ export default function ReturnsList() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-semibold text-gray-900">
-                          {formatCurrency(returnItem.refundAmount || returnItem.totalPrice || 0)}
+                          {formatCurrency(returnItem.refundAmount || returnItem.total || returnItem.totalPrice || 0)}
                         </div>
                         {returnItem.refundMethod && (
                           <div className="text-xs text-gray-500">{returnItem.refundMethod}</div>
@@ -289,7 +350,7 @@ export default function ReturnsList() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <Link
-                          to={`/sales/${returnItem.id}`}
+                          to={`/sales/transactions/${returnItem.id}`}
                           className="text-primary-600 hover:text-primary-700 flex items-center gap-1"
                         >
                           <Eye className="w-4 h-4" />
@@ -334,6 +395,139 @@ export default function ReturnsList() {
           </>
         )}
       </div>
+
+      {/* Create Return Modal */}
+      <Modal
+        open={showCreateReturnModal}
+        onClose={() => {
+          setShowCreateReturnModal(false);
+          setSelectedTransaction(null);
+          setReturnTransactionSearch('');
+          setReturnReason('');
+        }}
+        title="Buat Retur Penjualan"
+        size="lg"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-2 text-gray-700">
+              Cari Transaksi <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-gray-400" />
+              </div>
+              <Input
+                type="text"
+                value={returnTransactionSearch}
+                onChange={(e) => {
+                  setReturnTransactionSearch(e.target.value);
+                  setSelectedTransaction(null);
+                }}
+                placeholder="Cari nomor transaksi..."
+                className="pl-10"
+              />
+            </div>
+            {returnTransactionSearch.length >= 3 && transactionSearchResults?.data && (
+              <div className="mt-2 border border-gray-200 rounded-lg max-h-60 overflow-y-auto">
+                {transactionSearchResults.data
+                  .filter((t: SalesTransaction) => t.status !== 'void' && t.status !== 'cancelled')
+                  .map((transaction: SalesTransaction) => (
+                    <div
+                      key={transaction.id}
+                      onClick={() => setSelectedTransaction(transaction)}
+                      className={`p-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 ${
+                        selectedTransaction?.id === transaction.id ? 'bg-primary-50 border-primary-200' : ''
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">{transaction.transactionNumber}</p>
+                          <p className="text-xs text-gray-500">
+                            {transaction.customer?.name || 'Walk-in'} ·{' '}
+                            {new Date(transaction.createdAt).toLocaleDateString('id-ID')}
+                          </p>
+                        </div>
+                        <p className="text-sm font-bold text-primary-600">
+                          {new Intl.NumberFormat('id-ID', {
+                            style: 'currency',
+                            currency: 'IDR',
+                            minimumFractionDigits: 0,
+                          }).format(transaction.total || transaction.totalPrice || 0)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                {transactionSearchResults.data.filter(
+                  (t: SalesTransaction) => t.status !== 'void' && t.status !== 'cancelled',
+                ).length === 0 && (
+                  <div className="p-4 text-center text-sm text-gray-500">Tidak ada transaksi ditemukan</div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {selectedTransaction && (
+            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <p className="text-sm font-semibold text-gray-900 mb-2">Transaksi Terpilih:</p>
+              <p className="text-sm text-gray-700">{selectedTransaction.transactionNumber}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {selectedTransaction.customer?.name || 'Walk-in'} ·{' '}
+                {new Date(selectedTransaction.createdAt).toLocaleDateString('id-ID')}
+              </p>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium mb-2 text-gray-700">
+              Alasan Retur <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={returnReason}
+              onChange={(e) => setReturnReason(e.target.value)}
+              placeholder="Masukkan alasan retur..."
+              rows={4}
+              className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+            />
+          </div>
+
+          <div className="flex gap-2 pt-2">
+            <Button
+              type="button"
+              onClick={() => {
+                setShowCreateReturnModal(false);
+                setSelectedTransaction(null);
+                setReturnTransactionSearch('');
+                setReturnReason('');
+              }}
+              variant="outline"
+              className="flex-1"
+            >
+              Batal
+            </Button>
+            <Button
+              onClick={() => {
+                if (!selectedTransaction) {
+                  toast.error('Pilih transaksi terlebih dahulu');
+                  return;
+                }
+                if (!returnReason.trim()) {
+                  toast.error('Alasan retur wajib diisi');
+                  return;
+                }
+                voidTransactionMutation.mutate({
+                  transactionId: selectedTransaction.id,
+                  reason: returnReason.trim(),
+                });
+              }}
+              disabled={!selectedTransaction || !returnReason.trim() || voidTransactionMutation.isPending}
+              className="flex-1"
+            >
+              {voidTransactionMutation.isPending ? 'Memproses...' : 'Buat Retur'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

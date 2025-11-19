@@ -339,12 +339,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Logo */}
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl">
-              <span className="text-lg font-bold text-white">IGD</span>
-            </div>
+            <img
+              src="/logo/igd-1.jpg"
+              alt="IGD Ponsel Logo"
+              className="h-10 w-10 object-contain flex-shrink-0"
+            />
             <div>
-              <h1 className="text-lg font-display font-bold text-gray-900">IGD ERP</h1>
-              <p className="text-xs text-gray-500">System v1.0</p>
+              <p className="text-xs text-gray-500 font-medium">v1.0</p>
             </div>
           </div>
         </div>

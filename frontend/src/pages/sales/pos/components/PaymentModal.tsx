@@ -88,15 +88,15 @@ export function PaymentModal({ open, onClose, onSuccess, branchId }: PaymentModa
         notes: notes || undefined,
       });
 
-      // Generate receipt
-      if (transaction.id) {
-        await salesService.generateReceipt(transaction.id);
-      }
-
       // Clear cart and close
       clearCart();
       onSuccess();
       onClose();
+      
+      // Open print page in new window
+      if (transaction.id) {
+        window.open(`/sales/transactions/${transaction.id}/print`, '_blank');
+      }
     } catch (error: any) {
       console.error('Payment failed:', error);
       alert(error.response?.data?.message || 'Payment failed. Please try again.');
