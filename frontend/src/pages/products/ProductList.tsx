@@ -454,7 +454,14 @@ export default function ProductList() {
                           <Package className="w-7 h-7" />
                         </div>
                         <div>
-                          <div className="text-base font-semibold text-gray-900 hover:text-primary-600 transition-colors">{product.name}</div>
+                          <div className="flex items-center gap-2">
+                            <div className="text-base font-semibold text-gray-900 hover:text-primary-600 transition-colors">{product.name}</div>
+                            {(product as any).isService && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-200">
+                                Jasa
+                              </span>
+                            )}
+                          </div>
                           <div className="text-xs text-gray-500 flex items-center gap-1.5 mt-1">
                             <Barcode className="w-3.5 h-3.5" />
                             <span className="font-mono">{product.sku}</span>

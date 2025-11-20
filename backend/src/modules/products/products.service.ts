@@ -172,6 +172,7 @@ export class ProductsService {
       'filter[status]': filterStatus = 'active',
       'filter[minPrice]': filterMinPrice,
       'filter[maxPrice]': filterMaxPrice,
+      'filter[type]': filterType = 'all',
       sort = 'name',
       order = 'asc',
       include = ['category', 'brand'],
@@ -215,6 +216,14 @@ export class ProductsService {
         where.sellingPrice.lte = filterMaxPrice;
       }
     }
+
+    // Service/Product type filter
+    if (filterType === 'service') {
+      where.isService = true;
+    } else if (filterType === 'product') {
+      where.isService = false;
+    }
+    // If filterType === 'all', don't filter by isService
 
     // Build include object - optimize by selecting only needed fields
     const includeObj: Prisma.ProductInclude = {};
@@ -810,7 +819,7 @@ export class ProductsService {
   }
 
   /**
-   * Get product activity history (stock movements, price changes, status changes, etc.)
+   * Get product activity history (stock movements, sales, service usage, etc.)
    * @param productId - Product ID
    * @param page - Page number
    * @param limit - Items per page
@@ -819,40 +828,83 @@ export class ProductsService {
   async getActivityHistory(productId: string, page: number = 1, limit: number = 3) {
     const skip = (page - 1) * limit;
 
-    // Get stock movements - optimize by selecting only needed fields
-    const [stockMovements, stockMovementsCount] = await Promise.all([
-      this.prisma.stockMovement.findMany({
-        where: { productId },
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          movementType: true,
-          referenceType: true,
-          referenceId: true,
-          quantityChange: true,
-          quantityBefore: true,
-          quantityAfter: true,
-          notes: true,
-          createdAt: true,
-          createdBy: true,
-          branch: {
-            select: {
-              id: true,
-              name: true,
-              code: true,
+    // Get stock movements
+    const stockMovements = await this.prisma.stockMovement.findMany({
+      where: { productId },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        productId: true,
+        movementType: true,
+        referenceType: true,
+        referenceId: true,
+        quantityChange: true,
+        quantityBefore: true,
+        quantityAfter: true,
+        notes: true,
+        createdAt: true,
+        createdBy: true,
+        branch: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
+      },
+    });
+
+    // Get sales transactions
+    const salesItems = await this.prisma.salesTransactionItem.findMany({
+      where: { productId },
+      include: {
+        transaction: {
+          select: {
+            id: true,
+            transactionNumber: true,
+            status: true,
+            createdAt: true,
+            branch: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+              },
             },
           },
         },
-      }),
-      this.prisma.stockMovement.count({
-        where: { productId },
-      }),
-    ]);
+      },
+      orderBy: { createdAt: 'desc' },
+    });
 
-    // Transform to activity log format
-    const activities = stockMovements.map((movement) => {
+    // Get service parts usage
+    const serviceParts = await this.prisma.servicePartsUsed.findMany({
+      where: { productId },
+      include: {
+        serviceOrder: {
+          select: {
+            id: true,
+            serviceNumber: true,
+            status: true,
+            createdAt: true,
+            branch: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Combine all activities
+    const allActivities: any[] = [];
+
+    // Add stock movements
+    stockMovements.forEach((movement) => {
       const qtyChange = movement.quantityChange.toNumber();
       let activityType = '';
       let description = '';
@@ -883,7 +935,7 @@ export class ProductsService {
         description += ` (${movement.referenceType})`;
       }
 
-      return {
+      allActivities.push({
         id: movement.id,
         type: activityType,
         description,
@@ -895,19 +947,94 @@ export class ProductsService {
         referenceId: movement.referenceId,
         notes: movement.notes,
         createdAt: movement.createdAt,
-        createdBy: movement.createdBy, // User ID - will need to fetch user details if needed
-      };
+        createdBy: movement.createdBy,
+      });
     });
 
+    // Add sales transactions - get stock movement data for quantityBefore/After
+    for (const item of salesItems) {
+      const qty = item.quantity.toNumber();
+      const price = item.unitPrice.toNumber();
+      const status = item.transaction.status;
+      
+      // Find related stock movement for this transaction
+      const relatedMovement = stockMovements.find(
+        (m) => m.referenceType === 'SALE' && m.referenceId === item.transaction.id
+      );
+      
+      allActivities.push({
+        id: `sales-${item.id}`,
+        type: status === 'completed' ? 'SALES' : status === 'void' || status === 'cancelled' ? 'SALES_RETURN' : 'SALES_PENDING',
+        description: status === 'completed' 
+          ? `Terjual: ${qty} unit (${item.transaction.transactionNumber})`
+          : status === 'void' || status === 'cancelled'
+          ? `Retur penjualan: ${qty} unit (${item.transaction.transactionNumber})`
+          : `Penjualan pending: ${qty} unit (${item.transaction.transactionNumber})`,
+        branch: item.transaction.branch,
+        quantityBefore: relatedMovement ? relatedMovement.quantityBefore.toNumber() : undefined,
+        quantityAfter: relatedMovement ? relatedMovement.quantityAfter.toNumber() : undefined,
+        quantityChange: status === 'void' || status === 'cancelled' ? qty : -qty,
+        referenceType: 'SALES_TRANSACTION',
+        referenceId: item.transaction.id,
+        notes: `Total: ${this.formatCurrency(qty * price)}`,
+        createdAt: item.transaction.createdAt,
+        createdBy: null,
+      });
+    }
+
+    // Add service parts usage - get stock movement data for quantityBefore/After
+    for (const part of serviceParts) {
+      const qty = part.quantity.toNumber();
+      const price = part.unitPrice.toNumber();
+      const status = part.serviceOrder.status;
+      
+      // Find related stock movement for this service order
+      // Service parts create stock movements with referenceType='SERVICE' and notes containing serviceNumber
+      const relatedMovement = stockMovements.find(
+        (m) => m.referenceType === 'SERVICE' && 
+        m.productId === productId &&
+        m.notes?.includes(part.serviceOrder.serviceNumber)
+      );
+      
+      allActivities.push({
+        id: `service-${part.id}`,
+        type: status === 'completed' || status === 'delivered' ? 'SERVICE_USAGE' : 'SERVICE_USAGE_PENDING',
+        description: `Digunakan untuk service: ${qty} unit (${part.serviceOrder.serviceNumber})`,
+        branch: part.serviceOrder.branch,
+        quantityBefore: relatedMovement ? relatedMovement.quantityBefore.toNumber() : undefined,
+        quantityAfter: relatedMovement ? relatedMovement.quantityAfter.toNumber() : undefined,
+        quantityChange: -qty,
+        referenceType: 'SERVICE_ORDER',
+        referenceId: part.serviceOrder.id,
+        notes: `Total: ${this.formatCurrency(qty * price)}`,
+        createdAt: part.serviceOrder.createdAt,
+        createdBy: null,
+      });
+    }
+
+    // Sort by date (newest first) and paginate
+    allActivities.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const total = allActivities.length;
+    const paginatedActivities = allActivities.slice(skip, skip + limit);
+
     return {
-      data: activities,
+      data: paginatedActivities,
       meta: {
-        total: stockMovementsCount,
+        total,
         page,
         limit,
-        totalPages: Math.ceil(stockMovementsCount / limit),
+        totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  // Helper function for currency formatting
+  private formatCurrency(amount: number): string {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(amount);
   }
 
   /**

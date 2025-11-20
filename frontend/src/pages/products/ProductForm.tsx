@@ -125,7 +125,14 @@ export default function ProductForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    mutation.mutate(formData);
+    // Convert empty strings to undefined for optional UUID fields
+    const submitData = {
+      ...formData,
+      subCategoryId: formData.subCategoryId || undefined,
+      brandId: formData.brandId || undefined,
+      supplierId: formData.supplierId || undefined,
+    };
+    mutation.mutate(submitData);
   };
 
   if (loadingProduct) {

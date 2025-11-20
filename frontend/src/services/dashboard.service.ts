@@ -10,6 +10,7 @@ export interface DashboardKPIs {
   overdueServices: number;
   lowStockItems: number;
   outOfStockItems: number;
+  totalCustomers: number;
 }
 
 export interface RevenueTrend {
@@ -77,6 +78,7 @@ export const dashboardService = {
         overdueServices: 0,
         lowStockItems: 0,
         outOfStockItems: 0,
+        totalCustomers: 0,
       });
     }
   },
@@ -515,5 +517,6 @@ export const dashboardService = {
       return handleApiError(error, 0);
     }
   },
+
 };
 

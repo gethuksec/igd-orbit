@@ -9,7 +9,9 @@ import {
   IsBoolean,
   IsObject,
   IsArray,
+  ValidateIf,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 /**
  * Create Product DTO
@@ -40,16 +42,22 @@ export class CreateProductDto {
   @IsNotEmpty({ message: 'Category ID is required' })
   categoryId!: string;
 
-  @IsUUID('4', { message: 'Sub Category ID must be a valid UUID' })
+  @Transform(({ value }) => (value === '' ? undefined : value))
   @IsOptional()
+  @ValidateIf((o) => o.subCategoryId !== undefined && o.subCategoryId !== null)
+  @IsUUID('4', { message: 'Sub Category ID must be a valid UUID' })
   subCategoryId?: string;
 
-  @IsUUID('4', { message: 'Brand ID must be a valid UUID' })
+  @Transform(({ value }) => (value === '' ? undefined : value))
   @IsOptional()
+  @ValidateIf((o) => o.brandId !== undefined && o.brandId !== null)
+  @IsUUID('4', { message: 'Brand ID must be a valid UUID' })
   brandId?: string;
 
-  @IsUUID('4', { message: 'Supplier ID must be a valid UUID' })
+  @Transform(({ value }) => (value === '' ? undefined : value))
   @IsOptional()
+  @ValidateIf((o) => o.supplierId !== undefined && o.supplierId !== null)
+  @IsUUID('4', { message: 'Supplier ID must be a valid UUID' })
   supplierId?: string;
 
   @IsString({ message: 'Unit must be a string' })

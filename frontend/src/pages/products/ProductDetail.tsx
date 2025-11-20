@@ -474,6 +474,12 @@ export default function ProductDetail() {
                         return <ArrowRightLeft className="w-4 h-4 text-blue-600" />;
                       case 'STOCK_ADJUSTMENT':
                         return <Settings className="w-4 h-4 text-yellow-600" />;
+                      case 'SALES':
+                        return <TrendingUp className="w-4 h-4 text-purple-600" />;
+                      case 'SALES_RETURN':
+                        return <TrendingUp className="w-4 h-4 text-red-600 rotate-180" />;
+                      case 'SERVICE_USAGE':
+                        return <Package className="w-4 h-4 text-orange-600" />;
                       default:
                         return <Package className="w-4 h-4 text-gray-600" />;
                     }
@@ -489,6 +495,13 @@ export default function ProductDetail() {
                         return 'bg-blue-50 border-blue-200';
                       case 'STOCK_ADJUSTMENT':
                         return 'bg-yellow-50 border-yellow-200';
+                      case 'SALES':
+                        return 'bg-purple-50 border-purple-200';
+                      case 'SALES_RETURN':
+                        return 'bg-red-50 border-red-200';
+                      case 'SERVICE_USAGE':
+                      case 'SERVICE_USAGE_PENDING':
+                        return 'bg-orange-50 border-orange-200';
                       default:
                         return 'bg-gray-50 border-gray-200';
                     }
@@ -502,7 +515,27 @@ export default function ProductDetail() {
                       <div className="flex items-start gap-2 mb-1.5">
                         <div className="mt-0.5 flex-shrink-0">{getActivityIcon()}</div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-gray-900">{activity.description}</p>
+                          {activity.referenceId ? (
+                            activity.referenceType === 'SALES_TRANSACTION' ? (
+                              <Link 
+                                to={`/sales/transactions/${activity.referenceId}`}
+                                className="text-sm font-semibold text-gray-900 hover:text-blue-600 hover:underline"
+                              >
+                                {activity.description}
+                              </Link>
+                            ) : activity.referenceType === 'SERVICE_ORDER' ? (
+                              <Link 
+                                to={`/service-orders/${activity.referenceId}`}
+                                className="text-sm font-semibold text-gray-900 hover:text-orange-600 hover:underline"
+                              >
+                                {activity.description}
+                              </Link>
+                            ) : (
+                              <p className="text-sm font-semibold text-gray-900">{activity.description}</p>
+                            )
+                          ) : (
+                            <p className="text-sm font-semibold text-gray-900">{activity.description}</p>
+                          )}
                           {activity.branch && (
                             <p className="text-xs text-gray-600 mt-0.5">
                               {activity.branch.name}
@@ -512,7 +545,15 @@ export default function ProductDetail() {
                       </div>
                       <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
                         <span>
-                          {activity.quantityBefore} → <span className="font-semibold">{activity.quantityAfter}</span>
+                          {activity.quantityBefore !== undefined && activity.quantityAfter !== undefined ? (
+                            <>
+                              {activity.quantityBefore} → <span className="font-semibold">{activity.quantityAfter}</span>
+                            </>
+                          ) : activity.quantityChange ? (
+                            <span className={activity.quantityChange > 0 ? 'text-green-600' : 'text-red-600'}>
+                              {activity.quantityChange > 0 ? '+' : ''}{activity.quantityChange} unit
+                            </span>
+                          ) : null}
                         </span>
                         <span>
                           {new Date(activity.createdAt).toLocaleDateString('id-ID', {
@@ -524,6 +565,26 @@ export default function ProductDetail() {
                           })}
                         </span>
                       </div>
+                      {activity.referenceId && (
+                        <div className="text-xs text-gray-400 mt-1">
+                          {activity.referenceType === 'SALES_TRANSACTION' && (
+                            <Link 
+                              to={`/sales/transactions/${activity.referenceId}`}
+                              className="text-blue-600 hover:underline"
+                            >
+                              Lihat transaksi →
+                            </Link>
+                          )}
+                          {activity.referenceType === 'SERVICE_ORDER' && (
+                            <Link 
+                              to={`/service-orders/${activity.referenceId}`}
+                              className="text-orange-600 hover:underline"
+                            >
+                              Lihat service order →
+                            </Link>
+                          )}
+                        </div>
+                      )}
                       {activity.notes && (
                         <p className="text-xs text-gray-400 italic mt-1" title={activity.notes}>
                           {activity.notes}

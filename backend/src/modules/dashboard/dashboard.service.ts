@@ -204,6 +204,14 @@ export class DashboardService {
       where: outOfStockWhere,
     });
 
+    // Total customers (all active customers, not filtered by branch)
+    const totalCustomers = await this.prisma.customer.count({
+      where: {
+        deletedAt: null,
+        isActive: true,
+      },
+    });
+
     return {
       todayRevenue,
       yesterdayRevenue,
@@ -214,6 +222,7 @@ export class DashboardService {
       overdueServices,
       lowStockItems,
       outOfStockItems,
+      totalCustomers,
     };
   }
 
@@ -416,20 +425,29 @@ export class DashboardService {
 
     const productMap = new Map(products.map((p) => [p.id, p.name]));
 
-    const result = items
-      .map((item, index) => {
-        const revenue =
-          (item._sum.unitPrice?.toNumber() || 0) *
-          (item._sum.quantity?.toNumber() || 0);
-        return {
-          rank: index + 1,
-          productName: productMap.get(item.productId) || 'Unknown',
-          quantitySold: item._sum.quantity?.toNumber() || 0,
-          revenue,
-        };
-      })
-      .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, limit);
+    // Calculate data for each product
+    const productData = items.map((item) => {
+      const quantitySold = item._sum.quantity?.toNumber() || 0;
+      const revenue =
+        (item._sum.unitPrice?.toNumber() || 0) * quantitySold;
+      return {
+        productId: item.productId,
+        productName: productMap.get(item.productId) || 'Unknown',
+        quantitySold,
+        revenue,
+      };
+    });
+
+    // Sort by quantity sold (descending) - produk paling banyak terjual
+    const sorted = productData.sort((a, b) => b.quantitySold - a.quantitySold);
+
+    // Assign rank after sorting and limit
+    const result = sorted.slice(0, limit).map((item, index) => ({
+      rank: index + 1,
+      productName: item.productName,
+      quantitySold: item.quantitySold,
+      revenue: item.revenue,
+    }));
 
     return result;
   }
@@ -1690,6 +1708,178 @@ export class DashboardService {
       totalServices > 0 ? (onTimeServices / totalServices) * 100 : 0;
 
     return compliance;
+  }
+
+  /**
+   * Create Custom Graph (stores graph config, not data)
+   */
+  async createCustomGraph(data: {
+    title: string;
+    chartType: string;
+    tableName: string;
+    dataFields: string[];
+    groupBy?: string;
+  }) {
+    // For now, just return the graph config with an ID
+    // In a full implementation, you'd store this in a database
+    return {
+      id: `graph_${Date.now()}`,
+      ...data,
+      createdAt: new Date(),
+    };
+  }
+
+  /**
+   * Get Custom Graph Data
+   * Dynamically queries the database based on user-selected fields
+   */
+  async getCustomGraphData(
+    tableName: string,
+    dataFields: string,
+    groupBy?: string,
+    branchId?: string,
+  ) {
+    const fields = dataFields.split(',').filter((f) => f.trim());
+    if (fields.length === 0) {
+      throw new Error('At least one data field is required');
+    }
+    // Map table names to Prisma models
+    const tableMap: Record<string, any> = {
+      sales_transactions: this.prisma.salesTransaction,
+      service_orders: this.prisma.serviceOrder,
+      products: this.prisma.product,
+      customers: this.prisma.customer,
+    };
+
+    const model = tableMap[tableName];
+    if (!model) {
+      throw new Error(`Unknown table: ${tableName}`);
+    }
+
+    // Build where clause
+    const where: any = {};
+    if (branchId && tableName === 'sales_transactions') {
+      where.branchId = branchId;
+    }
+    if (branchId && tableName === 'service_orders') {
+      where.branchId = branchId;
+    }
+
+    // Get raw data
+    const records = await model.findMany({
+      where,
+      take: 1000, // Limit to prevent performance issues
+    });
+
+    // Separate number and string/date fields
+    const numberFields: string[] = [];
+    const stringFields: string[] = [];
+
+    // We need to check field types - for now, assume fields ending with _price, _cost, _amount, _total are numbers
+    // and fields ending with _at, _date, or containing 'type', 'status', 'name' are strings
+    fields.forEach((field) => {
+      if (
+        field.includes('price') ||
+        field.includes('cost') ||
+        field.includes('amount') ||
+        field.includes('total') ||
+        field.includes('quantity') ||
+        field.includes('qty')
+      ) {
+        numberFields.push(field);
+      } else {
+        stringFields.push(field);
+      }
+    });
+
+    // Transform data based on groupBy
+    if (groupBy) {
+      const grouped = new Map<string, Record<string, number>>();
+
+      records.forEach((record: any) => {
+        const key = record[groupBy] || 'Unknown';
+        const groupData = grouped.get(key) || {};
+
+        numberFields.forEach((field) => {
+          const value = record[field];
+          const numValue =
+            typeof value === 'object' && value?.toNumber
+              ? value.toNumber()
+              : typeof value === 'number'
+                ? value
+                : 0;
+          groupData[field] = (groupData[field] || 0) + numValue;
+        });
+
+        grouped.set(key, groupData);
+      });
+
+      return Array.from(grouped.entries()).map(([key, values]) => ({
+        [groupBy]: key,
+        ...values,
+      }));
+    } else {
+      // Aggregate by first string/date field, or create label
+      const labelField = stringFields[0] || 'label';
+      const aggregated = new Map<string, Record<string, number>>();
+
+      records.forEach((record: any) => {
+        let key: string;
+        if (labelField === 'label') {
+          // Create a label from first available string field or use index
+          key = stringFields.length > 0
+            ? String(record[stringFields[0]] || 'Unknown')
+            : `Item ${aggregated.size + 1}`;
+        } else {
+          // For date fields, group by date
+          if (labelField.includes('_at') || labelField.includes('date')) {
+            key = record[labelField]
+              ? new Date(record[labelField]).toISOString().split('T')[0]
+              : 'Unknown';
+          } else {
+            key = String(record[labelField] || 'Unknown');
+          }
+        }
+
+        const groupData = aggregated.get(key) || {};
+
+        numberFields.forEach((field) => {
+          const value = record[field];
+          const numValue =
+            typeof value === 'object' && value?.toNumber
+              ? value.toNumber()
+              : typeof value === 'number'
+                ? value
+                : 0;
+          groupData[field] = (groupData[field] || 0) + numValue;
+        });
+
+        aggregated.set(key, groupData);
+      });
+
+      return Array.from(aggregated.entries())
+        .map(([key, values]) => ({
+          [labelField]: key,
+          ...values,
+        }))
+        .sort((a, b) => {
+          // Try to sort by date if possible
+          const aDate = new Date(a[labelField]);
+          const bDate = new Date(b[labelField]);
+          if (!isNaN(aDate.getTime()) && !isNaN(bDate.getTime())) {
+            return aDate.getTime() - bDate.getTime();
+          }
+          return String(a[labelField]).localeCompare(String(b[labelField]));
+        });
+    }
+  }
+
+  /**
+   * Delete Custom Graph
+   */
+  async deleteCustomGraph(id: string) {
+    // In a full implementation, you'd delete from database
+    return { success: true, id };
   }
 }
 

@@ -13,10 +13,17 @@ import { ChartCard } from '../../components/dashboard/ChartCard';
 import { DateRangePicker } from '../../components/dashboard/DateRangePicker';
 import { RefreshButton } from '../../components/dashboard/RefreshButton';
 import { TableEmptyState } from '../../components/dashboard/EmptyState';
+import { CustomGraphBuilder } from '../../components/dashboard/CustomGraphBuilder';
 import { dashboardService } from '../../services/dashboard.service';
 import { formatCurrency, formatNumber } from '../../utils/format';
 import { io } from 'socket.io-client';
 import { useBranchStore } from '@/stores/branchStore';
+import {
+  Users,
+  Package2,
+  AlertCircle,
+  CheckCircle2,
+} from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
 
@@ -135,6 +142,17 @@ export function ExecutiveDashboard() {
     queryFn: () => dashboardService.getPendingApprovals(),
   });
 
+  // Fetch additional metrics
+  const { data: serviceKPIs } = useQuery({
+    queryKey: ['dashboard', 'service-kpis', currentBranchId],
+    queryFn: () => dashboardService.getServiceKPIs(),
+  });
+
+  const { data: inventoryKPIs } = useQuery({
+    queryKey: ['dashboard', 'inventory-kpis', currentBranchId],
+    queryFn: () => dashboardService.getInventoryKPIs(),
+  });
+
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     setLastUpdated(new Date());
@@ -176,7 +194,7 @@ export function ExecutiveDashboard() {
         </div>
       </div>
 
-      {/* KPI Cards */}
+      {/* KPI Cards - Row 1 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard
           title={t('dashboard.executive.todayRevenue')}
@@ -239,6 +257,52 @@ export function ExecutiveDashboard() {
           gradient="from-white to-gray-100"
           textColor="text-indonesia-red-600"
           border="border-l-4 border-indonesia-red-600"
+          isLoading={kpisLoading}
+        />
+      </div>
+
+      {/* KPI Cards - Row 2 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+        <KPICard
+          title="Total Customers"
+          value={formatNumber(kpis?.totalCustomers || 0)}
+          icon={Users}
+          gradient="from-blue-500 to-blue-600"
+          textColor="text-white"
+          isLoading={kpisLoading}
+        />
+        <KPICard
+          title="Service Completion Rate"
+          value={
+            serviceKPIs
+              ? `${((serviceKPIs.completedToday / (serviceKPIs.activeServices || 1)) * 100).toFixed(1)}%`
+              : '0%'
+          }
+          icon={CheckCircle2}
+          gradient="from-green-500 to-green-600"
+          textColor="text-white"
+          isLoading={!serviceKPIs}
+        />
+        <KPICard
+          title="Total Products"
+          value={formatNumber(inventoryKPIs?.totalSKUs || 0)}
+          icon={Package2}
+          gradient="from-purple-500 to-purple-600"
+          textColor="text-white"
+          isLoading={!inventoryKPIs}
+        />
+        <KPICard
+          title="Overdue Services"
+          value={formatNumber(kpis?.overdueServices || 0)}
+          change={
+            kpis && kpis.overdueServices > 0
+              ? `${kpis.overdueServices} need attention`
+              : undefined
+          }
+          changeType={kpis && kpis.overdueServices > 0 ? 'negative' : 'neutral'}
+          icon={AlertCircle}
+          gradient="from-orange-500 to-orange-600"
+          textColor="text-white"
           isLoading={kpisLoading}
         />
       </div>
@@ -435,6 +499,11 @@ export function ExecutiveDashboard() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Custom Graph Builder */}
+      <div className="mt-6">
+        <CustomGraphBuilder />
       </div>
     </div>
   );

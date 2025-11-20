@@ -1,7 +1,11 @@
 import {
   Controller,
   Get,
+  Post,
+  Delete,
   Query,
+  Body,
+  Param,
   UseGuards,
   Req,
   ForbiddenException,
@@ -409,6 +413,46 @@ export class DashboardController {
   @Roles('OWNER', 'MGR')
   async getSLACompliance() {
     return this.dashboardService.getSLACompliance();
+  }
+
+  /**
+   * Create Custom Graph
+   * POST /api/v1/dashboard/custom-graph
+   */
+  @Post('custom-graph')
+  @Roles('OWNER', 'CFO', 'CMO', 'CSO', 'MGR')
+  async createCustomGraph(@Body() body: any) {
+    return this.dashboardService.createCustomGraph(body);
+  }
+
+  /**
+   * Get Custom Graph Data
+   * GET /api/v1/dashboard/custom-graph/data
+   */
+  @Get('custom-graph/data')
+  @Roles('OWNER', 'CFO', 'CMO', 'CSO', 'MGR')
+  async getCustomGraphData(
+    @Query('tableName') tableName: string,
+    @Query('dataFields') dataFields: string,
+    @Query('groupBy') groupBy?: string,
+    @Query('branchId') branchId?: string,
+  ) {
+    return this.dashboardService.getCustomGraphData(
+      tableName,
+      dataFields,
+      groupBy,
+      branchId,
+    );
+  }
+
+  /**
+   * Delete Custom Graph
+   * DELETE /api/v1/dashboard/custom-graph/:id
+   */
+  @Delete('custom-graph/:id')
+  @Roles('OWNER', 'CFO', 'CMO', 'CSO', 'MGR')
+  async deleteCustomGraph(@Param('id') id: string) {
+    return this.dashboardService.deleteCustomGraph(id);
   }
 }
 

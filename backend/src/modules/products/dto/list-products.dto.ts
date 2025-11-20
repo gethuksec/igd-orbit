@@ -50,6 +50,13 @@ export class ListProductsDto {
   @IsOptional()
   'filter[maxPrice]'?: number;
 
+  @IsString({ message: 'Filter type must be a string' })
+  @IsIn(['product', 'service', 'all'], {
+    message: 'Filter type must be one of: product, service, all',
+  })
+  @IsOptional()
+  'filter[type]'?: string = 'all'; // Filter by product/service type
+
   @IsString({ message: 'Sort must be a string' })
   @IsIn(['name', 'price', 'stock', 'createdAt'], {
     message: 'Sort must be one of: name, price, stock, createdAt',

@@ -1072,6 +1072,59 @@ async function main() {
       isActive: true,
       description: 'Screen protector anti-glare untuk laptop 15.6 inch',
     },
+    // Service Products (Jasa)
+    {
+      sku: 'SVC-001',
+      barcode: null,
+      name: 'Jasa Ganti LCD/Layar',
+      categoryId: catSparepart.id,
+      brandId: brandGeneric.id,
+      costPrice: 0,
+      sellingPrice: 500000,
+      unit: 'service',
+      isService: true,
+      isActive: true,
+      description: 'Jasa penggantian LCD atau layar perangkat',
+    },
+    {
+      sku: 'SVC-002',
+      barcode: null,
+      name: 'Jasa Ganti Baterai',
+      categoryId: catSparepart.id,
+      brandId: brandGeneric.id,
+      costPrice: 0,
+      sellingPrice: 300000,
+      unit: 'service',
+      isService: true,
+      isActive: true,
+      description: 'Jasa penggantian baterai perangkat',
+    },
+    {
+      sku: 'SVC-003',
+      barcode: null,
+      name: 'Jasa Service Software',
+      categoryId: catSparepart.id,
+      brandId: brandGeneric.id,
+      costPrice: 0,
+      sellingPrice: 200000,
+      unit: 'service',
+      isService: true,
+      isActive: true,
+      description: 'Jasa perbaikan software, install ulang, dll',
+    },
+    {
+      sku: 'SVC-004',
+      barcode: null,
+      name: 'Jasa Service Hardware',
+      categoryId: catSparepart.id,
+      brandId: brandGeneric.id,
+      costPrice: 0,
+      sellingPrice: 800000,
+      unit: 'service',
+      isService: true,
+      isActive: true,
+      description: 'Jasa perbaikan komponen hardware',
+    },
   ];
 
   const createdProducts = [];
@@ -1465,9 +1518,13 @@ async function main() {
     createdServiceTypes.push(created);
   }
 
-  // 13. Create Service Orders
-  console.log('🔧 Creating service orders...');
-  if (createdCustomers.length > 0 && createdServiceTypes.length > 0) {
+  // 13. Create Service Orders with Parts Usage
+  console.log('🔧 Creating service orders with parts usage...');
+  const createdServiceOrders = [];
+  if (createdCustomers.length > 0 && createdServiceTypes.length > 0 && createdProducts.length > 0) {
+    // Find sparepart products for service usage
+    const sparepartProducts = createdProducts.filter(p => p.sku.startsWith('SPR-'));
+    
     const serviceOrders = [
       {
         serviceNumber: 'SRV-20250115-0001',
@@ -1486,6 +1543,7 @@ async function main() {
         priority: 'urgent',
         status: 'pending',
         createdBy: cs.id,
+        parts: [] as any[],
       },
       {
         serviceNumber: 'SRV-20250116-0002',
@@ -1504,6 +1562,7 @@ async function main() {
         priority: 'normal',
         status: 'in_progress',
         createdBy: cs.id,
+        parts: sparepartProducts.length > 0 ? [{ productId: sparepartProducts[0].id, qty: 1, price: Number(sparepartProducts[0].sellingPrice) }] : [],
       },
       {
         serviceNumber: 'SRV-20250117-0003',
@@ -1522,25 +1581,108 @@ async function main() {
         priority: 'normal',
         status: 'completed',
         createdBy: cs.id,
+        parts: [] as any[],
+      },
+      {
+        serviceNumber: 'SRV-20250118-0004',
+        branchId: branch1.id,
+        customerId: createdCustomers[2].id,
+        serviceTypeId: createdServiceTypes[0].id,
+        customerName: createdCustomers[2].name,
+        customerPhone: createdCustomers[2].phone,
+        customerEmail: createdCustomers[2].email,
+        deviceType: 'handphone',
+        deviceBrand: 'Samsung',
+        deviceModel: 'Galaxy S21',
+        deviceSerial: 'SN111222333',
+        complaint: 'LCD retak, perlu ganti LCD original',
+        estimatedCost: new Decimal(1200000),
+        priority: 'normal',
+        status: 'completed',
+        completedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+        deliveredAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
+        createdBy: cs.id,
+        parts: sparepartProducts.length > 2 ? [
+          { productId: sparepartProducts[2].id, qty: 1, price: Number(sparepartProducts[2].sellingPrice) },
+        ] : [],
+      },
+      {
+        serviceNumber: 'SRV-20250119-0005',
+        branchId: branch1.id,
+        customerId: createdCustomers[1].id,
+        serviceTypeId: createdServiceTypes[3].id,
+        customerName: createdCustomers[1].name,
+        customerPhone: createdCustomers[1].phone,
+        customerEmail: createdCustomers[1].email,
+        deviceType: 'handphone',
+        deviceBrand: 'Apple',
+        deviceModel: 'iPhone 12 Pro',
+        deviceSerial: 'SN444555666',
+        complaint: 'Camera tidak berfungsi, perlu ganti camera module',
+        estimatedCost: new Decimal(2500000),
+        priority: 'normal',
+        status: 'delivered',
+        completedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
+        deliveredAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000), // 4 days ago
+        createdBy: cs.id,
+        parts: sparepartProducts.length > 4 ? [
+          { productId: sparepartProducts[4].id, qty: 1, price: Number(sparepartProducts[4].sellingPrice) },
+        ] : [],
       },
     ];
 
     for (const so of serviceOrders) {
+      const { parts, ...soData } = so;
+      
       // Use upsert to handle existing service orders
       const created = await prisma.serviceOrder.upsert({
         where: { serviceNumber: so.serviceNumber },
         update: {
-          // Update fields if service order already exists
           status: so.status,
           estimatedCost: so.estimatedCost,
           priority: so.priority,
         },
         create: {
-          ...so,
-          receivedDate: new Date(),
-          slaDueDate: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
+          ...soData,
+          receivedDate: so.completedAt ? new Date(so.completedAt.getTime() - 3 * 24 * 60 * 60 * 1000) : new Date(),
+          slaDueDate: so.completedAt ? new Date(so.completedAt.getTime() - 1 * 24 * 60 * 60 * 1000) : new Date(Date.now() + 24 * 60 * 60 * 1000),
         },
       });
+      createdServiceOrders.push(created);
+
+      // Create service parts used
+      if (parts && parts.length > 0) {
+        for (const part of parts) {
+          const existingPart = await prisma.servicePartsUsed.findFirst({
+            where: {
+              serviceOrderId: created.id,
+              productId: part.productId,
+            },
+          });
+
+          if (!existingPart) {
+            const product = sparepartProducts.find(p => p.id === part.productId);
+            const unitCost = product ? Number(product.costPrice) : 0;
+            const unitPrice = Number(part.price);
+            const totalCost = unitCost * part.qty;
+            const totalPrice = unitPrice * part.qty;
+            
+            await prisma.servicePartsUsed.create({
+              data: {
+                serviceOrderId: created.id,
+                productId: part.productId,
+                purchaseType: 'internal',
+                quantity: new Decimal(part.qty),
+                unitCost: new Decimal(unitCost),
+                unitPrice: new Decimal(unitPrice),
+                totalCost: new Decimal(totalCost),
+                totalPrice: new Decimal(totalPrice),
+                notes: 'Parts used for service',
+              },
+            });
+          }
+        }
+      }
 
       // Check if status history already exists
       const existingHistory = await prisma.serviceStatusHistory.findFirst({
@@ -1564,9 +1706,13 @@ async function main() {
     }
   }
 
-  // 14. Create Sales Transactions
+  // 14. Create Sales Transactions with Multiple Products
   console.log('💰 Creating sales transactions...');
+  const createdTransactions = [];
   if (createdProducts.length > 0 && createdCustomers.length > 0) {
+    // Filter non-service products for sales
+    const salesProducts = createdProducts.filter(p => !p.isService);
+    
     const salesTransactions = [
       {
         transactionNumber: 'TRX-20250115-0001',
@@ -1581,6 +1727,9 @@ async function main() {
         taxPercentage: new Decimal(11),
         total: new Decimal(13320000),
         paymentStatus: 'paid',
+        items: salesProducts.length > 0 ? [
+          { productId: salesProducts[0].id, qty: 1, price: Number(salesProducts[0].sellingPrice) },
+        ] : [],
       },
       {
         transactionNumber: 'TRX-20250116-0002',
@@ -1595,6 +1744,9 @@ async function main() {
         taxPercentage: new Decimal(11),
         total: new Decimal(19980000),
         paymentStatus: 'paid',
+        items: salesProducts.length > 1 ? [
+          { productId: salesProducts[1].id, qty: 1, price: Number(salesProducts[1].sellingPrice) },
+        ] : [],
       },
       {
         transactionNumber: 'TRX-20250117-0003',
@@ -1609,44 +1761,117 @@ async function main() {
         taxPercentage: new Decimal(11),
         total: new Decimal(19980000),
         paymentStatus: 'paid',
+        items: salesProducts.length > 2 ? [
+          { productId: salesProducts[2].id, qty: 1, price: Number(salesProducts[2].sellingPrice) },
+        ] : [],
+      },
+      {
+        transactionNumber: 'TRX-20250118-0004',
+        transactionType: 'pos',
+        branchId: branch1.id,
+        customerId: createdCustomers[2].id,
+        cashierId: cs.id,
+        status: 'completed',
+        subtotal: new Decimal(350000),
+        discountAmount: new Decimal(0),
+        taxAmount: new Decimal(38500),
+        taxPercentage: new Decimal(11),
+        total: new Decimal(388500),
+        paymentStatus: 'paid',
+        items: salesProducts.length > 5 ? [
+          { productId: salesProducts[5].id, qty: 1, price: Number(salesProducts[5].sellingPrice) },
+        ] : [],
+      },
+      {
+        transactionNumber: 'TRX-20250119-0005',
+        transactionType: 'pos',
+        branchId: branch1.id,
+        customerId: createdCustomers[3].id,
+        cashierId: cs.id,
+        status: 'completed',
+        subtotal: new Decimal(1500000),
+        discountAmount: new Decimal(0),
+        taxAmount: new Decimal(165000),
+        taxPercentage: new Decimal(11),
+        total: new Decimal(1665000),
+        paymentStatus: 'paid',
+        items: salesProducts.length > 6 ? [
+          { productId: salesProducts[6].id, qty: 1, price: Number(salesProducts[6].sellingPrice) },
+        ] : [],
       },
     ];
 
     for (const st of salesTransactions) {
+      const { items, ...stData } = st;
+      
       // Use upsert to handle existing transactions
       const created = await prisma.salesTransaction.upsert({
         where: { transactionNumber: st.transactionNumber },
         update: {
-          // Update fields if transaction already exists
           status: st.status,
           paymentStatus: st.paymentStatus,
         },
-        create: st,
+        create: stData,
       });
+      createdTransactions.push(created);
 
-      // Check if transaction item already exists
-      const existingItem = await prisma.salesTransactionItem.findFirst({
-        where: {
-          transactionId: created.id,
-          productId: createdProducts[0].id,
+      // Create transaction items
+      if (items && items.length > 0) {
+        for (const item of items) {
+          const existingItem = await prisma.salesTransactionItem.findFirst({
+            where: {
+              transactionId: created.id,
+              productId: item.productId,
+            },
+          });
+
+          if (!existingItem) {
+            const product = salesProducts.find(p => p.id === item.productId);
+            if (product) {
+              await prisma.salesTransactionItem.create({
+                data: {
+                  transactionId: created.id,
+                  productId: item.productId,
+                  productName: product.name,
+                  productSku: product.sku,
+                  quantity: new Decimal(item.qty),
+                  unitPrice: new Decimal(item.price),
+                  discountAmount: new Decimal(0),
+                  subtotal: new Decimal(Number(item.price) * item.qty),
+                },
+              });
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 15. Create Service Returns
+  console.log('🔄 Creating service returns...');
+  if (createdServiceOrders.length > 0) {
+    // Find a completed/delivered service order for return
+    const completedServiceOrder = createdServiceOrders.find(so => 
+      so.status === 'completed' || so.status === 'delivered'
+    );
+
+    if (completedServiceOrder) {
+      await prisma.serviceReturn.upsert({
+        where: { returnNumber: 'RET-SRV-20250120-0001' },
+        update: {},
+        create: {
+          returnNumber: 'RET-SRV-20250120-0001',
+          serviceOrderId: completedServiceOrder.id,
+          returnType: 'complaint',
+          returnReason: 'Service tidak sesuai ekspektasi, hasil perbaikan kurang memuaskan',
+          customerComplaint: 'Setelah service, masih ada masalah dengan layar yang diganti',
+          isWithinWarranty: true,
+          isWithinReturnPeriod: true,
+          status: 'pending',
+          returnedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+          createdBy: cs.id,
         },
       });
-
-      // Create transaction items only if they don't exist
-      if (!existingItem && createdProducts.length > 0) {
-        await prisma.salesTransactionItem.create({
-          data: {
-            transactionId: created.id,
-            productId: createdProducts[0].id,
-            productName: createdProducts[0].name,
-            productSku: createdProducts[0].sku,
-            quantity: new Decimal(1),
-            unitPrice: createdProducts[0].sellingPrice,
-            discountAmount: new Decimal(0),
-            subtotal: createdProducts[0].sellingPrice,
-          },
-        });
-      }
     }
   }
 
