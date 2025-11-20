@@ -21,10 +21,12 @@ import {
   X,
 } from 'lucide-react';
 import { serviceOrdersService } from '../../services/service-orders.service';
+import { serviceReturnsService } from '../../services/service-returns.service';
 import { toast } from 'sonner';
 import StatusTimeline from '@/pages/public/components/StatusTimeline';
 import { api } from '@/services/api';
 import { useBranchStore } from '@/stores/branchStore';
+import { RotateCcw } from 'lucide-react';
 
 const getCurrentUser = () => {
   try {
@@ -70,6 +72,29 @@ export default function ServiceOrderDetail() {
   const [paymentReference, setPaymentReference] = useState('');
   const [paymentNotes, setPaymentNotes] = useState('');
   const { currentBranchId } = useBranchStore();
+
+  // Fetch service returns for this service order
+  const { data: serviceReturns } = useQuery({
+    queryKey: ['service-returns', 'by-service-order', id],
+    queryFn: async () => {
+      try {
+        const response = await serviceReturnsService.getAll({
+          page: 1,
+          limit: 100,
+        });
+        // Filter returns for this service order
+        return response.data.filter((ret: any) => ret.serviceOrderId === id);
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!id,
+  });
+
+  // Check if there's an active return (not rejected)
+  const hasActiveReturn = serviceReturns?.some(
+    (ret: any) => ret.status !== 'rejected',
+  );
 
   const { data: serviceOrder, isLoading } = useQuery({
     queryKey: ['service-order', id],
@@ -901,6 +926,82 @@ export default function ServiceOrderDetail() {
             )}
           </div>
         </div>
+
+        {/* Return & Complaint Section - Only show if delivered */}
+        {normalizedStatus === 'delivered' && (
+          <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4 md:col-span-2">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg">
+                  <RotateCcw className="w-5 h-5 text-white" />
+                </div>
+                <h2 className="text-xl font-bold text-gray-900">Retur & Komplain</h2>
+              </div>
+              {!hasActiveReturn ? (
+                <Link
+                  to={`/service-returns/new?serviceOrderId=${id}`}
+                  className="px-4 py-2 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Buat Retur
+                </Link>
+              ) : (
+                <div className="px-4 py-2 bg-gray-300 text-gray-600 rounded-xl font-semibold flex items-center gap-2 cursor-not-allowed">
+                  <RotateCcw className="w-4 h-4" />
+                  Sudah Ada Retur Aktif
+                </div>
+              )}
+            </div>
+
+            {/* Return History */}
+            {serviceReturns && serviceReturns.length > 0 && (
+              <div className="mt-4 space-y-2">
+                <h3 className="text-sm font-semibold text-gray-700 mb-2">Riwayat Retur</h3>
+                <div className="space-y-2">
+                  {serviceReturns.map((ret: any) => (
+                    <Link
+                      key={ret.id}
+                      to={`/service-returns/${ret.id}`}
+                      className="block p-3 bg-gray-50 hover:bg-primary-50 border border-gray-200 rounded-lg transition-all"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-semibold text-primary-600">{ret.returnNumber}</p>
+                          <p className="text-xs text-gray-600 mt-1">
+                            {ret.returnType} • {ret.status}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-gray-500">
+                            {new Date(ret.returnedAt).toLocaleDateString('id-ID')}
+                          </p>
+                          <span
+                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border mt-1 ${
+                              ret.status === 'pending' || ret.status === 'investigating'
+                                ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                                : ret.status === 'approved'
+                                  ? 'bg-green-100 text-green-800 border-green-200'
+                                  : ret.status === 'rejected'
+                                    ? 'bg-red-100 text-red-800 border-red-200'
+                                    : 'bg-blue-100 text-blue-800 border-blue-200'
+                            }`}
+                          >
+                            {ret.status}
+                          </span>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+            {(!serviceReturns || serviceReturns.length === 0) && (
+              <p className="text-sm text-gray-500 text-center py-4">
+                Belum ada retur untuk service order ini
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Sparepart & Accessories */}

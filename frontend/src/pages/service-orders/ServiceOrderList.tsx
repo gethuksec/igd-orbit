@@ -303,14 +303,57 @@ export default function ServiceOrderList() {
                       </Link>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {order.customerName || order.customer?.name || 'Walk-in Customer'}
-                      </div>
-                      {(order.customerPhone || order.customer?.phone) && (
-                        <div className="text-xs text-gray-500">
-                          {order.customerPhone || order.customer?.phone}
-                        </div>
-                      )}
+                      {(() => {
+                        const orderAny = order as any;
+                        // Try to get customerId from multiple sources
+                        const customerId = 
+                          orderAny.customer?.id || 
+                          orderAny.customerId ||
+                          null;
+                        
+                        const customerName = 
+                          order.customerName || 
+                          orderAny.customer?.name ||
+                          orderAny.customer?.fullName ||
+                          'Walk-in Customer';
+                        
+                        const customerPhone = 
+                          order.customerPhone || 
+                          orderAny.customer?.phone;
+                        
+                        // If we have customerId, make it clickable
+                        if (customerId && customerId !== null && customerId !== undefined) {
+                          return (
+                            <div>
+                              <Link
+                                to={`/customers/${customerId}`}
+                                className="text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors hover:underline cursor-pointer"
+                              >
+                                {customerName}
+                              </Link>
+                              {customerPhone && (
+                                <div className="text-xs text-gray-500">
+                                  {customerPhone}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+                        
+                        // No customerId, just show name as text (walk-in customer)
+                        return (
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {customerName}
+                            </div>
+                            {customerPhone && (
+                              <div className="text-xs text-gray-500">
+                                {customerPhone}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span

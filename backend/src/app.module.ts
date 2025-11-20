@@ -19,6 +19,8 @@ import { HRModule } from './modules/hr/hr.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { SuppliersModule } from './modules/suppliers/suppliers.module';
 import { WebSocketModule } from './modules/websocket/websocket.module';
+import { RolesModule } from './modules/roles/roles.module';
+import { PermissionsModule } from './modules/permissions/permissions.module';
 
 @Module({
   imports: [
@@ -43,6 +45,8 @@ import { WebSocketModule } from './modules/websocket/websocket.module';
     HRModule,
     DashboardModule,
     WebSocketModule,
+    RolesModule,
+    PermissionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
