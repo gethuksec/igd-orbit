@@ -37,10 +37,6 @@ import ServiceOrderForm from './pages/service-orders/ServiceOrderForm';
 import ServiceOrderDetail from './pages/service-orders/ServiceOrderDetail';
 import ServiceOrderPrint from './pages/service-orders/ServiceOrderPrint';
 import MyServiceOrders from './pages/service-orders/MyServiceOrders';
-// Service Returns
-import ServiceReturnsList from './pages/service-returns/ServiceReturnsList';
-import ServiceReturnForm from './pages/service-returns/ServiceReturnForm';
-import ServiceReturnDetail from './pages/service-returns/ServiceReturnDetail';
 // Inventory
 import StockList from './pages/inventory/StockList';
 import StockTransfer from './pages/inventory/StockTransfer';
@@ -589,38 +585,6 @@ function App() {
             <Route
               path="/service-orders/:id/print"
               element={<ServiceOrderPrint />}
-            />
-            
-            {/* Service Returns */}
-            <Route
-              path="/service-returns"
-              element={
-                <ProtectedRoute>
-                  <DashboardLayout>
-                    <ServiceReturnsList />
-                  </DashboardLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/service-returns/new"
-              element={
-                <ProtectedRoute>
-                  <DashboardLayout>
-                    <ServiceReturnForm />
-                  </DashboardLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/service-returns/:id"
-              element={
-                <ProtectedRoute>
-                  <DashboardLayout>
-                    <ServiceReturnDetail />
-                  </DashboardLayout>
-                </ProtectedRoute>
-              }
             />
             
             {/* Warehouse Landing */}

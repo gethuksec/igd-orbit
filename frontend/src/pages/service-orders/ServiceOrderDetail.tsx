@@ -19,11 +19,8 @@ import {
   Receipt,
   Printer,
   X,
-  RefreshCw,
-  Eye,
 } from 'lucide-react';
 import { serviceOrdersService } from '../../services/service-orders.service';
-import { serviceReturnsService } from '../../services/service-returns.service';
 import { toast } from 'sonner';
 import StatusTimeline from '@/pages/public/components/StatusTimeline';
 import { api } from '@/services/api';
@@ -353,24 +350,13 @@ export default function ServiceOrderDetail() {
               <p className="text-primary-100">Detail Service Order</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {normalizedStatus === 'delivered' && (
-              <Link
-                to={`/service-returns/new?serviceOrderId=${id}`}
-                className="flex items-center gap-2 px-4 py-2 bg-red-500/90 backdrop-blur-sm text-white rounded-lg hover:bg-red-500 transition-all"
-              >
-                <RefreshCw className="w-4 h-4" />
-                <span>Return/Complaint</span>
-              </Link>
-            )}
-            <Link
-              to={`/service-orders/${id}/edit`}
-              className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm text-white rounded-lg hover:bg-white/20 transition-all"
-            >
-              <Edit className="w-4 h-4" />
-              <span>Edit</span>
-            </Link>
-          </div>
+          <Link
+            to={`/service-orders/${id}/edit`}
+            className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm text-white rounded-lg hover:bg-white/20 transition-all"
+          >
+            <Edit className="w-4 h-4" />
+            <span>Edit</span>
+          </Link>
         </div>
       </div>
 
@@ -1227,11 +1213,6 @@ export default function ServiceOrderDetail() {
         </div>
       </div>
 
-      {/* Return/Complaint History */}
-      {normalizedStatus === 'delivered' && (
-        <ReturnHistorySection serviceOrderId={id!} />
-      )}
-
       {/* Add Parts Modal */}
       {showAddPartsModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
@@ -1798,90 +1779,6 @@ export default function ServiceOrderDetail() {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-// Return History Section Component
-function ReturnHistorySection({ serviceOrderId }: { serviceOrderId: string }) {
-  const { data: returns, isLoading } = useQuery({
-    queryKey: ['service-returns', 'by-order', serviceOrderId],
-    queryFn: async () => {
-      try {
-        const response = await serviceReturnsService.getAll({
-          search: serviceOrderId,
-          limit: 100,
-        });
-        return response.data.filter((r: any) => r.serviceOrderId === serviceOrderId);
-      } catch {
-        return [];
-      }
-    },
-  });
-
-  if (isLoading) {
-    return (
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="w-6 h-6 text-primary-600 animate-spin" />
-        </div>
-      </div>
-    );
-  }
-
-  if (!returns || returns.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="p-2 bg-gradient-to-br from-red-500 to-red-600 rounded-lg">
-          <RefreshCw className="w-5 h-5 text-white" />
-        </div>
-        <h2 className="text-xl font-bold text-gray-900">Return/Complaint History</h2>
-      </div>
-      <div className="space-y-3">
-        {returns.map((returnItem: any) => (
-          <Link
-            key={returnItem.id}
-            to={`/service-returns/${returnItem.id}`}
-            className="block p-4 border-2 border-gray-200 rounded-lg hover:border-primary-300 hover:bg-primary-50 transition-all"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-sm font-semibold text-primary-600">{returnItem.returnNumber}</span>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                    returnItem.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                    returnItem.status === 'approved' ? 'bg-green-100 text-green-800' :
-                    returnItem.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {returnItem.status.toUpperCase()}
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    {returnItem.returnType === 're-service' ? 'Re-Service' :
-                     returnItem.returnType === 'complaint' ? 'Complaint' :
-                     returnItem.returnType === 'warranty' ? 'Warranty' : 'Combination'}
-                  </span>
-                </div>
-                <p className="text-sm text-gray-700 line-clamp-2">{returnItem.returnReason}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {new Date(returnItem.returnedAt).toLocaleDateString('id-ID', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                  })}
-                </p>
-              </div>
-              <div className="ml-4">
-                <Eye className="w-5 h-5 text-gray-400" />
-              </div>
-            </div>
-          </Link>
-        ))}
-      </div>
     </div>
   );
 }

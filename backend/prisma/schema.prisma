@@ -825,8 +825,6 @@ model ServiceOrder {
   statusHistory         ServiceStatusHistory[]
   partsUsed             ServicePartsUsed[]
   photos                ServicePhoto[]
-  serviceReturns        ServiceReturn[]        @relation("ServiceReturnOriginal")
-  reServiceOrders       ServiceReturn[]         @relation("ServiceReturnReService")
 
   @@index([serviceNumber])
   @@index([internalNumber])
@@ -902,53 +900,6 @@ model ServicePhoto {
   @@index([serviceOrderId])
   @@index([photoType])
   @@map("service_photos")
-}
-
-model ServiceReturn {
-  id                    String   @id @default(uuid())
-  returnNumber          String   @unique @map("return_number") // RET-SRV-YYYYMMDD-XXXXXX
-  serviceOrderId        String   @map("service_order_id")
-  
-  // Return/Complaint Details (satu transaction dengan detail)
-  returnType            String   @map("return_type") // 're-service', 'complaint', 'warranty', 'combination'
-  returnReason          String   @map("return_reason") @db.Text
-  customerComplaint     String?  @map("customer_complaint") @db.Text // Detail complaint jika ada
-  isWithinWarranty      Boolean  @default(false) @map("is_within_warranty") // Track apakah dalam warranty
-  isWithinReturnPeriod  Boolean  @default(true) @map("is_within_return_period") // Track apakah dalam 30 hari
-  
-  status                String   @default("pending") // 'pending', 'investigating', 'approved', 'rejected', 'resolved'
-  
-  // Resolution
-  resolution            String?  @db.Text
-  resolutionType        String?  @map("resolution_type") // 're-service', 'refund', 'discount', 'replacement'
-  newServiceOrderId     String?  @map("new_service_order_id")
-  refundAmount          Decimal? @map("refund_amount") @db.Decimal(15, 2) // Track untuk nanti integrasi finance
-  
-  // Approval
-  approvedBy            String?  @map("approved_by")
-  approvedAt            DateTime? @map("approved_at")
-  rejectedBy            String?  @map("rejected_by")
-  rejectedAt            DateTime? @map("rejected_at")
-  rejectionReason       String?  @map("rejection_reason") @db.Text
-  
-  // Dates
-  returnedAt            DateTime @map("returned_at")
-  resolvedAt            DateTime? @map("resolved_at")
-  
-  // Created by
-  createdBy             String   @map("created_by")
-  createdAt             DateTime @default(now()) @map("created_at")
-  updatedAt             DateTime @updatedAt @map("updated_at")
-  
-  // Relations
-  serviceOrder          ServiceOrder @relation("ServiceReturnOriginal", fields: [serviceOrderId], references: [id], onDelete: Restrict)
-  newServiceOrder       ServiceOrder? @relation("ServiceReturnReService", fields: [newServiceOrderId], references: [id], onDelete: SetNull)
-  
-  @@index([serviceOrderId])
-  @@index([status])
-  @@index([returnType])
-  @@index([returnNumber])
-  @@map("service_returns")
 }
 
 // ============================================
