@@ -3,10 +3,13 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services';
 import { CreateSalesTransactionDto, VoidTransactionDto, HoldTransactionDto } from './dto';
 import { CustomersService } from '../customers/customers.service';
+import { JournalEntriesService } from '../finance/services/journal-entries.service';
 import { randomBytes } from 'crypto';
 
 /**
@@ -28,6 +31,8 @@ export class SalesTransactionsService {
   constructor(
     private prisma: PrismaService,
     private customersService: CustomersService,
+    @Inject(forwardRef(() => JournalEntriesService))
+    private journalEntriesService?: JournalEntriesService,
   ) {}
 
   /**
@@ -336,6 +341,7 @@ export class SalesTransactionsService {
             quantityAfter,
             batchNumber: itemDto.batchNumber || null,
             serialNumber: itemDto.serialNumber || null,
+            notes: `Sale: ${transaction.transactionNumber} - ${product.name} (${itemDto.quantity} unit)`,
             createdBy: userId,
           },
         });
@@ -392,6 +398,29 @@ export class SalesTransactionsService {
           payments: true,
         },
       });
+
+      // Auto-generate journal entry (outside transaction to avoid circular dependency)
+      if (this.journalEntriesService) {
+        try {
+          const journalItems = items.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity.toNumber(),
+            costPrice: products.find((p) => p.id === item.productId)?.costPrice?.toNumber() || 0,
+          }));
+
+          await this.journalEntriesService.autoGenerateFromSalesTransaction(
+            transaction.id,
+            branchId,
+            calculation.total,
+            createDto.payment.method,
+            journalItems,
+            userId,
+          );
+        } catch (error) {
+          // Don't fail transaction if journal creation fails
+          console.error('Error creating auto journal entry:', error);
+        }
+      }
 
       return updatedTransaction;
     });

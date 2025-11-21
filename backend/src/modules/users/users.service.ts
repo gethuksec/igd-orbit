@@ -18,6 +18,7 @@ import {
   TransformedUser,
 } from './transformers/user.transformer';
 import { Prisma } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/library';
 
 /**
  * Users Service
@@ -143,6 +144,23 @@ export class UsersService {
               },
             },
           },
+          employee: {
+            include: {
+              branch: {
+                select: {
+                  id: true,
+                  code: true,
+                  name: true,
+                },
+              },
+              department: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
         },
       }),
       this.prisma.user.count({ where }),
@@ -184,6 +202,23 @@ export class UsersService {
               select: {
                 id: true,
                 code: true,
+                name: true,
+              },
+            },
+          },
+        },
+        employee: {
+          include: {
+            branch: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+              },
+            },
+            department: {
+              select: {
+                id: true,
                 name: true,
               },
             },
@@ -283,44 +318,101 @@ export class UsersService {
       createUserDto.password,
     );
 
-    // Create user
-    const user = await this.prisma.user.create({
-      data: {
-        email: createUserDto.email,
-        username: createUserDto.username,
-        passwordHash,
-        fullName: createUserDto.fullName,
-        phone: createUserDto.phone,
-        isActive: true,
-        isVerified: false,
-        // Note: employeeCode and departmentId would be stored in Employee table
-        // For now, we'll skip these as Employee model is placeholder
-      },
-      include: {
-        userRoles: {
-          include: {
-            role: {
-              include: {
-                rolePermissions: {
-                  include: {
-                    permission: true,
-                  },
+    // Generate employee code if not provided
+    let employeeCode = createUserDto.employeeCode;
+    if (!employeeCode) {
+      // Find the highest employee code number
+      const lastEmployee = await this.prisma.employee.findFirst({
+        orderBy: { employeeCode: 'desc' },
+        where: {
+          employeeCode: {
+            startsWith: 'EMP-',
+          },
+        },
+      });
+
+      if (lastEmployee) {
+        const lastNumber = parseInt(lastEmployee.employeeCode.replace('EMP-', ''), 10);
+        employeeCode = `EMP-${String(lastNumber + 1).padStart(4, '0')}`;
+      } else {
+        employeeCode = 'EMP-0001';
+      }
+    }
+
+    // Create user and employee in transaction
+    const result = await this.prisma.$transaction(async (tx) => {
+      // Create user
+      const user = await tx.user.create({
+        data: {
+          email: createUserDto.email,
+          username: createUserDto.username,
+          passwordHash,
+          fullName: createUserDto.fullName,
+          phone: createUserDto.phone,
+          isActive: true,
+          isVerified: false,
+        },
+      });
+
+      // Automatically create employee record for every user
+      await tx.employee.create({
+        data: {
+          userId: user.id,
+          employeeCode,
+          branchId: createUserDto.departmentId ? null : null, // Will be set later if needed
+          departmentId: createUserDto.departmentId || null,
+          position: null, // Will be set later if needed
+          isActive: true,
+        },
+      });
+
+      // Fetch user with all relations
+      return await tx.user.findUnique({
+        where: { id: user.id },
+        include: {
+          employee: {
+            include: {
+              branch: {
+                select: {
+                  id: true,
+                  code: true,
+                  name: true,
+                },
+              },
+              department: {
+                select: {
+                  id: true,
+                  code: true,
+                  name: true,
                 },
               },
             },
-            branch: {
-              select: {
-                id: true,
-                code: true,
-                name: true,
+          },
+          userRoles: {
+            include: {
+              role: {
+                include: {
+                  rolePermissions: {
+                    include: {
+                      permission: true,
+                    },
+                  },
+                },
+              },
+              branch: {
+                select: {
+                  id: true,
+                  code: true,
+                  name: true,
+                },
               },
             },
           },
         },
-      },
+      });
     });
 
-    return UserTransformer.transform(user);
+    return UserTransformer.transform(result!);
   }
 
   /**
@@ -391,6 +483,23 @@ export class UsersService {
         isActive: updateUserDto.isActive,
       },
       include: {
+        employee: {
+          include: {
+            branch: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+              },
+            },
+            department: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
         userRoles: {
           include: {
             role: {
@@ -414,7 +523,97 @@ export class UsersService {
       },
     });
 
-    return UserTransformer.transform(updatedUser);
+    // Update employee data if provided
+    if (updatedUser.employee) {
+      const employeeUpdateData: any = {};
+      if (updateUserDto.employeeCode !== undefined)
+        employeeUpdateData.employeeCode = updateUserDto.employeeCode;
+      if (updateUserDto.branchId !== undefined)
+        employeeUpdateData.branchId = updateUserDto.branchId || null;
+      if (updateUserDto.departmentId !== undefined)
+        employeeUpdateData.departmentId = updateUserDto.departmentId || null;
+      if (updateUserDto.position !== undefined)
+        employeeUpdateData.position = updateUserDto.position;
+      if (updateUserDto.hireDate !== undefined)
+        employeeUpdateData.hireDate = updateUserDto.hireDate
+          ? new Date(updateUserDto.hireDate)
+          : null;
+      if (updateUserDto.employmentType !== undefined)
+        employeeUpdateData.employmentType = updateUserDto.employmentType;
+      if (updateUserDto.basicSalary !== undefined)
+        employeeUpdateData.basicSalary =
+          updateUserDto.basicSalary !== null
+            ? new Decimal(updateUserDto.basicSalary)
+            : null;
+      if (updateUserDto.hourlyRate !== undefined)
+        employeeUpdateData.hourlyRate =
+          updateUserDto.hourlyRate !== null
+            ? new Decimal(updateUserDto.hourlyRate)
+            : null;
+      if (updateUserDto.bankAccount !== undefined)
+        employeeUpdateData.bankAccount = updateUserDto.bankAccount;
+      if (updateUserDto.bankName !== undefined)
+        employeeUpdateData.bankName = updateUserDto.bankName;
+      if (updateUserDto.taxId !== undefined)
+        employeeUpdateData.taxId = updateUserDto.taxId;
+      if (updateUserDto.bpjsNumber !== undefined)
+        employeeUpdateData.bpjsNumber = updateUserDto.bpjsNumber;
+      if (updateUserDto.isActive !== undefined)
+        employeeUpdateData.isActive = updateUserDto.isActive;
+
+      if (Object.keys(employeeUpdateData).length > 0) {
+        await this.prisma.employee.update({
+          where: { id: updatedUser.employee.id },
+          data: employeeUpdateData,
+        });
+      }
+    }
+
+    // Fetch updated user with employee data
+    const finalUser = await this.prisma.user.findUnique({
+      where: { id },
+      include: {
+        employee: {
+          include: {
+            branch: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+              },
+            },
+            department: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+        userRoles: {
+          include: {
+            role: {
+              include: {
+                rolePermissions: {
+                  include: {
+                    permission: true,
+                  },
+                },
+              },
+            },
+            branch: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return UserTransformer.transform(finalUser!);
   }
 
   /**

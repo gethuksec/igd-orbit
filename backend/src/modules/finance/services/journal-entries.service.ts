@@ -139,7 +139,17 @@ export class JournalEntriesService {
       },
     });
 
-    return entry;
+    // Transform Decimal to number for JSON serialization and convert to snake_case for frontend
+    return {
+      ...entry,
+      lines: entry.lines.map((line) => ({
+        ...line,
+        debit_amount: line.debitAmount.toNumber(),
+        credit_amount: line.creditAmount.toNumber(),
+        debitAmount: undefined,
+        creditAmount: undefined,
+      })),
+    };
   }
 
   /**
@@ -194,8 +204,20 @@ export class JournalEntriesService {
       this.prisma.journalEntry.count({ where }),
     ]);
 
+    // Transform Decimal to number for JSON serialization and convert to snake_case for frontend
+    const transformedEntries = entries.map((entry) => ({
+      ...entry,
+      lines: entry.lines.map((line) => ({
+        ...line,
+        debit_amount: line.debitAmount.toNumber(),
+        credit_amount: line.creditAmount.toNumber(),
+        debitAmount: undefined,
+        creditAmount: undefined,
+      })),
+    }));
+
     return {
-      data: entries,
+      data: transformedEntries,
       meta: {
         total,
         page,
@@ -228,7 +250,17 @@ export class JournalEntriesService {
       throw new NotFoundException('Journal entry not found');
     }
 
-    return entry;
+    // Transform Decimal to number for JSON serialization and convert to snake_case for frontend
+    return {
+      ...entry,
+      lines: entry.lines.map((line) => ({
+        ...line,
+        debit_amount: line.debitAmount.toNumber(),
+        credit_amount: line.creditAmount.toNumber(),
+        debitAmount: undefined,
+        creditAmount: undefined,
+      })),
+    };
   }
 
   /**
@@ -300,7 +332,17 @@ export class JournalEntriesService {
       },
     });
 
-    return updated;
+    // Transform Decimal to number for JSON serialization and convert to snake_case for frontend
+    return {
+      ...updated,
+      lines: updated.lines.map((line) => ({
+        ...line,
+        debit_amount: line.debitAmount.toNumber(),
+        credit_amount: line.creditAmount.toNumber(),
+        debitAmount: undefined,
+        creditAmount: undefined,
+      })),
+    };
   }
 
   /**
@@ -374,7 +416,17 @@ export class JournalEntriesService {
       },
     });
 
-    return posted;
+    // Transform Decimal to number for JSON serialization and convert to snake_case for frontend
+    return {
+      ...posted,
+      lines: posted.lines.map((line) => ({
+        ...line,
+        debit_amount: line.debitAmount.toNumber(),
+        credit_amount: line.creditAmount.toNumber(),
+        debitAmount: undefined,
+        creditAmount: undefined,
+      })),
+    };
   }
 
   /**
@@ -446,21 +498,301 @@ export class JournalEntriesService {
       },
     });
 
-    return reversalEntry;
+    // Transform Decimal to number for JSON serialization and convert to snake_case for frontend
+    return {
+      ...reversalEntry,
+      lines: reversalEntry.lines.map((line) => ({
+        ...line,
+        debit_amount: line.debitAmount.toNumber(),
+        credit_amount: line.creditAmount.toNumber(),
+        debitAmount: undefined,
+        creditAmount: undefined,
+      })),
+    };
   }
 
   /**
-   * Auto-generate journal entry from transaction
+   * Auto-generate journal entry from sales transaction
+   * Creates journal entries for:
+   * - Cash/AR (DR) = Product Sales (CR)
+   * - COGS (DR) = Inventory (CR)
    */
-  async autoGenerateFromTransaction(
-    transactionType: string,
-    _transactionId: string,
+  async autoGenerateFromSalesTransaction(
+    transactionId: string,
+    branchId: string,
+    totalAmount: number,
+    paymentMethod: string,
+    items: Array<{ productId: string; quantity: number; costPrice: number }>,
+    userId: string,
   ) {
-    // This will be implemented based on transaction type
-    // For now, return placeholder
-    throw new BadRequestException(
-      `Auto-generation for ${transactionType} not yet implemented`,
-    );
+    try {
+      // Get GL accounts by code
+      const cashAccount = await this.prisma.chartOfAccount.findFirst({
+        where: {
+          code: { startsWith: '1010' }, // Cash accounts (10101, 10102, etc)
+          isHeader: false,
+          isActive: true,
+        },
+      });
+
+      const arAccount = await this.prisma.chartOfAccount.findUnique({
+        where: { code: '10300' }, // Accounts Receivable
+      });
+
+      const productSalesAccount = await this.prisma.chartOfAccount.findUnique({
+        where: { code: '40100' }, // Product Sales
+      });
+
+      const cogsAccount = await this.prisma.chartOfAccount.findUnique({
+        where: { code: '50000' }, // Cost of Goods Sold
+      });
+
+      const inventoryAccount = await this.prisma.chartOfAccount.findUnique({
+        where: { code: '10400' }, // Inventory
+      });
+
+      if (!cashAccount) {
+        console.error('[Journal] Cash account not found, skipping auto journal entry');
+        console.error('[Journal] Transaction ID:', transactionId, 'Total:', totalAmount);
+        return null;
+      }
+      if (!productSalesAccount) {
+        console.error('[Journal] Product Sales account (40100) not found, skipping auto journal entry');
+        console.error('[Journal] Transaction ID:', transactionId, 'Total:', totalAmount);
+        return null;
+      }
+      if (!cogsAccount) {
+        console.error('[Journal] COGS account (50000) not found, skipping auto journal entry');
+        console.error('[Journal] Transaction ID:', transactionId, 'Total:', totalAmount);
+        return null;
+      }
+      if (!inventoryAccount) {
+        console.error('[Journal] Inventory account (10400) not found, skipping auto journal entry');
+        console.error('[Journal] Transaction ID:', transactionId, 'Total:', totalAmount);
+        return null;
+      }
+
+      // Validate totalAmount
+      if (!totalAmount || totalAmount <= 0) {
+        console.error(`[Journal] Invalid totalAmount: ${totalAmount}, skipping auto journal entry`);
+        console.error('[Journal] Transaction ID:', transactionId);
+        return null;
+      }
+
+      console.log('[Journal] Creating journal entry for sales transaction:', {
+        transactionId,
+        totalAmount,
+        paymentMethod,
+        cashAccount: cashAccount.code,
+        productSalesAccount: productSalesAccount.code,
+        itemsCount: items.length,
+      });
+
+      // Calculate total COGS
+      const totalCOGS = items.reduce(
+        (sum, item) => sum + item.quantity * item.costPrice,
+        0,
+      );
+
+      // Determine payment account
+      const paymentAccount =
+        paymentMethod === 'credit' && arAccount ? arAccount : cashAccount;
+
+      // Create journal entry
+      const entryNumber = this.generateEntryNumber();
+      const entryDate = new Date();
+
+      const lines = [
+        // DR: Cash/AR
+        {
+          account_id: paymentAccount.id,
+          debit_amount: totalAmount,
+          credit_amount: 0,
+          line_description: `Sales transaction ${transactionId}`,
+          branch_id: branchId,
+        },
+        // CR: Product Sales
+        {
+          account_id: productSalesAccount.id,
+          debit_amount: 0,
+          credit_amount: totalAmount,
+          line_description: `Sales revenue from transaction ${transactionId}`,
+          branch_id: branchId,
+        },
+      ];
+
+      // Add COGS entries if there are items
+      if (totalCOGS > 0) {
+        lines.push(
+          // DR: COGS
+          {
+            account_id: cogsAccount.id,
+            debit_amount: totalCOGS,
+            credit_amount: 0,
+            line_description: `COGS for transaction ${transactionId}`,
+            branch_id: branchId,
+          },
+          // CR: Inventory
+          {
+            account_id: inventoryAccount.id,
+            debit_amount: 0,
+            credit_amount: totalCOGS,
+            line_description: `Inventory reduction for transaction ${transactionId}`,
+            branch_id: branchId,
+          },
+        );
+      }
+
+      // Create journal entry
+      const journalEntry = await this.create(
+        {
+          entry_number: entryNumber,
+          entry_date: entryDate.toISOString(),
+          entry_type: 'auto',
+          description: `Auto-generated from sales transaction ${transactionId}`,
+          lines,
+          reference_type: 'SALES_TRANSACTION',
+          reference_id: transactionId,
+        },
+        userId,
+      );
+
+      // Auto-post the entry
+      const postedEntry = await this.post(journalEntry.id, userId);
+
+      console.log('[Journal] Journal entry created and posted:', journalEntry.entryNumber);
+
+      // Return posted entry (already transformed by post method)
+      return postedEntry;
+    } catch (error) {
+      // Don't fail the sales transaction if journal creation fails
+      console.error('Error auto-generating journal entry:', error);
+      console.error('Error details:', {
+        transactionId,
+        branchId,
+        totalAmount,
+        paymentMethod,
+        itemsCount: items.length,
+      });
+      return null;
+    }
+  }
+
+  /**
+   * Auto-generate journal entry from service order payment
+   * Creates journal entries for:
+   * - Cash/AR (DR) = Service Revenue (CR)
+   */
+  async autoGenerateFromServicePayment(
+    serviceOrderId: string,
+    branchId: string,
+    totalAmount: number,
+    paymentMethod: string,
+    userId: string,
+  ) {
+    try {
+      // Get GL accounts by code
+      const cashAccount = await this.prisma.chartOfAccount.findFirst({
+        where: {
+          code: { startsWith: '1010' }, // Cash accounts (10101, 10102, etc)
+          isHeader: false,
+          isActive: true,
+        },
+      });
+
+      const arAccount = await this.prisma.chartOfAccount.findUnique({
+        where: { code: '10300' }, // Accounts Receivable
+      });
+
+      const serviceRevenueAccount = await this.prisma.chartOfAccount.findUnique({
+        where: { code: '40200' }, // Service Revenue
+      });
+
+      if (!cashAccount) {
+        console.error('[Journal] Cash account not found for service payment, skipping auto journal entry');
+        console.error('[Journal] Service Order ID:', serviceOrderId, 'Total:', totalAmount);
+        return null;
+      }
+      if (!serviceRevenueAccount) {
+        console.error('[Journal] Service Revenue account (40200) not found, skipping auto journal entry');
+        console.error('[Journal] Service Order ID:', serviceOrderId, 'Total:', totalAmount);
+        return null;
+      }
+
+      // Validate totalAmount
+      if (!totalAmount || totalAmount <= 0) {
+        console.error(`[Journal] Invalid totalAmount: ${totalAmount}, skipping auto journal entry`);
+        console.error('[Journal] Service Order ID:', serviceOrderId);
+        return null;
+      }
+
+      console.log('[Journal] Creating journal entry for service payment:', {
+        serviceOrderId,
+        totalAmount,
+        paymentMethod,
+        cashAccount: cashAccount.code,
+        serviceRevenueAccount: serviceRevenueAccount.code,
+      });
+
+      // Determine payment account
+      const paymentAccount =
+        paymentMethod === 'credit' && arAccount ? arAccount : cashAccount;
+
+      // Create journal entry
+      const entryNumber = this.generateEntryNumber();
+      const entryDate = new Date();
+
+      const lines = [
+        // DR: Cash/AR
+        {
+          account_id: paymentAccount.id,
+          debit_amount: totalAmount,
+          credit_amount: 0,
+          line_description: `Service order payment ${serviceOrderId}`,
+          branch_id: branchId,
+        },
+        // CR: Service Revenue
+        {
+          account_id: serviceRevenueAccount.id,
+          debit_amount: 0,
+          credit_amount: totalAmount,
+          line_description: `Service revenue from order ${serviceOrderId}`,
+          branch_id: branchId,
+        },
+      ];
+
+      // Create journal entry
+      const journalEntry = await this.create(
+        {
+          entry_number: entryNumber,
+          entry_date: entryDate.toISOString(),
+          entry_type: 'auto',
+          description: `Auto-generated from service order payment ${serviceOrderId}`,
+          lines,
+          reference_type: 'SERVICE_ORDER',
+          reference_id: serviceOrderId,
+        },
+        userId,
+      );
+
+      // Auto-post the entry
+      const postedEntry = await this.post(journalEntry.id, userId);
+
+      console.log('[Journal] Journal entry created and posted for service:', journalEntry.entryNumber);
+
+      // Return posted entry (already transformed by post method)
+      return postedEntry;
+    } catch (error) {
+      // Don't fail the service payment if journal creation fails
+      console.error('[Journal] Error auto-generating journal entry from service payment:', error);
+      console.error('[Journal] Error details:', {
+        serviceOrderId,
+        branchId,
+        totalAmount,
+        paymentMethod,
+      });
+      return null;
+    }
   }
 }
 

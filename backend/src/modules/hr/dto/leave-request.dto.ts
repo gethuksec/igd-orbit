@@ -1,8 +1,6 @@
 import {
   IsEnum,
   IsDateString,
-  IsInt,
-  Min,
   IsNotEmpty,
   IsString,
   IsUrl,
@@ -18,10 +16,6 @@ export class LeaveRequestDto {
 
   @IsDateString()
   end_date!: string;
-
-  @IsInt()
-  @Min(1)
-  total_days!: number;
 
   @IsNotEmpty()
   @IsString()

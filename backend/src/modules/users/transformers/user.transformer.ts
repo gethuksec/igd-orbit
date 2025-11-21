@@ -18,6 +18,24 @@ type UserWithRelations = User & {
     };
     branch?: { id: string; code: string; name: string } | null;
   })[];
+  employee?: {
+    id: string;
+    employeeCode: string;
+    branchId: string | null;
+    departmentId: string | null;
+    position: string | null;
+    hireDate: Date | null;
+    employmentType: string | null;
+    basicSalary: any;
+    hourlyRate: any;
+    bankAccount: string | null;
+    bankName: string | null;
+    taxId: string | null;
+    bpjsNumber: string | null;
+    isActive: boolean;
+    branch?: { id: string; code: string; name: string } | null;
+    department?: { id: string; name: string } | null;
+  } | null;
 };
 
 /**
@@ -35,6 +53,24 @@ export interface TransformedUser {
   twoFactorEnabled: boolean;
   employeeCode?: string | null;
   departmentId?: string | null;
+  employee?: {
+    id: string;
+    employeeCode: string;
+    branchId: string | null;
+    departmentId: string | null;
+    position: string | null;
+    hireDate: Date | null;
+    employmentType: string | null;
+    basicSalary: number | null;
+    hourlyRate: number | null;
+    bankAccount: string | null;
+    bankName: string | null;
+    taxId: string | null;
+    bpjsNumber: string | null;
+    isActive: boolean;
+    branch?: { id: string; code: string; name: string } | null;
+    department?: { id: string; name: string } | null;
+  } | null;
   roles: Array<{
     id: string;
     code: string;
@@ -91,6 +127,36 @@ export class UserTransformer {
       .map((ur) => ur.branchId)
       .filter((id): id is string => id !== null);
 
+    // Transform employee data if exists
+    const employee = user.employee
+      ? {
+          id: user.employee.id,
+          employeeCode: user.employee.employeeCode,
+          branchId: user.employee.branchId,
+          departmentId: user.employee.departmentId,
+          position: user.employee.position,
+          hireDate: user.employee.hireDate,
+          employmentType: user.employee.employmentType,
+          basicSalary: user.employee.basicSalary
+            ? typeof user.employee.basicSalary === 'object' && 'toNumber' in user.employee.basicSalary
+              ? (user.employee.basicSalary as any).toNumber()
+              : user.employee.basicSalary
+            : null,
+          hourlyRate: user.employee.hourlyRate
+            ? typeof user.employee.hourlyRate === 'object' && 'toNumber' in user.employee.hourlyRate
+              ? (user.employee.hourlyRate as any).toNumber()
+              : user.employee.hourlyRate
+            : null,
+          bankAccount: user.employee.bankAccount,
+          bankName: user.employee.bankName,
+          taxId: user.employee.taxId,
+          bpjsNumber: user.employee.bpjsNumber,
+          isActive: user.employee.isActive,
+          branch: user.employee.branch || null,
+          department: user.employee.department || null,
+        }
+      : null;
+
     return {
       id: user.id,
       email: user.email,
@@ -103,6 +169,7 @@ export class UserTransformer {
       twoFactorEnabled: user.twoFactorEnabled,
       employeeCode: (user as any).employeeCode || null,
       departmentId: (user as any).departmentId || null,
+      employee,
       roles,
       permissions,
       branchIds: branchIds.length > 0 ? branchIds : null,

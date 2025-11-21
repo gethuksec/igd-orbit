@@ -55,12 +55,19 @@ export default function StockTransfer() {
     enabled: productSearch.length > 2,
   });
 
+  // Fetch stock for selected product and from branch
+  const { data: productStockData } = useQuery({
+    queryKey: ['product-stock', selectedProduct?.id, formData.fromBranchId],
+    queryFn: () => inventoryService.getProductStock(selectedProduct!.id),
+    enabled: !!selectedProduct?.id && !!formData.fromBranchId,
+  });
+
   const mutation = useMutation({
     mutationFn: (data: any) => inventoryService.createTransfer(data),
-    onSuccess: () => {
+    onSuccess: (transfer) => {
       queryClient.invalidateQueries({ queryKey: ['inventory-transfers'] });
       toast.success('Transfer stok berhasil dibuat');
-      navigate('/inventory/transfer');
+      navigate(`/inventory/transfer/${transfer.id}`);
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Terjadi kesalahan');
@@ -116,7 +123,12 @@ export default function StockTransfer() {
     mutation.mutate({
       fromBranchId: formData.fromBranchId,
       toBranchId: formData.toBranchId,
-      items: items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+      transferType: 'regular', // Default, bisa ditambahkan selector nanti
+      items: items.map((item) => ({
+        productId: item.productId,
+        quantityRequested: item.quantity,
+        notes: item.product?.notes,
+      })),
       notes: formData.notes,
     });
   };
@@ -222,7 +234,7 @@ export default function StockTransfer() {
                 />
               </div>
               {productSearch.length > 2 && productsData?.data && (
-                <div className="mt-2 border border-gray-200 rounded-lg bg-white shadow-lg max-h-60 overflow-y-auto">
+                <div className="mt-2 border border-gray-200 rounded-lg bg-white shadow-lg max-h-60 overflow-y-auto z-10">
                   {productsData.data.map((product: any) => (
                     <button
                       key={product.id}
@@ -231,12 +243,28 @@ export default function StockTransfer() {
                         setSelectedProduct({ id: product.id, name: product.name, sku: product.sku });
                         setProductSearch('');
                       }}
-                      className="w-full px-4 py-2 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                      className="w-full px-4 py-3 text-left hover:bg-primary-50 border-b border-gray-100 last:border-b-0 transition-colors"
                     >
                       <div className="font-medium text-gray-900">{product.name}</div>
                       <div className="text-sm text-gray-500">SKU: {product.sku}</div>
+                      {formData.fromBranchId && (
+                        <div className="text-xs text-primary-600 mt-1">
+                          Stok tersedia: {productStockData?.stocks?.find((s: any) => s.branchId === formData.fromBranchId)?.quantityAvailable || 0} unit
+                        </div>
+                      )}
                     </button>
                   ))}
+                </div>
+              )}
+              {selectedProduct && formData.fromBranchId && (
+                <div className="mt-2 p-3 bg-primary-50 border border-primary-200 rounded-lg">
+                  <div className="text-sm font-medium text-gray-900">{selectedProduct.name}</div>
+                  <div className="text-xs text-gray-600 mt-1">
+                    Stok tersedia di {branches?.find((b: any) => b.id === formData.fromBranchId)?.name || 'cabang ini'}:{' '}
+                    <span className="font-semibold text-primary-700">
+                      {productStockData?.stocks?.find((s: any) => s.branchId === formData.fromBranchId)?.quantityAvailable || 0} unit
+                    </span>
+                  </div>
                 </div>
               )}
             </div>

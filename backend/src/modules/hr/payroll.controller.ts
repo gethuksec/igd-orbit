@@ -93,6 +93,21 @@ export class PayrollController {
   }
 
   /**
+   * Cancel payroll
+   * POST /api/v1/payroll/:id/cancel
+   */
+  @Post(':id/cancel')
+  @UseGuards(RolesGuard)
+  @Roles('CHR', 'CFO')
+  async cancelPayroll(
+    @Request() req: ExpressRequest,
+    @Param('id') id: string,
+    @Body() body: { reason?: string },
+  ) {
+    return this.payrollService.cancelPayroll(id, req.user.id, req.user.roles, body.reason);
+  }
+
+  /**
    * Generate payslip PDF
    * GET /api/v1/payroll/:id/slip
    */

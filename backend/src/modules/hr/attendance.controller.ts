@@ -57,10 +57,16 @@ export class AttendanceController {
     @Query('employeeId') employeeId?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+    @Query('branchId') branchId?: string,
   ) {
     const start = startDate ? new Date(startDate) : undefined;
     const end = endDate ? new Date(endDate) : undefined;
-    return this.attendanceService.findAll(req.user.id, employeeId, start, end);
+    // Only filter by userId if user doesn't have high-level roles (for viewing all)
+    const hasHighLevelRole = ['OWNER', 'CFO', 'CHR', 'HS', 'SPV'].some((role) => req.user.roles.includes(role));
+    const userId = hasHighLevelRole ? undefined : req.user.id;
+    return this.attendanceService.findAll(userId, employeeId, start, end, search, status, branchId);
   }
 
   /**

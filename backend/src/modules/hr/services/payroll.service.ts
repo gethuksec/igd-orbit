@@ -141,65 +141,111 @@ export class PayrollService {
         });
       }
 
-      // Position allowance (example: 10% of basic for certain roles)
-      const positionAllowance = new Decimal(0); // Would be configured per position
+      // Position allowance (TUNJANGAN JABATAN) - based on position
+      // Example: HEADSTORE = 1,500,000, ASSISTANT = 700,000, TEKNISI-1 = 700,000
+      let positionAllowance = new Decimal(0);
+      if (employee.position) {
+        const positionLower = employee.position.toLowerCase();
+        if (positionLower.includes('headstore') || positionLower.includes('head store')) {
+          positionAllowance = new Decimal(1500000);
+        } else if (positionLower.includes('assistant')) {
+          positionAllowance = new Decimal(700000);
+        } else if (positionLower.includes('teknisi') || positionLower.includes('technician')) {
+          positionAllowance = new Decimal(700000);
+        } else {
+          // Default: 10% of basic salary for other positions
+          positionAllowance = basicSalary.times(0.1);
+        }
+      }
       if (positionAllowance.greaterThan(0)) {
         components.push({
           type: 'earning',
-          name: 'Position Allowance',
+          name: 'Tunjangan Jabatan',
           amount: positionAllowance,
+          formula: employee.position ? `Position: ${employee.position}` : '10% of basic salary',
         });
       }
 
-      // Attendance bonus
-      const attendanceBonusRate = new Decimal(50000); // Per day
-      const attendanceBonus = attendanceBonusRate.times(attendanceSummary.presentDays);
-      if (attendanceBonus.greaterThan(0)) {
-        components.push({
-          type: 'earning',
-          name: 'Attendance Bonus',
-          amount: attendanceBonus,
-          formula: `${attendanceSummary.presentDays} days × Rp 50,000`,
-        });
-      }
-
-      // Overtime pay
+      // Overtime pay (LEMBUR) - JAM, NOMINAL
       let overtimePay = new Decimal(0);
+      const overtimeHours = new Decimal(attendanceSummary.totalOvertimeHours || 0);
       if (employee.hourlyRate && attendanceSummary.totalOvertimeHours > 0) {
         const hourlyRate = employee.hourlyRate;
-        const overtimeHours = new Decimal(attendanceSummary.totalOvertimeHours);
         // 1.5x for weekday, 2x for weekend (simplified - using 1.5x)
         overtimePay = hourlyRate.times(overtimeHours).times(1.5);
         components.push({
           type: 'earning',
-          name: 'Overtime Pay',
+          name: 'Lembur',
           amount: overtimePay,
-          formula: `${attendanceSummary.totalOvertimeHours} hours × ${hourlyRate.toNumber()} × 1.5`,
+          formula: `${attendanceSummary.totalOvertimeHours} jam × ${hourlyRate.toNumber()} × 1.5`,
+          notes: `${attendanceSummary.totalOvertimeHours} jam`,
         });
       }
 
-      // KPI Bonus
+      // KPI Bonus (from KPI record)
       let kpiBonus = new Decimal(0);
+      let kpiMultiplier = new Decimal(1.0);
       if (kpiRecord && kpiRecord.calculatedBonus) {
         kpiBonus = kpiRecord.calculatedBonus;
+        kpiMultiplier = kpiRecord.bonusMultiplier || new Decimal(1.0);
         components.push({
           type: 'earning',
           name: 'KPI Bonus',
           amount: kpiBonus,
-          formula: `KPI Score: ${kpiRecord.overallScore.toNumber()}`,
+          formula: `KPI Score: ${kpiRecord.overallScore.toNumber()}, Multiplier: ${kpiMultiplier.toNumber()}`,
+        });
+      }
+
+      // Incentive (INSENTIF) - separate from KPI bonus, based on store revenue/performance
+      // This would come from store performance data or manual input
+      // For now, we'll calculate based on KPI if available, otherwise 0
+      let incentiveAmount = new Decimal(0);
+      let incentiveValue = new Decimal(0);
+      let incentiveTotal = new Decimal(0);
+      if (kpiRecord && kpiRecord.salesTargetAchievement) {
+        // Example: 1% of sales target achievement
+        incentiveValue = new Decimal(0.01);
+        incentiveAmount = kpiRecord.salesTargetAchievement.times(incentiveValue);
+        incentiveTotal = incentiveAmount;
+        if (incentiveTotal.greaterThan(0)) {
+          components.push({
+            type: 'earning',
+            name: 'Insentif',
+            amount: incentiveTotal,
+            formula: `Sales Achievement: ${kpiRecord.salesTargetAchievement.toNumber()} × ${incentiveValue.toNumber()}`,
+            notes: `Amount: ${incentiveAmount.toNumber()}, Value: ${incentiveValue.toNumber()}, Total: ${incentiveTotal.toNumber()}`,
+          });
+        }
+      }
+
+      // Holiday Incentive (INSENTIF LIBUR) - HARI, NOMINAL
+      // Calculate based on holidays worked
+      const holidayIncentiveRate = new Decimal(0); // Would be configured
+      const holidayIncentiveDays = 0; // Would come from attendance data
+      const holidayIncentiveAmount = holidayIncentiveRate.times(holidayIncentiveDays);
+      if (holidayIncentiveAmount.greaterThan(0)) {
+        components.push({
+          type: 'earning',
+          name: 'Insentif Libur',
+          amount: holidayIncentiveAmount,
+          formula: `${holidayIncentiveDays} hari × ${holidayIncentiveRate.toNumber()}`,
+          notes: `${holidayIncentiveDays} hari`,
         });
       }
 
       // DEDUCTIONS
-      // Late penalty
-      const latePenaltyPerMinute = new Decimal(1000);
-      const latePenalty = latePenaltyPerMinute.times(attendanceSummary.totalLateMinutes);
+      // Late/No Checklog (TERLAMBAT/TIDAK CHECKLOG) - HARI, NOMINAL
+      // Based on CSV: per day, not per minute
+      const latePenaltyPerDay = new Decimal(0); // Would be configured (e.g., Rp 50,000 per day)
+      const lateDays = attendanceSummary.lateCount; // Days with late/no checklog
+      const latePenalty = latePenaltyPerDay.times(lateDays);
       if (latePenalty.greaterThan(0)) {
         components.push({
           type: 'deduction',
-          name: 'Late Penalty',
+          name: 'Terlambat/Tidak Checklog',
           amount: latePenalty,
-          formula: `${attendanceSummary.totalLateMinutes} minutes × Rp 1,000`,
+          formula: `${lateDays} hari × ${latePenaltyPerDay.toNumber()}`,
+          notes: `${lateDays} hari`,
         });
       }
 
@@ -215,14 +261,47 @@ export class PayrollService {
         });
       }
 
-      // Early leave penalty
-      const earlyLeavePenalty = new Decimal(25000).times(attendanceSummary.earlyLeaveCount);
+      // Early leave penalty (PULANG CEPAT) - HARI, NOMINAL
+      const earlyLeavePenaltyPerDay = new Decimal(0); // Would be configured (e.g., Rp 25,000 per day)
+      const earlyLeaveDays = attendanceSummary.earlyLeaveCount;
+      const earlyLeavePenalty = earlyLeavePenaltyPerDay.times(earlyLeaveDays);
       if (earlyLeavePenalty.greaterThan(0)) {
         components.push({
           type: 'deduction',
-          name: 'Early Leave Penalty',
+          name: 'Pulang Cepat',
           amount: earlyLeavePenalty,
-          formula: `${attendanceSummary.earlyLeaveCount} × Rp 25,000`,
+          formula: `${earlyLeaveDays} hari × ${earlyLeavePenaltyPerDay.toNumber()}`,
+          notes: `${earlyLeaveDays} hari`,
+        });
+      }
+
+      // Conflict Holiday/No Info (BENTROK LIBUR/TANPA KETERANGAN) - HARI, NOMINAL
+      // This would come from attendance data where status is conflict or no info
+      const conflictHolidayPenaltyPerDay = new Decimal(0); // Would be configured
+      const conflictHolidayDays = 0; // Would come from attendance data
+      const conflictHolidayPenalty = conflictHolidayPenaltyPerDay.times(conflictHolidayDays);
+      if (conflictHolidayPenalty.greaterThan(0)) {
+        components.push({
+          type: 'deduction',
+          name: 'Bentrok Libur/Tanpa Keterangan',
+          amount: conflictHolidayPenalty,
+          formula: `${conflictHolidayDays} hari × ${conflictHolidayPenaltyPerDay.toNumber()}`,
+          notes: `${conflictHolidayDays} hari`,
+        });
+      }
+
+      // Extra Leave (LEBIH LIBUR) - HARI, NOMINAL
+      // This would come from leave data where employee took more leave than allowed
+      const extraLeavePenaltyPerDay = new Decimal(0); // Would be configured
+      const extraLeaveDays = 0; // Would come from leave balance calculation
+      const extraLeavePenalty = extraLeavePenaltyPerDay.times(extraLeaveDays);
+      if (extraLeavePenalty.greaterThan(0)) {
+        components.push({
+          type: 'deduction',
+          name: 'Lebih Libur',
+          amount: extraLeavePenalty,
+          formula: `${extraLeaveDays} hari × ${extraLeavePenaltyPerDay.toNumber()}`,
+          notes: `${extraLeaveDays} hari`,
         });
       }
 
@@ -237,16 +316,51 @@ export class PayrollService {
         });
       }
 
-      // Calculate totals
-      const totalEarnings = components
+      // Previous Month Adjustment (PENYESUAIAN BULAN LALU) - DASAR, AMOUNT
+      // This would come from previous month's payroll adjustment
+      const previousMonthAdjustmentBase = new Decimal(0); // DASAR
+      const previousMonthAdjustmentAmount = new Decimal(0); // AMOUNT
+      if (!previousMonthAdjustmentAmount.equals(0)) {
+        components.push({
+          type: previousMonthAdjustmentAmount.greaterThan(0) ? 'earning' : 'deduction',
+          name: 'Penyesuaian Bulan Lalu',
+          amount: previousMonthAdjustmentAmount.abs(),
+          formula: `Dasar: ${previousMonthAdjustmentBase.toNumber()}, Amount: ${previousMonthAdjustmentAmount.toNumber()}`,
+          notes: `Dasar: ${previousMonthAdjustmentBase.toNumber()}`,
+        });
+      }
+
+      // Negligence (KELALAIAN) - additional deduction for negligence
+      const negligenceDeduction = new Decimal(0); // Would be configured or from incident reports
+      if (negligenceDeduction.greaterThan(0)) {
+        components.push({
+          type: 'deduction',
+          name: 'Kelalaian',
+          amount: negligenceDeduction,
+        });
+      }
+
+      // Withheld Salary (GAJI DITAHAN) - salary withheld for various reasons
+      const withheldSalary = new Decimal(0); // Would be configured or from HR decisions
+      if (withheldSalary.greaterThan(0)) {
+        components.push({
+          type: 'deduction',
+          name: 'Gaji Ditahan',
+          amount: withheldSalary,
+        });
+      }
+
+      // Recalculate totals after adjustments
+      const finalTotalEarnings = components
         .filter((c) => c.type === 'earning')
         .reduce((sum, c) => sum.plus(c.amount), new Decimal(0));
 
-      const totalDeductions = components
+      const finalTotalDeductions = components
         .filter((c) => c.type === 'deduction')
         .reduce((sum, c) => sum.plus(c.amount), new Decimal(0));
 
-      const nettSalary = totalEarnings.minus(totalDeductions);
+      // NETT THP (Net Take Home Pay) = Final Earnings - Final Deductions
+      const nettSalary = finalTotalEarnings.minus(finalTotalDeductions);
 
       // Check if payroll already exists
       const existingPayroll = await this.prisma.payroll.findUnique({
@@ -280,15 +394,15 @@ export class PayrollService {
               },
             },
         update: {
-          totalEarnings,
-          totalDeductions,
+          totalEarnings: finalTotalEarnings,
+          totalDeductions: finalTotalDeductions,
           nettSalary,
           attendanceDays: attendanceSummary.presentDays,
           lateCount: attendanceSummary.lateCount,
           lateMinutes: attendanceSummary.totalLateMinutes,
           earlyLeaveCount: attendanceSummary.earlyLeaveCount,
           absenceCount: attendanceSummary.absenceCount,
-          overtimeHours: new Decimal(attendanceSummary.totalOvertimeHours),
+          overtimeHours: overtimeHours,
           unpaidLeaveDays,
           calculatedBy: userId,
           calculatedAt: new Date(),
@@ -299,15 +413,15 @@ export class PayrollService {
           periodMonth: dto.period_month,
           periodYear: dto.period_year,
           payrollNumber,
-          totalEarnings,
-          totalDeductions,
+          totalEarnings: finalTotalEarnings,
+          totalDeductions: finalTotalDeductions,
           nettSalary,
           attendanceDays: attendanceSummary.presentDays,
           lateCount: attendanceSummary.lateCount,
           lateMinutes: attendanceSummary.totalLateMinutes,
           earlyLeaveCount: attendanceSummary.earlyLeaveCount,
           absenceCount: attendanceSummary.absenceCount,
-          overtimeHours: new Decimal(attendanceSummary.totalOvertimeHours),
+          overtimeHours: overtimeHours,
           unpaidLeaveDays,
           calculatedBy: userId,
           calculatedAt: new Date(),
@@ -378,19 +492,33 @@ export class PayrollService {
 
     // First approval by CHR
     if (isCHR && !payroll.approvedBy) {
-      await this.prisma.payroll.update({
+      const updated = await this.prisma.payroll.update({
         where: { id: payrollId },
         data: {
           approvedBy: userId,
           updatedAt: new Date(),
         },
+        include: {
+          employee: {
+            include: { user: true, branch: true, department: true },
+          },
+          components: true,
+        },
       });
-      return { message: 'Payroll approved by CHR. Waiting for CFO approval.' };
+      return {
+        message: 'Payroll approved by CHR. Waiting for CFO approval.',
+        data: {
+          ...updated,
+          totalEarnings: updated.totalEarnings.toNumber(),
+          totalDeductions: updated.totalDeductions.toNumber(),
+          nettSalary: updated.nettSalary.toNumber(),
+        },
+      };
     }
 
     // Second approval by CFO
     if (isCFO && payroll.approvedBy && !payroll.approvedBy2) {
-      await this.prisma.payroll.update({
+      const updated = await this.prisma.payroll.update({
         where: { id: payrollId },
         data: {
           approvedBy2: userId,
@@ -398,8 +526,22 @@ export class PayrollService {
           approvedAt: new Date(),
           updatedAt: new Date(),
         },
+        include: {
+          employee: {
+            include: { user: true, branch: true, department: true },
+          },
+          components: true,
+        },
       });
-      return { message: 'Payroll fully approved and ready for payment processing.' };
+      return {
+        message: 'Payroll fully approved and ready for payment processing.',
+        data: {
+          ...updated,
+          totalEarnings: updated.totalEarnings.toNumber(),
+          totalDeductions: updated.totalDeductions.toNumber(),
+          nettSalary: updated.nettSalary.toNumber(),
+        },
+      };
     }
 
     throw new BadRequestException('Payroll approval already completed');
@@ -434,18 +576,48 @@ export class PayrollService {
     }
 
     // Create journal entry
-    // DR: Salary Expense, Overtime Expense, Bonus Expense
-    // CR: Cash/Bank
-    // This is simplified - would need proper GL account mapping
-    const salaryExpenseAccountId = 'some-salary-expense-account-id'; // TODO: Get from COA
-    const cashBankAccountId = 'some-cash-bank-account-id'; // TODO: Get from employee branch or default
+    // DR: Salary Expense (51100)
+    // CR: Cash/Bank (10101 or 10201 based on branch)
+    
+    // Get GL accounts by code
+    const salaryExpenseAccount = await this.prisma.chartOfAccount.findUnique({
+      where: { code: '51100' }, // Salaries
+    });
+
+    if (!salaryExpenseAccount || !salaryExpenseAccount.isActive) {
+      throw new NotFoundException('Salary Expense account (51100) not found or inactive. Please seed Chart of Accounts.');
+    }
+
+    // Get cash/bank account - prefer bank account, fallback to cash
+    let cashBankAccount = await this.prisma.chartOfAccount.findFirst({
+      where: {
+        code: { startsWith: '1020' }, // Bank accounts (10201, 10202, etc)
+        isHeader: false,
+        isActive: true,
+      },
+    });
+
+    // If no bank account found, use cash account
+    if (!cashBankAccount) {
+      cashBankAccount = await this.prisma.chartOfAccount.findFirst({
+        where: {
+          code: { startsWith: '1010' }, // Cash accounts (10101, 10102, etc)
+          isHeader: false,
+          isActive: true,
+        },
+      });
+    }
+
+    if (!cashBankAccount || !cashBankAccount.isActive) {
+      throw new NotFoundException('Cash/Bank account not found or inactive. Please seed Chart of Accounts.');
+    }
 
     const earnings = payroll.components.filter((c) => c.type === 'earning');
     const totalEarnings = earnings.reduce((sum, c) => sum.plus(c.amount), new Decimal(0));
 
     const journalLines = [
       {
-        account_id: salaryExpenseAccountId,
+        account_id: salaryExpenseAccount.id,
         debit_amount: totalEarnings.toNumber(),
         credit_amount: 0,
         line_description: `Payroll ${payroll.payrollNumber}`,
@@ -453,7 +625,7 @@ export class PayrollService {
         department_id: payroll.employee.departmentId || undefined,
       },
       {
-        account_id: cashBankAccountId,
+        account_id: cashBankAccount.id,
         debit_amount: 0,
         credit_amount: totalEarnings.toNumber(),
         line_description: `Payment for ${payroll.employee.user?.fullName || 'Employee'}`,
@@ -478,7 +650,7 @@ export class PayrollService {
     await this.journalEntriesService.post(journalEntry.id, userId);
 
     // Update payroll status
-    const updated = await this.prisma.payroll.update({
+    await this.prisma.payroll.update({
       where: { id: payrollId },
       data: {
         status: 'paid',
@@ -487,20 +659,84 @@ export class PayrollService {
         journalEntryId: journalEntry.id,
         updatedAt: new Date(),
       },
-      include: {
-        employee: { include: { user: true } },
-        components: true,
-      },
     });
 
     // Generate payslip (placeholder - would generate PDF)
     const payslipUrl = await this.generatePayslip(payrollId);
-    await this.prisma.payroll.update({
+    const finalPayroll = await this.prisma.payroll.update({
       where: { id: payrollId },
       data: { payslipUrl },
+      include: {
+        employee: {
+          include: { user: true, branch: true, department: true },
+        },
+        components: true,
+      },
     });
 
-    return updated;
+    return {
+      message: 'Payroll payment processed successfully',
+      data: {
+        ...finalPayroll,
+        totalEarnings: finalPayroll.totalEarnings.toNumber(),
+        totalDeductions: finalPayroll.totalDeductions.toNumber(),
+        nettSalary: finalPayroll.nettSalary.toNumber(),
+      },
+    };
+  }
+
+  /**
+   * Cancel payroll (only draft can be cancelled)
+   */
+  async cancelPayroll(payrollId: string, _userId: string, userRoles: string[], reason?: string) {
+    const payroll = await this.prisma.payroll.findUnique({
+      where: { id: payrollId },
+      include: {
+        employee: {
+          include: { user: true, branch: true, department: true },
+        },
+        components: true,
+      },
+    });
+
+    if (!payroll) {
+      throw new NotFoundException('Payroll not found');
+    }
+
+    // Only draft payroll can be cancelled
+    if (payroll.status !== 'draft') {
+      throw new BadRequestException('Only draft payroll can be cancelled');
+    }
+
+    // Only CHR or CFO can cancel
+    if (!userRoles.includes('CHR') && !userRoles.includes('CFO')) {
+      throw new ForbiddenException('Only CHR or CFO can cancel payroll');
+    }
+
+    const updated = await this.prisma.payroll.update({
+      where: { id: payrollId },
+      data: {
+        status: 'cancelled',
+        notes: reason ? `Cancelled: ${reason}` : 'Cancelled',
+        updatedAt: new Date(),
+      },
+      include: {
+        employee: {
+          include: { user: true, branch: true, department: true },
+        },
+        components: true,
+      },
+    });
+
+    return {
+      message: 'Payroll cancelled successfully',
+      data: {
+        ...updated,
+        totalEarnings: updated.totalEarnings.toNumber(),
+        totalDeductions: updated.totalDeductions.toNumber(),
+        nettSalary: updated.nettSalary.toNumber(),
+      },
+    };
   }
 
   /**
@@ -555,16 +791,29 @@ export class PayrollService {
       where.status = status;
     }
 
-    return this.prisma.payroll.findMany({
-      where,
-      include: {
-        employee: {
-          include: { user: true },
+    const [data, total] = await Promise.all([
+      this.prisma.payroll.findMany({
+        where,
+        include: {
+          employee: {
+            include: { user: true },
+          },
+          components: true,
         },
-        components: true,
-      },
-      orderBy: [{ periodYear: 'desc' }, { periodMonth: 'desc' }],
-    });
+        orderBy: [{ periodYear: 'desc' }, { periodMonth: 'desc' }],
+      }),
+      this.prisma.payroll.count({ where }),
+    ]);
+
+    return {
+      data: data.map((payroll) => ({
+        ...payroll,
+        totalEarnings: payroll.totalEarnings.toNumber(),
+        totalDeductions: payroll.totalDeductions.toNumber(),
+        nettSalary: payroll.nettSalary.toNumber(),
+      })),
+      total,
+    };
   }
 
   /**
@@ -586,7 +835,13 @@ export class PayrollService {
       throw new NotFoundException('Payroll not found');
     }
 
-    return payroll;
+    // Transform Decimal to number for JSON serialization
+    return {
+      ...payroll,
+      totalEarnings: payroll.totalEarnings.toNumber(),
+      totalDeductions: payroll.totalDeductions.toNumber(),
+      nettSalary: payroll.nettSalary.toNumber(),
+    };
   }
 }
 

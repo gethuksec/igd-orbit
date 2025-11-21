@@ -44,6 +44,15 @@ import ServiceReturnDetail from './pages/service-returns/ServiceReturnDetail';
 // Inventory
 import StockList from './pages/inventory/StockList';
 import StockTransfer from './pages/inventory/StockTransfer';
+import StockTransferList from './pages/inventory/StockTransferList';
+import StockTransferDetail from './pages/inventory/StockTransferDetail';
+import StockOpnameList from './pages/inventory/StockOpnameList';
+import StockOpnameDetail from './pages/inventory/StockOpnameDetail';
+import StockOpnameCount from './pages/inventory/StockOpnameCount';
+import StockOpnameForm from './pages/inventory/StockOpnameForm';
+import StockAdjustment from './pages/inventory/StockAdjustment';
+import StockMovementHistory from './pages/inventory/StockMovementHistory';
+import LowStockAlerts from './pages/inventory/LowStockAlerts';
 // Placeholder
 import PlaceholderPage from './pages/placeholder/PlaceholderPage';
 // Master Data - Suppliers, Categories, Brands
@@ -69,8 +78,39 @@ import WarehouseLanding from './pages/warehouse/WarehouseLanding';
 import SalesLanding from './pages/sales/SalesLanding';
 import ServiceLanding from './pages/services/ServiceLanding';
 import FinanceLanding from './pages/finance/FinanceLanding';
+import COAList from './pages/finance/coa/COAList';
+import COADetail from './pages/finance/coa/COADetail';
+import JournalEntriesList from './pages/finance/journal/JournalEntriesList';
+import JournalEntryDetail from './pages/finance/journal/JournalEntryDetail';
+import JournalEntryForm from './pages/finance/journal/JournalEntryForm';
+import ExpensesList from './pages/finance/expenses/ExpensesList';
+import ExpenseDetail from './pages/finance/expenses/ExpenseDetail';
+import ExpenseForm from './pages/finance/expenses/ExpenseForm';
+import PettyCashList from './pages/finance/petty-cash/PettyCashList';
+import PettyCashDetail from './pages/finance/petty-cash/PettyCashDetail';
+import PettyCashFundForm from './pages/finance/petty-cash/PettyCashFundForm';
+import ARList from './pages/finance/ar/ARList';
+import ARDetail from './pages/finance/ar/ARDetail';
+import FinancialReports from './pages/finance/reports/FinancialReports';
 import PurchasingLanding from './pages/purchasing/PurchasingLanding';
 import EmployeeLanding from './pages/employees/EmployeeLanding';
+// HR
+import AttendanceList from './pages/hr/attendance/AttendanceList';
+import AttendanceDetail from './pages/hr/attendance/AttendanceDetail';
+import ClockInOut from './pages/hr/attendance/ClockInOut';
+import EmployeeList from './pages/hr/employees/EmployeeList';
+import EmployeeDetail from './pages/hr/employees/EmployeeDetail';
+import EmployeeEditForm from './pages/hr/employees/EmployeeEditForm';
+import LeaveList from './pages/hr/leave/LeaveList';
+import LeaveDetail from './pages/hr/leave/LeaveDetail';
+import LeaveRequestForm from './pages/hr/leave/LeaveRequestForm';
+import PayrollList from './pages/hr/payroll/PayrollList';
+import PayrollDetail from './pages/hr/payroll/PayrollDetail';
+import PayrollCalculationForm from './pages/hr/payroll/PayrollCalculationForm';
+import PayslipView from './pages/hr/payroll/PayslipView';
+import KPIRecordsList from './pages/hr/kpi/KPIRecordsList';
+import KPIDetail from './pages/hr/kpi/KPIDetail';
+import KPIRecordForm from './pages/hr/kpi/KPIRecordForm';
 import './App.css';
 
 // Create a client for React Query
@@ -650,7 +690,27 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
+                    <StockTransferList />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/inventory/transfer/new"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
                     <StockTransfer />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/inventory/transfer/:id"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <StockTransferDetail />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
@@ -660,7 +720,37 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <PlaceholderPage title="Stock Opname" description="Stock opname dan audit stok" />
+                    <StockOpnameList />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/inventory/opname/new"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <StockOpnameForm />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/inventory/opname/:id"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <StockOpnameDetail />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/inventory/opname/:id/count"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <StockOpnameCount />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
@@ -670,7 +760,27 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <PlaceholderPage title="Stock Adjustment" description="Penyesuaian stok" />
+                    <StockAdjustment />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/inventory/movements"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <StockMovementHistory />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/inventory/alerts"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <LowStockAlerts />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
@@ -693,7 +803,17 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <PlaceholderPage title="Chart of Accounts" description="Kelola chart of accounts" />
+                    <COAList />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/finance/coa/:id"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <COADetail />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
@@ -703,7 +823,37 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <PlaceholderPage title="Jurnal Umum" description="Kelola jurnal akuntansi" />
+                    <JournalEntriesList />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/finance/journal/new"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <JournalEntryForm />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/finance/journal/:id"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <JournalEntryDetail />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/finance/journal/:id/edit"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <JournalEntryForm />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
@@ -713,7 +863,37 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <PlaceholderPage title="Pengeluaran" description="Kelola pengeluaran dan biaya" />
+                    <ExpensesList />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/finance/expenses/new"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <ExpenseForm />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/finance/expenses/:id"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <ExpenseDetail />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/finance/expenses/:id/edit"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <ExpenseForm />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
@@ -723,7 +903,27 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <PlaceholderPage title="Petty Cash" description="Kelola kas kecil" />
+                    <PettyCashList />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/finance/petty-cash/new"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PettyCashFundForm />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/finance/petty-cash/:id"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PettyCashDetail />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
@@ -733,7 +933,17 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <PlaceholderPage title="Accounts Receivable" description="Kelola piutang usaha" />
+                    <ARList />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/finance/ar/:customerId"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <ARDetail />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
@@ -743,7 +953,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <PlaceholderPage title="Laporan Keuangan" description="Laporan keuangan dan analisis" />
+                    <FinancialReports />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
@@ -766,7 +976,27 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <PlaceholderPage title="Manajemen Karyawan" description="Kelola data karyawan" />
+                    <EmployeeList />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr/employees/:id"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <EmployeeDetail />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr/employees/:id/edit"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <EmployeeEditForm />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
@@ -776,7 +1006,27 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <PlaceholderPage title="Absensi" description="Kelola absensi karyawan" />
+                    <AttendanceList />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr/attendance/clock"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <ClockInOut />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr/attendance/:id"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <AttendanceDetail />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
@@ -786,7 +1036,27 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <PlaceholderPage title="Cuti" description="Kelola cuti dan izin karyawan" />
+                    <LeaveList />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr/leave/new"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <LeaveRequestForm />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr/leave/:id"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <LeaveDetail />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
@@ -796,7 +1066,37 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <PlaceholderPage title="Payroll" description="Kelola penggajian" />
+                    <PayrollList />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr/payroll/calculate"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PayrollCalculationForm />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr/payroll/:id"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PayrollDetail />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr/payroll/:id/payslip"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PayslipView />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
@@ -806,7 +1106,27 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <PlaceholderPage title="KPI" description="Kelola KPI karyawan" />
+                    <KPIRecordsList />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr/kpi/new"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <KPIRecordForm />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr/kpi/:id"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <KPIDetail />
                   </DashboardLayout>
                 </ProtectedRoute>
               }

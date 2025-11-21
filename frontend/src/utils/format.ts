@@ -28,6 +28,18 @@ export function formatDate(date: Date | string, formatStr: string = 'dd MMMM yyy
 }
 
 /**
+ * Format date for HTML input type="date" (YYYY-MM-DD)
+ */
+export function formatDateForInput(date: Date | string | null | undefined): string {
+  if (!date) return '';
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
  * Format date-time with Indonesian locale
  */
 export function formatDateTime(date: Date | string): string {

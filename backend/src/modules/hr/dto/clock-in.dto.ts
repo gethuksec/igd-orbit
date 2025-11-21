@@ -9,6 +9,10 @@ export class ClockInDto {
 
   @IsOptional()
   @IsString()
-  location?: string;
+  clock_in_location?: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
 }
 

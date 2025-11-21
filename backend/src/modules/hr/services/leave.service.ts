@@ -119,8 +119,8 @@ export class LeaveService {
 
     // Calculate total days (working days)
     const totalDays = this.calculateWorkingDays(startDate, endDate);
-    if (totalDays !== dto.total_days) {
-      throw new BadRequestException(`Total days mismatch. Calculated: ${totalDays}, provided: ${dto.total_days}`);
+    if (totalDays < 1) {
+      throw new BadRequestException('Total working days must be at least 1');
     }
 
     // Check minimum advance notice (3 days, except emergency)
@@ -383,15 +383,23 @@ export class LeaveService {
       }
     }
 
-    return this.prisma.leaveRequest.findMany({
-      where,
-      include: {
-        employee: {
-          include: { user: true },
+    const [data, total] = await Promise.all([
+      this.prisma.leaveRequest.findMany({
+        where,
+        include: {
+          employee: {
+            include: { user: true },
+          },
         },
-      },
-      orderBy: { startDate: 'desc' },
-    });
+        orderBy: { startDate: 'desc' },
+      }),
+      this.prisma.leaveRequest.count({ where }),
+    ]);
+
+    return {
+      data,
+      total,
+    };
   }
 }
 

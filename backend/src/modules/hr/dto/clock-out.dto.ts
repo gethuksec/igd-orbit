@@ -6,6 +6,10 @@ export class ClockOutDto {
 
   @IsOptional()
   @IsString()
-  location?: string;
+  clock_out_location?: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
 }
 

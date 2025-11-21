@@ -1,72 +1,77 @@
-import { api, handleApiError } from './api';
+import { api } from './api';
 
-// Employees
+// ============================================
+// Interfaces
+// ============================================
+
 export interface Employee {
   id: string;
-  employeeNumber: string;
-  userId?: string;
-  user?: { id: string; username: string; email: string; fullName: string };
-  branchId: string;
-  branch?: { id: string; name: string; code: string };
+  userId: string;
+  employeeCode: string;
+  branchId?: string;
   departmentId?: string;
-  department?: { id: string; name: string };
-  position: string;
-  hireDate: string;
-  basicSalary: number;
-  status: 'active' | 'inactive' | 'terminated';
+  position?: string;
+  hireDate?: string;
+  employmentType?: 'full-time' | 'part-time' | 'contract';
+  basicSalary?: number;
+  hourlyRate?: number;
+  bankAccount?: string;
+  bankName?: string;
+  taxId?: string;
+  bpjsNumber?: string;
   isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface EmployeeListResponse {
-  data: Employee[];
-  meta: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
+  user?: {
+    id: string;
+    email: string;
+    fullName?: string;
+    phone?: string;
+  };
+  branch?: {
+    id: string;
+    name: string;
+    code: string;
+  };
+  department?: {
+    id: string;
+    name: string;
   };
 }
 
-// Attendance
 export interface Attendance {
   id: string;
   employeeId: string;
-  employee?: Employee;
   date: string;
+  branchId: string;
   clockIn?: string;
   clockOut?: string;
-  breakStart?: string;
-  breakEnd?: string;
-  totalHours: number;
-  status: 'present' | 'absent' | 'late' | 'half-day' | 'leave';
-  isManual: boolean;
+  clockInMethod?: 'fingerprint' | 'manual';
+  clockOutMethod?: 'fingerprint' | 'manual';
+  clockInLocation?: string;
+  clockOutLocation?: string;
+  status: 'present' | 'absent' | 'leave' | 'holiday';
+  isLate: boolean;
+  lateMinutes: number;
+  isEarlyLeave: boolean;
+  earlyLeaveMinutes: number;
+  totalHours?: number;
+  breakTime?: number;
+  overtimeHours?: number;
+  overtimeApproved: boolean;
   notes?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface AttendanceListResponse {
-  data: Attendance[];
-  meta: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
+  employee?: Employee;
+  branch?: {
+    id: string;
+    name: string;
   };
 }
 
-// Leave
 export interface LeaveRequest {
   id: string;
-  leaveNumber: string;
   employeeId: string;
-  employee?: Employee;
-  leaveType: 'annual' | 'sick' | 'personal' | 'unpaid';
+  leaveType: 'annual' | 'sick' | 'emergency' | 'unpaid';
   startDate: string;
   endDate: string;
-  days: number;
+  totalDays: number;
   reason: string;
   status: 'pending' | 'approved' | 'rejected' | 'cancelled';
   approvedBy?: string;
@@ -74,384 +79,408 @@ export interface LeaveRequest {
   rejectedBy?: string;
   rejectedAt?: string;
   rejectionReason?: string;
-  createdAt: string;
-  updatedAt: string;
+  cancelledBy?: string;
+  cancelledAt?: string;
+  cancellationReason?: string;
+  employee?: Employee;
 }
 
 export interface LeaveBalance {
-  leaveType: string;
-  total: number;
-  used: number;
-  remaining: number;
-}
-
-export interface LeaveListResponse {
-  data: LeaveRequest[];
-  meta: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
+  annual: {
+    quota: number;
+    used: number;
+    remaining: number;
+  };
+  sick: {
+    quota: number;
+    used: number;
+    remaining: number;
+  };
+  emergency: {
+    quota: number;
+    used: number;
+    remaining: number;
+  };
+  unpaid: {
+    used: number;
   };
 }
 
-// Payroll
 export interface Payroll {
   id: string;
-  payrollNumber: string;
   employeeId: string;
-  employee?: Employee;
   periodMonth: number;
   periodYear: number;
-  basicSalary: number;
-  allowances: PayrollComponent[];
-  deductions: PayrollComponent[];
-  grossSalary: number;
+  payrollNumber: string;
+  status: 'draft' | 'approved' | 'paid' | 'cancelled';
+  totalEarnings: number;
   totalDeductions: number;
-  netSalary: number;
-  status: 'draft' | 'calculated' | 'approved' | 'paid';
-  calculatedAt?: string;
+  nettSalary: number;
+  attendanceDays: number;
+  lateCount: number;
+  lateMinutes: number;
+  earlyLeaveCount: number;
+  absenceCount: number;
+  overtimeHours: number;
+  unpaidLeaveDays: number;
+  calculatedBy: string;
+  calculatedAt: string;
   approvedBy?: string;
+  approvedBy2?: string;
   approvedAt?: string;
-  paidAt?: string;
+  processedBy?: string;
+  processedAt?: string;
+  payslipUrl?: string;
   notes?: string;
-  createdAt: string;
-  updatedAt: string;
+  employee?: Employee;
+  components?: PayrollComponent[];
 }
 
 export interface PayrollComponent {
   id: string;
-  componentType: 'allowance' | 'deduction';
+  payrollId: string;
+  componentType: 'earning' | 'deduction';
   componentName: string;
   amount: number;
   isTaxable: boolean;
+  notes?: string;
 }
 
-export interface PayrollListResponse {
-  data: Payroll[];
-  meta: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-}
-
-// KPI
-export interface KPI {
+export interface KPIRecord {
   id: string;
   employeeId: string;
-  employee?: Employee;
   periodMonth: number;
   periodYear: number;
-  targetScore: number;
-  actualScore: number;
-  achievement: number;
-  status: 'draft' | 'submitted' | 'reviewed' | 'approved';
-  metrics: KPIMetric[];
+  salesTargetAchievement?: number;
+  serviceQualityScore?: number;
+  customerSatisfaction?: number;
+  attendanceScore?: number;
+  overallScore: number;
+  targetBonus?: number;
+  calculatedBonus?: number;
+  bonusMultiplier?: number;
+  recordedBy: string;
   notes?: string;
-  createdAt: string;
-  updatedAt: string;
+  employee?: Employee;
 }
 
-export interface KPIMetric {
-  id: string;
-  metricName: string;
-  target: number;
-  actual: number;
-  weight: number;
-  score: number;
+export interface AttendanceSummary {
+  totalDays: number;
+  presentDays: number;
+  absentDays: number;
+  leaveDays: number;
+  lateCount: number;
+  earlyLeaveCount: number;
+  totalHours: number;
+  overtimeHours: number;
 }
 
-export interface KPIListResponse {
-  data: KPI[];
-  meta: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-}
+// ============================================
+// Service Methods
+// ============================================
 
 export const hrService = {
-  // Employees
-  async getEmployees(params?: {
-    page?: number;
-    limit?: number;
-    search?: string;
-    branchId?: string;
-    departmentId?: string;
-    status?: string;
-  }): Promise<EmployeeListResponse> {
-    try {
-      const response = await api.get('/employees', { params });
-      return response.data;
-    } catch (error: any) {
-      return handleApiError(error, {
-        data: [],
-        meta: { page: params?.page || 1, limit: params?.limit || 20, total: 0, totalPages: 0 },
-      });
-    }
-  },
-
-  async getEmployeeById(id: string): Promise<Employee> {
-    try {
-      const response = await api.get(`/employees/${id}`);
-      return response.data.data || response.data;
-    } catch (error: any) {
-      throw error;
-    }
-  },
-
-  async createEmployee(data: {
-    userId?: string;
-    branchId: string;
-    departmentId?: string;
-    position: string;
-    hireDate: string;
-    basicSalary: number;
-  }): Promise<Employee> {
-    try {
-      const response = await api.post('/employees', data);
-      return response.data.data || response.data;
-    } catch (error: any) {
-      throw error;
-    }
-  },
-
-  async updateEmployee(id: string, data: Partial<Employee>): Promise<Employee> {
-    try {
-      const response = await api.put(`/employees/${id}`, data);
-      return response.data.data || response.data;
-    } catch (error: any) {
-      throw error;
-    }
-  },
-
+  // ============================================
   // Attendance
-  async getAttendance(params?: {
-    page?: number;
-    limit?: number;
+  // ============================================
+
+  /**
+   * Clock in
+   */
+  async clockIn(data: { branch_id: string; method?: 'fingerprint' | 'manual'; clock_in_location?: string; notes?: string }) {
+    const response = await api.post('/attendance/clock-in', data);
+    return response.data.data || response.data;
+  },
+
+  /**
+   * Clock out
+   */
+  async clockOut(data: { branch_id: string; method?: 'fingerprint' | 'manual'; clock_out_location?: string; notes?: string }) {
+    const response = await api.post('/attendance/clock-out', data);
+    return response.data.data || response.data;
+  },
+
+  /**
+   * List attendance records
+   */
+  async getAttendances(params?: {
     employeeId?: string;
-    branchId?: string;
     startDate?: string;
     endDate?: string;
+    search?: string;
     status?: string;
-  }): Promise<AttendanceListResponse> {
-    try {
-      const response = await api.get('/attendance', { params });
-      return response.data;
-    } catch (error: any) {
-      return handleApiError(error, {
-        data: [],
-        meta: { page: params?.page || 1, limit: params?.limit || 20, total: 0, totalPages: 0 },
-      });
+    branchId?: string;
+  }): Promise<{ data: Attendance[]; total: number }> {
+    const response = await api.get('/attendance', { params });
+    // Backend returns { data: [], total: number } or array directly
+    if (Array.isArray(response.data)) {
+      return { data: response.data, total: response.data.length };
     }
+    if (response.data && typeof response.data === 'object' && 'data' in response.data) {
+      return {
+        data: response.data.data || [],
+        total: response.data.total || (response.data.data?.length || 0),
+      };
+    }
+    return { data: [], total: 0 };
   },
 
-  async clockIn(data: { branch_id: string; clock_in_time?: string; notes?: string }): Promise<Attendance> {
-    try {
-      const response = await api.post('/attendance/clock-in', data);
-      return response.data.data || response.data;
-    } catch (error: any) {
-      throw error;
-    }
+  /**
+   * Get monthly summary
+   */
+  async getAttendanceSummary(month: number, year: number): Promise<AttendanceSummary> {
+    const response = await api.get('/attendance/summary', {
+      params: { month, year },
+    });
+    return response.data.data || response.data;
   },
 
-  async clockOut(data: { clock_out_time?: string; notes?: string }): Promise<Attendance> {
-    try {
-      const response = await api.post('/attendance/clock-out', data);
-      return response.data.data || response.data;
-    } catch (error: any) {
-      throw error;
-    }
+  /**
+   * Manual adjustment
+   */
+  async adjustAttendance(id: string, data: { clock_in?: string; clock_out?: string; status?: string; notes?: string; reason: string }) {
+    const response = await api.post(`/attendance/${id}/adjust`, data);
+    return response.data.data || response.data;
   },
 
-  async manualAdjustment(data: {
-    employeeId: string;
-    date: string;
-    clockIn?: string;
-    clockOut?: string;
-    status: string;
-    notes?: string;
-  }): Promise<Attendance> {
-    try {
-      const response = await api.post('/attendance/manual', data);
-      return response.data.data || response.data;
-    } catch (error: any) {
-      throw error;
-    }
+  /**
+   * Request overtime
+   */
+  async requestOvertime(data: { attendance_id: string; requested_hours: number; reason: string; requested_date: string }) {
+    const response = await api.post('/attendance/overtime/request', data);
+    return response.data.data || response.data;
   },
 
+  /**
+   * Approve overtime
+   */
+  async approveOvertime(overtimeId: string) {
+    const response = await api.post('/attendance/overtime/approve', null, {
+      params: { id: overtimeId },
+    });
+    return response.data.data || response.data;
+  },
+
+  // ============================================
   // Leave
+  // ============================================
+
+  /**
+   * Request leave
+   */
+  async requestLeave(data: {
+    leave_type: 'annual' | 'sick' | 'emergency' | 'unpaid';
+    start_date: string;
+    end_date: string;
+    reason: string;
+  }) {
+    const response = await api.post('/leave/request', data);
+    return response.data.data || response.data;
+  },
+
+  /**
+   * List leave requests
+   */
   async getLeaveRequests(params?: {
-    page?: number;
-    limit?: number;
     employeeId?: string;
     status?: string;
-    leaveType?: string;
     startDate?: string;
     endDate?: string;
-  }): Promise<LeaveListResponse> {
-    try {
-      const response = await api.get('/leave', { params });
-      return response.data;
-    } catch (error: any) {
-      return handleApiError(error, {
-        data: [],
-        meta: { page: params?.page || 1, limit: params?.limit || 20, total: 0, totalPages: 0 },
-      });
+  }): Promise<{ data: LeaveRequest[]; total: number }> {
+    const response = await api.get('/leave/requests', { params });
+    // Backend returns { data: [], total: number } or array directly
+    if (Array.isArray(response.data)) {
+      return { data: response.data, total: response.data.length };
     }
+    // If it's an object with data property
+    if (response.data && typeof response.data === 'object' && 'data' in response.data) {
+      return {
+        data: response.data.data || [],
+        total: response.data.total || (response.data.data?.length || 0)
+      };
+    }
+    // Fallback
+    return { data: [], total: 0 };
   },
 
-  async getLeaveBalance(employeeId: string): Promise<LeaveBalance[]> {
-    try {
-      const response = await api.get(`/leave/balance/${employeeId}`);
-      return response.data.data || response.data;
-    } catch (error: any) {
-      throw error;
-    }
+  /**
+   * Get leave balance
+   */
+  async getLeaveBalance(userId: string): Promise<LeaveBalance> {
+    const response = await api.get(`/leave/balance/${userId}`);
+    return response.data.data || response.data;
   },
 
-  async createLeaveRequest(data: {
-    leaveType: string;
-    startDate: string;
-    endDate: string;
-    reason: string;
-  }): Promise<LeaveRequest> {
-    try {
-      const response = await api.post('/leave', data);
-      return response.data.data || response.data;
-    } catch (error: any) {
-      throw error;
-    }
+  /**
+   * Approve leave
+   */
+  async approveLeave(leaveId: string, data: { notes?: string }) {
+    const response = await api.post('/leave/approve', data, {
+      params: { id: leaveId },
+    });
+    return response.data.data || response.data;
   },
 
-  async approveLeave(id: string, data: { notes?: string }): Promise<LeaveRequest> {
-    try {
-      const response = await api.put(`/leave/${id}/approve`, data);
-      return response.data.data || response.data;
-    } catch (error: any) {
-      throw error;
-    }
+  /**
+   * Reject leave
+   */
+  async rejectLeave(leaveId: string, data: { reason: string; notes?: string }) {
+    const response = await api.post('/leave/reject', data, {
+      params: { id: leaveId },
+    });
+    return response.data.data || response.data;
   },
 
-  async rejectLeave(id: string, data: { reason: string }): Promise<LeaveRequest> {
-    try {
-      const response = await api.put(`/leave/${id}/reject`, data);
-      return response.data.data || response.data;
-    } catch (error: any) {
-      throw error;
-    }
+  /**
+   * Cancel leave
+   */
+  async cancelLeave(leaveId: string, data: { reason: string }) {
+    const response = await api.post('/leave/cancel', data, {
+      params: { id: leaveId },
+    });
+    return response.data.data || response.data;
   },
 
+  // ============================================
   // Payroll
-  async getPayrolls(params?: {
-    page?: number;
-    limit?: number;
-    employeeId?: string;
-    periodMonth?: number;
-    periodYear?: number;
-    status?: string;
-  }): Promise<PayrollListResponse> {
-    try {
-      const response = await api.get('/payroll', { params });
-      return response.data;
-    } catch (error: any) {
-      return handleApiError(error, {
-        data: [],
-        meta: { page: params?.page || 1, limit: params?.limit || 20, total: 0, totalPages: 0 },
-      });
-    }
-  },
+  // ============================================
 
-  async getPayrollById(id: string): Promise<Payroll> {
-    try {
-      const response = await api.get(`/payroll/${id}`);
-      return response.data.data || response.data;
-    } catch (error: any) {
-      throw error;
-    }
-  },
-
+  /**
+   * Calculate payroll
+   */
   async calculatePayroll(data: {
-    employeeIds?: string[];
-    periodMonth: number;
-    periodYear: number;
-    branchId?: string;
-  }): Promise<Payroll[]> {
-    try {
-      const response = await api.post('/payroll/calculate', data);
-      return response.data.data || response.data;
-    } catch (error: any) {
-      throw error;
-    }
+    employee_ids?: string[];
+    period_month: number;
+    period_year: number;
+    components?: Array<{
+      component_type: 'earning' | 'deduction';
+      component_name: string;
+      amount: number;
+      is_taxable?: boolean;
+      notes?: string;
+    }>;
+  }) {
+    const response = await api.post('/payroll/calculate', data);
+    return response.data.data || response.data;
   },
 
-  async approvePayroll(id: string, data?: { notes?: string }): Promise<Payroll> {
-    try {
-      const response = await api.put(`/payroll/${id}/approve`, data || {});
-      return response.data.data || response.data;
-    } catch (error: any) {
-      throw error;
-    }
-  },
-
-  // KPI
-  async getKPIs(params?: {
-    page?: number;
-    limit?: number;
+  /**
+   * List payroll records
+   */
+  async getPayrolls(params?: {
     employeeId?: string;
     periodMonth?: number;
     periodYear?: number;
     status?: string;
-  }): Promise<KPIListResponse> {
-    try {
-      const response = await api.get('/kpi', { params });
-      return response.data;
-    } catch (error: any) {
-      return handleApiError(error, {
-        data: [],
-        meta: { page: params?.page || 1, limit: params?.limit || 20, total: 0, totalPages: 0 },
-      });
+  }): Promise<{ data: Payroll[]; total: number }> {
+    const response = await api.get('/payroll', { params });
+    // Backend returns { data: [], total: number } or array directly
+    if (Array.isArray(response.data)) {
+      return { data: response.data, total: response.data.length };
     }
+    // If it's an object with data property
+    if (response.data && typeof response.data === 'object' && 'data' in response.data) {
+      return { 
+        data: response.data.data || [], 
+        total: response.data.total || (response.data.data?.length || 0) 
+      };
+    }
+    // Fallback
+    return { data: [], total: 0 };
   },
 
-  async getKPIById(id: string): Promise<KPI> {
-    try {
-      const response = await api.get(`/kpi/${id}`);
-      return response.data.data || response.data;
-    } catch (error: any) {
-      throw error;
-    }
+  /**
+   * Get payroll detail
+   */
+  async getPayroll(id: string): Promise<Payroll> {
+    const response = await api.get(`/payroll/${id}`);
+    return response.data.data || response.data;
   },
 
-  async createKPI(data: {
-    employeeId: string;
-    periodMonth: number;
-    periodYear: number;
-    targetScore: number;
-    metrics: Array<{ metricName: string; target: number; weight: number }>;
+  /**
+   * Approve payroll
+   */
+  async approvePayroll(id: string) {
+    const response = await api.post(`/payroll/${id}/approve`);
+    return response.data.data || response.data;
+  },
+
+  /**
+   * Process payment
+   */
+  async processPayment(id: string) {
+    const response = await api.post(`/payroll/${id}/process`);
+    return response.data;
+  },
+
+  /**
+   * Cancel payroll
+   */
+  async cancelPayroll(id: string, reason?: string) {
+    const response = await api.post(`/payroll/${id}/cancel`, { reason });
+    return response.data.data || response.data;
+  },
+
+  /**
+   * Generate payslip
+   */
+  async generatePayslip(id: string): Promise<{ payslipUrl: string }> {
+    const response = await api.get(`/payroll/${id}/slip`);
+    return response.data.data || response.data;
+  },
+
+  // ============================================
+  // KPI
+  // ============================================
+
+  /**
+   * Record KPI
+   */
+  async recordKPI(data: {
+    employee_id: string;
+    period_month: number;
+    period_year: number;
+    sales_target_achievement?: number;
+    service_quality_score?: number;
+    customer_satisfaction?: number;
+    attendance_score?: number;
+    target_bonus?: number;
+    bonus_multiplier?: number;
     notes?: string;
-  }): Promise<KPI> {
-    try {
-      const response = await api.post('/kpi', data);
-      return response.data.data || response.data;
-    } catch (error: any) {
-      throw error;
-    }
+  }) {
+    const response = await api.post('/kpi/records', data);
+    return response.data.data || response.data;
   },
 
+  /**
+   * Get employee KPIs
+   */
+  async getEmployeeKPIs(userId: string, params?: { month?: number; year?: number }): Promise<{ data: KPIRecord[]; total: number }> {
+    const response = await api.get(`/kpi/records/${userId}`, { params });
+    return response.data.data || response.data;
+  },
+
+  /**
+   * Get KPI record by ID
+   */
+  async getKPI(id: string): Promise<KPIRecord> {
+    const response = await api.get(`/kpi/records/${id}`);
+    return response.data.data || response.data;
+  },
+
+  /**
+   * Update KPI score
+   */
   async updateKPIScore(id: string, data: {
-    metricId: string;
-    actual: number;
-  }): Promise<KPI> {
-    try {
-      const response = await api.put(`/kpi/${id}/score`, data);
-      return response.data.data || response.data;
-    } catch (error: any) {
-      throw error;
-    }
+    sales_target_achievement?: number;
+    service_quality_score?: number;
+    customer_satisfaction?: number;
+    attendance_score?: number;
+    overall_score?: number;
+    calculated_bonus?: number;
+    notes?: string;
+  }) {
+    const response = await api.post(`/kpi/records/${id}/score`, data);
+    return response.data.data || response.data;
   },
 };
-

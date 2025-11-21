@@ -1,18 +1,31 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Search, Package, Loader2, AlertTriangle, TrendingUp, Warehouse } from 'lucide-react';
+import { Search, Package, Loader2, AlertTriangle, TrendingUp, Warehouse, Filter } from 'lucide-react';
 import { api } from '../../services/api';
+import { useBranchStore } from '@/stores/branchStore';
 
 export default function StockList() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedBranchId, setSelectedBranchId] = useState<string>('');
   const [page, setPage] = useState(1);
   const limit = 20;
+  const { availableBranches } = useBranchStore();
+
+  // Reset page when search or branch filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, selectedBranchId]);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['product-stocks', page, searchTerm],
+    queryKey: ['product-stocks', page, searchTerm, selectedBranchId],
     queryFn: async () => {
-      const response = await api.get('/inventory/product-stocks', {
-        params: { page, limit, search: searchTerm || undefined },
+      const response = await api.get('/inventory/stock', {
+        params: {
+          page,
+          limit,
+          search: searchTerm || undefined,
+          branchId: selectedBranchId || undefined,
+        },
       });
       return response.data;
     },
@@ -97,19 +110,38 @@ export default function StockList() {
         </div>
       </div>
 
-      {/* Search */}
+      {/* Search & Filters */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-gray-400" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Search className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Cari produk atau SKU..."
+              className="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+            />
           </div>
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Cari produk atau SKU..."
-            className="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-          />
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Filter className="h-5 w-5 text-gray-400" />
+            </div>
+            <select
+              value={selectedBranchId}
+              onChange={(e) => setSelectedBranchId(e.target.value)}
+              className="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white"
+            >
+              <option value="">Semua Cabang</option>
+              {availableBranches.map((branch) => (
+                <option key={branch.id} value={branch.id}>
+                  {branch.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 

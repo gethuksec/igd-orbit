@@ -176,200 +176,233 @@ export default function Login() {
             </div>
           </div>
 
-          {/* Demo Credentials */}
-          <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 space-y-3">
-            <p className="text-xs font-semibold text-gray-700 uppercase flex items-center gap-2">
-              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-              Akun Demo (Password semua: Test@1234)
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('owner@igdgroup.com');
-                  setPassword('Test@1234');
-                }}
-                className="text-left px-3 py-2 bg-white hover:bg-primary-50 border border-gray-200 rounded-lg transition-all"
-              >
-                <p className="font-semibold text-primary-600">👑 Owner</p>
-                <p className="text-gray-500">owner@igdgroup.com</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('cfo@igdgroup.com');
-                  setPassword('Test@1234');
-                }}
-                className="text-left px-3 py-2 bg-white hover:bg-primary-50 border border-gray-200 rounded-lg transition-all"
-              >
-                <p className="font-semibold text-primary-600">💼 CFO (Keuangan & Laporan)</p>
-                <p className="text-gray-500">cfo@igdgroup.com</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('manager@igdgroup.com');
-                  setPassword('Test@1234');
-                }}
-                className="text-left px-3 py-2 bg-white hover:bg-primary-50 border border-gray-200 rounded-lg transition-all"
-              >
-                <p className="font-semibold text-primary-600">📊 Manager Operasional</p>
-                <p className="text-gray-500">manager@igdgroup.com</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('regional@igdgroup.com');
-                  setPassword('Test@1234');
-                }}
-                className="text-left px-3 py-2 bg-white hover:bg-primary-50 border border-gray-200 rounded-lg transition-all"
-              >
-                <p className="font-semibold text-primary-600">🌐 Regional Manager (Multi Cabang)</p>
-                <p className="text-gray-500">regional@igdgroup.com</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('cs@igdgroup.com');
-                  setPassword('Test@1234');
-                }}
-                className="text-left px-3 py-2 bg-white hover:bg-primary-50 border border-gray-200 rounded-lg transition-all"
-              >
-                <p className="font-semibold text-primary-600">🎧 Customer Service</p>
-                <p className="text-gray-500">cs@igdgroup.com</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('cso@igdgroup.com');
-                  setPassword('Test@1234');
-                }}
-                className="text-left px-3 py-2 bg-white hover:bg-primary-50 border border-gray-200 rounded-lg transition-all"
-              >
-                <p className="font-semibold text-primary-600">📈 CSO (Chief Sales Officer)</p>
-                <p className="text-gray-500">cso@igdgroup.com</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('cmo@igdgroup.com');
-                  setPassword('Test@1234');
-                }}
-                className="text-left px-3 py-2 bg-white hover:bg-primary-50 border border-gray-200 rounded-lg transition-all"
-              >
-                <p className="font-semibold text-primary-600">📣 CMO (Marketing)</p>
-                <p className="text-gray-500">cmo@igdgroup.com</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('hr@igdgroup.com');
-                  setPassword('Test@1234');
-                }}
-                className="text-left px-3 py-2 bg-white hover:bg-primary-50 border border-gray-200 rounded-lg transition-all"
-              >
-                <p className="font-semibold text-primary-600">🧑‍💼 HR Manager (CHR)</p>
-                <p className="text-gray-500">hr@igdgroup.com</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('spv@igdgroup.com');
-                  setPassword('Test@1234');
-                }}
-                className="text-left px-3 py-2 bg-white hover:bg-primary-50 border border-gray-200 rounded-lg transition-all"
-              >
-                <p className="font-semibold text-primary-600">🧭 Supervisor (SPV)</p>
-                <p className="text-gray-500">spv@igdgroup.com</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('hs@igdgroup.com');
-                  setPassword('Test@1234');
-                }}
-                className="text-left px-3 py-2 bg-white hover:bg-primary-50 border border-gray-200 rounded-lg transition-all"
-              >
-                <p className="font-semibold text-primary-600">🏬 Head of Store (HS)</p>
-                <p className="text-gray-500">hs@igdgroup.com</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('ar@igdgroup.com');
-                  setPassword('Test@1234');
-                }}
-                className="text-left px-3 py-2 bg-white hover:bg-primary-50 border border-gray-200 rounded-lg transition-all"
-              >
-                <p className="font-semibold text-primary-600">💳 AR Staff</p>
-                <p className="text-gray-500">ar@igdgroup.com</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('tech@igdgroup.com');
-                  setPassword('Test@1234');
-                }}
-                className="text-left px-3 py-2 bg-white hover:bg-primary-50 border border-gray-200 rounded-lg transition-all"
-              >
-                <p className="font-semibold text-primary-600">🛠️ Teknisi (TC)</p>
-                <p className="text-gray-500">tech@igdgroup.com</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('sodo@igdgroup.com');
-                  setPassword('Test@1234');
-                }}
-                className="text-left px-3 py-2 bg-white hover:bg-primary-50 border border-gray-200 rounded-lg transition-all"
-              >
-                <p className="font-semibold text-primary-600">🔧 Service Ops (SODO)</p>
-                <p className="text-gray-500">sodo@igdgroup.com</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('asa@igdgroup.com');
-                  setPassword('Test@1234');
-                }}
-                className="text-left px-3 py-2 bg-white hover:bg-primary-50 border border-gray-200 rounded-lg transition-all"
-              >
-                <p className="font-semibold text-primary-600">📦 Assistant Store Admin (ASA)</p>
-                <p className="text-gray-500">asa@igdgroup.com</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('smo@igdgroup.com');
-                  setPassword('Test@1234');
-                }}
-                className="text-left px-3 py-2 bg-white hover:bg-primary-50 border border-gray-200 rounded-lg transition-all"
-              >
-                <p className="font-semibold text-primary-600">📊 Sales & Marketing Officer (SMO)</p>
-                <p className="text-gray-500">smo@igdgroup.com</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('as@igdgroup.com');
-                  setPassword('Test@1234');
-                }}
-                className="text-left px-3 py-2 bg-white hover:bg-primary-50 border border-gray-200 rounded-lg transition-all"
-              >
-                <p className="font-semibold text-primary-600">📒 Accounting Staff (AS)</p>
-                <p className="text-gray-500">as@igdgroup.com</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('cashier@igdgroup.com');
-                  setPassword('Test@1234');
-                }}
-                className="text-left px-3 py-2 bg-white hover:bg-primary-50 border border-gray-200 rounded-lg transition-all"
-              >
-                <p className="font-semibold text-primary-600">💸 Cashier (CR)</p>
-                <p className="text-gray-500">cashier@igdgroup.com</p>
-              </button>
+          {/* Demo Credentials - Organized by Tier */}
+          <div className="space-y-4">
+            {/* Tier 1 - Executive */}
+            <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-4 border border-red-200">
+              <p className="text-xs font-bold text-red-800 uppercase mb-3 flex items-center gap-2">
+                <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                🔴 TIER 1 - EXECUTIVE (Password: Owner@1234)
+              </p>
+              <div className="grid grid-cols-1 gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('owner@igdgroup.com');
+                    setPassword('Owner@1234');
+                  }}
+                  className="text-left px-3 py-2 bg-white hover:bg-red-50 border border-red-200 rounded-lg transition-all"
+                >
+                  <p className="font-semibold text-red-700">👑 Owner (Semua Cabang)</p>
+                  <p className="text-gray-600">owner@igdgroup.com</p>
+                </button>
+              </div>
+            </div>
+
+            {/* Tier 2 - Management */}
+            <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4 border border-orange-200">
+              <p className="text-xs font-bold text-orange-800 uppercase mb-3 flex items-center gap-2">
+                <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
+                🟠 TIER 2 - MANAGEMENT (Password: Manager@1234)
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('cfo@igdgroup.com');
+                    setPassword('Manager@1234');
+                  }}
+                  className="text-left px-3 py-2 bg-white hover:bg-orange-50 border border-orange-200 rounded-lg transition-all"
+                >
+                  <p className="font-semibold text-orange-700">💼 CFO (Keuangan & Laporan)</p>
+                  <p className="text-gray-600">cfo@igdgroup.com</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('manager@igdgroup.com');
+                    setPassword('Manager@1234');
+                  }}
+                  className="text-left px-3 py-2 bg-white hover:bg-orange-50 border border-orange-200 rounded-lg transition-all"
+                >
+                  <p className="font-semibold text-orange-700">📊 Manager Operasional</p>
+                  <p className="text-gray-600">manager@igdgroup.com</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('regional@igdgroup.com');
+                    setPassword('Manager@1234');
+                  }}
+                  className="text-left px-3 py-2 bg-white hover:bg-orange-50 border border-orange-200 rounded-lg transition-all"
+                >
+                  <p className="font-semibold text-orange-700">🌐 Regional Manager (Multi Cabang)</p>
+                  <p className="text-gray-600">regional@igdgroup.com</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('cso@igdgroup.com');
+                    setPassword('Manager@1234');
+                  }}
+                  className="text-left px-3 py-2 bg-white hover:bg-orange-50 border border-orange-200 rounded-lg transition-all"
+                >
+                  <p className="font-semibold text-orange-700">📈 CSO (Chief Sales Officer)</p>
+                  <p className="text-gray-600">cso@igdgroup.com</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('cmo@igdgroup.com');
+                    setPassword('Manager@1234');
+                  }}
+                  className="text-left px-3 py-2 bg-white hover:bg-orange-50 border border-orange-200 rounded-lg transition-all"
+                >
+                  <p className="font-semibold text-orange-700">📣 CMO (Marketing)</p>
+                  <p className="text-gray-600">cmo@igdgroup.com</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('hr@igdgroup.com');
+                    setPassword('Manager@1234');
+                  }}
+                  className="text-left px-3 py-2 bg-white hover:bg-orange-50 border border-orange-200 rounded-lg transition-all"
+                >
+                  <p className="font-semibold text-orange-700">🧑‍💼 HR Manager (CHR)</p>
+                  <p className="text-gray-600">hr@igdgroup.com</p>
+                </button>
+              </div>
+            </div>
+
+            {/* Tier 3 - Supervisor */}
+            <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg p-4 border border-yellow-200">
+              <p className="text-xs font-bold text-yellow-800 uppercase mb-3 flex items-center gap-2">
+                <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
+                🟡 TIER 3 - SUPERVISOR (Password: Supervisor@1234)
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('spv@igdgroup.com');
+                    setPassword('Supervisor@1234');
+                  }}
+                  className="text-left px-3 py-2 bg-white hover:bg-yellow-50 border border-yellow-200 rounded-lg transition-all"
+                >
+                  <p className="font-semibold text-yellow-700">🧭 Supervisor (SPV)</p>
+                  <p className="text-gray-600">spv@igdgroup.com</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('hs@igdgroup.com');
+                    setPassword('Supervisor@1234');
+                  }}
+                  className="text-left px-3 py-2 bg-white hover:bg-yellow-50 border border-yellow-200 rounded-lg transition-all"
+                >
+                  <p className="font-semibold text-yellow-700">🏬 Head of Store (HS)</p>
+                  <p className="text-gray-600">hs@igdgroup.com</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('sodo@igdgroup.com');
+                    setPassword('Supervisor@1234');
+                  }}
+                  className="text-left px-3 py-2 bg-white hover:bg-yellow-50 border border-yellow-200 rounded-lg transition-all"
+                >
+                  <p className="font-semibold text-yellow-700">🔧 Service & Operations</p>
+                  <p className="text-gray-600">sodo@igdgroup.com</p>
+                </button>
+              </div>
+            </div>
+
+            {/* Tier 4 - Staff */}
+            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
+              <p className="text-xs font-bold text-green-800 uppercase mb-3 flex items-center gap-2">
+                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                🟢 TIER 4 - STAFF (Password: Staff@1234)
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('cs@igdgroup.com');
+                    setPassword('Staff@1234');
+                  }}
+                  className="text-left px-3 py-2 bg-white hover:bg-green-50 border border-green-200 rounded-lg transition-all"
+                >
+                  <p className="font-semibold text-green-700">🎧 Customer Service</p>
+                  <p className="text-gray-600">cs@igdgroup.com</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('ar@igdgroup.com');
+                    setPassword('Staff@1234');
+                  }}
+                  className="text-left px-3 py-2 bg-white hover:bg-green-50 border border-green-200 rounded-lg transition-all"
+                >
+                  <p className="font-semibold text-green-700">💰 AR Staff</p>
+                  <p className="text-gray-600">ar@igdgroup.com</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('tech@igdgroup.com');
+                    setPassword('Staff@1234');
+                  }}
+                  className="text-left px-3 py-2 bg-white hover:bg-green-50 border border-green-200 rounded-lg transition-all"
+                >
+                  <p className="font-semibold text-green-700">🔨 Technician</p>
+                  <p className="text-gray-600">tech@igdgroup.com</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('asa@igdgroup.com');
+                    setPassword('Staff@1234');
+                  }}
+                  className="text-left px-3 py-2 bg-white hover:bg-green-50 border border-green-200 rounded-lg transition-all"
+                >
+                  <p className="font-semibold text-green-700">📦 Assistant Store Admin</p>
+                  <p className="text-gray-600">asa@igdgroup.com</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('smo@igdgroup.com');
+                    setPassword('Staff@1234');
+                  }}
+                  className="text-left px-3 py-2 bg-white hover:bg-green-50 border border-green-200 rounded-lg transition-all"
+                >
+                  <p className="font-semibold text-green-700">📊 Sales & Marketing Officer</p>
+                  <p className="text-gray-600">smo@igdgroup.com</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('as@igdgroup.com');
+                    setPassword('Staff@1234');
+                  }}
+                  className="text-left px-3 py-2 bg-white hover:bg-green-50 border border-green-200 rounded-lg transition-all"
+                >
+                  <p className="font-semibold text-green-700">📝 Accounting Staff</p>
+                  <p className="text-gray-600">as@igdgroup.com</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('cashier@igdgroup.com');
+                    setPassword('Staff@1234');
+                  }}
+                  className="text-left px-3 py-2 bg-white hover:bg-green-50 border border-green-200 rounded-lg transition-all"
+                >
+                  <p className="font-semibold text-green-700">💵 Cashier POS</p>
+                  <p className="text-gray-600">cashier@igdgroup.com</p>
+                </button>
+              </div>
             </div>
           </div>
         </div>

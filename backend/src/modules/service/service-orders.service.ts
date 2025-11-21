@@ -2,6 +2,8 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services/prisma.service';
 import { CreateServiceOrderDto } from './dto/create-service-order.dto';
@@ -14,10 +16,15 @@ import { UploadPhotosDto } from './dto/upload-photos.dto';
 import { encryptPassword, decryptPassword } from './utils/password-encryption.util';
 import { Decimal } from '@prisma/client/runtime/library';
 import { ProcessPaymentDto } from './dto/payment.dto';
+import { JournalEntriesService } from '../finance/services/journal-entries.service';
 
 @Injectable()
 export class ServiceOrdersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject(forwardRef(() => JournalEntriesService))
+    private journalEntriesService?: JournalEntriesService,
+  ) {}
 
   private generateServiceNumber(): string {
     const date = new Date();
@@ -1040,9 +1047,12 @@ export class ServiceOrdersService {
     });
   }
 
-  async deliverService(serviceOrderId: string, _userId: string) {
+  async deliverService(serviceOrderId: string, userId: string) {
     const serviceOrder = await this.prisma.serviceOrder.findUnique({
       where: { id: serviceOrderId },
+      include: {
+        branch: true,
+      },
     });
 
     if (!serviceOrder) {
@@ -1058,18 +1068,16 @@ export class ServiceOrdersService {
     }
 
     // Check payment status (can be enhanced with actual payment processing)
-    if (serviceOrder.paymentStatus !== 'paid') {
-      // In production, this would trigger payment collection
-      // For now, we'll allow delivery but flag it
-    }
+    const wasPaidBefore = serviceOrder.paymentStatus === 'paid';
+    const totalPrice = Number(serviceOrder.totalPrice || 0);
 
-    return this.prisma.serviceOrder.update({
+    const updated = await this.prisma.serviceOrder.update({
       where: { id: serviceOrderId },
       data: {
         status: 'delivered',
         deliveredAt: new Date(),
-        paymentStatus: 'paid', // Assuming payment collected
-        paidAt: new Date(),
+        paymentStatus: 'paid', // Assuming payment collected on delivery
+        paidAt: serviceOrder.paidAt || new Date(),
       },
       include: {
         branch: true,
@@ -1078,6 +1086,29 @@ export class ServiceOrdersService {
         assignedTechnician: true,
       },
     });
+
+    // Auto-generate journal entry when delivered and paid (if not already created)
+    if (
+      this.journalEntriesService &&
+      !wasPaidBefore &&
+      totalPrice > 0 &&
+      serviceOrder.paymentMethod
+    ) {
+      try {
+        await this.journalEntriesService.autoGenerateFromServicePayment(
+          serviceOrderId,
+          serviceOrder.branchId,
+          totalPrice,
+          serviceOrder.paymentMethod || 'cash',
+          userId,
+        );
+      } catch (error) {
+        // Don't fail delivery if journal creation fails
+        console.error('Error creating auto journal entry on delivery:', error);
+      }
+    }
+
+    return updated;
   }
 
   async processPayment(serviceOrderId: string, dto: ProcessPaymentDto, _userId: string) {
@@ -1139,6 +1170,22 @@ export class ServiceOrdersService {
           },
         },
       });
+
+      // Auto-generate journal entry (outside transaction to avoid circular dependency)
+      if (this.journalEntriesService && paymentStatus === 'paid') {
+        try {
+          await this.journalEntriesService.autoGenerateFromServicePayment(
+            serviceOrderId,
+            serviceOrder.branchId,
+            dto.amount,
+            dto.paymentMethod,
+            _userId,
+          );
+        } catch (error) {
+          // Don't fail payment if journal creation fails
+          console.error('Error creating auto journal entry for service payment:', error);
+        }
+      }
 
       return updated;
     });

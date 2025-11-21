@@ -11,8 +11,15 @@ async function hashPassword(password: string): Promise<string> {
 async function main() {
   console.log('🌱 Starting database seed...');
 
-  // Hash password for all users
-  const defaultPassword = await hashPassword('Test@1234');
+  // Hash passwords based on tier/level
+  // Tier 1 (Highest): Owner, CFO
+  const tier1Password = await hashPassword('Owner@1234');
+  // Tier 2: Manager, Regional Manager, CSO, CMO, CHR
+  const tier2Password = await hashPassword('Manager@1234');
+  // Tier 3: Supervisor, Head of Store
+  const tier3Password = await hashPassword('Supervisor@1234');
+  // Tier 4: Staff level (CS, AR, SODO, ASA, SMO, AS, CR, TC)
+  const tier4Password = await hashPassword('Staff@1234');
 
   // 1. Create Branches
   console.log('📦 Creating branches...');
@@ -149,12 +156,15 @@ async function main() {
   console.log('👤 Creating users...');
   const owner = await prisma.user.upsert({
     where: { email: 'owner@igdgroup.com' },
-    update: {},
+    update: {
+      passwordHash: tier1Password,
+      fullName: 'Budi Santoso',
+    },
     create: {
       email: 'owner@igdgroup.com',
       username: 'owner',
-      passwordHash: defaultPassword,
-      fullName: 'Pemilik IGD',
+      passwordHash: tier1Password,
+      fullName: 'Budi Santoso',
       phone: '081234567890',
       isActive: true,
       isVerified: true,
@@ -308,12 +318,15 @@ async function main() {
 
   const cfo = await prisma.user.upsert({
     where: { email: 'cfo@igdgroup.com' },
-    update: {},
+    update: {
+      passwordHash: tier2Password,
+      fullName: 'Siti Nurhaliza',
+    },
     create: {
       email: 'cfo@igdgroup.com',
       username: 'cfo',
-      passwordHash: defaultPassword,
-      fullName: 'CFO IGD',
+      passwordHash: tier2Password,
+      fullName: 'Siti Nurhaliza',
       phone: '081234567891',
       isActive: true,
       isVerified: true,
@@ -322,12 +335,15 @@ async function main() {
 
   const manager = await prisma.user.upsert({
     where: { email: 'manager@igdgroup.com' },
-    update: {},
+    update: {
+      passwordHash: tier2Password,
+      fullName: 'Ahmad Wijaya',
+    },
     create: {
       email: 'manager@igdgroup.com',
       username: 'manager',
-      passwordHash: defaultPassword,
-      fullName: 'Manager IGD (Cabang Jember)',
+      passwordHash: tier2Password,
+      fullName: 'Ahmad Wijaya',
       phone: '081234567892',
       isActive: true,
       isVerified: true,
@@ -336,12 +352,15 @@ async function main() {
 
   const regionalManager = await prisma.user.upsert({
     where: { email: 'regional@igdgroup.com' },
-    update: {},
+    update: {
+      passwordHash: tier2Password,
+      fullName: 'Dewi Sartika',
+    },
     create: {
       email: 'regional@igdgroup.com',
       username: 'regional',
-      passwordHash: defaultPassword,
-      fullName: 'Regional Manager IGD (Multi Cabang)',
+      passwordHash: tier2Password,
+      fullName: 'Dewi Sartika',
       phone: '081234567894',
       isActive: true,
       isVerified: true,
@@ -350,12 +369,15 @@ async function main() {
 
   const cs = await prisma.user.upsert({
     where: { email: 'cs@igdgroup.com' },
-    update: {},
+    update: {
+      passwordHash: tier4Password,
+      fullName: 'Rina Wati',
+    },
     create: {
       email: 'cs@igdgroup.com',
       username: 'cs',
-      passwordHash: defaultPassword,
-      fullName: 'Customer Service',
+      passwordHash: tier4Password,
+      fullName: 'Rina Wati',
       phone: '081234567893',
       isActive: true,
       isVerified: true,
@@ -365,12 +387,15 @@ async function main() {
   // Additional demo users per PRD roles (single-branch unless noted)
   const csoUser = await prisma.user.upsert({
     where: { email: 'cso@igdgroup.com' },
-    update: {},
+    update: {
+      passwordHash: tier2Password,
+      fullName: 'Rudi Hartono',
+    },
     create: {
       email: 'cso@igdgroup.com',
       username: 'cso',
-      passwordHash: defaultPassword,
-      fullName: 'Chief Sales Officer',
+      passwordHash: tier2Password,
+      fullName: 'Rudi Hartono',
       phone: '081234567895',
       isActive: true,
       isVerified: true,
@@ -379,12 +404,15 @@ async function main() {
 
   const cmoUser = await prisma.user.upsert({
     where: { email: 'cmo@igdgroup.com' },
-    update: {},
+    update: {
+      passwordHash: tier2Password,
+      fullName: 'Maya Sari',
+    },
     create: {
       email: 'cmo@igdgroup.com',
       username: 'cmo',
-      passwordHash: defaultPassword,
-      fullName: 'Chief Marketing Officer',
+      passwordHash: tier2Password,
+      fullName: 'Maya Sari',
       phone: '081234567896',
       isActive: true,
       isVerified: true,
@@ -393,12 +421,15 @@ async function main() {
 
   const chrUser = await prisma.user.upsert({
     where: { email: 'hr@igdgroup.com' },
-    update: {},
+    update: {
+      passwordHash: tier2Password,
+      fullName: 'Indah Permata',
+    },
     create: {
       email: 'hr@igdgroup.com',
       username: 'hr',
-      passwordHash: defaultPassword,
-      fullName: 'HR Manager',
+      passwordHash: tier2Password,
+      fullName: 'Indah Permata',
       phone: '081234567897',
       isActive: true,
       isVerified: true,
@@ -407,12 +438,15 @@ async function main() {
 
   const spvUser = await prisma.user.upsert({
     where: { email: 'spv@igdgroup.com' },
-    update: {},
+    update: {
+      passwordHash: tier3Password,
+      fullName: 'Bambang Setiawan',
+    },
     create: {
       email: 'spv@igdgroup.com',
       username: 'spv',
-      passwordHash: defaultPassword,
-      fullName: 'Supervisor Cabang',
+      passwordHash: tier3Password,
+      fullName: 'Bambang Setiawan',
       phone: '081234567898',
       isActive: true,
       isVerified: true,
@@ -421,12 +455,15 @@ async function main() {
 
   const hsUser = await prisma.user.upsert({
     where: { email: 'hs@igdgroup.com' },
-    update: {},
+    update: {
+      passwordHash: tier3Password,
+      fullName: 'Eko Prasetyo',
+    },
     create: {
       email: 'hs@igdgroup.com',
       username: 'hs',
-      passwordHash: defaultPassword,
-      fullName: 'Head of Store Jember Pusat',
+      passwordHash: tier3Password,
+      fullName: 'Eko Prasetyo',
       phone: '081234567899',
       isActive: true,
       isVerified: true,
@@ -435,12 +472,15 @@ async function main() {
 
   const arUser = await prisma.user.upsert({
     where: { email: 'ar@igdgroup.com' },
-    update: {},
+    update: {
+      passwordHash: tier4Password,
+      fullName: 'Lina Kurniawan',
+    },
     create: {
       email: 'ar@igdgroup.com',
       username: 'ar',
-      passwordHash: defaultPassword,
-      fullName: 'Account Receivable',
+      passwordHash: tier4Password,
+      fullName: 'Lina Kurniawan',
       phone: '081234567810',
       isActive: true,
       isVerified: true,
@@ -449,12 +489,15 @@ async function main() {
 
   const tcUser = await prisma.user.upsert({
     where: { email: 'tech@igdgroup.com' },
-    update: {},
+    update: {
+      passwordHash: tier4Password,
+      fullName: 'Agus Supriyadi',
+    },
     create: {
       email: 'tech@igdgroup.com',
       username: 'tech',
-      passwordHash: defaultPassword,
-      fullName: 'Teknisi Servis',
+      passwordHash: tier4Password,
+      fullName: 'Agus Supriyadi',
       phone: '081234567811',
       isActive: true,
       isVerified: true,
@@ -463,12 +506,15 @@ async function main() {
 
   const sodoUser = await prisma.user.upsert({
     where: { email: 'sodo@igdgroup.com' },
-    update: {},
+    update: {
+      passwordHash: tier3Password,
+      fullName: 'Yanto Gunawan',
+    },
     create: {
       email: 'sodo@igdgroup.com',
       username: 'sodo',
-      passwordHash: defaultPassword,
-      fullName: 'Service & Operations',
+      passwordHash: tier3Password,
+      fullName: 'Yanto Gunawan',
       phone: '081234567812',
       isActive: true,
       isVerified: true,
@@ -477,12 +523,15 @@ async function main() {
 
   const asaUser = await prisma.user.upsert({
     where: { email: 'asa@igdgroup.com' },
-    update: {},
+    update: {
+      passwordHash: tier4Password,
+      fullName: 'Sari Indrawati',
+    },
     create: {
       email: 'asa@igdgroup.com',
       username: 'asa',
-      passwordHash: defaultPassword,
-      fullName: 'Assistant Store Admin',
+      passwordHash: tier4Password,
+      fullName: 'Sari Indrawati',
       phone: '081234567813',
       isActive: true,
       isVerified: true,
@@ -491,12 +540,15 @@ async function main() {
 
   const smoUser = await prisma.user.upsert({
     where: { email: 'smo@igdgroup.com' },
-    update: {},
+    update: {
+      passwordHash: tier4Password,
+      fullName: 'Dedi Kurniawan',
+    },
     create: {
       email: 'smo@igdgroup.com',
       username: 'smo',
-      passwordHash: defaultPassword,
-      fullName: 'Sales & Marketing Officer',
+      passwordHash: tier4Password,
+      fullName: 'Dedi Kurniawan',
       phone: '081234567814',
       isActive: true,
       isVerified: true,
@@ -505,12 +557,15 @@ async function main() {
 
   const asUser = await prisma.user.upsert({
     where: { email: 'as@igdgroup.com' },
-    update: {},
+    update: {
+      passwordHash: tier4Password,
+      fullName: 'Fitri Handayani',
+    },
     create: {
       email: 'as@igdgroup.com',
       username: 'as',
-      passwordHash: defaultPassword,
-      fullName: 'Accounting Staff',
+      passwordHash: tier4Password,
+      fullName: 'Fitri Handayani',
       phone: '081234567815',
       isActive: true,
       isVerified: true,
@@ -519,12 +574,15 @@ async function main() {
 
   const crUser = await prisma.user.upsert({
     where: { email: 'cashier@igdgroup.com' },
-    update: {},
+    update: {
+      passwordHash: tier4Password,
+      fullName: 'Andi Saputra',
+    },
     create: {
       email: 'cashier@igdgroup.com',
       username: 'cashier',
-      passwordHash: defaultPassword,
-      fullName: 'Kasir POS',
+      passwordHash: tier4Password,
+      fullName: 'Andi Saputra',
       phone: '081234567816',
       isActive: true,
       isVerified: true,
@@ -1847,7 +1905,492 @@ async function main() {
     }
   }
 
-  // 15. Create Service Returns
+  // 15. Seed Chart of Accounts
+  console.log('💰 Seeding Chart of Accounts...');
+  const coaStructure = [
+    // ASSETS (1xxxx)
+    { code: '10000', name: 'Current Assets', accountType: 'ASSET', parentCode: null, isHeader: true },
+    { code: '10100', name: 'Cash', accountType: 'ASSET', parentCode: '10000', isHeader: true },
+    { code: '10101', name: 'Cash - Jember', accountType: 'ASSET', parentCode: '10100', isHeader: false },
+    { code: '10102', name: 'Cash - Kalisat', accountType: 'ASSET', parentCode: '10100', isHeader: false },
+    { code: '10200', name: 'Bank', accountType: 'ASSET', parentCode: '10000', isHeader: true },
+    { code: '10201', name: 'Bank BCA', accountType: 'ASSET', parentCode: '10200', isHeader: false },
+    { code: '10202', name: 'Bank Mandiri', accountType: 'ASSET', parentCode: '10200', isHeader: false },
+    { code: '10300', name: 'Accounts Receivable', accountType: 'ASSET', parentCode: '10000', isHeader: false },
+    { code: '10400', name: 'Inventory', accountType: 'ASSET', parentCode: '10000', isHeader: false },
+    { code: '12000', name: 'Fixed Assets', accountType: 'ASSET', parentCode: null, isHeader: true },
+    { code: '12100', name: 'Equipment', accountType: 'ASSET', parentCode: '12000', isHeader: false },
+    { code: '12200', name: 'Furniture', accountType: 'ASSET', parentCode: '12000', isHeader: false },
+
+    // LIABILITIES (2xxxx)
+    { code: '20000', name: 'Current Liabilities', accountType: 'LIABILITY', parentCode: null, isHeader: true },
+    { code: '20100', name: 'Accounts Payable', accountType: 'LIABILITY', parentCode: '20000', isHeader: false },
+    { code: '20200', name: 'Accrued Expenses', accountType: 'LIABILITY', parentCode: '20000', isHeader: false },
+    { code: '21000', name: 'Long-term Liabilities', accountType: 'LIABILITY', parentCode: null, isHeader: true },
+
+    // EQUITY (3xxxx)
+    { code: '30000', name: "Owner's Equity", accountType: 'EQUITY', parentCode: null, isHeader: false },
+    { code: '31000', name: 'Retained Earnings', accountType: 'EQUITY', parentCode: null, isHeader: false },
+
+    // REVENUE (4xxxx)
+    { code: '40000', name: 'Sales Revenue', accountType: 'REVENUE', parentCode: null, isHeader: true },
+    { code: '40100', name: 'Product Sales', accountType: 'REVENUE', parentCode: '40000', isHeader: false },
+    { code: '40200', name: 'Service Revenue', accountType: 'REVENUE', parentCode: '40000', isHeader: false },
+    { code: '41000', name: 'Other Income', accountType: 'REVENUE', parentCode: null, isHeader: false },
+
+    // EXPENSES (5xxxx)
+    { code: '50000', name: 'Cost of Goods Sold', accountType: 'EXPENSE', parentCode: null, isHeader: false },
+    { code: '51000', name: 'Operating Expenses', accountType: 'EXPENSE', parentCode: null, isHeader: true },
+    { code: '51100', name: 'Salaries', accountType: 'EXPENSE', parentCode: '51000', isHeader: false },
+    { code: '51200', name: 'Rent', accountType: 'EXPENSE', parentCode: '51000', isHeader: false },
+    { code: '51300', name: 'Utilities', accountType: 'EXPENSE', parentCode: '51000', isHeader: false },
+    { code: '51400', name: 'Marketing', accountType: 'EXPENSE', parentCode: '51000', isHeader: false },
+    { code: '51500', name: 'Maintenance', accountType: 'EXPENSE', parentCode: '51000', isHeader: false },
+    { code: '52000', name: 'Other Expenses', accountType: 'EXPENSE', parentCode: null, isHeader: false },
+  ];
+
+  for (const item of coaStructure) {
+    const existing = await prisma.chartOfAccount.findUnique({
+      where: { code: item.code },
+    });
+
+    if (!existing) {
+      let parentId = null;
+      if (item.parentCode) {
+        const parent = await prisma.chartOfAccount.findUnique({
+          where: { code: item.parentCode },
+        });
+        if (parent) {
+          parentId = parent.id;
+        }
+      }
+
+      await prisma.chartOfAccount.create({
+        data: {
+          code: item.code,
+          name: item.name,
+          accountType: item.accountType,
+          parentId,
+          isHeader: item.isHeader,
+          isActive: true,
+        },
+      });
+    }
+  }
+  console.log('✅ Chart of Accounts seeded');
+
+  // 16. Create Departments (if not exists)
+  console.log('🏢 Creating departments...');
+  const salesDept = await prisma.department.upsert({
+    where: { code: 'DEPT-SALES' },
+    update: {},
+    create: {
+      code: 'DEPT-SALES',
+      name: 'Sales & Marketing',
+      isActive: true,
+    },
+  });
+
+  const serviceDept = await prisma.department.upsert({
+    where: { code: 'DEPT-SERVICE' },
+    update: {},
+    create: {
+      code: 'DEPT-SERVICE',
+      name: 'Service & Operations',
+      isActive: true,
+    },
+  });
+
+  const financeDept = await prisma.department.upsert({
+    where: { code: 'DEPT-FINANCE' },
+    update: {},
+    create: {
+      code: 'DEPT-FINANCE',
+      name: 'Finance & Accounting',
+      isActive: true,
+    },
+  });
+
+  const hrDept = await prisma.department.upsert({
+    where: { code: 'DEPT-HR' },
+    update: {},
+    create: {
+      code: 'DEPT-HR',
+      name: 'Human Resources',
+      isActive: true,
+    },
+  });
+
+  const warehouseDept = await prisma.department.upsert({
+    where: { code: 'DEPT-WAREHOUSE' },
+    update: {},
+    create: {
+      code: 'DEPT-WAREHOUSE',
+      name: 'Warehouse & Inventory',
+      isActive: true,
+    },
+  });
+
+  // 16. Create Employee Data
+  console.log('👔 Creating employee data...');
+  
+  // Helper function to generate employee code
+  let employeeCounter = 1;
+  const generateEmployeeCode = () => `EMP-${String(employeeCounter++).padStart(4, '0')}`;
+
+  // Calculate hire dates (various dates in the past)
+  const now = new Date();
+  const hireDates = {
+    old: new Date(now.getFullYear() - 3, 0, 15), // 3 years ago
+    mid: new Date(now.getFullYear() - 2, 5, 1), // 2 years ago
+    recent: new Date(now.getFullYear() - 1, 2, 10), // 1 year ago
+    veryRecent: new Date(now.getFullYear() - 0, 8, 1), // 9 months ago
+  };
+
+  // CFO Employee
+  await prisma.employee.upsert({
+    where: { userId: cfo.id },
+    update: {},
+    create: {
+      userId: cfo.id,
+      employeeCode: generateEmployeeCode(),
+      branchId: null, // Global access
+      departmentId: financeDept.id,
+      position: 'Chief Financial Officer',
+      hireDate: hireDates.old,
+      employmentType: 'full-time',
+      basicSalary: new Decimal(25000000),
+      bankAccount: '1234567890',
+      bankName: 'Bank BCA',
+      taxId: '12.345.678.9-000.000',
+      bpjsNumber: '1234567890123456',
+      isActive: true,
+    },
+  });
+
+  // Manager Employee
+  await prisma.employee.upsert({
+    where: { userId: manager.id },
+    update: {},
+    create: {
+      userId: manager.id,
+      employeeCode: generateEmployeeCode(),
+      branchId: branch1.id,
+      departmentId: salesDept.id,
+      position: 'Branch Manager',
+      hireDate: hireDates.mid,
+      employmentType: 'full-time',
+      basicSalary: new Decimal(15000000),
+      bankAccount: '2345678901',
+      bankName: 'Bank Mandiri',
+      taxId: '23.456.789.0-000.000',
+      bpjsNumber: '2345678901234567',
+      isActive: true,
+    },
+  });
+
+  // CSO Employee
+  await prisma.employee.upsert({
+    where: { userId: csoUser.id },
+    update: {},
+    create: {
+      userId: csoUser.id,
+      employeeCode: generateEmployeeCode(),
+      branchId: null, // Global
+      departmentId: salesDept.id,
+      position: 'Chief Sales Officer',
+      hireDate: hireDates.old,
+      employmentType: 'full-time',
+      basicSalary: new Decimal(20000000),
+      bankAccount: '3456789012',
+      bankName: 'Bank BNI',
+      taxId: '34.567.890.1-000.000',
+      bpjsNumber: '3456789012345678',
+      isActive: true,
+    },
+  });
+
+  // CMO Employee
+  await prisma.employee.upsert({
+    where: { userId: cmoUser.id },
+    update: {},
+    create: {
+      userId: cmoUser.id,
+      employeeCode: generateEmployeeCode(),
+      branchId: null, // Global
+      departmentId: salesDept.id,
+      position: 'Chief Marketing Officer',
+      hireDate: hireDates.mid,
+      employmentType: 'full-time',
+      basicSalary: new Decimal(18000000),
+      bankAccount: '4567890123',
+      bankName: 'Bank BRI',
+      taxId: '45.678.901.2-000.000',
+      bpjsNumber: '4567890123456789',
+      isActive: true,
+    },
+  });
+
+  // HR Manager Employee
+  await prisma.employee.upsert({
+    where: { userId: chrUser.id },
+    update: {},
+    create: {
+      userId: chrUser.id,
+      employeeCode: generateEmployeeCode(),
+      branchId: null, // Global
+      departmentId: hrDept.id,
+      position: 'HR Manager',
+      hireDate: hireDates.mid,
+      employmentType: 'full-time',
+      basicSalary: new Decimal(12000000),
+      bankAccount: '5678901234',
+      bankName: 'Bank BCA',
+      taxId: '56.789.012.3-000.000',
+      bpjsNumber: '5678901234567890',
+      isActive: true,
+    },
+  });
+
+  // Supervisor Employee
+  await prisma.employee.upsert({
+    where: { userId: spvUser.id },
+    update: {},
+    create: {
+      userId: spvUser.id,
+      employeeCode: generateEmployeeCode(),
+      branchId: branch1.id,
+      departmentId: salesDept.id,
+      position: 'Supervisor',
+      hireDate: hireDates.recent,
+      employmentType: 'full-time',
+      basicSalary: new Decimal(8000000),
+      bankAccount: '6789012345',
+      bankName: 'Bank Mandiri',
+      taxId: '67.890.123.4-000.000',
+      bpjsNumber: '6789012345678901',
+      isActive: true,
+    },
+  });
+
+  // Head of Store Employee
+  await prisma.employee.upsert({
+    where: { userId: hsUser.id },
+    update: {},
+    create: {
+      userId: hsUser.id,
+      employeeCode: generateEmployeeCode(),
+      branchId: branch1.id,
+      departmentId: salesDept.id,
+      position: 'Head of Store',
+      hireDate: hireDates.recent,
+      employmentType: 'full-time',
+      basicSalary: new Decimal(10000000),
+      bankAccount: '7890123456',
+      bankName: 'Bank BNI',
+      taxId: '78.901.234.5-000.000',
+      bpjsNumber: '7890123456789012',
+      isActive: true,
+    },
+  });
+
+  // AR Staff Employee
+  await prisma.employee.upsert({
+    where: { userId: arUser.id },
+    update: {},
+    create: {
+      userId: arUser.id,
+      employeeCode: generateEmployeeCode(),
+      branchId: branch1.id,
+      departmentId: financeDept.id,
+      position: 'Account Receivable Staff',
+      hireDate: hireDates.veryRecent,
+      employmentType: 'full-time',
+      basicSalary: new Decimal(5000000),
+      hourlyRate: new Decimal(25000),
+      bankAccount: '8901234567',
+      bankName: 'Bank BRI',
+      taxId: '89.012.345.6-000.000',
+      bpjsNumber: '8901234567890123',
+      isActive: true,
+    },
+  });
+
+  // Technician Employee
+  await prisma.employee.upsert({
+    where: { userId: tcUser.id },
+    update: {},
+    create: {
+      userId: tcUser.id,
+      employeeCode: generateEmployeeCode(),
+      branchId: branch1.id,
+      departmentId: serviceDept.id,
+      position: 'Service Technician',
+      hireDate: hireDates.recent,
+      employmentType: 'full-time',
+      basicSalary: new Decimal(6000000),
+      hourlyRate: new Decimal(30000),
+      bankAccount: '9012345678',
+      bankName: 'Bank BCA',
+      taxId: '90.123.456.7-000.000',
+      bpjsNumber: '9012345678901234',
+      isActive: true,
+    },
+  });
+
+  // SODO Employee
+  await prisma.employee.upsert({
+    where: { userId: sodoUser.id },
+    update: {},
+    create: {
+      userId: sodoUser.id,
+      employeeCode: generateEmployeeCode(),
+      branchId: branch1.id,
+      departmentId: serviceDept.id,
+      position: 'Service & Operations Coordinator',
+      hireDate: hireDates.recent,
+      employmentType: 'full-time',
+      basicSalary: new Decimal(7500000),
+      bankAccount: '0123456789',
+      bankName: 'Bank Mandiri',
+      taxId: '01.234.567.8-000.000',
+      bpjsNumber: '0123456789012345',
+      isActive: true,
+    },
+  });
+
+  // ASA Employee
+  await prisma.employee.upsert({
+    where: { userId: asaUser.id },
+    update: {},
+    create: {
+      userId: asaUser.id,
+      employeeCode: generateEmployeeCode(),
+      branchId: branch1.id,
+      departmentId: warehouseDept.id,
+      position: 'Assistant Store Admin',
+      hireDate: hireDates.veryRecent,
+      employmentType: 'full-time',
+      basicSalary: new Decimal(5500000),
+      hourlyRate: new Decimal(27500),
+      bankAccount: '1234509876',
+      bankName: 'Bank BNI',
+      taxId: '12.345.098.7-000.000',
+      bpjsNumber: '1234509876543210',
+      isActive: true,
+    },
+  });
+
+  // SMO Employee
+  await prisma.employee.upsert({
+    where: { userId: smoUser.id },
+    update: {},
+    create: {
+      userId: smoUser.id,
+      employeeCode: generateEmployeeCode(),
+      branchId: branch1.id,
+      departmentId: salesDept.id,
+      position: 'Sales & Marketing Officer',
+      hireDate: hireDates.veryRecent,
+      employmentType: 'full-time',
+      basicSalary: new Decimal(6000000),
+      hourlyRate: new Decimal(30000),
+      bankAccount: '2345610987',
+      bankName: 'Bank BRI',
+      taxId: '23.456.109.8-000.000',
+      bpjsNumber: '2345610987654321',
+      isActive: true,
+    },
+  });
+
+  // Accounting Staff Employee
+  await prisma.employee.upsert({
+    where: { userId: asUser.id },
+    update: {},
+    create: {
+      userId: asUser.id,
+      employeeCode: generateEmployeeCode(),
+      branchId: branch1.id,
+      departmentId: financeDept.id,
+      position: 'Accounting Staff',
+      hireDate: hireDates.veryRecent,
+      employmentType: 'full-time',
+      basicSalary: new Decimal(5500000),
+      hourlyRate: new Decimal(27500),
+      bankAccount: '3456721098',
+      bankName: 'Bank BCA',
+      taxId: '34.567.210.9-000.000',
+      bpjsNumber: '3456721098765432',
+      isActive: true,
+    },
+  });
+
+  // Cashier Employee
+  await prisma.employee.upsert({
+    where: { userId: crUser.id },
+    update: {},
+    create: {
+      userId: crUser.id,
+      employeeCode: generateEmployeeCode(),
+      branchId: branch1.id,
+      departmentId: salesDept.id,
+      position: 'Cashier',
+      hireDate: hireDates.veryRecent,
+      employmentType: 'full-time',
+      basicSalary: new Decimal(5000000),
+      hourlyRate: new Decimal(25000),
+      bankAccount: '4567832109',
+      bankName: 'Bank Mandiri',
+      taxId: '45.678.321.0-000.000',
+      bpjsNumber: '4567832109876543',
+      isActive: true,
+    },
+  });
+
+  // CS Employee
+  await prisma.employee.upsert({
+    where: { userId: cs.id },
+    update: {},
+    create: {
+      userId: cs.id,
+      employeeCode: generateEmployeeCode(),
+      branchId: branch1.id,
+      departmentId: salesDept.id,
+      position: 'Customer Service',
+      hireDate: hireDates.recent,
+      employmentType: 'full-time',
+      basicSalary: new Decimal(5500000),
+      hourlyRate: new Decimal(27500),
+      bankAccount: '5678943210',
+      bankName: 'Bank BNI',
+      taxId: '56.789.432.1-000.000',
+      bpjsNumber: '5678943210987654',
+      isActive: true,
+    },
+  });
+
+  // Regional Manager Employee (multi-branch)
+  await prisma.employee.upsert({
+    where: { userId: regionalManager.id },
+    update: {},
+    create: {
+      userId: regionalManager.id,
+      employeeCode: generateEmployeeCode(),
+      branchId: branch1.id, // Primary branch
+      departmentId: salesDept.id,
+      position: 'Regional Manager',
+      hireDate: hireDates.old,
+      employmentType: 'full-time',
+      basicSalary: new Decimal(18000000),
+      bankAccount: '6789054321',
+      bankName: 'Bank BRI',
+      taxId: '67.890.543.2-000.000',
+      bpjsNumber: '6789054321098765',
+      isActive: true,
+    },
+  });
+
+  // 17. Create Service Returns
   console.log('🔄 Creating service returns...');
   if (createdServiceOrders.length > 0) {
     // Find a completed/delivered service order for return
@@ -1876,24 +2419,28 @@ async function main() {
   }
 
   console.log('✅ Database seed completed!');
-  console.log('\n📋 Demo Credentials:');
-  console.log('  Owner (semua cabang)      : owner@igdgroup.com / Test@1234');
-  console.log('  CFO (semua cabang)        : cfo@igdgroup.com / Test@1234');
-  console.log('  Manager Jember (1 cabang) : manager@igdgroup.com / Test@1234');
-  console.log('  Regional (multi cabang)   : regional@igdgroup.com / Test@1234');
-  console.log('  CS Jember (1 cabang)      : cs@igdgroup.com / Test@1234');
-  console.log('  CSO (sales director)      : cso@igdgroup.com / Test@1234');
-  console.log('  CMO (marketing)           : cmo@igdgroup.com / Test@1234');
-  console.log('  HR Manager                : hr@igdgroup.com / Test@1234');
-  console.log('  Supervisor                : spv@igdgroup.com / Test@1234');
-  console.log('  Head of Store             : hs@igdgroup.com / Test@1234');
-  console.log('  AR Staff                  : ar@igdgroup.com / Test@1234');
-  console.log('  Technician                : tech@igdgroup.com / Test@1234');
-  console.log('  Service Ops               : sodo@igdgroup.com / Test@1234');
-  console.log('  Assistant Store Admin     : asa@igdgroup.com / Test@1234');
-  console.log('  Sales & Marketing Officer : smo@igdgroup.com / Test@1234');
-  console.log('  Accounting Staff          : as@igdgroup.com / Test@1234');
-  console.log('  Cashier POS               : cashier@igdgroup.com / Test@1234');
+  console.log('\n📋 Demo Credentials (Organized by Tier):');
+  console.log('\n🔴 TIER 1 - EXECUTIVE (Password: Owner@1234)');
+  console.log('  👑 Owner (semua cabang)      : owner@igdgroup.com / Owner@1234');
+  console.log('\n🟠 TIER 2 - MANAGEMENT (Password: Manager@1234)');
+  console.log('  💼 CFO (semua cabang)        : cfo@igdgroup.com / Manager@1234');
+  console.log('  📊 Manager Jember (1 cabang): manager@igdgroup.com / Manager@1234');
+  console.log('  🌐 Regional (multi cabang)   : regional@igdgroup.com / Manager@1234');
+  console.log('  📈 CSO (sales director)      : cso@igdgroup.com / Manager@1234');
+  console.log('  📣 CMO (marketing)           : cmo@igdgroup.com / Manager@1234');
+  console.log('  🧑‍💼 HR Manager                : hr@igdgroup.com / Manager@1234');
+  console.log('\n🟡 TIER 3 - SUPERVISOR (Password: Supervisor@1234)');
+  console.log('  🧭 Supervisor                : spv@igdgroup.com / Supervisor@1234');
+  console.log('  🏬 Head of Store             : hs@igdgroup.com / Supervisor@1234');
+  console.log('  🔧 Service Ops               : sodo@igdgroup.com / Supervisor@1234');
+  console.log('\n🟢 TIER 4 - STAFF (Password: Staff@1234)');
+  console.log('  🎧 CS Jember (1 cabang)      : cs@igdgroup.com / Staff@1234');
+  console.log('  💰 AR Staff                  : ar@igdgroup.com / Staff@1234');
+  console.log('  🔨 Technician                : tech@igdgroup.com / Staff@1234');
+  console.log('  📦 Assistant Store Admin     : asa@igdgroup.com / Staff@1234');
+  console.log('  📊 Sales & Marketing Officer  : smo@igdgroup.com / Staff@1234');
+  console.log('  📝 Accounting Staff          : as@igdgroup.com / Staff@1234');
+  console.log('  💵 Cashier POS               : cashier@igdgroup.com / Staff@1234');
 }
 
 main()

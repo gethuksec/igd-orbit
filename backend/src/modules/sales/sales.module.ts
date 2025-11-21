@@ -3,13 +3,14 @@ import { SalesTransactionsController } from './sales-transactions.controller';
 import { SalesTransactionsService } from './sales-transactions.service';
 import { PrismaService } from '../../shared/services';
 import { CustomersModule } from '../customers/customers.module';
+import { FinanceModule } from '../finance/finance.module';
 
 /**
  * Sales Module
  * Handles sales and POS transaction operations
  */
 @Module({
-  imports: [CustomersModule],
+  imports: [CustomersModule, FinanceModule],
   controllers: [SalesTransactionsController],
   providers: [SalesTransactionsService, PrismaService],
   exports: [SalesTransactionsService],

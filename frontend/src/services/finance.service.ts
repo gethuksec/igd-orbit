@@ -1,240 +1,342 @@
-import { api, handleApiError } from './api';
+import { api } from './api';
 
-// Chart of Accounts
+// ==================== Chart of Accounts ====================
+
 export interface ChartOfAccount {
   id: string;
   code: string;
   name: string;
   accountType: 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE';
-  parentId?: string;
-  parent?: ChartOfAccount;
+  parentId?: string | null;
+  parent?: ChartOfAccount | null;
   children?: ChartOfAccount[];
-  level: number;
+  isHeader: boolean;
   isActive: boolean;
-  balance: number;
+  description?: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface ChartOfAccountListResponse {
-  data: ChartOfAccount[];
+// ==================== Journal Entries ====================
+
+export interface JournalLine {
+  id?: string;
+  account_id: string;
+  account?: ChartOfAccount;
+  debit_amount: number;
+  credit_amount: number;
+  line_description?: string;
+  branch_id?: string;
+  department_id?: string;
 }
 
-// Journal Entries
 export interface JournalEntry {
   id: string;
   entryNumber: string;
   entryDate: string;
   entryType: 'manual' | 'auto';
   description: string;
-  status: 'draft' | 'posted' | 'reversed';
-  lines: JournalEntryLine[];
-  totalDebit: number;
-  totalCredit: number;
+  status: 'draft' | 'posted' | 'locked';
+  lines: JournalLine[];
+  referenceType?: string;
+  referenceId?: string;
+  notes?: string;
   createdBy: string;
   postedBy?: string;
   postedAt?: string;
-  reversedBy?: string;
-  reversedAt?: string;
-  notes?: string;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface JournalEntryLine {
-  id: string;
-  accountId: string;
-  account?: ChartOfAccount;
-  debit: number;
-  credit: number;
+export interface CreateJournalEntryDto {
+  entry_number?: string;
+  entry_date: string;
+  entry_type: 'manual' | 'auto';
+  description: string;
+  lines: JournalLine[];
+  reference_type?: string;
+  reference_id?: string;
+  notes?: string;
+}
+
+export interface UpdateJournalEntryDto {
+  entry_date?: string;
   description?: string;
+  lines?: JournalLine[];
+  notes?: string;
 }
 
-export interface JournalEntryListResponse {
-  data: JournalEntry[];
-  meta: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
+export interface ReverseJournalEntryDto {
+  reverse_date: string;
+  reason: string;
 }
 
-// Expenses
+// ==================== Expenses ====================
+
 export interface Expense {
   id: string;
   expenseNumber: string;
+  expenseCategory: string;
   expenseDate: string;
-  category: string;
-  description: string;
   amount: number;
-  branchId: string;
-  branch?: { id: string; name: string; code: string };
+  taxAmount?: number;
+  totalAmount: number;
+  paymentMethod?: 'cash' | 'transfer' | 'petty-cash';
+  bankAccountId?: string;
+  branchId?: string;
   departmentId?: string;
-  department?: { id: string; name: string };
+  glAccountId: string;
+  glAccount?: ChartOfAccount;
+  description: string;
+  receiptUrl?: string;
+  notes?: string;
   status: 'pending' | 'approved' | 'rejected' | 'paid';
-  paymentStatus: 'unpaid' | 'partial' | 'paid';
-  requestedBy: string;
+  createdBy: string;
   approvedBy?: string;
   approvedAt?: string;
+  rejectedBy?: string;
+  rejectedAt?: string;
+  rejectionReason?: string;
   paidBy?: string;
   paidAt?: string;
-  paymentMethod?: string;
-  attachments?: string[];
-  notes?: string;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface ExpenseListResponse {
-  data: Expense[];
-  meta: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
+export interface CreateExpenseDto {
+  expense_category: string;
+  expense_date: string;
+  amount: number;
+  tax_amount?: number;
+  payment_method?: 'cash' | 'transfer' | 'petty-cash';
+  bank_account_id?: string;
+  branch_id?: string;
+  department_id?: string;
+  gl_account_id: string;
+  description: string;
+  receipt_url?: string;
+  notes?: string;
 }
 
-// Petty Cash
+export interface ApproveExpenseDto {
+  notes?: string;
+}
+
+export interface RejectExpenseDto {
+  rejection_reason: string;
+}
+
+export interface PayExpenseDto {
+  payment_date: string;
+  payment_method: 'cash' | 'transfer' | 'petty-cash';
+  bank_account_id?: string;
+  notes?: string;
+}
+
+// ==================== Petty Cash ====================
+
 export interface PettyCashFund {
   id: string;
   fundNumber: string;
   branchId: string;
   branch?: { id: string; name: string; code: string };
+  openingBalance: number;
+  currentBalance: number;
   custodianId: string;
   custodian?: { id: string; name: string };
-  initialAmount: number;
-  currentBalance: number;
-  status: 'active' | 'closed';
-  transactions: PettyCashTransaction[];
+  periodStart: string;
+  periodEnd?: string;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  transactions?: PettyCashTransaction[];
 }
 
 export interface PettyCashTransaction {
   id: string;
+  fundId: string;
   transactionDate: string;
-  type: 'deposit' | 'withdrawal' | 'reconciliation';
+  transactionType: 'expense' | 'replenishment';
   amount: number;
   description: string;
-  receiptNumber?: string;
+  category?: string;
+  receiptUrl?: string;
   createdBy: string;
   createdAt: string;
 }
 
-export interface PettyCashListResponse {
-  data: PettyCashFund[];
-  meta: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
+export interface CreatePettyCashFundDto {
+  fund_number?: string;
+  branch_id: string;
+  opening_balance: number;
+  custodian_id: string;
+  period_start: string;
+  period_end?: string;
 }
 
-// Accounts Receivable
+export interface RecordPettyCashTransactionDto {
+  transaction_date: string;
+  transaction_type: 'expense' | 'replenishment';
+  amount: number;
+  description: string;
+  category?: string;
+  receipt_url?: string;
+}
+
+export interface ReconcilePettyCashDto {
+  reconciliation_date: string;
+  actual_balance: number;
+  notes?: string;
+}
+
+// ==================== Accounts Receivable ====================
+
 export interface AccountsReceivable {
   id: string;
-  arNumber: string;
   customerId: string;
-  customer?: { id: string; name: string; customerCode: string };
-  transactionId?: string;
-  transaction?: { id: string; transactionNumber: string };
-  invoiceNumber?: string;
-  invoiceDate?: string;
+  customer?: { id: string; name: string; phone: string };
+  transactionId: string;
+  transactionType: 'SALES' | 'SERVICE';
+  transactionNumber: string;
+  invoiceDate: string;
   dueDate: string;
   originalAmount: number;
   paidAmount: number;
   outstandingAmount: number;
-  status: 'open' | 'partial' | 'paid' | 'overdue' | 'written-off';
   agingDays: number;
-  payments: ARPayment[];
+  agingBucket: 'current' | '30' | '60' | '90+';
+  status: 'open' | 'partial' | 'paid' | 'written_off';
+  payments?: ARPayment[];
   createdAt: string;
   updatedAt: string;
 }
 
 export interface ARPayment {
   id: string;
+  arId: string;
   paymentDate: string;
-  amount: number;
-  paymentMethod: string;
+  paymentAmount: number;
+  paymentMethod: 'cash' | 'transfer' | 'check';
+  bankAccountId?: string;
   referenceNumber?: string;
   notes?: string;
+  createdBy: string;
   createdAt: string;
 }
 
-export interface ARListResponse {
-  data: AccountsReceivable[];
-  meta: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
+export interface RecordARPaymentDto {
+  payment_date: string;
+  payment_amount: number;
+  payment_method: 'cash' | 'transfer' | 'check';
+  bank_account_id?: string;
+  reference_number?: string;
+  notes?: string;
 }
+
+export interface WriteOffARDto {
+  write_off_date: string;
+  reason: string;
+  notes?: string;
+}
+
+export interface ARAgingReport {
+  customerId: string;
+  customerName: string;
+  totalOutstanding: number;
+  current: number;
+  days30: number;
+  days60: number;
+  days90Plus: number;
+  items: AccountsReceivable[];
+}
+
+// ==================== Financial Reports ====================
+
+export interface TrialBalanceItem {
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  debitBalance: number;
+  creditBalance: number;
+}
+
+export interface ProfitLossItem {
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  amount: number;
+  isRevenue: boolean;
+}
+
+export interface BalanceSheetItem {
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  balance: number;
+  accountType: 'ASSET' | 'LIABILITY' | 'EQUITY';
+}
+
+export interface CashFlowItem {
+  category: string;
+  description: string;
+  amount: number;
+  isInflow: boolean;
+}
+
+// ==================== Finance Service ====================
 
 export const financeService = {
   // Chart of Accounts
-  async getChartOfAccounts(): Promise<ChartOfAccountListResponse> {
+  async getChartOfAccounts(): Promise<ChartOfAccount[]> {
     try {
       const response = await api.get('/chart-of-accounts');
-      return response.data;
-    } catch (error: any) {
-      return handleApiError(error, { data: [] });
+      return response.data.data || response.data;
+    } catch (error) {
+      throw error;
     }
   },
 
-  async getAccountById(id: string): Promise<ChartOfAccount> {
+  async getChartOfAccountById(id: string): Promise<ChartOfAccount> {
     try {
       const response = await api.get(`/chart-of-accounts/${id}`);
       return response.data.data || response.data;
-    } catch (error: any) {
+    } catch (error) {
       throw error;
     }
   },
 
-  async createAccount(data: {
-    code: string;
-    name: string;
-    accountType: string;
-    parentId?: string;
-    isActive?: boolean;
-  }): Promise<ChartOfAccount> {
+  async getChartOfAccountsByType(type: string): Promise<ChartOfAccount[]> {
     try {
-      const response = await api.post('/chart-of-accounts', data);
+      const response = await api.get(`/chart-of-accounts/type/${type}`);
       return response.data.data || response.data;
-    } catch (error: any) {
+    } catch (error) {
       throw error;
     }
   },
 
-  async updateAccount(id: string, data: Partial<ChartOfAccount>): Promise<ChartOfAccount> {
+  async seedChartOfAccounts() {
     try {
-      const response = await api.put(`/chart-of-accounts/${id}`, data);
-      return response.data.data || response.data;
-    } catch (error: any) {
+      const response = await api.post('/chart-of-accounts/seed');
+      return response.data;
+    } catch (error) {
       throw error;
     }
   },
 
   // Journal Entries
   async getJournalEntries(params?: {
-    page?: number;
-    limit?: number;
     startDate?: string;
     endDate?: string;
     status?: string;
     entryType?: string;
-  }): Promise<JournalEntryListResponse> {
+    page?: number;
+    limit?: number;
+  }): Promise<{ data: JournalEntry[]; meta?: any }> {
     try {
       const response = await api.get('/journal-entries', { params });
       return response.data;
-    } catch (error: any) {
-      return handleApiError(error, {
-        data: [],
-        meta: { page: params?.page || 1, limit: params?.limit || 20, total: 0, totalPages: 0 },
-      });
+    } catch (error) {
+      throw error;
     }
   },
 
@@ -242,70 +344,70 @@ export const financeService = {
     try {
       const response = await api.get(`/journal-entries/${id}`);
       return response.data.data || response.data;
-    } catch (error: any) {
+    } catch (error) {
       throw error;
     }
   },
 
-  async createJournalEntry(data: {
-    entryDate: string;
-    description: string;
-    lines: Array<{ accountId: string; debit: number; credit: number; description?: string }>;
-    notes?: string;
-  }): Promise<JournalEntry> {
+  async createJournalEntry(dto: CreateJournalEntryDto): Promise<JournalEntry> {
     try {
-      const response = await api.post('/journal-entries', data);
+      const response = await api.post('/journal-entries', dto);
       return response.data.data || response.data;
-    } catch (error: any) {
+    } catch (error) {
       throw error;
     }
   },
 
-  async updateJournalEntry(id: string, data: Partial<JournalEntry>): Promise<JournalEntry> {
+  async updateJournalEntry(id: string, dto: UpdateJournalEntryDto): Promise<JournalEntry> {
     try {
-      const response = await api.put(`/journal-entries/${id}`, data);
+      const response = await api.put(`/journal-entries/${id}`, dto);
       return response.data.data || response.data;
-    } catch (error: any) {
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async deleteJournalEntry(id: string): Promise<void> {
+    try {
+      await api.delete(`/journal-entries/${id}`);
+    } catch (error) {
       throw error;
     }
   },
 
   async postJournalEntry(id: string): Promise<JournalEntry> {
     try {
-      const response = await api.put(`/journal-entries/${id}/post`);
+      const response = await api.post(`/journal-entries/${id}/post`);
       return response.data.data || response.data;
-    } catch (error: any) {
+    } catch (error) {
       throw error;
     }
   },
 
-  async reverseJournalEntry(id: string, data: { reason: string }): Promise<JournalEntry> {
+  async reverseJournalEntry(id: string, dto: ReverseJournalEntryDto): Promise<JournalEntry> {
     try {
-      const response = await api.post(`/journal-entries/${id}/reverse`, data);
+      const response = await api.post(`/journal-entries/${id}/reverse`, dto);
       return response.data.data || response.data;
-    } catch (error: any) {
+    } catch (error) {
       throw error;
     }
   },
 
   // Expenses
   async getExpenses(params?: {
-    page?: number;
-    limit?: number;
     startDate?: string;
     endDate?: string;
     status?: string;
     branchId?: string;
     departmentId?: string;
-  }): Promise<ExpenseListResponse> {
+    page?: number;
+    limit?: number;
+  }): Promise<{ data: Expense[]; meta?: any }> {
     try {
       const response = await api.get('/expenses', { params });
       return response.data;
-    } catch (error: any) {
-      return handleApiError(error, {
-        data: [],
-        meta: { page: params?.page || 1, limit: params?.limit || 20, total: 0, totalPages: 0 },
-      });
+    } catch (error) {
+      throw error;
     }
   },
 
@@ -313,76 +415,66 @@ export const financeService = {
     try {
       const response = await api.get(`/expenses/${id}`);
       return response.data.data || response.data;
-    } catch (error: any) {
+    } catch (error) {
       throw error;
     }
   },
 
-  async createExpense(data: {
-    expenseDate: string;
-    category: string;
-    description: string;
-    amount: number;
-    branchId: string;
-    departmentId?: string;
-    attachments?: string[];
-    notes?: string;
-  }): Promise<Expense> {
+  async createExpense(dto: CreateExpenseDto): Promise<Expense> {
     try {
-      const response = await api.post('/expenses', data);
+      const response = await api.post('/expenses', dto);
       return response.data.data || response.data;
-    } catch (error: any) {
+    } catch (error) {
       throw error;
     }
   },
 
-  async approveExpense(id: string, data: { notes?: string }): Promise<Expense> {
+  async updateExpense(id: string, dto: Partial<CreateExpenseDto>): Promise<Expense> {
     try {
-      const response = await api.put(`/expenses/${id}/approve`, data);
+      const response = await api.put(`/expenses/${id}`, dto);
       return response.data.data || response.data;
-    } catch (error: any) {
+    } catch (error) {
       throw error;
     }
   },
 
-  async rejectExpense(id: string, data: { reason: string }): Promise<Expense> {
+  async approveExpense(id: string, dto: ApproveExpenseDto): Promise<Expense> {
     try {
-      const response = await api.put(`/expenses/${id}/reject`, data);
+      const response = await api.post(`/expenses/${id}/approve`, dto);
       return response.data.data || response.data;
-    } catch (error: any) {
+    } catch (error) {
       throw error;
     }
   },
 
-  async payExpense(id: string, data: {
-    paymentMethod: string;
-    paymentDate: string;
-    referenceNumber?: string;
-    notes?: string;
-  }): Promise<Expense> {
+  async rejectExpense(id: string, dto: RejectExpenseDto): Promise<Expense> {
     try {
-      const response = await api.put(`/expenses/${id}/pay`, data);
+      const response = await api.post(`/expenses/${id}/reject`, dto);
       return response.data.data || response.data;
-    } catch (error: any) {
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async payExpense(id: string, dto: PayExpenseDto): Promise<Expense> {
+    try {
+      const response = await api.post(`/expenses/${id}/pay`, dto);
+      return response.data.data || response.data;
+    } catch (error) {
       throw error;
     }
   },
 
   // Petty Cash
   async getPettyCashFunds(params?: {
-    page?: number;
-    limit?: number;
     branchId?: string;
-    status?: string;
-  }): Promise<PettyCashListResponse> {
+    isActive?: boolean;
+  }): Promise<PettyCashFund[]> {
     try {
       const response = await api.get('/petty-cash', { params });
-      return response.data;
-    } catch (error: any) {
-      return handleApiError(error, {
-        data: [],
-        meta: { page: params?.page || 1, limit: params?.limit || 20, total: 0, totalPages: 0 },
-      });
+      return response.data.data || response.data;
+    } catch (error) {
+      throw error;
     }
   },
 
@@ -390,101 +482,144 @@ export const financeService = {
     try {
       const response = await api.get(`/petty-cash/${id}`);
       return response.data.data || response.data;
-    } catch (error: any) {
+    } catch (error) {
       throw error;
     }
   },
 
-  async createPettyCashFund(data: {
-    branchId: string;
-    custodianId: string;
-    initialAmount: number;
-  }): Promise<PettyCashFund> {
+  async createPettyCashFund(dto: CreatePettyCashFundDto): Promise<PettyCashFund> {
     try {
-      const response = await api.post('/petty-cash', data);
+      const response = await api.post('/petty-cash', dto);
       return response.data.data || response.data;
-    } catch (error: any) {
+    } catch (error) {
       throw error;
     }
   },
 
-  async recordPettyCashTransaction(fundId: string, data: {
-    transactionDate: string;
-    type: 'deposit' | 'withdrawal';
-    amount: number;
-    description: string;
-    receiptNumber?: string;
-  }): Promise<PettyCashTransaction> {
+  async recordPettyCashTransaction(
+    fundId: string,
+    dto: RecordPettyCashTransactionDto,
+  ): Promise<PettyCashTransaction> {
     try {
-      const response = await api.post(`/petty-cash/${fundId}/transactions`, data);
+      const response = await api.post(`/petty-cash/${fundId}/transactions`, dto);
       return response.data.data || response.data;
-    } catch (error: any) {
+    } catch (error) {
       throw error;
     }
   },
 
-  async reconcilePettyCash(fundId: string, data: {
-    actualBalance: number;
-    notes?: string;
-  }): Promise<PettyCashFund> {
+  async reconcilePettyCash(fundId: string, dto: ReconcilePettyCashDto): Promise<PettyCashFund> {
     try {
-      const response = await api.put(`/petty-cash/${fundId}/reconcile`, data);
+      const response = await api.post(`/petty-cash/${fundId}/reconcile`, dto);
       return response.data.data || response.data;
-    } catch (error: any) {
+    } catch (error) {
       throw error;
     }
   },
 
   // Accounts Receivable
-  async getAccountsReceivable(params?: {
-    page?: number;
-    limit?: number;
-    customerId?: string;
-    status?: string;
-    agingDays?: number;
-  }): Promise<ARListResponse> {
+  async getARAgingReport(asOfDate?: string): Promise<ARAgingReport[]> {
     try {
-      const response = await api.get('/accounts-receivable', { params });
-      return response.data;
-    } catch (error: any) {
-      return handleApiError(error, {
-        data: [],
-        meta: { page: params?.page || 1, limit: params?.limit || 20, total: 0, totalPages: 0 },
+      const response = await api.get('/accounts-receivable', {
+        params: { asOfDate },
       });
-    }
-  },
-
-  async getARById(id: string): Promise<AccountsReceivable> {
-    try {
-      const response = await api.get(`/accounts-receivable/${id}`);
       return response.data.data || response.data;
-    } catch (error: any) {
+    } catch (error) {
       throw error;
     }
   },
 
-  async recordARPayment(id: string, data: {
-    paymentDate: string;
-    amount: number;
-    paymentMethod: string;
-    referenceNumber?: string;
-    notes?: string;
-  }): Promise<ARPayment> {
+  async getCustomerAR(customerId: string): Promise<AccountsReceivable[]> {
     try {
-      const response = await api.post(`/accounts-receivable/${id}/payments`, data);
+      const response = await api.get(`/accounts-receivable/${customerId}`);
       return response.data.data || response.data;
-    } catch (error: any) {
+    } catch (error) {
       throw error;
     }
   },
 
-  async writeOffAR(id: string, data: { reason: string }): Promise<AccountsReceivable> {
+  async recordARPayment(arId: string, dto: RecordARPaymentDto): Promise<ARPayment> {
     try {
-      const response = await api.put(`/accounts-receivable/${id}/write-off`, data);
+      const response = await api.post(`/accounts-receivable/${arId}/payment`, dto);
       return response.data.data || response.data;
-    } catch (error: any) {
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async writeOffAR(arId: string, dto: WriteOffARDto): Promise<AccountsReceivable> {
+    try {
+      const response = await api.post(`/accounts-receivable/${arId}/writeoff`, dto);
+      return response.data.data || response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Financial Reports
+  async getTrialBalance(startDate: string, endDate: string): Promise<TrialBalanceItem[]> {
+    try {
+      const response = await api.get('/financial-reports/trial-balance', {
+        params: { startDate, endDate },
+      });
+      return response.data.data || response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async getProfitLoss(startDate: string, endDate: string): Promise<ProfitLossItem[]> {
+    try {
+      const response = await api.get('/financial-reports/profit-loss', {
+        params: { startDate, endDate },
+      });
+      return response.data.data || response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async getBalanceSheet(asOfDate: string): Promise<BalanceSheetItem[]> {
+    try {
+      const response = await api.get('/financial-reports/balance-sheet', {
+        params: { asOfDate },
+      });
+      return response.data.data || response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async getCashFlow(startDate: string, endDate: string): Promise<CashFlowItem[]> {
+    try {
+      const response = await api.get('/financial-reports/cash-flow', {
+        params: { startDate, endDate },
+      });
+      return response.data.data || response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async getARAgingReportForReports(asOfDate?: string): Promise<ARAgingReport[]> {
+    try {
+      const response = await api.get('/financial-reports/ar-aging', {
+        params: { asOfDate },
+      });
+      return response.data.data || response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  async getExpenseSummary(startDate: string, endDate: string): Promise<any> {
+    try {
+      const response = await api.get('/financial-reports/expense-summary', {
+        params: { startDate, endDate },
+      });
+      return response.data.data || response.data;
+    } catch (error) {
       throw error;
     }
   },
 };
-

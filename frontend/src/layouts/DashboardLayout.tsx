@@ -40,6 +40,8 @@ import {
   Target,
   Plus,
   RotateCcw,
+  TrendingUp,
+  AlertTriangle,
 } from 'lucide-react';
 import type { Branch } from '@/services/public.service';
 import { publicService } from '@/services/public.service';
@@ -225,12 +227,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     {
       icon: Warehouse,
       label: 'Gudang',
-      roles: ['OWNER', 'CFO', 'MGR'],
+      roles: ['OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'],
       children: [
-        { icon: Boxes, label: 'Stok', path: '/inventory/stock', roles: ['OWNER', 'CFO', 'MGR'] },
-        { icon: ArrowRightLeft, label: 'Transfer Stok', path: '/inventory/transfer', roles: ['OWNER', 'CFO', 'MGR'] },
-        { icon: ClipboardCheck, label: 'Stock Opname', path: '/inventory/opname', roles: ['OWNER', 'CFO', 'MGR'] },
-        { icon: PackageSearch, label: 'Stock Adjustment', path: '/inventory/adjustment', roles: ['OWNER', 'CFO', 'MGR'] },
+        { icon: Boxes, label: 'Stok', path: '/inventory/stock', roles: ['OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
+        { icon: ArrowRightLeft, label: 'Transfer Stok', path: '/inventory/transfer', roles: ['OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
+        { icon: ClipboardCheck, label: 'Stock Opname', path: '/inventory/opname', roles: ['OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
+        { icon: PackageSearch, label: 'Stock Adjustment', path: '/inventory/adjustment', roles: ['OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS'] },
+        { icon: TrendingUp, label: 'Riwayat Perpindahan', path: '/inventory/movements', roles: ['OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
+        { icon: AlertTriangle, label: 'Peringatan Stok Rendah', path: '/inventory/alerts', roles: ['OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
       ],
     },
     {
@@ -440,9 +444,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-gray-900 truncate">
                 {user?.fullName || 'Admin'}
+                {user?.role?.name && (
+                  <span className="text-xs font-normal text-gray-500 ml-1">
+                    ({user.role.name})
+                  </span>
+                )}
               </p>
               <p className="text-xs text-gray-500 truncate">
-                {user?.role?.name || 'Administrator'}
+                {user?.email || user?.role?.code || 'Administrator'}
               </p>
             </div>
           </div>
@@ -521,6 +530,19 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 >
                   <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-r from-primary-600 to-primary-500 rounded-full text-white text-sm font-semibold">
                     {user?.fullName?.charAt(0).toUpperCase() || 'A'}
+                  </div>
+                  <div className="hidden md:flex flex-col items-start">
+                    <span className="text-sm font-semibold text-gray-900">
+                      {user?.fullName || 'Admin'}
+                      {user?.role?.name && (
+                        <span className="text-xs font-normal text-gray-500 ml-1">
+                          ({user.role.name})
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {user?.role?.code || 'ADMIN'}
+                    </span>
                   </div>
                   <ChevronDown className="w-4 h-4 text-gray-600" />
                 </button>

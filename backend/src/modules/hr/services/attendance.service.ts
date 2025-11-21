@@ -102,7 +102,8 @@ export class AttendanceService {
       update: {
         clockIn: now,
         clockInMethod: dto.method,
-        clockInLocation: dto.location,
+        clockInLocation: dto.clock_in_location,
+        notes: dto.notes,
         isLate,
         lateMinutes,
         status: 'present',
@@ -114,7 +115,8 @@ export class AttendanceService {
         branchId: dto.branch_id,
         clockIn: now,
         clockInMethod: dto.method,
-        clockInLocation: dto.location,
+        clockInLocation: dto.clock_in_location,
+        notes: dto.notes,
         status: 'present',
         isLate,
         lateMinutes,
@@ -205,7 +207,8 @@ export class AttendanceService {
       data: {
         clockOut: now,
         clockOutMethod: dto.method,
-        clockOutLocation: dto.location,
+        clockOutLocation: dto.clock_out_location,
+        notes: dto.notes ? (attendance.notes ? `${attendance.notes}\n[Clock Out] ${dto.notes}` : `[Clock Out] ${dto.notes}`) : attendance.notes,
         isEarlyLeave,
         earlyLeaveMinutes,
         totalHours: workHours.greaterThan(0) ? workHours : new Decimal(0),
@@ -463,7 +466,15 @@ export class AttendanceService {
   /**
    * List attendance records
    */
-  async findAll(userId?: string, employeeId?: string, startDate?: Date, endDate?: Date) {
+  async findAll(
+    userId?: string,
+    employeeId?: string,
+    startDate?: Date,
+    endDate?: Date,
+    search?: string,
+    status?: string,
+    branchId?: string,
+  ) {
     const where: any = {};
 
     if (employeeId) {
@@ -487,16 +498,53 @@ export class AttendanceService {
       }
     }
 
-    return this.prisma.attendance.findMany({
-      where,
-      include: {
-        employee: {
-          include: { user: true },
+    if (status && status !== 'all') {
+      where.status = status;
+    }
+
+    if (branchId) {
+      where.branchId = branchId;
+    }
+
+    if (search) {
+      where.OR = [
+        {
+          employee: {
+            user: {
+              fullName: { contains: search, mode: 'insensitive' },
+            },
+          },
         },
-        branch: true,
-      },
-      orderBy: { date: 'desc' },
-    });
+        {
+          employee: {
+            employeeCode: { contains: search, mode: 'insensitive' },
+          },
+        },
+      ];
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.attendance.findMany({
+        where,
+        include: {
+          employee: {
+            include: { user: true },
+          },
+          branch: true,
+        },
+        orderBy: { date: 'desc' },
+      }),
+      this.prisma.attendance.count({ where }),
+    ]);
+
+    return {
+      data: data.map((a) => ({
+        ...a,
+        totalHours: a.totalHours?.toNumber(),
+        overtimeHours: a.overtimeHours?.toNumber(),
+      })),
+      total,
+    };
   }
 }
 

@@ -7,14 +7,16 @@ export interface StockTransfer {
   fromBranch?: { id: string; name: string; code: string };
   toBranchId: string;
   toBranch?: { id: string; name: string; code: string };
-  status: 'pending' | 'approved' | 'in-transit' | 'received' | 'rejected' | 'cancelled';
+  transferType: 'regular' | 'urgent';
+  status: 'pending' | 'approved' | 'sent' | 'received' | 'cancelled';
   items: StockTransferItem[];
   requestedBy: string;
-  requestedAt: string;
   approvedBy?: string;
-  approvedAt?: string;
+  approvedAt?: string | null;
+  sentBy?: string;
+  sentAt?: string | null;
   receivedBy?: string;
-  receivedAt?: string;
+  receivedAt?: string | null;
   notes?: string;
   createdAt: string;
   updatedAt: string;
@@ -22,36 +24,30 @@ export interface StockTransfer {
 
 export interface StockTransferItem {
   id: string;
+  transferId: string;
   productId: string;
-  product?: { id: string; name: string; sku: string };
-  quantity: number;
-  quantityReceived?: number;
+  product?: { id: string; name: string; sku: string; costPrice: any };
+  quantityRequested: number;
+  quantitySent?: number | null;
+  quantityReceived?: number | null;
+  notes?: string;
 }
 
-export interface StockTransferListResponse {
-  data: StockTransfer[];
-  meta: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-}
 
 export interface StockOpname {
   id: string;
   opnameNumber: string;
   branchId: string;
   branch?: { id: string; name: string; code: string };
-  status: 'draft' | 'in-progress' | 'completed' | 'approved' | 'rejected';
-  startDate: string;
-  endDate?: string;
+  opnameDate: string;
+  status: 'draft' | 'counting' | 'completed' | 'approved';
   items: StockOpnameItem[];
-  totalVariance: number;
-  totalVarianceValue: number;
-  createdBy: string;
-  approvedBy?: string;
-  approvedAt?: string;
+  totalDiscrepancyValue?: number | null;
+  startedBy: string;
+  completedBy?: string | null;
+  completedAt?: string | null;
+  approvedBy?: string | null;
+  approvedAt?: string | null;
   notes?: string;
   createdAt: string;
   updatedAt: string;
@@ -59,65 +55,32 @@ export interface StockOpname {
 
 export interface StockOpnameItem {
   id: string;
+  opnameId: string;
   productId: string;
-  product?: { id: string; name: string; sku: string };
+  product?: { id: string; name: string; sku: string; costPrice: any; category?: any; brand?: any };
   systemQuantity: number;
-  physicalQuantity: number;
-  variance: number;
-  varianceValue: number;
+  physicalQuantity?: number | null;
+  discrepancy?: number | null;
+  discrepancyValue?: number | null;
+  condition?: 'good' | 'damaged' | 'expired' | null;
   notes?: string;
+  countedBy?: string | null;
 }
 
-export interface StockOpnameListResponse {
-  data: StockOpname[];
-  meta: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-}
-
-export interface StockAdjustment {
-  id: string;
-  adjustmentNumber: string;
-  branchId: string;
-  branch?: { id: string; name: string; code: string };
-  productId: string;
-  product?: { id: string; name: string; sku: string };
-  adjustmentType: 'increase' | 'decrease';
-  quantity: number;
-  reason: string;
-  status: 'pending' | 'approved' | 'rejected';
-  requestedBy: string;
-  approvedBy?: string;
-  approvedAt?: string;
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface StockAdjustmentListResponse {
-  data: StockAdjustment[];
-  meta: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-}
 
 export const inventoryService = {
-  // Stock Transfer
-  async getTransfers(params?: {
+  // Stock Summary
+  async getStockSummary(params?: {
     page?: number;
     limit?: number;
-    status?: string;
-    fromBranchId?: string;
-    toBranchId?: string;
-  }): Promise<StockTransferListResponse> {
+    branchId?: string;
+    categoryId?: string;
+    brandId?: string;
+    stockStatus?: 'low' | 'out' | 'available';
+    search?: string;
+  }) {
     try {
-      const response = await api.get('/inventory/transfers', { params });
+      const response = await api.get('/inventory/stock', { params });
       return response.data;
     } catch (error: any) {
       return handleApiError(error, {
@@ -127,10 +90,80 @@ export const inventoryService = {
     }
   },
 
+  async getProductStock(productId: string) {
+    try {
+      const response = await api.get(`/inventory/stock/${productId}`);
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  async getLowStockAlerts(branchId?: string) {
+    try {
+      const response = await api.get('/inventory/alerts', { params: { branchId } });
+      return response.data;
+    } catch (error: any) {
+      return handleApiError(error, { totalAlerts: 0, byBranch: {}, items: [] });
+    }
+  },
+
+  async getStockMovementHistory(params?: {
+    page?: number;
+    limit?: number;
+    productId?: string;
+    branchId?: string;
+    movementType?: string;
+    referenceType?: string;
+    startDate?: string;
+    endDate?: string;
+  }) {
+    try {
+      const response = await api.get('/inventory/movements', { params });
+      return response.data;
+    } catch (error: any) {
+      return handleApiError(error, {
+        data: [],
+        meta: { page: params?.page || 1, limit: params?.limit || 20, total: 0, totalPages: 0 },
+      });
+    }
+  },
+
+  async adjustStock(data: {
+    productId: string;
+    branchId: string;
+    type: 'IN' | 'OUT' | 'DAMAGE' | 'FOUND' | 'CORRECTION';
+    quantityChange: number;
+    reason: string;
+    notes?: string;
+    batchNumber?: string;
+    serialNumber?: string;
+  }) {
+    try {
+      const response = await api.post('/inventory/adjustment', data);
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  // Stock Transfer
+  async getTransfers(params?: {
+    branchId?: string;
+    status?: string;
+  }): Promise<StockTransfer[]> {
+    try {
+      const response = await api.get('/inventory/transfers', { params });
+      return Array.isArray(response.data) ? response.data : response.data.data || [];
+    } catch (error: any) {
+      return handleApiError(error, []);
+    }
+  },
+
   async getTransferById(id: string): Promise<StockTransfer> {
     try {
       const response = await api.get(`/inventory/transfers/${id}`);
-      return response.data.data || response.data;
+      return response.data;
     } catch (error: any) {
       throw error;
     }
@@ -139,42 +172,51 @@ export const inventoryService = {
   async createTransfer(data: {
     fromBranchId: string;
     toBranchId: string;
-    items: Array<{ productId: string; quantity: number }>;
+    transferType: 'regular' | 'urgent';
+    items: Array<{ productId: string; quantityRequested: number; notes?: string }>;
     notes?: string;
   }): Promise<StockTransfer> {
     try {
       const response = await api.post('/inventory/transfers', data);
-      return response.data.data || response.data;
+      return response.data;
     } catch (error: any) {
       throw error;
     }
   },
 
-  async approveTransfer(id: string, data?: { notes?: string }): Promise<StockTransfer> {
+  async approveTransfer(id: string): Promise<StockTransfer> {
     try {
-      const response = await api.put(`/inventory/transfers/${id}/approve`, data || {});
-      return response.data.data || response.data;
+      const response = await api.post(`/inventory/transfers/${id}/approve`);
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  async sendTransfer(id: string): Promise<StockTransfer> {
+    try {
+      const response = await api.post(`/inventory/transfers/${id}/send`);
+      return response.data;
     } catch (error: any) {
       throw error;
     }
   },
 
   async receiveTransfer(id: string, data: {
-    items: Array<{ itemId: string; quantityReceived: number }>;
-    notes?: string;
+    items: Array<{ itemId: string; quantityReceived: number; condition?: 'good' | 'damaged' | 'expired'; notes?: string }>;
   }): Promise<StockTransfer> {
     try {
-      const response = await api.put(`/inventory/transfers/${id}/receive`, data);
-      return response.data.data || response.data;
+      const response = await api.post(`/inventory/transfers/${id}/receive`, data);
+      return response.data;
     } catch (error: any) {
       throw error;
     }
   },
 
-  async rejectTransfer(id: string, data: { reason: string }): Promise<StockTransfer> {
+  async cancelTransfer(id: string): Promise<StockTransfer> {
     try {
-      const response = await api.put(`/inventory/transfers/${id}/reject`, data);
-      return response.data.data || response.data;
+      const response = await api.post(`/inventory/transfers/${id}/cancel`);
+      return response.data;
     } catch (error: any) {
       throw error;
     }
@@ -182,26 +224,21 @@ export const inventoryService = {
 
   // Stock Opname
   async getOpnames(params?: {
-    page?: number;
-    limit?: number;
-    status?: string;
     branchId?: string;
-  }): Promise<StockOpnameListResponse> {
+    status?: string;
+  }): Promise<StockOpname[]> {
     try {
       const response = await api.get('/inventory/opname', { params });
-      return response.data;
+      return Array.isArray(response.data) ? response.data : response.data.data || [];
     } catch (error: any) {
-      return handleApiError(error, {
-        data: [],
-        meta: { page: params?.page || 1, limit: params?.limit || 20, total: 0, totalPages: 0 },
-      });
+      return handleApiError(error, []);
     }
   },
 
   async getOpnameById(id: string): Promise<StockOpname> {
     try {
       const response = await api.get(`/inventory/opname/${id}`);
-      return response.data.data || response.data;
+      return response.data;
     } catch (error: any) {
       throw error;
     }
@@ -209,107 +246,51 @@ export const inventoryService = {
 
   async startOpname(data: {
     branchId: string;
+    opnameDate: string;
     notes?: string;
   }): Promise<StockOpname> {
     try {
       const response = await api.post('/inventory/opname', data);
-      return response.data.data || response.data;
+      return response.data;
     } catch (error: any) {
       throw error;
     }
   },
 
   async recordCount(opnameId: string, data: {
-    productId: string;
-    physicalQuantity: number;
-    notes?: string;
-  }): Promise<StockOpnameItem> {
+    items: Array<{
+      productId: string;
+      physicalQuantity: number;
+      condition?: 'good' | 'damaged' | 'expired';
+      notes?: string;
+      countedBy?: string;
+    }>;
+  }): Promise<StockOpname> {
     try {
-      const response = await api.post(`/inventory/opname/${opnameId}/count`, data);
-      return response.data.data || response.data;
-    } catch (error: any) {
-      throw error;
-    }
-  },
-
-  async completeOpname(id: string, data?: { notes?: string }): Promise<StockOpname> {
-    try {
-      const response = await api.put(`/inventory/opname/${id}/complete`, data || {});
-      return response.data.data || response.data;
-    } catch (error: any) {
-      throw error;
-    }
-  },
-
-  async approveOpname(id: string, data?: { notes?: string }): Promise<StockOpname> {
-    try {
-      const response = await api.put(`/inventory/opname/${id}/approve`, data || {});
-      return response.data.data || response.data;
-    } catch (error: any) {
-      throw error;
-    }
-  },
-
-  // Stock Adjustment
-  async getAdjustments(params?: {
-    page?: number;
-    limit?: number;
-    status?: string;
-    branchId?: string;
-    productId?: string;
-  }): Promise<StockAdjustmentListResponse> {
-    try {
-      const response = await api.get('/inventory/adjustment', { params });
+      const response = await api.post(`/inventory/opname/${opnameId}/items`, data);
       return response.data;
     } catch (error: any) {
-      return handleApiError(error, {
-        data: [],
-        meta: { page: params?.page || 1, limit: params?.limit || 20, total: 0, totalPages: 0 },
-      });
+      throw error;
     }
   },
 
-  async getAdjustmentById(id: string): Promise<StockAdjustment> {
+  async completeOpname(id: string): Promise<StockOpname> {
     try {
-      const response = await api.get(`/inventory/adjustment/${id}`);
-      return response.data.data || response.data;
+      const response = await api.post(`/inventory/opname/${id}/complete`);
+      return response.data;
     } catch (error: any) {
       throw error;
     }
   },
 
-  async createAdjustment(data: {
-    branchId: string;
-    productId: string;
-    adjustmentType: 'increase' | 'decrease';
-    quantity: number;
-    reason: string;
-    notes?: string;
-  }): Promise<StockAdjustment> {
+  async approveOpname(id: string): Promise<StockOpname> {
     try {
-      const response = await api.post('/inventory/adjustment', data);
-      return response.data.data || response.data;
+      const response = await api.post(`/inventory/opname/${id}/approve`);
+      return response.data;
     } catch (error: any) {
       throw error;
     }
   },
 
-  async approveAdjustment(id: string, data?: { notes?: string }): Promise<StockAdjustment> {
-    try {
-      const response = await api.put(`/inventory/adjustment/${id}/approve`, data || {});
-      return response.data.data || response.data;
-    } catch (error: any) {
-      throw error;
-    }
-  },
-
-  async rejectAdjustment(id: string, data: { reason: string }): Promise<StockAdjustment> {
-    try {
-      const response = await api.put(`/inventory/adjustment/${id}/reject`, data);
-      return response.data.data || response.data;
-    } catch (error: any) {
-      throw error;
-    }
-  },
 };
 
