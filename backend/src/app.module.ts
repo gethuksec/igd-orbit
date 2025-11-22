@@ -18,6 +18,7 @@ import { FinanceModule } from './modules/finance/finance.module';
 import { HRModule } from './modules/hr/hr.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { SuppliersModule } from './modules/suppliers/suppliers.module';
+import { PurchasingModule } from './modules/purchasing/purchasing.module';
 import { WebSocketModule } from './modules/websocket/websocket.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
@@ -43,6 +44,7 @@ import { PermissionsModule } from './modules/permissions/permissions.module';
     PublicModule,
     FinanceModule,
     HRModule,
+    PurchasingModule,
     DashboardModule,
     WebSocketModule,
     RolesModule,

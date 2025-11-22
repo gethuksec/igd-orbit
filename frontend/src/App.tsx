@@ -93,6 +93,12 @@ import ARList from './pages/finance/ar/ARList';
 import ARDetail from './pages/finance/ar/ARDetail';
 import FinancialReports from './pages/finance/reports/FinancialReports';
 import PurchasingLanding from './pages/purchasing/PurchasingLanding';
+import PurchaseOrderList from './pages/purchasing/PurchaseOrderList';
+import PurchaseOrderDetail from './pages/purchasing/PurchaseOrderDetail';
+import PurchaseOrderForm from './pages/purchasing/PurchaseOrderForm';
+import GoodsReceiptList from './pages/purchasing/GoodsReceiptList';
+import GoodsReceiptDetail from './pages/purchasing/GoodsReceiptDetail';
+import GoodsReceiptForm from './pages/purchasing/GoodsReceiptForm';
 import EmployeeLanding from './pages/employees/EmployeeLanding';
 // HR
 import AttendanceList from './pages/hr/attendance/AttendanceList';
@@ -1149,27 +1155,160 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <PlaceholderPage title="Supplier" description="Kelola supplier untuk purchasing" />
+                    <SupplierList />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/purchasing/suppliers/new"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <SupplierForm />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/purchasing/suppliers/:id"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <SupplierDetail />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/purchasing/suppliers/:id/edit"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <SupplierForm />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            {/* Purchase Orders */}
             <Route
               path="/purchasing/po"
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <PlaceholderPage title="Purchase Order" description="Kelola purchase order" />
+                    <PurchaseOrderList />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
             />
             <Route
+              path="/purchasing/po/new"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PurchaseOrderForm />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/purchasing/po/:id"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PurchaseOrderDetail />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/purchasing/po/:id/edit"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PurchaseOrderForm />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            {/* Goods Receipts */}
+            <Route
               path="/purchasing/goods-receipt"
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <PlaceholderPage title="Goods Receipt" description="Kelola penerimaan barang" />
+                    <GoodsReceiptList />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/purchasing/goods-receipt/new"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <GoodsReceiptForm />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/purchasing/goods-receipt/new/:poId"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <GoodsReceiptForm />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/purchasing/goods-receipt/:id"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <GoodsReceiptDetail />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            {/* Legacy routes for backward compatibility */}
+            <Route
+              path="/purchasing/gr"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <GoodsReceiptList />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/purchasing/gr/new"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <GoodsReceiptForm />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/purchasing/gr/new/:poId"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <GoodsReceiptForm />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/purchasing/gr/:id"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <GoodsReceiptDetail />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
