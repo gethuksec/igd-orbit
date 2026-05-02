@@ -15,10 +15,13 @@ const getUser = () => {
 
 /**
  * Feature flag: USE_PERMISSION_HOOKS
- * Default: false (disabled for safety)
+ * Default: true (enabled for access control)
+ * Can be disabled via env variable if needed for backward compatibility
  */
 export const getUsePermissionHooks = () => {
-  return import.meta.env.VITE_USE_PERMISSION_HOOKS === 'true' || false;
+  // Enable permission checking by default (access control is active)
+  const envValue = import.meta.env.VITE_USE_PERMISSION_HOOKS;
+  return envValue !== 'false'; // Default to true unless explicitly disabled
 };
 
 /**
@@ -48,8 +51,8 @@ export function usePermissions() {
       return user.permissions;
     }
     
-    // Fallback: extract from roles if permissions not directly available
-    // This will be populated when backend sends permissions in JWT
+    // Fallback: return empty array if permissions not available
+    // This will be handled by ProtectedRoute (allow access if no permissions = backward compatible)
     return [];
   }, [user]);
 
@@ -69,9 +72,15 @@ export function usePermissions() {
   /**
    * Check if user has a specific permission
    * Supports wildcards: 'sales.*.create', 'sales.pos.*'
+   * SUPERADMIN: Always return true - full access
    */
   const hasPermission = useMemo(
     () => (permission: string): boolean => {
+      // SUPERADMIN: Always return true - full access, no restrictions
+      if (userRoles.includes('SUPERADMIN')) {
+        return true;
+      }
+
       // If feature flag disabled, always return true (backward compatible)
       if (!getUsePermissionHooks()) {
         return true;

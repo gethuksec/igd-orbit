@@ -53,8 +53,10 @@ import StockOpnameForm from './pages/inventory/StockOpnameForm';
 import StockAdjustment from './pages/inventory/StockAdjustment';
 import StockMovementHistory from './pages/inventory/StockMovementHistory';
 import LowStockAlerts from './pages/inventory/LowStockAlerts';
-// Placeholder
-import PlaceholderPage from './pages/placeholder/PlaceholderPage';
+// Unauthorized
+import Unauthorized from './pages/Unauthorized';
+import Profile from './pages/profile/Profile';
+import Settings from './pages/settings/Settings';
 // Master Data - Suppliers, Categories, Brands
 import SupplierList from './pages/suppliers/SupplierList';
 import SupplierForm from './pages/suppliers/SupplierForm';
@@ -117,6 +119,13 @@ import PayslipView from './pages/hr/payroll/PayslipView';
 import KPIRecordsList from './pages/hr/kpi/KPIRecordsList';
 import KPIDetail from './pages/hr/kpi/KPIDetail';
 import KPIRecordForm from './pages/hr/kpi/KPIRecordForm';
+// User & Role Management
+import UserList from './pages/users/UserList';
+import UserDetail from './pages/users/UserDetail';
+import UserForm from './pages/users/UserForm';
+import RoleList from './pages/roles/RoleList';
+import RoleDetail from './pages/roles/RoleDetail';
+import RoleForm from './pages/roles/RoleForm';
 import './App.css';
 
 // Create a client for React Query
@@ -1320,7 +1329,37 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <PlaceholderPage title="Manajemen User" description="Kelola user dan akun" />
+                    <UserList />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/users/new"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <UserForm />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/users/:id"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <UserDetail />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/users/:id/edit"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <UserForm />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
@@ -1330,7 +1369,69 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <PlaceholderPage title="Manajemen Role" description="Kelola role dan permission" />
+                    <RoleList />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/roles/new"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <RoleForm />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/roles/:id"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <RoleDetail />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/roles/:id/edit"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <RoleForm />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            
+            {/* Unauthorized Page */}
+            <Route
+              path="/unauthorized"
+              element={
+                <DashboardLayout>
+                  <Unauthorized />
+                </DashboardLayout>
+              }
+            />
+            
+            {/* Profile & Settings */}
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <Profile />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <Settings />
                   </DashboardLayout>
                 </ProtectedRoute>
               }

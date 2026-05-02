@@ -104,7 +104,7 @@ export class UserTransformer {
     );
 
     const roles = activeRoles.map((ur) => ({
-      id: ur.role.id,
+      id: ur.id, // UserRole ID (not role ID) - needed for removing role
       code: ur.role.code,
       name: ur.role.name,
       branchId: ur.branchId,

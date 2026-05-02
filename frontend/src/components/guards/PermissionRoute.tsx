@@ -49,9 +49,17 @@ export default function PermissionRoute({
   redirectTo = '/unauthorized',
 }: PermissionRouteProps) {
   const navigate = useNavigate();
-  const { hasAnyPermission, hasAnyRole } = usePermissions();
+  const { hasAnyPermission, hasAnyRole, userRoles } = usePermissions();
+
+  // SUPERADMIN: Always allow access - full access, no restrictions
+  const isSuperAdmin = userRoles.includes('SUPERADMIN');
 
   useEffect(() => {
+    // SUPERADMIN: Bypass all permission checks
+    if (isSuperAdmin) {
+      return; // Allow access, no need to check permissions
+    }
+
     // If no permission specified, allow access (backward compatible)
     if (!permission) {
       return;
@@ -73,7 +81,12 @@ export default function PermissionRoute({
     if (!hasAccess) {
       navigate(redirectTo, { replace: true });
     }
-  }, [permission, fallbackRoles, hasAnyPermission, hasAnyRole, navigate, redirectTo]);
+  }, [permission, fallbackRoles, hasAnyPermission, hasAnyRole, navigate, redirectTo, isSuperAdmin]);
+
+  // SUPERADMIN: Always allow access - full access, no restrictions
+  if (isSuperAdmin) {
+    return <>{children}</>;
+  }
 
   // Check permission
   if (permission) {

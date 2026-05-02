@@ -4,22 +4,34 @@ export interface Role {
   id: string;
   code: string;
   name: string;
-  description?: string;
-  isSystem: boolean;
+  description?: string | null;
+  level: number;
+  isSystemRole: boolean;
   isActive: boolean;
-  permissions?: Permission[];
+  permissions?: Permission[] | RolePermission[];
+  userCount?: number; // Number of users with this role
   createdAt: string;
   updatedAt: string;
 }
 
 export interface Permission {
   id: string;
-  code: string;
-  name: string;
   module: string;
-  submodule: string;
+  submodule: string | null;
   action: string;
-  description?: string;
+  description?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface RolePermission {
+  id: string;
+  roleId: string;
+  permissionId: string;
+  permission: Permission;
+  maxAmount?: number | null;
+  requiresApproval?: boolean;
+  conditions?: any;
 }
 
 export interface RoleListResponse {
@@ -36,25 +48,31 @@ export interface CreateRoleDto {
   code: string;
   name: string;
   description?: string;
+  level: number;
+  isSystemRole?: boolean;
 }
 
 export interface UpdateRoleDto {
   name?: string;
   description?: string;
+  level?: number;
   isActive?: boolean;
+  parentRoleId?: string | null;
 }
 
 export interface AssignPermissionDto {
   permissionId: string;
+  maxAmount?: number | null;
+  requiresApproval?: boolean;
+  conditions?: Record<string, any>;
 }
 
-export interface PermissionGroup {
-  module: string;
-  submodules: {
-    submodule: string;
-    permissions: Permission[];
-  }[];
-}
+// Grouped permissions structure from backend
+// Format: { [module: string]: { [submodule: string]: Array<{ id, action, description }> } }
+export type GroupedPermissions = Record<
+  string,
+  Record<string, Array<{ id: string; action: string; description: string | null }>>
+>;
 
 export const rolesService = {
   async getAll(params?: {
@@ -63,10 +81,19 @@ export const rolesService = {
     search?: string;
     sort?: string;
     order?: 'asc' | 'desc';
+    isActive?: boolean;
   }): Promise<RoleListResponse> {
     try {
       const response = await api.get('/roles', { params });
-      return response.data;
+      // Backend returns: { data: Role[], meta: { page, limit, total, totalPages } }
+      if (response.data && response.data.data) {
+        return response.data;
+      }
+      // Fallback: wrap if needed
+      return {
+        data: Array.isArray(response.data) ? response.data : [],
+        meta: response.data?.meta || { page: 1, limit: 20, total: 0, totalPages: 0 },
+      };
     } catch (error: any) {
       return handleApiError(error, { data: [], meta: { page: 1, limit: 20, total: 0, totalPages: 0 } });
     }
@@ -111,20 +138,21 @@ export const rolesService = {
     }
   },
 
-  async getPermissions(id: string): Promise<Permission[]> {
+  async getPermissions(id: string): Promise<{ permissions: Permission[] }> {
     try {
       const response = await api.get(`/roles/${id}/permissions`);
       return response.data;
     } catch (error: any) {
-      return handleApiError(error, []);
+      return handleApiError(error, { permissions: [] });
     }
   },
 
-  async assignPermission(roleId: string, permissionId: string): Promise<void> {
+  async assignPermission(roleId: string, data: AssignPermissionDto): Promise<RolePermission> {
     try {
-      await api.post(`/roles/${roleId}/permissions`, { permissionId });
+      const response = await api.post(`/roles/${roleId}/permissions`, data);
+      return response.data;
     } catch (error: any) {
-      handleApiError(error, undefined);
+      handleApiError(error, {} as RolePermission);
       throw error;
     }
   },
@@ -147,30 +175,71 @@ export const rolesService = {
       throw error;
     }
   },
-};
 
-export const permissionsService = {
-  async getAll(): Promise<PermissionGroup[]> {
+  // Menu Access Management
+  async getMenuAccess(roleId: string): Promise<Array<{ menuKey: string; menuPath?: string; menuLabel: string; isEnabled: boolean }>> {
     try {
-      const response = await api.get('/permissions');
-      return response.data;
+      const response = await api.get(`/roles/${roleId}/menu-access`);
+      return response.data?.menus || [];
     } catch (error: any) {
-      handleApiError(error, []);
-      return [];
+      return handleApiError(error, []);
     }
   },
 
+  async updateMenuAccess(roleId: string, menuKeys: string[]): Promise<void> {
+    try {
+      await api.put(`/roles/${roleId}/menu-access`, { menuKeys });
+    } catch (error: any) {
+      handleApiError(error, undefined);
+      throw error;
+    }
+  },
+};
+
+export const permissionsService = {
+  /**
+   * Get all permissions grouped by module → submodule
+   * Returns: { [module]: { [submodule]: [{ id, action, description }] } }
+   */
+  async getAllGrouped(): Promise<GroupedPermissions> {
+    try {
+      const response = await api.get('/permissions');
+      return response.data || {};
+    } catch (error: any) {
+      console.error('Error fetching grouped permissions:', error);
+      return {};
+    }
+  },
+
+  /**
+   * Get all permissions (flat list with pagination)
+   */
   async getList(params?: {
     page?: number;
     limit?: number;
-    search?: string;
-  }): Promise<{ data: Permission[]; meta: any }> {
+    module?: string;
+    submodule?: string;
+    action?: string;
+  }): Promise<{ data: Permission[]; meta: { page: number; limit: number; total: number; totalPages: number } }> {
     try {
       const response = await api.get('/permissions/list', { params });
+      return response.data || { data: [], meta: { page: 1, limit: 20, total: 0, totalPages: 0 } };
+    } catch (error: any) {
+      console.error('Error fetching permissions list:', error);
+      return { data: [], meta: { page: 1, limit: 20, total: 0, totalPages: 0 } };
+    }
+  },
+
+  /**
+   * Get permission by ID
+   */
+  async getById(id: string): Promise<Permission> {
+    try {
+      const response = await api.get(`/permissions/${id}`);
       return response.data;
     } catch (error: any) {
-      handleApiError(error, { data: [], meta: {} });
-      return { data: [], meta: {} };
+      handleApiError(error, {} as Permission);
+      throw error;
     }
   },
 };

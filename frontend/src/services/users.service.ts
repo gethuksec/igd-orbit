@@ -14,19 +14,24 @@ export interface User {
 
 export interface UserRole {
   id: string;
-  role: {
+  code: string;
+  name: string;
+  branchId?: string | null;
+  branchName?: string | null;
+  isPrimary: boolean;
+  validFrom: string;
+  validUntil?: string | null;
+  // Legacy format support (for backward compatibility)
+  role?: {
     id: string;
     code: string;
     name: string;
   };
-  branchId?: string | null;
   branch?: {
     id: string;
     name: string;
     code: string;
   } | null;
-  validFrom: string;
-  validUntil?: string | null;
 }
 
 export interface UserListResponse {

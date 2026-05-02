@@ -38,6 +38,12 @@ export class RolesGuard implements CanActivate {
     }
 
     const userRoles = user.roles || [];
+    
+    // SUPERADMIN: Bypass all role checks - full access, no restrictions
+    if (userRoles.includes('SUPERADMIN')) {
+      return true;
+    }
+    
     const hasRole = requiredRoles.some((role) => userRoles.includes(role));
 
     if (!hasRole) {

@@ -1,0 +1,58 @@
+Master Data
+Produk
+	Barcode (bisa cetak dan di scan dan teringegrasi dengan system (missal Harga)
+		
+Service order
+nota service 1x aja (jadi nota quotation dan service jadi 1)
+ada halaman nota, dan bisa di edit. yang memungkinkan
+Harga internal bisa ditakeout (hanya dituliskan di halaman nota, tapi tidak di print untuk customer) yang di print untuk customer hanya nama acc dan Harga jasa keseluruhan (seperti gambar)
+
+Penjualan
+(produk - Riwayat aktivitas diperjelas Riwayat transaksinya) 
+dipisah antara nota transaksi dan retur
+
+POS
+pajak 11% (nanti ada pilihan toggle pakai pajak atau tidak)
+stock menyesuaikan branch (Stock: tampilan)
+
+Rekap transaksi dipisah antara
+penjualan
+service
+seperti gambar
+
+Finance
+sesuai dengan pemsertel lapkas
+seperti gambar
+
+Fingerprint AT100 integration
+
+Cashier dan CS bisa lihat produk
+
+Management akun sosmed...
+
+seed data ulang sesuai kondisi saat ini
+
+CREDS
+DB
+# Database setup
+conn = mysql.connector.connect(
+host="localhost",
+user="u831261374_root",
+password="@T1m0r1t3l",
+database="u831261374_servicejember"
+)
+
+SSH
+191.101.230.106
+65002
+u831261374
+Gisel164!^$
+
+Spreadsheet
+https://docs.google.com/spreadsheets/d/13oQdy9Z69BVd4fIJBZOeUL2niDFMB9Lzzlac4cL29zw/edit
+./gcp/igd-pull-sync-5df76912e6b8.json
+
+login Apps
+AdminIGD123!@#
+settings
+SettingsIGD123!@#

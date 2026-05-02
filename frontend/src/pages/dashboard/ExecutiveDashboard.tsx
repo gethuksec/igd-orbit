@@ -37,6 +37,47 @@ export function ExecutiveDashboard() {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const queryClient = useQueryClient();
   
+  // Check if user has access (tier 1-3 only: SUPERADMIN, OWNER, CFO, MGR, CSO, CMO, CHR, SPV, HS)
+  // Tier 4 (staff level) should not access executive dashboard
+  const getUser = () => {
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) return JSON.parse(userStr);
+    } catch {
+      // Ignore
+    }
+    return null;
+  };
+  
+  const user = getUser();
+  const userRoles = user?.roles || (user?.role?.code ? [user.role.code] : []);
+  
+  // Executive roles (Tier 0-3): SUPERADMIN, OWNER, CFO, MGR, CSO, CMO, CHR, SPV, HS
+  // Staff roles (Tier 4): CS, CR, TC, AR, ASA, SODO, SMO, AS, etc.
+  const executiveRoles = ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'CHR', 'SPV', 'HS'];
+  const hasExecutiveAccess = userRoles.some((role: string) => executiveRoles.includes(role));
+  
+  // Redirect tier 4 users (they should see different dashboard or service orders)
+  useEffect(() => {
+    if (user && !hasExecutiveAccess) {
+      // Tier 4 users should be redirected to their default route
+      const defaultRoute = userRoles.includes('TC') ? '/service-orders/my' :
+                          (userRoles.includes('HS') || userRoles.includes('SPV')) ? '/service-orders' :
+                          '/service-orders';
+      window.location.href = defaultRoute;
+    }
+  }, [user, hasExecutiveAccess, userRoles]);
+  
+  if (user && !hasExecutiveAccess) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-gray-600">Akses ditolak. Dashboard eksekutif hanya untuk tier 1-3.</p>
+        </div>
+      </div>
+    );
+  }
+  
   // WebSocket connection for real-time updates (with error handling)
   useEffect(() => {
     let newSocket: ReturnType<typeof io> | null = null;

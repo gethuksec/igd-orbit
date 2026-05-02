@@ -46,6 +46,7 @@ import {
 import type { Branch } from '@/services/public.service';
 import { publicService } from '@/services/public.service';
 import { useBranchStore } from '@/stores/branchStore';
+import { usePermissions } from '@/hooks/usePermissions';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -68,7 +69,8 @@ interface MenuItem {
   icon: any;
   label: string;
   path?: string;
-  roles: string[]; // allowed role codes, '*' = all
+  roles?: string[]; // allowed role codes (for backward compatibility), '*' = all
+  permission?: string; // module permission (e.g., 'master_data.*.view') - primary check
   children?: MenuItem[];
 }
 
@@ -151,166 +153,214 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       icon: LayoutDashboard,
       label: 'Dashboard',
       path: '/dashboard',
-      roles: ['OWNER', 'CFO', 'MGR'],
+      permission: 'dashboard.*.view',
+      roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'],
     },
     {
       icon: Package,
       label: 'Master Data',
-      roles: ['OWNER', 'CFO', 'MGR', 'CS'],
+      permission: 'master_data.*.view',
+      roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CS'],
       children: [
-        { icon: Users, label: 'Pelanggan', path: '/customers', roles: ['OWNER', 'CFO', 'MGR', 'CS'] },
-        { icon: Package, label: 'Produk', path: '/products', roles: ['OWNER', 'CFO', 'MGR'] },
-        { icon: Building2, label: 'Supplier', path: '/suppliers', roles: ['OWNER', 'CFO', 'MGR'] },
-        { icon: Tag, label: 'Kategori', path: '/categories', roles: ['OWNER', 'CFO', 'MGR'] },
-        { icon: Award, label: 'Brand', path: '/brands', roles: ['OWNER', 'CFO', 'MGR'] },
-        { icon: Wrench, label: 'Layanan', path: '/service-types', roles: ['OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS'] },
+        { icon: Users, label: 'Pelanggan', path: '/customers', permission: 'master_data.customer.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CS'] },
+        { icon: Package, label: 'Produk', path: '/products', permission: 'master_data.product.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
+        { icon: Building2, label: 'Supplier', path: '/suppliers', permission: 'master_data.supplier.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
+        { icon: Tag, label: 'Kategori', path: '/categories', permission: 'master_data.category.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
+        { icon: Award, label: 'Brand', path: '/brands', permission: 'master_data.brand.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
+        { icon: Wrench, label: 'Layanan', path: '/service-types', permission: 'master_data.service_type.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS'] },
       ],
     },
     {
       icon: ShoppingCart,
       label: 'Penjualan',
+      permission: 'sales.*.view',
       // POS & sales pages: kasir dan tim frontliner (CS, CR, HS, SPV) + manajemen
-      roles: ['OWNER', 'CFO', 'MGR', 'CS', 'CR', 'HS', 'SPV'],
+      roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CS', 'CR', 'HS', 'SPV'],
       children: [
         {
           icon: ShoppingCart,
           label: 'POS',
           path: '/sales/pos',
-          roles: ['OWNER', 'CFO', 'MGR', 'CS', 'CR', 'HS', 'SPV'],
+          roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CS', 'CR', 'HS', 'SPV'],
         },
         {
           icon: Receipt,
           label: 'Riwayat Penjualan',
           path: '/sales/history',
-          roles: ['OWNER', 'CFO', 'MGR', 'CS', 'CR', 'HS', 'SPV'],
+          roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CS', 'CR', 'HS', 'SPV'],
         },
         {
           icon: ArrowRightLeft,
           label: 'Retur Penjualan',
           path: '/sales/returns',
-          roles: ['OWNER', 'CFO', 'MGR', 'HS', 'SPV'],
+          roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'HS', 'SPV'],
         },
       ],
     },
     {
       icon: Wrench,
       label: 'Servis',
+      permission: 'service.*.view',
       // CS: create/update service order; TC/HS/SPV: manage assigned services; OWNER/MGR: overview
-      roles: ['OWNER', 'MGR', 'CS', 'TC', 'HS', 'SPV'],
+      roles: ['SUPERADMIN', 'OWNER', 'MGR', 'CS', 'TC', 'HS', 'SPV'],
       children: [
         {
           icon: Wrench,
           label: 'Semua Service Order',
           path: '/service-orders',
-          roles: ['OWNER', 'MGR', 'CS', 'HS', 'SPV'],
+          roles: ['SUPERADMIN', 'OWNER', 'MGR', 'CS', 'HS', 'SPV'],
         },
         {
           icon: UserCog,
           label: 'Service Saya',
           path: '/service-orders/my',
-          roles: ['TC', 'HS', 'SPV'],
+          roles: ['SUPERADMIN', 'TC', 'HS', 'SPV'],
         },
         {
           icon: Plus,
           label: 'Tambah Service',
           path: '/service-orders/new',
-          roles: ['OWNER', 'MGR', 'CS'],
+          roles: ['SUPERADMIN', 'OWNER', 'MGR', 'CS'],
         },
         {
           icon: RotateCcw,
           label: 'Retur & Komplain',
           path: '/service-returns',
-          roles: ['OWNER', 'MGR', 'CS', 'CR', 'HS', 'SPV', 'CMO', 'CSO'],
+          roles: ['SUPERADMIN', 'OWNER', 'MGR', 'CS', 'CR', 'HS', 'SPV', 'CMO', 'CSO'],
         },
       ],
     },
     {
       icon: Warehouse,
       label: 'Gudang',
-      roles: ['OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'],
+      permission: 'inventory.*.view',
+      roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'],
       children: [
-        { icon: Boxes, label: 'Stok', path: '/inventory/stock', roles: ['OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
-        { icon: ArrowRightLeft, label: 'Transfer Stok', path: '/inventory/transfer', roles: ['OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
-        { icon: ClipboardCheck, label: 'Stock Opname', path: '/inventory/opname', roles: ['OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
-        { icon: PackageSearch, label: 'Stock Adjustment', path: '/inventory/adjustment', roles: ['OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS'] },
-        { icon: TrendingUp, label: 'Riwayat Perpindahan', path: '/inventory/movements', roles: ['OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
-        { icon: AlertTriangle, label: 'Peringatan Stok Rendah', path: '/inventory/alerts', roles: ['OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
+        { icon: Boxes, label: 'Stok', path: '/inventory/stock', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
+        { icon: ArrowRightLeft, label: 'Transfer Stok', path: '/inventory/transfer', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
+        { icon: ClipboardCheck, label: 'Stock Opname', path: '/inventory/opname', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
+        { icon: PackageSearch, label: 'Stock Adjustment', path: '/inventory/adjustment', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS'] },
+        { icon: TrendingUp, label: 'Riwayat Perpindahan', path: '/inventory/movements', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
+        { icon: AlertTriangle, label: 'Peringatan Stok Rendah', path: '/inventory/alerts', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
       ],
     },
     {
       icon: DollarSign,
       label: 'Keuangan',
-      roles: ['OWNER', 'CFO'],
+      permission: 'finance.*.view',
+      roles: ['SUPERADMIN', 'OWNER', 'CFO'],
       children: [
-        { icon: FileText, label: 'Chart of Accounts', path: '/finance/coa', roles: ['OWNER', 'CFO'] },
-        { icon: ReceiptText, label: 'Jurnal Umum', path: '/finance/journal', roles: ['OWNER', 'CFO'] },
-        { icon: Wallet, label: 'Pengeluaran', path: '/finance/expenses', roles: ['OWNER', 'CFO'] },
-        { icon: CreditCard, label: 'Petty Cash', path: '/finance/petty-cash', roles: ['OWNER', 'CFO'] },
-        { icon: Receipt, label: 'Accounts Receivable', path: '/finance/ar', roles: ['OWNER', 'CFO'] },
-        { icon: BarChart3, label: 'Laporan Keuangan', path: '/finance/reports', roles: ['OWNER', 'CFO'] },
+        { icon: FileText, label: 'Chart of Accounts', path: '/finance/coa', roles: ['SUPERADMIN', 'OWNER', 'CFO'] },
+        { icon: ReceiptText, label: 'Jurnal Umum', path: '/finance/journal', roles: ['SUPERADMIN', 'OWNER', 'CFO'] },
+        { icon: Wallet, label: 'Pengeluaran', path: '/finance/expenses', roles: ['SUPERADMIN', 'OWNER', 'CFO'] },
+        { icon: CreditCard, label: 'Petty Cash', path: '/finance/petty-cash', roles: ['SUPERADMIN', 'OWNER', 'CFO'] },
+        { icon: Receipt, label: 'Accounts Receivable', path: '/finance/ar', roles: ['SUPERADMIN', 'OWNER', 'CFO'] },
+        { icon: BarChart3, label: 'Laporan Keuangan', path: '/finance/reports', roles: ['SUPERADMIN', 'OWNER', 'CFO'] },
       ],
     },
     {
       icon: FileText,
       label: 'Pembelian',
-      roles: ['OWNER', 'CFO', 'MGR'],
+      permission: 'purchasing.*.view',
+      roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'],
       children: [
-        { icon: Building2, label: 'Supplier', path: '/purchasing/suppliers', roles: ['OWNER', 'CFO', 'MGR'] },
-        { icon: FileText, label: 'Purchase Order', path: '/purchasing/po', roles: ['OWNER', 'CFO', 'MGR'] },
-        { icon: Truck, label: 'Goods Receipt', path: '/purchasing/goods-receipt', roles: ['OWNER', 'CFO', 'MGR'] },
+        { icon: Building2, label: 'Supplier', path: '/purchasing/suppliers', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
+        { icon: FileText, label: 'Purchase Order', path: '/purchasing/po', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
+        { icon: Truck, label: 'Goods Receipt', path: '/purchasing/goods-receipt', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
       ],
     },
     {
       icon: UserCog,
       label: 'Karyawan',
-      roles: ['OWNER', 'CFO'],
+      permission: 'hr.*.view',
+      roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'],
       children: [
-        { icon: Users, label: 'Data Karyawan', path: '/hr/employees', roles: ['OWNER', 'CFO'] },
-        { icon: Clock, label: 'Absensi', path: '/hr/attendance', roles: ['OWNER', 'CFO'] },
-        { icon: CalendarDays, label: 'Cuti', path: '/hr/leave', roles: ['OWNER', 'CFO'] },
-        { icon: Banknote, label: 'Payroll', path: '/hr/payroll', roles: ['OWNER', 'CFO'] },
-        { icon: Target, label: 'KPI', path: '/hr/kpi', roles: ['OWNER', 'CFO'] },
+        { icon: Users, label: 'Data Karyawan', path: '/hr/employees', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+        { icon: Clock, label: 'Absensi', path: '/hr/attendance', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+        { icon: CalendarDays, label: 'Cuti', path: '/hr/leave', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+        { icon: Banknote, label: 'Payroll', path: '/hr/payroll', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+        { icon: Target, label: 'KPI', path: '/hr/kpi', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
       ],
     },
     {
       icon: Store,
       label: 'Cabang',
       path: '/branches',
-      roles: ['OWNER', 'CFO', 'MGR'],
+      permission: 'master_data.*.view',
+      roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'],
     },
     {
       icon: Shield,
       label: 'User & Role',
-      path: '/users',
-      roles: ['OWNER'],
+      permission: 'users.*.view',
+      roles: ['SUPERADMIN', 'OWNER', 'CHR'],
+      children: [
+        { icon: Users, label: 'Users', path: '/users', permission: 'users.user.view', roles: ['SUPERADMIN', 'OWNER', 'CHR'] },
+        { icon: Shield, label: 'Roles', path: '/roles', permission: 'roles.role.view', roles: ['SUPERADMIN', 'OWNER', 'CHR'] },
+      ],
     },
   ];
 
-  // Flatten user roles: array of codes + primary role code (from backend JWT payload)
-  const userRoleCodes: string[] = (() => {
-    const codes: string[] = [];
-    if (Array.isArray(user?.roles)) {
-      codes.push(...user.roles);
-    }
-    if (user?.role?.code && !codes.includes(user.role.code)) {
-      codes.push(user.role.code);
-    }
-    // Fallback default
-    if (codes.length === 0) {
-      codes.push('ADMIN');
-    }
-    return codes;
-  })();
+  const { hasPermission, hasAnyRole } = usePermissions();
 
-  const hasAccess = (itemRoles: string[]) =>
-    itemRoles.includes('*') || itemRoles.some((r) => userRoleCodes.includes(r));
+  // Menu module permission mapping
+  const menuPermissionMap: Record<string, string> = {
+    'Dashboard': 'dashboard.*.view',
+    'Master Data': 'master_data.*.view',
+    'Penjualan': 'sales.*.view',
+    'Servis': 'service.*.view',
+    'Gudang': 'inventory.*.view',
+    'Keuangan': 'finance.*.view',
+    'Pembelian': 'purchasing.*.view',
+    'Karyawan': 'hr.*.view',
+    'Cabang': 'master_data.*.view',
+    'User & Role': 'users.*.view',
+  };
 
-  // Filter menu based on Access Control Matrix (simplified per-role)
+  const hasAccess = (item: MenuItem): boolean => {
+    const user = getUser();
+    const userRoles = user?.roles || (user?.role?.code ? [user.role.code] : []);
+    
+    // SUPERADMIN: Always has access to everything
+    if (userRoles.includes('SUPERADMIN')) {
+      return true;
+    }
+    
+    // Primary check: Permission-based (if permission specified)
+    if (item.permission) {
+      const userPermissions = user?.permissions || [];
+      
+      // If permissions system is active (user has permissions), check permission
+      if (userPermissions.length > 0) {
+        return hasPermission(item.permission);
+      }
+      // If permissions not yet active, fall through to role check
+    }
+
+    // Fallback: Get permission from menu label mapping
+    if (menuPermissionMap[item.label]) {
+      const userPermissions = user?.permissions || [];
+      
+      if (userPermissions.length > 0) {
+        return hasPermission(menuPermissionMap[item.label]);
+      }
+    }
+
+    // Backward compatibility: Role-based check (if no permission specified or permissions not active)
+    if (item.roles) {
+      return item.roles.includes('*') || hasAnyRole(item.roles);
+    }
+
+    // Default: allow access if no restrictions
+    return true;
+  };
+
+  // Filter menu based on permissions (with role fallback for backward compatibility)
   const menuItems = allMenuItems
-    .filter((item) => hasAccess(item.roles))
+    .filter((item) => hasAccess(item))
     .map((item) => ({
       ...item,
-      children: item.children?.filter((child) => hasAccess(child.roles || ['*'])),
+      children: item.children?.filter((child) => hasAccess(child)),
     }))
     .filter((item) => !item.children || item.children.length > 0);
 

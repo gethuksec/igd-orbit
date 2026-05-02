@@ -61,6 +61,12 @@ export class PermissionsGuard implements CanActivate {
       throw new ForbiddenException('User not authenticated');
     }
 
+    // SUPERADMIN: Bypass all permission checks - full access, no restrictions
+    const userRoles = user.roles || [];
+    if (userRoles.includes('SUPERADMIN')) {
+      return true;
+    }
+
     const userPermissions = user.permissions || [];
 
     // Check if user has any of the required permissions (OR logic)

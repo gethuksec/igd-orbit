@@ -178,6 +178,27 @@ export default function Login() {
 
           {/* Demo Credentials - Organized by Tier */}
           <div className="space-y-4">
+            {/* Tier 0 - Super Admin */}
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-300">
+              <p className="text-xs font-bold text-purple-900 uppercase mb-3 flex items-center gap-2">
+                <span className="w-2 h-2 bg-purple-600 rounded-full animate-pulse"></span>
+                🟣 TIER 0 - SUPER ADMIN (Password: SuperAdmin@1234)
+              </p>
+              <div className="grid grid-cols-1 gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('superadmin@igdgroup.com');
+                    setPassword('SuperAdmin@1234');
+                  }}
+                  className="text-left px-3 py-2 bg-white hover:bg-purple-50 border border-purple-300 rounded-lg transition-all"
+                >
+                  <p className="font-semibold text-purple-800">👑 Super Administrator (Full Access)</p>
+                  <p className="text-gray-600">superadmin@igdgroup.com</p>
+                </button>
+              </div>
+            </div>
+
             {/* Tier 1 - Executive */}
             <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-4 border border-red-200">
               <p className="text-xs font-bold text-red-800 uppercase mb-3 flex items-center gap-2">

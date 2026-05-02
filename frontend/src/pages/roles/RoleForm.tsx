@@ -15,7 +15,9 @@ export default function RoleForm() {
     code: '',
     name: '',
     description: '',
+    level: 5, // Default level for new roles (entry level)
     isActive: true,
+    parentRoleId: '' as string | undefined,
   });
 
   const { data: role, isLoading: loadingRole } = useQuery({
@@ -24,13 +26,22 @@ export default function RoleForm() {
     enabled: !!id,
   });
 
+  const { data: rolesData } = useQuery({
+    queryKey: ['roles-for-parent'],
+    queryFn: () => rolesService.getAll({ limit: 1000 }),
+  });
+
+  const availableRoles = rolesData?.data || [];
+
   useEffect(() => {
     if (role) {
       setFormData({
         code: role.code || '',
         name: role.name || '',
         description: role.description || '',
+        level: role.level ?? 5,
         isActive: role.isActive ?? true,
+        parentRoleId: (role as any).parentRoleId || undefined,
       });
     }
   }, [role]);
@@ -40,11 +51,14 @@ export default function RoleForm() {
       const submitData: any = {
         name: data.name,
         description: data.description || undefined,
+        level: data.level,
         isActive: data.isActive,
+        parentRoleId: data.parentRoleId || undefined,
       };
 
       if (!isEdit) {
         submitData.code = data.code;
+        submitData.isSystemRole = false; // New roles are never system roles
       }
 
       return isEdit ? rolesService.update(id!, submitData) : rolesService.create(submitData);
@@ -132,6 +146,55 @@ export default function RoleForm() {
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
                 placeholder="Cashier, Head of Store, etc"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Level Hierarki <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={formData.level}
+                onChange={(e) => setFormData({ ...formData, level: parseInt(e.target.value) })}
+                required
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all bg-white"
+              >
+                <option value={0}>0 - SUPERADMIN</option>
+                <option value={1}>1 - OWNER</option>
+                <option value={2}>2 - C-LEVEL (CFO, CHR, CSO, CMO)</option>
+                <option value={3}>3 - SPV (Supervisor)</option>
+                <option value={4}>4 - HS (Head of Store)</option>
+                <option value={5}>5 - AR (Assistant Region)</option>
+                <option value={6}>6 - Entry Level (CS, TC, SODO, ASA, SMO, AS, CR)</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">Tingkat hierarki role dalam organisasi</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Parent Role (Turunan dari)
+              </label>
+              <select
+                value={formData.parentRoleId || ''}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    parentRoleId: e.target.value || undefined,
+                  })
+                }
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all bg-white"
+              >
+                <option value="">Tidak ada (Root Role)</option>
+                {availableRoles
+                  .filter((r) => !id || r.id !== id) // Exclude current role if editing
+                  .map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name} ({r.code}) - Tier {r.level}
+                    </option>
+                  ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Pilih role parent untuk membuat hierarki. Role ini akan menjadi turunan dari role yang dipilih.
+              </p>
             </div>
 
             <div className="md:col-span-2">

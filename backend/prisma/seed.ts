@@ -154,6 +154,38 @@ async function main() {
 
   // 3. Create Users
   console.log('👤 Creating users...');
+  
+  // SUPERADMIN user (Tier 0)
+  const superadminPassword = await hashPassword('SuperAdmin@1234');
+  
+  // Check if SUPERADMIN user exists and force password update
+  const existingSuperadmin = await prisma.user.findUnique({
+    where: { email: 'superadmin@igdgroup.com' },
+  });
+  
+  const superadmin = existingSuperadmin
+    ? await prisma.user.update({
+        where: { email: 'superadmin@igdgroup.com' },
+        data: {
+          passwordHash: superadminPassword, // Force update password
+          fullName: 'Super Administrator',
+          isActive: true,
+          isVerified: true,
+        },
+      })
+    : await prisma.user.create({
+        data: {
+          email: 'superadmin@igdgroup.com',
+          username: 'superadmin',
+          passwordHash: superadminPassword,
+          fullName: 'Super Administrator',
+          phone: '08000000000',
+          isActive: true,
+          isVerified: true,
+        },
+      });
+
+  // OWNER user (Tier 1)
   const owner = await prisma.user.upsert({
     where: { email: 'owner@igdgroup.com' },
     update: {
@@ -315,6 +347,204 @@ async function main() {
       isActive: true,
     },
   });
+
+  // Check if SUPERADMIN role exists (for permission assignment)
+  let superadminRole = await prisma.role.findUnique({
+    where: { code: 'SUPERADMIN' },
+  });
+
+  if (!superadminRole) {
+    superadminRole = await prisma.role.create({
+      data: {
+        code: 'SUPERADMIN',
+        name: 'Super Administrator',
+        description: 'System administrator with full access',
+        level: 0,
+        isSystemRole: true,
+        isActive: true,
+      },
+    });
+  }
+
+  // 2.5. Create Module-Level Permissions (for menu access)
+  console.log('🔐 Creating module-level permissions...');
+  
+  const modulePermissions = [
+    { module: 'dashboard', submodule: null, action: 'view', description: 'Access Dashboard module' },
+    { module: 'master_data', submodule: null, action: 'view', description: 'Access Master Data module' },
+    { module: 'sales', submodule: null, action: 'view', description: 'Access Sales & POS module' },
+    { module: 'service', submodule: null, action: 'view', description: 'Access Service Management module' },
+    { module: 'inventory', submodule: null, action: 'view', description: 'Access Inventory & Warehouse module' },
+    { module: 'finance', submodule: null, action: 'view', description: 'Access Finance module' },
+    { module: 'hr', submodule: null, action: 'view', description: 'Access HR & Payroll module' },
+    { module: 'purchasing', submodule: null, action: 'view', description: 'Access Purchasing module' },
+    { module: 'users', submodule: null, action: 'view', description: 'Access User Management' },
+    { module: 'roles', submodule: null, action: 'view', description: 'Access Role Management' },
+  ];
+
+  const createdPermissions: Record<string, any> = {};
+  
+  for (const perm of modulePermissions) {
+    // Find existing permission first (since submodule can be null)
+    let permission = await prisma.permission.findFirst({
+      where: {
+        module: perm.module,
+        submodule: perm.submodule,
+        action: perm.action,
+      },
+    });
+
+    // Create or update permission
+    if (!permission) {
+      permission = await prisma.permission.create({
+        data: {
+          module: perm.module,
+          submodule: perm.submodule,
+          action: perm.action,
+          description: perm.description,
+        },
+      });
+    } else if (permission.description !== perm.description) {
+      permission = await prisma.permission.update({
+        where: { id: permission.id },
+        data: { description: perm.description },
+      });
+    }
+    
+    const permKey = `${perm.module}.${perm.submodule || '*'}.${perm.action}`;
+    createdPermissions[permKey] = permission;
+  }
+
+  console.log('✅ Module-level permissions created');
+
+  // 2.6. Assign Module Permissions to Roles (based on Role Matrix Table)
+  console.log('🔗 Assigning module permissions to roles...');
+
+  // Helper function to assign permission to role
+  async function assignPermissionToRole(roleCode: string, permissionKey: string) {
+    const role = await prisma.role.findUnique({ where: { code: roleCode } });
+    const permission = createdPermissions[permissionKey];
+    
+    if (!role || !permission) {
+      console.warn(`⚠️  Role ${roleCode} or permission ${permissionKey} not found, skipping...`);
+      return;
+    }
+
+    await prisma.rolePermission.upsert({
+      where: {
+        roleId_permissionId: {
+          roleId: role.id,
+          permissionId: permission.id,
+        },
+      },
+      update: {},
+      create: {
+        roleId: role.id,
+        permissionId: permission.id,
+      },
+    });
+  }
+
+  // SUPERADMIN: All modules
+  for (const permKey of Object.keys(createdPermissions)) {
+    await assignPermissionToRole('SUPERADMIN', permKey);
+  }
+
+  // OWNER: All modules (view only)
+  for (const permKey of Object.keys(createdPermissions)) {
+    await assignPermissionToRole('OWNER', permKey);
+  }
+
+  // CFO: Dashboard, Master Data (view), Finance, HR
+  await assignPermissionToRole('CFO', 'dashboard.*.view');
+  await assignPermissionToRole('CFO', 'master_data.*.view');
+  await assignPermissionToRole('CFO', 'finance.*.view');
+  await assignPermissionToRole('CFO', 'hr.*.view');
+
+  // CHR: Dashboard, Master Data (view), HR, Users & Roles
+  await assignPermissionToRole('CHR', 'dashboard.*.view');
+  await assignPermissionToRole('CHR', 'master_data.*.view');
+  await assignPermissionToRole('CHR', 'hr.*.view');
+  await assignPermissionToRole('CHR', 'users.*.view');
+  await assignPermissionToRole('CHR', 'roles.*.view');
+
+  // CSO: All modules except Finance (full access)
+  await assignPermissionToRole('CSO', 'dashboard.*.view');
+  await assignPermissionToRole('CSO', 'master_data.*.view');
+  await assignPermissionToRole('CSO', 'sales.*.view');
+  await assignPermissionToRole('CSO', 'service.*.view');
+  await assignPermissionToRole('CSO', 'inventory.*.view');
+  await assignPermissionToRole('CSO', 'purchasing.*.view');
+
+  // CMO: Dashboard, Master Data, Sales, Service
+  await assignPermissionToRole('CMO', 'dashboard.*.view');
+  await assignPermissionToRole('CMO', 'master_data.*.view');
+  await assignPermissionToRole('CMO', 'sales.*.view');
+  await assignPermissionToRole('CMO', 'service.*.view');
+
+  // MGR: Dashboard, Master Data, Sales, Service, Inventory, Purchasing
+  await assignPermissionToRole('MGR', 'dashboard.*.view');
+  await assignPermissionToRole('MGR', 'master_data.*.view');
+  await assignPermissionToRole('MGR', 'sales.*.view');
+  await assignPermissionToRole('MGR', 'service.*.view');
+  await assignPermissionToRole('MGR', 'inventory.*.view');
+  await assignPermissionToRole('MGR', 'purchasing.*.view');
+
+  // SPV: Same as MGR
+  await assignPermissionToRole('SPV', 'dashboard.*.view');
+  await assignPermissionToRole('SPV', 'master_data.*.view');
+  await assignPermissionToRole('SPV', 'sales.*.view');
+  await assignPermissionToRole('SPV', 'service.*.view');
+  await assignPermissionToRole('SPV', 'inventory.*.view');
+  await assignPermissionToRole('SPV', 'purchasing.*.view');
+
+  // HS: Dashboard, Master Data, Sales, Service, Inventory
+  await assignPermissionToRole('HS', 'dashboard.*.view');
+  await assignPermissionToRole('HS', 'master_data.*.view');
+  await assignPermissionToRole('HS', 'sales.*.view');
+  await assignPermissionToRole('HS', 'service.*.view');
+  await assignPermissionToRole('HS', 'inventory.*.view');
+
+  // AR: Dashboard, Master Data, Sales, Service
+  await assignPermissionToRole('AR', 'dashboard.*.view');
+  await assignPermissionToRole('AR', 'master_data.*.view');
+  await assignPermissionToRole('AR', 'sales.*.view');
+  await assignPermissionToRole('AR', 'service.*.view');
+
+  // CS: Dashboard, Master Data, Sales, Service
+  await assignPermissionToRole('CS', 'dashboard.*.view');
+  await assignPermissionToRole('CS', 'master_data.*.view');
+  await assignPermissionToRole('CS', 'sales.*.view');
+  await assignPermissionToRole('CS', 'service.*.view');
+
+  // CR: Dashboard, Sales (POS only)
+  await assignPermissionToRole('CR', 'dashboard.*.view');
+  await assignPermissionToRole('CR', 'sales.*.view');
+
+  // TC: Dashboard, Service
+  await assignPermissionToRole('TC', 'dashboard.*.view');
+  await assignPermissionToRole('TC', 'service.*.view');
+
+  // SODO: Dashboard, Service, Inventory
+  await assignPermissionToRole('SODO', 'dashboard.*.view');
+  await assignPermissionToRole('SODO', 'service.*.view');
+  await assignPermissionToRole('SODO', 'inventory.*.view');
+
+  // ASA: Dashboard, Master Data, Inventory
+  await assignPermissionToRole('ASA', 'dashboard.*.view');
+  await assignPermissionToRole('ASA', 'master_data.*.view');
+  await assignPermissionToRole('ASA', 'inventory.*.view');
+
+  // SMO: Dashboard, Master Data, Sales
+  await assignPermissionToRole('SMO', 'dashboard.*.view');
+  await assignPermissionToRole('SMO', 'master_data.*.view');
+  await assignPermissionToRole('SMO', 'sales.*.view');
+
+  // AS: Dashboard, Finance
+  await assignPermissionToRole('AS', 'dashboard.*.view');
+  await assignPermissionToRole('AS', 'finance.*.view');
+
+  console.log('✅ Module permissions assigned to roles');
 
   const cfo = await prisma.user.upsert({
     where: { email: 'cfo@igdgroup.com' },
@@ -591,6 +821,33 @@ async function main() {
 
   // 4. Assign User Roles
   console.log('🔗 Assigning user roles...');
+  
+  // SUPERADMIN user role
+  const superadminUserRole = await prisma.userRole.findFirst({
+    where: {
+      userId: superadmin.id,
+      roleId: superadminRole.id,
+      branchId: null,
+    },
+  });
+
+  if (!superadminUserRole) {
+    await prisma.userRole.create({
+      data: {
+        userId: superadmin.id,
+        roleId: superadminRole.id,
+        branchId: null, // All branches
+        isPrimary: true,
+      },
+    });
+  } else {
+    await prisma.userRole.update({
+      where: { id: superadminUserRole.id },
+      data: { isPrimary: true },
+    });
+  }
+
+  // OWNER user role
   // For null branchId, we need to use a different approach
   const ownerUserRole = await prisma.userRole.findFirst({
     where: {
@@ -2420,6 +2677,8 @@ async function main() {
 
   console.log('✅ Database seed completed!');
   console.log('\n📋 Demo Credentials (Organized by Tier):');
+  console.log('\n🟣 TIER 0 - SUPER ADMIN (Password: SuperAdmin@1234)');
+  console.log('  👑 Super Administrator (Full Access) : superadmin@igdgroup.com / SuperAdmin@1234');
   console.log('\n🔴 TIER 1 - EXECUTIVE (Password: Owner@1234)');
   console.log('  👑 Owner (semua cabang)      : owner@igdgroup.com / Owner@1234');
   console.log('\n🟠 TIER 2 - MANAGEMENT (Password: Manager@1234)');

@@ -17,12 +17,17 @@ import { toast } from 'sonner';
 import { Modal } from '../../components/ui/modal';
 import RequirePermission from '../../components/guards/RequirePermission';
 import { PermissionTree } from './components/PermissionTree';
+import { usePermissions } from '../../hooks/usePermissions';
+import { RoleHierarchyTree } from './components/RoleHierarchyTree';
+import { MenuAccessSelector } from './components/MenuAccessSelector';
 
 export default function RoleDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const { userRoles } = usePermissions();
+  const isSuperAdmin = userRoles.includes('SUPERADMIN');
 
   const { data: role, isLoading, error } = useQuery({
     queryKey: ['role', id],
@@ -30,12 +35,12 @@ export default function RoleDetail() {
     enabled: !!id,
   });
 
-  const { data: permissionGroups } = useQuery({
-    queryKey: ['permissions'],
-    queryFn: () => permissionsService.getAll(),
+  const { data: groupedPermissions } = useQuery({
+    queryKey: ['permissions-grouped'],
+    queryFn: () => permissionsService.getAllGrouped(),
   });
 
-  const { data: rolePermissions } = useQuery({
+  const { data: rolePermissionsData } = useQuery({
     queryKey: ['role-permissions', id],
     queryFn: () => rolesService.getPermissions(id!),
     enabled: !!id,
@@ -45,10 +50,13 @@ export default function RoleDetail() {
 
   // Update selected permissions when rolePermissions loads
   useEffect(() => {
-    if (rolePermissions) {
-      setSelectedPermissions(new Set(rolePermissions.map((p) => p.id)));
+    if (rolePermissionsData?.permissions) {
+      // Backend returns: { permissions: Array<{ id, module, submodule, action, ... }> }
+      setSelectedPermissions(
+        new Set(rolePermissionsData.permissions.map((p: any) => p.id)),
+      );
     }
-  }, [rolePermissions]);
+  }, [rolePermissionsData]);
 
   const deleteMutation = useMutation({
     mutationFn: () => rolesService.delete(id!),
@@ -64,15 +72,15 @@ export default function RoleDetail() {
 
   const savePermissionsMutation = useMutation({
     mutationFn: async () => {
-      if (!rolePermissions) return;
+      if (!rolePermissionsData?.permissions) return;
 
-      const currentPermissionIds = new Set(rolePermissions.map((p) => p.id));
+      const currentPermissionIds = new Set(rolePermissionsData.permissions.map((p: any) => p.id));
       const toAdd = Array.from(selectedPermissions).filter((id) => !currentPermissionIds.has(id));
       const toRemove = Array.from(currentPermissionIds).filter((id) => !selectedPermissions.has(id));
 
       // Add new permissions
       for (const permissionId of toAdd) {
-        await rolesService.assignPermission(id!, permissionId);
+        await rolesService.assignPermission(id!, { permissionId });
       }
 
       // Remove permissions
@@ -134,7 +142,7 @@ export default function RoleDetail() {
             </Link>
           </RequirePermission>
           <RequirePermission permission="roles.delete" fallbackRoles={['SUPERADMIN']}>
-            {!role.isSystem && (
+            {(!role.isSystemRole || isSuperAdmin) && (
               <button
                 onClick={() => setDeleteModalOpen(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
@@ -169,7 +177,7 @@ export default function RoleDetail() {
                     Non-Aktif
                   </span>
                 )}
-                {role.isSystem && (
+                {role.isSystemRole && (
                   <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-md text-sm font-medium">
                     System Role
                   </span>
@@ -201,6 +209,27 @@ export default function RoleDetail() {
         </div>
       </div>
 
+      {/* Role Hierarchy Section */}
+      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+        <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2 mb-4">
+          <Shield className="w-5 h-5" />
+          Role Hierarchy
+        </h2>
+        <RoleHierarchyTree selectedRoleId={role.id} />
+      </div>
+
+      {/* Menu Access Section */}
+      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+        <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2 mb-4">
+          <Shield className="w-5 h-5" />
+          Menu Access
+        </h2>
+        <p className="text-sm text-gray-600 mb-4">
+          Pilih menu dan halaman yang boleh diakses oleh role ini
+        </p>
+        <MenuAccessSelector roleId={role.id} />
+      </div>
+
       {/* Permissions Section */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
         <div className="flex items-center justify-between mb-4">
@@ -229,9 +258,9 @@ export default function RoleDetail() {
           </RequirePermission>
         </div>
 
-        {permissionGroups && permissionGroups.length > 0 ? (
+        {groupedPermissions && Object.keys(groupedPermissions).length > 0 ? (
           <PermissionTree
-            permissionGroups={permissionGroups}
+            permissions={groupedPermissions}
             selectedPermissions={selectedPermissions}
             onPermissionToggle={(permissionId) => {
               const newSelected = new Set(selectedPermissions);

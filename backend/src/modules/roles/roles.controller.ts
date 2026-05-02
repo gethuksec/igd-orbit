@@ -22,6 +22,7 @@ import {
   UpdateRoleDto,
   AssignPermissionDto,
   CloneRoleDto,
+  UpdateMenuAccessDto,
 } from './dto';
 
 /**
@@ -77,7 +78,7 @@ export class RolesController {
     @Body() updateRoleDto: UpdateRoleDto,
     @Request() req: ExpressRequest & { user: any },
   ) {
-    return this.rolesService.update(id, updateRoleDto, req.user.id);
+    return this.rolesService.update(id, updateRoleDto, req.user.id, req.user);
   }
 
   /**
@@ -90,7 +91,7 @@ export class RolesController {
     @Param('id', ParseUUIDPipe) id: string,
     @Request() req: ExpressRequest & { user: any },
   ) {
-    await this.rolesService.softDelete(id, req.user.id);
+    await this.rolesService.softDelete(id, req.user.id, req.user);
   }
 
   /**
@@ -147,6 +148,32 @@ export class RolesController {
     @Request() req: ExpressRequest & { user: any },
   ) {
     return this.rolesService.cloneRole(roleId, cloneRoleDto, req.user.id);
+  }
+
+  /**
+   * Get menu access for role
+   * GET /api/v1/roles/:id/menu-access
+   */
+  @Get(':id/menu-access')
+  async getMenuAccess(@Param('id', ParseUUIDPipe) roleId: string) {
+    return this.rolesService.getMenuAccess(roleId);
+  }
+
+  /**
+   * Update menu access for role
+   * PUT /api/v1/roles/:id/menu-access
+   */
+  @Put(':id/menu-access')
+  async updateMenuAccess(
+    @Param('id', ParseUUIDPipe) roleId: string,
+    @Body() updateMenuAccessDto: UpdateMenuAccessDto,
+    @Request() req: ExpressRequest & { user: any },
+  ) {
+    return this.rolesService.updateMenuAccess(
+      roleId,
+      updateMenuAccessDto.menuKeys,
+      req.user.id,
+    );
   }
 }
 

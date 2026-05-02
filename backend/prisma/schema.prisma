@@ -57,16 +57,21 @@ model Role {
   level        Int // Hierarchical level (0=SUPERADMIN, 1=OWNER, etc.)
   isSystemRole Boolean  @default(false) @map("is_system_role")
   isActive     Boolean  @default(true) @map("is_active")
+  parentRoleId String?  @map("parent_role_id") // For role hierarchy
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   // Relations
   userRoles       UserRole[]
   rolePermissions RolePermission[]
+  roleMenuAccess  RoleMenuAccess[]
+  parentRole      Role?   @relation("RoleHierarchy", fields: [parentRoleId], references: [id], onDelete: SetNull)
+  childRoles      Role[]  @relation("RoleHierarchy")
 
   @@index([code])
   @@index([level])
   @@index([isActive])
+  @@index([parentRoleId])
   @@map("roles")
 }
 
@@ -131,6 +136,25 @@ model RolePermission {
   @@index([roleId])
   @@index([permissionId])
   @@map("role_permissions")
+}
+
+model RoleMenuAccess {
+  id        String   @id @default(uuid())
+  roleId    String   @map("role_id")
+  menuKey   String   @map("menu_key") // e.g., "dashboard", "master_data", "master_data.products"
+  menuPath  String?  @map("menu_path") // e.g., "/dashboard", "/products"
+  menuLabel String   @map("menu_label") // e.g., "Dashboard", "Master Data", "Products"
+  isEnabled Boolean  @default(true) @map("is_enabled")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, menuKey])
+  @@index([roleId])
+  @@index([menuKey])
+  @@map("role_menu_access")
 }
 
 // ============================================

@@ -51,7 +51,12 @@ export default function RequirePermission({
   fallback = null,
   hideOnDeny = false,
 }: RequirePermissionProps) {
-  const { hasAnyPermission, hasAnyRole } = usePermissions();
+  const { hasAnyPermission, hasAnyRole, userRoles } = usePermissions();
+
+  // SUPERADMIN: Always show children - full access, no restrictions
+  if (userRoles.includes('SUPERADMIN')) {
+    return <>{children}</>;
+  }
 
   // If no permission specified, show children (backward compatible)
   if (!permission) {

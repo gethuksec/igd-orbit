@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsInt, Min, Max, IsBoolean } from 'class-validator';
+import { IsString, IsOptional, IsInt, Min, Max, IsBoolean, IsUUID } from 'class-validator';
 
 export class CreateRoleDto {
   @IsString()
@@ -19,5 +19,9 @@ export class CreateRoleDto {
   @IsOptional()
   @IsBoolean()
   isSystemRole?: boolean;
+
+  @IsOptional()
+  @IsUUID()
+  parentRoleId?: string | null;
 }
 

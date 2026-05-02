@@ -32,21 +32,53 @@ export default function UserList() {
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['users', page, limit, searchTerm, sortBy, sortOrder],
-    queryFn: () =>
-      usersService.getAll({
-        page,
-        limit,
-        search: searchTerm || undefined,
-        sort: sortBy,
-        order: sortOrder,
-      }),
+    queryFn: async () => {
+      try {
+        const result = await usersService.getAll({
+          page,
+          limit,
+          search: searchTerm || undefined,
+          sort: sortBy,
+          order: sortOrder,
+        });
+        console.log('✅ Users API response:', result);
+        return result;
+      } catch (err) {
+        console.error('❌ Users API error:', err);
+        throw err;
+      }
+    },
   });
 
   useEffect(() => {
-    if (error && (error as any).response?.status === 403) {
-      toast.error('Akses ditolak. Anda tidak memiliki izin untuk melihat daftar pengguna.');
+    if (error) {
+      const errorResponse = error as any;
+      console.error('Error fetching users:', errorResponse);
+      if (errorResponse.response?.status === 403) {
+        toast.error('Akses ditolak. Anda tidak memiliki izin untuk melihat daftar pengguna.');
+      } else if (errorResponse.response?.status === 401) {
+        toast.error('Session expired. Silakan login kembali.');
+      } else {
+        const errorMessage = errorResponse.response?.data?.message || errorResponse.message || 'Gagal memuat daftar pengguna';
+        console.error('Error details:', {
+          status: errorResponse.response?.status,
+          data: errorResponse.response?.data,
+          message: errorMessage,
+        });
+        toast.error(errorMessage);
+      }
     }
   }, [error]);
+  
+  // Log for debugging
+  useEffect(() => {
+    if (data) {
+      console.log('Users data:', data);
+      console.log('Users array:', data?.data || []);
+      console.log('Users count:', data?.data?.length || 0);
+      console.log('Pagination:', data?.meta);
+    }
+  }, [data]);
 
   useEffect(() => {
     const debounce = setTimeout(() => {
@@ -296,15 +328,19 @@ export default function UserList() {
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-2">
                         {user.roles && user.roles.length > 0 ? (
-                          user.roles.map((role) => (
-                            <span
-                              key={role.id}
-                              className="inline-flex items-center gap-1 px-2 py-1 bg-primary-100 text-primary-700 rounded-md text-xs font-medium"
-                            >
-                              <Shield className="w-3 h-3" />
-                              {role.role.name}
-                            </span>
-                          ))
+                          user.roles.map((role) => {
+                            // Support both formats: new format (code/name directly) and legacy format (role.code/role.name)
+                            const roleName = role.name || role.role?.name || 'Unknown Role';
+                            return (
+                              <span
+                                key={role.id}
+                                className="inline-flex items-center gap-1 px-2 py-1 bg-primary-100 text-primary-700 rounded-md text-xs font-medium"
+                              >
+                                <Shield className="w-3 h-3" />
+                                {roleName}
+                              </span>
+                            );
+                          })
                         ) : (
                           <span className="text-gray-400 italic text-xs">Tidak ada role</span>
                         )}

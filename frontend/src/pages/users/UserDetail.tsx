@@ -190,43 +190,50 @@ export default function UserDetail() {
 
         {user.roles && user.roles.length > 0 ? (
           <div className="space-y-3">
-            {user.roles.map((userRole) => (
-              <div
-                key={userRole.id}
-                className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex-1">
-                  <div className="flex items-center gap-3">
-                    <Shield className="w-5 h-5 text-primary-600" />
-                    <div>
-                      <p className="font-semibold text-gray-900">{userRole.role.name}</p>
-                      <p className="text-sm text-gray-500">Code: {userRole.role.code}</p>
-                      {userRole.branch && (
-                        <p className="text-xs text-gray-400 mt-1">Cabang: {userRole.branch.name}</p>
-                      )}
-                      {userRole.validUntil && (
-                        <p className="text-xs text-gray-400">
-                          Berlaku hingga: {new Date(userRole.validUntil).toLocaleDateString('id-ID')}
-                        </p>
-                      )}
+            {user.roles.map((userRole) => {
+              // Support both formats: new format (code/name directly) and legacy format (role.code/role.name)
+              const roleName = userRole.name || userRole.role?.name || 'Unknown Role';
+              const roleCode = userRole.code || userRole.role?.code || 'N/A';
+              const branchName = userRole.branchName || userRole.branch?.name;
+
+              return (
+                <div
+                  key={userRole.id}
+                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <Shield className="w-5 h-5 text-primary-600" />
+                      <div>
+                        <p className="font-semibold text-gray-900">{roleName}</p>
+                        <p className="text-sm text-gray-500">Code: {roleCode}</p>
+                        {branchName && (
+                          <p className="text-xs text-gray-400 mt-1">Cabang: {branchName}</p>
+                        )}
+                        {userRole.validUntil && (
+                          <p className="text-xs text-gray-400">
+                            Berlaku hingga: {new Date(userRole.validUntil).toLocaleDateString('id-ID')}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
+                  <RequirePermission permission="users.removeRole" fallbackRoles={['SUPERADMIN', 'CHR']}>
+                    <button
+                      onClick={() => {
+                        if (confirm('Yakin ingin menghapus role ini?')) {
+                          removeRoleMutation.mutate(userRole.id);
+                        }
+                      }}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Hapus Role"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </RequirePermission>
                 </div>
-                <RequirePermission permission="users.removeRole" fallbackRoles={['SUPERADMIN', 'CHR']}>
-                  <button
-                    onClick={() => {
-                      if (confirm('Yakin ingin menghapus role ini?')) {
-                        removeRoleMutation.mutate(userRole.id);
-                      }
-                    }}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Hapus Role"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </RequirePermission>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="text-center py-8 text-gray-500">

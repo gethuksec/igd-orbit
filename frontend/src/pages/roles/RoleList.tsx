@@ -6,6 +6,7 @@ import { rolesService } from '../../services/roles.service';
 import { toast } from 'sonner';
 import { Modal } from '../../components/ui/modal';
 import RequirePermission from '../../components/guards/RequirePermission';
+import { usePermissions } from '../../hooks/usePermissions';
 
 export default function RoleList() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -14,7 +15,10 @@ export default function RoleList() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [roleToDelete, setRoleToDelete] = useState<{ id: string; name: string } | null>(null);
   const queryClient = useQueryClient();
+  const { userRoles } = usePermissions();
+  const isSuperAdmin = userRoles.includes('SUPERADMIN');
 
+  // Query for paginated roles
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['roles', page, limit, searchTerm],
     queryFn: () =>
@@ -23,6 +27,18 @@ export default function RoleList() {
         limit,
         search: searchTerm || undefined,
       }),
+  });
+
+  // Query for active roles statistics (fetch all active roles to get accurate count)
+  const { data: activeRolesData } = useQuery({
+    queryKey: ['roles-active-stats'],
+    queryFn: () =>
+      rolesService.getAll({
+        page: 1,
+        limit: 1000, // Large limit to get all active roles
+        isActive: true,
+      }),
+    enabled: !searchTerm, // Only fetch when not searching
   });
 
   useEffect(() => {
@@ -41,6 +57,11 @@ export default function RoleList() {
 
   const roles = data?.data || [];
   const pagination = data?.meta || { page: 1, limit: 20, total: 0, totalPages: 1 };
+  
+  // Calculate active roles count: use stats data if available, otherwise fallback to current page data
+  const activeRolesCount = searchTerm 
+    ? roles.filter((r) => r.isActive).length // When searching, only count from current page
+    : (activeRolesData?.meta?.total ?? roles.filter((r) => r.isActive).length); // Use total from stats query or fallback
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => rolesService.delete(id),
@@ -99,9 +120,9 @@ export default function RoleList() {
           </div>
           <p className="text-sm font-medium text-gray-600 mb-1">Role Aktif</p>
           <h3 className="text-3xl font-bold text-gray-900 mb-1">
-            {isLoading ? '-' : roles.filter((r) => r.isActive).length}
+            {isLoading ? '-' : activeRolesCount}
           </h3>
-          <p className="text-xs text-gray-500">Role yang aktif</p>
+          <p className="text-xs text-gray-500">Role yang aktif saat ini</p>
         </div>
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-4">
@@ -111,7 +132,7 @@ export default function RoleList() {
           </div>
           <p className="text-sm font-medium text-gray-600 mb-1">System Role</p>
           <h3 className="text-3xl font-bold text-gray-900 mb-1">
-            {isLoading ? '-' : roles.filter((r) => r.isSystem).length}
+            {isLoading ? '-' : roles.filter((r) => r.isSystemRole).length}
           </h3>
           <p className="text-xs text-gray-500">Role sistem</p>
         </div>
@@ -225,7 +246,7 @@ export default function RoleList() {
                             {role.name}
                           </div>
                           <div className="text-xs text-gray-500 mt-1 font-mono">{role.code}</div>
-                          {role.isSystem && (
+                          {role.isSystemRole && (
                             <div className="text-xs text-primary-600 mt-1 font-medium">System Role</div>
                           )}
                         </div>
@@ -279,7 +300,7 @@ export default function RoleList() {
                           </Link>
                         </RequirePermission>
                         <RequirePermission permission="roles.delete" fallbackRoles={['SUPERADMIN']}>
-                          {!role.isSystem && (
+                          {(!role.isSystemRole || isSuperAdmin) && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
