@@ -454,8 +454,15 @@ export default function ProductList() {
                           <Package className="w-7 h-7" />
                         </div>
                         <div className="min-w-0 max-w-[200px]">
-                          <div className="flex items-center gap-2">
-                            <span className="block truncate text-base font-semibold text-gray-900 hover:text-primary-600 transition-colors">{product.name}</span>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="group relative min-w-0">
+                              <span className="block truncate text-base font-semibold text-gray-900 hover:text-primary-600 transition-colors">{product.name}</span>
+                              <div className="absolute left-0 top-full mt-1 bg-black/100 text-white text-xs rounded px-2 py-1 z-50 whitespace-normal break-words max-w-[300px] hidden group-hover:block shadow-lg">
+                                <div className="font-semibold mb-1">{product.name}</div>
+                                <div className="text-gray-300">Harga Min. {formatCurrency(product.costPrice)}</div>
+                                <div className="text-gray-300">Available Stock {(product as any).stockSummary?.totalAvailable ?? (product as any).totalStock ?? 0}</div>
+                              </div>
+                            </div>
                             {(product as any).isService && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-200">
                                 Jasa
