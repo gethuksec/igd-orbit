@@ -6,6 +6,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services';
+import { buildPerWordSearch } from '../../shared/services/search.utils';
 import {
   CreateCustomerDto,
   UpdateCustomerDto,
@@ -200,14 +201,15 @@ export class CustomersService {
       deletedAt: filterStatus === 'active' ? null : { not: null },
     };
 
-    // Search filter
+    // Search filter - per-word AND search across fields
     if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { customerCode: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-        { phone: { contains: search, mode: 'insensitive' } },
-      ];
+      where.AND = buildPerWordSearch(search, [
+        'name',
+        'customerCode',
+        'email',
+        'phone',
+        'subdistrict',
+      ]);
     }
 
     // Tier filter - support both tier IDs and tier codes
