@@ -652,6 +652,38 @@ export class UsersService {
   }
 
   /**
+   * Reactivate a banned user
+   * POST /users/:id/reactivate
+   * Resets isActive = true, clears failed login attempts
+   * @param id - User ID to reactivate
+   * @param reactivatedBy - User ID who reactivated
+   */
+  async reactivate(id: string, reactivatedBy: string): Promise<{ message: string }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
+
+    if (user.isActive) {
+      throw new BadRequestException("User is already active");
+    }
+
+    await this.prisma.user.update({
+      where: { id },
+      data: {
+        isActive: true,
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+      },
+    });
+
+    return { message: "User reactivated successfully" };
+  }
+
+  /**
    * Assign role to user
    * @param userId - User ID
    * @param assignRoleDto - Role assignment data

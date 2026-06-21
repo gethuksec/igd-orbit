@@ -82,9 +82,19 @@ export class AuthService {
         failedLoginAttempts: failedAttempts,
       };
 
-      // Lock account after 5 failed attempts (lock for 30 minutes)
-      if (failedAttempts >= 5) {
-        updateData.lockedUntil = new Date(Date.now() + 30 * 60 * 1000);
+      // Ban account after 3 failed attempts (permanent - supervisor must reactivate)
+      if (failedAttempts >= 3) {
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: {
+            isActive: false,
+            failedLoginAttempts: 0,
+            lockedUntil: null,
+          },
+        });
+        throw new UnauthorizedException(
+          'Account banned due to 3 failed login attempts. Contact your supervisor to reactivate.',
+        );
       }
 
       await this.prisma.user.update({

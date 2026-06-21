@@ -171,6 +171,22 @@ export class UsersController {
   }
 
   /**
+   * Reactivate a banned user
+   * POST /api/v1/users/:id/reactivate
+   * Permissions: SPV, HS, CHR
+   */
+  @Post(':id/reactivate')
+  @UseGuards(RolesGuard)
+  @Roles('SPV', 'HS', 'CHR')
+  @HttpCode(HttpStatus.OK)
+  async reactivate(
+    @Param('id') id: string,
+    @Request() req: ExpressRequest & { user: any },
+  ) {
+    return this.usersService.reactivate(id, req.user.id);
+  }
+
+  /**
    * Get user's effective permissions
    * GET /api/v1/users/:id/permissions
    * Permissions: All authenticated users (own permissions or admin)
