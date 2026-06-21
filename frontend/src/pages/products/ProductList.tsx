@@ -453,9 +453,9 @@ export default function ProductList() {
                         <div className="flex-shrink-0 h-14 w-14 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white shadow-md">
                           <Package className="w-7 h-7" />
                         </div>
-                        <div>
+                        <div className="min-w-0 max-w-[200px]">
                           <div className="flex items-center gap-2">
-                            <div className="text-base font-semibold text-gray-900 hover:text-primary-600 transition-colors">{product.name}</div>
+                            <span className="block truncate text-base font-semibold text-gray-900 hover:text-primary-600 transition-colors">{product.name}</span>
                             {(product as any).isService && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-200">
                                 Jasa
@@ -464,7 +464,7 @@ export default function ProductList() {
                           </div>
                           <div className="text-xs text-gray-500 flex items-center gap-1.5 mt-1">
                             <Barcode className="w-3.5 h-3.5" />
-                            <span className="font-mono">{product.sku}</span>
+                            <span className="font-mono truncate max-w-[150px]">{product.sku}</span>
                           </div>
                         </div>
                       </Link>
