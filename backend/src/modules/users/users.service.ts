@@ -658,7 +658,7 @@ export class UsersService {
    * @param id - User ID to reactivate
    * @param reactivatedBy - User ID who reactivated
    */
-  async reactivate(id: string, reactivatedBy: string): Promise<{ message: string }> {
+  async reactivate(id: string, _reactivatedBy: string): Promise<{ message: string }> {
     const user = await this.prisma.user.findUnique({
       where: { id },
     });
