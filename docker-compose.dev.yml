@@ -1,42 +1,42 @@
 # Docker Compose for Development (with hot reload)
 services:
   # PostgreSQL Database
-  postgres:
-    image: postgres:16-alpine
-    container_name: igd-orbit-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: igd_orbit
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - igd-orbit-network
+  # postgres:
+  #   image: postgres:16-alpine
+  #   container_name: igd-orbit-postgres
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #     POSTGRES_DB: igd_orbit
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U postgres"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   networks:
+  #     - igd-orbit-network
 
-  # Redis Cache
-  redis:
-    image: redis:7-alpine
-    container_name: igd-orbit-redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - igd-orbit-network
+  # # Redis Cache
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: igd-orbit-redis
+  #   restart: unless-stopped
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   networks:
+  #     - igd-orbit-network
 
   # Backend Service (Development - with hot reload)
   backend:
@@ -59,7 +59,7 @@ services:
       STORAGE_TYPE: local
       STORAGE_PATH: ./uploads
     ports:
-      - "3000:3000"
+      - '3000:3000'
     volumes:
       - ./backend:/app
       - /app/node_modules
@@ -84,7 +84,7 @@ services:
       VITE_API_URL: http://localhost:3000/api/v1
       VITE_WS_URL: ws://localhost:3000
     ports:
-      - "5173:5173"
+      - '5173:5173'
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -102,4 +102,3 @@ volumes:
 networks:
   igd-orbit-network:
     driver: bridge
-

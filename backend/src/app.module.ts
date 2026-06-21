@@ -22,6 +22,7 @@ import { PurchasingModule } from './modules/purchasing/purchasing.module';
 import { WebSocketModule } from './modules/websocket/websocket.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
+import { CustomerTiersModule } from './modules/customer-tiers/customer-tiers.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { PermissionsModule } from './modules/permissions/permissions.module';
     WebSocketModule,
     RolesModule,
     PermissionsModule,
+    CustomerTiersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
