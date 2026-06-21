@@ -75,11 +75,11 @@ export class UpdateUserDto {
   @IsOptional()
   hireDate?: string;
 
-  @IsEnum(['full-time', 'part-time', 'contract'], {
-    message: 'Employment type must be full-time, part-time, or contract',
+  @IsEnum(['PKWT', 'PKWTT'], {
+    message: 'Employment type must be PKWT or PKWTT',
   })
   @IsOptional()
-  employmentType?: 'full-time' | 'part-time' | 'contract';
+  employmentType?: 'PKWT' | 'PKWTT';
 
   @IsNumber({}, { message: 'Basic salary must be a number' })
   @Min(0, { message: 'Basic salary cannot be negative' })
@@ -106,6 +106,10 @@ export class UpdateUserDto {
   @IsString({ message: 'BPJS number must be a string' })
   @IsOptional()
   bpjsNumber?: string;
+
+  @IsDateString()
+  @IsOptional()
+  endDate?: string;
 
   @IsBoolean({ message: 'isActive must be a boolean' })
   @IsOptional()

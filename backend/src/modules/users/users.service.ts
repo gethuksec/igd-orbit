@@ -360,9 +360,12 @@ export class UsersService {
         data: {
           userId: user.id,
           employeeCode,
-          branchId: createUserDto.departmentId ? null : null, // Will be set later if needed
+          branchId: createUserDto.branchId || null,
           departmentId: createUserDto.departmentId || null,
-          position: null, // Will be set later if needed
+          position: createUserDto.position || null,
+          hireDate: createUserDto.hireDate ? new Date(createUserDto.hireDate) : null,
+          employmentType: createUserDto.employmentType || null,
+          endDate: createUserDto.endDate ? new Date(createUserDto.endDate) : null,
           isActive: true,
         },
       });
@@ -559,6 +562,10 @@ export class UsersService {
         employeeUpdateData.taxId = updateUserDto.taxId;
       if (updateUserDto.bpjsNumber !== undefined)
         employeeUpdateData.bpjsNumber = updateUserDto.bpjsNumber;
+      if (updateUserDto.endDate !== undefined)
+        employeeUpdateData.endDate = updateUserDto.endDate
+          ? new Date(updateUserDto.endDate)
+          : null;
       if (updateUserDto.isActive !== undefined)
         employeeUpdateData.isActive = updateUserDto.isActive;
 

@@ -6,6 +6,10 @@ import {
   MinLength,
   Matches,
   IsUUID,
+  IsEnum,
+  IsNumber,
+  Min,
+  IsDateString,
 } from 'class-validator';
 
 /**
@@ -57,4 +61,52 @@ export class CreateUserDto {
   @IsUUID('4', { message: 'Department ID must be a valid UUID' })
   @IsOptional()
   departmentId?: string;
+
+  @IsUUID('4', { message: 'Branch ID must be a valid UUID' })
+  @IsOptional()
+  branchId?: string;
+
+  @IsString({ message: 'Position must be a string' })
+  @IsOptional()
+  position?: string;
+
+  @IsDateString()
+  @IsOptional()
+  hireDate?: string;
+
+  @IsEnum(['PKWT', 'PKWTT'], {
+    message: 'Employment type must be PKWT or PKWTT',
+  })
+  @IsOptional()
+  employmentType?: 'PKWT' | 'PKWTT';
+
+  @IsDateString()
+  @IsOptional()
+  endDate?: string;
+
+  @IsNumber({}, { message: 'Basic salary must be a number' })
+  @Min(0, { message: 'Basic salary cannot be negative' })
+  @IsOptional()
+  basicSalary?: number;
+
+  @IsNumber({}, { message: 'Hourly rate must be a number' })
+  @Min(0, { message: 'Hourly rate cannot be negative' })
+  @IsOptional()
+  hourlyRate?: number;
+
+  @IsString({ message: 'Bank account must be a string' })
+  @IsOptional()
+  bankAccount?: string;
+
+  @IsString({ message: 'Bank name must be a string' })
+  @IsOptional()
+  bankName?: string;
+
+  @IsString({ message: 'Tax ID must be a string' })
+  @IsOptional()
+  taxId?: string;
+
+  @IsString({ message: 'BPJS number must be a string' })
+  @IsOptional()
+  bpjsNumber?: string;
 }

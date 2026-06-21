@@ -599,7 +599,8 @@ model Employee {
   departmentId   String?   @map("department_id")
   position       String? // Job title
   hireDate       DateTime? @map("hire_date")
-  employmentType String?   @map("employment_type") // 'full-time', 'part-time', 'contract'
+  employmentType String?   @map("employment_type") // 'PKWT', 'PKWTT'
+  endDate       DateTime?  @map("end_date") // PKWT contract end date (null for PKWTT)
   basicSalary    Decimal?  @map("basic_salary") @db.Decimal(15, 2)
   hourlyRate     Decimal?  @map("hourly_rate") @db.Decimal(15, 2)
   bankAccount    String?   @map("bank_account")

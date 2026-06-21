@@ -26,6 +26,7 @@ type UserWithRelations = User & {
     position: string | null;
     hireDate: Date | null;
     employmentType: string | null;
+    endDate: Date | null;
     basicSalary: any;
     hourlyRate: any;
     bankAccount: string | null;
@@ -61,6 +62,7 @@ export interface TransformedUser {
     position: string | null;
     hireDate: Date | null;
     employmentType: string | null;
+    endDate: Date | null;
     basicSalary: number | null;
     hourlyRate: number | null;
     bankAccount: string | null;
@@ -137,6 +139,7 @@ export class UserTransformer {
           position: user.employee.position,
           hireDate: user.employee.hireDate,
           employmentType: user.employee.employmentType,
+          endDate: user.employee.endDate,
           basicSalary: user.employee.basicSalary
             ? typeof user.employee.basicSalary === 'object' && 'toNumber' in user.employee.basicSalary
               ? (user.employee.basicSalary as any).toNumber()
