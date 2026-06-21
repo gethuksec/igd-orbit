@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Save, X, Loader2, ArrowLeft, Package, DollarSign, FileText, Tag } from 'lucide-react';
+import { Save, X, Loader2, ArrowLeft, Package, DollarSign, FileText, Tag, Users } from 'lucide-react';
 import { productsService } from '../../services/products.service';
 import { api } from '../../services/api';
 
@@ -40,6 +40,7 @@ export default function ProductForm() {
     trackBatch: false,
     trackExpiry: false,
     expiryReturnLimitDays: 0,
+    memberPricing: {} as Record<string, number>,
   });
 
   const { data: product, isLoading: loadingProduct } = useQuery({
@@ -53,6 +54,14 @@ export default function ProductForm() {
     queryFn: async () => {
       const res = await api.get('/categories');
       return res.data.data || res.data;
+    },
+  });
+
+  const { data: customerTiers } = useQuery({
+    queryKey: ['customer-tiers'],
+    queryFn: async () => {
+      const res = await api.get('/customers/tiers');
+      return res.data.data || res.data || [];
     },
   });
 
@@ -110,13 +119,50 @@ export default function ProductForm() {
         trackBatch: (product as any).trackBatch || product.trackBatch || false,
         trackExpiry: (product as any).trackExpiry || false,
         expiryReturnLimitDays: (product as any).expiryReturnLimitDays || 0,
+        memberPricing: (product as any).memberPricing || {},
       });
     }
   }, [product]);
 
+  // Auto-fill tier prices when category or sellingPrice changes
+  useEffect(() => {
+    if (formData.categoryId && categories && formData.sellingPrice > 0) {
+      const category = Array.isArray(categories)
+        ? categories.find((c: any) => c.id === formData.categoryId)
+        : null;
+      if (category && (category as any).tierMargins && customerTiers && Array.isArray(customerTiers)) {
+        const tierMargins = (category as any).tierMargins || {};
+        const newMemberPricing = { ...formData.memberPricing };
+        let changed = false;
+        for (const tier of customerTiers) {
+          const margin = tierMargins[tier.id];
+          if (margin !== undefined && margin > 0) {
+            const tierPrice = formData.sellingPrice + margin;
+            // Only set if not manually edited (not already set or zero)
+            if (!newMemberPricing[tier.id] || newMemberPricing[tier.id] === 0) {
+              newMemberPricing[tier.id] = tierPrice;
+              changed = true;
+            }
+          }
+        }
+        if (changed) {
+          setFormData((prev) => ({ ...prev, memberPricing: newMemberPricing }));
+        }
+      }
+    }
+  }, [formData.categoryId, formData.sellingPrice, categories, customerTiers]);
+
   const mutation = useMutation({
-    mutationFn: (data: any) =>
-      isEdit ? productsService.update(id!, data) : productsService.create(data),
+    mutationFn: (data: any) => {
+      // Clean up memberPricing before sending
+      const submitData = { ...data };
+      if (submitData.memberPricing && Object.keys(submitData.memberPricing).length === 0) {
+        submitData.memberPricing = null;
+      }
+      return isEdit
+        ? productsService.update(id!, submitData)
+        : productsService.create(submitData);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       navigate('/products');
@@ -182,6 +228,7 @@ export default function ProductForm() {
               { id: 'basic', label: 'Informasi Dasar', icon: Package },
               { id: 'category', label: 'Kategori & Brand', icon: Tag },
               { id: 'pricing', label: 'Harga & Stok', icon: DollarSign },
+              { id: 'tier', label: 'Harga per Tier', icon: Users },
               { id: 'description', label: 'Deskripsi & Status', icon: FileText },
             ].map((tab) => {
               const Icon = tab.icon;
@@ -488,6 +535,59 @@ export default function ProductForm() {
                     min="0"
                   />
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tab: Harga per Tier */}
+          {activeTab === 'tier' && (
+            <div className="space-y-6">
+              <div>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg">
+                    <Users className="w-5 h-5 text-white" />
+                  </div>
+                  <h2 className="text-xl font-bold text-gray-900">Harga per Tier</h2>
+                </div>
+                <p className="text-sm text-gray-500 mb-4">
+                  Harga khusus untuk setiap tier customer. Biarkan kosong jika tidak ada harga khusus.
+                  Harga akan otomatis terisi berdasarkan margin tier dari kategori yang dipilih.
+                </p>
+                {customerTiers && Array.isArray(customerTiers) && customerTiers.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {customerTiers.map((tier: any) => (
+                      <div key={tier.id}>
+                        <label className="block text-sm font-bold text-gray-700 mb-2.5">
+                          {tier.name}
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-500 text-sm font-medium">Rp</span>
+                          <input
+                            type="number"
+                            value={formData.memberPricing[tier.id] || ''}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                memberPricing: {
+                                  ...formData.memberPricing,
+                                  [tier.id]: e.target.value ? parseFloat(e.target.value) : 0,
+                                },
+                              })
+                            }
+                            className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+                            placeholder="Harga khusus"
+                            min="0"
+                            step="1000"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-6 bg-gray-50 rounded-xl text-center">
+                    <p className="text-gray-500">Tidak ada tier customer yang aktif. Buat tier terlebih dahulu.</p>
+                  </div>
+                )}
               </div>
             </div>
           )}

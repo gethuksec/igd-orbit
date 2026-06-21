@@ -242,6 +242,7 @@ model Category {
   parentCategoryId String?  @map("parent_category_id") // For hierarchical categories
   description      String?
   isActive         Boolean  @default(true) @map("is_active")
+  tierMargins      Json?    @map("tier_margins")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 

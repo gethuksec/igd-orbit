@@ -121,6 +121,25 @@ export class CustomersService {
   }
 
   /**
+   * Get all active customer tiers
+   * @returns List of active tiers
+   */
+  async getActiveTiers() {
+    return this.prisma.customerTier.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        description: true,
+        discountPercentage: true,
+        minPurchaseAmount: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  /**
    * Check and upgrade customer tier based on total purchases
    * @param customerId - Customer ID
    */

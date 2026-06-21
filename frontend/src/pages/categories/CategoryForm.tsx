@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Save, X, Loader2, ArrowLeft, Tag } from 'lucide-react';
+import { Save, X, Loader2, ArrowLeft, Tag, DollarSign } from 'lucide-react';
 import { api } from '../../services/api';
 import { toast } from 'sonner';
 
@@ -15,6 +15,15 @@ export default function CategoryForm() {
     name: '',
     description: '',
     isActive: true,
+    tierMargins: {} as Record<string, number>,
+  });
+
+  const { data: customerTiers } = useQuery({
+    queryKey: ['customer-tiers'],
+    queryFn: async () => {
+      const res = await api.get('/customers/tiers');
+      return res.data.data || res.data || [];
+    },
   });
 
   const { data: category, isLoading: loadingCategory } = useQuery({
@@ -32,6 +41,7 @@ export default function CategoryForm() {
         name: category.name || '',
         description: category.description || '',
         isActive: category.isActive !== false,
+        tierMargins: (category as any).tierMargins || {},
       });
     }
   }, [category]);
@@ -166,6 +176,52 @@ export default function CategoryForm() {
           </div>
         </div>
 
+        {/* Margin per Tier */}
+        {customerTiers && Array.isArray(customerTiers) && customerTiers.length > 0 && (
+          <div className="p-4 border-t border-gray-200">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg">
+                <DollarSign className="w-5 h-5 text-white" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900">Margin per Tier</h2>
+            </div>
+            <div className="space-y-3">
+              <p className="text-sm text-gray-500 mb-3">
+                Margin tambahan untuk setiap tier customer. Harga tier = Harga Jual + Margin.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {customerTiers.map((tier: any) => (
+                  <div key={tier.id}>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Margin {tier.name}
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500 text-sm">Rp</span>
+                      <input
+                        type="number"
+                        value={formData.tierMargins[tier.id] || ''}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            tierMargins: {
+                              ...formData.tierMargins,
+                              [tier.id]: e.target.value ? parseInt(e.target.value) : 0,
+                            },
+                          })
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        placeholder="0"
+                        min="0"
+                        step="1000"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Actions */}
         <div className="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-end gap-3">
           <button
@@ -197,4 +253,3 @@ export default function CategoryForm() {
     </div>
   );
 }
-

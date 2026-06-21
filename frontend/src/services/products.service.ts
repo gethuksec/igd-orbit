@@ -31,7 +31,8 @@ export interface Product {
   trackExpiry?: boolean;
   expiryReturnLimitDays?: number;
   description?: string;
-  category?: { id: string; name: string };
+  memberPricing?: Record<string, any>;
+  category?: { id: string; name: string; tierMargins?: Record<string, number> };
   subCategory?: { id: string; name: string };
   brand?: { id: string; name: string };
   supplier?: { id: string; name: string };

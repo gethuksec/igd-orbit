@@ -4,6 +4,7 @@ import {
   IsString,
   IsUUID,
   IsNumber,
+  IsObject,
   IsUrl,
 } from 'class-validator';
 
@@ -35,5 +36,9 @@ export class CreateCategoryDto {
   @IsUrl({}, { message: 'Image URL must be a valid URL' })
   @IsOptional()
   imageUrl?: string;
+
+  @IsObject({ message: 'Tier margins must be an object' })
+  @IsOptional()
+  tierMargins?: Record<string, number>;
 }
 

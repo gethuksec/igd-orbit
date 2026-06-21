@@ -190,6 +190,16 @@ export class SalesTransactionsService {
       throw new BadRequestException('Customer is required for credit transactions');
     }
 
+    // Look up customer tier for tier-based pricing
+    let customerTierId: string | null = null;
+    if (createDto.customerId) {
+      const customerWithTier = await this.prisma.customer.findUnique({
+        where: { id: createDto.customerId },
+        select: { tierId: true },
+      });
+      customerTierId = customerWithTier?.tierId || null;
+    }
+
     // Validate branch
     const branch = await this.prisma.branch.findUnique({
       where: { id: branchId },
@@ -293,10 +303,26 @@ export class SalesTransactionsService {
       const items = [];
       for (const itemDto of createDto.items) {
         const product = products.find((p) => p.id === itemDto.productId)!;
-        const itemSubtotal = itemDto.quantity * itemDto.unitPrice;
+
+        // Apply tier pricing if customer has a tier
+        let effectiveUnitPrice = itemDto.unitPrice;
+        if (customerTierId) {
+          const memberPricing = (product.memberPricing as Record<string, any>) || {};
+          // memberPricing is keyed by tierId (UUID), each value is the tier price
+          if (memberPricing[customerTierId] !== undefined) {
+            const tierPrice = memberPricing[customerTierId];
+            // Support both direct number and { price: number } format
+            effectiveUnitPrice = typeof tierPrice === 'number' ? tierPrice : (tierPrice.price ?? tierPrice);
+          }
+        }
+
+        const itemSubtotal = itemDto.quantity * effectiveUnitPrice;
         const itemDiscount =
           itemDto.discountAmount || itemSubtotal * ((itemDto.discountPercentage || 0) / 100);
         const itemTotal = itemSubtotal - itemDiscount;
+
+        // Store the effective unit price (tier price if applied)
+        itemDto.unitPrice = effectiveUnitPrice;
 
         const item = await tx.salesTransactionItem.create({
           data: {

@@ -84,6 +84,18 @@ export class CustomersController {
   }
 
   /**
+   * List all active customer tiers
+   * GET /api/v1/customers/tiers
+   * Permissions: All authenticated users
+   */
+  @Get('tiers')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'CFO', 'MGR', 'CMO', 'SPV', 'HS', 'CS', 'ASA', 'CR')
+  async getTiers() {
+    return this.customersService.getActiveTiers();
+  }
+
+  /**
    * Get customer detail with statistics
    * GET /api/v1/customers/:id
    * Permissions: OWNER, CFO, MGR, CMO, SPV, HS, CS, ASA, CR

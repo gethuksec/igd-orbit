@@ -7,6 +7,7 @@ export interface Category {
   description?: string;
   parentId?: string;
   isActive: boolean;
+  tierMargins?: Record<string, number>;
   createdAt: string;
   updatedAt: string;
 }

@@ -230,6 +230,7 @@ export class CategoriesService {
         : null,
       productCount: cat._count.products,
       isActive: cat.isActive,
+      tierMargins: cat.tierMargins,
       createdAt: cat.createdAt,
       updatedAt: cat.updatedAt,
     }));
@@ -308,6 +309,7 @@ export class CategoriesService {
       productCount: category._count.products,
       subCategoryCount: category._count.childCategories,
       isActive: category.isActive,
+      tierMargins: category.tierMargins,
       createdAt: category.createdAt,
       updatedAt: category.updatedAt,
     };
@@ -387,6 +389,11 @@ export class CategoriesService {
     // if (createCategoryDto.imageUrl) {
     //   categoryData.imageUrl = createCategoryDto.imageUrl;
     // }
+    
+    // Add tierMargins if provided
+    if (createCategoryDto.tierMargins !== undefined) {
+      categoryData.tierMargins = createCategoryDto.tierMargins;
+    }
 
     // Create category
     const category = await this.prisma.category.create({
@@ -418,6 +425,7 @@ export class CategoriesService {
       productCount: category._count.products,
       subCategoryCount: category._count.childCategories,
       isActive: category.isActive,
+      tierMargins: category.tierMargins,
       createdAt: category.createdAt,
       updatedAt: category.updatedAt,
     };
@@ -507,6 +515,9 @@ export class CategoriesService {
     // if (updateCategoryDto.imageUrl !== undefined) {
     //   updateData.imageUrl = updateCategoryDto.imageUrl || null;
     // }
+    if (updateCategoryDto.tierMargins !== undefined) {
+      updateData.tierMargins = updateCategoryDto.tierMargins;
+    }
     if (updateCategoryDto.code !== undefined) {
       // Check code uniqueness if updating
       if (updateCategoryDto.code !== category.code) {
@@ -551,6 +562,7 @@ export class CategoriesService {
       productCount: updatedCategory._count.products,
       subCategoryCount: updatedCategory._count.childCategories,
       isActive: updatedCategory.isActive,
+      tierMargins: updatedCategory.tierMargins,
       createdAt: updatedCategory.createdAt,
       updatedAt: updatedCategory.updatedAt,
     };
