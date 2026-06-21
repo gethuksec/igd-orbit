@@ -9,6 +9,7 @@ import { Modal } from '@/components/ui/modal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatPhone, formatCurrency } from '@/utils/format';
 import { toast } from 'sonner';
+import kecamatanJember from '@/data/kecamatan-jember.json';
 
 /**
  * POS Customer Panel Component
@@ -194,16 +195,18 @@ function CreateCustomerModal({ onClose, onCreated }: CreateCustomerModalProps) {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
-    email: '',
+    subdistrict: '',
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: { name: string; phone: string; email?: string }) => {
+    mutationFn: async (data: { name: string; phone: string; subdistrict: string }) => {
       return await customersService.create({
         customerType: 'retail',
         name: data.name,
         phone: data.phone,
-        email: data.email || undefined,
+        subdistrict: data.subdistrict,
+        city: 'Jember',
+        province: 'Jawa Timur',
       });
     },
     onSuccess: (newCustomer) => {
@@ -251,10 +254,15 @@ function CreateCustomerModal({ onClose, onCreated }: CreateCustomerModalProps) {
       return;
     }
 
+    if (!formData.subdistrict) {
+      toast.error('Kecamatan wajib dipilih');
+      return;
+    }
+
     createMutation.mutate({
       name: formData.name.trim(),
       phone: formData.phone.trim(),
-      email: formData.email.trim() || undefined,
+      subdistrict: formData.subdistrict,
     });
   };
 
@@ -289,14 +297,21 @@ function CreateCustomerModal({ onClose, onCreated }: CreateCustomerModalProps) {
         </div>
         <div>
           <label className="block text-sm font-medium mb-2 text-gray-700">
-            Email <span className="text-gray-400 text-xs">(Opsional)</span>
+            Kecamatan <span className="text-red-500">*</span>
           </label>
-          <Input
-            type="email"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            placeholder="customer@example.com"
-          />
+          <select
+            value={formData.subdistrict}
+            onChange={(e) => setFormData({ ...formData, subdistrict: e.target.value })}
+            className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white transition-all"
+            required
+          >
+            <option value="">Pilih Kecamatan</option>
+            {kecamatanJember.map((kec: any) => (
+              <option key={kec.id} value={kec.nama}>
+                {kec.nama}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="flex gap-2 pt-2">
           <Button type="button" onClick={onClose} variant="outline" className="flex-1">

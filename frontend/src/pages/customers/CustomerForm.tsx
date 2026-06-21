@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { customersService } from '../../services/customers.service';
 import { toast } from 'sonner';
+import kecamatanJember from '@/data/kecamatan-jember.json';
 
 export default function CustomerForm() {
   const { id } = useParams();
@@ -35,8 +36,8 @@ export default function CustomerForm() {
     gender: '',
     address: '',
     subdistrict: '',
-    city: '',
-    province: '',
+    city: 'Jember',
+    province: 'Jawa Timur',
     postalCode: '',
     country: 'Indonesia',
     religion: '',
@@ -108,14 +109,13 @@ export default function CustomerForm() {
         customerType: data.customerType,
         name: data.name,
         phone: data.phone,
-        alternatePhone: data.alternatePhone || undefined,
         email: data.email || undefined,
         dateOfBirth: data.dateOfBirth || undefined,
         gender: data.gender || undefined,
         address: data.address || undefined,
         subdistrict: data.subdistrict || undefined,
-        city: data.city || undefined,
-        province: data.province || undefined,
+        city: 'Jember',
+        province: 'Jawa Timur',
         postalCode: data.postalCode || undefined,
         country: data.country || undefined,
         religion: data.religion || undefined,
@@ -300,18 +300,26 @@ export default function CustomerForm() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">No HP (Alternate)</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-2.5">
+                    Kecamatan <span className="text-red-500">*</span>
+                  </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <Phone className="h-5 w-5 text-gray-400" />
+                      <MapPin className="h-5 w-5 text-gray-400" />
                     </div>
-                    <input
-                      type="tel"
-                      value={formData.alternatePhone}
-                      onChange={(e) => setFormData({ ...formData, alternatePhone: e.target.value })}
-                      className="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-                      placeholder="08xx-xxxx-xxxx"
-                    />
+                    <select
+                      value={formData.subdistrict}
+                      onChange={(e) => setFormData({ ...formData, subdistrict: e.target.value })}
+                      className="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white transition-all"
+                      required
+                    >
+                      <option value="">Pilih Kecamatan</option>
+                      {kecamatanJember.map((kec: any) => (
+                        <option key={kec.id} value={kec.nama}>
+                          {kec.nama}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
@@ -375,23 +383,27 @@ export default function CustomerForm() {
 
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2.5">Kecamatan</label>
-                  <input
-                    type="text"
+                  <select
                     value={formData.subdistrict}
                     onChange={(e) => setFormData({ ...formData, subdistrict: e.target.value })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-                    placeholder="Masukkan kecamatan"
-                  />
+                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white transition-all"
+                  >
+                    <option value="">Pilih Kecamatan</option>
+                    {kecamatanJember.map((kec) => (
+                      <option key={kec} value={kec}>
+                        {kec}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2.5">Kota</label>
                   <input
                     type="text"
-                    value={formData.city}
-                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-                    placeholder="Masukkan kota"
+                    value="Jember"
+                    readOnly
+                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-gray-500 text-base cursor-not-allowed"
                   />
                 </div>
 
@@ -399,10 +411,9 @@ export default function CustomerForm() {
                   <label className="block text-sm font-bold text-gray-700 mb-2.5">Provinsi</label>
                   <input
                     type="text"
-                    value={formData.province}
-                    onChange={(e) => setFormData({ ...formData, province: e.target.value })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-                    placeholder="Masukkan provinsi"
+                    value="Jawa Timur"
+                    readOnly
+                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-gray-500 text-base cursor-not-allowed"
                   />
                 </div>
 
