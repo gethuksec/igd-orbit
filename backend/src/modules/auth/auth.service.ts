@@ -14,6 +14,7 @@ import {
   RegisterDto,
   ForgotPasswordDto,
   ResetPasswordDto,
+  ChangePasswordDto,
 } from './dto';
 import { JwtPayload } from './strategies/jwt.strategy';
 import Redis from 'ioredis';
@@ -528,6 +529,113 @@ export class AuthService {
    * @param expiration - Expiration string (e.g., '1h', '7d', '30m')
    * @returns Seconds
    */
+
+  /**
+   * Change user password (with role-level approval)
+   * Checks Role.level to determine if auto-approve or requires approval
+   * - SUPERADMIN (level 0) and OWNER (level 1): auto-approved
+   * - Other roles: creates a pending request
+   * @param userId - User ID
+   * @param changePasswordDto - Current and new password
+   * @returns Result with status and message
+   */
+  async changePassword(userId: string, changePasswordDto: ChangePasswordDto) {
+    // Get user with roles
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        userRoles: {
+          include: {
+            role: true,
+          },
+        },
+      },
+    });
+
+    if (!user || !user.isActive || user.deletedAt) {
+      throw new UnauthorizedException('User not found or inactive');
+    }
+
+    // Verify current password
+    const isCurrentPasswordValid = await this.passwordService.comparePassword(
+      changePasswordDto.currentPassword,
+      user.passwordHash,
+    );
+
+    if (!isCurrentPasswordValid) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    // Validate new password strength
+    const passwordValidation = this.passwordService.validatePasswordStrength(
+      changePasswordDto.newPassword,
+    );
+    if (!passwordValidation.isValid) {
+      throw new BadRequestException(passwordValidation.error);
+    }
+
+    // Check user's highest role level
+    const activeRoles = user.userRoles.filter(
+      (ur) => !ur.validUntil || ur.validUntil > new Date(),
+    );
+    const maxRoleLevel = activeRoles.length > 0
+      ? Math.min(...activeRoles.map((ur) => ur.role.level))
+      : 999;
+
+    // Hash the new password
+    const newPasswordHash = await this.passwordService.hashPassword(
+      changePasswordDto.newPassword,
+    );
+
+    // SUPERADMIN (level 0) and OWNER (level 1) can change directly
+    if (maxRoleLevel <= 1) {
+      // Auto-approve: update password directly and create approved request
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { passwordHash: newPasswordHash },
+      });
+
+      await this.prisma.passwordChangeRequest.create({
+        data: {
+          userId,
+          currentPassword: '*****', // Don't store actual password
+          newPasswordHash,
+          status: 'approved',
+          approvedBy: userId,
+          approvedAt: new Date(),
+        },
+      });
+
+      // Invalidate all refresh tokens for security
+      const refreshTokenKey = `${this.refreshTokenPrefix}${userId}`;
+      try {
+        await this.redis.del(refreshTokenKey);
+      } catch (error) {
+        console.warn('Redis unavailable during password change:', error);
+      }
+
+      return {
+        status: 'approved',
+        message: 'Password changed successfully',
+      };
+    }
+
+    // For other roles, create a pending request that needs approval
+    await this.prisma.passwordChangeRequest.create({
+      data: {
+        userId,
+        currentPassword: '*****', // Don't store actual password
+        newPasswordHash,
+        status: 'pending',
+      },
+    });
+
+    return {
+      status: 'pending',
+      message: 'Password change request submitted and requires approval',
+    };
+  }
+
   private parseExpiration(expiration: string): number {
     const match = expiration.match(/^(\d+)([smhd])$/);
     if (!match) {

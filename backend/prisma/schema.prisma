@@ -42,12 +42,32 @@ model User {
   assignedServices     ServiceOrder[]         @relation("ServiceTechnician")
   statusHistoryChanges ServiceStatusHistory[] @relation("ServiceStatusHistoryChangedBy")
   branchHeadOfService  Branch[]               @relation("BranchHeadOfService")
+  passwordChangeRequests PasswordChangeRequest[]
 
   @@index([email])
   @@index([username])
   @@index([isActive])
   @@index([deletedAt])
   @@map("users")
+}
+
+model PasswordChangeRequest {
+  id                String    @id @default(uuid())
+  userId            String    @map("user_id")
+  currentPassword   String    @map("current_password")
+  newPasswordHash   String    @map("new_password_hash")
+  status            String    @default("pending") // pending, approved, rejected
+  requestedAt       DateTime  @default(now()) @map("requested_at")
+  approvedBy        String?   @map("approved_by")
+  approvedAt        DateTime? @map("approved_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([requestedAt])
+  @@map("password_change_requests")
 }
 
 model Role {

@@ -16,6 +16,7 @@ import {
   RegisterDto,
   ForgotPasswordDto,
   ResetPasswordDto,
+  ChangePasswordDto,
 } from './dto';
 
 /**
@@ -96,6 +97,22 @@ export class AuthController {
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     await this.authService.resetPassword(resetPasswordDto);
     return { message: 'Password reset successfully' };
+  }
+
+  /**
+   * Change password endpoint
+   * POST /api/v1/auth/change-password
+   * Requires authentication
+   * Checks Role.level for auto-approval
+   */
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async changePassword(
+    @Body() changePasswordDto: ChangePasswordDto,
+    @Request() req: ExpressRequest & { user: { id: string } },
+  ) {
+    return this.authService.changePassword(req.user.id, changePasswordDto);
   }
 
   /**
