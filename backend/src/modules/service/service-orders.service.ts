@@ -17,6 +17,7 @@ import { encryptPassword, decryptPassword } from './utils/password-encryption.ut
 import { Decimal } from '@prisma/client/runtime/library';
 import { ProcessPaymentDto } from './dto/payment.dto';
 import { JournalEntriesService } from '../finance/services/journal-entries.service';
+import { buildPerWordSearch } from '../../shared/services/search.utils';
 
 @Injectable()
 export class ServiceOrdersService {
@@ -230,16 +231,16 @@ export class ServiceOrdersService {
     }
 
     if (search) {
-      const q = search.trim();
-      if (q.length > 0) {
-        where.OR = [
-          { serviceNumber: { contains: q, mode: 'insensitive' } },
-          { internalNumber: { contains: q, mode: 'insensitive' } },
-          { customerName: { contains: q, mode: 'insensitive' } },
-          { customerPhone: { contains: q, mode: 'insensitive' } },
-          { deviceBrand: { contains: q, mode: 'insensitive' } },
-          { deviceModel: { contains: q, mode: 'insensitive' } },
-        ];
+      const perWord = buildPerWordSearch(search, [
+        'serviceNumber',
+        'internalNumber',
+        'customerName',
+        'customerPhone',
+        'deviceBrand',
+        'deviceModel',
+      ]);
+      if (perWord) {
+        where.AND = perWord.AND;
       }
     }
 

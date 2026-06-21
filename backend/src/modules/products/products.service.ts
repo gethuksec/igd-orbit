@@ -5,6 +5,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services';
+import { buildPerWordSearch } from '../../shared/services/search.utils';
 import { CreateProductDto, UpdateProductDto, ListProductsDto } from './dto';
 import { ProductTransformer, TransformedProduct } from './transformers/product.transformer';
 import { Prisma } from '@prisma/client';
@@ -187,13 +188,13 @@ export class ProductsService {
       deletedAt: filterStatus === 'all' ? undefined : filterStatus === 'active' ? null : { not: null },
     };
 
-    // Search filter
+    // Search filter - per-word AND search across fields
     if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { sku: { contains: search, mode: 'insensitive' } },
-        { barcode: { contains: search, mode: 'insensitive' } },
-      ];
+      where.AND = buildPerWordSearch(search, [
+        'name',
+        'sku',
+        'barcode',
+      ]);
     }
 
     // Category filter

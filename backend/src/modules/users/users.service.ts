@@ -6,6 +6,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services';
+import { buildPerWordSearch } from '../../shared/services/search.utils';
 import { PasswordService } from '../../shared/services';
 import {
   CreateUserDto,
@@ -63,13 +64,13 @@ export class UsersService {
             : { not: null },
     };
 
-    // Search filter
+    // Search filter - per-word AND search across fields
     if (search) {
-      where.OR = [
-        { email: { contains: search, mode: 'insensitive' } },
-        { username: { contains: search, mode: 'insensitive' } },
-        { fullName: { contains: search, mode: 'insensitive' } },
-      ];
+      where.AND = buildPerWordSearch(search, [
+        'email',
+        'username',
+        'fullName',
+      ]);
     }
 
     // Role filter
