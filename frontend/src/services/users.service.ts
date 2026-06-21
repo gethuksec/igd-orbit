@@ -139,5 +139,15 @@ export const usersService = {
       throw error;
     }
   },
+
+  async reactivate(id: string): Promise<{ message: string }> {
+    try {
+      const response = await api.post(`/users/${id}/reactivate`);
+      return response.data;
+    } catch (error: any) {
+      handleApiError(error, { message: 'Gagal reactivasi pengguna' });
+      throw error;
+    }
+  },
 };
 

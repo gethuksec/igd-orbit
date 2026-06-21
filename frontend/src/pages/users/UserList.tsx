@@ -14,6 +14,7 @@ import {
   Shield,
   CheckCircle,
   XCircle,
+  RefreshCw,
 } from 'lucide-react';
 import { usersService } from '../../services/users.service';
 import { toast } from 'sonner';
@@ -28,6 +29,7 @@ export default function UserList() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<{ id: string; fullName: string } | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'banned'>('all');
   const queryClient = useQueryClient();
 
   const { data, isLoading, error, refetch } = useQuery({
@@ -91,6 +93,13 @@ export default function UserList() {
   const users = data?.data || [];
   const pagination = data?.meta || { page: 1, limit: 20, total: 0, totalPages: 1 };
 
+  // Client-side status filter
+  const filteredUsers = users.filter((user) => {
+    if (statusFilter === 'active') return user.isActive;
+    if (statusFilter === 'banned') return !user.isActive;
+    return true;
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => usersService.delete(id),
     onSuccess: () => {
@@ -101,6 +110,17 @@ export default function UserList() {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Gagal menghapus pengguna');
+    },
+  });
+
+  const reactivateMutation = useMutation({
+    mutationFn: (id: string) => usersService.reactivate(id),
+    onSuccess: () => {
+      toast.success('Pengguna berhasil diaktifkan kembali');
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Gagal reactivasi pengguna');
     },
   });
 
@@ -168,6 +188,26 @@ export default function UserList() {
 
       {/* Filters & Search */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
+        {/* Status Filter Tabs */}
+        <div className="flex gap-2 mb-4">
+          {(['all', 'active', 'banned'] as const).map((filter) => (
+            <button
+              key={filter}
+              onClick={() => {
+                setStatusFilter(filter);
+                setPage(1);
+              }}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                statusFilter === filter
+                  ? 'bg-primary-600 text-white shadow-md'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {filter === 'all' ? 'Semua' : filter === 'active' ? 'Aktif' : 'Dibanned'}
+            </button>
+          ))}
+        </div>
+
         <div className="flex flex-col lg:flex-row gap-4">
           <div className="flex-1">
             <label className="block text-sm font-semibold text-gray-700 mb-2">Cari Pengguna</label>
@@ -274,14 +314,18 @@ export default function UserList() {
                     </div>
                   </td>
                 </tr>
-              ) : users.length === 0 ? (
+              ) : users.length === 0 || filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-8 py-20 text-center">
                     <div className="flex flex-col items-center gap-4">
                       <div className="p-4 bg-gray-100 rounded-full">
                         <Users className="w-16 h-16 text-gray-400" />
                       </div>
-                      <p className="text-gray-600 font-semibold text-lg">Tidak ada pengguna ditemukan</p>
+                      <p className="text-gray-600 font-semibold text-lg">
+                        {filteredUsers.length === 0 && users.length > 0
+                          ? 'Tidak ada pengguna dengan status ini'
+                          : 'Tidak ada pengguna ditemukan'}
+                      </p>
                       <RequirePermission permission="users.create" fallbackRoles={['SUPERADMIN', 'CHR']}>
                         <Link to="/users/new">
                           <button className="mt-2 flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-primary-600 to-primary-500 text-white rounded-lg font-semibold hover:from-primary-700 hover:to-primary-600 shadow-lg transition-all">
@@ -294,7 +338,7 @@ export default function UserList() {
                   </td>
                 </tr>
               ) : (
-                users.map((user) => (
+                filteredUsers.map((user) => (
                   <tr
                     key={user.id}
                     className="hover:bg-gradient-to-r hover:from-gray-50 hover:to-white transition-all duration-200"
@@ -353,9 +397,9 @@ export default function UserList() {
                           Aktif
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-700 rounded-md text-xs font-medium">
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded-md text-xs font-medium">
                           <XCircle className="w-3 h-3" />
-                          Non-Aktif
+                          Dibanned
                         </span>
                       )}
                     </td>
@@ -384,6 +428,19 @@ export default function UserList() {
                             <Eye className="w-4 h-4" />
                           </button>
                         </Link>
+                        {!user.isActive && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              reactivateMutation.mutate(user.id);
+                            }}
+                            disabled={reactivateMutation.isPending}
+                            className="p-2.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-all disabled:opacity-50"
+                            title="Reactivasi"
+                          >
+                            <RefreshCw className={`w-4 h-4 ${reactivateMutation.isPending ? 'animate-spin' : ''}`} />
+                          </button>
+                        )}
                         <RequirePermission permission="users.update" fallbackRoles={['SUPERADMIN', 'CHR']}>
                           <Link to={`/users/${user.id}/edit`}>
                             <button
