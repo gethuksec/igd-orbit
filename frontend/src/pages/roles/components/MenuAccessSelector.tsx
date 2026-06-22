@@ -96,6 +96,7 @@ const MENU_STRUCTURE: MenuItem[] = [
     icon: UserCog,
     children: [
       { key: 'hr.employees', label: 'Data Karyawan', path: '/hr/employees' },
+      { key: 'hr.departments', label: 'Departemen', path: '/hr/departments' },
       { key: 'hr.attendance', label: 'Absensi', path: '/hr/attendance' },
       { key: 'hr.leave', label: 'Cuti', path: '/hr/leave' },
       { key: 'hr.payroll', label: 'Payroll', path: '/hr/payroll' },

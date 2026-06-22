@@ -22,7 +22,8 @@ export default function EmployeeEditForm() {
     departmentId: '',
     position: '',
     hireDate: '',
-    employmentType: 'full-time' as 'full-time' | 'part-time' | 'contract',
+    employmentType: '' as 'PKWT' | 'PKWTT' | '',
+    endDate: '',
     basicSalary: 0,
     hourlyRate: 0,
     bankAccount: '',
@@ -65,7 +66,8 @@ export default function EmployeeEditForm() {
         departmentId: user.employee.departmentId || '',
         position: user.employee.position || '',
         hireDate: user.employee.hireDate ? formatDateForInput(user.employee.hireDate) : '',
-        employmentType: (user.employee.employmentType as 'full-time' | 'part-time' | 'contract') || 'full-time',
+        employmentType: (user.employee.employmentType as 'PKWT' | 'PKWTT') || '',
+        endDate: user.employee.endDate ? formatDateForInput(user.employee.endDate) : '',
         basicSalary: user.employee.basicSalary || 0,
         hourlyRate: user.employee.hourlyRate || 0,
         bankAccount: user.employee.bankAccount || '',
@@ -308,14 +310,29 @@ export default function EmployeeEditForm() {
               <label className="block text-sm font-semibold text-gray-700 mb-2">Tipe Karyawan</label>
               <select
                 value={formData.employmentType}
-                onChange={(e) => setFormData({ ...formData, employmentType: e.target.value as 'full-time' | 'part-time' | 'contract' })}
+                onChange={(e) => setFormData({ ...formData, employmentType: e.target.value as 'PKWT' | 'PKWTT' | '' })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
-                <option value="full-time">Full Time</option>
-                <option value="part-time">Part Time</option>
-                <option value="contract">Contract</option>
+                <option value="">Pilih Tipe</option>
+                <option value="PKWT">PKWT (Kontrak)</option>
+                <option value="PKWTT">PKWTT (Tetap)</option>
               </select>
             </div>
+
+            {formData.employmentType === 'PKWT' && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  Tanggal Berakhir Kontrak
+                </label>
+                <input
+                  type="date"
+                  value={formData.endDate || ''}
+                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+              </div>
+            )}
           </div>
         </div>
 

@@ -110,6 +110,7 @@ import ClockInOut from './pages/hr/attendance/ClockInOut';
 import EmployeeList from './pages/hr/employees/EmployeeList';
 import EmployeeDetail from './pages/hr/employees/EmployeeDetail';
 import EmployeeEditForm from './pages/hr/employees/EmployeeEditForm';
+import DepartmentList from './pages/hr/departments/DepartmentList';
 import LeaveList from './pages/hr/leave/LeaveList';
 import LeaveDetail from './pages/hr/leave/LeaveDetail';
 import LeaveRequestForm from './pages/hr/leave/LeaveRequestForm';
@@ -1025,6 +1026,16 @@ function App() {
                 <ProtectedRoute>
                   <DashboardLayout>
                     <EmployeeEditForm />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr/departments"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <DepartmentList />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
