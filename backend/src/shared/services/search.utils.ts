@@ -1,13 +1,13 @@
 /**
- * Build a Prisma WHERE filter that performs per-word AND search across multiple fields.
+ * Build a Prisma WHERE filter that performs per-word OR search across multiple fields.
  *
  * Example: search="budi jember" becomes:
- *   AND: [
+ *   OR: [
  *     { OR: [ { name: { contains: "budi", mode: 'insensitive' } }, ... ] },
  *     { OR: [ { name: { contains: "jember", mode: 'insensitive' } }, ... ] },
  *   ]
  *
- * This means ALL words must match (AND between words), but each word can match
+ * This means ANY word can match (OR between words), and each word can match
  * ANY of the specified fields (OR across fields).
  *
  * @param search - The raw search string from the user
@@ -24,7 +24,7 @@ export function buildPerWordSearch(
   if (words.length === 0) return undefined;
 
   return {
-    AND: words.map((word) => ({
+    OR: words.map((word) => ({
       OR: fields.map((field) => ({
         [field]: { contains: word, mode: 'insensitive' as const },
       })),
