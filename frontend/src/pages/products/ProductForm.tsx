@@ -5,12 +5,20 @@ import { Save, X, Loader2, ArrowLeft, Package, DollarSign, FileText, Tag } from 
 import { productsService } from '../../services/products.service';
 import { api } from '../../services/api';
 
+function generateBarcode(): string {
+  const now = new Date();
+  const yymmdd = now.getFullYear().toString().slice(2) +
+    String(now.getMonth() + 1).padStart(2, '0') +
+    String(now.getDate()).padStart(2, '0');
+  const rand = Math.floor(1000 + Math.random() * 9000);
+  return `BRC-${yymmdd}-${rand}`;
+}
+
 export default function ProductForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isEdit = !!id;
-  const [activeTab, setActiveTab] = useState('basic');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -125,9 +133,12 @@ export default function ProductForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Auto-generate barcode if empty
+    const barcode = formData.barcode || generateBarcode();
     // Convert empty strings to undefined for optional UUID fields
     const submitData = {
       ...formData,
+      barcode,
       subCategoryId: formData.subCategoryId || undefined,
       brandId: formData.brandId || undefined,
       supplierId: formData.supplierId || undefined,
@@ -145,7 +156,7 @@ export default function ProductForm() {
 
   return (
     <div className="w-full space-y-4">
-      {/* Page Header - Enhanced */}
+      {/* Page Header */}
       <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-2xl shadow-lg p-8 text-white">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -174,326 +185,330 @@ export default function ProductForm() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-        <div className="border-b border-gray-200">
-          <div className="flex overflow-x-auto">
-            {[
-              { id: 'basic', label: 'Informasi Dasar', icon: Package },
-              { id: 'category', label: 'Kategori & Brand', icon: Tag },
-              { id: 'pricing', label: 'Harga & Stok', icon: DollarSign },
-              { id: 'description', label: 'Deskripsi & Status', icon: FileText },
-            ].map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-6 py-4 font-semibold transition-all whitespace-nowrap ${
-                    activeTab === tab.id
-                      ? 'text-primary-600 border-b-2 border-primary-600 bg-primary-50'
-                      : 'text-gray-600 hover:text-primary-600 hover:bg-gray-50'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+      {/* Single Long-Scroll Form */}
+      <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden p-8">
+        <form onSubmit={handleSubmit} className="space-y-10">
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-8">
-          {/* Tab: Basic Information */}
-          {activeTab === 'basic' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">
-                    Nama Produk <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-                    required
-                    placeholder="Masukkan nama produk"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">SKU</label>
-                  <input
-                    type="text"
-                    value={formData.sku}
-                    onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-                    placeholder="Auto-generate jika kosong"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">Barcode</label>
-                  <input
-                    type="text"
-                    value={formData.barcode}
-                    onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-                    placeholder="Masukkan barcode"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">Nama Tercetak</label>
-                  <input
-                    type="text"
-                    value={formData.printedName}
-                    onChange={(e) => setFormData({ ...formData, printedName: e.target.value })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-                    placeholder="Nama yang tercetak di label/sticker"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">Satuan</label>
-                  <input
-                    type="text"
-                    value={formData.unit}
-                    onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-                    placeholder="pcs, box, kg, dll"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">Ukuran</label>
-                  <input
-                    type="text"
-                    value={formData.size}
-                    onChange={(e) => setFormData({ ...formData, size: e.target.value })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-                    placeholder="Contoh: 256GB, 6.2 inch, dll"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">Warna</label>
-                  <input
-                    type="text"
-                    value={formData.color}
-                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-                    placeholder="Contoh: Black, Blue, dll"
-                  />
-                </div>
+          {/* ---- Section 1: Informasi Dasar ---- */}
+          <div>
+            <div className="flex items-center gap-3 mb-6 pb-3 border-b border-gray-200">
+              <div className="p-2 bg-primary-50 rounded-lg">
+                <Package className="w-5 h-5 text-primary-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Informasi Dasar</h3>
+                <p className="text-sm text-gray-500">Informasi utama produk</p>
               </div>
             </div>
-          )}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2.5">
+                  Nama Produk <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+                  required
+                  placeholder="Masukkan nama produk"
+                />
+              </div>
 
-          {/* Tab: Category & Brand */}
-          {activeTab === 'category' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">
-                    Kategori <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={formData.categoryId}
-                    onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white transition-all"
-                    required
-                  >
-                    <option value="">Pilih Kategori</option>
-                    {(categories || []).map((cat: any) => (
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2.5">SKU</label>
+                <input
+                  type="text"
+                  value={formData.sku}
+                  onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                  className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+                  placeholder="Auto-generate jika kosong"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2.5">Barcode</label>
+                <input
+                  type="text"
+                  value={formData.barcode}
+                  onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+                  className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+                  placeholder="Kosongkan untuk auto-generate"
+                />
+                <p className="text-xs text-gray-400 mt-1.5">Biarkan kosong untuk generate otomatis</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2.5">Nama Tercetak</label>
+                <input
+                  type="text"
+                  value={formData.printedName}
+                  onChange={(e) => setFormData({ ...formData, printedName: e.target.value })}
+                  className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+                  placeholder="Nama yang tercetak di label/sticker"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2.5">Satuan</label>
+                <input
+                  type="text"
+                  value={formData.unit}
+                  onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                  className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+                  placeholder="pcs, box, kg, dll"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2.5">Ukuran</label>
+                <input
+                  type="text"
+                  value={formData.size}
+                  onChange={(e) => setFormData({ ...formData, size: e.target.value })}
+                  className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+                  placeholder="Contoh: 256GB, 6.2 inch, dll"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2.5">Warna</label>
+                <input
+                  type="text"
+                  value={formData.color}
+                  onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                  className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+                  placeholder="Contoh: Black, Blue, dll"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* ---- Section 2: Kategori & Brand ---- */}
+          <div>
+            <div className="flex items-center gap-3 mb-6 pb-3 border-b border-gray-200">
+              <div className="p-2 bg-primary-50 rounded-lg">
+                <Tag className="w-5 h-5 text-primary-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Kategori & Brand</h3>
+                <p className="text-sm text-gray-500">Pengelompokan dan merek produk</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2.5">
+                  Kategori <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.categoryId}
+                  onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                  className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white transition-all"
+                  required
+                >
+                  <option value="">Pilih Kategori</option>
+                  {(categories || []).map((cat: any) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2.5">Sub Kategori</label>
+                <select
+                  value={formData.subCategoryId}
+                  onChange={(e) => setFormData({ ...formData, subCategoryId: e.target.value })}
+                  className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white transition-all"
+                >
+                  <option value="">Pilih Sub Kategori</option>
+                  {categories && Array.isArray(categories) && categories
+                    .filter((cat: any) => cat.parentCategoryId === formData.categoryId)
+                    .map((cat: any) => (
                       <option key={cat.id} value={cat.id}>
                         {cat.name}
                       </option>
                     ))}
-                  </select>
-                </div>
+                </select>
+              </div>
 
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">Sub Kategori</label>
-                  <select
-                    value={formData.subCategoryId}
-                    onChange={(e) => setFormData({ ...formData, subCategoryId: e.target.value })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white transition-all"
-                  >
-                    <option value="">Pilih Sub Kategori</option>
-                    {categories && Array.isArray(categories) && categories
-                      .filter((cat: any) => cat.parentCategoryId === formData.categoryId)
-                      .map((cat: any) => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </option>
-                      ))}
-                  </select>
-                </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2.5">Brand</label>
+                <select
+                  value={formData.brandId}
+                  onChange={(e) => setFormData({ ...formData, brandId: e.target.value })}
+                  className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white transition-all"
+                >
+                  <option value="">Pilih Brand</option>
+                  {(brands || []).map((brand: any) => (
+                    <option key={brand.id} value={brand.id}>
+                      {brand.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">Brand</label>
-                  <select
-                    value={formData.brandId}
-                    onChange={(e) => setFormData({ ...formData, brandId: e.target.value })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white transition-all"
-                  >
-                    <option value="">Pilih Brand</option>
-                    {(brands || []).map((brand: any) => (
-                      <option key={brand.id} value={brand.id}>
-                        {brand.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">Supplier</label>
-                  <select
-                    value={formData.supplierId}
-                    onChange={(e) => setFormData({ ...formData, supplierId: e.target.value })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white transition-all"
-                  >
-                    <option value="">Pilih Supplier</option>
-                    {(suppliers || []).map((supplier: any) => (
-                      <option key={supplier.id} value={supplier.id}>
-                        {supplier.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2.5">Supplier</label>
+                <select
+                  value={formData.supplierId}
+                  onChange={(e) => setFormData({ ...formData, supplierId: e.target.value })}
+                  className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white transition-all"
+                >
+                  <option value="">Pilih Supplier</option>
+                  {(suppliers || []).map((supplier: any) => (
+                    <option key={supplier.id} value={supplier.id}>
+                      {supplier.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
-          )}
+          </div>
 
-          {/* Tab: Pricing & Stock */}
-          {activeTab === 'pricing' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">
-                    Harga Beli <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.costPrice}
-                    onChange={(e) => setFormData({ ...formData, costPrice: parseFloat(e.target.value) || 0 })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-                    required
-                    min="0"
-                    step="1000"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">
-                    Harga Jual <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.sellingPrice}
-                    onChange={(e) => setFormData({ ...formData, sellingPrice: parseFloat(e.target.value) || 0 })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-                    required
-                    min="0"
-                    step="1000"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">Harga Jual Minimum</label>
-                  <input
-                    type="number"
-                    value={formData.minSellingPrice}
-                    onChange={(e) => setFormData({ ...formData, minSellingPrice: parseFloat(e.target.value) || 0 })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-                    min="0"
-                    step="1000"
-                  />
-                </div>
+          {/* ---- Section 3: Harga & Stok ---- */}
+          <div>
+            <div className="flex items-center gap-3 mb-6 pb-3 border-b border-gray-200">
+              <div className="p-2 bg-primary-50 rounded-lg">
+                <DollarSign className="w-5 h-5 text-primary-600" />
               </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">Panjang (cm)</label>
-                  <input
-                    type="number"
-                    value={formData.lengthCm}
-                    onChange={(e) => setFormData({ ...formData, lengthCm: parseFloat(e.target.value) || 0 })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-                    min="0"
-                    step="0.1"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">Lebar (cm)</label>
-                  <input
-                    type="number"
-                    value={formData.widthCm}
-                    onChange={(e) => setFormData({ ...formData, widthCm: parseFloat(e.target.value) || 0 })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-                    min="0"
-                    step="0.1"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">Tinggi (cm)</label>
-                  <input
-                    type="number"
-                    value={formData.heightCm}
-                    onChange={(e) => setFormData({ ...formData, heightCm: parseFloat(e.target.value) || 0 })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-                    min="0"
-                    step="0.1"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">Berat Barang (gram)</label>
-                  <input
-                    type="number"
-                    value={formData.weightGrams}
-                    onChange={(e) => setFormData({ ...formData, weightGrams: parseFloat(e.target.value) || 0 })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-                    min="0"
-                    step="0.1"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">Berat Paket (gram)</label>
-                  <input
-                    type="number"
-                    value={formData.packageWeightGrams}
-                    onChange={(e) => setFormData({ ...formData, packageWeightGrams: parseFloat(e.target.value) || 0 })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-                    min="0"
-                    step="0.1"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">Min Stock</label>
-                  <input
-                    type="number"
-                    value={formData.minStock}
-                    onChange={(e) => setFormData({ ...formData, minStock: parseInt(e.target.value) || 0 })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-                    min="0"
-                  />
-                </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Harga & Stok</h3>
+                <p className="text-sm text-gray-500">Informasi harga dan inventori</p>
               </div>
             </div>
-          )}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2.5">
+                  Harga Beli <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  value={formData.costPrice}
+                  onChange={(e) => setFormData({ ...formData, costPrice: parseFloat(e.target.value) || 0 })}
+                  className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+                  required
+                  min="0"
+                  step="1000"
+                />
+              </div>
 
-          {/* Tab: Description & Status */}
-          {activeTab === 'description' && (
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2.5">
+                  Harga Jual <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  value={formData.sellingPrice}
+                  onChange={(e) => setFormData({ ...formData, sellingPrice: parseFloat(e.target.value) || 0 })}
+                  className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+                  required
+                  min="0"
+                  step="1000"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2.5">Harga Jual Minimum</label>
+                <input
+                  type="number"
+                  value={formData.minSellingPrice}
+                  onChange={(e) => setFormData({ ...formData, minSellingPrice: parseFloat(e.target.value) || 0 })}
+                  className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+                  min="0"
+                  step="1000"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2.5">Panjang (cm)</label>
+                <input
+                  type="number"
+                  value={formData.lengthCm}
+                  onChange={(e) => setFormData({ ...formData, lengthCm: parseFloat(e.target.value) || 0 })}
+                  className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+                  min="0"
+                  step="0.1"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2.5">Lebar (cm)</label>
+                <input
+                  type="number"
+                  value={formData.widthCm}
+                  onChange={(e) => setFormData({ ...formData, widthCm: parseFloat(e.target.value) || 0 })}
+                  className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+                  min="0"
+                  step="0.1"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2.5">Tinggi (cm)</label>
+                <input
+                  type="number"
+                  value={formData.heightCm}
+                  onChange={(e) => setFormData({ ...formData, heightCm: parseFloat(e.target.value) || 0 })}
+                  className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+                  min="0"
+                  step="0.1"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2.5">Berat Barang (gram)</label>
+                <input
+                  type="number"
+                  value={formData.weightGrams}
+                  onChange={(e) => setFormData({ ...formData, weightGrams: parseFloat(e.target.value) || 0 })}
+                  className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+                  min="0"
+                  step="0.1"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2.5">Berat Paket (gram)</label>
+                <input
+                  type="number"
+                  value={formData.packageWeightGrams}
+                  onChange={(e) => setFormData({ ...formData, packageWeightGrams: parseFloat(e.target.value) || 0 })}
+                  className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+                  min="0"
+                  step="0.1"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2.5">Min Stock</label>
+                <input
+                  type="number"
+                  value={formData.minStock}
+                  onChange={(e) => setFormData({ ...formData, minStock: parseInt(e.target.value) || 0 })}
+                  className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+                  min="0"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* ---- Section 4: Deskripsi & Status ---- */}
+          <div>
+            <div className="flex items-center gap-3 mb-6 pb-3 border-b border-gray-200">
+              <div className="p-2 bg-primary-50 rounded-lg">
+                <FileText className="w-5 h-5 text-primary-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Deskripsi & Status</h3>
+                <p className="text-sm text-gray-500">Informasi tambahan dan pengaturan produk</p>
+              </div>
+            </div>
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2.5">Deskripsi</label>
@@ -601,7 +616,7 @@ export default function ProductForm() {
                 )}
               </div>
             </div>
-          )}
+          </div>
 
           {/* Submit Button */}
           <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
