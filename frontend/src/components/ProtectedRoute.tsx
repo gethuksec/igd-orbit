@@ -49,6 +49,7 @@ const routeToModulePermission: Record<string, string> = {
   '/finance/reports': 'finance.*.view',
   '/hr': 'hr.*.view',
   '/hr/employees': 'hr.*.view',
+  '/hr/departments': 'hr.*.view',
   '/hr/attendance': 'hr.*.view',
   '/hr/leave': 'hr.*.view',
   '/hr/payroll': 'hr.*.view',
