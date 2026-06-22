@@ -20,16 +20,16 @@ interface CustomerTier {
 interface FormData {
   name: string;
   description: string;
-  discountPercentage: number;
-  level: number;
+  discountPercentage: string;
+  level: string;
   isActive: boolean;
 }
 
 const defaultForm: FormData = {
   name: "",
   description: "",
-  discountPercentage: 0,
-  level: 0,
+  discountPercentage: "0",
+  level: "0",
   isActive: true,
 };
 
@@ -94,8 +94,8 @@ export default function CustomerTierList() {
     setForm({
       name: tier.name,
       description: tier.description || "",
-      discountPercentage: tier.discountPercentage,
-      level: tier.level,
+      discountPercentage: String(tier.discountPercentage),
+      level: String(tier.level),
       isActive: tier.isActive,
     });
     setShowModal(true);
@@ -235,10 +235,7 @@ export default function CustomerTierList() {
                 required
                 min={0}
                 value={form.level}
-                onChange={(e) => {
-                  const val = e.target.valueAsNumber;
-                  if (!isNaN(val)) setForm({ ...form, level: val });
-                }}
+                onChange={(e) => setForm({ ...form, level: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
               />
             </div>
@@ -249,10 +246,7 @@ export default function CustomerTierList() {
                 min={0}
                 max={100}
                 value={form.discountPercentage}
-                onChange={(e) => {
-                  const val = e.target.valueAsNumber;
-                  if (!isNaN(val)) setForm({ ...form, discountPercentage: val });
-                }}
+                onChange={(e) => setForm({ ...form, discountPercentage: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
               />
             </div>
