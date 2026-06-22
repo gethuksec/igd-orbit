@@ -235,7 +235,10 @@ export default function CustomerTierList() {
                 required
                 min={0}
                 value={form.level}
-                onChange={(e) => setForm({ ...form, level: parseInt(e.target.value) || 0 })}
+                onChange={(e) => {
+                  const val = e.target.valueAsNumber;
+                  if (!isNaN(val)) setForm({ ...form, level: val });
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
               />
             </div>
@@ -246,7 +249,10 @@ export default function CustomerTierList() {
                 min={0}
                 max={100}
                 value={form.discountPercentage}
-                onChange={(e) => setForm({ ...form, discountPercentage: parseInt(e.target.value) || 0 })}
+                onChange={(e) => {
+                  const val = e.target.valueAsNumber;
+                  if (!isNaN(val)) setForm({ ...form, discountPercentage: val });
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
               />
             </div>
