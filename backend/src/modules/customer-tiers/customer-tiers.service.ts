@@ -141,7 +141,7 @@ export class CustomerTiersService {
         ...rest,
         code,
         discountPercentage: parseFloat(discountPercentage.toString()),
-        creditLimit: parseFloat(creditLimit.toString()),
+        creditLimit: creditLimit !== undefined ? parseFloat(creditLimit.toString()) : 0,
         minPurchaseAmount: minPurchaseAmount
           ? parseFloat(minPurchaseAmount.toString())
           : null,

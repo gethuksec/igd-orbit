@@ -26,6 +26,12 @@ export class CreateCustomerTierDto {
   @IsOptional()
   description?: string;
 
+  @IsNumber({}, { message: "Level must be a number" })
+  @Min(0, { message: "Level must be at least 0" })
+  @IsOptional()
+  @Type(() => Number)
+  level?: number;
+
   @IsNumber({}, { message: "Discount percentage must be a number" })
   @Min(0, { message: "Discount percentage must be at least 0" })
   @Max(100, { message: "Discount percentage must be at most 100" })
@@ -34,8 +40,9 @@ export class CreateCustomerTierDto {
 
   @IsNumber({}, { message: "Credit limit must be a number" })
   @Min(0, { message: "Credit limit must be at least 0" })
+  @IsOptional()
   @Type(() => Number)
-  creditLimit!: number;
+  creditLimit?: number;
 
   @IsNumber({}, { message: "Minimum purchase amount must be a number" })
   @Min(0, { message: "Minimum purchase amount must be at least 0" })
