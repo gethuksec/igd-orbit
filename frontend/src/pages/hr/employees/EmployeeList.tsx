@@ -13,7 +13,6 @@ const emptyForm = {
   email: '',
   phone: '',
   password: '',
-  employeeCode: '',
   branchId: '',
   departmentId: '',
   position: '',
@@ -148,7 +147,6 @@ export default function EmployeeList() {
       email: user.email || '',
       phone: user.phone || '',
       password: '',
-      employeeCode: user.employee?.employeeCode || '',
       branchId: user.employee?.branchId || '',
       departmentId: user.employee?.departmentId || '',
       position: user.employee?.position || '',
@@ -321,7 +319,6 @@ export default function EmployeeList() {
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Karyawan</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Employee Code</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Posisi</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Cabang</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Tanggal Masuk</th>
@@ -344,9 +341,6 @@ export default function EmployeeList() {
                             {user.phone && <div className="text-xs text-gray-500">{user.phone}</div>}
                           </div>
                         </Link>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-mono font-semibold text-gray-900">{user.employee?.employeeCode || '-'}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
@@ -486,46 +480,14 @@ export default function EmployeeList() {
               <Briefcase className="w-4 h-4" /> Informasi Karyawan
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium mb-1">Employee Code</label>
-                <input type="text" value={form.employeeCode}
-                  onChange={(e) => setForm({ ...form, employeeCode: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm font-mono" placeholder="EMP-0001" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Cabang</label>
-                <select value={form.branchId}
-                  onChange={(e) => setForm({ ...form, branchId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">
-                  <option value="">Pilih Cabang (Opsional)</option>
-                  {availableBranches?.map((branch: any) => (
-                    <option key={branch.id} value={branch.id}>{branch.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Departemen</label>
-                <select value={form.departmentId}
-                  onChange={(e) => setForm({ ...form, departmentId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">
-                  <option value="">Pilih Departemen</option>
-                  {Array.isArray(departments) && departments.map((dept: any) => (
-                    <option key={dept.id} value={dept.id}>{dept.name}</option>
-                  ))}
-                </select>
-              </div>
+              {/* Posisi */}
               <div>
                 <label className="block text-sm font-medium mb-1">Posisi</label>
                 <input type="text" value={form.position}
                   onChange={(e) => setForm({ ...form, position: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm" placeholder="e.g., Manager, Staff" />
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Tanggal Masuk</label>
-                <input type="date" value={form.hireDate}
-                  onChange={(e) => setForm({ ...form, hireDate: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm" />
-              </div>
+              {/* Tipe Karyawan */}
               <div>
                 <label className="block text-sm font-medium mb-1">Tipe Karyawan</label>
                 <div className="flex gap-4">
@@ -543,6 +505,38 @@ export default function EmployeeList() {
                   </label>
                 </div>
               </div>
+              {/* Departemen */}
+              <div>
+                <label className="block text-sm font-medium mb-1">Departemen</label>
+                <select value={form.departmentId}
+                  onChange={(e) => setForm({ ...form, departmentId: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">
+                  <option value="">Pilih Departemen</option>
+                  {Array.isArray(departments) && departments.map((dept: any) => (
+                    <option key={dept.id} value={dept.id}>{dept.name}</option>
+                  ))}
+                </select>
+              </div>
+              {/* Cabang */}
+              <div>
+                <label className="block text-sm font-medium mb-1">Cabang</label>
+                <select value={form.branchId}
+                  onChange={(e) => setForm({ ...form, branchId: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">
+                  <option value="">Pilih Cabang (Opsional)</option>
+                  {availableBranches?.map((branch: any) => (
+                    <option key={branch.id} value={branch.id}>{branch.name}</option>
+                  ))}
+                </select>
+              </div>
+              {/* Tanggal Masuk */}
+              <div>
+                <label className="block text-sm font-medium mb-1">Tanggal Masuk</label>
+                <input type="date" value={form.hireDate}
+                  onChange={(e) => setForm({ ...form, hireDate: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm" />
+              </div>
+              {/* Tanggal Berakhir Kontrak — same row as Tanggal Masuk when PKWT */}
               {form.employmentType === 'PKWT' && (
                 <div>
                   <label className="block text-sm font-medium mb-1">Tanggal Berakhir Kontrak</label>
