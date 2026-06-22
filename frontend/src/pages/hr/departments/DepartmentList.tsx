@@ -17,14 +17,14 @@ interface Department {
 }
 
 interface FormData {
+  code: string;
   name: string;
-  description: string;
   isActive: boolean;
 }
 
 const defaultForm: FormData = {
+  code: "",
   name: "",
-  description: "",
   isActive: true,
 };
 
@@ -96,8 +96,8 @@ export default function DepartmentList() {
   const openEdit = (dept: Department) => {
     setEditing(dept);
     setForm({
+      code: dept.code,
       name: dept.name,
-      description: dept.description || "",
       isActive: dept.isActive,
     });
     setShowModal(true);
@@ -144,8 +144,8 @@ export default function DepartmentList() {
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
+                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Kode</th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Nama</th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Deskripsi</th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Cabang</th>
                 <th className="text-center px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Jml Karyawan</th>
                 <th className="text-center px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Status</th>
@@ -154,10 +154,10 @@ export default function DepartmentList() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {data?.data?.map((dept) => (
-                <tr key={dept.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{dept.name}</td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{dept.description || "-"}</td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{dept.branch?.name || "-"}</td>
+              <tr key={dept.id} className="hover:bg-gray-50">
+              <td className="px-6 py-4 text-sm font-mono text-gray-500">{dept.code}</td>
+              <td className="px-6 py-4 text-sm font-medium text-gray-900">{dept.name}</td>
+              <td className="px-6 py-4 text-sm text-gray-500">{dept.branch?.name || "-"}</td>
                   <td className="px-6 py-4 text-sm text-center text-gray-500">{dept._count?.employees || 0}</td>
                   <td className="px-6 py-4 text-center">
                     <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
@@ -204,6 +204,17 @@ export default function DepartmentList() {
       <Modal open={showModal} onClose={closeModal} title={editing ? "Edit Departemen" : "Tambah Departemen"} size="md">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
+            <label className="block text-sm font-medium mb-1">Kode Departemen *</label>
+            <input
+              type="text"
+              required
+              value={form.code}
+              onChange={(e) => setForm({ ...form, code: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 font-mono"
+              placeholder="Contoh: FIN, SALES, TECH"
+            />
+          </div>
+          <div>
             <label className="block text-sm font-medium mb-1">Nama Departemen *</label>
             <input
               type="text"
@@ -212,16 +223,6 @@ export default function DepartmentList() {
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
               placeholder="Contoh: Sales & Marketing, Finance"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Deskripsi</label>
-            <textarea
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-              rows={3}
-              placeholder="Deskripsi departemen"
             />
           </div>
           <div className="flex items-center gap-2">

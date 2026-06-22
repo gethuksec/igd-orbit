@@ -5,10 +5,6 @@ export class UpdateDepartmentDto {
   @IsOptional()
   name?: string;
 
-  @IsString()
-  @IsOptional()
-  description?: string;
-
   @IsUUID('4')
   @IsOptional()
   parentDepartmentId?: string;

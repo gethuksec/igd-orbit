@@ -2,12 +2,12 @@ import { IsNotEmpty, IsOptional, IsString, IsUUID, IsBoolean } from 'class-valid
 
 export class CreateDepartmentDto {
   @IsString()
-  @IsNotEmpty({ message: 'Department name is required' })
-  name!: string;
+  @IsNotEmpty({ message: 'Department code is required' })
+  code!: string;
 
   @IsString()
-  @IsOptional()
-  description?: string;
+  @IsNotEmpty({ message: 'Department name is required' })
+  name!: string;
 
   @IsUUID('4')
   @IsOptional()
