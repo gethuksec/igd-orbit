@@ -78,6 +78,12 @@ export default function EmployeeList() {
             </h1>
             <p className="text-primary-100 text-lg">Kelola data karyawan dan informasi HR</p>
           </div>
+          <Link
+            to="/users/new"
+            className="px-6 py-3 bg-white/20 hover:bg-white/30 rounded-xl font-semibold transition-all flex items-center gap-2"
+          >
+            + Tambah Karyawan
+          </Link>
         </div>
       </div>
 
@@ -226,6 +232,9 @@ export default function EmployeeList() {
                       Tanggal Masuk
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Tipe
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Status
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
@@ -291,6 +300,21 @@ export default function EmployeeList() {
                         ) : (
                           <span className="text-sm text-gray-400">-</span>
                         )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          {user.employee?.employmentType ? (
+                            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${
+                              user.employee.employmentType === 'PKWT'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-green-100 text-green-800'
+                            }`}>
+                              {user.employee.employmentType === 'PKWT' ? 'PKWT' : 'PKWTT'}
+                            </span>
+                          ) : (
+                            <span className="text-sm text-gray-400">-</span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {user.employee?.isActive ? (
