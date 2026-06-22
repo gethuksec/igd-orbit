@@ -68,7 +68,8 @@ import BrandList from './pages/brands/BrandList';
 import BrandForm from './pages/brands/BrandForm';
 import BrandDetail from './pages/brands/BrandDetail';
 // Master Data - Service Types
-import ServiceTypeList from './pages/service-types/ServiceTypeList';
+/* Master Data - Customer Tiers */
+import CustomerTierList from "./pages/master-data/customer-tiers/CustomerTierList";
 import ServiceTypeForm from './pages/service-types/ServiceTypeForm';
 import ServiceTypeDetail from './pages/service-types/ServiceTypeDetail';
 // Branches
@@ -450,7 +451,7 @@ function App() {
             />
             
             {/* Master Data - Service Types */}
-            <Route
+/* Master Data - Customer Tiers */
               path="/service-types"
               element={
                 <ProtectedRoute>
