@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Users, Search, User, Building2, Briefcase, Calendar, CheckCircle, XCircle, AlertCircle, Eye, Edit, Save, Plus } from 'lucide-react';
 import { formatDate, formatDateForInput } from '@/utils/format';
@@ -24,7 +24,6 @@ const emptyForm = {
 };
 
 export default function EmployeeList() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
