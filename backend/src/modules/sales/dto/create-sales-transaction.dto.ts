@@ -55,8 +55,12 @@ export class CreateSalesTransactionDto {
   @Type(() => PaymentDto)
   payment!: PaymentDto;
 
-  @IsString({ message: 'Notes must be a string' })
+  @IsString({ message: "Receipt notes must be a string" })
   @IsOptional()
-  notes?: string;
+  receiptNotes?: string;
+
+  @IsString({ message: "Internal notes must be a string" })
+  @IsOptional()
+  internalNotes?: string;
 }
 

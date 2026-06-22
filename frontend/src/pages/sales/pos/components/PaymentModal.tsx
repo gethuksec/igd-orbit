@@ -17,7 +17,7 @@ interface PaymentModalProps {
 }
 
 export function PaymentModal({ open, onClose, onSuccess, branchId }: PaymentModalProps) {
-  const { cart, customer, discount, notes, total, clearCart } = usePOSStore();
+  const { cart, customer, discount, receiptNotes, internalNotes, total, clearCart } = usePOSStore();
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'transfer' | 'e-wallet' | 'credit'>('cash');
   const [amountReceived, setAmountReceived] = useState('');
   const [paymentDetails, setPaymentDetails] = useState<Record<string, any>>({});
@@ -85,7 +85,8 @@ export function PaymentModal({ open, onClose, onSuccess, branchId }: PaymentModa
         discountAmount: discount?.type === 'amount' ? discount.value : undefined,
         taxPercentage: 11,
         payment,
-        notes: notes || undefined,
+        receiptNotes: receiptNotes || undefined,
+        internalNotes: internalNotes || undefined,
       });
 
       // Clear cart and close

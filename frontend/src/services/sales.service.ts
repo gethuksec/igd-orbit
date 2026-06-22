@@ -10,6 +10,8 @@ export interface SalesTransaction {
   totalPrice?: number;
   status: string;
   paymentStatus?: string;
+  receiptNotes?: string;
+  internalNotes?: string;
   itemCount?: number;
   items?: Array<{
     id: string;

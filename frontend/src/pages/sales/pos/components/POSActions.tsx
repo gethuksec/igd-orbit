@@ -16,7 +16,7 @@ interface POSActionsProps {
 }
 
 export function POSActions({ branchId, transactionId }: POSActionsProps) {
-  const { cart, discount, notes, setNotes, applyTransactionDiscount, clearCart } = usePOSStore();
+  const { cart, discount, receiptNotes, internalNotes, setReceiptNotes, setInternalNotes, applyTransactionDiscount, clearCart } = usePOSStore();
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [showHoldModal, setShowHoldModal] = useState(false);

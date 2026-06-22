@@ -54,7 +54,8 @@ interface POSStoreState {
   customer: Customer | null;
   discount: Discount | null;
   paymentMethod: string | null;
-  notes: string | null;
+  receiptNotes: string | null;
+  internalNotes: string | null;
 
   // Computed values
   subtotal: number;
@@ -72,7 +73,8 @@ interface POSStoreState {
   applyTransactionDiscount: (discount: Discount | null) => void;
   clearCart: () => void;
   calculateTotals: () => void;
-  setNotes: (notes: string | null) => void;
+  setReceiptNotes: (notes: string | null) => void;
+  setInternalNotes: (notes: string | null) => void;
 }
 
 /**
@@ -98,7 +100,8 @@ export const usePOSStore = create<POSStoreState>((set, get) => ({
   customer: null,
   discount: null,
   paymentMethod: null,
-  notes: null,
+  receiptNotes: null,
+  internalNotes: null,
   subtotal: 0,
   discountAmount: 0,
   taxAmount: 0,
@@ -243,14 +246,21 @@ export const usePOSStore = create<POSStoreState>((set, get) => ({
       cart: [],
       customer: null,
       discount: null,
-      notes: null,
+      receiptNotes: null,
+  internalNotes: null,
     });
     get().calculateTotals();
   },
 
   // Set notes
-  setNotes: (notes) => {
-    set({ notes });
+  // Set receipt notes
+  setReceiptNotes: (notes) => {
+    set({ receiptNotes: notes });
+  },
+
+  // Set internal notes
+  setInternalNotes: (notes) => {
+    set({ internalNotes: notes });
   },
 
   // Calculate totals

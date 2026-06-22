@@ -222,10 +222,16 @@ export default function SalesTransactionDetail() {
                 </p>
               </div>
             </div>
-            {tx.notes && (
+            {tx.receiptNotes && (
               <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <p className="text-xs text-gray-500 mb-1">Catatan</p>
-                <p className="text-sm text-gray-900">{tx.notes}</p>
+                <p className="text-xs text-gray-500 mb-1">Catatan Nota</p>
+                <p className="text-sm text-gray-900">{tx.receiptNotes}</p>
+              </div>
+            )}
+            {tx.internalNotes && (
+              <div className="mt-4 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                <p className="text-xs text-gray-500 mb-1">Catatan Internal</p>
+                <p className="text-sm text-gray-900">{tx.internalNotes}</p>
               </div>
             )}
           </div>

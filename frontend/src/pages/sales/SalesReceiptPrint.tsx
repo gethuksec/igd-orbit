@@ -395,6 +395,14 @@ const SalesReceiptPrint = () => {
         </div>
       )}
 
+      {/* Receipt Notes */}
+      {tx.receiptNotes && (
+        <div className="mb-2 section">
+          <h3 className="text-xs font-bold text-gray-900 mb-1">CATATAN</h3>
+          <p className="text-xs text-gray-700">{tx.receiptNotes}</p>
+        </div>
+      )}
+
       {/* Terms and Conditions */}
       <div className="mb-2 text-[8px] leading-tight section">
         <h3 className="font-bold text-gray-900 mb-1">PERHATIAN:</h3>

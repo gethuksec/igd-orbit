@@ -295,7 +295,8 @@ export class SalesTransactionsService {
           taxPercentage: createDto.taxPercentage || 11,
           total: calculation.total,
           paymentStatus: createDto.payment.method === 'credit' ? 'pending' : 'paid',
-          notes: createDto.notes || null,
+          receiptNotes: createDto.receiptNotes || null,
+          internalNotes: createDto.internalNotes || null,
         },
       });
 
@@ -852,7 +853,8 @@ export class SalesTransactionsService {
         paidAt: payment.paidAt,
       })),
       receiptUrl: transaction.receiptUrl,
-      notes: transaction.notes,
+      receiptNotes: transaction.receiptNotes,
+      internalNotes: transaction.internalNotes,
       voidReason: transaction.voidReason,
       voidedAt: transaction.voidedAt,
       createdAt: transaction.createdAt,

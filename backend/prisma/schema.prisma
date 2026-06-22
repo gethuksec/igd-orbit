@@ -486,7 +486,8 @@ model SalesTransaction {
   taxPercentage      Decimal   @default(11) @map("tax_percentage") @db.Decimal(5, 2)
   total              Decimal   @db.Decimal(15, 2)
   paymentStatus      String    @default("pending") @map("payment_status") // 'pending', 'partial', 'paid', 'refunded'
-  notes              String?   @db.Text
+  receiptNotes       String?   @map("receipt_notes") @db.Text
+  internalNotes      String?   @map("internal_notes") @db.Text
   receiptUrl         String?   @map("receipt_url")
   voidReason         String?   @map("void_reason")
   voidedAt           DateTime? @map("voided_at")
@@ -1263,7 +1264,8 @@ model Attendance {
   overtimeHours      Decimal?  @default(0) @map("overtime_hours") @db.Decimal(5, 2)
   overtimeApproved   Boolean   @default(false) @map("overtime_approved")
   overtimeApprovedBy String?   @map("overtime_approved_by") // User ID
-  notes              String?   @db.Text
+  receiptNotes       String?   @map("receipt_notes") @db.Text
+  internalNotes      String?   @map("internal_notes") @db.Text
   adjustedBy         String?   @map("adjusted_by") // User ID
   adjustmentReason   String?   @map("adjustment_reason") @db.Text
   createdAt          DateTime  @default(now()) @map("created_at")
@@ -1517,7 +1519,8 @@ model GoodsReceipt {
   inspectionStatus   String?   @map("inspection_status") // 'pending', 'passed', 'failed', 'partial'
   inspectionNotes    String?   @map("inspection_notes") @db.Text
   variancePercent    Decimal?  @map("variance_percent") @db.Decimal(5, 2) // Variance from PO (< 2% acceptable)
-  notes              String?   @db.Text
+  receiptNotes       String?   @map("receipt_notes") @db.Text
+  internalNotes      String?   @map("internal_notes") @db.Text
   receivedBy         String    @map("received_by") // User ID
   inspectedBy        String?   @map("inspected_by") // User ID
   inspectedAt        DateTime? @map("inspected_at")
