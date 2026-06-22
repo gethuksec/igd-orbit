@@ -4,7 +4,7 @@ import { api } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { Loader2, Plus, Pencil, Trash2, Search } from "lucide-react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 interface CustomerTier {
   id: string;
