@@ -86,7 +86,7 @@ export class GoodsReceiptsService {
         branchId: dto.branch_id,
         receiptDate: new Date(dto.receipt_date),
         status: 'draft',
-        notes: dto.notes,
+        internalNotes: dto.notes,
         receivedBy: userId,
         items: {
           create: dto.items.map((item) => ({
@@ -488,9 +488,9 @@ export class GoodsReceiptsService {
           inspectedAt: new Date(),
           approvedBy: userId,
           approvedAt: new Date(),
-          notes: dto.notes
-            ? `${gr.notes || ''}\n[Approval] ${dto.notes}`.trim()
-            : gr.notes,
+          internalNotes: dto.notes
+            ? `${gr.internalNotes || ''}\n[Approval] ${dto.notes}`.trim()
+            : gr.internalNotes,
         },
         include: {
           purchaseOrder: {
