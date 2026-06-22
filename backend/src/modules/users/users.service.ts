@@ -661,6 +661,13 @@ export class UsersService {
   async reactivate(id: string, _reactivatedBy: string): Promise<{ message: string }> {
     const user = await this.prisma.user.findUnique({
       where: { id },
+      include: {
+        userRoles: {
+          include: {
+            role: true,
+          },
+        },
+      },
     });
 
     if (!user) {
@@ -669,6 +676,13 @@ export class UsersService {
 
     if (user.isActive) {
       throw new BadRequestException("User is already active");
+    }
+
+    // Superadmin cannot be reactivated via API - must use DB recovery
+    if (user.userRoles?.some((ur) => ur.role.code === "SUPERADMIN")) {
+      throw new ForbiddenException(
+        "Superadmin cannot be reactivated via API. Use database recovery.",
+      );
     }
 
     await this.prisma.user.update({
