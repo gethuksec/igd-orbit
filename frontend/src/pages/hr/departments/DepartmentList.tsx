@@ -3,11 +3,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
-import { Loader2, Plus, Pencil, Trash2, Search, Building2 } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
 
 interface Department {
   id: string;
+  code: string;
   name: string;
   description?: string;
   isActive: boolean;
