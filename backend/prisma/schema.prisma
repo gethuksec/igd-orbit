@@ -368,6 +368,7 @@ model CustomerTier {
   code               String   @unique
   name               String
   description        String?
+  level              Int      @default(0) // Ordering/priority level
   discountPercentage Decimal  @map("discount_percentage") @db.Decimal(5, 2) // e.g., 15.00 for 15%
   creditLimit        Decimal  @map("credit_limit") @db.Decimal(15, 2)
   minPurchaseAmount  Decimal? @map("min_purchase_amount") @db.Decimal(15, 2) // Minimum purchase to qualify

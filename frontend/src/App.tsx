@@ -68,6 +68,7 @@ import BrandList from './pages/brands/BrandList';
 import BrandForm from './pages/brands/BrandForm';
 import BrandDetail from './pages/brands/BrandDetail';
 // Master Data - Service Types
+import CustomerTierList from "./pages/master-data/customer-tiers/CustomerTierList";
 import ServiceTypeList from './pages/service-types/ServiceTypeList';
 import ServiceTypeForm from './pages/service-types/ServiceTypeForm';
 import ServiceTypeDetail from './pages/service-types/ServiceTypeDetail';
@@ -449,6 +450,18 @@ function App() {
               }
             />
             
+            {/* Master Data - Customer Tiers */}
+            <Route
+              path="/customer-tiers"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <CustomerTierList />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+
             {/* Master Data - Service Types */}
             <Route
               path="/service-types"
