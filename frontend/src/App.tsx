@@ -450,8 +450,20 @@ function App() {
               }
             />
             
+            {/* Master Data - Customer Tiers */}
+            <Route
+              path="/customer-tiers"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <CustomerTierList />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+
             {/* Master Data - Service Types */}
-/* Master Data - Customer Tiers */
+            <Route
               path="/service-types"
               element={
                 <ProtectedRoute>
