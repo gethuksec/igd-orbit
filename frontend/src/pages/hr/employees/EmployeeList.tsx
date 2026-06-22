@@ -189,7 +189,7 @@ export default function EmployeeList() {
             className="px-6 py-3 bg-white/20 hover:bg-white/30 rounded-xl font-semibold transition-all flex items-center gap-2"
           >
             <Plus className="w-5 h-5" />
-            + Tambah Karyawan
+            Tambah Karyawan
           </button>
         </div>
       </div>
@@ -467,15 +467,17 @@ export default function EmployeeList() {
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm" />
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Status</label>
-                <select value={form.isActive ? 'true' : 'false'}
-                  onChange={(e) => setForm({ ...form, isActive: e.target.value === 'true' })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">
-                  <option value="true">Aktif</option>
-                  <option value="false">Tidak Aktif</option>
-                </select>
-              </div>
+              {editId && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">Status</label>
+                  <select value={form.isActive ? 'true' : 'false'}
+                    onChange={(e) => setForm({ ...form, isActive: e.target.value === 'true' })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">
+                    <option value="true">Aktif</option>
+                    <option value="false">Tidak Aktif</option>
+                  </select>
+                </div>
+              )}
             </div>
           </div>
 
@@ -527,13 +529,20 @@ export default function EmployeeList() {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Tipe Karyawan</label>
-                <select value={form.employmentType}
-                  onChange={(e) => setForm({ ...form, employmentType: e.target.value as 'PKWT' | 'PKWTT' | '' })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">
-                  <option value="">Pilih Tipe</option>
-                  <option value="PKWT">PKWT (Kontrak)</option>
-                  <option value="PKWTT">PKWTT (Tetap)</option>
-                </select>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="employmentType" value="PKWT" checked={form.employmentType === 'PKWT'}
+                      onChange={(e) => setForm({ ...form, employmentType: e.target.value as 'PKWT' | 'PKWTT' })}
+                      className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500" />
+                    <span className="text-sm">PKWT (Kontrak)</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="employmentType" value="PKWTT" checked={form.employmentType === 'PKWTT'}
+                      onChange={(e) => setForm({ ...form, employmentType: e.target.value as 'PKWT' | 'PKWTT' })}
+                      className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500" />
+                    <span className="text-sm">PKWTT (Tetap)</span>
+                  </label>
+                </div>
               </div>
               {form.employmentType === 'PKWT' && (
                 <div>

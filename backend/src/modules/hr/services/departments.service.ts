@@ -26,7 +26,7 @@ export class DepartmentsService {
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
+        { code: { contains: search, mode: 'insensitive' } },
       ];
     }
     const [departments, total] = await Promise.all([
@@ -73,8 +73,8 @@ export class DepartmentsService {
   async create(dto: CreateDepartmentDto) {
     const department = await this.prisma.department.create({
       data: {
+        code: dto.code,
         name: dto.name,
-        description: dto.description,
         parentDepartmentId: dto.parentDepartmentId,
         branchId: dto.branchId,
         isActive: dto.isActive ?? true,
@@ -96,7 +96,6 @@ export class DepartmentsService {
       where: { id },
       data: {
         name: dto.name,
-        description: dto.description,
         parentDepartmentId: dto.parentDepartmentId,
         branchId: dto.branchId,
         isActive: dto.isActive,
