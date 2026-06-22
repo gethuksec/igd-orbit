@@ -302,13 +302,13 @@ function CreateCustomerModal({ onClose, onCreated }: CreateCustomerModalProps) {
           <select
             value={formData.subdistrict}
             onChange={(e) => setFormData({ ...formData, subdistrict: e.target.value })}
-            className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white transition-all"
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             required
           >
             <option value="">Pilih Kecamatan</option>
-            {kecamatanJember.map((kec: any) => (
-              <option key={kec.id} value={kec.nama}>
-                {kec.nama}
+            {kecamatanJember.map((kec: string) => (
+              <option key={kec} value={kec}>
+                {kec}
               </option>
             ))}
           </select>

@@ -19,6 +19,9 @@ import {
 import { customersService } from '../../services/customers.service';
 import { toast } from 'sonner';
 import { Modal } from '../../components/ui/modal';
+import { Input } from '../../components/ui/input';
+import { Button } from '../../components/ui/button';
+import kecamatanJember from '../../data/kecamatan-jember.json';
 
 export default function CustomerList() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -30,6 +33,7 @@ export default function CustomerList() {
   const [importFile, setImportFile] = useState<File | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const queryClient = useQueryClient();
 
   const { data, isLoading, error, refetch } = useQuery({
@@ -133,6 +137,31 @@ export default function CustomerList() {
     },
   });
 
+  const [createForm, setCreateForm] = useState({ name: '', phone: '', subdistrict: '' });
+
+  const createMutation = useMutation({
+    mutationFn: async (data: { name: string; phone: string; subdistrict: string }) => {
+      return await customersService.create({
+        customerType: 'retail',
+        name: data.name,
+        phone: data.phone,
+        subdistrict: data.subdistrict,
+        city: 'Jember',
+        province: 'Jawa Timur',
+      });
+    },
+    onSuccess: () => {
+      toast.success('Pelanggan berhasil ditambahkan');
+      setCreateForm({ name: '', phone: '', subdistrict: '' });
+      setShowCreateModal(false);
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      queryClient.invalidateQueries({ queryKey: ['customers-statistics'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Gagal menambahkan pelanggan');
+    },
+  });
+
   const handleExport = async () => {
     try {
       await customersService.export({
@@ -170,12 +199,13 @@ export default function CustomerList() {
               <Download className="w-4 h-4" />
               <span>Export</span>
             </button>
-            <Link to="/customers/new">
-              <button className="flex items-center gap-2 px-6 py-3 bg-white text-primary-600 rounded-lg font-semibold hover:bg-primary-50 transition-all shadow-lg hover:shadow-xl">
-                <Plus className="w-5 h-5" />
-                <span>Tambah Pelanggan</span>
-              </button>
-            </Link>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-white text-primary-600 rounded-lg font-semibold hover:bg-primary-50 transition-all shadow-lg hover:shadow-xl"
+            >
+              <Plus className="w-5 h-5" />
+              <span>Tambah Pelanggan</span>
+            </button>
           </div>
         </div>
       </div>
@@ -327,12 +357,13 @@ export default function CustomerList() {
                       <p className="text-sm text-gray-500 max-w-md">
                         Coba ubah filter atau kata kunci pencarian. Atau tambahkan pelanggan baru untuk memulai.
                       </p>
-                      <Link to="/customers/new">
-                        <button className="mt-2 flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-primary-600 to-primary-500 text-white rounded-lg font-semibold hover:from-primary-700 hover:to-primary-600 shadow-lg transition-all">
-                          <Plus className="w-5 h-5" />
-                          <span>Tambah Pelanggan Pertama</span>
-                        </button>
-                      </Link>
+                      <button
+                        onClick={() => setShowCreateModal(true)}
+                        className="mt-2 flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-primary-600 to-primary-500 text-white rounded-lg font-semibold hover:from-primary-700 hover:to-primary-600 shadow-lg transition-all"
+                      >
+                        <Plus className="w-5 h-5" />
+                        <span>Tambah Pelanggan Pertama</span>
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -616,6 +647,83 @@ export default function CustomerList() {
             </button>
           </div>
         </div>
+      </Modal>
+
+      {/* Create Customer Modal */}
+      <Modal
+        open={showCreateModal}
+        onClose={() => {
+          setShowCreateModal(false);
+          setCreateForm({ name: '', phone: '', subdistrict: '' });
+        }}
+        title="Tambah Pelanggan"
+        size="md"
+      >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!createForm.name.trim()) { toast.error('Nama pelanggan wajib diisi'); return; }
+            if (!createForm.phone.trim()) { toast.error('Nomor telepon wajib diisi'); return; }
+            if (!createForm.subdistrict) { toast.error('Kecamatan wajib dipilih'); return; }
+            createMutation.mutate({
+              name: createForm.name.trim(),
+              phone: createForm.phone.trim(),
+              subdistrict: createForm.subdistrict,
+            });
+          }}
+          className="space-y-4"
+        >
+          <div>
+            <label className="block text-sm font-medium mb-2 text-gray-700">
+              Nama <span className="text-red-500">*</span>
+            </label>
+            <Input
+              type="text"
+              value={createForm.name}
+              onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+              placeholder="Masukkan nama pelanggan"
+              required
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2 text-gray-700">
+              Nomor Telepon <span className="text-red-500">*</span>
+            </label>
+            <Input
+              type="tel"
+              value={createForm.phone}
+              onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
+              placeholder="081234567890"
+              required
+            />
+            <p className="text-xs text-gray-500 mt-1">Format: 0XXXXXXXXX atau +62XXXXXXXXX</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2 text-gray-700">
+              Kecamatan <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={createForm.subdistrict}
+              onChange={(e) => setCreateForm({ ...createForm, subdistrict: e.target.value })}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              required
+            >
+              <option value="">Pilih Kecamatan</option>
+              {kecamatanJember.map((kec: string) => (
+                <option key={kec} value={kec}>{kec}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex gap-2 pt-2">
+            <Button type="button" onClick={() => { setShowCreateModal(false); setCreateForm({ name: '', phone: '', subdistrict: '' }); }} variant="outline" className="flex-1">
+              Batal
+            </Button>
+            <Button type="submit" disabled={createMutation.isPending} className="flex-1">
+              {createMutation.isPending ? 'Menyimpan...' : 'Simpan'}
+            </Button>
+          </div>
+        </form>
       </Modal>
     </div>
   );
