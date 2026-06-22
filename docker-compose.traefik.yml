@@ -1,0 +1,73 @@
+services:
+  # Backend Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: igd-orbit-backend
+    restart: unless-stopped
+    expose:
+      - "3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      FRONTEND_URL: http://igd.ad8ya.cloud
+      DATABASE_URL: postgresql://developer:asd1234!Ff@postgresql:5432/igd_orbit_db?schema=public
+      REDIS_URL: redis://:asd2134!Ff@redis:6379
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production-min-32-chars}
+      JWT_EXPIRES_IN: 1h
+      REFRESH_TOKEN_EXPIRES_IN: 7d
+      STORAGE_TYPE: local
+      STORAGE_PATH: ./uploads
+    volumes:
+      - backend_uploads:/app/uploads
+    networks:
+      - proxy
+      - database
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/v1/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend Service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: igd-orbit-frontend
+    restart: unless-stopped
+    expose:
+      - "80"
+    depends_on:
+      - backend
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.services.igd-orbit-frontend.loadbalancer.server.port=80"
+      - "traefik.http.routers.igd-orbit-frontend.rule=Host(`igd.ad8ya.cloud`)"
+      - "traefik.http.routers.igd-orbit-frontend.entrypoints=internal-http"
+      - "traefik.http.routers.igd-orbit-frontend-secure.rule=Host(`igd.ad8ya.cloud`)"
+      - "traefik.http.routers.igd-orbit-frontend-secure.entrypoints=https"
+      - "traefik.http.routers.igd-orbit-frontend-secure.tls=true"
+      - "traefik.http.routers.igd-orbit-frontend-secure.tls.certresolver=cloudflare"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  backend_uploads:
+
+networks:
+  proxy:
+    external: true
+  database:
+    external: true

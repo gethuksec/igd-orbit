@@ -57,6 +57,13 @@ export class AuthService {
       return null;
     }
 
+    // Check if user is banned due to failed login attempts
+    if (!user.isActive && user.banReason === 'failed_logins') {
+      throw new UnauthorizedException(
+        'Account banned due to 3 failed login attempts. Contact your supervisor to reactivate.',
+      );
+    }
+
     // Check if user is active and not deleted
     if (!user.isActive || user.deletedAt) {
       throw new UnauthorizedException('Account is inactive or deleted');
@@ -90,6 +97,7 @@ export class AuthService {
             isActive: false,
             failedLoginAttempts: 0,
             lockedUntil: null,
+            banReason: 'failed_logins',
           },
         });
         throw new UnauthorizedException(

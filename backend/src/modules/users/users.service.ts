@@ -677,6 +677,7 @@ export class UsersService {
         isActive: true,
         failedLoginAttempts: 0,
         lockedUntil: null,
+        banReason: null,
       },
     });
 
