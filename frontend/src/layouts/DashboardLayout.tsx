@@ -299,6 +299,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       children: [
         { icon: Users, label: 'Users', path: '/users', permission: 'users.user.view', roles: ['SUPERADMIN', 'OWNER', 'CHR'] },
         { icon: Shield, label: 'Roles', path: '/roles', permission: 'roles.role.view', roles: ['SUPERADMIN', 'OWNER', 'CHR'] },
+        { icon: Shield, label: 'Password Requests', path: '/password-requests', permission: 'users.*.view', roles: ['SUPERADMIN', 'OWNER', 'CHR'] },
       ],
     },
   ];

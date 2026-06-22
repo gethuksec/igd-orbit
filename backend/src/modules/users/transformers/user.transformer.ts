@@ -51,6 +51,7 @@ export interface TransformedUser {
   isActive: boolean;
   isVerified: boolean;
   twoFactorEnabled: boolean;
+  canChangePassword: boolean;
   employeeCode?: string | null;
   departmentId?: string | null;
   employee?: {
@@ -167,6 +168,7 @@ export class UserTransformer {
       isActive: user.isActive,
       isVerified: user.isVerified,
       twoFactorEnabled: user.twoFactorEnabled,
+      canChangePassword: user.canChangePassword,
       employeeCode: (user as any).employeeCode || null,
       departmentId: (user as any).departmentId || null,
       employee,

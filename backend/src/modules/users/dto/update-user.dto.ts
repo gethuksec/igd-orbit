@@ -110,4 +110,8 @@ export class UpdateUserDto {
   @IsBoolean({ message: 'isActive must be a boolean' })
   @IsOptional()
   isActive?: boolean;
+
+  @IsBoolean({ message: 'canChangePassword must be a boolean' })
+  @IsOptional()
+  canChangePassword?: boolean;
 }

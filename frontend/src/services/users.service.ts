@@ -6,6 +6,7 @@ export interface User {
   fullName: string;
   phone?: string;
   isActive: boolean;
+  canChangePassword?: boolean;
   roles?: UserRole[];
   branchIds?: string[];
   createdAt: string;
@@ -50,6 +51,7 @@ export interface CreateUserDto {
   fullName: string;
   phone?: string;
   isActive?: boolean;
+  canChangePassword?: boolean;
 }
 
 export interface UpdateUserDto {
@@ -57,6 +59,7 @@ export interface UpdateUserDto {
   fullName?: string;
   phone?: string;
   isActive?: boolean;
+  canChangePassword?: boolean;
 }
 
 export interface AssignRoleDto {
@@ -146,6 +149,48 @@ export const usersService = {
       return response.data;
     } catch (error: any) {
       handleApiError(error, { message: 'Gagal reactivasi pengguna' });
+      throw error;
+    }
+  },
+};
+
+export const authService = {
+  async changePassword(data: { currentPassword: string; newPassword: string }): Promise<{ status: string; message: string }> {
+    try {
+      const response = await api.post('/auth/change-password', data);
+      return response.data;
+    } catch (error: any) {
+      handleApiError(error, { status: 'error', message: 'Gagal mengubah password' });
+      throw error;
+    }
+  },
+
+  async getPasswordRequests(): Promise<any[]> {
+    try {
+      const response = await api.get('/auth/password-requests/pending');
+      return response.data;
+    } catch (error: any) {
+      handleApiError(error, []);
+      throw error;
+    }
+  },
+
+  async approvePasswordRequest(id: string): Promise<{ status: string; message: string }> {
+    try {
+      const response = await api.post(`/auth/password-requests/${id}/approve`);
+      return response.data;
+    } catch (error: any) {
+      handleApiError(error, { status: 'error', message: 'Gagal menyetujui permintaan' });
+      throw error;
+    }
+  },
+
+  async rejectPasswordRequest(id: string): Promise<{ status: string; message: string }> {
+    try {
+      const response = await api.post(`/auth/password-requests/${id}/reject`);
+      return response.data;
+    } catch (error: any) {
+      handleApiError(error, { status: 'error', message: 'Gagal menolak permintaan' });
       throw error;
     }
   },

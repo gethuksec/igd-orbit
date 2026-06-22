@@ -516,6 +516,7 @@ export class AuthService {
       isActive: user.isActive,
       isVerified: user.isVerified,
       twoFactorEnabled: user.twoFactorEnabled,
+      canChangePassword: user.canChangePassword,
       roles,
       permissions,
       branchIds: branchIds.length > 0 ? branchIds : null,
@@ -531,25 +532,16 @@ export class AuthService {
    */
 
   /**
-   * Change user password (with role-level approval)
-   * Checks Role.level to determine if auto-approve or requires approval
-   * - SUPERADMIN (level 0) and OWNER (level 1): auto-approved
-   * - Other roles: creates a pending request
+   * Change user password (with per-user canChangePassword control)
+   * - If user.canChangePassword == true: auto-approved, password changed directly
+   * - If user.canChangePassword == false: creates a pending request for supervisor approval
    * @param userId - User ID
    * @param changePasswordDto - Current and new password
    * @returns Result with status and message
    */
   async changePassword(userId: string, changePasswordDto: ChangePasswordDto) {
-    // Get user with roles
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: {
-        userRoles: {
-          include: {
-            role: true,
-          },
-        },
-      },
     });
 
     if (!user || !user.isActive || user.deletedAt) {
@@ -574,22 +566,13 @@ export class AuthService {
       throw new BadRequestException(passwordValidation.error);
     }
 
-    // Check user's highest role level
-    const activeRoles = user.userRoles.filter(
-      (ur) => !ur.validUntil || ur.validUntil > new Date(),
-    );
-    const maxRoleLevel = activeRoles.length > 0
-      ? Math.min(...activeRoles.map((ur) => ur.role.level))
-      : 999;
-
     // Hash the new password
     const newPasswordHash = await this.passwordService.hashPassword(
       changePasswordDto.newPassword,
     );
 
-    // SUPERADMIN (level 0) and OWNER (level 1) can change directly
-    if (maxRoleLevel <= 1) {
-      // Auto-approve: update password directly and create approved request
+    if (user.canChangePassword) {
+      // User has permission: update password directly and create approved record
       await this.prisma.user.update({
         where: { id: userId },
         data: { passwordHash: newPasswordHash },
@@ -598,7 +581,7 @@ export class AuthService {
       await this.prisma.passwordChangeRequest.create({
         data: {
           userId,
-          currentPassword: '*****', // Don't store actual password
+          currentPassword: '*****',
           newPasswordHash,
           status: 'approved',
           approvedBy: userId,
@@ -606,7 +589,7 @@ export class AuthService {
         },
       });
 
-      // Invalidate all refresh tokens for security
+      // Invalidate all refresh tokens
       const refreshTokenKey = `${this.refreshTokenPrefix}${userId}`;
       try {
         await this.redis.del(refreshTokenKey);
@@ -620,11 +603,11 @@ export class AuthService {
       };
     }
 
-    // For other roles, create a pending request that needs approval
+    // User cannot change directly: create a pending request that needs approval
     await this.prisma.passwordChangeRequest.create({
       data: {
         userId,
-        currentPassword: '*****', // Don't store actual password
+        currentPassword: '*****',
         newPasswordHash,
         status: 'pending',
       },
@@ -634,6 +617,134 @@ export class AuthService {
       status: 'pending',
       message: 'Password change request submitted and requires approval',
     };
+  }
+
+  /**
+   * Approve a pending password change request
+   * Only users with canChangePassword=true can approve
+   * @param requestId - PasswordChangeRequest ID
+   * @param approverId - User ID of the approver
+   */
+  async approvePasswordRequest(requestId: string, approverId: string) {
+    const request = await this.prisma.passwordChangeRequest.findUnique({
+      where: { id: requestId },
+    });
+
+    if (!request) {
+      throw new NotFoundException('Password change request not found');
+    }
+
+    if (request.status !== 'pending') {
+      throw new BadRequestException(
+        `Request is already ${request.status}, cannot approve`,
+      );
+    }
+
+    // Check if approver has permission
+    const approver = await this.prisma.user.findUnique({
+      where: { id: approverId },
+    });
+
+    if (!approver || !approver.canChangePassword) {
+      throw new UnauthorizedException(
+        'You do not have permission to approve password change requests',
+      );
+    }
+
+    // Update user's password and approve the request
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: request.userId },
+        data: { passwordHash: request.newPasswordHash },
+      }),
+      this.prisma.passwordChangeRequest.update({
+        where: { id: requestId },
+        data: {
+          status: 'approved',
+          approvedBy: approverId,
+          approvedAt: new Date(),
+        },
+      }),
+    ]);
+
+    // Invalidate old refresh tokens
+    const refreshTokenKey = `${this.refreshTokenPrefix}${request.userId}`;
+    try {
+      await this.redis.del(refreshTokenKey);
+    } catch (error) {
+      console.warn('Redis unavailable during password change:', error);
+    }
+
+    return {
+      status: 'approved',
+      message: 'Password change request approved',
+    };
+  }
+
+  /**
+   * Reject a pending password change request
+   * @param requestId - PasswordChangeRequest ID
+   * @param approverId - User ID of the rejector
+   */
+  async rejectPasswordRequest(requestId: string, approverId: string) {
+    const request = await this.prisma.passwordChangeRequest.findUnique({
+      where: { id: requestId },
+    });
+
+    if (!request) {
+      throw new NotFoundException('Password change request not found');
+    }
+
+    if (request.status !== 'pending') {
+      throw new BadRequestException(
+        `Request is already ${request.status}, cannot reject`,
+      );
+    }
+
+    const approver = await this.prisma.user.findUnique({
+      where: { id: approverId },
+    });
+
+    if (!approver || !approver.canChangePassword) {
+      throw new UnauthorizedException(
+        'You do not have permission to reject password change requests',
+      );
+    }
+
+    await this.prisma.passwordChangeRequest.update({
+      where: { id: requestId },
+      data: {
+        status: 'rejected',
+        approvedBy: approverId,
+        approvedAt: new Date(),
+      },
+    });
+
+    return {
+      status: 'rejected',
+      message: 'Password change request rejected',
+    };
+  }
+
+  /**
+   * Get pending password change requests
+   * @returns List of pending requests with user info
+   */
+  async getPendingPasswordRequests() {
+    return this.prisma.passwordChangeRequest.findMany({
+      where: { status: 'pending' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            username: true,
+          },
+        },
+      },
+      orderBy: { requestedAt: 'desc' },
+    });
   }
 
   private parseExpiration(expiration: string): number {

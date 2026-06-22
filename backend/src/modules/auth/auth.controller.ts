@@ -7,6 +7,7 @@ import {
   Request,
   HttpCode,
   HttpStatus,
+  Param,
 } from '@nestjs/common';
 import { Request as ExpressRequest } from 'express';
 import { AuthService } from './auth.service';
@@ -125,5 +126,43 @@ export class AuthController {
     @Request() req: ExpressRequest & { user: { id: string } },
   ) {
     return this.authService.getCurrentUser(req.user.id);
+  }
+
+  /**
+   * Get pending password change requests
+   * GET /api/v1/auth/password-requests/pending
+   */
+  @Get('password-requests/pending')
+  @UseGuards(JwtAuthGuard)
+  async getPendingPasswordRequests() {
+    return this.authService.getPendingPasswordRequests();
+  }
+
+  /**
+   * Approve a pending password change request
+   * POST /api/v1/auth/password-requests/:id/approve
+   */
+  @Post('password-requests/:id/approve')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async approvePasswordRequest(
+    @Param('id') id: string,
+    @Request() req: ExpressRequest & { user: { id: string } },
+  ) {
+    return this.authService.approvePasswordRequest(id, req.user.id);
+  }
+
+  /**
+   * Reject a pending password change request
+   * POST /api/v1/auth/password-requests/:id/reject
+   */
+  @Post('password-requests/:id/reject')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async rejectPasswordRequest(
+    @Param('id') id: string,
+    @Request() req: ExpressRequest & { user: { id: string } },
+  ) {
+    return this.authService.rejectPasswordRequest(id, req.user.id);
   }
 }

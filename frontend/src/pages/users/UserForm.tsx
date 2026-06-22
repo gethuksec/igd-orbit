@@ -18,6 +18,7 @@ export default function UserForm() {
     fullName: '',
     phone: '',
     isActive: true,
+    canChangePassword: true,
   });
 
   const { data: user, isLoading: loadingUser } = useQuery({
@@ -34,6 +35,7 @@ export default function UserForm() {
         fullName: user.fullName || '',
         phone: user.phone || '',
         isActive: user.isActive ?? true,
+        canChangePassword: user.canChangePassword ?? true,
       });
     }
   }, [user]);
@@ -45,6 +47,7 @@ export default function UserForm() {
         fullName: data.fullName,
         phone: data.phone || undefined,
         isActive: data.isActive,
+        canChangePassword: data.canChangePassword,
       };
 
       if (!isEdit && data.password) {
@@ -192,6 +195,19 @@ export default function UserForm() {
                 <option value="active">Aktif</option>
                 <option value="inactive">Non-Aktif</option>
               </select>
+            </div>
+
+            <div className="flex items-center gap-3 pt-6">
+              <input
+                type="checkbox"
+                id="canChangePassword"
+                checked={formData.canChangePassword}
+                onChange={(e) => setFormData({ ...formData, canChangePassword: e.target.checked })}
+                className="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              />
+              <label htmlFor="canChangePassword" className="text-sm font-semibold text-gray-700 cursor-pointer">
+                Izinkan user mengubah password sendiri
+              </label>
             </div>
           </div>
         </div>

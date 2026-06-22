@@ -482,6 +482,7 @@ export class UsersService {
         fullName: updateUserDto.fullName,
         phone: updateUserDto.phone,
         isActive: updateUserDto.isActive,
+        canChangePassword: updateUserDto.canChangePassword,
       },
       include: {
         employee: {

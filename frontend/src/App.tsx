@@ -128,6 +128,7 @@ import UserForm from './pages/users/UserForm';
 import RoleList from './pages/roles/RoleList';
 import RoleDetail from './pages/roles/RoleDetail';
 import RoleForm from './pages/roles/RoleForm';
+import PasswordRequests from './pages/auth/PasswordRequests';
 import './App.css';
 
 // Create a client for React Query
@@ -1428,7 +1429,19 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            
+
+            {/* Password Requests */}
+            <Route
+              path="/password-requests"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PasswordRequests />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+
             {/* Unauthorized Page */}
             <Route
               path="/unauthorized"

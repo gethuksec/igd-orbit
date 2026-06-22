@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { User, Mail, Phone, Calendar, Edit, Save, Loader2, Shield } from 'lucide-react';
-import { usersService } from '../../services/users.service';
+import { User, Mail, Phone, Calendar, Edit, Save, Loader2, Shield, Lock, CheckCircle } from 'lucide-react';
+import { usersService, authService } from '../../services/users.service';
 import { toast } from 'sonner';
 
 export default function Profile() {
@@ -257,6 +257,122 @@ export default function Profile() {
           </div>
         )}
       </div>
+
+      {/* Password Change Card */}
+      <PasswordChangeSection user={user} onPasswordChanged={() => queryClient.invalidateQueries({ queryKey: ['user', userId] })} />
+    </div>
+  );
+}
+
+function PasswordChangeSection({ user, onPasswordChanged }: { user: any; onPasswordChanged: () => void }) {
+  const canChange = user?.canChangePassword !== false;
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  const changeMutation = useMutation({
+    mutationFn: (data: { currentPassword: string; newPassword: string }) =>
+      authService.changePassword(data),
+    onSuccess: (result) => {
+      if (result.status === 'approved') {
+        toast.success('Password berhasil diubah!');
+      } else if (result.status === 'pending') {
+        toast.success('Permintaan perubahan password telah dikirim dan menunggu persetujuan');
+      }
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      onPasswordChanged();
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Gagal mengubah password');
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      toast.error('Konfirmasi password tidak cocok');
+      return;
+    }
+    if (newPassword.length < 8) {
+      toast.error('Password minimal 8 karakter');
+      return;
+    }
+    changeMutation.mutate({ currentPassword, newPassword });
+  };
+
+  return (
+    <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-6">
+      <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+        <Lock className="w-5 h-5" />
+        {canChange ? 'Ubah Password' : 'Permintaan Ubah Password'}
+      </h2>
+      {canChange ? (
+        <p className="text-sm text-gray-600">Anda dapat mengubah password sendiri. Password akan langsung diterapkan.</p>
+      ) : (
+        <p className="text-sm text-gray-600">
+          Anda tidak diizinkan mengubah password sendiri. Isi form di bawah untuk mengirim permintaan ke atasan Anda.
+        </p>
+      )}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Password Saat Ini</label>
+          <input
+            type="password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            required
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all"
+            placeholder="Masukkan password saat ini"
+          />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Password Baru</label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              required
+              minLength={8}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all"
+              placeholder="Minimal 8 karakter"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Konfirmasi Password Baru</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all"
+              placeholder="Ulangi password baru"
+            />
+          </div>
+        </div>
+        <div className="text-xs text-gray-500 space-y-1">
+          <p>Password harus mengandung: minimal 8 karakter, huruf besar, huruf kecil, angka, dan karakter spesial</p>
+        </div>
+        <button
+          type="submit"
+          disabled={changeMutation.isPending}
+          className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-500 text-white rounded-lg hover:from-red-700 hover:to-red-600 transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+        >
+          {changeMutation.isPending ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              {canChange ? 'Mengubah...' : 'Mengirim...'}
+            </>
+          ) : (
+            <>
+              <CheckCircle className="w-5 h-5" />
+              {canChange ? 'Ubah Password' : 'Kirim Permintaan'}
+            </>
+          )}
+        </button>
+      </form>
     </div>
   );
 }
