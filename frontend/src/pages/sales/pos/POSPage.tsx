@@ -197,7 +197,7 @@ export default function POSPage() {
                 F2: Cari customer
               </span>
             </div>
-            <div className="h-[220px] md:h-[260px]">
+            <div className="h-[160px] md:h-[180px]">
               <POSCustomer />
             </div>
           </div>

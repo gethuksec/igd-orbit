@@ -40,6 +40,7 @@ export interface ProductSearchResult {
   name: string;
   sku: string;
   sellingPrice: number;
+  trackSerial?: boolean;
   stock?: {
     quantityAvailable: number;
     quantityReserved: number;
@@ -135,6 +136,7 @@ export const salesService = {
         name: p.name,
         sku: p.sku,
         sellingPrice: p.sellingPrice || p.effectivePrice || 0,
+        trackSerial: p.trackSerial || false,
         stock: stockInfo,
         images: p.images || [],
       };
@@ -189,6 +191,7 @@ export const salesService = {
         name: product.name,
         sku: product.sku,
         sellingPrice: product.sellingPrice || product.effectivePrice || 0,
+        trackSerial: product.trackSerial || false,
         stock: stockInfo,
         images: product.images || [],
       };

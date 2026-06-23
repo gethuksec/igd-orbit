@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { formatPhone, formatCurrency } from '@/utils/format';
+import { formatPhone } from '@/utils/format';
 import { toast } from 'sonner';
 import kecamatanJember from '@/data/kecamatan-jember.json';
 
@@ -113,49 +113,27 @@ export function POSCustomer() {
 
       {/* Selected Customer Display */}
       {customer ? (
-        <div className="flex-1 p-4 space-y-4">
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <div className="font-semibold text-lg">{customer.name}</div>
-                <div className="text-sm text-gray-500">{formatPhone(customer.phone)}</div>
-                {customer.email && (
-                  <div className="text-sm text-gray-500">{customer.email}</div>
-                )}
+        <div className="flex-1 p-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-bold shrink-0">
+                {customer.name.charAt(0).toUpperCase()}
               </div>
-              <Button onClick={clearCustomer} variant="ghost" size="sm">
-                Clear
-              </Button>
+              <div className="min-w-0">
+                <div className="font-semibold text-sm text-gray-900 truncate">{customer.name}</div>
+                <div className="text-xs text-gray-500">{formatPhone(customer.phone)}</div>
+              </div>
             </div>
-
-            {customer.tier && (
-              <div className="mt-3">
-                <Badge variant="default" className="mb-2">
-                  {customer.tier.name} Member
-                </Badge>
-                <div className="text-sm text-gray-600">
-                  Discount: {customer.tier.discountPercentage}%
-                </div>
-              </div>
-            )}
-
-            {customer.creditLimit !== undefined && customer.creditLimit > 0 && (
-              <div className="mt-3 pt-3 border-t">
-                <div className="text-sm text-gray-600">
-                  Credit Limit: {formatCurrency(customer.creditLimit)}
-                </div>
-                {customer.creditUsed !== undefined && (
-                  <div className="text-sm text-gray-600">
-                    Credit Used: {formatCurrency(customer.creditUsed)}
-                  </div>
-                )}
-                {customer.creditLimit !== undefined && customer.creditUsed !== undefined && (
-                  <div className="text-sm font-semibold text-green-600 mt-1">
-                    Available: {formatCurrency(customer.creditLimit - customer.creditUsed)}
-                  </div>
-                )}
-              </div>
-            )}
+            <div className="flex items-center gap-2 shrink-0">
+              {customer.tier && (
+                <span className="text-[10px] bg-primary-50 text-primary-700 px-2 py-0.5 rounded-full font-medium">
+                  {customer.tier.name}
+                </span>
+              )}
+              <button onClick={clearCustomer} className="text-xs text-gray-400 hover:text-red-500 transition-colors">
+                ✕
+              </button>
+            </div>
           </div>
         </div>
       ) : (

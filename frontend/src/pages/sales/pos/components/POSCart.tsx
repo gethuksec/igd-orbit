@@ -15,6 +15,7 @@ export function POSCart() {
   const { currentBranchId } = useBranchStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [showDiscountModal, setShowDiscountModal] = useState<number | null>(null);
+  const [serialInput, setSerialInput] = useState<{ product: ProductSearchResult; callback: (serial: string) => void } | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Product search query
@@ -38,7 +39,7 @@ export function POSCart() {
           // Likely a barcode
           const product = await salesService.getProductByBarcode(barcodeBuffer, currentBranchId || undefined);
           if (product) {
-            handleAddProduct(product);
+            handleProductClick(product);
             setBarcodeBuffer('');
             setSearchQuery('');
           }
@@ -53,7 +54,7 @@ export function POSCart() {
     setBarcodeBuffer((prev) => prev + value.slice(-1));
   };
 
-  const handleAddProduct = (product: ProductSearchResult) => {
+  const handleAddProduct = (product: ProductSearchResult, serialNumber?: string) => {
     const stock = product.stock?.quantityAvailable || 0;
     const reserved = product.stock?.quantityReserved || 0;
     const availableStock = stock - reserved;
@@ -71,10 +72,25 @@ export function POSCart() {
       quantity: 1,
       unitPrice: product.sellingPrice,
       availableStock,
+      serialNumber,
     });
 
     setSearchQuery('');
     searchInputRef.current?.focus();
+  };
+
+  const handleProductClick = (product: ProductSearchResult) => {
+    if (product.trackSerial) {
+      setSerialInput({
+        product,
+        callback: (serial: string) => {
+          handleAddProduct(product, serial);
+          setSerialInput(null);
+        },
+      });
+    } else {
+      handleAddProduct(product);
+    }
   };
 
   const handleQuantityChange = (index: number, newQuantity: number) => {
@@ -120,7 +136,7 @@ export function POSCart() {
                   <button
                     key={product.id}
                     type="button"
-                    onClick={() => handleAddProduct(product)}
+                    onClick={() => handleProductClick(product)}
                     className="w-full px-3 py-2.5 text-left hover:bg-gray-50 flex items-center gap-3 text-sm"
                   >
                     {product.images?.[0] && (
@@ -205,6 +221,15 @@ export function POSCart() {
           </div>
         </div>
       </div>
+
+      {/* Serial Number Input Modal */}
+      {serialInput && (
+        <SerialNumberModal
+          productName={serialInput.product.name}
+          onSubmit={serialInput.callback}
+          onCancel={() => setSerialInput(null)}
+        />
+      )}
     </div>
   );
 }
@@ -407,6 +432,57 @@ function DiscountModal({ onApply, onClose }: DiscountModalProps) {
             </Button>
             <Button onClick={handleSubmit} className="flex-1">
               Apply
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Serial Number Input Modal
+ */
+interface SerialNumberModalProps {
+  productName: string;
+  onSubmit: (serial: string) => void;
+  onCancel: () => void;
+}
+
+function SerialNumberModal({ productName, onSubmit, onCancel }: SerialNumberModalProps) {
+  const [serial, setSerial] = useState('');
+
+  const handleSubmit = () => {
+    onSubmit(serial.trim());
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onCancel}>
+      <div className="bg-white rounded-lg p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-lg font-semibold mb-2">Serial Number</h3>
+        <p className="text-sm text-gray-500 mb-4">{productName}</p>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">Serial Number <span className="text-gray-400 font-normal">(opsional)</span></label>
+            <Input
+              type="text"
+              value={serial}
+              onChange={(e) => setSerial(e.target.value)}
+              placeholder="Kosongkan jika tidak ada"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSubmit();
+                if (e.key === 'Escape') onCancel();
+              }}
+            />
+          </div>
+          <p className="text-xs text-gray-400">Serial number digunakan untuk tracking garansi dan identifikasi unit. Kosongkan jika produk ini tidak memiliki serial number.</p>
+          <div className="flex gap-2">
+            <Button onClick={onCancel} variant="outline" className="flex-1">
+              Batal
+            </Button>
+            <Button onClick={handleSubmit} className="flex-1">
+              Tambahkan
             </Button>
           </div>
         </div>

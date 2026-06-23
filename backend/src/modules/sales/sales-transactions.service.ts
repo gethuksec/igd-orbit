@@ -246,9 +246,9 @@ export class SalesTransactionsService {
         );
       }
 
-      // Validate serial/batch for tracked items
+      // Validate serial/batch for tracked items (soft prompt, not hard block)
       if (product.trackSerial && !item.serialNumber) {
-        throw new BadRequestException(`Serial number is required for ${product.name}`);
+        // Serial number is optional — allows adding products without serial even if trackSerial is set
       }
       if (product.trackBatch && !item.batchNumber) {
         throw new BadRequestException(`Batch number is required for ${product.name}`);
