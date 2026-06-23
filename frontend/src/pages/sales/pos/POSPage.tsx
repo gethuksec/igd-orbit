@@ -121,6 +121,8 @@ export default function POSPage() {
   );
 
   const handlePaymentSuccess = () => {
+    // TODO: Redirect after checkout — discuss where to go (transaction detail? sales history? receipt?)
+    // Currently just shows a toast and clears the cart, user stays on POS page.
     toast.success('Transaction completed successfully!');
     clearCart();
   };
