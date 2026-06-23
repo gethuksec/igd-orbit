@@ -50,7 +50,7 @@ export function POSActions({ branchId, transactionId, onShowPayment }: POSAction
 
   return (
     <div className="space-y-2">
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-4 gap-2">
         <Button
           onClick={() => setShowDiscountModal(true)}
           variant="outline"
@@ -70,7 +70,7 @@ export function POSActions({ branchId, transactionId, onShowPayment }: POSAction
         <Button
           onClick={onShowPayment}
           variant="default"
-          className="flex flex-col items-center justify-center gap-0.5 h-14 px-1 bg-primary text-white hover:bg-primary-600"
+          className="col-span-2 flex flex-col items-center justify-center gap-0.5 h-14 px-1 bg-primary text-white hover:bg-primary-600"
         >
           <span className="text-base">💲</span>
           <span className="text-[11px] font-semibold leading-tight text-center">Bayar</span>

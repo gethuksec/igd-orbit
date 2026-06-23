@@ -166,25 +166,28 @@ export default function POSPage() {
 
       {/* Main Content */}
       <div className="grid grid-cols-1 xl:grid-cols-[3fr_2fr] gap-4 items-start">
-        {/* Left Panel - Cart */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden transition-shadow hover:shadow-lg">
-          <div className="border-b px-4 py-3.5 flex items-center justify-between bg-gradient-to-r from-gray-50 to-gray-100/50">
-            <div>
-              <h2 className="font-semibold text-sm md:text-base text-gray-900 mb-0.5">Daftar Item</h2>
-              <p className="text-xs text-gray-600">
-                Scan barcode atau cari produk untuk menambahkan ke keranjang
-              </p>
+        {/* Left Column - Cart */}
+        <div className="space-y-4">
+          {/* Cart Section */}
+          <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden transition-shadow hover:shadow-lg">
+            <div className="border-b px-4 py-3.5 flex items-center justify-between bg-gradient-to-r from-gray-50 to-gray-100/50">
+              <div>
+                <h2 className="font-semibold text-sm md:text-base text-gray-900 mb-0.5">Daftar Item</h2>
+                <p className="text-xs text-gray-600">
+                  Scan barcode atau cari produk untuk menambahkan ke keranjang
+                </p>
+              </div>
+              <div className="text-xs text-gray-500 hidden md:block font-mono">
+                F1: Produk · F12: Pembayaran
+              </div>
             </div>
-            <div className="text-xs text-gray-500 hidden md:block font-mono">
-              F1: Produk · F12: Pembayaran
+            <div className="h-[420px] md:h-[520px]">
+              <POSCart />
             </div>
-          </div>
-          <div className="h-[420px] md:h-[520px]">
-            <POSCart />
           </div>
         </div>
 
-        {/* Right Panel - Customer & Actions */}
+        {/* Right Column - Customer & Actions */}
         <div className="space-y-4">
           {/* Customer Section */}
           <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden transition-shadow hover:shadow-lg">
@@ -199,11 +202,10 @@ export default function POSPage() {
             </div>
           </div>
 
-          {/* Notes Section — inline textareas, no modal */}
+          {/* Notes Section — inline textareas */}
           <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden transition-shadow hover:shadow-lg">
-            <div className="px-4 py-3 border-b bg-gradient-to-r from-gray-50 to-gray-100/50 flex items-center justify-between">
+            <div className="px-4 py-3 border-b bg-gradient-to-r from-gray-50 to-gray-100/50">
               <h2 className="font-semibold text-sm md:text-base text-gray-900">Catatan</h2>
-              <span className="text-[10px] md:text-xs text-gray-500">Keduanya tercetak di export</span>
             </div>
             <div className="p-4 space-y-3">
               <div>
@@ -231,11 +233,13 @@ export default function POSPage() {
             </div>
           </div>
 
-          {/* Action Bar — Discount, Hold, Pay */}
-          <POSActions
-            onShowPayment={handleOpenPayment}
-            branchId={currentBranchId || undefined}
-          />
+          {/* Action Section */}
+          <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden transition-shadow hover:shadow-lg p-4">
+            <POSActions
+              onShowPayment={handleOpenPayment}
+              branchId={currentBranchId || undefined}
+            />
+          </div>
         </div>
       </div>
 
