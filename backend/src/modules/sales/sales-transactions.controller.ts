@@ -24,17 +24,26 @@ import {
 
 // Helper to check branch access similar to DashboardController
 const ensureBranchAccess = (req: ExpressRequest & { user: any }, branchId?: string) => {
-  const userBranchIds: string[] = (req.user as any)?.branchIds || [];
+  const userBranchIds = (req.user as any)?.branchIds;
   const userRoles: string[] = (req.user as any)?.roles || [];
 
-  const isGlobalRole = userRoles.includes('OWNER') || userRoles.includes('CFO');
+  // SUPERADMIN, OWNER, and CFO have global access to all branches
+  const isGlobalRole =
+    userRoles.includes('SUPERADMIN') ||
+    userRoles.includes('OWNER') ||
+    userRoles.includes('CFO');
 
   // Global roles can access any / all branches
   if (isGlobalRole) {
     return branchId;
   }
 
-  if (!userBranchIds || userBranchIds.length === 0) {
+  // null/undefined branchIds means all branches (e.g. no branch assignment)
+  if (userBranchIds === null || userBranchIds === undefined) {
+    return branchId;
+  }
+
+  if (!Array.isArray(userBranchIds) || userBranchIds.length === 0) {
     throw new ForbiddenException('You do not have any branch access.');
   }
 

@@ -1,13 +1,12 @@
-const CACHE_NAME = 'igd-erp-v1';
+const CACHE_NAME = 'igd-erp-v2';
 const OFFLINE_URL = '/offline.html';
 
 const STATIC_CACHE = [
-  '/',
   '/offline.html',
   '/manifest.json',
 ];
 
-// Install event - cache static assets
+// Install event - cache static assets (excluding index.html)
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -17,7 +16,7 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate event - clean old caches
+// Activate event - clean old caches and claim clients
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -26,30 +25,53 @@ self.addEventListener('activate', (event) => {
           .filter((name) => name !== CACHE_NAME)
           .map((name) => caches.delete(name))
       );
+    }).then(() => {
+      return self.clients.claim();
     })
   );
-  self.clients.claim();
 });
 
-// Fetch event - serve from cache, fallback to network
+// Fetch event - network-first for navigation, cache-first for assets
 self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
-  
+
   // Skip API requests and external resources
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin || url.pathname.startsWith('/api/')) {
-    return; // Let browser handle it normally
+    return;
   }
-  
+
+  // Navigation requests (HTML pages) → network-first
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          // Cache the latest response for offline fallback
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+          return response;
+        })
+        .catch(() => {
+          // Offline: serve cached version or offline page
+          return caches.match(event.request).then((cached) => {
+            return cached || caches.match(OFFLINE_URL) || new Response('Offline', { status: 503 });
+          });
+        })
+    );
+    return;
+  }
+
+  // Static assets (JS, CSS, images) → cache-first with network update
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
         return cachedResponse;
       }
-      
+
       return fetch(event.request).then((response) => {
-        // Only cache successful responses
         if (response && response.status === 200) {
           const responseToCache = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -57,17 +79,9 @@ self.addEventListener('fetch', (event) => {
           });
         }
         return response;
-      }).catch((error) => {
-        // Return offline page for navigation requests
-        if (event.request.mode === 'navigate') {
-          return caches.match(OFFLINE_URL).then((offlinePage) => {
-            return offlinePage || new Response('Offline', { status: 503 });
-          });
-        }
-        // For other requests, return error response
+      }).catch(() => {
         return new Response('Network error', { status: 503 });
       });
     })
   );
 });
-

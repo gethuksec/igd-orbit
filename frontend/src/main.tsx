@@ -4,7 +4,7 @@ import './index.css';
 import './i18n/config';
 import App from './App.tsx';
 
-// Register service worker for PWA
+// Register service worker for PWA and auto-update
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
@@ -12,15 +12,23 @@ if ('serviceWorker' in navigator) {
       .then((registration) => {
         console.log('SW registered:', registration);
 
+        // Auto-update: when new SW is waiting, reload to activate it
+        if (registration.waiting) {
+          console.log('New update already waiting - reloading');
+          window.location.reload();
+        }
+
         // Check for updates
         registration.addEventListener('updatefound', () => {
           const newWorker = registration.installing;
-          newWorker?.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              // New update available
-              console.log('New update available. Refresh to update.');
-            }
-          });
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                console.log('New update available - reloading');
+                window.location.reload();
+              }
+            });
+          }
         });
       })
       .catch((error) => {

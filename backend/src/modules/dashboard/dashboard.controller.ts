@@ -31,9 +31,10 @@ export class DashboardController {
 
     const roles: string[] = Array.isArray(user.roles) ? user.roles : [];
     const isGlobalRole =
+      roles.includes('SUPERADMIN') ||
       roles.includes('OWNER') ||
       roles.includes('CFO') ||
-      (user.role?.code && ['OWNER', 'CFO'].includes(user.role.code));
+      (user.role?.code && ['SUPERADMIN', 'OWNER', 'CFO'].includes(user.role.code));
 
     if (isGlobalRole) return;
 
