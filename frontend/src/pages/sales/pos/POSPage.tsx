@@ -231,55 +231,11 @@ export default function POSPage() {
             </div>
           </div>
 
-          {/* Actions Section */}
-          <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden transition-shadow hover:shadow-lg">
-            <div className="px-4 py-3 border-b bg-gradient-to-r from-gray-50 to-gray-100/50 flex items-center justify-between">
-              <h2 className="font-semibold text-sm md:text-base text-gray-900">Aksi Cepat</h2>
-              <span className="text-[10px] md:text-xs text-gray-500">
-                Diskon dan hold transaksi
-              </span>
-            </div>
-            <div className="p-4">
-              <POSActions
-                onShowPayment={handleOpenPayment}
-                branchId={currentBranchId || undefined}
-              />
-            </div>
-          </div>
-
-          {/* Bottom Summary */}
-          <div className="bg-white rounded-xl shadow-md border border-gray-100 px-4 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 transition-shadow hover:shadow-lg">
-            <div className="flex items-center gap-4 text-xs md:text-sm">
-              <div>
-                <span className="text-gray-500">Items: </span>
-                <span className="font-semibold">{cart.length}</span>
-              </div>
-              <div>
-                <span className="text-gray-500">Subtotal: </span>
-                <span className="font-semibold">
-                  {formatCurrency(usePOSStore.getState().subtotal)}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <div className="text-xs text-gray-500 uppercase tracking-wide">
-                  Grand Total
-                </div>
-                <div className="text-lg md:text-xl font-bold text-primary-600">
-                  {formatCurrency(total)}
-                </div>
-              </div>
-              <Button
-                onClick={handleOpenPayment}
-                disabled={!canCheckout}
-                size="sm"
-                className="h-10 px-4 md:h-11 md:px-6"
-              >
-                Selesaikan Pembayaran
-              </Button>
-            </div>
-          </div>
+          {/* Action Bar — Discount, Hold, Pay */}
+          <POSActions
+            onShowPayment={handleOpenPayment}
+            branchId={currentBranchId || undefined}
+          />
         </div>
       </div>
 

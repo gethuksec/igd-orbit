@@ -15,7 +15,7 @@ interface POSActionsProps {
   transactionId?: string;
 }
 
-export function POSActions({ branchId, transactionId }: POSActionsProps) {
+export function POSActions({ branchId, transactionId, onShowPayment }: POSActionsProps) {
   const { cart, discount, clearCart, applyTransactionDiscount } = usePOSStore();
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [showHoldModal, setShowHoldModal] = useState(false);
@@ -50,22 +50,30 @@ export function POSActions({ branchId, transactionId }: POSActionsProps) {
 
   return (
     <div className="space-y-2">
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         <Button
           onClick={() => setShowDiscountModal(true)}
           variant="outline"
-          className="flex items-center justify-center gap-1.5 h-12"
+          className="flex flex-col items-center justify-center gap-0.5 h-14 px-1"
         >
-          <span className="text-lg">🎟️</span>
-          <span className="text-sm font-semibold">Diskon</span>
+          <span className="text-base">🎟️</span>
+          <span className="text-[11px] font-semibold leading-tight text-center">Diskon<br />Transaksi</span>
         </Button>
         <Button
           onClick={() => setShowHoldModal(true)}
           variant="outline"
-          className="flex items-center justify-center gap-1.5 h-12"
+          className="flex flex-col items-center justify-center gap-0.5 h-14 px-1"
         >
-          <span className="text-lg">💾</span>
-          <span className="text-sm font-semibold">Tahan</span>
+          <span className="text-base">💾</span>
+          <span className="text-[11px] font-semibold leading-tight text-center">Tahan<br />Transaksi</span>
+        </Button>
+        <Button
+          onClick={onShowPayment}
+          variant="default"
+          className="flex flex-col items-center justify-center gap-0.5 h-14 px-1 bg-primary text-white hover:bg-primary-600"
+        >
+          <span className="text-base">💲</span>
+          <span className="text-[11px] font-semibold leading-tight text-center">Bayar</span>
         </Button>
       </div>
       {heldTransactions.length > 0 && (
