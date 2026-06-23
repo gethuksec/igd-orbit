@@ -449,7 +449,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     <div className="ml-4 mt-1 space-y-1 border-l-2 border-gray-200 pl-4">
                       {item.children!.map((child) => {
                         const ChildIcon = child.icon;
-                        const childActive = child.path ? isActive(child.path) : false;
+                        const childActive = child.path ? location.pathname === child.path : false;
                         return (
                           <Link
                             key={child.path || child.label}

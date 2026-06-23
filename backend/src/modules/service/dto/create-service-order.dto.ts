@@ -37,11 +37,11 @@ export class CreateServiceOrderDto {
 
   @IsString()
   @IsOptional()
-  deviceBrand?: string;
+  deviceUnit?: string;
 
   @IsString()
   @IsOptional()
-  deviceModel?: string;
+  deviceColor?: string;
 
   @IsString()
   @IsOptional()
@@ -63,6 +63,10 @@ export class CreateServiceOrderDto {
   accessoriesIncluded?: string[]; // Will be converted to JSON
 
   // Service info
+  @IsEnum(['quick', 'inap'])
+  @IsOptional()
+  serviceSubType?: 'quick' | 'inap';
+
   @IsNotEmpty()
   complaint!: string;
 

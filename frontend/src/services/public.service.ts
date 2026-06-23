@@ -3,8 +3,7 @@ import { api } from './api';
 export interface ServiceTrackingData {
   serviceNumber: string;
   deviceType: string;
-  deviceBrand?: string;
-  deviceModel?: string;
+  deviceUnit?: string;
   status: string;
   statusHistory: Array<{
     status: string;

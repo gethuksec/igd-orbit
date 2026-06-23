@@ -7,6 +7,43 @@ import { api } from '../../services/api';
 import { salesService } from '../../services/sales.service';
 import { customersService } from '../../services/customers.service';
 import { toast } from 'sonner';
+import kecamatanJember from '@/data/kecamatan-jember.json';
+
+// Common device units for combobox suggestions
+const COMMON_DEVICE_UNITS = [
+  'Samsung Galaxy A52',
+  'Samsung Galaxy A54',
+  'Samsung Galaxy S23',
+  'Samsung Galaxy S24',
+  'iPhone 13',
+  'iPhone 14',
+  'iPhone 15',
+  'Xiaomi Redmi Note 12',
+  'Xiaomi Redmi Note 13',
+  'OPPO Reno 10',
+  'OPPO A78',
+  'Vivo V29',
+  'Realme 11 Pro',
+  'ASUS ROG Phone 7',
+  'Google Pixel 8',
+  'MacBook Air M1',
+  'MacBook Air M2',
+  'MacBook Pro M3',
+  'ASUS Vivobook 14',
+  'Lenovo ThinkPad X1',
+  'HP Pavilion 15',
+  'Dell Inspiron 16',
+  'iPad Air 5',
+  'iPad Pro 12.9',
+  'Samsung Galaxy Tab S9',
+];
+
+// Service type code defaults
+const SERVICE_TYPE_DEFAULTS: Record<string, { code: string; hasSubType: boolean }> = {
+  'SVC-INTERFACE': { code: 'SVC-INTERFACE', hasSubType: true },
+  'SVC-HARDWARE': { code: 'SVC-HARDWARE', hasSubType: true },
+  'SVC-SOFTWARE': { code: 'SVC-SOFTWARE', hasSubType: true },
+};
 
 export default function ServiceOrderForm() {
   const { id } = useParams();
@@ -20,15 +57,24 @@ export default function ServiceOrderForm() {
   const [showCustomerSearch, setShowCustomerSearch] = useState(false);
   const [showCreateCustomerModal, setShowCreateCustomerModal] = useState(false);
 
+  // Pre-form step state
+  const [showPreForm, setShowPreForm] = useState(!isEdit);
+  const [selectedServiceTypeId, setSelectedServiceTypeId] = useState('');
+  const [selectedSubType, setSelectedSubType] = useState<'quick' | 'inap' | ''>('');
+
+  // Device unit combobox
+  const [deviceUnitFilter, setDeviceUnitFilter] = useState('');
+  const [showDeviceUnits, setShowDeviceUnits] = useState(false);
+
   const [formData, setFormData] = useState({
     customerId: '',
     customerName: '',
     customerPhone: '',
     customerEmail: '',
-    customerAlternatePhone: '',
+    customerSubdistrict: '',
     deviceType: 'handphone' as 'handphone' | 'laptop' | 'tablet' | 'other',
-    deviceBrand: '',
-    deviceModel: '',
+    deviceUnit: '',
+    deviceColor: '',
     deviceSerial: '',
     deviceImei: '',
     devicePassword: '',
@@ -36,10 +82,22 @@ export default function ServiceOrderForm() {
     complaint: '',
     initialDiagnosis: '',
     serviceTypeId: '',
+    serviceSubType: '' as 'quick' | 'inap' | '',
     estimatedCost: 0,
     priority: 'normal' as 'normal' | 'urgent',
     promisedDate: '',
     customerNotes: '',
+    assignedTechnicianId: '',
+  });
+
+  // Fetch technicians for dropdown
+  const { data: technicians = [] } = useQuery({
+    queryKey: ['technicians'],
+    queryFn: async () => {
+      const res = await api.get('/users', { params: { role: 'TC' } });
+      return res.data.data || res.data || [];
+    },
+    enabled: !isEdit, // Only fetch on create
   });
 
   // Fetch customer data if customerId is provided in URL
@@ -77,10 +135,10 @@ export default function ServiceOrderForm() {
         customerName: (serviceOrder as any).customerName || '',
         customerPhone: (serviceOrder as any).customerPhone || '',
         customerEmail: (serviceOrder as any).customerEmail || '',
-        customerAlternatePhone: (serviceOrder as any).customerAlternatePhone || '',
+        customerSubdistrict: (serviceOrder as any).customerSubdistrict || '',
         deviceType: (serviceOrder as any).deviceType || 'handphone',
-        deviceBrand: (serviceOrder as any).deviceBrand || '',
-        deviceModel: (serviceOrder as any).deviceModel || '',
+        deviceUnit: (serviceOrder as any).deviceUnit || '',
+        deviceColor: (serviceOrder as any).deviceColor || '',
         deviceSerial: (serviceOrder as any).deviceSerial || '',
         deviceImei: (serviceOrder as any).deviceImei || '',
         devicePassword: '',
@@ -88,11 +146,20 @@ export default function ServiceOrderForm() {
         complaint: (serviceOrder as any).complaint || '',
         initialDiagnosis: (serviceOrder as any).initialDiagnosis || '',
         serviceTypeId: (serviceOrder as any).serviceTypeId || '',
+        serviceSubType: (serviceOrder as any).serviceSubType || '',
         estimatedCost: (serviceOrder as any).estimatedCost || 0,
         priority: (serviceOrder as any).priority || 'normal',
         promisedDate: (serviceOrder as any).promisedDate || '',
         customerNotes: (serviceOrder as any).customerNotes || '',
+        assignedTechnicianId: (serviceOrder as any).assignedTechnicianId || '',
       });
+      // Populate pre-form from existing data
+      if ((serviceOrder as any).serviceTypeId) {
+        setSelectedServiceTypeId((serviceOrder as any).serviceTypeId);
+      }
+      if ((serviceOrder as any).serviceSubType) {
+        setSelectedSubType((serviceOrder as any).serviceSubType);
+      }
     } else if (customerFromUrl && !isEdit) {
       // Auto-fill customer data from URL parameter
       setFormData((prev) => ({
@@ -101,7 +168,7 @@ export default function ServiceOrderForm() {
         customerName: customerFromUrl.name || '',
         customerPhone: customerFromUrl.phone || '',
         customerEmail: customerFromUrl.email || '',
-        customerAlternatePhone: (customerFromUrl as any).alternatePhone || '',
+        customerSubdistrict: (customerFromUrl as any).subdistrict || '',
       }));
     }
   }, [serviceOrder, customerFromUrl, isEdit]);
@@ -123,26 +190,47 @@ export default function ServiceOrderForm() {
     },
   });
 
+  // Filtered device units based on input
+  const filteredDeviceUnits = deviceUnitFilter
+    ? COMMON_DEVICE_UNITS.filter((unit) =>
+        unit.toLowerCase().includes(deviceUnitFilter.toLowerCase()),
+      )
+    : COMMON_DEVICE_UNITS;
+
+  const handlePreFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedServiceTypeId) {
+      toast.error('Kategori (Service Type) wajib dipilih');
+      return;
+    }
+    // Check if selected service type requires sub type
+    const selectedType = (serviceTypes || []).find((st: any) => st.id === selectedServiceTypeId);
+    const typeCode = selectedType?.code || '';
+    const defaults = Object.values(SERVICE_TYPE_DEFAULTS).find((d) => d.code === typeCode);
+    if (defaults?.hasSubType && !selectedSubType) {
+      toast.error('Tipe (Quick/INAP) wajib dipilih');
+      return;
+    }
+    // Populate main form
+    setFormData((prev) => ({
+      ...prev,
+      serviceTypeId: selectedServiceTypeId,
+      serviceSubType: selectedSubType as 'quick' | 'inap' | '',
+    }));
+    setShowPreForm(false);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     // Basic client-side validation
-    if (
-      formData.customerPhone &&
-      formData.customerAlternatePhone &&
-      formData.customerPhone === formData.customerAlternatePhone
-    ) {
-      toast.error('Telepon dan Telepon Alternatif tidak boleh sama');
-      return;
-    }
-
     if (!formData.serviceTypeId) {
       toast.error('Service Type wajib dipilih');
       return;
     }
 
     if (!formData.promisedDate) {
-      toast.error('Promised Date wajib diisi');
+      toast.error('Estimasi Selesai wajib diisi');
       return;
     }
 
@@ -154,27 +242,149 @@ export default function ServiceOrderForm() {
     const daysDiff = Math.ceil((promisedDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
     if (formData.priority === 'urgent' && daysDiff > 1) {
-      toast.error('Prioritas urgent: Promised Date maksimal 1 hari dari hari ini');
+      toast.error('Prioritas urgent: Estimasi Selesai maksimal 1 hari dari hari ini');
       return;
     }
 
     if (formData.priority === 'normal' && daysDiff > 14) {
-      toast.error('Prioritas normal: Promised Date maksimal 14 hari (2 pekan) dari hari ini');
+      toast.error('Prioritas normal: Estimasi Selesai maksimal 14 hari (2 pekan) dari hari ini');
       return;
     }
 
     if (daysDiff < 0) {
-      toast.error('Promised Date tidak boleh lebih kecil dari hari ini');
+      toast.error('Estimasi Selesai tidak boleh lebih kecil dari hari ini');
       return;
     }
 
-    mutation.mutate(formData);
+    // Clean up empty strings for optional fields
+    const submitData = { ...formData };
+    if (!submitData.assignedTechnicianId) {
+      (submitData as any).assignedTechnicianId = undefined;
+    }
+
+    mutation.mutate(submitData);
   };
 
   if (loadingServiceOrder) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
+      </div>
+    );
+  }
+
+  // Pre-form step: Select Kategori and Tipe
+  if (showPreForm && !isEdit) {
+    return (
+      <div className="w-full space-y-3">
+        {/* Page Header */}
+        <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate('/service-orders')}
+                className="p-2 text-white/80 hover:bg-white/20 rounded-lg transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <div>
+                <h1 className="text-3xl font-bold mb-1">Tambah Service Order</h1>
+                <p className="text-primary-100">Pilih kategori dan tipe service</p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/service-orders')}
+              className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm text-white rounded-lg hover:bg-white/20 transition-all"
+            >
+              <X className="w-4 h-4" />
+              <span>Batal</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Pre-form Card */}
+        <form onSubmit={handlePreFormSubmit} className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+          <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg">
+                <Wrench className="w-5 h-5 text-white" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900">Pilih Kategori & Tipe Service</h2>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Kategori (Service Type) <span className="text-red-500">*</span>
+                </label>
+                <select
+                  required
+                  value={selectedServiceTypeId}
+                  onChange={(e) => {
+                    setSelectedServiceTypeId(e.target.value);
+                    setSelectedSubType('');
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none bg-white"
+                >
+                  <option value="">Pilih Kategori Service</option>
+                  {(serviceTypes || []).map((st: any) => (
+                    <option key={st.id} value={st.id}>
+                      {st.name} {st.code ? `(${st.code})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tipe <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => setSelectedSubType('quick')}
+                  className={`p-4 border-2 rounded-xl text-center transition-all ${
+                    selectedSubType === 'quick'
+                      ? 'border-primary-500 bg-primary-50 text-primary-700'
+                      : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                  }`}
+                >
+                  <div className="text-lg font-semibold">Quick</div>
+                  <div className="text-sm mt-1">Service cepat (1-2 jam)</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedSubType('inap')}
+                  className={`p-4 border-2 rounded-xl text-center transition-all ${
+                    selectedSubType === 'inap'
+                      ? 'border-primary-500 bg-primary-50 text-primary-700'
+                      : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                  }`}
+                >
+                  <div className="text-lg font-semibold">INAP</div>
+                  <div className="text-sm mt-1">Service menginap (&gt;1 hari)</div>
+                </button>
+              </div>
+            </div>
+          </div>
+          </div>
+
+          <div className="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => navigate('/service-orders')}
+              className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2 bg-gradient-to-r from-primary-600 to-primary-500 text-white rounded-lg hover:from-primary-700 hover:to-primary-600 transition-all shadow-md flex items-center gap-2"
+            >
+              Lanjutkan
+              <ArrowLeft className="w-4 h-4 rotate-180" />
+            </button>
+          </div>
+        </form>
       </div>
     );
   }
@@ -186,7 +396,14 @@ export default function ServiceOrderForm() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate('/service-orders')}
+              onClick={() => {
+                if (!isEdit) {
+                  // Go back to pre-form step
+                  setShowPreForm(true);
+                  return;
+                }
+                navigate('/service-orders');
+              }}
               className="p-2 text-white/80 hover:bg-white/20 rounded-lg transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -196,7 +413,7 @@ export default function ServiceOrderForm() {
                 {isEdit ? 'Edit Service Order' : 'Tambah Service Order'}
               </h1>
               <p className="text-primary-100">
-                {isEdit ? 'Ubah informasi service order' : 'Buat service order baru'}
+                {isEdit ? 'Ubah informasi service order' : 'Lengkapi data service order'}
               </p>
             </div>
           </div>
@@ -273,7 +490,7 @@ export default function ServiceOrderForm() {
                             customerName: customer.name || '',
                             customerPhone: customer.phone || '',
                             customerEmail: customer.email || '',
-                            customerAlternatePhone: (customer as any).alternatePhone || '',
+                            customerSubdistrict: (customer as any).subdistrict || '',
                           });
                           setCustomerSearchQuery('');
                           setShowCustomerSearch(false);
@@ -347,15 +564,18 @@ export default function ServiceOrderForm() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Telepon Alternatif
+                Kecamatan
               </label>
-              <input
-                type="tel"
-                value={formData.customerAlternatePhone}
-                onChange={(e) => setFormData({ ...formData, customerAlternatePhone: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                placeholder="081234567891"
-              />
+              <select
+                value={formData.customerSubdistrict}
+                onChange={(e) => setFormData({ ...formData, customerSubdistrict: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none bg-white"
+              >
+                <option value="">Pilih Kecamatan</option>
+                {kecamatanJember.map((kec: string) => (
+                  <option key={kec} value={kec}>{kec}</option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
@@ -377,7 +597,7 @@ export default function ServiceOrderForm() {
                 required
                 value={formData.deviceType}
                 onChange={(e) => setFormData({ ...formData, deviceType: e.target.value as any })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none bg-white"
               >
                 <option value="handphone">Handphone</option>
                 <option value="laptop">Laptop</option>
@@ -385,28 +605,55 @@ export default function ServiceOrderForm() {
                 <option value="other">Lainnya</option>
               </select>
             </div>
-            <div>
+            <div className="relative">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Brand
+                Unit Perangkat
               </label>
               <input
                 type="text"
-                value={formData.deviceBrand}
-                onChange={(e) => setFormData({ ...formData, deviceBrand: e.target.value })}
+                value={deviceUnitFilter || formData.deviceUnit}
+                onChange={(e) => {
+                  setDeviceUnitFilter(e.target.value);
+                  setFormData({ ...formData, deviceUnit: e.target.value });
+                  setShowDeviceUnits(true);
+                }}
+                onFocus={() => setShowDeviceUnits(true)}
+                onBlur={() => {
+                  // Delay hiding to allow click on dropdown
+                  setTimeout(() => setShowDeviceUnits(false), 200);
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                placeholder="Samsung, Apple, ASUS, dll"
+                placeholder="Cari atau ketik unit perangkat..."
               />
+              {showDeviceUnits && filteredDeviceUnits.length > 0 && (
+                <div className="absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto z-50">
+                  {filteredDeviceUnits.map((unit) => (
+                    <button
+                      key={unit}
+                      type="button"
+                      onMouseDown={() => {
+                        setFormData({ ...formData, deviceUnit: unit });
+                        setDeviceUnitFilter(unit);
+                        setShowDeviceUnits(false);
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                    >
+                      {unit}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Model
+                Warna Perangkat
               </label>
               <input
                 type="text"
-                value={formData.deviceModel}
-                onChange={(e) => setFormData({ ...formData, deviceModel: e.target.value })}
+                value={formData.deviceColor}
+                onChange={(e) => setFormData({ ...formData, deviceColor: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                placeholder="Model perangkat"
+                placeholder="Hitam, Putih, Silver, dll"
               />
             </div>
             <div>
@@ -435,16 +682,42 @@ export default function ServiceOrderForm() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Kondisi Perangkat
+                Password Perangkat
               </label>
               <input
-                type="text"
-                value={formData.deviceCondition}
-                onChange={(e) => setFormData({ ...formData, deviceCondition: e.target.value })}
+                type="password"
+                value={formData.devicePassword}
+                onChange={(e) => setFormData({ ...formData, devicePassword: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                placeholder="Kondisi fisik perangkat"
+                placeholder="Password (akan dienkripsi)"
               />
             </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Kondisi Perangkat
+              </label>
+              <textarea
+                value={formData.deviceCondition}
+                onChange={(e) => setFormData({ ...formData, deviceCondition: e.target.value })}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Deskripsikan kondisi fisik perangkat secara detail..."
+              />
+            </div>
+          </div>
+
+          {/* Customer Notes moved to Device Section */}
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Catatan Customer
+            </label>
+            <textarea
+              value={formData.customerNotes}
+              onChange={(e) => setFormData({ ...formData, customerNotes: e.target.value })}
+              rows={2}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              placeholder="Catatan tambahan dari customer"
+            />
           </div>
         </div>
 
@@ -459,7 +732,7 @@ export default function ServiceOrderForm() {
           <div className="space-y-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Keluhan <span className="text-red-500">*</span>
+                Keterangan <span className="text-red-500">*</span>
               </label>
               <textarea
                 required
@@ -472,14 +745,14 @@ export default function ServiceOrderForm() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Service Type <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Service Type <span className="text-red-500">*</span>
                 </label>
                 <select
                   required
                   value={formData.serviceTypeId}
                   onChange={(e) => setFormData({ ...formData, serviceTypeId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none bg-white"
                 >
                   <option value="">Pilih Service Type</option>
                   {(serviceTypes || []).map((st: any) => (
@@ -487,6 +760,20 @@ export default function ServiceOrderForm() {
                       {st.name}
                     </option>
                   ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tipe Service
+                </label>
+                <select
+                  value={formData.serviceSubType}
+                  onChange={(e) => setFormData({ ...formData, serviceSubType: e.target.value as any })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none bg-white"
+                >
+                  <option value="">Pilih Tipe</option>
+                  <option value="quick">Quick</option>
+                  <option value="inap">INAP</option>
                 </select>
               </div>
               <div>
@@ -504,7 +791,7 @@ export default function ServiceOrderForm() {
                       promisedDate: '',
                     });
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none bg-white"
                 >
                   <option value="normal">Normal</option>
                   <option value="urgent">Urgent</option>
@@ -535,7 +822,7 @@ export default function ServiceOrderForm() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Promised Date <span className="text-red-500">*</span>
+                  Estimasi Selesai <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="date"
@@ -574,18 +861,27 @@ export default function ServiceOrderForm() {
                 )}
               </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Catatan Customer
-              </label>
-              <textarea
-                value={formData.customerNotes}
-                onChange={(e) => setFormData({ ...formData, customerNotes: e.target.value })}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                placeholder="Catatan tambahan dari customer"
-              />
-            </div>
+
+            {/* Assigned Technician dropdown (only on create) */}
+            {!isEdit && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Assign Teknisi
+                </label>
+                <select
+                  value={formData.assignedTechnicianId}
+                  onChange={(e) => setFormData({ ...formData, assignedTechnicianId: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none bg-white"
+                >
+                  <option value="">Pilih Teknisi (opsional)</option>
+                  {Array.isArray(technicians) && technicians.map((tech: any) => (
+                    <option key={tech.id} value={tech.id}>
+                      {tech.fullName || tech.name || tech.email}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         </div>
 
@@ -593,10 +889,16 @@ export default function ServiceOrderForm() {
         <div className="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-end gap-3">
           <button
             type="button"
-            onClick={() => navigate('/service-orders')}
+            onClick={() => {
+              if (!isEdit) {
+                setShowPreForm(true);
+                return;
+              }
+              navigate('/service-orders');
+            }}
             className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
-            Batal
+            {!isEdit ? 'Kembali' : 'Batal'}
           </button>
           <button
             type="submit"
@@ -637,8 +939,9 @@ export default function ServiceOrderForm() {
                     name: formData.customerName,
                     phone: formData.customerPhone,
                     email: formData.customerEmail || undefined,
-                    alternatePhone: formData.customerAlternatePhone || undefined,
-                    customerType: 'retail',
+                    subdistrict: formData.customerSubdistrict || undefined,
+                    city: 'Jember',
+                    province: 'Jawa Timur',
                   });
                   // Set customerId after creating new customer
                   setFormData({
@@ -687,13 +990,17 @@ export default function ServiceOrderForm() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Telepon Alternatif</label>
-                <input
-                  type="tel"
-                  value={formData.customerAlternatePhone}
-                  onChange={(e) => setFormData({ ...formData, customerAlternatePhone: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                />
+                <label className="block text-sm font-medium mb-2">Kecamatan</label>
+                <select
+                  value={formData.customerSubdistrict}
+                  onChange={(e) => setFormData({ ...formData, customerSubdistrict: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none bg-white"
+                >
+                  <option value="">Pilih Kecamatan</option>
+                  {kecamatanJember.map((kec: string) => (
+                    <option key={kec} value={kec}>{kec}</option>
+                  ))}
+                </select>
               </div>
               <div className="flex gap-2">
                 <button

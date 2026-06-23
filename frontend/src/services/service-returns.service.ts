@@ -31,8 +31,7 @@ export interface ServiceReturn {
     customerName: string;
     customerPhone: string;
     deviceType: string;
-    deviceBrand?: string;
-    deviceModel?: string;
+    deviceUnit?: string;
     deliveredAt?: string;
     warrantyDays: number;
     customer?: {

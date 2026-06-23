@@ -280,11 +280,8 @@ export default function ServiceReturnsList() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
                           {returnItem.serviceOrder?.deviceType || '-'}
-                          {returnItem.serviceOrder?.deviceBrand && (
-                            <> {returnItem.serviceOrder.deviceBrand}</>
-                          )}
-                          {returnItem.serviceOrder?.deviceModel && (
-                            <> {returnItem.serviceOrder.deviceModel}</>
+                          {returnItem.serviceOrder?.deviceUnit && (
+                            <> {returnItem.serviceOrder.deviceUnit}</>
                           )}
                         </div>
                       </td>

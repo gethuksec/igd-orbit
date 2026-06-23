@@ -851,16 +851,10 @@ export default function ServiceOrderDetail() {
                 <p className="text-base font-semibold text-gray-900">{order.deviceType}</p>
               </div>
             )}
-            {order.deviceBrand && (
+            {order.deviceUnit && (
               <div>
-                <label className="text-sm text-gray-500">Brand</label>
-                <p className="text-base font-semibold text-gray-900">{order.deviceBrand}</p>
-              </div>
-            )}
-            {order.deviceModel && (
-              <div>
-                <label className="text-sm text-gray-500">Model</label>
-                <p className="text-base font-semibold text-gray-900">{order.deviceModel}</p>
+                <span className="text-sm font-medium text-gray-500">Unit</span>
+                <p className="text-base font-semibold text-gray-900">{order.deviceUnit}</p>
               </div>
             )}
             {order.deviceSerial && (

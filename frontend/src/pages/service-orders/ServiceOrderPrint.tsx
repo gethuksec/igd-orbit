@@ -219,7 +219,7 @@ const ServiceOrderPrint = () => {
               </tr>
               <tr>
                 <td className="py-0.5 text-gray-700 font-semibold text-[7px]">MEREK TYPE</td>
-                <td className="py-0.5 text-gray-900 text-[7px]">: {order.deviceBrand} {order.deviceModel}</td>
+                <td className="py-0.5 text-gray-900 text-[7px]">: {order.deviceUnit || '--'}</td>
               </tr>
               <tr>
                 <td className="py-0.5 text-gray-700 font-semibold text-[7px]">IMEI/SN</td>

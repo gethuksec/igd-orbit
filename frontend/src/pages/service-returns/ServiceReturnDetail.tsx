@@ -285,7 +285,7 @@ export default function ServiceReturnDetail() {
                   <span className="text-sm font-medium text-gray-500">Device:</span>
                   <span className="text-sm text-gray-900">
                     {returnItem.serviceOrder.deviceType}{' '}
-                    {returnItem.serviceOrder.deviceBrand} {returnItem.serviceOrder.deviceModel}
+                    {returnItem.serviceOrder.deviceUnit}
                   </span>
                 </div>
               </div>

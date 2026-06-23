@@ -177,19 +177,11 @@ export default function ServiceTracking() {
                         {serviceData.deviceType || '-'}
                       </p>
                     </div>
-                    {serviceData.deviceBrand && (
+                    {serviceData.deviceUnit && (
                       <div className="bg-gray-50 rounded-lg p-4">
-                        <p className="text-xs text-gray-500 mb-1">Merek</p>
+                        <p className="text-xs text-gray-500 mb-1">Unit</p>
                         <p className="text-sm font-semibold text-gray-900">
-                          {serviceData.deviceBrand}
-                        </p>
-                      </div>
-                    )}
-                    {serviceData.deviceModel && (
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <p className="text-xs text-gray-500 mb-1">Model</p>
-                        <p className="text-sm font-semibold text-gray-900">
-                          {serviceData.deviceModel}
+                          {serviceData.deviceUnit}
                         </p>
                       </div>
                     )}

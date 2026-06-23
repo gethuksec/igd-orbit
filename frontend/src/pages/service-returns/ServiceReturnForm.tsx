@@ -247,7 +247,7 @@ export default function ServiceReturnForm() {
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-gray-700">Device:</span>
                       <span className="text-sm text-gray-900">
-                        {serviceOrder.deviceType} {serviceOrder.deviceBrand} {serviceOrder.deviceModel}
+                        {serviceOrder.deviceType} {serviceOrder.deviceUnit}
                       </span>
                     </div>
                     {serviceOrder.deliveredAt && (

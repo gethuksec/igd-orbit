@@ -1595,7 +1595,7 @@ export class DashboardService {
       return {
         serviceNumber: service.serviceNumber,
         customer: service.customerName,
-        device: `${service.deviceBrand} ${service.deviceModel}`.trim(),
+        device: service.deviceUnit,
         daysOverdue,
         assignedTo: service.assignedTechnician?.fullName || 'Unassigned',
         priority: daysOverdue > 3 ? 'high' : daysOverdue > 1 ? 'medium' : 'low',

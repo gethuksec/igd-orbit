@@ -61,7 +61,7 @@ export class ServiceOrdersController {
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('CS', 'TC', 'HS', 'SPV')
+  @Roles('CS', 'HS', 'SPV')
   async create(
     @Body() dto: CreateServiceOrderDto,
     @Request() req: ExpressRequest & { user: any },
@@ -113,7 +113,7 @@ export class ServiceOrdersController {
 
   @Put(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('CS', 'TC', 'HS', 'SPV')
+  @Roles('CS', 'HS', 'SPV')
   async update(
     @Param('id') id: string,
     @Body() dto: Partial<CreateServiceOrderDto>,
@@ -135,7 +135,7 @@ export class ServiceOrdersController {
 
   @Post(':id/status')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('TC', 'HS', 'SPV')
+  @Roles('HS', 'SPV')
   async updateStatus(
     @Param('id') id: string,
     @Body() dto: UpdateStatusDto,
@@ -146,7 +146,7 @@ export class ServiceOrdersController {
 
   @Post(':id/parts')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('TC', 'HS')
+  @Roles('HS')
   async addParts(
     @Param('id') id: string,
     @Body() dto: AddPartsDto,
@@ -157,7 +157,7 @@ export class ServiceOrdersController {
 
   @Delete(':id/parts/:partId')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('TC', 'HS', 'SPV')
+  @Roles('HS', 'SPV')
   async removePart(
     @Param('id') id: string,
     @Param('partId') partId: string,
@@ -168,7 +168,7 @@ export class ServiceOrdersController {
 
   @Post(':id/photos')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('CS', 'TC', 'HS', 'SPV')
+  @Roles('CS', 'HS', 'SPV')
   async uploadPhotos(
     @Param('id') id: string,
     @Body() dto: UploadPhotosDto,
@@ -179,7 +179,7 @@ export class ServiceOrdersController {
 
   @Post(':id/complete')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('TC', 'HS', 'SPV')
+  @Roles('HS', 'SPV')
   async completeService(@Param('id') id: string, @Request() req: any) {
     return this.serviceOrdersService.completeService(id, req.user.id);
   }

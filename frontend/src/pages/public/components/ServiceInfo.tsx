@@ -4,8 +4,7 @@ import { Calendar, Smartphone } from 'lucide-react';
 interface ServiceInfoProps {
   serviceNumber: string;
   deviceType: string;
-  deviceBrand?: string;
-  deviceModel?: string;
+  deviceUnit?: string;
   status: string;
   receivedDate: string;
   promisedDate?: string;
@@ -39,8 +38,7 @@ const statusLabels: Record<string, string> = {
 export default function ServiceInfo({
   serviceNumber,
   deviceType,
-  deviceBrand,
-  deviceModel,
+  deviceUnit,
   status,
   receivedDate,
   promisedDate,
@@ -77,14 +75,9 @@ export default function ServiceInfo({
           <div>
             <span className="font-medium">Type:</span> {deviceType}
           </div>
-          {deviceBrand && (
+          {deviceUnit && (
             <div>
-              <span className="font-medium">Brand:</span> {deviceBrand}
-            </div>
-          )}
-          {deviceModel && (
-            <div>
-              <span className="font-medium">Model:</span> {deviceModel}
+              <span className="font-medium">Unit:</span> {deviceUnit}
             </div>
           )}
         </div>

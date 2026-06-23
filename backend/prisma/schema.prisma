@@ -36,13 +36,13 @@ model User {
   deletedAt           DateTime? @map("deleted_at")
 
   // Relations
-  userRoles            UserRole[]
-  employee             Employee?
-  cashierTransactions  SalesTransaction[]
-  heldTransactions     HeldTransaction[]
-  assignedServices     ServiceOrder[]         @relation("ServiceTechnician")
-  statusHistoryChanges ServiceStatusHistory[] @relation("ServiceStatusHistoryChangedBy")
-  branchHeadOfService  Branch[]               @relation("BranchHeadOfService")
+  userRoles              UserRole[]
+  employee               Employee?
+  cashierTransactions    SalesTransaction[]
+  heldTransactions       HeldTransaction[]
+  assignedServices       ServiceOrder[]          @relation("ServiceTechnician")
+  statusHistoryChanges   ServiceStatusHistory[]  @relation("ServiceStatusHistoryChangedBy")
+  branchHeadOfService    Branch[]                @relation("BranchHeadOfService")
   passwordChangeRequests PasswordChangeRequest[]
 
   @@index([email])
@@ -53,14 +53,14 @@ model User {
 }
 
 model PasswordChangeRequest {
-  id                String    @id @default(uuid())
-  userId            String    @map("user_id")
-  currentPassword   String    @map("current_password")
-  newPasswordHash   String    @map("new_password_hash")
-  status            String    @default("pending") // pending, approved, rejected
-  requestedAt       DateTime  @default(now()) @map("requested_at")
-  approvedBy        String?   @map("approved_by")
-  approvedAt        DateTime? @map("approved_at")
+  id              String    @id @default(uuid())
+  userId          String    @map("user_id")
+  currentPassword String    @map("current_password")
+  newPasswordHash String    @map("new_password_hash")
+  status          String    @default("pending") // pending, approved, rejected
+  requestedAt     DateTime  @default(now()) @map("requested_at")
+  approvedBy      String?   @map("approved_by")
+  approvedAt      DateTime? @map("approved_at")
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -87,8 +87,8 @@ model Role {
   userRoles       UserRole[]
   rolePermissions RolePermission[]
   roleMenuAccess  RoleMenuAccess[]
-  parentRole      Role?   @relation("RoleHierarchy", fields: [parentRoleId], references: [id], onDelete: SetNull)
-  childRoles      Role[]  @relation("RoleHierarchy")
+  parentRole      Role?            @relation("RoleHierarchy", fields: [parentRoleId], references: [id], onDelete: SetNull)
+  childRoles      Role[]           @relation("RoleHierarchy")
 
   @@index([code])
   @@index([level])
@@ -799,15 +799,16 @@ model ServiceOrder {
 
   // Device info
   deviceType          String  @map("device_type") // 'handphone', 'laptop', 'tablet', 'other'
-  deviceBrand         String? @map("device_brand")
-  deviceModel         String? @map("device_model")
+  deviceUnit          String? @map("device_unit") // e.g. 'Samsung A52' (replaces brand + model)
+  deviceColor         String? @map("device_color")
   deviceSerial        String? @map("device_serial")
   deviceImei          String? @map("device_imei")
   devicePassword      String? @map("device_password") // Encrypted
-  deviceCondition     String? @map("device_condition")
+  deviceCondition     String? @map("device_condition") @db.Text // textarea
   accessoriesIncluded Json?   @map("accessories_included") // JSONB array
 
   // Service details
+  serviceSubType   String? @map("service_sub_type") // 'quick' or 'inap'
   complaint        String  @db.Text
   initialDiagnosis String? @map("initial_diagnosis") @db.Text
   diagnosis        String? @db.Text
