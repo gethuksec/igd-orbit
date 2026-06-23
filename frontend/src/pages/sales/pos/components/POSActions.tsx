@@ -16,8 +16,7 @@ interface POSActionsProps {
 }
 
 export function POSActions({ branchId, transactionId }: POSActionsProps) {
-  const { cart, discount, receiptNotes, internalNotes, setReceiptNotes, setInternalNotes, applyTransactionDiscount, clearCart } = usePOSStore();
-  const [showNoteModal, setShowNoteModal] = useState(false);
+  const { cart, discount, clearCart, applyTransactionDiscount } = usePOSStore();
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [showHoldModal, setShowHoldModal] = useState(false);
   const [holdReference, setHoldReference] = useState('');
@@ -28,13 +27,6 @@ export function POSActions({ branchId, transactionId }: POSActionsProps) {
     queryFn: () => salesService.getHeldTransactions(branchId!),
     enabled: !!branchId,
   });
-
-  const handleClearCart = () => {
-    if (cart.length === 0) return;
-    if (confirm('Clear all items from cart?')) {
-      clearCart();
-    }
-  };
 
   const handleHoldTransaction = async () => {
     if (cart.length === 0) {
@@ -58,50 +50,26 @@ export function POSActions({ branchId, transactionId }: POSActionsProps) {
 
   return (
     <div className="space-y-2">
-      <Button
-        onClick={() => setShowNoteModal(true)}
-        variant="outline"
-        className="w-full justify-start gap-2"
-        size="lg"
-      >
-        <span className="text-lg">📝</span>
-        <div className="flex flex-col items-start text-left">
-          <span className="text-sm font-semibold">Catatan Transaksi</span>
-          <span className="text-[11px] text-gray-500">
-            Tambahkan info penting untuk kasir / manajemen
-          </span>
-        </div>
-      </Button>
-      <Button
-        onClick={() => setShowDiscountModal(true)}
-        variant="outline"
-        className="w-full justify-start gap-2"
-        size="lg"
-      >
-        <span className="text-lg">🎟️</span>
-        <div className="flex flex-col items-start text-left">
-          <span className="text-sm font-semibold">Diskon Transaksi</span>
-          <span className="text-[11px] text-gray-500">
-            Atur diskon total (persen / nominal)
-          </span>
-        </div>
-      </Button>
-      <Button
-        onClick={() => setShowHoldModal(true)}
-        variant="outline"
-        className="w-full justify-start gap-2"
-        size="lg"
-      >
-        <span className="text-lg">💾</span>
-        <div className="flex flex-col items-start text-left">
-          <span className="text-sm font-semibold">Tahan Transaksi</span>
-          <span className="text-[11px] text-gray-500">
-            Simpan dulu, bisa dilanjut nanti
-          </span>
-        </div>
-      </Button>
+      <div className="grid grid-cols-2 gap-2">
+        <Button
+          onClick={() => setShowDiscountModal(true)}
+          variant="outline"
+          className="flex items-center justify-center gap-1.5 h-12"
+        >
+          <span className="text-lg">🎟️</span>
+          <span className="text-sm font-semibold">Diskon</span>
+        </Button>
+        <Button
+          onClick={() => setShowHoldModal(true)}
+          variant="outline"
+          className="flex items-center justify-center gap-1.5 h-12"
+        >
+          <span className="text-lg">💾</span>
+          <span className="text-sm font-semibold">Tahan</span>
+        </Button>
+      </div>
       {heldTransactions.length > 0 && (
-        <div className="mt-4">
+        <div className="mt-2">
           <div className="text-sm font-medium mb-2">Transaksi Ditahan</div>
           <div className="space-y-1 max-h-32 overflow-y-auto">
             {heldTransactions.map((held: SalesTransaction) => (
@@ -110,53 +78,6 @@ export function POSActions({ branchId, transactionId }: POSActionsProps) {
           </div>
         </div>
       )}
-      <Button
-        onClick={handleClearCart}
-        variant="destructive"
-        className="w-full justify-start gap-2"
-        size="lg"
-        disabled={cart.length === 0}
-      >
-        <span className="text-lg">🗑️</span>
-        <div className="flex flex-col items-start text-left">
-          <span className="text-sm font-semibold">Kosongkan Keranjang</span>
-          <span className="text-[11px] text-red-100">
-            Hapus semua item dari transaksi ini
-          </span>
-        </div>
-      </Button>
-
-      {/* Note Modal */}
-      <Modal open={showNoteModal} onClose={() => setShowNoteModal(false)} title="Add Note" size="md">
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Catatan untuk Pembeli (tercetak di resi)</label>
-            <textarea
-              value={receiptNotes || ''}
-              onChange={(e) => setReceiptNotes(e.target.value)}
-              className="w-full min-h-20 px-3 py-2 border rounded-md"
-              placeholder="Contoh: klaim garansi, permintaan khusus, dll."
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Catatan Internal (tidak tercetak di resi)</label>
-            <textarea
-              value={internalNotes || ''}
-              onChange={(e) => setInternalNotes(e.target.value)}
-              className="w-full min-h-20 px-3 py-2 border rounded-md"
-              placeholder="Contoh: diskon khusus, info stok, dll."
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={() => setShowNoteModal(false)} variant="outline" className="flex-1">
-              Batal
-            </Button>
-            <Button onClick={() => setShowNoteModal(false)} className="flex-1">
-              Simpan
-            </Button>
-          </div>
-        </div>
-      </Modal>
 
       {/* Discount Modal */}
       <Modal open={showDiscountModal} onClose={() => setShowDiscountModal(false)} title="Apply Discount" size="md">
