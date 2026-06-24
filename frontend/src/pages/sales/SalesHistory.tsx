@@ -129,6 +129,9 @@ export default function SalesHistory() {
                 <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">
                   Total
                 </th>
+                <th className="px-4 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  Status
+                </th>
                 <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">
                   Aksi
                 </th>
@@ -193,6 +196,21 @@ export default function SalesHistory() {
                       <div className="text-sm font-bold text-primary-600">
                         {formatCurrency(transaction.total || transaction.totalPrice || 0)}
                       </div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-center">
+                      {transaction.status === 'void' || transaction.status === 'cancelled' ? (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-200">
+                          Dibatalkan
+                        </span>
+                      ) : transaction.status === 'completed' ? (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200">
+                          Selesai
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-200">
+                          {transaction.status || '-'}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-right">
                       <Link to={`/sales/transactions/${transaction.id}`}>

@@ -16,6 +16,8 @@ import {
   Calendar,
   MapPin,
   CreditCard,
+  RotateCcw,
+  RefreshCw,
 } from 'lucide-react';
 import { salesService } from '../../services/sales.service';
 import { formatCurrency } from '../../utils/format';
@@ -174,6 +176,14 @@ export default function SalesTransactionDetail() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {tx.status !== 'void' && tx.status !== 'cancelled' && (
+              <Link to={`/sales/returns/new?transactionId=${id}`}>
+                <button className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-all shadow-sm">
+                  <RotateCcw className="w-4 h-4" />
+                  <span>Retur</span>
+                </button>
+              </Link>
+            )}
             <Link to={`/sales/transactions/${id}/print`} target="_blank">
               <button className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-all shadow-sm">
                 <Printer className="w-4 h-4" />
@@ -422,6 +432,50 @@ export default function SalesTransactionDetail() {
                     )}
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Retur Detail — only if transaction is voided */}
+          {(tx.status === 'void' || tx.status === 'cancelled') && (
+            <div className="bg-white rounded-xl shadow-sm border border-red-200 p-6">
+              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <RefreshCw className="w-5 h-5 text-red-600" />
+                Detail Retur
+              </h2>
+              <div className="space-y-3">
+                <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs text-gray-500">Status</span>
+                    <span className="text-sm font-semibold text-red-600">
+                      {tx.status === 'void' ? 'Dibatalkan (Void)' : 'Dibatalkan'}
+                    </span>
+                  </div>
+                  {tx.voidReason && (
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-xs text-gray-500">Alasan</span>
+                      <span className="text-sm text-gray-900 text-right">{tx.voidReason}</span>
+                    </div>
+                  )}
+                  {tx.voidedAt && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-500">Tanggal Retur</span>
+                      <span className="text-xs text-gray-600">{formatDate(tx.voidedAt)}</span>
+                    </div>
+                  )}
+                </div>
+                {payments.some((p: any) => p.paymentMethod === 'deposit') && (
+                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-xs text-gray-500 mb-1">Metode Refund</p>
+                    <p className="text-sm font-semibold text-blue-700">
+                      Deposit (Saldo) — {formatCurrency(
+                        payments
+                          .filter((p: any) => p.paymentMethod === 'deposit')
+                          .reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0)
+                      )}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           )}
