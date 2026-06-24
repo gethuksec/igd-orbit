@@ -314,9 +314,9 @@ export default function CustomerForm() {
                       required
                     >
                       <option value="">Pilih Kecamatan</option>
-                      {kecamatanJember.map((kec: any) => (
-                        <option key={kec.id} value={kec.nama}>
-                          {kec.nama}
+                      {kecamatanJember.map((kec: string) => (
+                        <option key={kec} value={kec}>
+                          {kec}
                         </option>
                       ))}
                     </select>

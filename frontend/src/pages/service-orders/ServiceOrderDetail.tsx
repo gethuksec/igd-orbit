@@ -315,6 +315,7 @@ export default function ServiceOrderDetail() {
 
   const canAssignTechnician = userRoles.includes('HS') || userRoles.includes('SPV');
   const isTechnician = userRoles.includes('TC');
+  const canAddParts = userRoles.includes('CS') || userRoles.includes('HS') || userRoles.includes('SPV') || userRoles.includes('SUPERADMIN');
 
   const normalizedStatus = String(order.status || 'pending').toLowerCase();
 
@@ -1007,7 +1008,7 @@ export default function ServiceOrderDetail() {
             </div>
             <h2 className="text-xl font-bold text-gray-900">Sparepart & Accessories</h2>
           </div>
-          {(isTechnician || canAssignTechnician) && normalizedStatus !== 'delivered' && normalizedStatus !== 'cancelled' && (
+          {(canAddParts) && normalizedStatus !== 'delivered' && normalizedStatus !== 'cancelled' && (
             <button
               onClick={() => setShowAddPartsModal(true)}
               className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-semibold hover:bg-primary-700"
@@ -1027,7 +1028,7 @@ export default function ServiceOrderDetail() {
                   <th className="text-right py-2 px-3 font-semibold text-gray-700">Qty</th>
                   <th className="text-right py-2 px-3 font-semibold text-gray-700">Harga Satuan</th>
                   <th className="text-right py-2 px-3 font-semibold text-gray-700">Subtotal</th>
-                  {(isTechnician || canAssignTechnician) && normalizedStatus !== 'delivered' && normalizedStatus !== 'cancelled' && (
+                  {(canAddParts) && normalizedStatus !== 'delivered' && normalizedStatus !== 'cancelled' && (
                     <th className="text-center py-2 px-3 font-semibold text-gray-700">Aksi</th>
                   )}
                 </tr>
@@ -1067,7 +1068,7 @@ export default function ServiceOrderDetail() {
                           currency: 'IDR',
                         }).format(subtotal)}
                       </td>
-                      {(isTechnician || canAssignTechnician) && normalizedStatus !== 'delivered' && normalizedStatus !== 'cancelled' && (
+                      {(canAddParts) && normalizedStatus !== 'delivered' && normalizedStatus !== 'cancelled' && (
                         <td className="text-center py-2 px-3">
                           <button
                             onClick={() => {
@@ -1093,7 +1094,7 @@ export default function ServiceOrderDetail() {
               <tfoot>
                 <tr className="bg-gray-50">
                   <td 
-                    colSpan={(isTechnician || canAssignTechnician) && normalizedStatus !== 'delivered' && normalizedStatus !== 'cancelled' ? 6 : 5} 
+                    colSpan={(canAddParts) && normalizedStatus !== 'delivered' && normalizedStatus !== 'cancelled' ? 6 : 5} 
                     className="py-2 px-3 font-semibold text-gray-900 text-right"
                   >
                     Total Biaya Sparepart:

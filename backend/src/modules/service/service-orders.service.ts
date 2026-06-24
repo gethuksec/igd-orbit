@@ -110,7 +110,7 @@ export class ServiceOrdersService {
       customerName,
       customerPhone,
       customerEmail,
-      customerAlternatePhone,
+      customerSubdistrict,
       deviceType,
       deviceUnit,
       deviceColor,
@@ -127,6 +127,7 @@ export class ServiceOrdersService {
       priority = 'normal',
       promisedDate,
       customerNotes,
+      assignedTechnicianId,
     } = dto;
 
     // Validate or create customer
@@ -176,7 +177,7 @@ export class ServiceOrdersService {
           customerName,
           customerPhone,
           customerEmail,
-          customerAlternatePhone,
+          customerSubdistrict,
           deviceType,
           deviceUnit,
           deviceColor,
@@ -195,6 +196,7 @@ export class ServiceOrdersService {
           status: 'pending',
           createdBy: userId,
           customerNotes,
+          assignedTechnicianId,
         },
         include: {
           branch: true,
@@ -366,17 +368,35 @@ export class ServiceOrdersService {
       updateData.accessoriesIncluded = JSON.parse(JSON.stringify(dto.accessoriesIncluded));
     }
 
-    // Update other fields
+    // Update other fields (exclude relation fields, special-handled fields, and non-model fields)
+    const excludedFields = ['customerId', 'serviceTypeId', 'assignedTechnicianId'];
     Object.keys(dto).forEach((key) => {
       if (
         key !== 'devicePassword' &&
         key !== 'estimatedCost' &&
         key !== 'accessoriesIncluded' &&
+        !excludedFields.includes(key) &&
         dto[key as keyof CreateServiceOrderDto] !== undefined
       ) {
         updateData[key] = dto[key as keyof CreateServiceOrderDto];
       }
     });
+
+    // Handle relation fields separately
+    if (dto.customerId) {
+      updateData.customer = { connect: { id: dto.customerId } };
+    }
+    if (dto.serviceTypeId) {
+      updateData.serviceType = { connect: { id: dto.serviceTypeId } };
+    }
+    if (dto.assignedTechnicianId) {
+      updateData.assignedTechnician = { connect: { id: dto.assignedTechnicianId } };
+    }
+
+    // Handle date fields
+    if (dto.promisedDate) {
+      updateData.promisedDate = new Date(dto.promisedDate);
+    }
 
     return this.prisma.serviceOrder.update({
       where: { id },

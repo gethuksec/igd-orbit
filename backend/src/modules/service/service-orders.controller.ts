@@ -146,7 +146,7 @@ export class ServiceOrdersController {
 
   @Post(':id/parts')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('HS')
+  @Roles('CS', 'HS', 'SPV', 'SUPERADMIN')
   async addParts(
     @Param('id') id: string,
     @Body() dto: AddPartsDto,

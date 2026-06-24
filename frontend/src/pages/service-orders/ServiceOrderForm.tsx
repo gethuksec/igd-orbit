@@ -97,7 +97,7 @@ export default function ServiceOrderForm() {
       const res = await api.get('/users', { params: { role: 'TC' } });
       return res.data.data || res.data || [];
     },
-    enabled: !isEdit, // Only fetch on create
+    enabled: true,
   });
 
   // Fetch customer data if customerId is provided in URL
@@ -135,7 +135,7 @@ export default function ServiceOrderForm() {
         customerName: (serviceOrder as any).customerName || '',
         customerPhone: (serviceOrder as any).customerPhone || '',
         customerEmail: (serviceOrder as any).customerEmail || '',
-        customerSubdistrict: (serviceOrder as any).customerSubdistrict || '',
+        customerSubdistrict: (serviceOrder as any)?.customer?.subdistrict || '',
         deviceType: (serviceOrder as any).deviceType || 'handphone',
         deviceUnit: (serviceOrder as any).deviceUnit || '',
         deviceColor: (serviceOrder as any).deviceColor || '',
@@ -149,7 +149,9 @@ export default function ServiceOrderForm() {
         serviceSubType: (serviceOrder as any).serviceSubType || '',
         estimatedCost: (serviceOrder as any).estimatedCost || 0,
         priority: (serviceOrder as any).priority || 'normal',
-        promisedDate: (serviceOrder as any).promisedDate || '',
+        promisedDate: (serviceOrder as any).promisedDate 
+          ? new Date((serviceOrder as any).promisedDate).toISOString().split('T')[0] 
+          : '',
         customerNotes: (serviceOrder as any).customerNotes || '',
         assignedTechnicianId: (serviceOrder as any).assignedTechnicianId || '',
       });
@@ -234,6 +236,11 @@ export default function ServiceOrderForm() {
       return;
     }
 
+    if (!isEdit && !formData.assignedTechnicianId) {
+      toast.error('Teknisi wajib dipilih');
+      return;
+    }
+
     // Validate promised date based on priority
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -258,9 +265,6 @@ export default function ServiceOrderForm() {
 
     // Clean up empty strings for optional fields
     const submitData = { ...formData };
-    if (!submitData.assignedTechnicianId) {
-      (submitData as any).assignedTechnicianId = undefined;
-    }
 
     mutation.mutate(submitData);
   };
@@ -526,27 +530,29 @@ export default function ServiceOrderForm() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nama Customer <span className="text-red-500">*</span>
+                Nama Customer {!isEdit && <span className="text-red-500">*</span>}
               </label>
               <input
                 type="text"
-                required
+                required={!isEdit}
                 value={formData.customerName}
                 onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                disabled={isEdit}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${isEdit ? 'bg-gray-100 text-gray-600 cursor-not-allowed' : 'border-gray-300'}`}
                 placeholder="Nama customer"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Telepon <span className="text-red-500">*</span>
+                Telepon {!isEdit && <span className="text-red-500">*</span>}
               </label>
               <input
                 type="tel"
-                required
+                required={!isEdit}
                 value={formData.customerPhone}
                 onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                disabled={isEdit}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${isEdit ? 'bg-gray-100 text-gray-600 cursor-not-allowed' : 'border-gray-300'}`}
                 placeholder="081234567890"
               />
             </div>
@@ -558,7 +564,8 @@ export default function ServiceOrderForm() {
                 type="email"
                 value={formData.customerEmail}
                 onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                disabled={isEdit}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${isEdit ? 'bg-gray-100 text-gray-600 cursor-not-allowed' : 'border-gray-300'}`}
                 placeholder="email@example.com"
               />
             </div>
@@ -569,7 +576,8 @@ export default function ServiceOrderForm() {
               <select
                 value={formData.customerSubdistrict}
                 onChange={(e) => setFormData({ ...formData, customerSubdistrict: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none bg-white"
+                disabled={isEdit}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none bg-white ${isEdit ? 'bg-gray-100 text-gray-600 cursor-not-allowed' : ''}`}
               >
                 <option value="">Pilih Kecamatan</option>
                 {kecamatanJember.map((kec: string) => (
@@ -862,18 +870,17 @@ export default function ServiceOrderForm() {
               </div>
             </div>
 
-            {/* Assigned Technician dropdown (only on create) */}
-            {!isEdit && (
+            {/* Assigned Technician dropdown */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Assign Teknisi
+                  Assign Teknisi {!isEdit && <span className="text-red-500">*</span>}
                 </label>
                 <select
                   value={formData.assignedTechnicianId}
                   onChange={(e) => setFormData({ ...formData, assignedTechnicianId: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none bg-white"
                 >
-                  <option value="">Pilih Teknisi (opsional)</option>
+                  <option value="">Pilih Teknisi</option>
                   {Array.isArray(technicians) && technicians.map((tech: any) => (
                     <option key={tech.id} value={tech.id}>
                       {tech.fullName || tech.name || tech.email}
@@ -881,7 +888,6 @@ export default function ServiceOrderForm() {
                   ))}
                 </select>
               </div>
-            )}
           </div>
         </div>
 

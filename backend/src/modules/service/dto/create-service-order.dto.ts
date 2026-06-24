@@ -28,7 +28,7 @@ export class CreateServiceOrderDto {
 
   @IsString()
   @IsOptional()
-  customerAlternatePhone?: string;
+  customerSubdistrict?: string;
 
   // Device info
   @IsNotEmpty()
@@ -95,6 +95,10 @@ export class CreateServiceOrderDto {
   @IsString()
   @IsOptional()
   customerNotes?: string;
+
+  @IsUUID()
+  @IsOptional()
+  assignedTechnicianId?: string;
 }
 
 

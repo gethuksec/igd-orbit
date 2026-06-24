@@ -514,7 +514,7 @@ export class ServiceReturnsService {
         customerName: originalOrder.customerName,
         customerPhone: originalOrder.customerPhone,
         customerEmail: originalOrder.customerEmail || undefined,
-        customerAlternatePhone: originalOrder.customerAlternatePhone || undefined,
+        customerSubdistrict: originalOrder.customerSubdistrict || undefined,
         deviceType: originalOrder.deviceType as 'handphone' | 'laptop' | 'tablet' | 'other',
         deviceUnit: originalOrder.deviceUnit || undefined,
         deviceColor: originalOrder.deviceColor || undefined,
