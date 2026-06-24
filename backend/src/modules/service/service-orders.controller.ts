@@ -135,7 +135,7 @@ export class ServiceOrdersController {
 
   @Post(':id/status')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('HS', 'SPV')
+  @Roles('TC', 'HS', 'SPV')
   async updateStatus(
     @Param('id') id: string,
     @Body() dto: UpdateStatusDto,
