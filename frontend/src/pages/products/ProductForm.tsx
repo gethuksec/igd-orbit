@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Save, X, Loader2, ArrowLeft, Package, DollarSign, FileText, Tag, Users } from 'lucide-react';
+import { Save, X, Loader2, ArrowLeft, Package, DollarSign, FileText, Tag } from 'lucide-react';
 import { productsService } from '../../services/products.service';
 import { api } from '../../services/api';
 
