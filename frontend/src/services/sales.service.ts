@@ -231,4 +231,34 @@ export const salesService = {
   async voidTransaction(transactionId: string, reason: string): Promise<void> {
     await api.post(`/sales/transactions/${transactionId}/void`, { reason });
   },
+
+  // === Deposit-related API methods ===
+
+  async createReturnDeposit(data: { customerId: string; amount: number; referenceId?: string; notes?: string }): Promise<any> {
+    const response = await api.post('/customer-deposits/return-credit', {
+      ...data,
+      type: 'return_credit',
+    });
+    return response.data;
+  },
+
+  async getDepositBalance(customerId: string): Promise<number> {
+    const response = await api.get(`/customer-deposits/balance/${customerId}`);
+    return response.data.balance;
+  },
+
+  async getDepositHistory(customerId: string): Promise<any[]> {
+    const response = await api.get(`/customer-deposits/history/${customerId}`);
+    return response.data;
+  },
+
+  async useDeposit(customerId: string, amount: number, referenceTransactionId?: string): Promise<any> {
+    const response = await api.post('/customer-deposits/use', { customerId, amount, referenceTransactionId });
+    return response.data;
+  },
+
+  async refundDeposit(customerId: string, amount: number, notes?: string): Promise<any> {
+    const response = await api.post('/customer-deposits/refund', { customerId, amount, notes });
+    return response.data;
+  },
 };

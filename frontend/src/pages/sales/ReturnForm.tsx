@@ -18,6 +18,7 @@ export default function ReturnForm() {
   const [transactionSearch, setTransactionSearch] = useState('');
   const [selectedTransaction, setSelectedTransaction] = useState<SalesTransaction | null>(null);
   const [returnReason, setReturnReason] = useState('');
+  const [refundMethod, setRefundMethod] = useState<'cash' | 'deposit'>('cash');
 
   // If transactionId is provided, fetch it
   const { data: preloadedTransaction, isLoading: loadingPreloaded } = useQuery({
@@ -58,6 +59,21 @@ export default function ReturnForm() {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Gagal membuat retur');
+    },
+  });
+
+  // Return as deposit mutation
+  const returnAsDepositMutation = useMutation({
+    mutationFn: ({ customerId, amount, referenceId, notes }: { customerId: string; amount: number; referenceId: string; notes: string }) =>
+      salesService.createReturnDeposit({ customerId, amount, referenceId, notes }),
+    onSuccess: () => {
+      toast.success('Dana retur berhasil dikreditkan sebagai deposit');
+      queryClient.invalidateQueries({ queryKey: ['sales-returns'] });
+      queryClient.invalidateQueries({ queryKey: ['sales-transactions'] });
+      navigate('/sales/returns');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Gagal membuat deposit retur');
     },
   });
 
@@ -217,6 +233,46 @@ export default function ReturnForm() {
             />
           </div>
 
+          {/* Refund Method */}
+          {selectedTransaction && selectedTransaction.customer && (
+            <div>
+              <label className="block text-sm font-medium mb-2 text-gray-700">
+                Metode Pengembalian Dana
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRefundMethod('cash')}
+                  className={`px-4 py-3 rounded-lg border-2 transition-colors ${
+                    refundMethod === 'cash'
+                      ? 'border-primary bg-primary/10 text-primary font-semibold'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  Tunai / Cash
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRefundMethod('deposit')}
+                  className={`px-4 py-3 rounded-lg border-2 transition-colors ${
+                    refundMethod === 'deposit'
+                      ? 'border-primary bg-primary/10 text-primary font-semibold'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  Deposit (Saldo)
+                </button>
+              </div>
+              {refundMethod === 'deposit' && (
+                <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-sm text-blue-700">
+                    Dana retur akan dikreditkan ke saldo deposit pelanggan dan dapat digunakan untuk pembelian berikutnya.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex gap-2 pt-4 border-t border-gray-200">
             <Button
@@ -237,10 +293,19 @@ export default function ReturnForm() {
                   toast.error('Alasan retur wajib diisi');
                   return;
                 }
-                voidTransactionMutation.mutate({
-                  transactionId: selectedTransaction.id,
-                  reason: returnReason.trim(),
-                });
+                if (refundMethod === 'deposit' && selectedTransaction.customer?.id) {
+                  returnAsDepositMutation.mutate({
+                    customerId: selectedTransaction.customer.id,
+                    amount: selectedTransaction.total || selectedTransaction.totalPrice || 0,
+                    referenceId: selectedTransaction.id,
+                    notes: returnReason.trim(),
+                  });
+                } else {
+                  voidTransactionMutation.mutate({
+                    transactionId: selectedTransaction.id,
+                    reason: returnReason.trim(),
+                  });
+                }
               }}
               disabled={!selectedTransaction || !returnReason.trim() || voidTransactionMutation.isPending}
               className="flex-1"

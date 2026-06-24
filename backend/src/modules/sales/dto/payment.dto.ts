@@ -11,8 +11,8 @@ import {
  * Validates payment data
  */
 export class PaymentDto {
-  @IsEnum(['cash', 'card', 'transfer', 'e-wallet', 'credit'], {
-    message: 'Payment method must be one of: cash, card, transfer, e-wallet, credit',
+  @IsEnum(['cash', 'card', 'transfer', 'e-wallet', 'credit', 'deposit'], {
+    message: 'Payment method must be one of: cash, card, transfer, e-wallet, credit, deposit',
   })
   method!: string;
 

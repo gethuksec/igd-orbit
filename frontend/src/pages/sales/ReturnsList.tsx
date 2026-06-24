@@ -139,7 +139,7 @@ export default function ReturnsList() {
     }
   };
 
-  const totalReturns = pagination.total;
+  const totalReturns = returns.length;
   const totalRefundAmount = returns.reduce((acc, r) => acc + (r.refundAmount || r.total || r.totalPrice || 0), 0);
 
   return (

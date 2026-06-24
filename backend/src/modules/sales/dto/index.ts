@@ -6,4 +6,5 @@ export { TransactionItemDto } from './transaction-item.dto';
 export { PaymentDto } from './payment.dto';
 export { VoidTransactionDto } from './void-transaction.dto';
 export { HoldTransactionDto } from './hold-transaction.dto';
+export { CreateCustomerDepositDto } from './create-customer-deposit.dto';
 

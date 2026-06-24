@@ -18,10 +18,12 @@ interface PaymentModalProps {
 
 export function PaymentModal({ open, onClose, onSuccess, branchId }: PaymentModalProps) {
   const { cart, customer, discount, receiptNotes, internalNotes, total, clearCart } = usePOSStore();
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'transfer' | 'e-wallet' | 'credit'>('cash');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'transfer' | 'e-wallet' | 'credit' | 'deposit'>('cash');
   const [amountReceived, setAmountReceived] = useState('');
   const [paymentDetails, setPaymentDetails] = useState<Record<string, any>>({});
   const [isProcessing, setIsProcessing] = useState(false);
+  const [depositBalance, setDepositBalance] = useState<number | null>(null);
+  const [depositAmount, setDepositAmount] = useState('');
 
   const change = paymentMethod === 'cash' && amountReceived
     ? parseFloat(amountReceived) - total
@@ -53,6 +55,26 @@ export function PaymentModal({ open, onClose, onSuccess, branchId }: PaymentModa
       return;
     }
 
+    if (paymentMethod === 'deposit') {
+      if (!customer) {
+        alert('Customer is required for deposit payment');
+        return;
+      }
+      const depositAmt = parseFloat(depositAmount);
+      if (isNaN(depositAmt) || depositAmt <= 0) {
+        alert('Please enter a valid deposit amount');
+        return;
+      }
+      if (depositAmt > (depositBalance ?? 0)) {
+        alert('Insufficient deposit balance');
+        return;
+      }
+      if (depositAmt < total) {
+        alert('Deposit amount must be at least the total amount');
+        return;
+      }
+    }
+
     setIsProcessing(true);
 
     try {
@@ -70,8 +92,8 @@ export function PaymentModal({ open, onClose, onSuccess, branchId }: PaymentModa
 
       // Prepare payment data
       const payment = {
-        method: paymentMethod,
-        amount: total,
+        method: paymentMethod === 'deposit' ? 'deposit' : paymentMethod,
+        amount: paymentMethod === 'deposit' ? parseFloat(depositAmount) : total,
         details: paymentMethod !== 'cash' ? paymentDetails : undefined,
       };
 
@@ -119,10 +141,15 @@ export function PaymentModal({ open, onClose, onSuccess, branchId }: PaymentModa
         <div>
           <label className="block text-sm font-medium mb-2">Payment Method</label>
           <div className="grid grid-cols-2 gap-2">
-            {(['cash', 'card', 'transfer', 'e-wallet', 'credit'] as const).map((method) => (
-              <button
-                key={method}
-                onClick={() => setPaymentMethod(method)}
+            {(['cash', 'card', 'transfer', 'e-wallet', 'credit', 'deposit'] as const).map((method) => (
+            <button
+              key={method}
+              onClick={() => {
+                setPaymentMethod(method);
+                if (method === 'deposit' && customer) {
+                  salesService.getDepositBalance(customer.id).then(setDepositBalance).catch(() => setDepositBalance(0));
+                }
+              }}
                 className={`px-4 py-3 rounded-lg border-2 transition-colors ${
                   paymentMethod === method
                     ? 'border-primary bg-primary/10 text-primary font-semibold'
@@ -259,6 +286,43 @@ export function PaymentModal({ open, onClose, onSuccess, branchId }: PaymentModa
           </div>
         )}
 
+        {paymentMethod === 'deposit' && (
+          <div className="space-y-4">
+            {customer ? (
+              <>
+                <div className="p-3 bg-blue-50 rounded-lg">
+                  <div className="text-sm text-gray-600">Deposit Balance</div>
+                  <div className="text-xl font-semibold text-primary">
+                    {formatCurrency(depositBalance ?? 0)}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Amount to Use</label>
+                  <Input
+                    type="number"
+                    value={depositAmount}
+                    onChange={(e) => setDepositAmount(e.target.value)}
+                    placeholder="Enter deposit amount"
+                    min={0}
+                    max={depositBalance ?? 0}
+                    step="1000"
+                  />
+                </div>
+                {(depositBalance ?? 0) < total && (
+                  <div className="p-3 bg-yellow-50 rounded-lg text-sm text-yellow-700">
+                    Deposit balance ({formatCurrency(depositBalance ?? 0)}) is less than total ({formatCurrency(total)}).
+                    Remaining balance can be paid with another method by splitting payment.
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="p-3 bg-yellow-50 rounded-lg text-yellow-600">
+                Customer is required for deposit payment
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Action Buttons */}
         <div className="flex gap-2 pt-4 border-t">
           <Button onClick={onClose} variant="outline" className="flex-1" disabled={isProcessing}>
@@ -267,7 +331,7 @@ export function PaymentModal({ open, onClose, onSuccess, branchId }: PaymentModa
           <Button
             onClick={handleProcessPayment}
             className="flex-1"
-            disabled={isProcessing || (paymentMethod === 'credit' && !customer)}
+            disabled={isProcessing || (paymentMethod === 'credit' && !customer) || (paymentMethod === 'deposit' && (!customer || !depositAmount))}
           >
             {isProcessing ? 'Processing...' : 'Complete Payment'}
           </Button>

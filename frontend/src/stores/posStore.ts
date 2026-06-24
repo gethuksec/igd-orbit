@@ -35,6 +35,7 @@ export interface Customer {
   };
   creditLimit?: number;
   creditUsed?: number;
+  depositBalance?: number;
 }
 
 /**

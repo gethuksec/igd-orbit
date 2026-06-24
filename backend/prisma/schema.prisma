@@ -437,6 +437,7 @@ model Customer {
   creditUsed           Decimal   @default(0) @map("credit_used") @db.Decimal(15, 2)
   paymentTermDays      Int?      @map("payment_term_days")
   preferredBranchId    String?   @map("preferred_branch_id")
+  depositBalance       Decimal   @default(0) @map("deposit_balance") @db.Decimal(15, 2)
   isBlacklisted        Boolean   @default(false) @map("is_blacklisted")
   blacklistReason      String?   @map("blacklist_reason")
   blacklistUntil       DateTime? @map("blacklist_until")
@@ -455,6 +456,7 @@ model Customer {
   writeOffs        WriteOff[]
   supplierProducts Product[]          @relation("ProductSupplier")
   purchaseOrders   PurchaseOrder[]    @relation("PurchaseOrderSupplier")
+  customerDeposits CustomerDeposit[]
 
   @@index([customerCode])
   @@index([email])
@@ -1241,7 +1243,27 @@ model WriteOff {
 }
 
 // ============================================
-// 8. HR & PAYROLL MANAGEMENT
+// 9. CUSTOMER DEPOSITS
+// ============================================
+
+model CustomerDeposit {
+  id          String   @id @default(uuid())
+  customerId  String   @map("customer_id")
+  amount      Decimal  @db.Decimal(15, 2)  // positive = add, negative = deduct
+  type        String   // 'return_credit', 'payment_used', 'refund'
+  referenceId String?  @map("reference_id")  // SalesTransaction ID
+  notes       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@map("customer_deposits")
+}
+
+// ============================================
+// 10. HR & PAYROLL MANAGEMENT
 // ============================================
 
 model Attendance {

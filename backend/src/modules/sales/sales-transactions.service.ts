@@ -9,6 +9,7 @@ import {
 import { PrismaService } from '../../shared/services';
 import { CreateSalesTransactionDto, VoidTransactionDto, HoldTransactionDto } from './dto';
 import { CustomersService } from '../customers/customers.service';
+import { CustomerDepositsService } from './customer-deposits.service';
 import { JournalEntriesService } from '../finance/services/journal-entries.service';
 import { randomBytes } from 'crypto';
 
@@ -31,6 +32,7 @@ export class SalesTransactionsService {
   constructor(
     private prisma: PrismaService,
     private customersService: CustomersService,
+    private customerDepositsService: CustomerDepositsService,
     @Inject(forwardRef(() => JournalEntriesService))
     private journalEntriesService?: JournalEntriesService,
   ) {}
@@ -274,6 +276,21 @@ export class SalesTransactionsService {
       }
     }
 
+    // Validate deposit payment
+    if (createDto.payment.method === 'deposit') {
+      if (!createDto.customerId) {
+        throw new BadRequestException('Customer is required for deposit payment');
+      }
+      const depositBalance = await this.customerDepositsService.getDepositBalance(
+        createDto.customerId,
+      );
+      if (calculation.total > depositBalance) {
+        throw new BadRequestException(
+          `Insufficient deposit balance. Available: ${depositBalance}, Required: ${calculation.total}`,
+        );
+      }
+    }
+
     // Generate transaction number with user initials
     const transactionNumber = await this.generateTransactionNumber(userId);
 
@@ -386,6 +403,15 @@ export class SalesTransactionsService {
         },
       });
 
+      // Deduct deposit balance if payment method is deposit
+      if (createDto.payment.method === 'deposit' && createDto.customerId) {
+        await this.customerDepositsService.useDeposit(
+          createDto.customerId,
+          calculation.total,
+          transaction.id,
+        );
+      }
+
       // Update customer statistics if customer provided
       if (createDto.customerId) {
         if (createDto.payment.method === 'credit') {
@@ -480,6 +506,7 @@ export class SalesTransactionsService {
           },
         },
         customer: true,
+        payments: true,
       },
     });
 
@@ -502,9 +529,19 @@ export class SalesTransactionsService {
         transactionDate.getMonth() === today.getMonth() &&
         transactionDate.getFullYear() === today.getFullYear();
 
-      // TODO: Check user role (HS for same day, SPV for past)
-      // For now, allow if same day
-      if (!isSameDay) {
+      // SUPERADMIN bypass — can void any transaction anytime
+      const voidUser = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          userRoles: {
+            select: { role: { select: { code: true } } },
+          },
+        },
+      });
+      const userRoleCodes = voidUser?.userRoles?.map((ur: any) => ur.role.code) || [];
+      if (userRoleCodes.includes('SUPERADMIN')) {
+        // Allow — no date restriction
+      } else if (!isSameDay) {
         throw new ForbiddenException('Only supervisor can void past transactions');
       }
     }
@@ -579,6 +616,34 @@ export class SalesTransactionsService {
       if (transaction.customerId) {
         // TODO: Reverse customer statistics update
         // This will be implemented when we have transaction aggregation
+      }
+
+      // Refund deposit if payment was made with deposit
+      if (transaction.customerId) {
+        const depositPayment = transaction.payments.find(
+          (p) => p.paymentMethod === 'deposit',
+        );
+        if (depositPayment) {
+          const depositAmount = depositPayment.amount.toNumber();
+          // Credit the deposit balance back
+          await tx.customerDeposit.create({
+            data: {
+              customerId: transaction.customerId,
+              amount: depositAmount,
+              type: 'return_credit',
+              referenceId: transactionId,
+              notes: `Void refund: ${transaction.transactionNumber}`,
+            },
+          });
+          await tx.customer.update({
+            where: { id: transaction.customerId },
+            data: {
+              depositBalance: {
+                increment: depositAmount,
+              },
+            },
+          });
+        }
       }
     });
   }
