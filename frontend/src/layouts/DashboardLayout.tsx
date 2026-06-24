@@ -89,10 +89,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     { key: 'masterdata', paths: ['/customers', '/products', '/branches', '/service-types'] },
     { key: 'penjualan', paths: ['/sales'] },
     { key: 'servis', paths: ['/service-orders', '/service-returns'] },
-    { key: 'gudang', paths: ['/inventory', '/stock'] },
+    { key: 'gudang', paths: ['/inventory'] },
     { key: 'keuangan', paths: ['/finance'] },
     { key: 'pembelian', paths: ['/purchasing'] },
-    { key: 'karyawan', paths: ['/employees', '/hr'] },
+    { key: 'karyawan', paths: ['/hr'] },
   ];
 
   useEffect(() => {
@@ -403,6 +403,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       Object.keys(prev).forEach((key) => {
         newState[key] = key === menuKey ? !prev[key] : false;
       });
+      // If menu key doesn't exist yet (initial state), expand it
+      if (!(menuKey in prev)) {
+        newState[menuKey] = true;
+      }
       return newState;
     });
   };
