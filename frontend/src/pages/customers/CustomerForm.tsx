@@ -144,6 +144,7 @@ export default function CustomerForm() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
+      queryClient.invalidateQueries({ queryKey: ['customer', id] });
       toast.success(isEdit ? 'Pelanggan berhasil diupdate' : 'Pelanggan berhasil ditambahkan');
       navigate('/customers');
     },
