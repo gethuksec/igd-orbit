@@ -61,7 +61,7 @@ export class ServiceOrdersController {
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('CS', 'HS', 'SPV')
+  @Roles('CS', 'HS', 'SPV', 'SUPERADMIN')
   async create(
     @Body() dto: CreateServiceOrderDto,
     @Request() req: ExpressRequest & { user: any },
@@ -113,7 +113,7 @@ export class ServiceOrdersController {
 
   @Put(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('CS', 'HS', 'SPV')
+  @Roles('CS', 'HS', 'SPV', 'SUPERADMIN')
   async update(
     @Param('id') id: string,
     @Body() dto: Partial<CreateServiceOrderDto>,
@@ -124,7 +124,7 @@ export class ServiceOrdersController {
 
   @Post(':id/assign')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('HS', 'SPV')
+  @Roles('HS', 'SPV', 'SUPERADMIN')
   async assignTechnician(
     @Param('id') id: string,
     @Body() dto: AssignTechnicianDto,
@@ -135,7 +135,7 @@ export class ServiceOrdersController {
 
   @Post(':id/status')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('TC', 'HS', 'SPV')
+  @Roles('TC', 'HS', 'SPV', 'SUPERADMIN')
   async updateStatus(
     @Param('id') id: string,
     @Body() dto: UpdateStatusDto,
@@ -157,7 +157,7 @@ export class ServiceOrdersController {
 
   @Delete(':id/parts/:partId')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('HS', 'SPV')
+  @Roles('HS', 'SPV', 'SUPERADMIN')
   async removePart(
     @Param('id') id: string,
     @Param('partId') partId: string,
@@ -168,7 +168,7 @@ export class ServiceOrdersController {
 
   @Post(':id/photos')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('CS', 'HS', 'SPV')
+  @Roles('CS', 'HS', 'SPV', 'SUPERADMIN')
   async uploadPhotos(
     @Param('id') id: string,
     @Body() dto: UploadPhotosDto,
@@ -179,7 +179,7 @@ export class ServiceOrdersController {
 
   @Post(':id/complete')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('HS', 'SPV')
+  @Roles('HS', 'SPV', 'SUPERADMIN')
   async completeService(@Param('id') id: string, @Request() req: any) {
     return this.serviceOrdersService.completeService(id, req.user.id);
   }
@@ -192,7 +192,7 @@ export class ServiceOrdersController {
 
   @Post(':id/qc')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('HS', 'SPV') // QC staff role - can be customized
+  @Roles('HS', 'SPV', 'SUPERADMIN') // QC staff role - can be customized
   async qcCheck(
     @Param('id') id: string,
     @Body() dto: QcCheckDto,
@@ -203,7 +203,7 @@ export class ServiceOrdersController {
 
   @Post(':id/deliver')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('CS', 'HS', 'SPV')
+  @Roles('CS', 'HS', 'SPV', 'SUPERADMIN')
   async deliverService(@Param('id') id: string, @Request() req: any) {
     return this.serviceOrdersService.deliverService(id, req.user.id);
   }
@@ -219,7 +219,7 @@ export class ServiceOrdersController {
 
   @Post(':id/payment')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('CS', 'HS', 'SPV', 'CMO', 'CFO', 'OWNER')
+  @Roles('CS', 'HS', 'SPV', 'CMO', 'CFO', 'OWNER', 'SUPERADMIN')
   async processPayment(
     @Param('id') id: string,
     @Body() dto: ProcessPaymentDto,
