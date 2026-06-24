@@ -18,7 +18,7 @@ export class CustomerDepositsService {
    * Create a deposit entry (add to customer balance)
    * Used when a return is credited as deposit instead of cash refund
    */
-  async createReturnDeposit(dto: CreateCustomerDepositDto): Promise<any> {
+  async createReturnDeposit(dto: CreateCustomerDepositDto, userId?: string): Promise<any> {
     if (dto.type !== 'return_credit') {
       throw new BadRequestException('Type must be return_credit for this operation');
     }
@@ -30,7 +30,33 @@ export class CustomerDepositsService {
       throw new NotFoundException('Customer not found');
     }
 
+    // If referenceId is provided, also void the transaction
+    if (dto.referenceId) {
+      const transaction = await this.prisma.salesTransaction.findUnique({
+        where: { id: dto.referenceId },
+      });
+      if (!transaction) {
+        throw new NotFoundException('Transaction not found');
+      }
+      if (transaction.status === 'void' || transaction.status === 'cancelled') {
+        throw new BadRequestException('Transaction is already voided or cancelled');
+      }
+    }
+
     return this.prisma.$transaction(async (tx) => {
+      // If referenceId is provided, void the transaction first
+      if (dto.referenceId) {
+        await tx.salesTransaction.update({
+          where: { id: dto.referenceId },
+          data: {
+            status: 'void',
+            voidReason: dto.notes || 'Return credited as deposit',
+            voidedAt: new Date(),
+            voidedBy: userId || null,
+          },
+        });
+      }
+
       // Create deposit record
       const deposit = await tx.customerDeposit.create({
         data: {

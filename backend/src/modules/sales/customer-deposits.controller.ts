@@ -4,6 +4,7 @@ import {
   Post,
   Body,
   Param,
+  Req,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -33,11 +34,12 @@ export class CustomerDepositsController {
   @HttpCode(HttpStatus.CREATED)
   async createReturnDeposit(
     @Body() createDto: CreateCustomerDepositDto,
+    @Req() req: any,
   ) {
     if (createDto.type !== 'return_credit') {
       createDto.type = 'return_credit';
     }
-    return this.customerDepositsService.createReturnDeposit(createDto);
+    return this.customerDepositsService.createReturnDeposit(createDto, req.user?.id);
   }
 
   /**
