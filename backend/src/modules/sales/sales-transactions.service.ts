@@ -281,13 +281,20 @@ export class SalesTransactionsService {
       if (!createDto.customerId) {
         throw new BadRequestException('Customer is required for deposit payment');
       }
+      const depositAmount = createDto.payment.details?.depositAmount || createDto.payment.amount;
+      if (depositAmount <= 0) {
+        throw new BadRequestException('Deposit amount must be greater than 0');
+      }
       const depositBalance = await this.customerDepositsService.getDepositBalance(
         createDto.customerId,
       );
-      if (calculation.total > depositBalance) {
+      if (depositAmount > depositBalance) {
         throw new BadRequestException(
-          `Insufficient deposit balance. Available: ${depositBalance}, Required: ${calculation.total}`,
+          `Insufficient deposit balance. Available: ${depositBalance}, Required: ${depositAmount}`,
         );
+      }
+      if (depositAmount > calculation.total) {
+        throw new BadRequestException('Deposit amount cannot exceed the total');
       }
     }
 
@@ -391,7 +398,7 @@ export class SalesTransactionsService {
         });
       }
 
-      // Create payment record
+      // Create deposit payment record
       await tx.payment.create({
         data: {
           transactionId: transaction.id,
@@ -403,11 +410,26 @@ export class SalesTransactionsService {
         },
       });
 
+      // Create additional cash payment for remaining if deposit doesn't cover full total
+      const cashAmount = createDto.payment.details?.cashAmount as number | undefined;
+      if (createDto.payment.method === 'deposit' && cashAmount && cashAmount > 0) {
+        await tx.payment.create({
+          data: {
+            transactionId: transaction.id,
+            paymentMethod: 'cash',
+            amount: cashAmount,
+            status: 'completed',
+            paidAt: new Date(),
+          },
+        });
+      }
+
       // Deduct deposit balance if payment method is deposit
       if (createDto.payment.method === 'deposit' && createDto.customerId) {
+        const depositAmount = createDto.payment.details?.depositAmount || createDto.payment.amount;
         await this.customerDepositsService.useDeposit(
           createDto.customerId,
-          calculation.total,
+          depositAmount,
           transaction.id,
         );
       }

@@ -313,7 +313,7 @@ export default function ServiceOrderDetail() {
 
   const order = serviceOrder as any;
 
-  const canAssignTechnician = userRoles.includes('HS') || userRoles.includes('SPV');
+  const canAssignTechnician = userRoles.includes('HS') || userRoles.includes('SPV') || userRoles.includes('SUPERADMIN');
   const isTechnician = userRoles.includes('TC');
   const canAddParts = userRoles.includes('CS') || userRoles.includes('HS') || userRoles.includes('SPV') || userRoles.includes('SUPERADMIN');
 

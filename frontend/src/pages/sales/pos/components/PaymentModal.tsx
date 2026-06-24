@@ -69,8 +69,8 @@ export function PaymentModal({ open, onClose, onSuccess, branchId }: PaymentModa
         alert('Insufficient deposit balance');
         return;
       }
-      if (depositAmt < total) {
-        alert('Deposit amount must be at least the total amount');
+      if (depositAmt > total) {
+        alert('Deposit amount cannot exceed the total');
         return;
       }
     }
@@ -91,10 +91,14 @@ export function PaymentModal({ open, onClose, onSuccess, branchId }: PaymentModa
       }));
 
       // Prepare payment data
+      const depositAmt = paymentMethod === 'deposit' ? parseFloat(depositAmount) : 0;
+      const remaining = total - depositAmt;
       const payment = {
         method: paymentMethod === 'deposit' ? 'deposit' : paymentMethod,
-        amount: paymentMethod === 'deposit' ? parseFloat(depositAmount) : total,
-        details: paymentMethod !== 'cash' ? paymentDetails : undefined,
+        amount: paymentMethod === 'deposit' ? depositAmt : total,
+        details: paymentMethod === 'deposit'
+          ? { depositAmount: depositAmt, cashAmount: remaining > 0 ? remaining : undefined }
+          : paymentDetails,
       };
 
       // Create transaction
@@ -146,8 +150,12 @@ export function PaymentModal({ open, onClose, onSuccess, branchId }: PaymentModa
               key={method}
               onClick={() => {
                 setPaymentMethod(method);
-                if (method === 'deposit' && customer) {
-                  salesService.getDepositBalance(customer.id).then(setDepositBalance).catch(() => setDepositBalance(0));
+                if (method === 'deposit') {
+                  setDepositAmount('');
+                  setAmountReceived('');
+                  if (customer) {
+                    salesService.getDepositBalance(customer.id).then(setDepositBalance).catch(() => setDepositBalance(0));
+                  }
                 }
               }}
                 className={`px-4 py-3 rounded-lg border-2 transition-colors ${
@@ -304,14 +312,16 @@ export function PaymentModal({ open, onClose, onSuccess, branchId }: PaymentModa
                     onChange={(e) => setDepositAmount(e.target.value)}
                     placeholder="Enter deposit amount"
                     min={0}
-                    max={depositBalance ?? 0}
+                    max={Math.min(total, depositBalance ?? 0)}
                     step="1000"
                   />
                 </div>
-                {(depositBalance ?? 0) < total && (
-                  <div className="p-3 bg-yellow-50 rounded-lg text-sm text-yellow-700">
-                    Deposit balance ({formatCurrency(depositBalance ?? 0)}) is less than total ({formatCurrency(total)}).
-                    Remaining balance can be paid with another method by splitting payment.
+                {depositAmount && parseFloat(depositAmount) > 0 && parseFloat(depositAmount) < total && (
+                  <div className="p-3 bg-green-50 rounded-lg text-sm">
+                    <div className="text-gray-600">Remaining to pay with cash:</div>
+                    <div className="text-lg font-semibold text-green-700">
+                      {formatCurrency(total - parseFloat(depositAmount))}
+                    </div>
                   </div>
                 )}
               </>
