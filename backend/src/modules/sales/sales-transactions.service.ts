@@ -581,13 +581,15 @@ export class SalesTransactionsService {
           });
 
           if (stock) {
-            const quantityBefore = stock.quantityAvailable.toNumber();
-            const quantityAfter = quantityBefore + item.quantity.toNumber();
+            const damagedBefore = stock.quantityDamaged.toNumber();
+            const damagedAfter = damagedBefore + item.quantity.toNumber();
+            const availableAfter = stock.quantityAvailable.toNumber() - item.quantity.toNumber();
 
             await tx.productStock.update({
               where: { id: stock.id },
               data: {
-                quantityAvailable: quantityAfter,
+                quantityAvailable: availableAfter < 0 ? 0 : availableAfter,
+                quantityDamaged: damagedAfter,
               },
             });
 
@@ -596,16 +598,16 @@ export class SalesTransactionsService {
               data: {
                 productId: item.productId,
                 branchId: transaction.branchId,
-                movementType: 'IN',
+                movementType: 'DAMAGED',
                 referenceType: 'VOID',
                 referenceId: transactionId,
-                quantityChange: item.quantity.toNumber(),
-                quantityBefore,
-                quantityAfter,
+                quantityChange: -item.quantity.toNumber(),
+                quantityBefore: damagedBefore,
+                quantityAfter: damagedAfter,
                 batchNumber: item.batchNumber || null,
                 serialNumber: item.serialNumber || null,
                 createdBy: userId,
-                notes: `Void transaction ${transaction.transactionNumber}`,
+                notes: `Void transaction ${transaction.transactionNumber} - stock moved to damaged`,
               },
             });
           }
