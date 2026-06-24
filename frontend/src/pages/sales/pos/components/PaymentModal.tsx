@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Modal } from '@/components/ui/modal';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,17 @@ export function PaymentModal({ open, onClose, onSuccess, branchId }: PaymentModa
     ? parseFloat(amountReceived) - total
     : 0;
 
+  // Reset state when modal opens
+  useEffect(() => {
+    if (open) {
+      setPaymentMethod('cash');
+      setAmountReceived('');
+      setPaymentDetails({});
+      setDepositBalance(null);
+      setDepositAmount('');
+      setIsProcessing(false);
+    }
+  }, [open]);
   const handleQuickAmount = (amount: number) => {
     if (paymentMethod === 'cash') {
       setAmountReceived(amount.toString());
