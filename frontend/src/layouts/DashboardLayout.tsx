@@ -78,19 +78,35 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({
-    masterData: true,
-    sales: true,
-    service: true,
-    inventory: true,
-    finance: true,
-    purchasing: true,
-    hr: true,
-  });
+  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
   const user = getUser();
   const { availableBranches, currentBranchId, setBranches, setCurrentBranchId } = useBranchStore();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Auto-expand menu section based on current route
+  const menuDefinitions = [
+    { key: 'masterdata', paths: ['/customers', '/products', '/branches', '/service-types'] },
+    { key: 'penjualan', paths: ['/sales'] },
+    { key: 'servis', paths: ['/service-orders', '/service-returns'] },
+    { key: 'gudang', paths: ['/inventory', '/stock'] },
+    { key: 'keuangan', paths: ['/finance'] },
+    { key: 'pembelian', paths: ['/purchasing'] },
+    { key: 'karyawan', paths: ['/employees', '/hr'] },
+  ];
+
+  useEffect(() => {
+    const currentPath = location.pathname;
+    const match = menuDefinitions.find((def) =>
+      def.paths.some((p) => currentPath.startsWith(p)),
+    );
+    if (match) {
+      setExpandedMenus((prev) => ({
+        ...Object.keys(prev).reduce((acc, key) => ({ ...acc, [key]: false }), {}),
+        [match.key]: true,
+      }));
+    }
+  }, [location.pathname]);
 
   // Handle responsive behavior
   useEffect(() => {
@@ -381,10 +397,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   };
 
   const toggleMenu = (menuKey: string) => {
-    setExpandedMenus((prev) => ({
-      ...prev,
-      [menuKey]: !prev[menuKey],
-    }));
+    setExpandedMenus((prev) => {
+      const newState: Record<string, boolean> = {};
+      // Collapse all other menus, toggle the clicked one
+      Object.keys(prev).forEach((key) => {
+        newState[key] = key === menuKey ? !prev[key] : false;
+      });
+      return newState;
+    });
   };
 
   const getMenuKey = (label: string) => {
