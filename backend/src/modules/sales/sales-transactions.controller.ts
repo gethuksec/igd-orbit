@@ -142,7 +142,7 @@ export class SalesTransactionsController {
    */
   @Post(':id/void')
   @UseGuards(RolesGuard)
-  @Roles('HS', 'SPV', 'CMO')
+  @Roles('CS', 'HS', 'SPV', 'CMO')
   @HttpCode(HttpStatus.OK)
   async void(
     @Param('id') id: string,
