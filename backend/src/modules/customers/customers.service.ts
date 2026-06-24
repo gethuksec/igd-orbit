@@ -418,6 +418,7 @@ export class CustomersService {
       email: customer.email,
       phone: customer.phone,
       alternatePhone: customer.alternatePhone,
+      subdistrict: customer.subdistrict,
       dateOfBirth: customer.dateOfBirth,
       gender: customer.gender,
       address: customer.address,
@@ -829,6 +830,7 @@ export class CustomersService {
       name: updatedCustomer.name,
       email: updatedCustomer.email,
       phone: updatedCustomer.phone,
+      subdistrict: updatedCustomer.subdistrict,
       tier: updatedCustomer.tier
         ? {
             id: updatedCustomer.tier.id,
