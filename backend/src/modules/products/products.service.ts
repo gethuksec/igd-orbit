@@ -1376,12 +1376,19 @@ export class ProductsService {
             if (foundCategory) {
               categoryId = foundCategory.id;
             } else {
-              throw new BadRequestException(`Kategori "${categoryName}" tidak ditemukan`);
+              // Auto-create category if not found
+              const catCode = await this.generateCategoryCode(categoryName.trim());
+              const newCat = await this.prisma.category.create({
+                data: { name: categoryName.trim(), code: catCode },
+              });
+              categoryId = newCat.id;
+              categories.push(newCat);
+              categoryMap.set(categoryLower, newCat.id);
             }
           }
         }
 
-        // Find brand (optional)
+        // Find or create brand (optional)
         let brandId: string | undefined;
         const brandName = rowData['merek'] || rowData['brand'] || '';
         if (brandName) {
@@ -1391,11 +1398,20 @@ export class ProductsService {
             const foundBrand = brands.find(b => b.name.toLowerCase().includes(brandLower) || brandLower.includes(b.name.toLowerCase()));
             if (foundBrand) {
               brandId = foundBrand.id;
+            } else {
+              // Auto-create brand if not found
+              const brandCode = await this.generateBrandCode(brandName.trim());
+              const newBrand = await this.prisma.brand.create({
+                data: { name: brandName.trim(), code: brandCode },
+              });
+              brandId = newBrand.id;
+              brands.push(newBrand);
+              brandMap.set(brandLower, newBrand.id);
             }
           }
         }
 
-        // Find sub category (optional)
+        // Find or create sub category (optional)
         let subCategoryId: string | undefined;
         const subCategoryName = rowData['sub kategori'] || rowData['sub_kategori'] || rowData['subcategory'] || '';
         if (subCategoryName && categoryId) {
@@ -1406,6 +1422,14 @@ export class ProductsService {
           );
           if (foundSubCategory) {
             subCategoryId = foundSubCategory.id;
+          } else {
+            // Auto-create sub category under the parent
+            const subCatCode = await this.generateCategoryCode(subCategoryName.trim());
+            const newSubCat = await this.prisma.category.create({
+              data: { name: subCategoryName.trim(), code: subCatCode, parentCategoryId: categoryId },
+            });
+            subCategoryId = newSubCat.id;
+            categories.push(newSubCat);
           }
         }
 
@@ -1544,6 +1568,50 @@ export class ProductsService {
     }
     result.push(current);
     return result;
+  }
+
+  /**
+   * Generate a unique category code from a name
+   * Format: CAT-{SLUGIFIED_NAME} (with random suffix on conflict)
+   */
+  private async generateCategoryCode(name: string): Promise<string> {
+    const baseCode = 'CAT-' + name
+      .toUpperCase()
+      .replace(/[^A-Z0-9 ]/g, '')
+      .replace(/\s+/g, '_')
+      .slice(0, 20);
+
+    let code = baseCode;
+    let attempts = 0;
+    while (attempts < 10) {
+      const existing = await this.prisma.category.findUnique({ where: { code } });
+      if (!existing) return code;
+      attempts++;
+      code = `${baseCode}_${randomBytes(2).toString('hex').toUpperCase()}`;
+    }
+    return code;
+  }
+
+  /**
+   * Generate a unique brand code from a name
+   * Format: BRAND-{SLUGIFIED_NAME} (with random suffix on conflict)
+   */
+  private async generateBrandCode(name: string): Promise<string> {
+    const baseCode = 'BRAND-' + name
+      .toUpperCase()
+      .replace(/[^A-Z0-9 ]/g, '')
+      .replace(/\s+/g, '_')
+      .slice(0, 20);
+
+    let code = baseCode;
+    let attempts = 0;
+    while (attempts < 10) {
+      const existing = await this.prisma.brand.findUnique({ where: { code } });
+      if (!existing) return code;
+      attempts++;
+      code = `${baseCode}_${randomBytes(2).toString('hex').toUpperCase()}`;
+    }
+    return code;
   }
 
   /**
