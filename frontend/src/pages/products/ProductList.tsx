@@ -23,6 +23,19 @@ import { api } from '../../services/api';
 import { productsService } from '../../services/products.service';
 import { toast } from 'sonner';
 import { Modal } from '../../components/ui/modal';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Card, CardContent } from '../../components/ui/card';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '../../components/ui/table';
+
+import { Select } from '../../components/ui/select';
 
 export default function ProductList() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -206,26 +219,31 @@ export default function ProductList() {
             <p className="text-primary-100 text-lg">Kelola inventori dan harga produk dengan mudah</p>
           </div>
           <div className="flex items-center gap-3">
-            <button
+            <Button
+              variant="outline"
               onClick={() => setShowImportModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm text-white rounded-lg hover:bg-white/20 transition-all border border-white/20"
+              className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm text-white rounded-lg hover:bg-white/20 transition-all border border-white/20 h-auto"
             >
               <Upload className="w-4 h-4" />
               <span>Import</span>
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="outline"
               onClick={handleExport}
-              className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm text-white rounded-lg hover:bg-white/20 transition-all border border-white/20"
               disabled={isLoading}
+              className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm text-white rounded-lg hover:bg-white/20 transition-all border border-white/20 h-auto"
             >
               <Download className="w-4 h-4" />
               <span>Export</span>
-            </button>
+            </Button>
             <Link to="/products/new">
-              <button className="flex items-center gap-2 px-6 py-3 bg-white text-primary-600 rounded-lg font-semibold hover:bg-primary-50 transition-all shadow-lg hover:shadow-xl">
+              <Button
+                variant="default"
+                className="flex items-center gap-2 px-6 py-3 bg-white text-primary-600 rounded-lg font-semibold hover:bg-primary-50 transition-all shadow-lg hover:shadow-xl h-auto"
+              >
                 <Plus className="w-5 h-5" />
                 <span>Tambah Produk</span>
-              </button>
+              </Button>
             </Link>
           </div>
         </div>
@@ -241,61 +259,69 @@ export default function ProductList() {
         </div>
       )}
 
-      {/* Stats Cards - Enhanced */}
+      {/* Stats Cards with shadcn Card */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-all duration-300 group">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl group-hover:scale-110 transition-transform">
-              <Package className="w-6 h-6 text-white" />
+        <Card className="hover:shadow-lg transition-all duration-300 group">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl group-hover:scale-110 transition-transform">
+                <Package className="w-6 h-6 text-white" />
+              </div>
+              <TrendingUp className="w-5 h-5 text-green-500" />
             </div>
-            <TrendingUp className="w-5 h-5 text-green-500" />
-          </div>
-          <p className="text-sm font-medium text-gray-600 mb-1">Total Produk</p>
-          <h3 className="text-3xl font-bold text-gray-900 mb-1">{isLoading ? '-' : totalProducts}</h3>
-          <p className="text-xs text-gray-500">Semua produk terdaftar</p>
-        </div>
+            <p className="text-sm font-medium text-gray-600 mb-1">Total Produk</p>
+            <h3 className="text-3xl font-bold text-gray-900 mb-1">{isLoading ? '-' : totalProducts}</h3>
+            <p className="text-xs text-gray-500">Semua produk terdaftar</p>
+          </CardContent>
+        </Card>
 
-        <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-all duration-300 group">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl group-hover:scale-110 transition-transform">
-              <DollarSign className="w-6 h-6 text-white" />
+        <Card className="hover:shadow-lg transition-all duration-300 group">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl group-hover:scale-110 transition-transform">
+                <DollarSign className="w-6 h-6 text-white" />
+              </div>
+              <TrendingUp className="w-5 h-5 text-green-500" />
             </div>
-            <TrendingUp className="w-5 h-5 text-green-500" />
-          </div>
-          <p className="text-sm font-medium text-gray-600 mb-1">Nilai Stok</p>
-          <h3 className="text-2xl font-bold text-gray-900 mb-1">
-            {isLoading ? '-' : formatCurrency(totalStockValue)}
-          </h3>
-          <p className="text-xs text-gray-500">Total nilai inventori</p>
-        </div>
+            <p className="text-sm font-medium text-gray-600 mb-1">Nilai Stok</p>
+            <h3 className="text-2xl font-bold text-gray-900 mb-1">
+              {isLoading ? '-' : formatCurrency(totalStockValue)}
+            </h3>
+            <p className="text-xs text-gray-500">Total nilai inventori</p>
+          </CardContent>
+        </Card>
 
-        <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-all duration-300 group">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl group-hover:scale-110 transition-transform">
-              <AlertTriangle className="w-6 h-6 text-white" />
+        <Card className="hover:shadow-lg transition-all duration-300 group">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl group-hover:scale-110 transition-transform">
+                <AlertTriangle className="w-6 h-6 text-white" />
+              </div>
+              <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold">
+                Alert
+              </span>
             </div>
-            <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold">
-              Alert
-            </span>
-          </div>
-          <p className="text-sm font-medium text-gray-600 mb-1">Stok Rendah</p>
-          <h3 className="text-3xl font-bold text-gray-900 mb-1">{isLoading ? '-' : lowStockCount}</h3>
-          <p className="text-xs text-gray-500">Perlu restock segera</p>
-        </div>
+            <p className="text-sm font-medium text-gray-600 mb-1">Stok Rendah</p>
+            <h3 className="text-3xl font-bold text-gray-900 mb-1">{isLoading ? '-' : lowStockCount}</h3>
+            <p className="text-xs text-gray-500">Perlu restock segera</p>
+          </CardContent>
+        </Card>
 
-        <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-all duration-300 group">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl group-hover:scale-110 transition-transform">
-              <CheckCircle2 className="w-6 h-6 text-white" />
+        <Card className="hover:shadow-lg transition-all duration-300 group">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl group-hover:scale-110 transition-transform">
+                <CheckCircle2 className="w-6 h-6 text-white" />
+              </div>
+              <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
+                Active
+              </span>
             </div>
-            <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
-              Active
-            </span>
-          </div>
-          <p className="text-sm font-medium text-gray-600 mb-1">Produk Aktif</p>
-          <h3 className="text-3xl font-bold text-gray-900 mb-1">{isLoading ? '-' : activeCount}</h3>
-          <p className="text-xs text-gray-500">Sedang aktif dijual</p>
-        </div>
+            <p className="text-sm font-medium text-gray-600 mb-1">Produk Aktif</p>
+            <h3 className="text-3xl font-bold text-gray-900 mb-1">{isLoading ? '-' : activeCount}</h3>
+            <p className="text-xs text-gray-500">Sedang aktif dijual</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filters & Search - Enhanced */}
@@ -307,12 +333,12 @@ export default function ProductList() {
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <Search className="h-5 w-5 text-gray-400" />
               </div>
-              <input
+              <Input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Cari nama produk, SKU, atau barcode..."
-                className="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+                className="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all h-auto"
               />
             </div>
           </div>
@@ -323,13 +349,13 @@ export default function ProductList() {
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <Filter className="h-5 w-5 text-gray-400" />
               </div>
-              <select
+              <Select
                 value={selectedCategory}
                 onChange={(e) => {
                   setSelectedCategory(e.target.value);
                   setPage(1);
                 }}
-                className="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white transition-all"
+                className="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white transition-all h-auto"
               >
                 <option value="">Semua Kategori</option>
                 {categories.map((cat) => (
@@ -337,7 +363,7 @@ export default function ProductList() {
                     {cat.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
           </div>
 
@@ -347,180 +373,154 @@ export default function ProductList() {
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <Filter className="h-5 w-5 text-gray-400" />
               </div>
-              <select
+              <Select
                 value={selectedStatus}
                 onChange={(e) => {
                   setSelectedStatus(e.target.value);
                   setPage(1);
                 }}
-                className="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white transition-all"
+                className="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white transition-all h-auto"
               >
                 <option value="active">Aktif</option>
                 <option value="inactive">Tidak Aktif</option>
                 <option value="all">Semua</option>
-              </select>
+              </Select>
             </div>
           </div>
 
           <div className="lg:w-64">
             <label className="block text-sm font-semibold text-gray-700 mb-2">Per Halaman</label>
-            <select
+            <Select
               value={limit}
               onChange={(e) => {
                 const newLimit = parseInt(e.target.value) as 10 | 20 | 50 | 100;
                 setLimit(newLimit);
                 setPage(1);
               }}
-              className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all bg-white"
+              className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all bg-white h-auto"
             >
               <option value={10}>10</option>
               <option value={20}>20</option>
               <option value={50}>50</option>
               <option value={100}>100</option>
-            </select>
+            </Select>
           </div>
         </div>
       </div>
 
       {/* Product Table - Enhanced */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto overflow-y-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gradient-to-r from-gray-50 via-gray-50 to-gray-100">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                  Produk
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                  Kategori
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                  Harga Beli
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                  Harga Jual
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                  Stok
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">
-                  Aksi
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-100">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={7} className="px-8 py-20 text-center">
-                    <div className="flex flex-col items-center gap-4">
-                      <Loader2 className="w-16 h-16 text-primary-600 animate-spin" />
-                      <p className="text-gray-600 font-semibold text-lg">Memuat data produk...</p>
-                      <p className="text-sm text-gray-500">Mohon tunggu sebentar</p>
+        <Table className="min-w-full">
+          <TableHeader className="bg-gradient-to-r from-gray-50 via-gray-50 to-gray-100">
+            <TableRow>
+              <TableHead className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                Produk
+              </TableHead>
+              <TableHead className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                Kategori
+              </TableHead>
+              <TableHead className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                Harga Beli
+              </TableHead>
+              <TableHead className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                Harga Jual
+              </TableHead>
+              <TableHead className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                Stok
+              </TableHead>
+              <TableHead className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                Status
+              </TableHead>
+              <TableHead className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">
+                Aksi
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody className="bg-white divide-y divide-gray-100">
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={7} className="px-8 py-20 text-center">
+                  <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="w-16 h-16 text-primary-600 animate-spin" />
+                    <p className="text-gray-600 font-semibold text-lg">Memuat data produk...</p>
+                    <p className="text-sm text-gray-500">Mohon tunggu sebentar</p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : products.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="px-8 py-20 text-center">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="p-4 bg-gray-100 rounded-full">
+                      <Package className="w-16 h-16 text-gray-400" />
                     </div>
-                  </td>
-                </tr>
-              ) : products.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-8 py-20 text-center">
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="p-4 bg-gray-100 rounded-full">
-                        <Package className="w-16 h-16 text-gray-400" />
+                    <p className="text-gray-600 font-semibold text-lg">Tidak ada produk ditemukan</p>
+                    <p className="text-sm text-gray-500 max-w-md">
+                      Coba ubah filter atau kata kunci pencarian. Atau tambahkan produk baru untuk memulai.
+                    </p>
+                    <Link to="/products/new">
+                      <Button
+                        variant="default"
+                        className="mt-2 flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-primary-600 to-primary-500 text-white rounded-lg font-semibold hover:from-primary-700 hover:to-primary-600 shadow-lg transition-all h-auto"
+                      >
+                        <Plus className="w-5 h-5" />
+                        <span>Tambah Produk Pertama</span>
+                      </Button>
+                    </Link>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              products.map((product: any) => (
+                <TableRow
+                  key={product.id}
+                  className="hover:bg-gradient-to-r hover:from-gray-50 hover:to-white transition-all duration-200 border-b border-gray-100"
+                >
+                  <TableCell className="px-4 py-3 whitespace-nowrap">
+                    <Link to={`/products/${product.id}`} className="flex items-center gap-4 hover:opacity-80 transition-opacity cursor-pointer">
+                      <div className="flex-shrink-0 h-14 w-14 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white shadow-md">
+                        <Package className="w-7 h-7" />
                       </div>
-                      <p className="text-gray-600 font-semibold text-lg">Tidak ada produk ditemukan</p>
-                      <p className="text-sm text-gray-500 max-w-md">
-                        Coba ubah filter atau kata kunci pencarian. Atau tambahkan produk baru untuk memulai.
-                      </p>
-                      <Link to="/products/new">
-                        <button className="mt-2 flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-primary-600 to-primary-500 text-white rounded-lg font-semibold hover:from-primary-700 hover:to-primary-600 shadow-lg transition-all">
-                          <Plus className="w-5 h-5" />
-                          <span>Tambah Produk Pertama</span>
-                        </button>
-                      </Link>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                products.map((product: any) => (
-                  <tr
-                    key={product.id}
-                    className="hover:bg-gradient-to-r hover:from-gray-50 hover:to-white transition-all duration-200 border-b border-gray-100"
-                  >
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <Link to={`/products/${product.id}`} className="flex items-center gap-4 hover:opacity-80 transition-opacity cursor-pointer">
-                        <div className="flex-shrink-0 h-14 w-14 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white shadow-md">
-                          <Package className="w-7 h-7" />
-                        </div>
-                        <div className="min-w-0 max-w-[200px]">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <div className="group relative min-w-0">
-                              <span className="block truncate text-base font-semibold text-gray-900 hover:text-primary-600 transition-colors">{product.name}</span>
-                              <div className="absolute left-0 top-full mt-1 bg-black/100 text-white text-xs rounded px-2 py-1 z-50 whitespace-normal break-words max-w-[300px] hidden group-hover:block shadow-lg">
-                                <div className="font-semibold mb-1">{product.name}</div>
-                                <div className="text-gray-300">Harga Min. {formatCurrency(product.costPrice)}</div>
-                                <div className="text-gray-300">Available Stock {(product as any).stockSummary?.totalAvailable ?? (product as any).totalStock ?? 0}</div>
-                              </div>
+                      <div className="min-w-0 max-w-[200px]">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="group relative min-w-0">
+                            <span className="block truncate text-base font-semibold text-gray-900 hover:text-primary-600 transition-colors">{product.name}</span>
+                            <div className="absolute left-0 top-full mt-1 bg-black/100 text-white text-xs rounded px-2 py-1 z-50 whitespace-normal break-words max-w-[300px] hidden group-hover:block shadow-lg">
+                              <div className="font-semibold mb-1">{product.name}</div>
+                              <div className="text-gray-300">Harga Min. {formatCurrency(product.costPrice)}</div>
+                              <div className="text-gray-300">Available Stock {(product as any).stockSummary?.totalAvailable ?? (product as any).totalStock ?? 0}</div>
                             </div>
-                            {(product as any).isService && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-200">
-                                Jasa
-                              </span>
-                            )}
                           </div>
-                          <div className="text-xs text-gray-500 flex items-center gap-1.5 mt-1">
-                            <Barcode className="w-3.5 h-3.5" />
-                            <span className="font-mono truncate max-w-[150px]">{product.sku}</span>
-                          </div>
-                        </div>
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-200">
-                        {product.category?.name || product.categoryId}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="text-sm font-semibold text-gray-900">{formatCurrency(product.costPrice)}</div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="text-sm font-bold text-primary-600">{formatCurrency(product.sellingPrice)}</div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        {(product as any).stockSummary && (product as any).stockSummary.branches ? (
-                          <div className="group relative">
-                            <span
-                              className={`text-base font-bold cursor-help ${
-                                ((product as any).totalStock || 0) < ((product as any).minStock || 0)
-                                  ? 'text-red-600'
-                                  : 'text-gray-900'
-                              }`}
-                            >
-                              {(product as any).totalStock || 0}
+                          {(product as any).isService && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-200">
+                              Jasa
                             </span>
-                            {/* Tooltip dengan stok per cabang */}
-                            <div className="absolute left-0 top-full mt-2 w-64 bg-gray-900 text-white text-xs rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 p-3">
-                              <div className="font-semibold mb-2 pb-2 border-b border-gray-700">Stok Per Cabang</div>
-                              {(product as any).stockSummary.branches.map((branch: any) => {
-                                const branchStock = branch.available - branch.reserved;
-                                return (
-                                  <div key={branch.branchId} className="flex justify-between items-center py-1">
-                                    <span className="text-gray-300">{branch.branchName}:</span>
-                                    <span className="font-semibold">{branchStock}</span>
-                                  </div>
-                                );
-                              })}
-                              <div className="mt-2 pt-2 border-t border-gray-700 text-gray-400 text-xs">
-                                Tersedia: {(product as any).stockSummary.totalAvailable || 0} | 
-                                Reserved: {(product as any).stockSummary.totalReserved || 0}
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-500 flex items-center gap-1.5 mt-1">
+                          <Barcode className="w-3.5 h-3.5" />
+                          <span className="font-mono truncate max-w-[150px]">{product.sku}</span>
+                        </div>
+                      </div>
+                    </Link>
+                  </TableCell>
+                  <TableCell className="px-4 py-3 whitespace-nowrap">
+                    <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-200">
+                      {product.category?.name || product.categoryId}
+                    </span>
+                  </TableCell>
+                  <TableCell className="px-4 py-3 whitespace-nowrap">
+                    <div className="text-sm font-semibold text-gray-900">{formatCurrency(product.costPrice)}</div>
+                  </TableCell>
+                  <TableCell className="px-4 py-3 whitespace-nowrap">
+                    <div className="text-sm font-bold text-primary-600">{formatCurrency(product.sellingPrice)}</div>
+                  </TableCell>
+                  <TableCell className="px-4 py-3 whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      {(product as any).stockSummary && (product as any).stockSummary.branches ? (
+                        <div className="group relative">
                           <span
-                            className={`text-base font-bold ${
+                            className={`text-base font-bold cursor-help ${
                               ((product as any).totalStock || 0) < ((product as any).minStock || 0)
                                 ? 'text-red-600'
                                 : 'text-gray-900'
@@ -528,70 +528,103 @@ export default function ProductList() {
                           >
                             {(product as any).totalStock || 0}
                           </span>
-                        )}
-                        {((product as any).totalStock || 0) < ((product as any).minStock || 0) && (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-red-100 text-red-800 border border-red-200">
-                            <AlertTriangle className="w-3 h-3 mr-1" />
-                            Rendah
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <span
-                        className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${
-                          (product as any).isActive
-                            ? 'bg-green-100 text-green-800 border-green-200'
-                            : 'bg-gray-100 text-gray-800 border-gray-200'
-                        }`}
-                      >
-                        {(product as any).isActive ? (
-                          <>
-                            <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
-                            Aktif
-                          </>
-                        ) : (
-                          'Tidak Aktif'
-                        )}
-                      </span>
-                    </td>
-                    <td className="px-8 py-5 whitespace-nowrap text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Link to={`/products/${product.id}`}>
-                          <button
-                            className="p-2.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                            title="Lihat Detail"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                        </Link>
-                        <Link to={`/products/${product.id}/edit`}>
-                          <button
-                            className="p-2.5 text-green-600 hover:bg-green-50 rounded-lg transition-all"
-                            title="Edit"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                        </Link>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setProductToDelete({ id: product.id, name: product.name });
-                            setDeleteModalOpen(true);
-                          }}
-                          className="p-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                          title="Hapus"
+                          {/* Tooltip dengan stok per cabang */}
+                          <div className="absolute left-0 top-full mt-2 w-64 bg-gray-900 text-white text-xs rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 p-3">
+                            <div className="font-semibold mb-2 pb-2 border-b border-gray-700">Stok Per Cabang</div>
+                            {(product as any).stockSummary.branches.map((branch: any) => {
+                              const branchStock = branch.available - branch.reserved;
+                              return (
+                                <div key={branch.branchId} className="flex justify-between items-center py-1">
+                                  <span className="text-gray-300">{branch.branchName}:</span>
+                                  <span className="font-semibold">{branchStock}</span>
+                                </div>
+                              );
+                            })}
+                            <div className="mt-2 pt-2 border-t border-gray-700 text-gray-400 text-xs">
+                              Tersedia: {(product as any).stockSummary.totalAvailable || 0} | 
+                              Reserved: {(product as any).stockSummary.totalReserved || 0}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <span
+                          className={`text-base font-bold ${
+                            ((product as any).totalStock || 0) < ((product as any).minStock || 0)
+                              ? 'text-red-600'
+                              : 'text-gray-900'
+                          }`}
                         >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                          {(product as any).totalStock || 0}
+                        </span>
+                      )}
+                      {((product as any).totalStock || 0) < ((product as any).minStock || 0) && (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-red-100 text-red-800 border border-red-200">
+                          <AlertTriangle className="w-3 h-3 mr-1" />
+                          Rendah
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="px-4 py-3 whitespace-nowrap">
+                    <span
+                      className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${
+                        (product as any).isActive
+                          ? 'bg-green-100 text-green-800 border-green-200'
+                          : 'bg-gray-100 text-gray-800 border-gray-200'
+                      }`}
+                    >
+                      {(product as any).isActive ? (
+                        <>
+                          <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                          Aktif
+                        </>
+                      ) : (
+                        'Tidak Aktif'
+                      )}
+                    </span>
+                  </TableCell>
+                  <TableCell className="px-8 py-5 whitespace-nowrap text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Link to={`/products/${product.id}`}>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="border-0 text-blue-600 hover:bg-blue-50 rounded-lg"
+                          title="Lihat Detail"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                      </Link>
+                      <Link to={`/products/${product.id}/edit`}>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="border-0 text-green-600 hover:bg-green-50 rounded-lg"
+                          title="Edit"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                      </Link>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setProductToDelete({ id: product.id, name: product.name });
+                          setDeleteModalOpen(true);
+                        }}
+                        className="border-0 text-red-600 hover:bg-red-50 rounded-lg"
+                        title="Hapus"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
 
         {/* Pagination - Enhanced */}
         {!isLoading && products.length > 0 && (
@@ -605,20 +638,22 @@ export default function ProductList() {
                 </span>
               </div>
               <div className="flex gap-2">
-                <button
+                <Button
+                  variant="outline"
                   onClick={() => setPage(page - 1)}
                   disabled={page === 1}
-                  className="px-5 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-white hover:border-primary-500 hover:text-primary-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                  className="px-5 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-white hover:border-primary-500 hover:text-primary-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold h-auto"
                 >
                   Sebelumnya
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="outline"
                   onClick={() => setPage(page + 1)}
                   disabled={page >= pagination.totalPages}
-                  className="px-5 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-white hover:border-primary-500 hover:text-primary-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                  className="px-5 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-white hover:border-primary-500 hover:text-primary-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold h-auto"
                 >
                   Selanjutnya
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -637,7 +672,9 @@ export default function ProductList() {
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Import Produk</h3>
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => {
                   setShowImportModal(false);
                   setImportFile(null);
@@ -645,7 +682,7 @@ export default function ProductList() {
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <X className="w-5 h-5" />
-              </button>
+              </Button>
             </div>
             <div className="space-y-4">
               <div>
@@ -672,17 +709,19 @@ export default function ProductList() {
                 </div>
               )}
               <div className="flex gap-2">
-                <button
+                <Button
+                  variant="outline"
                   type="button"
                   onClick={() => {
                     setShowImportModal(false);
                     setImportFile(null);
                   }}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 h-auto"
                 >
                   Batal
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="default"
                   type="button"
                   onClick={() => {
                     if (importFile) {
@@ -690,7 +729,7 @@ export default function ProductList() {
                     }
                   }}
                   disabled={!importFile || importMutation.isPending}
-                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 h-auto"
                 >
                   {importMutation.isPending ? (
                     <span className="flex items-center justify-center gap-2">
@@ -700,7 +739,7 @@ export default function ProductList() {
                   ) : (
                     'Import'
                   )}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -732,24 +771,26 @@ export default function ProductList() {
             </div>
           </div>
           <div className="flex gap-3 pt-2">
-            <button
+            <Button
+              variant="outline"
               onClick={() => {
                 setDeleteModalOpen(false);
                 setProductToDelete(null);
               }}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
               disabled={deleteMutation.isPending}
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors h-auto"
             >
               Batal
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="destructive"
               onClick={() => {
                 if (productToDelete) {
                   deleteMutation.mutate(productToDelete.id);
                 }
               }}
               disabled={deleteMutation.isPending}
-              className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 h-auto"
             >
               {deleteMutation.isPending ? (
                 <>
@@ -759,7 +800,7 @@ export default function ProductList() {
               ) : (
                 'Hapus'
               )}
-            </button>
+            </Button>
           </div>
         </div>
       </Modal>
