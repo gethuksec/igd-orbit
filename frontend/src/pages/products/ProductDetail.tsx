@@ -17,27 +17,25 @@ import {
 } from 'lucide-react';
 import { productsService } from '../../services/products.service';
 import { api } from '../../services/api';
-import { useState } from 'react';
+
 
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [activityPage, setActivityPage] = useState(1);
-
   const { data: product, isLoading } = useQuery({
     queryKey: ['product', id],
     queryFn: () => productsService.getById(id!),
     enabled: !!id,
   });
 
-  // Lazy load activity - only fetch when needed
+  // Fetch activity - show more items, scrollable container
   const { data: activityData, isLoading: loadingActivity } = useQuery({
-    queryKey: ['product-activity', id, activityPage],
+    queryKey: ['product-activity', id],
     queryFn: async () => {
       const response = await api.get(`/products/${id}/activity`, {
         params: {
-          page: activityPage,
-          limit: 3, // Show only 3 latest per page
+          page: 1,
+          limit: 50, // Fetch more items for scrollable view
         },
       });
       return response.data;
@@ -158,50 +156,46 @@ export default function ProductDetail() {
               Informasi Produk
             </h2>
             <div className="space-y-4">
-              {/* Basic Info Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-xs text-gray-500 mb-1">SKU</p>
-                  <p className="text-sm font-semibold text-gray-900 font-mono">{product.sku}</p>
+              {/* Scan-line Info Fields */}
+              <div className="divide-y divide-gray-100">
+                <div className="flex items-center justify-between py-2.5 first:pt-0">
+                  <span className="text-xs font-medium uppercase tracking-wider text-gray-400">SKU</span>
+                  <span className="text-sm font-semibold text-gray-900 font-mono">{product.sku}</span>
                 </div>
                 {product.barcode && (
-                  <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
-                    <p className="text-xs text-gray-500 mb-1">Barcode</p>
-                    <p className="text-sm font-semibold text-gray-900 font-mono">{product.barcode}</p>
+                  <div className="flex items-center justify-between py-2.5">
+                    <span className="text-xs font-medium uppercase tracking-wider text-gray-400">Barcode</span>
+                    <span className="text-sm font-semibold text-gray-900 font-mono">{product.barcode}</span>
                   </div>
                 )}
-                <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-xs text-gray-500 mb-1">Satuan</p>
-                  <p className="text-sm font-semibold text-gray-900">{(product as any).unit || 'pcs'}</p>
+                <div className="flex items-center justify-between py-2.5">
+                  <span className="text-xs font-medium uppercase tracking-wider text-gray-400">Satuan</span>
+                  <span className="text-sm font-semibold text-gray-900">{(product as any).unit || 'pcs'}</span>
                 </div>
-                <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-xs text-gray-500 mb-1">Jasa</p>
-                  <p className="text-sm font-semibold text-gray-900">{(product as any).isService ? 'Ya' : 'Tidak'}</p>
+                <div className="flex items-center justify-between py-2.5">
+                  <span className="text-xs font-medium uppercase tracking-wider text-gray-400">Jasa</span>
+                  <span className="text-sm font-semibold text-gray-900">{(product as any).isService ? 'Ya' : 'Tidak'}</span>
                 </div>
-              </div>
-
-              {/* Category & Brand */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-xs text-gray-500 mb-1">Kategori</p>
-                  <p className="text-sm font-semibold text-gray-900">{product.category?.name || product.categoryId}</p>
+                <div className="flex items-center justify-between py-2.5">
+                  <span className="text-xs font-medium uppercase tracking-wider text-gray-400">Kategori</span>
+                  <span className="text-sm font-semibold text-gray-900">{product.category?.name || product.categoryId}</span>
                 </div>
                 {(product as any).subCategory && (
-                  <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
-                    <p className="text-xs text-gray-500 mb-1">Sub Kategori</p>
-                    <p className="text-sm font-semibold text-gray-900">{(product as any).subCategory?.name || ''}</p>
+                  <div className="flex items-center justify-between py-2.5">
+                    <span className="text-xs font-medium uppercase tracking-wider text-gray-400">Sub Kategori</span>
+                    <span className="text-sm font-semibold text-gray-900">{(product as any).subCategory?.name || ''}</span>
                   </div>
                 )}
                 {product.brand && (
-                  <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
-                    <p className="text-xs text-gray-500 mb-1">Brand</p>
-                    <p className="text-sm font-semibold text-gray-900">{product.brand.name}</p>
+                  <div className="flex items-center justify-between py-2.5">
+                    <span className="text-xs font-medium uppercase tracking-wider text-gray-400">Brand</span>
+                    <span className="text-sm font-semibold text-gray-900">{product.brand.name}</span>
                   </div>
                 )}
                 {(product as any).supplier && (
-                  <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
-                    <p className="text-xs text-gray-500 mb-1">Supplier</p>
-                    <p className="text-sm font-semibold text-gray-900">{(product as any).supplier?.name || ''}</p>
+                  <div className="flex items-center justify-between py-2.5">
+                    <span className="text-xs font-medium uppercase tracking-wider text-gray-400">Supplier</span>
+                    <span className="text-sm font-semibold text-gray-900">{(product as any).supplier?.name || ''}</span>
                   </div>
                 )}
               </div>
@@ -209,35 +203,35 @@ export default function ProductDetail() {
               {/* Physical Attributes */}
               {((product as any).size || (product as any).color || (product as any).lengthCm || (product as any).weightGrams) && (
                 <div className="pt-3 border-t border-gray-200">
-                  <p className="text-xs font-semibold text-gray-700 mb-2">Atribut Fisik</p>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <p className="text-xs font-medium uppercase tracking-wider text-gray-400 mb-2">Atribut Fisik</p>
+                  <div className="divide-y divide-gray-100">
                     {(product as any).size && (
-                      <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
-                        <p className="text-xs text-gray-500 mb-1">Ukuran</p>
-                        <p className="text-sm font-semibold text-gray-900">{(product as any).size}</p>
+                      <div className="flex items-center justify-between py-2.5 first:pt-0">
+                        <span className="text-xs font-medium uppercase tracking-wider text-gray-400">Ukuran</span>
+                        <span className="text-sm font-semibold text-gray-900">{(product as any).size}</span>
                       </div>
                     )}
                     {(product as any).color && (
-                      <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
-                        <p className="text-xs text-gray-500 mb-1">Warna</p>
-                        <p className="text-sm font-semibold text-gray-900">{(product as any).color}</p>
+                      <div className="flex items-center justify-between py-2.5">
+                        <span className="text-xs font-medium uppercase tracking-wider text-gray-400">Warna</span>
+                        <span className="text-sm font-semibold text-gray-900">{(product as any).color}</span>
                       </div>
                     )}
                     {((product as any).lengthCm || (product as any).widthCm || (product as any).heightCm) && (
-                      <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
-                        <p className="text-xs text-gray-500 mb-1">Dimensi (cm)</p>
-                        <p className="text-sm font-semibold text-gray-900">
+                      <div className="flex items-center justify-between py-2.5">
+                        <span className="text-xs font-medium uppercase tracking-wider text-gray-400">Dimensi (cm)</span>
+                        <span className="text-sm font-semibold text-gray-900 font-mono">
                           {(product as any).lengthCm || 0} × {(product as any).widthCm || 0} × {(product as any).heightCm || 0}
-                        </p>
+                        </span>
                       </div>
                     )}
                     {((product as any).weightGrams || (product as any).packageWeightGrams) && (
-                      <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
-                        <p className="text-xs text-gray-500 mb-1">Berat</p>
-                        <p className="text-sm font-semibold text-gray-900">
+                      <div className="flex items-center justify-between py-2.5">
+                        <span className="text-xs font-medium uppercase tracking-wider text-gray-400">Berat</span>
+                        <span className="text-sm font-semibold text-gray-900 font-mono">
                           {(product as any).weightGrams ? `${(product as any).weightGrams}g` : '-'}
                           {(product as any).packageWeightGrams && ` / ${(product as any).packageWeightGrams}g (paket)`}
-                        </p>
+                        </span>
                       </div>
                     )}
                   </div>
@@ -286,28 +280,28 @@ export default function ProductDetail() {
 
             {/* Pricing - Enhanced */}
             <div className="pt-4 border-t border-gray-200">
-              <p className="text-xs font-semibold text-gray-700 mb-2">Informasi Harga</p>
+              <p className="text-xs font-medium uppercase tracking-wider text-gray-400 mb-2">Informasi Harga</p>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-xs text-gray-500 mb-1">Harga Beli</p>
-                  <p className="text-sm font-bold text-gray-900">{formatCurrency(product.costPrice)}</p>
+                <div className="pb-1.5 border-b border-gray-100">
+                  <p className="text-xs text-gray-500 mb-1">HARGA BELI</p>
+                  <p className="text-sm font-bold text-gray-900 font-mono">{formatCurrency(product.costPrice)}</p>
                 </div>
-                <div className="p-2.5 bg-primary-50 rounded-lg border border-primary-200">
-                  <p className="text-xs text-primary-600 mb-1">Harga Jual</p>
-                  <p className="text-sm font-bold text-primary-600">{formatCurrency(product.sellingPrice)}</p>
+                <div className="p-2.5 bg-primary-50 border-b border-primary-200">
+                  <p className="text-xs text-primary-600 mb-1">HARGA JUAL</p>
+                  <p className="text-lg font-bold text-primary-600 font-mono">{formatCurrency(product.sellingPrice)}</p>
                 </div>
                 {(product as any).minSellingPrice && (
-                  <div className="p-2.5 bg-yellow-50 rounded-lg border border-yellow-200">
-                    <p className="text-xs text-yellow-600 mb-1">Harga Jual Minimum</p>
-                    <p className="text-sm font-bold text-yellow-600">{formatCurrency((product as any).minSellingPrice)}</p>
+                  <div className="p-2.5 bg-yellow-50 border-b border-yellow-200">
+                    <p className="text-xs text-yellow-600 mb-1">HARGA JUAL MINIMUM</p>
+                    <p className="text-sm font-bold text-yellow-600 font-mono">{formatCurrency((product as any).minSellingPrice)}</p>
                   </div>
                 )}
-                <div className="p-2.5 bg-green-50 rounded-lg border border-green-200">
-                  <p className="text-xs text-green-600 mb-1">Margin</p>
-                  <p className="text-sm font-bold text-green-600">{formatCurrency(margin)}</p>
+                <div className="p-2.5 bg-green-50 border-b border-green-200">
+                  <p className="text-xs text-green-600 mb-1">MARGIN</p>
+                  <p className="text-sm font-bold text-green-600 font-mono">{formatCurrency(margin)}</p>
                   <div className="flex items-center gap-1 mt-0.5">
                     <TrendingUp className="w-3 h-3 text-green-600" />
-                    <p className="text-xs font-semibold text-green-700">{marginPercent}%</p>
+                    <p className="text-xs font-semibold text-green-700 font-mono">{marginPercent}%</p>
                   </div>
                 </div>
               </div>
@@ -316,12 +310,12 @@ export default function ProductDetail() {
             {/* Sales Statistics */}
             {salesStats && (
               <div className="pt-4 border-t border-gray-200">
-                <p className="text-xs font-semibold text-gray-700 mb-2">Statistik Penjualan & Penggunaan</p>
+                <p className="text-xs font-medium uppercase tracking-wider text-gray-400 mb-2">Statistik Penjualan & Penggunaan</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {/* Left Column - Penjualan */}
-                  <div className="space-y-3">
-                    <div className="p-2.5 bg-blue-50 rounded-lg border border-blue-200">
-                      <p className="text-xs text-blue-600 mb-1">Total Terjual (Penjualan)</p>
+                  <div className="space-y-2">
+                    <div className="p-2 border-l-4 border-blue-500 bg-blue-50/30 rounded-r-lg">
+                      <p className="text-xs text-blue-600 mb-0.5 font-medium uppercase tracking-wider">Total Terjual</p>
                       <p className="text-lg font-bold text-blue-600">
                         {salesStats.totalSold?.toLocaleString('id-ID') || 0}
                       </p>
@@ -329,12 +323,12 @@ export default function ProductDetail() {
                         {salesStats.totalReturned > 0 && (
                           <span className="text-red-600">({salesStats.totalReturned} dikembalikan)</span>
                         )}
-                        {!salesStats.totalReturned && 'Dari transaksi penjualan'}
+                        {!salesStats.totalReturned && 'Penjualan'}
                       </p>
                     </div>
-                    <div className="p-2.5 bg-purple-50 rounded-lg border border-purple-200">
-                      <p className="text-xs text-purple-600 mb-1">Total Revenue (Penjualan)</p>
-                      <p className="text-lg font-bold text-purple-600">
+                    <div className="p-2 border-l-4 border-purple-500 bg-purple-50/30 rounded-r-lg">
+                      <p className="text-xs text-purple-600 mb-0.5 font-medium uppercase tracking-wider">Total Revenue</p>
+                      <p className="text-lg font-bold text-purple-600 font-mono">
                         {formatCurrency(salesStats.totalRevenue || 0)}
                       </p>
                       <p className="text-xs text-purple-500 mt-0.5">
@@ -343,26 +337,26 @@ export default function ProductDetail() {
                             ({formatCurrency(salesStats.totalReturnedRevenue)} dikembalikan)
                           </span>
                         )}
-                        {!salesStats.totalReturnedRevenue && 'Dari penjualan produk ini'}
+                        {!salesStats.totalReturnedRevenue && 'Penjualan'}
                       </p>
                     </div>
                   </div>
                   
                   {/* Right Column - Service */}
-                  <div className="space-y-3">
-                    <div className="p-2.5 bg-green-50 rounded-lg border border-green-200">
-                      <p className="text-xs text-green-600 mb-1">Total Terjual (Service)</p>
+                  <div className="space-y-2">
+                    <div className="p-2 border-l-4 border-green-500 bg-green-50/30 rounded-r-lg">
+                      <p className="text-xs text-green-600 mb-0.5 font-medium uppercase tracking-wider">Total Terjual</p>
                       <p className="text-lg font-bold text-green-600">
                         {salesStats.totalUsedInService?.toLocaleString('id-ID') || 0}
                       </p>
-                      <p className="text-xs text-green-500 mt-0.5">Dari penggunaan service order</p>
+                      <p className="text-xs text-green-500 mt-0.5">Service</p>
                     </div>
-                    <div className="p-2.5 bg-orange-50 rounded-lg border border-orange-200">
-                      <p className="text-xs text-orange-600 mb-1">Total Revenue (Service)</p>
-                      <p className="text-lg font-bold text-orange-600">
+                    <div className="p-2 border-l-4 border-orange-500 bg-orange-50/30 rounded-r-lg">
+                      <p className="text-xs text-orange-600 mb-0.5 font-medium uppercase tracking-wider">Total Revenue</p>
+                      <p className="text-lg font-bold text-orange-600 font-mono">
                         {formatCurrency(salesStats.totalServiceRevenue || 0)}
                       </p>
-                      <p className="text-xs text-orange-500 mt-0.5">Dari service order</p>
+                      <p className="text-xs text-orange-500 mt-0.5">Service</p>
                     </div>
                   </div>
                 </div>
@@ -411,32 +405,73 @@ export default function ProductDetail() {
             </div>
           </div>
 
-          {/* Stock Per Branch - Compact */}
+          {/* Stock Per Branch - Horizontal Carousel */}
           {stockSummary && stockSummary.branches && stockSummary.branches.length > 0 && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-              <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
-                <Warehouse className="w-5 h-5 text-primary-600" />
-                Stok Per Cabang
-              </h2>
-              <div className="space-y-2">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <Warehouse className="w-5 h-5 text-primary-600" />
+                  Stok Per Cabang
+                </h2>
+                {stockSummary.branches.length > 1 && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => {
+                        const el = document.getElementById('branch-carousel');
+                        if (el) el.scrollBy({ left: -280, behavior: 'smooth' });
+                      }}
+                      className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        const el = document.getElementById('branch-carousel');
+                        if (el) el.scrollBy({ left: 280, behavior: 'smooth' });
+                      }}
+                      className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      <ArrowLeft className="w-4 h-4 rotate-180" />
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div
+                id="branch-carousel"
+                className="flex overflow-x-auto gap-3 snap-x snap-mandatory scrollbar-hide pb-1"
+              >
                 {stockSummary.branches.map((branch: any) => {
                   const branchStock = branch.available - branch.reserved;
                   const branchIsLow = branchStock < (branch.minStock || 0);
                   return (
-                    <div key={branch.branchId} className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="text-xs font-semibold text-gray-900">{branch.branchName}</p>
-                        <p className={`text-base font-bold ${branchIsLow ? 'text-red-600' : 'text-gray-900'}`}>
-                          {branchStock}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-gray-600">
-                        <span>Tersedia: {branch.available}</span>
-                        {branch.reserved > 0 && <span>R: {branch.reserved}</span>}
-                        {branch.damaged > 0 && <span className="text-red-600">Rusak: {branch.damaged}</span>}
+                    <div key={branch.branchId} className="flex-shrink-0 w-56 snap-start bg-gray-50 rounded-lg p-3 border border-gray-200">
+                      <p className="text-sm font-semibold text-gray-900 mb-2 truncate">{branch.branchName}</p>
+                      <p className={`text-2xl font-bold mb-2 ${branchIsLow ? 'text-red-600' : 'text-gray-900'}`}>
+                        {branchStock}
+                      </p>
+                      <div className="space-y-1 text-xs text-gray-600">
+                        <div className="flex justify-between">
+                          <span>Tersedia</span>
+                          <span className="font-medium">{branch.available}</span>
+                        </div>
+                        {branch.reserved > 0 && (
+                          <div className="flex justify-between">
+                            <span>Reserved</span>
+                            <span className="font-medium text-yellow-600">{branch.reserved}</span>
+                          </div>
+                        )}
+                        {branch.damaged > 0 && (
+                          <div className="flex justify-between">
+                            <span>Rusak</span>
+                            <span className="font-medium text-red-600">{branch.damaged}</span>
+                          </div>
+                        )}
                       </div>
                       {branch.minStock && branchStock < branch.minStock && (
-                        <p className="text-xs text-red-600 mt-1">⚠️ Di bawah min ({branch.minStock})</p>
+                        <p className="text-xs text-red-600 mt-2 flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" />
+                          Di bawah min ({branch.minStock})
+                        </p>
                       )}
                     </div>
                   );
@@ -444,17 +479,15 @@ export default function ProductDetail() {
               </div>
             </div>
           )}
-          {/* Activity Log - Vertical Layout */}
+          {/* Activity Log - Scrollable */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                 <History className="w-5 h-5 text-primary-600" />
                 Riwayat Aktivitas
               </h2>
-              {activityData?.meta && activityData.meta.totalPages > 1 && (
-                <span className="text-xs text-gray-500">
-                  Halaman {activityData.meta.page} dari {activityData.meta.totalPages}
-                </span>
+              {activityData?.data && activityData.data.length > 0 && (
+                <span className="text-xs text-gray-400">{activityData.data.length} aktivitas</span>
               )}
             </div>
             {loadingActivity ? (
@@ -462,7 +495,7 @@ export default function ProductDetail() {
                 <Loader2 className="w-6 h-6 text-primary-500 animate-spin" />
               </div>
             ) : activityData?.data && activityData.data.length > 0 ? (
-              <div className="space-y-2 max-h-[500px] overflow-y-auto">
+              <div className="space-y-2 max-h-96 overflow-y-auto scrollbar-hide">
                 {activityData.data.map((activity: any) => {
                   const getActivityIcon = () => {
                     switch (activity.type) {
@@ -488,31 +521,31 @@ export default function ProductDetail() {
                   const getActivityColor = () => {
                     switch (activity.type) {
                       case 'STOCK_IN':
-                        return 'bg-green-50 border-green-200';
+                        return 'border-l-4 border-green-500 bg-green-50/30';
                       case 'STOCK_OUT':
-                        return 'bg-red-50 border-red-200';
+                        return 'border-l-4 border-red-500 bg-red-50/30';
                       case 'STOCK_TRANSFER':
-                        return 'bg-blue-50 border-blue-200';
+                        return 'border-l-4 border-blue-500 bg-blue-50/30';
                       case 'STOCK_ADJUSTMENT':
-                        return 'bg-yellow-50 border-yellow-200';
+                        return 'border-l-4 border-yellow-500 bg-yellow-50/30';
                       case 'SALES':
-                        return 'bg-purple-50 border-purple-200';
+                        return 'border-l-4 border-purple-500 bg-purple-50/30';
                       case 'SALES_RETURN':
-                        return 'bg-red-50 border-red-200';
+                        return 'border-l-4 border-red-500 bg-red-50/30';
                       case 'SERVICE_USAGE':
                       case 'SERVICE_USAGE_PENDING':
-                        return 'bg-orange-50 border-orange-200';
+                        return 'border-l-4 border-orange-500 bg-orange-50/30';
                       default:
-                        return 'bg-gray-50 border-gray-200';
+                        return 'border-l-4 border-gray-400 bg-gray-50/30';
                     }
                   };
 
                   return (
                     <div
                       key={activity.id}
-                      className={`p-2.5 rounded-lg border ${getActivityColor()}`}
+                      className={`p-2 rounded-r-lg ${getActivityColor()}`}
                     >
-                      <div className="flex items-start gap-2 mb-1.5">
+                      <div className="flex items-start gap-2 mb-1">
                         <div className="mt-0.5 flex-shrink-0">{getActivityIcon()}</div>
                         <div className="flex-1 min-w-0">
                           {activity.referenceId ? (
@@ -543,7 +576,7 @@ export default function ProductDetail() {
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                      <div className="flex items-center justify-between text-xs text-gray-500">
                         <span>
                           {activity.quantityBefore !== undefined && activity.quantityAfter !== undefined ? (
                             <>
@@ -565,25 +598,21 @@ export default function ProductDetail() {
                           })}
                         </span>
                       </div>
-                      {activity.referenceId && (
-                        <div className="text-xs text-gray-400 mt-1">
-                          {activity.referenceType === 'SALES_TRANSACTION' && (
-                            <Link 
-                              to={`/sales/transactions/${activity.referenceId}`}
-                              className="text-blue-600 hover:underline"
-                            >
-                              Lihat transaksi →
-                            </Link>
-                          )}
-                          {activity.referenceType === 'SERVICE_ORDER' && (
-                            <Link 
-                              to={`/service-orders/${activity.referenceId}`}
-                              className="text-orange-600 hover:underline"
-                            >
-                              Lihat service order →
-                            </Link>
-                          )}
-                        </div>
+                      {activity.referenceId && activity.referenceType === 'SALES_TRANSACTION' && (
+                        <Link 
+                          to={`/sales/transactions/${activity.referenceId}`}
+                          className="text-xs text-blue-600 hover:underline mt-1 inline-block"
+                        >
+                          Lihat transaksi →
+                        </Link>
+                      )}
+                      {activity.referenceId && activity.referenceType === 'SERVICE_ORDER' && (
+                        <Link 
+                          to={`/service-orders/${activity.referenceId}`}
+                          className="text-xs text-orange-600 hover:underline mt-1 inline-block"
+                        >
+                          Lihat service order →
+                        </Link>
                       )}
                       {activity.notes && (
                         <p className="text-xs text-gray-400 italic mt-1" title={activity.notes}>
@@ -598,29 +627,6 @@ export default function ProductDetail() {
               <div className="text-center py-8 text-gray-400">
                 <History className="w-10 h-10 mx-auto mb-2 opacity-30" />
                 <p className="text-sm font-medium">Belum ada aktivitas</p>
-              </div>
-            )}
-
-            {/* Pagination - Bottom */}
-            {activityData?.meta && activityData.meta.totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 pt-3 border-t border-gray-200 mt-3">
-                <button
-                  onClick={() => setActivityPage((prev) => Math.max(1, prev - 1))}
-                  disabled={activityPage === 1}
-                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  ← Sebelumnya
-                </button>
-                <span className="text-sm text-gray-600">
-                  {activityData.meta.page} / {activityData.meta.totalPages}
-                </span>
-                <button
-                  onClick={() => setActivityPage((prev) => prev + 1)}
-                  disabled={activityPage >= activityData.meta.totalPages}
-                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  Selanjutnya →
-                </button>
               </div>
             )}
           </div>

@@ -19,6 +19,7 @@ import {
   Upload,
   X,
 } from 'lucide-react';
+
 import { api } from '../../services/api';
 import { productsService } from '../../services/products.service';
 import { toast } from 'sonner';
@@ -260,6 +261,7 @@ export default function ProductList() {
       )}
 
       {/* Stats Cards with shadcn Card */}
+      <h2 className="sr-only">Ringkasan Produk</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
         <Card className="hover:shadow-lg transition-all duration-300 group">
           <CardContent className="p-6">
@@ -327,7 +329,7 @@ export default function ProductList() {
       {/* Filters & Search - Enhanced */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
         <div className="flex flex-col lg:flex-row gap-4">
-          <div className="flex-1">
+          <div className="lg:w-96">
             <label className="block text-sm font-semibold text-gray-700 mb-2">Cari Produk</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -417,19 +419,19 @@ export default function ProductList() {
                 Produk
               </TableHead>
               <TableHead className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                Kategori
-              </TableHead>
-              <TableHead className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                Harga Beli
-              </TableHead>
-              <TableHead className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                 Harga Jual
               </TableHead>
               <TableHead className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                 Stok
               </TableHead>
               <TableHead className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                Status
+                Kategori
+              </TableHead>
+              <TableHead className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                Merk
+              </TableHead>
+              <TableHead className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                Harga Beli
               </TableHead>
               <TableHead className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">
                 Aksi
@@ -477,18 +479,20 @@ export default function ProductList() {
                   className="hover:bg-gradient-to-r hover:from-gray-50 hover:to-white transition-all duration-200 border-b border-gray-100"
                 >
                   <TableCell className="px-4 py-3 whitespace-nowrap">
-                    <Link to={`/products/${product.id}`} className="flex items-center gap-4 hover:opacity-80 transition-opacity cursor-pointer">
-                      <div className="flex-shrink-0 h-14 w-14 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white shadow-md">
-                        <Package className="w-7 h-7" />
-                      </div>
+                    <div className="flex items-center gap-4">
+                      <Link to={`/products/${product.id}`} className="flex-shrink-0 hover:opacity-80 transition-opacity">
+                        <div className="h-14 w-14 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white shadow-md">
+                          <Package className="w-7 h-7" />
+                        </div>
+                      </Link>
                       <div className="min-w-0 max-w-[200px]">
                         <div className="flex items-center gap-2 min-w-0">
-                          <div className="group relative min-w-0">
-                            <span className="block truncate text-base font-semibold text-gray-900 hover:text-primary-600 transition-colors">{product.name}</span>
-                            <div className="absolute left-0 top-full mt-1 bg-black/100 text-white text-xs rounded px-2 py-1 z-50 whitespace-normal break-words max-w-[300px] hidden group-hover:block shadow-lg">
-                              <div className="font-semibold mb-1">{product.name}</div>
-                              <div className="text-gray-300">Harga Min. {formatCurrency(product.costPrice)}</div>
-                              <div className="text-gray-300">Available Stock {(product as any).stockSummary?.totalAvailable ?? (product as any).totalStock ?? 0}</div>
+                          <div className="group/tooltip relative min-w-0">
+                            <Link to={`/products/${product.id}`} className="block truncate text-base font-semibold text-gray-900 hover:text-primary-600 transition-colors cursor-default">{product.name}</Link>
+                            <div className="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 shadow-lg rounded-lg p-3 text-gray-900 text-xs whitespace-normal break-words max-w-[280px] z-50 hidden group-hover/tooltip:block pointer-events-none" style={{backgroundColor: 'white', opacity: 1}}>
+                              <p className="font-semibold text-sm mb-1.5">{product.name}</p>
+                              <p className="text-gray-500 mb-0.5">Harga Min. {formatCurrency(product.costPrice)}</p>
+                              <p className="text-gray-500">Stok: {(product as any).stockSummary?.totalAvailable ?? (product as any).totalStock ?? 0}</p>
                             </div>
                           </div>
                           {(product as any).isService && (
@@ -502,18 +506,17 @@ export default function ProductList() {
                           <span className="font-mono truncate max-w-[150px]">{product.sku}</span>
                         </div>
                       </div>
-                    </Link>
+                    </div>
                   </TableCell>
                   <TableCell className="px-4 py-3 whitespace-nowrap">
-                    <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-200">
-                      {product.category?.name || product.categoryId}
-                    </span>
-                  </TableCell>
-                  <TableCell className="px-4 py-3 whitespace-nowrap">
-                    <div className="text-sm font-semibold text-gray-900">{formatCurrency(product.costPrice)}</div>
-                  </TableCell>
-                  <TableCell className="px-4 py-3 whitespace-nowrap">
-                    <div className="text-sm font-bold text-primary-600">{formatCurrency(product.sellingPrice)}</div>
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-gray-900">{formatCurrency(product.sellingPrice)}</span>
+                      {(product as any).minSellingPrice ? (
+                        <span className="text-xs text-red-600">{formatCurrency((product as any).minSellingPrice)}</span>
+                      ) : (
+                        <span className="text-xs text-gray-400">-</span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="px-4 py-3 whitespace-nowrap">
                     <div className="flex items-center gap-2">
@@ -566,22 +569,15 @@ export default function ProductList() {
                     </div>
                   </TableCell>
                   <TableCell className="px-4 py-3 whitespace-nowrap">
-                    <span
-                      className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${
-                        (product as any).isActive
-                          ? 'bg-green-100 text-green-800 border-green-200'
-                          : 'bg-gray-100 text-gray-800 border-gray-200'
-                      }`}
-                    >
-                      {(product as any).isActive ? (
-                        <>
-                          <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
-                          Aktif
-                        </>
-                      ) : (
-                        'Tidak Aktif'
-                      )}
+                    <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-200">
+                      {product.category?.name || product.categoryId}
                     </span>
+                  </TableCell>
+                  <TableCell className="px-4 py-3 whitespace-nowrap">
+                    <span className="text-sm text-gray-900">{product.brand?.name || '-'}</span>
+                  </TableCell>
+                  <TableCell className="px-4 py-3 whitespace-nowrap">
+                    <div className="text-sm font-semibold text-gray-900">{formatCurrency(product.costPrice)}</div>
                   </TableCell>
                   <TableCell className="px-8 py-5 whitespace-nowrap text-right">
                     <div className="flex items-center justify-end gap-1">

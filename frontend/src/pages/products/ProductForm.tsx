@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Save, X, Loader2, ArrowLeft, Package, DollarSign, FileText, Tag } from 'lucide-react';
@@ -57,6 +57,53 @@ export default function ProductForm() {
     expiryReturnLimitDays: 0,
     memberPricing: {} as Record<string, number>,
   });
+  const [printedNameEdited, setPrintedNameEdited] = useState(false);
+  const [userTypedName, setUserTypedName] = useState('');
+  const autoFormatLocked = useRef(false);
+
+  // Build formatted name: Kategori - UserName - Warna - Brand
+  const formatProductName = (catId: string, title: string, clr: string, brdId: string) => {
+    const catName = Array.isArray(categories)
+      ? categories.find((c: any) => c.id === catId)?.name || ''
+      : '';
+    const brandName = Array.isArray(brands)
+      ? brands.find((b: any) => b.id === brdId)?.name || ''
+      : '';
+    const parts = [catName, title, clr, brandName].filter(Boolean);
+    return parts.join(' - ');
+  };
+
+  // Debounced auto-format: waits 500ms after user stops changing category/color/brand
+  // Uses userTypedName as the title so typed input is always preserved
+  // Locks permanently when user edits name after auto-format has already modified it
+  const autoFormatTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const autoFormatHasModified = useRef(false);
+  useEffect(() => {
+    if (isEdit || autoFormatLocked.current) return;
+    if (!formData.categoryId && !formData.color && !formData.brandId) return;
+
+    if (autoFormatTimer.current) clearTimeout(autoFormatTimer.current);
+    autoFormatTimer.current = setTimeout(() => {
+      const formatted = formatProductName(formData.categoryId, userTypedName, formData.color, formData.brandId);
+      if (formatted && formatted !== formData.name) {
+        setFormData((prev) => ({ ...prev, name: formatted }));
+        autoFormatHasModified.current = true;
+      }
+      // If name matches formatted exactly, auto-format has done its job — next user edit locks it
+      if (formatted === formData.name) {
+        autoFormatHasModified.current = true;
+      }
+    }, 500);
+
+    return () => { if (autoFormatTimer.current) clearTimeout(autoFormatTimer.current); };
+  }, [formData.categoryId, formData.color, formData.brandId, userTypedName]);
+
+  // Auto-update printedName when name changes (unless user has manually edited it)
+  useEffect(() => {
+    if (!printedNameEdited && formData.name) {
+      setFormData((prev) => ({ ...prev, printedName: formData.name }));
+    }
+  }, [formData.name]);
 
   const { data: product, isLoading: loadingProduct } = useQuery({
     queryKey: ['product', id],
@@ -106,9 +153,11 @@ export default function ProductForm() {
 
   useEffect(() => {
     if (product) {
+      const existingPrintedName = (product as any).printedName || '';
+      setPrintedNameEdited(!!existingPrintedName && existingPrintedName !== product.name);
       setFormData({
         name: product.name || '',
-        printedName: (product as any).printedName || product.name || '',
+        printedName: existingPrintedName || product.name || '',
         sku: product.sku || '',
         barcode: product.barcode || '',
         categoryId: product.categoryId || '',
@@ -166,6 +215,23 @@ export default function ProductForm() {
       }
     }
   }, [formData.categoryId, formData.sellingPrice, categories, customerTiers]);
+
+  // Auto-fill minSellingPrice = Silver price on create
+  useEffect(() => {
+    if (isEdit) return;
+    if (formData.sellingPrice <= 0) return;
+    if (!customerTiers || !Array.isArray(customerTiers)) return;
+
+    const silverTier = customerTiers.find((t: any) => t.code === 'SILVER' || t.name?.toLowerCase() === 'silver');
+    if (!silverTier) return;
+
+    const silverPrice = formData.memberPricing?.[silverTier.id];
+    const autoMinPrice = typeof silverPrice === 'number' ? silverPrice : formData.sellingPrice;
+
+    if (formData.minSellingPrice <= 0 || formData.minSellingPrice !== autoMinPrice) {
+      setFormData((prev) => ({ ...prev, minSellingPrice: autoMinPrice }));
+    }
+  }, [formData.sellingPrice, formData.memberPricing, customerTiers, isEdit]);
 
   const mutation = useMutation({
     mutationFn: (data: any) => {
@@ -255,7 +321,7 @@ export default function ProductForm() {
                   <Package className="w-5 h-5 text-primary-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900">Informasi Dasar</h3>
+                  <h2 className="text-lg font-bold text-gray-900">Informasi Dasar</h2>
                   <p className="text-sm text-gray-500">Informasi utama produk</p>
                 </div>
               </div>
@@ -267,10 +333,20 @@ export default function ProductForm() {
                   <Input
                     type="text"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      // Lock auto-format if user edits name after it was modified by auto-format
+                      if (autoFormatHasModified.current) {
+                        autoFormatLocked.current = true;
+                      }
+                      setUserTypedName(val);
+                      setFormData((prev) => ({ ...prev, name: val }));
+                    }}
                     required
                     placeholder="Masukkan nama produk"
+                    maxLength={250}
                   />
+                  <span className="text-xs text-gray-400 mt-1">{formData.name.length}/250</span>
                 </div>
 
                 <div>
@@ -299,9 +375,21 @@ export default function ProductForm() {
                   <Input
                     type="text"
                     value={formData.printedName}
-                    onChange={(e) => setFormData({ ...formData, printedName: e.target.value })}
+                    onChange={(e) => {
+                      setPrintedNameEdited(true);
+                      setFormData({ ...formData, printedName: e.target.value });
+                    }}
                     placeholder="Nama yang tercetak di label/sticker"
+                    maxLength={200}
                   />
+                  <div className="flex justify-between mt-1">
+                    <span className="text-xs text-gray-400">
+                      {formData.printedName.length > 100 ? '⚠️ Akan terpotong di nota (max 100)' : ''}
+                    </span>
+                    <span className={`text-xs ${formData.printedName.length > 100 ? 'text-red-500 font-semibold' : 'text-gray-400'}`}>
+                      {formData.printedName.length}/200
+                    </span>
+                  </div>
                 </div>
 
                 <div>
@@ -343,7 +431,7 @@ export default function ProductForm() {
                   <Tag className="w-5 h-5 text-primary-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900">Kategori & Brand</h3>
+                  <h2 className="text-lg font-bold text-gray-900">Kategori & Brand</h2>
                   <p className="text-sm text-gray-500">Pengelompokan dan merek produk</p>
                 </div>
               </div>
@@ -422,16 +510,17 @@ export default function ProductForm() {
                   <DollarSign className="w-5 h-5 text-primary-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900">Harga & Stok</h3>
+                  <h2 className="text-lg font-bold text-gray-900">Harga & Stok</h2>
                   <p className="text-sm text-gray-500">Informasi harga dan inventori</p>
                 </div>
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div>
-                  <Label className="block text-sm font-bold text-gray-700 mb-2.5">
+                  <Label htmlFor="costPrice" className="block text-sm font-bold text-gray-700 mb-2.5">
                     Harga Beli <span className="text-red-500">*</span>
                   </Label>
                   <Input
+                    id="costPrice"
                     type="number"
                     value={formData.costPrice}
                     onChange={(e) => setFormData({ ...formData, costPrice: parseFloat(e.target.value) || 0 })}
@@ -442,10 +531,11 @@ export default function ProductForm() {
                 </div>
 
                 <div>
-                  <Label className="block text-sm font-bold text-gray-700 mb-2.5">
+                  <Label htmlFor="sellingPrice" className="block text-sm font-bold text-gray-700 mb-2.5">
                     Harga Jual <span className="text-red-500">*</span>
                   </Label>
                   <Input
+                    id="sellingPrice"
                     type="number"
                     value={formData.sellingPrice}
                     onChange={(e) => setFormData({ ...formData, sellingPrice: parseFloat(e.target.value) || 0 })}
@@ -456,11 +546,13 @@ export default function ProductForm() {
                 </div>
 
                 <div>
-                  <Label className="block text-sm font-bold text-gray-700 mb-2.5">Harga Jual Minimum</Label>
+                  <Label htmlFor="minSellingPrice" className="block text-sm font-bold text-gray-700 mb-2.5">Harga Jual Minimum <span className="text-red-500">*</span></Label>
                   <Input
+                    id="minSellingPrice"
                     type="number"
                     value={formData.minSellingPrice}
                     onChange={(e) => setFormData({ ...formData, minSellingPrice: parseFloat(e.target.value) || 0 })}
+                    required
                     min="0"
                     step="1000"
                   />
@@ -469,8 +561,9 @@ export default function ProductForm() {
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
                 <div>
-                  <Label className="block text-sm font-bold text-gray-700 mb-2.5">Panjang (cm)</Label>
+                  <Label htmlFor="lengthCm" className="block text-sm font-bold text-gray-700 mb-2.5">Panjang (cm)</Label>
                   <Input
+                    id="lengthCm"
                     type="number"
                     value={formData.lengthCm}
                     onChange={(e) => setFormData({ ...formData, lengthCm: parseFloat(e.target.value) || 0 })}
@@ -480,8 +573,9 @@ export default function ProductForm() {
                 </div>
 
                 <div>
-                  <Label className="block text-sm font-bold text-gray-700 mb-2.5">Lebar (cm)</Label>
+                  <Label htmlFor="widthCm" className="block text-sm font-bold text-gray-700 mb-2.5">Lebar (cm)</Label>
                   <Input
+                    id="widthCm"
                     type="number"
                     value={formData.widthCm}
                     onChange={(e) => setFormData({ ...formData, widthCm: parseFloat(e.target.value) || 0 })}
@@ -491,8 +585,9 @@ export default function ProductForm() {
                 </div>
 
                 <div>
-                  <Label className="block text-sm font-bold text-gray-700 mb-2.5">Tinggi (cm)</Label>
+                  <Label htmlFor="heightCm" className="block text-sm font-bold text-gray-700 mb-2.5">Tinggi (cm)</Label>
                   <Input
+                    id="heightCm"
                     type="number"
                     value={formData.heightCm}
                     onChange={(e) => setFormData({ ...formData, heightCm: parseFloat(e.target.value) || 0 })}
@@ -504,8 +599,9 @@ export default function ProductForm() {
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
                 <div>
-                  <Label className="block text-sm font-bold text-gray-700 mb-2.5">Berat Barang (gram)</Label>
+                  <Label htmlFor="weightGrams" className="block text-sm font-bold text-gray-700 mb-2.5">Berat Barang (gram)</Label>
                   <Input
+                    id="weightGrams"
                     type="number"
                     value={formData.weightGrams}
                     onChange={(e) => setFormData({ ...formData, weightGrams: parseFloat(e.target.value) || 0 })}
@@ -515,8 +611,9 @@ export default function ProductForm() {
                 </div>
 
                 <div>
-                  <Label className="block text-sm font-bold text-gray-700 mb-2.5">Berat Paket (gram)</Label>
+                  <Label htmlFor="packageWeightGrams" className="block text-sm font-bold text-gray-700 mb-2.5">Berat Paket (gram)</Label>
                   <Input
+                    id="packageWeightGrams"
                     type="number"
                     value={formData.packageWeightGrams}
                     onChange={(e) => setFormData({ ...formData, packageWeightGrams: parseFloat(e.target.value) || 0 })}
@@ -526,8 +623,9 @@ export default function ProductForm() {
                 </div>
 
                 <div>
-                  <Label className="block text-sm font-bold text-gray-700 mb-2.5">Min Stock</Label>
+                  <Label htmlFor="minStock" className="block text-sm font-bold text-gray-700 mb-2.5">Min Stock</Label>
                   <Input
+                    id="minStock"
                     type="number"
                     value={formData.minStock}
                     onChange={(e) => setFormData({ ...formData, minStock: parseInt(e.target.value) || 0 })}
@@ -544,7 +642,7 @@ export default function ProductForm() {
                   <FileText className="w-5 h-5 text-primary-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900">Deskripsi & Status</h3>
+                  <h2 className="text-lg font-bold text-gray-900">Deskripsi & Status</h2>
                   <p className="text-sm text-gray-500">Informasi tambahan dan pengaturan produk</p>
                 </div>
               </div>
