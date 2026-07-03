@@ -60,6 +60,7 @@ export default function ProductForm() {
   const [printedNameEdited, setPrintedNameEdited] = useState(false);
   const [userTypedName, setUserTypedName] = useState('');
   const autoFormatLocked = useRef(false);
+  const formInitialized = useRef(false); // becomes true after product data loads (edit) or first render (create)
 
   // Build formatted name: Kategori - UserName - Warna - Brand
   const formatProductName = (catId: string, title: string, clr: string, brdId: string) => {
@@ -74,12 +75,12 @@ export default function ProductForm() {
   };
 
   // Debounced auto-format: waits 500ms after user stops changing category/color/brand
+  // Works for both create AND edit (skips initial load, fires on user field changes)
   // Uses userTypedName as the title so typed input is always preserved
-  // Locks permanently when user edits name after auto-format has already modified it
   const autoFormatTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const autoFormatHasModified = useRef(false);
   useEffect(() => {
-    if (isEdit || autoFormatLocked.current) return;
+    if (!formInitialized.current || autoFormatLocked.current) return;
     if (!formData.categoryId && !formData.color && !formData.brandId) return;
 
     if (autoFormatTimer.current) clearTimeout(autoFormatTimer.current);
@@ -89,7 +90,6 @@ export default function ProductForm() {
         setFormData((prev) => ({ ...prev, name: formatted }));
         autoFormatHasModified.current = true;
       }
-      // If name matches formatted exactly, auto-format has done its job — next user edit locks it
       if (formatted === formData.name) {
         autoFormatHasModified.current = true;
       }
@@ -97,6 +97,11 @@ export default function ProductForm() {
 
     return () => { if (autoFormatTimer.current) clearTimeout(autoFormatTimer.current); };
   }, [formData.categoryId, formData.color, formData.brandId, userTypedName]);
+
+  // Mark form initialized for create mode (so auto-format can fire)
+  useEffect(() => {
+    if (!isEdit) formInitialized.current = true;
+  }, []);
 
   // Auto-update printedName when name changes (unless user has manually edited it)
   useEffect(() => {
@@ -155,6 +160,7 @@ export default function ProductForm() {
     if (product) {
       const existingPrintedName = (product as any).printedName || '';
       setPrintedNameEdited(!!existingPrintedName && existingPrintedName !== product.name);
+      setUserTypedName(product.name || '');
       setFormData({
         name: product.name || '',
         printedName: existingPrintedName || product.name || '',
@@ -185,6 +191,7 @@ export default function ProductForm() {
         expiryReturnLimitDays: (product as any).expiryReturnLimitDays || 0,
         memberPricing: (product as any).memberPricing || {},
       });
+      formInitialized.current = true;
     }
   }, [product]);
 
