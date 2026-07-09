@@ -69,9 +69,9 @@ export interface TransformedProduct {
   discountPercentage?: number | null;
   discountAmount?: number | null;
   effectivePrice: number;
-  unit: string;
-  size?: string | null;
-  color?: string | null;
+  unitId: string | null;
+  sizeId?: string | null;
+  colorId?: string | null;
   lengthCm?: number | null;
   widthCm?: number | null;
   heightCm?: number | null;
@@ -233,9 +233,9 @@ export class ProductTransformer {
       discountPercentage: discountPercentage > 0 ? discountPercentage : null,
       discountAmount: discountAmount > 0 ? discountAmount : null,
       effectivePrice,
-      unit: product.unit,
-      size: (product as any).size || null,
-      color: (product as any).color || null,
+      unitId: (product as any).unitId || null,
+      sizeId: (product as any).sizeId || null,
+      colorId: (product as any).colorId || null,
       lengthCm: (product as any).lengthCm ? this.toNumber((product as any).lengthCm) : null,
       widthCm: (product as any).widthCm ? this.toNumber((product as any).widthCm) : null,
       heightCm: (product as any).heightCm ? this.toNumber((product as any).heightCm) : null,

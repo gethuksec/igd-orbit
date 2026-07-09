@@ -67,6 +67,22 @@ import CategoryDetail from './pages/categories/CategoryDetail';
 import BrandList from './pages/brands/BrandList';
 import BrandForm from './pages/brands/BrandForm';
 import BrandDetail from './pages/brands/BrandDetail';
+// Master Data - New Entities
+import ColorList from './pages/colors/ColorList';
+import ColorForm from './pages/colors/ColorForm';
+import ColorDetail from './pages/colors/ColorDetail';
+import UnitList from './pages/units/UnitList';
+import UnitForm from './pages/units/UnitForm';
+import UnitDetail from './pages/units/UnitDetail';
+import SizeList from './pages/sizes/SizeList';
+import SizeForm from './pages/sizes/SizeForm';
+import SizeDetail from './pages/sizes/SizeDetail';
+import ExpeditionList from './pages/expeditions/ExpeditionList';
+import ExpeditionForm from './pages/expeditions/ExpeditionForm';
+import ExpeditionDetail from './pages/expeditions/ExpeditionDetail';
+import SalesTypeList from './pages/sales-types/SalesTypeList';
+import SalesTypeForm from './pages/sales-types/SalesTypeForm';
+import SalesTypeDetail from './pages/sales-types/SalesTypeDetail';
 // Master Data - Service Types
 import CustomerTierList from "./pages/master-data/customer-tiers/CustomerTierList";
 import ServiceTypeList from './pages/service-types/ServiceTypeList';
@@ -452,6 +468,36 @@ function App() {
               }
             />
             
+            {/* Master Data - Colors */}
+            <Route path="/colors" element={<ProtectedRoute><DashboardLayout><ColorList /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/colors/new" element={<ProtectedRoute><DashboardLayout><ColorForm /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/colors/:id" element={<ProtectedRoute><DashboardLayout><ColorDetail /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/colors/:id/edit" element={<ProtectedRoute><DashboardLayout><ColorForm /></DashboardLayout></ProtectedRoute>} />
+
+            {/* Master Data - Units */}
+            <Route path="/units" element={<ProtectedRoute><DashboardLayout><UnitList /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/units/new" element={<ProtectedRoute><DashboardLayout><UnitForm /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/units/:id" element={<ProtectedRoute><DashboardLayout><UnitDetail /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/units/:id/edit" element={<ProtectedRoute><DashboardLayout><UnitForm /></DashboardLayout></ProtectedRoute>} />
+
+            {/* Master Data - Sizes */}
+            <Route path="/sizes" element={<ProtectedRoute><DashboardLayout><SizeList /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/sizes/new" element={<ProtectedRoute><DashboardLayout><SizeForm /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/sizes/:id" element={<ProtectedRoute><DashboardLayout><SizeDetail /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/sizes/:id/edit" element={<ProtectedRoute><DashboardLayout><SizeForm /></DashboardLayout></ProtectedRoute>} />
+
+            {/* Master Data - Expeditions */}
+            <Route path="/expeditions" element={<ProtectedRoute><DashboardLayout><ExpeditionList /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/expeditions/new" element={<ProtectedRoute><DashboardLayout><ExpeditionForm /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/expeditions/:id" element={<ProtectedRoute><DashboardLayout><ExpeditionDetail /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/expeditions/:id/edit" element={<ProtectedRoute><DashboardLayout><ExpeditionForm /></DashboardLayout></ProtectedRoute>} />
+
+            {/* Master Data - Sales Types */}
+            <Route path="/sales-types" element={<ProtectedRoute><DashboardLayout><SalesTypeList /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/sales-types/new" element={<ProtectedRoute><DashboardLayout><SalesTypeForm /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/sales-types/:id" element={<ProtectedRoute><DashboardLayout><SalesTypeDetail /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/sales-types/:id/edit" element={<ProtectedRoute><DashboardLayout><SalesTypeForm /></DashboardLayout></ProtectedRoute>} />
+
             {/* Master Data - Customer Tiers */}
             <Route
               path="/customer-tiers"

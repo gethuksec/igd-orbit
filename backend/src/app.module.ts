@@ -8,6 +8,11 @@ import { UsersModule } from './modules/users/users.module';
 import { ProductsModule } from './modules/products/products.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { BrandsModule } from './modules/brands/brands.module';
+import { ColorsModule } from "./modules/colors/colors.module";
+import { UnitsModule } from "./modules/units/units.module";
+import { SizesModule } from "./modules/sizes/sizes.module";
+import { ExpeditionsModule } from "./modules/expeditions/expeditions.module";
+import { SalesTypesModule } from "./modules/sales-types/sales-types.module";
 import { CustomersModule } from './modules/customers/customers.module';
 import { SalesModule } from './modules/sales/sales.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
@@ -36,6 +41,11 @@ import { CustomerTiersModule } from './modules/customer-tiers/customer-tiers.mod
     ProductsModule,
     CategoriesModule,
     BrandsModule,
+    ColorsModule,
+    UnitsModule,
+    SizesModule,
+    ExpeditionsModule,
+    SalesTypesModule,
     CustomersModule,
     SuppliersModule,
     SalesModule,

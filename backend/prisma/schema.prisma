@@ -297,6 +297,83 @@ model Brand {
   @@map("brands")
 }
 
+
+model Color {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  name      String
+  notes     String?
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  products Product[] @relation("ProductColor")
+
+  @@index([code])
+  @@index([isActive])
+  @@map("colors")
+}
+
+model Unit {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  name      String
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  products Product[] @relation("ProductUnit")
+
+  @@index([code])
+  @@index([isActive])
+  @@map("units")
+}
+
+model Size {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  name      String
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  products Product[] @relation("ProductSize")
+
+  @@index([code])
+  @@index([isActive])
+  @@map("sizes")
+}
+
+model Expedition {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  name      String
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  @@index([code])
+  @@index([isActive])
+  @@map("expeditions")
+}
+
+model SalesType {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  name      String
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  @@index([code])
+  @@index([isActive])
+  @@map("sales_types")
+}
 model Product {
   id                    String    @id @default(uuid())
   barcode               String?   @unique
@@ -310,9 +387,9 @@ model Product {
   costPrice             Decimal   @map("cost_price") @db.Decimal(15, 2)
   sellingPrice          Decimal   @map("selling_price") @db.Decimal(15, 2)
   minSellingPrice       Decimal?  @map("min_selling_price") @db.Decimal(15, 2) // Harga Jual Minimum
-  unit                  String    @default("pcs") // e.g., "pcs", "box", "kg"
-  size                  String? // Ukuran
-  color                 String? // Warna
+  unitId                String?   @map("unit_id") // Relasi ke Unit
+  sizeId                String?   @map("size_id") // Relasi ke Size
+  colorId               String?   @map("color_id") // Relasi ke Color
   lengthCm              Decimal?  @map("length_cm") @db.Decimal(10, 2) // Panjang(cm)
   widthCm               Decimal?  @map("width_cm") @db.Decimal(10, 2) // Lebar(cm)
   heightCm              Decimal?  @map("height_cm") @db.Decimal(10, 2) // Tinggi(cm)
@@ -335,6 +412,9 @@ model Product {
   category           Category               @relation(fields: [categoryId], references: [id])
   subCategory        Category?              @relation("ProductSubCategory", fields: [subCategoryId], references: [id], onDelete: SetNull)
   brand              Brand?                 @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  color              Color?                 @relation("ProductColor", fields: [colorId], references: [id], onDelete: SetNull)
+  unit               Unit?                  @relation("ProductUnit", fields: [unitId], references: [id], onDelete: SetNull)
+  size               Size?                  @relation("ProductSize", fields: [sizeId], references: [id], onDelete: SetNull)
   supplier           Customer?              @relation("ProductSupplier", fields: [supplierId], references: [id], onDelete: SetNull)
   productStocks      ProductStock[]
   transactionItems   SalesTransactionItem[]

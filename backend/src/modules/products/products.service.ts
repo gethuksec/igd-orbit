@@ -525,9 +525,9 @@ export class ProductsService {
       costPrice: createProductDto.costPrice,
       sellingPrice: createProductDto.sellingPrice,
       minSellingPrice: createProductDto.minSellingPrice ? new Prisma.Decimal(createProductDto.minSellingPrice) : null,
-      unit: createProductDto.unit || 'pcs',
-      size: createProductDto.size || null,
-      color: createProductDto.color || null,
+      unitId: createProductDto.unitId,
+      sizeId: createProductDto.sizeId || null,
+      colorId: createProductDto.colorId || null,
       lengthCm: createProductDto.lengthCm ? new Prisma.Decimal(createProductDto.lengthCm) : null,
       widthCm: createProductDto.widthCm ? new Prisma.Decimal(createProductDto.widthCm) : null,
       heightCm: createProductDto.heightCm ? new Prisma.Decimal(createProductDto.heightCm) : null,
@@ -652,8 +652,8 @@ export class ProductsService {
     if (updateProductDto.minSellingPrice !== undefined) {
       updateData.minSellingPrice = updateProductDto.minSellingPrice ? new Prisma.Decimal(updateProductDto.minSellingPrice) : null;
     }
-    if (updateProductDto.unit !== undefined) {
-      updateData.unit = updateProductDto.unit;
+    if (updateProductDto.unitId !== undefined) {
+      updateData.unitId = updateProductDto.unitId;
     }
     if (updateProductDto.trackSerial !== undefined) {
       updateData.trackSerial = updateProductDto.trackSerial;
@@ -667,11 +667,11 @@ export class ProductsService {
     if (updateProductDto.images !== undefined) {
       updateData.images = updateProductDto.images || null;
     }
-    if (updateProductDto.size !== undefined) {
-      updateData.size = updateProductDto.size || null;
+    if (updateProductDto.sizeId !== undefined) {
+      updateData.sizeId = updateProductDto.sizeId || null;
     }
-    if (updateProductDto.color !== undefined) {
-      updateData.color = updateProductDto.color || null;
+    if (updateProductDto.colorId !== undefined) {
+      updateData.colorId = updateProductDto.colorId || null;
     }
     if (updateProductDto.lengthCm !== undefined) {
       updateData.lengthCm = updateProductDto.lengthCm ? new Prisma.Decimal(updateProductDto.lengthCm) : null;
@@ -776,7 +776,7 @@ export class ProductsService {
       brandId: originalProduct.brandId,
       costPrice: originalProduct.costPrice,
       sellingPrice: originalProduct.sellingPrice,
-      unit: originalProduct.unit,
+      unitId: originalProduct.unitId,
       isActive: true,
       trackSerial: originalProduct.trackSerial,
       trackBatch: originalProduct.trackBatch,
@@ -1242,12 +1242,12 @@ export class ProductsService {
         this.escapeCSV(product.sku || '', ';'),
         this.escapeCSV(product.name || '', ';'),
         this.escapeCSV(product.printedName || product.name || '', ';'),
-        product.unit || 'pcs',
+        product.unitId || '',
         product.category?.name || '',
         product.subCategory?.name || '',
         product.brand?.name || '',
-        product.size || '',
-        product.color || '',
+        product.sizeId || '',
+        product.colorId || '',
         product.lengthCm ? String(product.lengthCm.toNumber()) : '',
         product.widthCm ? String(product.widthCm.toNumber()) : '',
         product.heightCm ? String(product.heightCm.toNumber()) : '',
@@ -1344,6 +1344,12 @@ export class ProductsService {
     const brands = await this.prisma.brand.findMany();
     const categoryMap = new Map(categories.map(c => [c.name.toLowerCase(), c.id]));
     const brandMap = new Map(brands.map(b => [b.name.toLowerCase(), b.id]));
+    const allUnits = await this.prisma.unit.findMany({ where: { isActive: true } });
+    const allSizes = await this.prisma.size.findMany({ where: { isActive: true } });
+    const allColors = await this.prisma.color.findMany({ where: { isActive: true } });
+    const unitMap = new Map(allUnits.map(u => [u.name.toLowerCase(), u.id]));
+    const sizeMap = new Map(allSizes.map(s => [s.name.toLowerCase(), s.id]));
+    const colorMap = new Map(allColors.map(c => [c.name.toLowerCase(), c.id]));
 
     // Process each row
     for (let i = 1; i < lines.length; i++) {
@@ -1434,9 +1440,9 @@ export class ProductsService {
           subCategoryId: subCategoryId || undefined,
           brandId: brandId || undefined,
           supplierId: supplierId || undefined,
-          unit: rowData['satuan'] || rowData['unit'] || 'pcs',
-          size: rowData['ukuran'] || rowData['size'] || undefined,
-          color: rowData['warna'] || rowData['color'] || undefined,
+          unitId: unitMap.get((rowData['satuan'] || rowData['unit'] || '').toLowerCase()) || undefined,
+          sizeId: sizeMap.get((rowData['ukuran'] || rowData['size'] || '').toLowerCase()) || undefined,
+          colorId: colorMap.get((rowData['warna'] || rowData['color'] || '').toLowerCase()) || undefined,
           lengthCm: rowData['panjang(cm)'] || rowData['panjang'] || rowData['length_cm'] ? parseFloat(rowData['panjang(cm)'] || rowData['panjang'] || rowData['length_cm']) || undefined : undefined,
           widthCm: rowData['lebar(cm)'] || rowData['lebar'] || rowData['width_cm'] ? parseFloat(rowData['lebar(cm)'] || rowData['lebar'] || rowData['width_cm']) || undefined : undefined,
           heightCm: rowData['tinggi(cm)'] || rowData['tinggi'] || rowData['height_cm'] ? parseFloat(rowData['tinggi(cm)'] || rowData['tinggi'] || rowData['height_cm']) || undefined : undefined,
