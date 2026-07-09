@@ -9,6 +9,9 @@ type ProductWithRelations = Product & {
   subCategory?: { id: string; code: string; name: string } | null;
   brand?: Brand | null;
   supplier?: { id: string; name: string; customerCode: string } | null;
+  unit?: { id: string; name: string } | null;
+  size?: { id: string; name: string } | null;
+  color?: { id: string; name: string } | null;
   productStocks?: (ProductStock & { branch?: { id: string; name: string; code: string } })[];
 };
 
@@ -72,6 +75,9 @@ export interface TransformedProduct {
   unitId: string | null;
   sizeId?: string | null;
   colorId?: string | null;
+  unit?: { id: string; name: string } | null;
+  size?: { id: string; name: string } | null;
+  color?: { id: string; name: string } | null;
   lengthCm?: number | null;
   widthCm?: number | null;
   heightCm?: number | null;
@@ -236,6 +242,9 @@ export class ProductTransformer {
       unitId: (product as any).unitId || null,
       sizeId: (product as any).sizeId || null,
       colorId: (product as any).colorId || null,
+      unit: (product as any).unit ? { id: (product as any).unit.id, name: (product as any).unit.name } : null,
+      size: (product as any).size ? { id: (product as any).size.id, name: (product as any).size.name } : null,
+      color: (product as any).color ? { id: (product as any).color.id, name: (product as any).color.name } : null,
       lengthCm: (product as any).lengthCm ? this.toNumber((product as any).lengthCm) : null,
       widthCm: (product as any).widthCm ? this.toNumber((product as any).widthCm) : null,
       heightCm: (product as any).heightCm ? this.toNumber((product as any).heightCm) : null,

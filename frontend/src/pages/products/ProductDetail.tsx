@@ -172,7 +172,7 @@ export default function ProductDetail() {
                 )}
                 <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
                   <p className="text-xs text-gray-500 mb-1">Satuan</p>
-                  <p className="text-sm font-semibold text-gray-900">{(product as any).unit || 'pcs'}</p>
+                  <p className="text-sm font-semibold text-gray-900">{(product as any).unit?.name || (product as any).unit || '-'}</p>
                 </div>
                 <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200">
                   <p className="text-xs text-gray-500 mb-1">Jasa</p>
@@ -207,7 +207,7 @@ export default function ProductDetail() {
               </div>
 
               {/* Physical Attributes */}
-              {((product as any).size || (product as any).color || (product as any).lengthCm || (product as any).weightGrams) && (
+              {((product as any).size?.name || (product as any).size || (product as any).color?.name || (product as any).color || (product as any).lengthCm || (product as any).weightGrams) && (
                 <div className="pt-3 border-t border-gray-200">
                   <p className="text-xs font-semibold text-gray-700 mb-2">Atribut Fisik</p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

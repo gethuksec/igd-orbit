@@ -176,7 +176,7 @@ export class ProductsService {
       'filter[type]': filterType = 'all',
       sort = 'name',
       order = 'asc',
-      include = ['category', 'brand'],
+      include = ['category', 'brand', 'unit', 'size', 'color'],
     } = query;
 
     // Ensure page and limit are numbers (fallback if transform didn't work)
@@ -243,6 +243,21 @@ export class ProductsService {
           id: true,
           name: true,
         },
+      };
+    }
+        if (include.includes('unit')) {
+      includeObj.unit = {
+        select: { id: true, name: true },
+      };
+    }
+    if (include.includes('size')) {
+      includeObj.size = {
+        select: { id: true, name: true },
+      };
+    }
+    if (include.includes('color')) {
+      includeObj.color = {
+        select: { id: true, name: true },
       };
     }
     if (include.includes('stock')) {
@@ -330,6 +345,9 @@ export class ProductsService {
           },
         },
         brand: true,
+                unit: { select: { id: true, name: true } },
+        size: { select: { id: true, name: true } },
+        color: { select: { id: true, name: true } },
         supplier: {
           select: {
             id: true,
@@ -1114,6 +1132,9 @@ export class ProductsService {
         category: true,
         subCategory: true,
         brand: true,
+                unit: { select: { id: true, name: true } },
+        size: { select: { id: true, name: true } },
+        color: { select: { id: true, name: true } },
         supplier: {
           select: {
             id: true,

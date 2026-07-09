@@ -32,9 +32,9 @@ export default function ProductForm() {
     costPrice: 0,
     sellingPrice: 0,
     minSellingPrice: 0,
-    unit: 'pcs',
-    size: '',
-    color: '',
+    unitId: "",
+    sizeId: '',
+    colorId: '',
     lengthCm: 0,
     widthCm: 0,
     heightCm: 0,
@@ -82,6 +82,33 @@ export default function ProductForm() {
   });
 
   // Fetch suppliers (customers with customerType='wholesale')
+  // Fetch units
+  const { data: units } = useQuery({
+    queryKey: ['units'],
+    queryFn: async () => {
+      const res = await api.get('/units');
+      return res.data.data || res.data || [];
+    },
+  });
+
+  // Fetch sizes
+  const { data: sizes } = useQuery({
+    queryKey: ['sizes'],
+    queryFn: async () => {
+      const res = await api.get('/sizes');
+      return res.data.data || res.data || [];
+    },
+  });
+
+  // Fetch colors
+  const { data: colors } = useQuery({
+    queryKey: ['colors'],
+    queryFn: async () => {
+      const res = await api.get('/colors');
+      return res.data.data || res.data || [];
+    },
+  });
+
   const { data: suppliers } = useQuery({
     queryKey: ['suppliers'],
     queryFn: async () => {
@@ -111,9 +138,9 @@ export default function ProductForm() {
         costPrice: product.costPrice || 0,
         sellingPrice: product.sellingPrice || 0,
         minSellingPrice: (product as any).minSellingPrice || 0,
-        unit: (product as any).unit || product.unit || 'pcs',
-        size: (product as any).size || '',
-        color: (product as any).color || '',
+        unitId: (product as any).unitId || '',
+        sizeId: (product as any).sizeId || '',
+        colorId: (product as any).colorId || '',
         lengthCm: (product as any).lengthCm || 0,
         widthCm: (product as any).widthCm || 0,
         heightCm: (product as any).heightCm || 0,
@@ -297,35 +324,44 @@ export default function ProductForm() {
 
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2.5">Satuan</label>
-                <input
-                  type="text"
-                  value={formData.unit}
-                  onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                  className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-                  placeholder="pcs, box, kg, dll"
-                />
+                <select
+                  value={formData.unitId}
+                  onChange={(e) => setFormData({ ...formData, unitId: e.target.value })}
+                  className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all bg-white"
+                >
+                  <option value="">Pilih Satuan</option>
+                  {(units?.data || units || []).map((u: any) => (
+                    <option key={u.id} value={u.id}>{u.name}</option>
+                  ))}
+                </select>
               </div>
 
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2.5">Ukuran</label>
-                <input
-                  type="text"
-                  value={formData.size}
-                  onChange={(e) => setFormData({ ...formData, size: e.target.value })}
-                  className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-                  placeholder="Contoh: 256GB, 6.2 inch, dll"
-                />
+                <select
+                  value={formData.sizeId}
+                  onChange={(e) => setFormData({ ...formData, sizeId: e.target.value })}
+                  className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all bg-white"
+                >
+                  <option value="">Pilih Ukuran</option>
+                  {(sizes?.data || sizes || []).map((s: any) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
               </div>
 
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2.5">Warna</label>
-                <input
-                  type="text"
-                  value={formData.color}
-                  onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                  className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-                  placeholder="Contoh: Black, Blue, dll"
-                />
+                <select
+                  value={formData.colorId}
+                  onChange={(e) => setFormData({ ...formData, colorId: e.target.value })}
+                  className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all bg-white"
+                >
+                  <option value="">Pilih Warna</option>
+                  {(colors?.data || colors || []).map((c: any) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>
