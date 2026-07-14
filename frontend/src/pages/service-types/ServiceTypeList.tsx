@@ -13,7 +13,6 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { serviceTypesService } from '../../services/service-types.service';
-import { api } from '../../services/api';
 import { toast } from 'sonner';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
