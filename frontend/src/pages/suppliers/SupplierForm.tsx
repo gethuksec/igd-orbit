@@ -13,6 +13,10 @@ import {
   CreditCard,
   FileText,
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 import { suppliersService } from '../../services/suppliers.service';
 import { toast } from 'sonner';
 
@@ -165,12 +169,14 @@ export default function SupplierForm() {
       <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-2xl shadow-lg p-8 text-white">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => navigate('/suppliers')}
-              className="p-2 text-white/80 hover:bg-white/20 rounded-lg transition-colors"
+              className="text-white/80 hover:bg-white/20"
             >
               <ArrowLeft className="w-5 h-5" />
-            </button>
+            </Button>
             <div>
               <h1 className="text-4xl font-bold mb-2">
                 {isEdit ? 'Edit Supplier' : 'Tambah Supplier'}
@@ -180,13 +186,14 @@ export default function SupplierForm() {
               </p>
             </div>
           </div>
-          <button
+          <Button
+            variant="outline"
             onClick={() => navigate('/suppliers')}
-            className="flex items-center gap-2 px-5 py-2.5 bg-white/10 backdrop-blur-sm text-white rounded-lg hover:bg-white/20 transition-all border border-white/20 font-medium"
+            className="text-white border-white/20 bg-white/10 backdrop-blur-sm hover:bg-white/20"
           >
             <X className="w-4 h-4" />
             <span>Batal</span>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -224,11 +231,10 @@ export default function SupplierForm() {
                   <label className="block text-sm font-bold text-gray-700 mb-2.5">
                     Nama Supplier <span className="text-red-500">*</span>
                   </label>
-                  <input
+                  <Input
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
                     required
                     placeholder="Masukkan nama supplier"
                   />
@@ -238,11 +244,10 @@ export default function SupplierForm() {
                   <label className="block text-sm font-bold text-gray-700 mb-2.5">
                     Contact Person
                   </label>
-                  <input
+                  <Input
                     type="text"
                     value={formData.contactPerson}
                     onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
                     placeholder="Masukkan nama contact person"
                   />
                 </div>
@@ -255,13 +260,13 @@ export default function SupplierForm() {
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                       <Phone className="h-5 w-5 text-gray-400" />
                     </div>
-                    <input
+                    <Input
                       type="tel"
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
                       required
                       placeholder="08xx-xxxx-xxxx"
+                      className="pl-12"
                     />
                   </div>
                 </div>
@@ -272,12 +277,12 @@ export default function SupplierForm() {
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                       <Phone className="h-5 w-5 text-gray-400" />
                     </div>
-                    <input
+                    <Input
                       type="tel"
                       value={formData.alternatePhone}
                       onChange={(e) => setFormData({ ...formData, alternatePhone: e.target.value })}
-                      className="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
                       placeholder="08xx-xxxx-xxxx"
+                      className="pl-12"
                     />
                   </div>
                 </div>
@@ -288,12 +293,12 @@ export default function SupplierForm() {
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                       <Mail className="h-5 w-5 text-gray-400" />
                     </div>
-                    <input
+                    <Input
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
                       placeholder="email@example.com"
+                      className="pl-12"
                     />
                   </div>
                 </div>
@@ -311,67 +316,62 @@ export default function SupplierForm() {
                     <div className="absolute top-4 left-4 pointer-events-none">
                       <MapPin className="h-5 w-5 text-gray-400" />
                     </div>
-                    <textarea
+                    <Textarea
                       value={formData.address}
                       onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                       rows={4}
-                      className="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all resize-none"
                       placeholder="Masukkan alamat lengkap"
+                      className="pl-12"
                     />
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2.5">Kecamatan</label>
-                  <input
+                  <Input
                     type="text"
                     value={formData.subdistrict}
                     onChange={(e) => setFormData({ ...formData, subdistrict: e.target.value })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
                     placeholder="Masukkan kecamatan"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2.5">Kota</label>
-                  <input
+                  <Input
                     type="text"
                     value={formData.city}
                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
                     placeholder="Masukkan kota"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2.5">Provinsi</label>
-                  <input
+                  <Input
                     type="text"
                     value={formData.province}
                     onChange={(e) => setFormData({ ...formData, province: e.target.value })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
                     placeholder="Masukkan provinsi"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2.5">Kode Pos</label>
-                  <input
+                  <Input
                     type="text"
                     value={formData.postalCode}
                     onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
                     placeholder="Masukkan kode pos"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2.5">Negara</label>
-                  <input
+                  <Input
                     type="text"
                     value={formData.country}
                     onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
                     placeholder="Masukkan negara"
                   />
                 </div>
@@ -385,83 +385,76 @@ export default function SupplierForm() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2.5">Jenis Identitas</label>
-                  <select
+                  <Select
                     value={formData.idType}
                     onChange={(e) => setFormData({ ...formData, idType: e.target.value })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white transition-all"
                   >
                     <option value="">Pilih Jenis Identitas</option>
                     <option value="KTP">KTP</option>
                     <option value="SIM">SIM</option>
                     <option value="PASSPORT">Passport</option>
                     <option value="KITAS">KITAS</option>
-                  </select>
+                  </Select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2.5">Nomor Identitas</label>
-                  <input
+                  <Input
                     type="text"
                     value={formData.idNumber}
                     onChange={(e) => setFormData({ ...formData, idNumber: e.target.value })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
                     placeholder="Masukkan nomor identitas"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2.5">Nama (Pajak)</label>
-                  <input
+                  <Input
                     type="text"
                     value={formData.taxName}
                     onChange={(e) => setFormData({ ...formData, taxName: e.target.value })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
                     placeholder="Masukkan nama untuk pajak"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2.5">Jenis Identitas Pajak</label>
-                  <select
+                  <Select
                     value={formData.taxIdType}
                     onChange={(e) => setFormData({ ...formData, taxIdType: e.target.value })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white transition-all"
                   >
                     <option value="">Pilih Jenis Identitas Pajak</option>
                     <option value="NPWP">NPWP</option>
                     <option value="KTP">KTP</option>
-                  </select>
+                  </Select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2.5">No NPWP/KTP</label>
-                  <input
+                  <Input
                     type="text"
                     value={formData.taxId}
                     onChange={(e) => setFormData({ ...formData, taxId: e.target.value })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
                     placeholder="Masukkan nomor NPWP/KTP"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2.5">IDTKU</label>
-                  <input
+                  <Input
                     type="text"
                     value={formData.idTKU}
                     onChange={(e) => setFormData({ ...formData, idTKU: e.target.value })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
                     placeholder="Masukkan IDTKU"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2.5">Detail Transaksi Pajak</label>
-                  <input
+                  <Input
                     type="text"
                     value={formData.taxTransactionDetail}
                     onChange={(e) => setFormData({ ...formData, taxTransactionDetail: e.target.value })}
-                    className="block w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
                     placeholder="01/02/03..dst"
                   />
                 </div>
@@ -472,12 +465,12 @@ export default function SupplierForm() {
                     <div className="absolute top-4 left-4 pointer-events-none">
                       <MapPin className="h-5 w-5 text-gray-400" />
                     </div>
-                    <textarea
+                    <Textarea
                       value={formData.taxAddress}
                       onChange={(e) => setFormData({ ...formData, taxAddress: e.target.value })}
                       rows={4}
-                      className="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all resize-none"
                       placeholder="Masukkan alamat untuk pajak"
+                      className="pl-12"
                     />
                   </div>
                 </div>
@@ -493,12 +486,12 @@ export default function SupplierForm() {
                 <div className="absolute top-4 left-4 pointer-events-none">
                   <FileText className="h-5 w-5 text-gray-400" />
                 </div>
-                <textarea
+                <Textarea
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   rows={6}
-                  className="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all resize-none"
                   placeholder="Masukkan keterangan tambahan"
+                  className="pl-12"
                 />
               </div>
             </div>
@@ -506,17 +499,18 @@ export default function SupplierForm() {
 
           {/* Form Actions */}
           <div className="mt-8 pt-6 border-t border-gray-200 flex items-center justify-end gap-4">
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={() => navigate('/suppliers')}
-              className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-white hover:border-primary-500 hover:text-primary-600 transition-all font-semibold"
+              className="px-6 py-3 text-base font-semibold"
             >
               Batal
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={mutation.isPending}
-              className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-primary-600 to-primary-500 text-white rounded-xl font-bold hover:from-primary-700 hover:to-primary-600 shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+              className="flex items-center gap-2 px-8 py-3 text-base font-bold bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-700 hover:to-primary-600 shadow-lg hover:shadow-xl"
             >
               {mutation.isPending ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -524,7 +518,7 @@ export default function SupplierForm() {
                 <Save className="w-5 h-5" />
               )}
               <span>{isEdit ? 'Simpan Perubahan' : 'Simpan Supplier'}</span>
-            </button>
+            </Button>
           </div>
         </form>
       </div>

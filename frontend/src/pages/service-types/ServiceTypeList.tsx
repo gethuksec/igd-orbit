@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Plus,
@@ -8,10 +8,12 @@ import {
   Eye,
   Wrench,
   Clock,
+  Save,
   Loader2,
   AlertTriangle,
 } from 'lucide-react';
 import { serviceTypesService } from '../../services/service-types.service';
+import { api } from '../../services/api';
 import { toast } from 'sonner';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
@@ -27,6 +29,20 @@ export default function ServiceTypeList() {
 
   type StatusFilter = 'all' | 'active' | 'inactive';
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+
+  // Form Modal state
+  const [formModalOpen, setFormModalOpen] = useState(false);
+  const [editingServiceType, setEditingServiceType] = useState<any>(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    code: '',
+    description: '',
+    basePrice: '',
+    minPrice: '',
+    maxPrice: '',
+    slaHours: '',
+    isActive: true,
+  });
 
   const { data: serviceTypes = [], isLoading, error, refetch } = useQuery({
     queryKey: ['service-types', searchTerm, statusFilter],
@@ -56,6 +72,76 @@ export default function ServiceTypeList() {
       toast.error(error.response?.data?.message || 'Gagal menghapus layanan');
     },
   });
+
+  const saveMutation = useMutation({
+    mutationFn: (data: any) => {
+      const submitData = {
+        ...data,
+        basePrice: parseFloat(data.basePrice),
+        minPrice: data.minPrice ? parseFloat(data.minPrice) : undefined,
+        maxPrice: data.maxPrice ? parseFloat(data.maxPrice) : undefined,
+        slaHours: parseInt(data.slaHours, 10) || 0,
+      };
+      if (editingServiceType) {
+        return serviceTypesService.update(editingServiceType.id, submitData);
+      }
+      return serviceTypesService.create(submitData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['service-types'] });
+      toast.success(editingServiceType ? 'Layanan berhasil diupdate' : 'Layanan berhasil ditambahkan');
+      setFormModalOpen(false);
+      setEditingServiceType(null);
+      setFormData({
+        name: '',
+        code: '',
+        description: '',
+        basePrice: '',
+        minPrice: '',
+        maxPrice: '',
+        slaHours: '',
+        isActive: true,
+      });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Terjadi kesalahan');
+    },
+  });
+
+  const openCreateModal = () => {
+    setEditingServiceType(null);
+    setFormData({
+      name: '',
+      code: '',
+      description: '',
+      basePrice: '',
+      minPrice: '',
+      maxPrice: '',
+      slaHours: '',
+      isActive: true,
+    });
+    setFormModalOpen(true);
+  };
+
+  const openEditModal = (st: any) => {
+    setEditingServiceType(st);
+    setFormData({
+      name: st.name || '',
+      code: st.code || '',
+      description: st.description || '',
+      basePrice: st.basePrice?.toString() || '',
+      minPrice: st.minPrice?.toString() || '',
+      maxPrice: st.maxPrice?.toString() || '',
+      slaHours: st.slaHours?.toString() || '',
+      isActive: st.isActive !== false,
+    });
+    setFormModalOpen(true);
+  };
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveMutation.mutate(formData);
+  };
 
   // Filter by search term and status
   const filteredServiceTypes = serviceTypes.filter((st) => {
@@ -158,12 +244,13 @@ export default function ServiceTypeList() {
   return (
     <div className="w-full space-y-3">
       <PageHeader title="Manajemen Layanan" subtitle="Kelola jenis layanan servis">
-        <Link to="/service-types/new">
-          <Button className="flex items-center gap-2 bg-white text-primary-600 hover:bg-primary-50">
-            <Plus className="w-5 h-5" />
-            <span>Tambah Layanan</span>
-          </Button>
-        </Link>
+        <Button
+          onClick={openCreateModal}
+          className="flex items-center gap-2 bg-white text-primary-600 hover:bg-primary-50"
+        >
+          <Plus className="w-5 h-5" />
+          <span>Tambah Layanan</span>
+        </Button>
       </PageHeader>
 
       {error && (
@@ -239,7 +326,7 @@ export default function ServiceTypeList() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate(`/service-types/${st.id}/edit`)}
+              onClick={() => openEditModal(st)}
               title="Edit"
             >
               <Edit className="w-4 h-4" />
@@ -260,6 +347,179 @@ export default function ServiceTypeList() {
           </div>
         )}
       />
+
+      {/* Form Modal */}
+      <Modal
+        open={formModalOpen}
+        onClose={() => {
+          setFormModalOpen(false);
+          setEditingServiceType(null);
+          setFormData({
+            name: '',
+            code: '',
+            description: '',
+            basePrice: '',
+            minPrice: '',
+            maxPrice: '',
+            slaHours: '',
+            isActive: true,
+          });
+        }}
+        title={editingServiceType ? 'Edit Layanan' : 'Tambah Layanan'}
+        size="md"
+      >
+        <form onSubmit={handleFormSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Nama Layanan <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              placeholder="Nama layanan"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Kode Layanan <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.code}
+              onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              placeholder="Kode layanan"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Deskripsi
+            </label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              rows={2}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              placeholder="Deskripsi layanan (opsional)"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Harga Dasar <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                required
+                min={0}
+                value={formData.basePrice}
+                onChange={(e) => setFormData({ ...formData, basePrice: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="0"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Harga Minimum
+              </label>
+              <input
+                type="number"
+                min={0}
+                value={formData.minPrice}
+                onChange={(e) => setFormData({ ...formData, minPrice: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="0 (opsional)"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Harga Maksimum
+              </label>
+              <input
+                type="number"
+                min={0}
+                value={formData.maxPrice}
+                onChange={(e) => setFormData({ ...formData, maxPrice: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="0 (opsional)"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                SLA (Jam) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                required
+                min={0}
+                value={formData.slaHours}
+                onChange={(e) => setFormData({ ...formData, slaHours: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="24"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Status
+            </label>
+            <select
+              value={formData.isActive ? 'active' : 'inactive'}
+              onChange={(e) => setFormData({ ...formData, isActive: e.target.value === 'active' })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            >
+              <option value="active">Aktif</option>
+              <option value="inactive">Tidak Aktif</option>
+            </select>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                setFormModalOpen(false);
+                setEditingServiceType(null);
+                setFormData({
+                  name: '',
+                  code: '',
+                  description: '',
+                  basePrice: '',
+                  minPrice: '',
+                  maxPrice: '',
+                  slaHours: '',
+                  isActive: true,
+                });
+              }}
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+              disabled={saveMutation.isPending}
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={saveMutation.isPending}
+              className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {saveMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Menyimpan...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  Simpan
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Delete Confirmation Modal */}
       <Modal

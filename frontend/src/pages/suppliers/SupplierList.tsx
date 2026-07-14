@@ -9,8 +9,23 @@ import { SearchFilter } from "@/components/shared";
 import { DataTable } from "@/components/shared";
 import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Modal } from "../../components/ui/modal";
 import { toast } from "sonner";
+
+interface SimpleFormData {
+  name: string;
+  contactPerson: string;
+  phone: string;
+  email: string;
+}
+
+const defaultForm: SimpleFormData = {
+  name: "",
+  contactPerson: "",
+  phone: "",
+  email: "",
+};
 
 export default function SupplierList() {
   const navigate = useNavigate();
@@ -19,6 +34,9 @@ export default function SupplierList() {
   const limit = 20;
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [supplierToDelete, setSupplierToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [showFormModal, setShowFormModal] = useState(false);
+  const [editingSupplier, setEditingSupplier] = useState<any>(null);
+  const [form, setForm] = useState<SimpleFormData>(defaultForm);
   const queryClient = useQueryClient();
 
   const { data, isLoading, error, refetch } = useQuery({
@@ -39,6 +57,30 @@ export default function SupplierList() {
     return () => clearTimeout(debounce);
   }, [searchTerm]);
 
+  const createMutation = useMutation({
+    mutationFn: (data: any) => suppliersService.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+      toast.success("Pemasok berhasil ditambahkan");
+      closeFormModal();
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || "Gagal menambahkan pemasok");
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => suppliersService.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+      toast.success("Pemasok berhasil diupdate");
+      closeFormModal();
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || "Gagal mengupdate pemasok");
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => suppliersService.delete(id),
     onSuccess: () => {
@@ -51,6 +93,45 @@ export default function SupplierList() {
       toast.error(error.response?.data?.message || "Gagal menghapus pemasok");
     },
   });
+
+  const closeFormModal = () => {
+    setShowFormModal(false);
+    setEditingSupplier(null);
+    setForm(defaultForm);
+  };
+
+  const openCreateModal = () => {
+    setEditingSupplier(null);
+    setForm(defaultForm);
+    setShowFormModal(true);
+  };
+
+  const openEditModal = (supplier: any) => {
+    setEditingSupplier(supplier);
+    setForm({
+      name: supplier.name || "",
+      contactPerson: supplier.contactPerson || "",
+      phone: supplier.phone || "",
+      email: supplier.email || "",
+    });
+    setShowFormModal(true);
+  };
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const submitData = {
+      customerType: "wholesale",
+      name: form.name,
+      phone: form.phone,
+      contactPerson: form.contactPerson || undefined,
+      email: form.email || undefined,
+    };
+    if (editingSupplier) {
+      updateMutation.mutate({ id: editingSupplier.id, data: submitData });
+    } else {
+      createMutation.mutate(submitData);
+    }
+  };
 
   const suppliers = data?.data || [];
   const pagination = data?.meta || {
@@ -141,12 +222,13 @@ export default function SupplierList() {
   return (
     <div className="w-full space-y-3">
       <PageHeader title="Manajemen Pemasok" subtitle="Kelola data pemasok dan vendor">
-        <Link to="/suppliers/new">
-          <Button className="flex items-center gap-2 bg-white text-primary-600 hover:bg-primary-50">
-            <Plus className="w-5 h-5" />
-            <span>Tambah Pemasok</span>
-          </Button>
-        </Link>
+        <Button
+          onClick={openCreateModal}
+          className="flex items-center gap-2 bg-white text-primary-600 hover:bg-primary-50"
+        >
+          <Plus className="w-5 h-5" />
+          <span>Tambah Pemasok</span>
+        </Button>
       </PageHeader>
 
       {error && (
@@ -207,8 +289,8 @@ export default function SupplierList() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate(`/suppliers/${supplier.id}/edit`)}
-              title="Edit"
+              onClick={() => openEditModal(supplier)}
+              title="Edit Cepat"
             >
               <Edit className="w-4 h-4" />
             </Button>
@@ -266,6 +348,80 @@ export default function SupplierList() {
           </div>
         </div>
       )}
+
+      {/* Create/Edit Modal */}
+      <Modal
+        open={showFormModal}
+        onClose={closeFormModal}
+        title={editingSupplier ? "Edit Pemasok" : "Tambah Pemasok"}
+        size="md"
+      >
+        <form onSubmit={handleFormSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Nama Pemasok <span className="text-red-500">*</span>
+            </label>
+            <Input
+              type="text"
+              required
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              placeholder="Masukkan nama pemasok"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Contact Person
+            </label>
+            <Input
+              type="text"
+              value={form.contactPerson}
+              onChange={(e) => setForm({ ...form, contactPerson: e.target.value })}
+              placeholder="Masukkan nama contact person"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Telepon <span className="text-red-500">*</span>
+            </label>
+            <Input
+              type="tel"
+              required
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              placeholder="08xx-xxxx-xxxx"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Email</label>
+            <Input
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              placeholder="email@example.com"
+            />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={closeFormModal}
+              className="flex-1"
+            >
+              Batal
+            </Button>
+            <Button
+              type="submit"
+              className="flex-1"
+              disabled={createMutation.isPending || updateMutation.isPending}
+            >
+              {createMutation.isPending || updateMutation.isPending
+                ? "Menyimpan..."
+                : "Simpan"}
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Delete Confirmation Modal */}
       <Modal

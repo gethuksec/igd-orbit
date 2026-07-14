@@ -1,20 +1,29 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { Plus, Tag, Eye, Edit, Trash2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Plus, Tag, Eye, Edit, Trash2, Save, Loader2 } from "lucide-react";
 import { brandsService } from "../../services/brands.service";
+import { api } from "../../services/api";
 import { PageHeader } from "@/components/shared";
 import { StatCard } from "@/components/shared";
 import { SearchFilter } from "@/components/shared";
 import { DataTable } from "@/components/shared";
 import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
+import { toast } from "sonner";
 
 export default function BrandList() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const limit = 20;
+
+  // Modal state
+  const [formModalOpen, setFormModalOpen] = useState(false);
+  const [editingBrand, setEditingBrand] = useState<any>(null);
+  const [formData, setFormData] = useState({ name: "", description: "", isActive: true });
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["brands", page, searchTerm],
@@ -40,6 +49,47 @@ export default function BrandList() {
     limit: 20,
     total: 0,
     totalPages: 1,
+  };
+
+  const saveMutation = useMutation({
+    mutationFn: (data: any) => {
+      const submitData = { ...data };
+      if (editingBrand) {
+        return brandsService.update(editingBrand.id, submitData);
+      }
+      return brandsService.create(submitData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["brands"] });
+      toast.success(editingBrand ? "Merk berhasil diupdate" : "Merk berhasil ditambahkan");
+      setFormModalOpen(false);
+      setEditingBrand(null);
+      setFormData({ name: "", description: "", isActive: true });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || "Terjadi kesalahan");
+    },
+  });
+
+  const openCreateModal = () => {
+    setEditingBrand(null);
+    setFormData({ name: "", description: "", isActive: true });
+    setFormModalOpen(true);
+  };
+
+  const openEditModal = (brand: any) => {
+    setEditingBrand(brand);
+    setFormData({
+      name: brand.name || "",
+      description: brand.description || "",
+      isActive: brand.isActive !== false,
+    });
+    setFormModalOpen(true);
+  };
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveMutation.mutate(formData);
   };
 
   const totalProducts = brands.reduce(
@@ -107,12 +157,13 @@ export default function BrandList() {
   return (
     <div className="w-full space-y-3">
       <PageHeader title="Manajemen Merk" subtitle="Kelola merk produk">
-        <Link to="/brands/new">
-          <Button className="flex items-center gap-2 bg-white text-primary-600 hover:bg-primary-50">
-            <Plus className="w-5 h-5" />
-            <span>Tambah Merk</span>
-          </Button>
-        </Link>
+        <Button
+          onClick={openCreateModal}
+          className="flex items-center gap-2 bg-white text-primary-600 hover:bg-primary-50"
+        >
+          <Plus className="w-5 h-5" />
+          <span>Tambah Merk</span>
+        </Button>
       </PageHeader>
 
       {error && (
@@ -173,7 +224,7 @@ export default function BrandList() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate(`/brands/${brand.id}/edit`)}
+              onClick={() => openEditModal(brand)}
               title="Edit"
             >
               <Edit className="w-4 h-4" />
@@ -228,6 +279,90 @@ export default function BrandList() {
           </div>
         </div>
       )}
+
+      {/* Form Modal */}
+      <Modal
+        open={formModalOpen}
+        onClose={() => {
+          setFormModalOpen(false);
+          setEditingBrand(null);
+          setFormData({ name: "", description: "", isActive: true });
+        }}
+        title={editingBrand ? "Edit Merk" : "Tambah Merk"}
+        size="md"
+      >
+        <form onSubmit={handleFormSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Nama Merk <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              placeholder="Nama merk"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Deskripsi
+            </label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              placeholder="Deskripsi merk (opsional)"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Status
+            </label>
+            <select
+              value={formData.isActive ? "active" : "inactive"}
+              onChange={(e) => setFormData({ ...formData, isActive: e.target.value === "active" })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            >
+              <option value="active">Aktif</option>
+              <option value="inactive">Tidak Aktif</option>
+            </select>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                setFormModalOpen(false);
+                setEditingBrand(null);
+                setFormData({ name: "", description: "", isActive: true });
+              }}
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+              disabled={saveMutation.isPending}
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={saveMutation.isPending}
+              className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {saveMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Menyimpan...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  Simpan
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

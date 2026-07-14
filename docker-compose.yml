@@ -10,7 +10,7 @@ services:
       NODE_ENV: production
       PORT: 3000
       FRONTEND_URL: https://igd.ad8ya.cloud
-      DATABASE_URL: postgresql://developer:***@postgresql:5432/igd_orbit_db?schema=public
+      DATABASE_URL: postgresql://developer:asd1234!Ff@postgresql:5432/igd_orbit_db?schema=public
       REDIS_URL: redis://:asd2134!Ff@redis:6379
       REDIS_HOST: redis
       REDIS_PORT: 6379

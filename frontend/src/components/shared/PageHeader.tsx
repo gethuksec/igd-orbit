@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 
 interface PageHeaderProps {
   title: string;
-  subtitle?: string;
+  subtitle?: ReactNode;
   children?: ReactNode; // Action buttons (right side)
   className?: string;
 }
@@ -17,7 +17,7 @@ export function PageHeader({ title, subtitle, children, className }: PageHeaderP
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold mb-1">{title}</h1>
-          {subtitle && <p className="text-primary-100">{subtitle}</p>}
+          {subtitle && <div className="text-primary-100">{subtitle}</div>}
         </div>
         {children && (
           <div className="flex items-center gap-3">{children}</div>

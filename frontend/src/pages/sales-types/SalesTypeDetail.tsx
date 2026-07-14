@@ -1,6 +1,8 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Edit, Tag, Loader2, Calendar } from "lucide-react";
+import { PageHeader } from "@/components/shared";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { api } from "../../services/api";
 
 export default function SalesTypeDetail() {
@@ -39,40 +41,36 @@ export default function SalesTypeDetail() {
 
   return (
     <div className="w-full space-y-4">
-      {/* Page Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate("/sales-types")}
-              className="p-2 text-white/80 hover:bg-white/20 rounded-lg transition-colors"
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <button
+          onClick={() => navigate("/sales-types")}
+          className="flex-shrink-0 p-2 bg-gradient-to-r from-primary-600 to-primary-500 text-white rounded-lg shadow-lg hover:from-primary-500 hover:to-primary-400 transition-all"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <div className="flex-1">
+          <PageHeader title={salesType.name} subtitle="Detail Tipe Penjualan">
+            <Link
+              to={`/sales-types/${id}/edit`}
+              className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm text-white rounded-lg hover:bg-white/20 transition-all"
             >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-3xl font-bold mb-1">{salesType.name}</h1>
-              <p className="text-primary-100">Detail Tipe Penjualan</p>
-            </div>
-          </div>
-          <Link
-            to={`/sales-types/${id}/edit`}
-            className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm text-white rounded-lg hover:bg-white/20 transition-all"
-          >
-            <Edit className="w-4 h-4" />
-            <span>Edit</span>
-          </Link>
+              <Edit className="w-4 h-4" />
+              <span>Edit</span>
+            </Link>
+          </PageHeader>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Left Column - Informasi Tipe Penjualan */}
         <div className="space-y-4">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <Card>
+            <CardHeader className="flex flex-row items-center gap-2">
               <Tag className="w-5 h-5 text-primary-600" />
-              Informasi Tipe Penjualan
-            </h2>
-            <div className="space-y-4">
+              <CardTitle>Informasi Tipe Penjualan</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
                 <p className="text-xs text-gray-500 mb-1">Nama Tipe Penjualan</p>
                 <p className="text-sm font-semibold text-gray-900">{salesType.name}</p>
@@ -97,19 +95,18 @@ export default function SalesTypeDetail() {
                   {salesType.isActive ? "Aktif" : "Tidak Aktif"}
                 </span>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Right Column - Info */}
+        {/* Right Column - Informasi Tambahan */}
         <div className="space-y-4">
-          {/* Timestamps */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <Card>
+            <CardHeader className="flex flex-row items-center gap-2">
               <Calendar className="w-5 h-5 text-primary-600" />
-              Informasi Tambahan
-            </h2>
-            <div className="space-y-2">
+              <CardTitle>Informasi Tambahan</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Dibuat</span>
                 <span className="font-semibold text-gray-900">
@@ -134,8 +131,8 @@ export default function SalesTypeDetail() {
                   })}
                 </span>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
