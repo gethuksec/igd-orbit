@@ -20,4 +20,7 @@ export class CreateColorDto {
   @IsString({ message: 'Notes must be a string' })
   @IsOptional()
   notes?: string;
+
+  @IsOptional()
+  isActive?: boolean; // Defaults to true on creation
 }

@@ -24,7 +24,8 @@ export const sizesService = {
     page?: number;
     limit?: number;
     search?: string;
-    "filter[isActive]"?: boolean;
+    includeInactive?: boolean;
+    status?: string;
   }): Promise<SizeListResponse> {
     try {
       const response = await api.get("/sizes", { params });

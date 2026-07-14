@@ -56,16 +56,24 @@ export class ExpeditionsService {
    * @returns Paginated list of expeditions
    */
   async findAll(query: ListExpeditionsDto) {
-    const { page = 1, limit = 20, search } = query;
+    const { page = 1, limit = 20, search, includeInactive, status } = query;
     
     // Ensure page and limit are numbers (fallback if transform didn't work)
     const pageNum = typeof page === 'string' ? parseInt(page, 10) : page || 1;
     const limitNum = typeof limit === 'string' ? parseInt(limit, 10) : limit || 20;
 
     const skip = (pageNum - 1) * limitNum;
-    const where: Prisma.ExpeditionWhereInput = {
-      isActive: true,
-    };
+    const where: Prisma.ExpeditionWhereInput = {};
+
+    // Apply status filter
+    if (status === 'active') {
+      where.isActive = true;
+    } else if (status === 'inactive') {
+      where.isActive = false;
+    } else if (!includeInactive) {
+      // Default: active only (backward compatible)
+      where.isActive = true;
+    }
 
     // Search filter
     if (search) {
@@ -205,6 +213,9 @@ export class ExpeditionsService {
     }
     if (updateExpeditionDto.code !== undefined) {
       updateData.code = updateExpeditionDto.code;
+    }
+    if (updateExpeditionDto.isActive !== undefined) {
+      updateData.isActive = updateExpeditionDto.isActive;
     }
 
     // Update expedition

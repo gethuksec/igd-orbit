@@ -25,9 +25,12 @@ export default function ServiceTypeList() {
   const [serviceTypeToDelete, setServiceTypeToDelete] = useState<{ id: string; name: string } | null>(null);
   const queryClient = useQueryClient();
 
+  type StatusFilter = 'all' | 'active' | 'inactive';
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+
   const { data: serviceTypes = [], isLoading, error, refetch } = useQuery({
-    queryKey: ['service-types', searchTerm],
-    queryFn: () => serviceTypesService.getAll(),
+    queryKey: ['service-types', searchTerm, statusFilter],
+    queryFn: () => serviceTypesService.getAll(statusFilter !== 'active' ? true : undefined),
   });
 
   useEffect(() => {
@@ -36,6 +39,10 @@ export default function ServiceTypeList() {
     }, 500);
     return () => clearTimeout(debounce);
   }, [searchTerm, refetch]);
+
+  useEffect(() => {
+    refetch();
+  }, [statusFilter, refetch]);
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => serviceTypesService.delete(id),
@@ -50,8 +57,12 @@ export default function ServiceTypeList() {
     },
   });
 
-  // Filter by search term
+  // Filter by search term and status
   const filteredServiceTypes = serviceTypes.filter((st) => {
+    // Status filter (only applies client-side for 'inactive', since backend handles 'all' and 'active')
+    if (statusFilter === 'inactive' && st.isActive) return false;
+
+    // Search term filter
     if (!searchTerm) return true;
     const search = searchTerm.toLowerCase();
     return (
@@ -190,6 +201,23 @@ export default function ServiceTypeList() {
         onSearchChange={setSearchTerm}
         searchPlaceholder="Cari nama layanan, kode, atau deskripsi..."
       />
+
+      {/* Status Filter */}
+      <div className="flex items-center gap-2">
+        {(['all', 'active', 'inactive'] as StatusFilter[]).map((filter) => (
+          <button
+            key={filter}
+            onClick={() => setStatusFilter(filter)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              statusFilter === filter
+                ? 'bg-primary-500 text-white shadow-sm'
+                : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            {filter === 'all' ? 'Semua' : filter === 'active' ? 'Aktif' : 'Tidak Aktif'}
+          </button>
+        ))}
+      </div>
 
       <DataTable
         columns={columns}

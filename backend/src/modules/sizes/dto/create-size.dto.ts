@@ -16,4 +16,7 @@ export class CreateSizeDto {
   @IsString({ message: 'Name must be a string' })
   @IsNotEmpty({ message: 'Size name is required' })
   name!: string;
+
+  @IsOptional()
+  isActive?: boolean; // Defaults to true on creation
 }

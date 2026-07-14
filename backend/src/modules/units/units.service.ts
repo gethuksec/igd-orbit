@@ -56,16 +56,24 @@ export class UnitsService {
    * @returns Paginated list of units
    */
   async findAll(query: ListUnitsDto) {
-    const { page = 1, limit = 20, search } = query;
+    const { page = 1, limit = 20, search, includeInactive, status } = query;
 
     // Ensure page and limit are numbers (fallback if transform didn't work)
     const pageNum = typeof page === 'string' ? parseInt(page, 10) : page || 1;
     const limitNum = typeof limit === 'string' ? parseInt(limit, 10) : limit || 20;
 
     const skip = (pageNum - 1) * limitNum;
-    const where: Prisma.UnitWhereInput = {
-      isActive: true,
-    };
+    const where: Prisma.UnitWhereInput = {};
+
+    // Apply status filter
+    if (status === 'active') {
+      where.isActive = true;
+    } else if (status === 'inactive') {
+      where.isActive = false;
+    } else if (!includeInactive) {
+      // Default: active only (backward compatible)
+      where.isActive = true;
+    }
 
     // Search filter
     if (search) {
@@ -253,6 +261,9 @@ export class UnitsService {
     }
     if (updateUnitDto.code !== undefined) {
       updateData.code = updateUnitDto.code;
+    }
+    if (updateUnitDto.isActive !== undefined) {
+      updateData.isActive = updateUnitDto.isActive;
     }
 
     // Update unit

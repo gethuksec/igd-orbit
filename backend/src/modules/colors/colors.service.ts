@@ -56,16 +56,24 @@ export class ColorsService {
    * @returns Paginated list of colors
    */
   async findAll(query: ListColorsDto) {
-    const { page = 1, limit = 20, search } = query;
+    const { page = 1, limit = 20, search, includeInactive, status } = query;
 
     // Ensure page and limit are numbers (fallback if transform didn't work)
     const pageNum = typeof page === 'string' ? parseInt(page, 10) : page || 1;
     const limitNum = typeof limit === 'string' ? parseInt(limit, 10) : limit || 20;
 
     const skip = (pageNum - 1) * limitNum;
-    const where: Prisma.ColorWhereInput = {
-      isActive: true,
-    };
+    const where: Prisma.ColorWhereInput = {};
+
+    // Apply status filter
+    if (status === 'active') {
+      where.isActive = true;
+    } else if (status === 'inactive') {
+      where.isActive = false;
+    } else if (!includeInactive) {
+      // Default: active only (backward compatible)
+      where.isActive = true;
+    }
 
     // Search filter
     if (search) {
@@ -260,6 +268,9 @@ export class ColorsService {
     }
     if (updateColorDto.code !== undefined) {
       updateData.code = updateColorDto.code;
+    }
+    if (updateColorDto.isActive !== undefined) {
+      updateData.isActive = updateColorDto.isActive;
     }
 
     // Update color

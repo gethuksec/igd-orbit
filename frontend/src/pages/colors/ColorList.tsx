@@ -1,28 +1,41 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { Plus, Palette, Eye, Edit, Trash2 } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Plus, Palette, Eye, Edit, Trash2, Save, X, Loader2 } from "lucide-react";
 import { colorsService } from "../../services/colors.service";
+import { api } from "../../services/api";
 import { PageHeader } from "@/components/shared";
 import { StatCard } from "@/components/shared";
 import { SearchFilter } from "@/components/shared";
 import { DataTable } from "@/components/shared";
 import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
+import { toast } from "sonner";
+
+type StatusFilter = "all" | "active" | "inactive";
 
 export default function ColorList() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const limit = 20;
 
+  // Modal state
+  const [formModalOpen, setFormModalOpen] = useState(false);
+  const [editingColor, setEditingColor] = useState<any>(null);
+  const [formData, setFormData] = useState({ name: "", notes: "" });
+
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["colors", page, searchTerm],
+    queryKey: ["colors", page, searchTerm, statusFilter],
     queryFn: () =>
       colorsService.getAll({
         page,
         limit,
         search: searchTerm || undefined,
+        status: statusFilter === "all" ? "all" : statusFilter === "active" ? "active" : "inactive",
       }),
   });
 
@@ -32,7 +45,11 @@ export default function ColorList() {
       refetch();
     }, 500);
     return () => clearTimeout(debounce);
-  }, [searchTerm]);
+  }, [searchTerm, refetch]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter]);
 
   const colors = data?.data || [];
   const pagination = data?.meta || {
@@ -41,6 +58,45 @@ export default function ColorList() {
     total: 0,
     totalPages: 1,
   };
+
+  const saveMutation = useMutation({
+    mutationFn: (data: any) => {
+      const submitData = { ...data };
+      if (editingColor) {
+        return api.put(`/colors/${editingColor.id}`, submitData);
+      }
+      return api.post("/colors", submitData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["colors"] });
+      toast.success(editingColor ? "Warna berhasil diupdate" : "Warna berhasil ditambahkan");
+      setFormModalOpen(false);
+      setEditingColor(null);
+      setFormData({ name: "", notes: "" });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || "Terjadi kesalahan");
+    },
+  });
+
+  const openCreateModal = () => {
+    setEditingColor(null);
+    setFormData({ name: "", notes: "" });
+    setFormModalOpen(true);
+  };
+
+  const openEditModal = (color: any) => {
+    setEditingColor(color);
+    setFormData({ name: color.name || "", notes: color.notes || "" });
+    setFormModalOpen(true);
+  };
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveMutation.mutate(formData);
+  };
+
+  const activeCount = colors.filter((c: any) => c.isActive).length;
 
   const columns: Column<any>[] = [
     {
@@ -88,17 +144,22 @@ export default function ColorList() {
     },
   ];
 
-  const activeCount = colors.filter((c: any) => c.isActive).length;
+  const statusBtns: { key: StatusFilter; label: string }[] = [
+    { key: "all", label: "Semua" },
+    { key: "active", label: "Aktif" },
+    { key: "inactive", label: "Tidak Aktif" },
+  ];
 
   return (
     <div className="w-full space-y-3">
       <PageHeader title="Manajemen Warna" subtitle="Kelola warna produk">
-        <Link to="/colors/new">
-          <Button className="flex items-center gap-2 bg-white text-primary-600 hover:bg-primary-50">
-            <Plus className="w-5 h-5" />
-            <span>Tambah Warna</span>
-          </Button>
-        </Link>
+        <Button
+          onClick={openCreateModal}
+          className="flex items-center gap-2 bg-white text-primary-600 hover:bg-primary-50"
+        >
+          <Plus className="w-5 h-5" />
+          <span>Tambah Warna</span>
+        </Button>
       </PageHeader>
 
       {error && (
@@ -139,6 +200,26 @@ export default function ColorList() {
         searchPlaceholder="Cari nama warna..."
       />
 
+      {/* Status Filter */}
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium text-gray-600">Status:</span>
+        <div className="flex gap-1">
+          {statusBtns.map((btn) => (
+            <button
+              key={btn.key}
+              onClick={() => setStatusFilter(btn.key)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                statusFilter === btn.key
+                  ? "bg-primary-600 text-white shadow-sm"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              {btn.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <DataTable
         columns={columns}
         data={colors}
@@ -159,7 +240,7 @@ export default function ColorList() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate(`/colors/${color.id}/edit`)}
+              onClick={() => openEditModal(color)}
               title="Edit"
             >
               <Edit className="w-4 h-4" />
@@ -214,6 +295,77 @@ export default function ColorList() {
           </div>
         </div>
       )}
+
+      {/* Form Modal */}
+      <Modal
+        open={formModalOpen}
+        onClose={() => {
+          setFormModalOpen(false);
+          setEditingColor(null);
+          setFormData({ name: "", notes: "" });
+        }}
+        title={editingColor ? "Edit Warna" : "Tambah Warna"}
+        size="md"
+      >
+        <form onSubmit={handleFormSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Nama Warna <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              placeholder="Nama warna"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Catatan
+            </label>
+            <textarea
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              placeholder="Catatan warna (opsional)"
+            />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                setFormModalOpen(false);
+                setEditingColor(null);
+                setFormData({ name: "", notes: "" });
+              }}
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+              disabled={saveMutation.isPending}
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={saveMutation.isPending}
+              className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {saveMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Menyimpan...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  Simpan
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

@@ -24,7 +24,8 @@ export const salesTypesService = {
     page?: number;
     limit?: number;
     search?: string;
-    "filter[isActive]"?: boolean;
+    includeInactive?: boolean;
+    status?: string;
   }): Promise<SalesTypeListResponse> {
     try {
       const response = await api.get("/sales-types", { params });

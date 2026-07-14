@@ -22,4 +22,12 @@ export class ListUnitsDto {
   @IsString({ message: 'Search must be a string' })
   @IsOptional()
   search?: string; // Search by name, code
+
+  @Type(() => Boolean)
+  @IsOptional()
+  includeInactive?: boolean; // If true, show all records including inactive
+
+  @IsString()
+  @IsOptional()
+  status?: 'all' | 'active' | 'inactive'; // Filter by status
 }

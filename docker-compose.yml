@@ -1,38 +1,4 @@
 services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:16-alpine
-    container_name: igd-orbit-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: igd_orbit
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - igd-orbit-network
-
-  # Redis Cache
-  redis:
-    image: redis:7-alpine
-    container_name: igd-orbit-redis
-    restart: unless-stopped
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - igd-orbit-network
-
   # Backend Service
   backend:
     build:
@@ -44,11 +10,11 @@ services:
       NODE_ENV: production
       PORT: 3000
       FRONTEND_URL: https://igd.ad8ya.cloud
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/igd_orbit?schema=public
-      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://developer:***@postgresql:5432/igd_orbit_db?schema=public
+      REDIS_URL: redis://:asd2134!Ff@redis:6379
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      JWT_SECRET: JOgBOEyKmijygoITk4ElKl47Tqh9jvIhOeeuZtf3v2mHBpHM
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production-min-32-chars}
       JWT_EXPIRES_IN: 1h
       REFRESH_TOKEN_EXPIRES_IN: 7d
       STORAGE_TYPE: local
@@ -56,12 +22,13 @@ services:
     volumes:
       - backend_uploads:/app/uploads
     depends_on:
-      postgres:
+      backend-db:
         condition: service_healthy
-      redis:
+      backend-redis:
         condition: service_healthy
     networks:
       - igd-orbit-network
+      - database
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/v1/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
       interval: 30s
@@ -90,10 +57,10 @@ services:
       start_period: 10s
 
 volumes:
-  postgres_data:
-  redis_data:
   backend_uploads:
 
 networks:
   igd-orbit-network:
     driver: bridge
+  database:
+    external: true

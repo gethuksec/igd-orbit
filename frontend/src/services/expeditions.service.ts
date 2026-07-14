@@ -24,7 +24,8 @@ export const expeditionsService = {
     page?: number;
     limit?: number;
     search?: string;
-    "filter[isActive]"?: boolean;
+    includeInactive?: boolean;
+    status?: string;
   }): Promise<ExpeditionListResponse> {
     try {
       const response = await api.get("/expeditions", { params });

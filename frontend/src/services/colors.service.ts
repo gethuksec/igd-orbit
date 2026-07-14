@@ -25,7 +25,8 @@ export const colorsService = {
     page?: number;
     limit?: number;
     search?: string;
-    "filter[isActive]"?: boolean;
+    includeInactive?: boolean;
+    status?: string;
   }): Promise<ColorListResponse> {
     try {
       const response = await api.get("/colors", { params });

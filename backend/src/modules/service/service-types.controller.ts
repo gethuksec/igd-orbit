@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -27,8 +28,8 @@ export class ServiceTypesController {
    */
   @Get()
   @Public()
-  async findAll() {
-    return this.serviceTypesService.findAll();
+  async findAll(@Query('includeInactive') includeInactive?: string) {
+    return this.serviceTypesService.findAll(includeInactive === 'true');
   }
 
   /**

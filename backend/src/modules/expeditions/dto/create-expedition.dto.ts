@@ -16,4 +16,7 @@ export class CreateExpeditionDto {
   @IsString({ message: 'Name must be a string' })
   @IsNotEmpty({ message: 'Expedition name is required' })
   name!: string;
+
+  @IsOptional()
+  isActive?: boolean; // Defaults to true on creation
 }

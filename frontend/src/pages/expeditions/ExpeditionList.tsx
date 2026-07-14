@@ -1,28 +1,41 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { Plus, Truck, Eye, Edit, Trash2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Plus, Eye, Edit, Trash2, Save, X, Loader2, Truck } from "lucide-react";
 import { expeditionsService } from "../../services/expeditions.service";
+import { api } from "../../services/api";
 import { PageHeader } from "@/components/shared";
 import { StatCard } from "@/components/shared";
 import { SearchFilter } from "@/components/shared";
 import { DataTable } from "@/components/shared";
 import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
+import { toast } from "sonner";
+
+type StatusFilter = "all" | "active" | "inactive";
 
 export default function ExpeditionList() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const limit = 20;
 
+  // Modal state
+  const [formModalOpen, setFormModalOpen] = useState(false);
+  const [editingExpedition, setEditingExpedition] = useState<any>(null);
+  const [formName, setFormName] = useState("");
+
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["expeditions", page, searchTerm],
+    queryKey: ["expeditions", page, searchTerm, statusFilter],
     queryFn: () =>
       expeditionsService.getAll({
         page,
         limit,
         search: searchTerm || undefined,
+        status: statusFilter === "all" ? "all" : statusFilter === "active" ? "active" : "inactive",
       }),
   });
 
@@ -32,7 +45,11 @@ export default function ExpeditionList() {
       refetch();
     }, 500);
     return () => clearTimeout(debounce);
-  }, [searchTerm]);
+  }, [searchTerm, refetch]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter]);
 
   const expeditions = data?.data || [];
   const pagination = data?.meta || {
@@ -41,6 +58,44 @@ export default function ExpeditionList() {
     total: 0,
     totalPages: 1,
   };
+
+  const saveMutation = useMutation({
+    mutationFn: (data: any) => {
+      if (editingExpedition) {
+        return api.put(`/expeditions/${editingExpedition.id}`, data);
+      }
+      return api.post("/expeditions", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["expeditions"] });
+      toast.success(editingExpedition ? "Ekspedisi berhasil diupdate" : "Ekspedisi berhasil ditambahkan");
+      setFormModalOpen(false);
+      setEditingExpedition(null);
+      setFormName("");
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || "Terjadi kesalahan");
+    },
+  });
+
+  const openCreateModal = () => {
+    setEditingExpedition(null);
+    setFormName("");
+    setFormModalOpen(true);
+  };
+
+  const openEditModal = (expedition: any) => {
+    setEditingExpedition(expedition);
+    setFormName(expedition.name || "");
+    setFormModalOpen(true);
+  };
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveMutation.mutate({ name: formName });
+  };
+
+  const activeCount = expeditions.filter((e: any) => e.isActive).length;
 
   const columns: Column<any>[] = [
     {
@@ -79,17 +134,19 @@ export default function ExpeditionList() {
     },
   ];
 
-  const activeCount = expeditions.filter((e: any) => e.isActive).length;
+  const statusBtns: { key: StatusFilter; label: string }[] = [
+    { key: "all", label: "Semua" },
+    { key: "active", label: "Aktif" },
+    { key: "inactive", label: "Tidak Aktif" },
+  ];
 
   return (
     <div className="w-full space-y-3">
       <PageHeader title="Manajemen Ekspedisi" subtitle="Kelola ekspedisi pengiriman">
-        <Link to="/expeditions/new">
-          <Button className="flex items-center gap-2 bg-white text-primary-600 hover:bg-primary-50">
-            <Plus className="w-5 h-5" />
-            <span>Tambah Ekspedisi</span>
-          </Button>
-        </Link>
+        <Button onClick={openCreateModal} className="flex items-center gap-2 bg-white text-primary-600 hover:bg-primary-50">
+          <Plus className="w-5 h-5" />
+          <span>Tambah Ekspedisi</span>
+        </Button>
       </PageHeader>
 
       {error && (
@@ -130,6 +187,26 @@ export default function ExpeditionList() {
         searchPlaceholder="Cari nama ekspedisi..."
       />
 
+      {/* Status Filter */}
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium text-gray-600">Status:</span>
+        <div className="flex gap-1">
+          {statusBtns.map((btn) => (
+            <button
+              key={btn.key}
+              onClick={() => setStatusFilter(btn.key)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                statusFilter === btn.key
+                  ? "bg-primary-600 text-white shadow-sm"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              {btn.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <DataTable
         columns={columns}
         data={expeditions}
@@ -150,7 +227,7 @@ export default function ExpeditionList() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate(`/expeditions/${expedition.id}/edit`)}
+              onClick={() => openEditModal(expedition)}
               title="Edit"
             >
               <Edit className="w-4 h-4" />
@@ -205,6 +282,48 @@ export default function ExpeditionList() {
           </div>
         </div>
       )}
+
+      {/* Form Modal */}
+      <Modal
+        open={formModalOpen}
+        onClose={() => { setFormModalOpen(false); setEditingExpedition(null); setFormName(""); }}
+        title={editingExpedition ? "Edit Ekspedisi" : "Tambah Ekspedisi"}
+        size="md"
+      >
+        <form onSubmit={handleFormSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Nama Ekspedisi <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text" required
+              value={formName}
+              onChange={(e) => setFormName(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              placeholder="Nama ekspedisi"
+            />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => { setFormModalOpen(false); setEditingExpedition(null); setFormName(""); }}
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+              disabled={saveMutation.isPending}
+            >Batal</button>
+            <button
+              type="submit"
+              disabled={saveMutation.isPending}
+              className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {saveMutation.isPending ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Menyimpan...</>
+              ) : (
+                <><Save className="w-4 h-4" /> Simpan</>
+              )}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

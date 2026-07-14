@@ -24,7 +24,8 @@ export const unitsService = {
     page?: number;
     limit?: number;
     search?: string;
-    "filter[isActive]"?: boolean;
+    includeInactive?: boolean;
+    status?: string;
   }): Promise<UnitListResponse> {
     try {
       const response = await api.get("/units", { params });
