@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Tag, Eye, Edit, Trash2, Save, Loader2 } from "lucide-react";
+import { Plus, Eye, Edit, Trash2, Save, Loader2, Tag } from "lucide-react";
 import { salesTypesService } from "../../services/sales-types.service";
 import { api } from "../../services/api";
 import { PageHeader } from "@/components/shared";

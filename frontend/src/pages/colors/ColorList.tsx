@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Palette, Eye, Edit, Trash2, Save, X, Loader2 } from "lucide-react";
+import { Plus, Palette, Eye, Edit, Trash2, Save, Loader2 } from "lucide-react";
 import { colorsService } from "../../services/colors.service";
 import { api } from "../../services/api";
 import { PageHeader } from "@/components/shared";
