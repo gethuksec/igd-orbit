@@ -8,8 +8,6 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: igd_orbit
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -25,8 +23,6 @@ services:
     image: redis:7-alpine
     container_name: igd-orbit-redis
     restart: unless-stopped
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -47,18 +43,16 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-      FRONTEND_URL: http://localhost
+      FRONTEND_URL: https://igd.ad8ya.cloud
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/igd_orbit?schema=public
       REDIS_URL: redis://redis:6379
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production-min-32-chars}
+      JWT_SECRET: JOgBOEyKmijygoITk4ElKl47Tqh9jvIhOeeuZtf3v2mHBpHM
       JWT_EXPIRES_IN: 1h
       REFRESH_TOKEN_EXPIRES_IN: 7d
       STORAGE_TYPE: local
       STORAGE_PATH: ./uploads
-    ports:
-      - "3000:3000"
     volumes:
       - backend_uploads:/app/uploads
     depends_on:
@@ -103,4 +97,3 @@ volumes:
 networks:
   igd-orbit-network:
     driver: bridge
-

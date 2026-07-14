@@ -176,7 +176,7 @@ export class ProductsService {
       'filter[type]': filterType = 'all',
       sort = 'name',
       order = 'asc',
-      include = ['category', 'brand'],
+      include = ['category', 'brand', 'unit', 'size', 'color'],
     } = query;
 
     // Ensure page and limit are numbers (fallback if transform didn't work)
@@ -243,6 +243,21 @@ export class ProductsService {
           id: true,
           name: true,
         },
+      };
+    }
+        if (include.includes('unit')) {
+      includeObj.unit = {
+        select: { id: true, name: true },
+      };
+    }
+    if (include.includes('size')) {
+      includeObj.size = {
+        select: { id: true, name: true },
+      };
+    }
+    if (include.includes('color')) {
+      includeObj.color = {
+        select: { id: true, name: true },
       };
     }
     if (include.includes('stock')) {
@@ -330,6 +345,9 @@ export class ProductsService {
           },
         },
         brand: true,
+                unit: { select: { id: true, name: true } },
+        size: { select: { id: true, name: true } },
+        color: { select: { id: true, name: true } },
         supplier: {
           select: {
             id: true,
@@ -776,7 +794,7 @@ export class ProductsService {
       brandId: originalProduct.brandId,
       costPrice: originalProduct.costPrice,
       sellingPrice: originalProduct.sellingPrice,
-      unit: originalProduct.unit,
+      unitId: originalProduct.unitId,
       isActive: true,
       trackSerial: originalProduct.trackSerial,
       trackBatch: originalProduct.trackBatch,
@@ -1114,6 +1132,9 @@ export class ProductsService {
         category: true,
         subCategory: true,
         brand: true,
+                unit: { select: { id: true, name: true } },
+        size: { select: { id: true, name: true } },
+        color: { select: { id: true, name: true } },
         supplier: {
           select: {
             id: true,
@@ -1242,12 +1263,12 @@ export class ProductsService {
         this.escapeCSV(product.sku || '', ';'),
         this.escapeCSV(product.name || '', ';'),
         this.escapeCSV(product.printedName || product.name || '', ';'),
-        product.unit || 'pcs',
+        product.unitId || '',
         product.category?.name || '',
         product.subCategory?.name || '',
         product.brand?.name || '',
-        product.size || '',
-        product.color || '',
+        product.sizeId || '',
+        product.colorId || '',
         product.lengthCm ? String(product.lengthCm.toNumber()) : '',
         product.widthCm ? String(product.widthCm.toNumber()) : '',
         product.heightCm ? String(product.heightCm.toNumber()) : '',
@@ -1344,6 +1365,12 @@ export class ProductsService {
     const brands = await this.prisma.brand.findMany();
     const categoryMap = new Map(categories.map(c => [c.name.toLowerCase(), c.id]));
     const brandMap = new Map(brands.map(b => [b.name.toLowerCase(), b.id]));
+    const allUnits = await this.prisma.unit.findMany({ where: { isActive: true } });
+    const allSizes = await this.prisma.size.findMany({ where: { isActive: true } });
+    const allColors = await this.prisma.color.findMany({ where: { isActive: true } });
+    const unitMap = new Map(allUnits.map(u => [u.name.toLowerCase(), u.id]));
+    const sizeMap = new Map(allSizes.map(s => [s.name.toLowerCase(), s.id]));
+    const colorMap = new Map(allColors.map(c => [c.name.toLowerCase(), c.id]));
 
     // Process each row
     for (let i = 1; i < lines.length; i++) {
@@ -1458,9 +1485,9 @@ export class ProductsService {
           subCategoryId: subCategoryId || undefined,
           brandId: brandId || undefined,
           supplierId: supplierId || undefined,
-          unit: rowData['satuan'] || rowData['unit'] || 'pcs',
-          size: rowData['ukuran'] || rowData['size'] || undefined,
-          color: rowData['warna'] || rowData['color'] || undefined,
+          unitId: unitMap.get((rowData['satuan'] || rowData['unit'] || '').toLowerCase()) || undefined,
+          sizeId: sizeMap.get((rowData['ukuran'] || rowData['size'] || '').toLowerCase()) || undefined,
+          colorId: colorMap.get((rowData['warna'] || rowData['color'] || '').toLowerCase()) || undefined,
           lengthCm: rowData['panjang(cm)'] || rowData['panjang'] || rowData['length_cm'] ? parseFloat(rowData['panjang(cm)'] || rowData['panjang'] || rowData['length_cm']) || undefined : undefined,
           widthCm: rowData['lebar(cm)'] || rowData['lebar'] || rowData['width_cm'] ? parseFloat(rowData['lebar(cm)'] || rowData['lebar'] || rowData['width_cm']) || undefined : undefined,
           heightCm: rowData['tinggi(cm)'] || rowData['tinggi'] || rowData['height_cm'] ? parseFloat(rowData['tinggi(cm)'] || rowData['tinggi'] || rowData['height_cm']) || undefined : undefined,
