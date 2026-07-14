@@ -525,9 +525,9 @@ export class ProductsService {
       costPrice: createProductDto.costPrice,
       sellingPrice: createProductDto.sellingPrice,
       minSellingPrice: createProductDto.minSellingPrice ? new Prisma.Decimal(createProductDto.minSellingPrice) : null,
-      unit: createProductDto.unit || 'pcs',
-      size: createProductDto.size || null,
-      color: createProductDto.color || null,
+      unitId: createProductDto.unitId,
+      sizeId: createProductDto.sizeId || null,
+      colorId: createProductDto.colorId || null,
       lengthCm: createProductDto.lengthCm ? new Prisma.Decimal(createProductDto.lengthCm) : null,
       widthCm: createProductDto.widthCm ? new Prisma.Decimal(createProductDto.widthCm) : null,
       heightCm: createProductDto.heightCm ? new Prisma.Decimal(createProductDto.heightCm) : null,
@@ -652,8 +652,8 @@ export class ProductsService {
     if (updateProductDto.minSellingPrice !== undefined) {
       updateData.minSellingPrice = updateProductDto.minSellingPrice ? new Prisma.Decimal(updateProductDto.minSellingPrice) : null;
     }
-    if (updateProductDto.unit !== undefined) {
-      updateData.unit = updateProductDto.unit;
+    if (updateProductDto.unitId !== undefined) {
+      updateData.unitId = updateProductDto.unitId;
     }
     if (updateProductDto.trackSerial !== undefined) {
       updateData.trackSerial = updateProductDto.trackSerial;
@@ -667,11 +667,11 @@ export class ProductsService {
     if (updateProductDto.images !== undefined) {
       updateData.images = updateProductDto.images || null;
     }
-    if (updateProductDto.size !== undefined) {
-      updateData.size = updateProductDto.size || null;
+    if (updateProductDto.sizeId !== undefined) {
+      updateData.sizeId = updateProductDto.sizeId || null;
     }
-    if (updateProductDto.color !== undefined) {
-      updateData.color = updateProductDto.color || null;
+    if (updateProductDto.colorId !== undefined) {
+      updateData.colorId = updateProductDto.colorId || null;
     }
     if (updateProductDto.lengthCm !== undefined) {
       updateData.lengthCm = updateProductDto.lengthCm ? new Prisma.Decimal(updateProductDto.lengthCm) : null;

@@ -297,6 +297,32 @@ model Brand {
   @@map("brands")
 }
 
+model Expedition {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  name      String
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([code])
+  @@index([isActive])
+  @@map("expeditions")
+}
+
+model SalesType {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  name      String
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([code])
+  @@index([isActive])
+  @@map("sales_types")
+}
+
 model Product {
   id                    String    @id @default(uuid())
   barcode               String?   @unique

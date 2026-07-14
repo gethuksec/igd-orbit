@@ -60,9 +60,9 @@ export class CreateProductDto {
   @IsUUID('4', { message: 'Supplier ID must be a valid UUID' })
   supplierId?: string;
 
-  @IsString({ message: 'Unit must be a string' })
+  @IsUUID('4', { message: 'Unit ID must be a valid UUID' })
   @IsOptional()
-  unit?: string; // Default: 'pcs'
+  unitId?: string;
 
   @IsNumber({}, { message: 'Cost price must be a number' })
   @Min(0, { message: 'Cost price must be greater than or equal to 0' })
@@ -85,13 +85,13 @@ export class CreateProductDto {
   @IsOptional()
   discountPercentage?: number;
 
-  @IsString({ message: 'Size must be a string' })
+  @IsUUID('4', { message: 'Size ID must be a valid UUID' })
   @IsOptional()
-  size?: string;
+  sizeId?: string;
 
-  @IsString({ message: 'Color must be a string' })
+  @IsUUID('4', { message: 'Color ID must be a valid UUID' })
   @IsOptional()
-  color?: string;
+  colorId?: string;
 
   @IsNumber({}, { message: 'Length must be a number' })
   @Min(0, { message: 'Length must be greater than or equal to 0' })

@@ -23,6 +23,8 @@ import { WebSocketModule } from './modules/websocket/websocket.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
 import { CustomerTiersModule } from './modules/customer-tiers/customer-tiers.module';
+import { ExpeditionsModule } from './modules/expeditions/expeditions.module';
+import { SalesTypesModule } from './modules/sales-types/sales-types.module';
 
 @Module({
   imports: [
@@ -51,6 +53,8 @@ import { CustomerTiersModule } from './modules/customer-tiers/customer-tiers.mod
     RolesModule,
     PermissionsModule,
     CustomerTiersModule,
+    ExpeditionsModule,
+    SalesTypesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
