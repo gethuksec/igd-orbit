@@ -16,4 +16,7 @@ export class CreateSalesTypeDto {
   @IsString({ message: 'Name must be a string' })
   @IsNotEmpty({ message: 'Sales type name is required' })
   name!: string;
+
+  @IsOptional()
+  isActive?: boolean; // Defaults to true on creation
 }

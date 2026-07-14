@@ -206,6 +206,9 @@ export class SalesTypesService {
     if (updateSalesTypeDto.code !== undefined) {
       updateData.code = updateSalesTypeDto.code;
     }
+    if (updateSalesTypeDto.isActive !== undefined) {
+      updateData.isActive = updateSalesTypeDto.isActive;
+    }
 
     // Update sales type
     const updatedSalesType = await this.prisma.salesType.update({

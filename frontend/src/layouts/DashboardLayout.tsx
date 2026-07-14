@@ -89,7 +89,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   // Auto-expand menu section based on current route
   const menuDefinitions = [
-    { key: 'masterdata', paths: ['/customers', '/products', '/branches', '/service-types'] },
+    { key: 'masterdata', paths: ['/customers', '/products', '/branches', '/service-types', '/suppliers', '/categories', '/brands', '/colors', '/units', '/sizes', '/expeditions', '/sales-types', '/customer-tiers'] },
     { key: 'penjualan', paths: ['/sales'] },
     { key: 'servis', paths: ['/service-orders', '/service-returns'] },
     { key: 'gudang', paths: ['/inventory'] },
