@@ -125,9 +125,18 @@ export class ServiceTypesService {
     return results;
   }
 
-  async findAll(includeInactive: boolean = false) {
+  async findAll({ includeInactive, status }: { includeInactive?: boolean, status?: 'all' | 'active' | 'inactive' } = {}) {
     const where: any = {};
-    if (!includeInactive) {
+
+    // Apply status filter
+    if (status === 'active') {
+      where.isActive = true;
+    } else if (status === 'inactive') {
+      where.isActive = false;
+    } else if (status === 'all') {
+      // Show all records - no filter
+    } else if (!includeInactive) {
+      // Default: active only (backward compatible)
       where.isActive = true;
     }
 

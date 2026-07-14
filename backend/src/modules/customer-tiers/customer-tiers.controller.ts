@@ -40,6 +40,7 @@ export class CustomerTiersController {
     @Query("limit") limit?: string,
     @Query("search") search?: string,
     @Query("filter[isActive]") isActive?: string,
+    @Query("status") status?: string,
   ) {
     try {
       const pageNum = page ? parseInt(page) : 1;
@@ -56,6 +57,7 @@ export class CustomerTiersController {
         limitNum,
         search,
         isActiveBool,
+        status,
       );
     } catch (error) {
       console.error("Error in customerTiers.findAll:", error);

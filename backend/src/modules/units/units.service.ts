@@ -70,6 +70,8 @@ export class UnitsService {
       where.isActive = true;
     } else if (status === 'inactive') {
       where.isActive = false;
+    } else if (status === 'all') {
+      // Show all records - no filter
     } else if (!includeInactive) {
       // Default: active only (backward compatible)
       where.isActive = true;

@@ -26,7 +26,7 @@ export default function UnitList() {
   // Modal state
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [editingUnit, setEditingUnit] = useState<any>(null);
-  const [formName, setFormName] = useState("");
+  const [formData, setFormData] = useState({ name: "", isActive: true });
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["units", page, searchTerm, statusFilter],
@@ -71,7 +71,7 @@ export default function UnitList() {
       toast.success(editingUnit ? "Satuan berhasil diupdate" : "Satuan berhasil ditambahkan");
       setFormModalOpen(false);
       setEditingUnit(null);
-      setFormName("");
+      setFormData({ name: "", isActive: true });
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || "Terjadi kesalahan");
@@ -80,19 +80,19 @@ export default function UnitList() {
 
   const openCreateModal = () => {
     setEditingUnit(null);
-    setFormName("");
+    setFormData({ name: "", isActive: true });
     setFormModalOpen(true);
   };
 
   const openEditModal = (unit: any) => {
     setEditingUnit(unit);
-    setFormName(unit.name || "");
+    setFormData({ name: unit.name || "", isActive: unit.isActive !== false });
     setFormModalOpen(true);
   };
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    saveMutation.mutate({ name: formName });
+    saveMutation.mutate(formData);
   };
 
   const activeCount = units.filter((u: any) => u.isActive).length;
@@ -220,7 +220,7 @@ export default function UnitList() {
       {/* Form Modal */}
       <Modal
         open={formModalOpen}
-        onClose={() => { setFormModalOpen(false); setEditingUnit(null); setFormName(""); }}
+        onClose={() => { setFormModalOpen(false); setEditingUnit(null); setFormData({ name: "", isActive: true }); }}
         title={editingUnit ? "Edit Satuan" : "Tambah Satuan"}
         size="md"
       >
@@ -231,16 +231,27 @@ export default function UnitList() {
             </label>
             <input
               type="text" required
-              value={formName}
-              onChange={(e) => setFormName(e.target.value)}
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               placeholder="Nama satuan"
             />
           </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">Status</label>
+            <button
+              type="button"
+              onClick={() => setFormData(prev => ({ ...prev, isActive: !prev.isActive }))}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isActive ? 'bg-green-500' : 'bg-gray-300'}`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.isActive ? 'translate-x-6' : 'translate-x-1'}`} />
+            </button>
+            <span className="text-sm text-gray-600">{formData.isActive ? 'Aktif' : 'Tidak Aktif'}</span>
+          </div>
           <div className="flex gap-3 pt-2">
             <button
               type="button"
-              onClick={() => { setFormModalOpen(false); setEditingUnit(null); setFormName(""); }}
+              onClick={() => { setFormModalOpen(false); setEditingUnit(null); setFormData({ name: "", isActive: true }); }}
               className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
               disabled={saveMutation.isPending}
             >Batal</button>

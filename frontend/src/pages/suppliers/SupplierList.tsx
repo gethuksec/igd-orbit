@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Modal } from "../../components/ui/modal";
 import { toast } from "sonner";
 
+type StatusFilter = "all" | "active" | "inactive";
+
 interface SimpleFormData {
   name: string;
   contactPerson: string;
@@ -31,6 +33,7 @@ export default function SupplierList() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const limit = 20;
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [supplierToDelete, setSupplierToDelete] = useState<{ id: string; name: string } | null>(null);
@@ -40,12 +43,13 @@ export default function SupplierList() {
   const queryClient = useQueryClient();
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["suppliers", page, searchTerm],
+    queryKey: ["suppliers", page, searchTerm, statusFilter],
     queryFn: () =>
       suppliersService.getAll({
         page,
         limit,
         search: searchTerm || undefined,
+        ...(statusFilter !== "all" ? { status: statusFilter } : {}),
       }),
   });
 
@@ -56,6 +60,10 @@ export default function SupplierList() {
     }, 500);
     return () => clearTimeout(debounce);
   }, [searchTerm]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter]);
 
   const createMutation = useMutation({
     mutationFn: (data: any) => suppliersService.create(data),
@@ -219,6 +227,12 @@ export default function SupplierList() {
 
   const activeCount = suppliers.filter((s: any) => s.isActive).length;
 
+  const statusBtns: { key: StatusFilter; label: string }[] = [
+    { key: "all", label: "Semua" },
+    { key: "active", label: "Aktif" },
+    { key: "inactive", label: "Tidak Aktif" },
+  ];
+
   return (
     <div className="w-full space-y-3">
       <PageHeader title="Manajemen Pemasok" subtitle="Kelola data pemasok dan vendor">
@@ -268,6 +282,26 @@ export default function SupplierList() {
         onSearchChange={setSearchTerm}
         searchPlaceholder="Cari nama pemasok, kontak, atau alamat..."
       />
+
+      {/* Status Filter */}
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium text-gray-600">Status:</span>
+        <div className="flex gap-1">
+          {statusBtns.map((btn) => (
+            <button
+              key={btn.key}
+              onClick={() => setStatusFilter(btn.key)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                statusFilter === btn.key
+                  ? "bg-primary-600 text-white shadow-sm"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              {btn.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <DataTable
         columns={columns}

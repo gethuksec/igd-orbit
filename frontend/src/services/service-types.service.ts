@@ -16,11 +16,9 @@ export interface ServiceType {
 }
 
 export const serviceTypesService = {
-  async getAll(includeInactive?: boolean): Promise<ServiceType[]> {
+  async getAll(params?: { status?: string }): Promise<ServiceType[]> {
     try {
-      const response = await api.get('/service-types', {
-        params: includeInactive ? { includeInactive: true } : {},
-      });
+      const response = await api.get('/service-types', { params });
       return Array.isArray(response.data) ? response.data : [];
     } catch (error: any) {
       return handleApiError(error, []);

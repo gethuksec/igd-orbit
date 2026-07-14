@@ -26,7 +26,7 @@ export default function ColorList() {
   // Modal state
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [editingColor, setEditingColor] = useState<any>(null);
-  const [formData, setFormData] = useState({ name: "", notes: "" });
+  const [formData, setFormData] = useState({ name: "", notes: "", isActive: true });
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["colors", page, searchTerm, statusFilter],
@@ -72,7 +72,7 @@ export default function ColorList() {
       toast.success(editingColor ? "Warna berhasil diupdate" : "Warna berhasil ditambahkan");
       setFormModalOpen(false);
       setEditingColor(null);
-      setFormData({ name: "", notes: "" });
+      setFormData({ name: "", notes: "", isActive: true });
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || "Terjadi kesalahan");
@@ -81,13 +81,13 @@ export default function ColorList() {
 
   const openCreateModal = () => {
     setEditingColor(null);
-    setFormData({ name: "", notes: "" });
+    setFormData({ name: "", notes: "", isActive: true });
     setFormModalOpen(true);
   };
 
   const openEditModal = (color: any) => {
     setEditingColor(color);
-    setFormData({ name: color.name || "", notes: color.notes || "" });
+    setFormData({ name: color.name || "", notes: color.notes || "", isActive: color.isActive !== false });
     setFormModalOpen(true);
   };
 
@@ -302,7 +302,7 @@ export default function ColorList() {
         onClose={() => {
           setFormModalOpen(false);
           setEditingColor(null);
-          setFormData({ name: "", notes: "" });
+          setFormData({ name: "", notes: "", isActive: true });
         }}
         title={editingColor ? "Edit Warna" : "Tambah Warna"}
         size="md"
@@ -333,13 +333,24 @@ export default function ColorList() {
               placeholder="Catatan warna (opsional)"
             />
           </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">Status</label>
+            <button
+              type="button"
+              onClick={() => setFormData(prev => ({ ...prev, isActive: !prev.isActive }))}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isActive ? 'bg-green-500' : 'bg-gray-300'}`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.isActive ? 'translate-x-6' : 'translate-x-1'}`} />
+            </button>
+            <span className="text-sm text-gray-600">{formData.isActive ? 'Aktif' : 'Tidak Aktif'}</span>
+          </div>
           <div className="flex gap-3 pt-2">
             <button
               type="button"
               onClick={() => {
                 setFormModalOpen(false);
                 setEditingColor(null);
-                setFormData({ name: "", notes: "" });
+                setFormData({ name: "", notes: "", isActive: true });
               }}
               className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
               disabled={saveMutation.isPending}

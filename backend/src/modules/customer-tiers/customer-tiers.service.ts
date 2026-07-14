@@ -44,12 +44,24 @@ export class CustomerTiersService {
     limit: number = 20,
     search?: string,
     isActive?: boolean,
+    status?: string,
   ) {
     const skip = (page - 1) * limit;
     const where: any = {};
 
-    if (isActive !== undefined) {
+    // Apply status filter (new style)
+    if (status === 'active') {
+      where.isActive = true;
+    } else if (status === 'inactive') {
+      where.isActive = false;
+    } else if (status === 'all') {
+      // Show all records - no filter
+    } else if (isActive !== undefined) {
+      // Backward compat: use old isActive boolean param
       where.isActive = isActive;
+    } else {
+      // Default: active only (backward compatible)
+      where.isActive = true;
     }
 
     if (search && search.trim().length > 0) {

@@ -45,7 +45,7 @@ export default function ServiceTypeList() {
 
   const { data: serviceTypes = [], isLoading, error, refetch } = useQuery({
     queryKey: ['service-types', searchTerm, statusFilter],
-    queryFn: () => serviceTypesService.getAll(statusFilter !== 'active' ? true : undefined),
+    queryFn: () => serviceTypesService.getAll({ status: statusFilter }),
   });
 
   useEffect(() => {
@@ -141,21 +141,6 @@ export default function ServiceTypeList() {
     e.preventDefault();
     saveMutation.mutate(formData);
   };
-
-  // Filter by search term and status
-  const filteredServiceTypes = serviceTypes.filter((st) => {
-    // Status filter (only applies client-side for 'inactive', since backend handles 'all' and 'active')
-    if (statusFilter === 'inactive' && st.isActive) return false;
-
-    // Search term filter
-    if (!searchTerm) return true;
-    const search = searchTerm.toLowerCase();
-    return (
-      st.name.toLowerCase().includes(search) ||
-      st.code.toLowerCase().includes(search) ||
-      (st.description && st.description.toLowerCase().includes(search))
-    );
-  });
 
   const activeCount = serviceTypes.filter((st) => st.isActive).length;
   const totalServiceOrders = serviceTypes.reduce((acc, st) => acc + (st.serviceOrderCount || 0), 0);
@@ -307,7 +292,7 @@ export default function ServiceTypeList() {
 
       <DataTable
         columns={columns}
-        data={filteredServiceTypes}
+        data={serviceTypes}
         keyExtractor={(st: any) => st.id}
         isLoading={isLoading}
         emptyMessage="Tidak ada layanan ditemukan"

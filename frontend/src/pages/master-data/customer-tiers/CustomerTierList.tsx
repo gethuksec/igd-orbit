@@ -13,6 +13,8 @@ import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Modal } from "../../../components/ui/modal";
 
+type StatusFilter = "all" | "active" | "inactive";
+
 interface FormData {
   name: string;
   description: string;
@@ -33,6 +35,7 @@ export default function CustomerTierList() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const limit = 20;
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<CustomerTier | null>(null);
@@ -42,12 +45,13 @@ export default function CustomerTierList() {
   const queryClient = useQueryClient();
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["customer-tiers", page, searchTerm],
+    queryKey: ["customer-tiers", page, searchTerm, statusFilter],
     queryFn: () =>
       customerTiersService.getAll({
         page,
         limit,
         search: searchTerm || undefined,
+        ...(statusFilter !== "all" ? { 'filter[isActive]': statusFilter === "active" } : {}),
       }),
   });
 
@@ -58,6 +62,10 @@ export default function CustomerTierList() {
     }, 500);
     return () => clearTimeout(debounce);
   }, [searchTerm]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter]);
 
   const createMutation = useMutation({
     mutationFn: (data: FormData) => customerTiersService.create(data),
@@ -124,6 +132,12 @@ export default function CustomerTierList() {
   const avgDiscount = tiers.length
     ? Math.round(tiers.reduce((sum: number, t: CustomerTier) => sum + t.discountPercentage, 0) / tiers.length)
     : 0;
+
+  const statusBtns: { key: StatusFilter; label: string }[] = [
+    { key: "all", label: "Semua" },
+    { key: "active", label: "Aktif" },
+    { key: "inactive", label: "Tidak Aktif" },
+  ];
 
   const columns: Column<CustomerTier>[] = [
     {
@@ -225,6 +239,26 @@ export default function CustomerTierList() {
         onSearchChange={setSearchTerm}
         searchPlaceholder="Cari nama tier..."
       />
+
+      {/* Status Filter */}
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium text-gray-600">Status:</span>
+        <div className="flex gap-1">
+          {statusBtns.map((btn) => (
+            <button
+              key={btn.key}
+              onClick={() => setStatusFilter(btn.key)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                statusFilter === btn.key
+                  ? "bg-primary-600 text-white shadow-sm"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              {btn.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <DataTable
         columns={columns}

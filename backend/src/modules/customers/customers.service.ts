@@ -208,6 +208,7 @@ export class CustomersService {
       'filter[branch]': filterBranch,
       'filter[status]': filterStatus = 'active',
       'filter[blacklisted]': filterBlacklisted,
+      'filter[isActive]': filterIsActive,
       sort = 'createdAt',
     } = query;
 
@@ -219,6 +220,11 @@ export class CustomersService {
     const where: Prisma.CustomerWhereInput = {
       deletedAt: filterStatus === 'active' ? null : { not: null },
     };
+
+    // isActive filter - only apply if explicitly provided
+    if (filterIsActive !== undefined) {
+      where.isActive = filterIsActive;
+    }
 
     // Search filter - per-word AND search across fields
     if (search) {

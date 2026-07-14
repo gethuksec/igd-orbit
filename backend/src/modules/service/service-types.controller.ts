@@ -28,8 +28,8 @@ export class ServiceTypesController {
    */
   @Get()
   @Public()
-  async findAll(@Query('includeInactive') includeInactive?: string) {
-    return this.serviceTypesService.findAll(includeInactive === 'true');
+  async findAll(@Query('includeInactive') includeInactive?: string, @Query('status') status?: string) {
+    return this.serviceTypesService.findAll({ includeInactive: includeInactive === 'true', status: status as 'all' | 'active' | 'inactive' | undefined });
   }
 
   /**

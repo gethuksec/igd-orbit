@@ -56,16 +56,26 @@ export class BrandsService {
    * @returns Paginated list of brands
    */
   async findAll(query: ListBrandsDto) {
-    const { page = 1, limit = 20, search } = query;
-    
+    const { page = 1, limit = 20, search, includeInactive, status } = query;
+
     // Ensure page and limit are numbers (fallback if transform didn't work)
     const pageNum = typeof page === 'string' ? parseInt(page, 10) : page || 1;
     const limitNum = typeof limit === 'string' ? parseInt(limit, 10) : limit || 20;
 
     const skip = (pageNum - 1) * limitNum;
-    const where: Prisma.BrandWhereInput = {
-      isActive: true,
-    };
+    const where: Prisma.BrandWhereInput = {};
+
+    // Apply status filter
+    if (status === 'active') {
+      where.isActive = true;
+    } else if (status === 'inactive') {
+      where.isActive = false;
+    } else if (status === 'all') {
+      // Show all records - no filter
+    } else if (!includeInactive) {
+      // Default: active only (backward compatible)
+      where.isActive = true;
+    }
 
     // Search filter
     if (search) {

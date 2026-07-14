@@ -52,6 +52,11 @@ export class ListCustomersDto {
   @IsOptional()
   'filter[blacklisted]'?: boolean;
 
+  @Type(() => Boolean)
+  @IsBoolean({ message: 'Filter isActive must be a boolean' })
+  @IsOptional()
+  'filter[isActive]'?: boolean;
+
   @IsString({ message: 'Sort must be a string' })
   @IsIn(['name', 'createdAt'], {
     message: 'Sort must be one of: name, createdAt',
