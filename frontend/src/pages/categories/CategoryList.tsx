@@ -362,14 +362,16 @@ export default function CategoryList() {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Status
             </label>
-            <select
-              value={formData.isActive ? "active" : "inactive"}
-              onChange={(e) => setFormData({ ...formData, isActive: e.target.value === "active" })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            >
-              <option value="active">Aktif</option>
-              <option value="inactive">Tidak Aktif</option>
-            </select>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, isActive: !prev.isActive }))}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isActive ? 'bg-green-500' : 'bg-gray-300'}`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.isActive ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+              <span className="text-sm text-gray-600">{formData.isActive ? 'Aktif' : 'Tidak Aktif'}</span>
+            </div>
           </div>
           <div className="flex gap-3 pt-2">
             <button
