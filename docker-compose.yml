@@ -21,11 +21,6 @@ services:
       STORAGE_PATH: ./uploads
     volumes:
       - backend_uploads:/app/uploads
-    depends_on:
-      backend-db:
-        condition: service_healthy
-      backend-redis:
-        condition: service_healthy
     networks:
       - igd-orbit-network
       - database
