@@ -72,8 +72,8 @@ MASTER PLAN
 | **A3.1** Master Data Pilot | All 13 menus refactored to shadcn/shared components | ✅ Products, Categories, Brands, Units, Prices, Taxes, Discounts, Customers, Suppliers, Expenses, Giro, Sources, Expenditures | ✅ Done |
 | **A3.2–A3.8** Remaining Menus | Sales → Servis → Gudang → Keuangan → Pembelian → HR → User & Role | — | ⌛ Pending |
 | **A4** Cleanup | Delete Modal.tsx, audit CSS vars, remove dead classes | Codebase clean | ⌛ Pending |
-| **A5** Navbar Restructure | Remove search bar, simplify top header | `DashboardLayout.tsx` header | ⌛ Pending |
-| **Infra (bonus)** | VM memory fixes: swap + Node memory cap + BuildKit cache | 🖥️ igd-vm | ✅ Done |
+| **A5** Navbar Restructure | Remove search bar, simplify top header | `DashboardLayout.tsx` header | ✅ Done |
+| **Infra (bonus)** | VM memory fixes: swap + Node memory cap + BuildKit cache + SW cache-busting | 🖥️ igd-vm + nginx | ✅ Done |
 
 ### Phase A5 Details: Navbar Restructure
 

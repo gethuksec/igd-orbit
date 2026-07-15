@@ -20,7 +20,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames
-          .filter((name) => name !== CACHE_NAME)
+          .filter((name) => name.startsWith('igd-erp-'))
           .map((name) => caches.delete(name))
       );
     }).then(() => {
