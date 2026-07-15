@@ -8,11 +8,9 @@ import {
   ShoppingCart,
   Wrench,
   Bell,
-  Search,
   Menu,
   X,
   ChevronDown,
-  ChevronRight,
   LogOut,
   Settings,
   User,
@@ -516,7 +514,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Top Bar */}
         <header className="sticky top-0 z-30 bg-white border-b border-border shadow-sm">
           <div className="flex items-center justify-between h-16 px-4">
-            {/* Left: Toggle & Search */}
+            {/* Left: Toggle */}
             <div className="flex items-center gap-4 flex-1 min-w-0">
               {/* Desktop toggle */}
               <Button
@@ -528,17 +526,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               >
                 {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </Button>
-
-              <div className="relative flex-1 max-w-md">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-muted-foreground" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Cari pelanggan, produk, atau transaksi..."
-                  className="block w-full pl-10 pr-3 py-2 border border-input bg-background rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
-                />
-              </div>
             </div>
 
             {/* Right: Notifications & User */}
