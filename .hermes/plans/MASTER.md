@@ -44,6 +44,7 @@
 | shadcn status | ✅ Fully set up (14 components installed) |
 | Shared components | ✅ PageHeader, StatCard, DataTable, SearchFilter, FormCard (5 shared) |
 | Master Data migration | ✅ Complete (all 13 menus use shadcn/shared) |
+| Build status | ✅ `tsc -b && vite build` — 0 errors |
 
 ### Workstream Map
 
@@ -440,6 +441,12 @@ const useNewPOS = import.meta.env.DEV && localStorage.getItem('pos-v2') === 'tru
    - (a) **Keep current store-based approach** — branchId in Zustand, API picks it up automatically
    - (b) **Explicit per-action** — pass branchId in every mutation payload, no implicit store reads
    - (c) **Hybrid** — store for display/default, explicit for submission (user confirms branch before each action)
+
+## Resolved: ServiceWorker Cache Strategy
+
+| # | Question | Decision |
+|---|----------|----------|
+| 9 | **SW cache-busting on every build:** Ensure users always get fresh JS/CSS after deploy without manual cache clear | **nginx: no-cache for `/sw.js`** + **SW activate deletes all `igd-erp-*` caches** — every deploy = fresh cache. See `nginx.conf` + `public/sw.js`. |
 
 ---
 
