@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Save, X, Loader2, ArrowLeft, Package, DollarSign, FileText, Tag } from 'lucide-react';
+import { Save, X, Loader2, Package, DollarSign, FileText, Tag } from 'lucide-react';
 import { productsService } from '../../services/products.service';
 import { api } from '../../services/api';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select } from '@/components/ui/select';
+import { PageHeader } from '@/components/shared';
 
 function generateBarcode(): string {
   const now = new Date();
@@ -60,9 +61,8 @@ export default function ProductForm() {
   const [printedNameEdited, setPrintedNameEdited] = useState(false);
   const [userTypedName, setUserTypedName] = useState('');
   const autoFormatLocked = useRef(false);
-  const formInitialized = useRef(false); // becomes true after product data loads (edit) or first render (create)
+  const formInitialized = useRef(false);
 
-  // Build formatted name: Kategori - UserName - Warna - Brand
   const formatProductName = (catId: string, title: string, clr: string, brdId: string) => {
     const catName = Array.isArray(categories)
       ? categories.find((c: any) => c.id === catId)?.name || ''
@@ -74,9 +74,6 @@ export default function ProductForm() {
     return parts.join(' - ');
   };
 
-  // Debounced auto-format: waits 500ms after user stops changing category/color/brand
-  // Works for both create AND edit (skips initial load, fires on user field changes)
-  // Uses userTypedName as the title so typed input is always preserved
   const autoFormatTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const autoFormatHasModified = useRef(false);
   useEffect(() => {
@@ -98,12 +95,10 @@ export default function ProductForm() {
     return () => { if (autoFormatTimer.current) clearTimeout(autoFormatTimer.current); };
   }, [formData.categoryId, formData.color, formData.brandId, userTypedName]);
 
-  // Mark form initialized for create mode (so auto-format can fire)
   useEffect(() => {
     if (!isEdit) formInitialized.current = true;
   }, []);
 
-  // Auto-update printedName when name changes (unless user has manually edited it)
   useEffect(() => {
     if (!printedNameEdited && formData.name) {
       setFormData((prev) => ({ ...prev, printedName: formData.name }));
@@ -140,7 +135,6 @@ export default function ProductForm() {
     },
   });
 
-  // Fetch suppliers (customers with customerType='wholesale')
   const { data: suppliers } = useQuery({
     queryKey: ['suppliers'],
     queryFn: async () => {
@@ -195,7 +189,6 @@ export default function ProductForm() {
     }
   }, [product]);
 
-  // Auto-fill tier prices when category or sellingPrice changes
   useEffect(() => {
     if (formData.categoryId && categories && formData.sellingPrice > 0) {
       const category = Array.isArray(categories)
@@ -209,7 +202,6 @@ export default function ProductForm() {
           const margin = tierMargins[tier.id];
           if (margin !== undefined && margin > 0) {
             const tierPrice = formData.sellingPrice + margin;
-            // Only set if not manually edited (not already set or zero)
             if (!newMemberPricing[tier.id] || newMemberPricing[tier.id] === 0) {
               newMemberPricing[tier.id] = tierPrice;
               changed = true;
@@ -223,7 +215,6 @@ export default function ProductForm() {
     }
   }, [formData.categoryId, formData.sellingPrice, categories, customerTiers]);
 
-  // Auto-fill minSellingPrice = Silver price on create
   useEffect(() => {
     if (isEdit) return;
     if (formData.sellingPrice <= 0) return;
@@ -242,7 +233,6 @@ export default function ProductForm() {
 
   const mutation = useMutation({
     mutationFn: (data: any) => {
-      // Clean up memberPricing before sending
       const submitData = { ...data };
       if (submitData.memberPricing && Object.keys(submitData.memberPricing).length === 0) {
         submitData.memberPricing = null;
@@ -259,9 +249,7 @@ export default function ProductForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Auto-generate barcode if empty
     const barcode = formData.barcode || generateBarcode();
-    // Convert empty strings to undefined for optional UUID fields
     const submitData = {
       ...formData,
       barcode,
@@ -283,38 +271,20 @@ export default function ProductForm() {
   return (
     <div className="w-full space-y-4">
       {/* Page Header */}
-      <Card className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-2xl shadow-lg text-white border-0">
-        <CardContent className="p-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate('/products')}
-                className="text-white/80 hover:bg-white/20"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-              <div>
-                <h1 className="text-4xl font-bold mb-2">
-                  {isEdit ? 'Edit Produk' : 'Tambah Produk'}
-                </h1>
-                <p className="text-primary-100 text-lg">
-                  {isEdit ? 'Ubah informasi produk' : 'Tambahkan produk baru ke inventori'}
-                </p>
-              </div>
-            </div>
-            <Button
-              variant="outline"
-              onClick={() => navigate('/products')}
-              className="bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 border-white/20"
-            >
-              <X className="w-4 h-4 mr-2" />
-              Batal
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <PageHeader
+        title={isEdit ? 'Edit Produk' : 'Tambah Produk'}
+        subtitle={isEdit ? 'Ubah informasi produk' : 'Tambahkan produk baru ke inventori'}
+      >
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/products')}
+          className="text-white/80 hover:text-white hover:bg-white/20"
+        >
+          <X className="w-4 h-4 mr-2" />
+          Batal
+        </Button>
+      </PageHeader>
 
       {/* Single Long-Scroll Form */}
       <Card className="shadow-md border border-gray-100 overflow-hidden">
@@ -342,7 +312,6 @@ export default function ProductForm() {
                     value={formData.name}
                     onChange={(e) => {
                       const val = e.target.value;
-                      // Lock auto-format if user edits name after it was modified by auto-format
                       if (autoFormatHasModified.current) {
                         autoFormatLocked.current = true;
                       }

@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { productsService } from '../../services/products.service';
 import { api } from '../../services/api';
-
+import { Button } from '@/components/ui/button';
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -35,13 +35,13 @@ export default function ProductDetail() {
       const response = await api.get(`/products/${id}/activity`, {
         params: {
           page: 1,
-          limit: 50, // Fetch more items for scrollable view
+          limit: 50,
         },
       });
       return response.data;
     },
     enabled: !!id,
-    staleTime: 30000, // Cache for 30 seconds
+    staleTime: 30000,
   });
 
   // Fetch sales statistics (total sold)
@@ -52,7 +52,7 @@ export default function ProductDetail() {
       return response.data;
     },
     enabled: !!id,
-    staleTime: 60000, // Cache for 1 minute
+    staleTime: 60000,
   });
 
   const formatCurrency = (amount: number) => {
@@ -94,7 +94,7 @@ export default function ProductDetail() {
 
   return (
     <div className="w-full space-y-4">
-      {/* Compact Header - Same as CustomerDetail */}
+      {/* Compact Header */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -138,10 +138,10 @@ export default function ProductDetail() {
             </div>
           </div>
           <Link to={`/products/${id}/edit`}>
-            <button className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-all shadow-sm">
+            <Button className="flex items-center gap-2">
               <Edit className="w-4 h-4" />
               <span>Edit</span>
-            </button>
+            </Button>
           </Link>
         </div>
       </div>
@@ -312,7 +312,6 @@ export default function ProductDetail() {
               <div className="pt-4 border-t border-gray-200">
                 <p className="text-xs font-medium uppercase tracking-wider text-gray-400 mb-2">Statistik Penjualan & Penggunaan</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {/* Left Column - Penjualan */}
                   <div className="space-y-2">
                     <div className="p-2 border-l-4 border-blue-500 bg-blue-50/30 rounded-r-lg">
                       <p className="text-xs text-blue-600 mb-0.5 font-medium uppercase tracking-wider">Total Terjual</p>
@@ -341,8 +340,7 @@ export default function ProductDetail() {
                       </p>
                     </div>
                   </div>
-                  
-                  {/* Right Column - Service */}
+
                   <div className="space-y-2">
                     <div className="p-2 border-l-4 border-green-500 bg-green-50/30 rounded-r-lg">
                       <p className="text-xs text-green-600 mb-0.5 font-medium uppercase tracking-wider">Total Terjual</p>
@@ -406,7 +404,7 @@ export default function ProductDetail() {
           </div>
 
           {/* Stock Per Branch - Horizontal Carousel */}
-          {stockSummary && stockSummary.branches && stockSummary.branches.length > 0 && (
+          {stockSummary?.branches?.length > 0 && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
@@ -479,6 +477,7 @@ export default function ProductDetail() {
               </div>
             </div>
           )}
+
           {/* Activity Log - Scrollable */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
             <div className="flex items-center justify-between mb-3">
@@ -550,14 +549,14 @@ export default function ProductDetail() {
                         <div className="flex-1 min-w-0">
                           {activity.referenceId ? (
                             activity.referenceType === 'SALES_TRANSACTION' ? (
-                              <Link 
+                              <Link
                                 to={`/sales/transactions/${activity.referenceId}`}
                                 className="text-sm font-semibold text-gray-900 hover:text-blue-600 hover:underline"
                               >
                                 {activity.description}
                               </Link>
                             ) : activity.referenceType === 'SERVICE_ORDER' ? (
-                              <Link 
+                              <Link
                                 to={`/service-orders/${activity.referenceId}`}
                                 className="text-sm font-semibold text-gray-900 hover:text-orange-600 hover:underline"
                               >
@@ -599,7 +598,7 @@ export default function ProductDetail() {
                         </span>
                       </div>
                       {activity.referenceId && activity.referenceType === 'SALES_TRANSACTION' && (
-                        <Link 
+                        <Link
                           to={`/sales/transactions/${activity.referenceId}`}
                           className="text-xs text-blue-600 hover:underline mt-1 inline-block"
                         >
@@ -607,7 +606,7 @@ export default function ProductDetail() {
                         </Link>
                       )}
                       {activity.referenceId && activity.referenceType === 'SERVICE_ORDER' && (
-                        <Link 
+                        <Link
                           to={`/service-orders/${activity.referenceId}`}
                           className="text-xs text-orange-600 hover:underline mt-1 inline-block"
                         >

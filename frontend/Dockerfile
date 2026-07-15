@@ -6,16 +6,21 @@ FROM base AS deps
 WORKDIR /app
 # Copy package files
 COPY package.json package-lock.json* ./
-# Install dependencies (npm ci if lockfile exists, otherwise npm install)
-# Use --legacy-peer-deps to handle peer dependency conflicts
-RUN if [ -f package-lock.json ]; then npm ci --legacy-peer-deps; else npm install --legacy-peer-deps; fi
+# Install dependencies with npm cache mount (BuildKit) and memory cap
+RUN --mount=type=cache,target=/root/.npm \
+    NODE_OPTIONS="--max-old-space-size=1024" \
+    if [ -f package-lock.json ]; then npm ci --legacy-peer-deps; else npm install --legacy-peer-deps; fi
 
 # Build the application
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run build
+# Build with npm cache mount and memory cap
+RUN --mount=type=cache,target=/root/.npm \
+    --mount=type=cache,target=/app/node_modules/.cache \
+    NODE_OPTIONS="--max-old-space-size=1024" \
+    npm run build
 
 # Production image with nginx
 FROM nginx:alpine AS runner
