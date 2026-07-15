@@ -51,6 +51,7 @@ import { publicService } from '@/services/public.service';
 import { useBranchStore } from '@/stores/branchStore';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import {
   DropdownMenu,
@@ -61,6 +62,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { MenuItem, MenuGroup } from '@/components/shared';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -390,92 +392,87 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
             if (hasChildren) {
               return (
-                <div key={menuKey}>
-                  <button
-                    onClick={() => toggleMenu(menuKey)}
-                    className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg transition-all ${
-                      parentActive
-                        ? 'bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow-lg'
-                        : 'text-foreground hover:bg-muted'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Icon className="w-5 h-5" />
-                      <span className="font-medium">{item.label}</span>
-                    </div>
-                    {isExpanded ? (
-                      <ChevronDown className="w-4 h-4" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4" />
-                    )}
-                  </button>
-                  {isExpanded && (
-                    <div className="ml-4 mt-1 space-y-1 border-l-2 border-border pl-4">
-                      {item.children!.map((child) => {
-                        const ChildIcon = child.icon;
-                        const childActive = child.path ? location.pathname === child.path : false;
-                        return (
-                          <Link
-                            key={child.path || child.label}
-                            to={child.path || '#'}
-                            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all text-sm ${
-                              childActive
-                                ? 'bg-primary-50 text-primary-700 font-semibold border-l-2 border-primary-600'
-                                : 'text-muted-foreground hover:bg-muted'
-                            }`}
-                          >
-                            <ChildIcon className="w-4 h-4" />
-                            <span>{child.label}</span>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
+                <MenuGroup
+                  key={menuKey}
+                  icon={Icon}
+                  label={item.label}
+                  isExpanded={isExpanded}
+                  isActive={parentActive}
+                  onToggle={() => toggleMenu(menuKey)}
+                >
+                  {item.children!.map((child) => {
+                    const ChildIcon = child.icon;
+                    const childActive = child.path ? location.pathname === child.path : false;
+                    return (
+                      <MenuItem
+                        key={child.path || child.label}
+                        icon={ChildIcon}
+                        label={child.label}
+                        path={child.path || '#'}
+                        isActive={childActive}
+                        variant="child"
+                      />
+                    );
+                  })}
+                </MenuGroup>
               );
             }
 
             return (
-              <Link
+              <MenuItem
                 key={item.path || item.label}
-                to={item.path || '#'}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                  itemActive
-                    ? 'bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow-lg'
-                    : 'text-foreground hover:bg-muted'
-                }`}
-              >
-                <Icon className="w-5 h-5" />
-                <span className="font-medium">{item.label}</span>
-              </Link>
+                icon={Icon}
+                label={item.label}
+                path={item.path || '#'}
+                isActive={itemActive}
+              />
             );
           })}
         </nav>
       </ScrollArea>
 
-      {/* User Info at Bottom */}
-      <Separator />
+      {/* User Info at Bottom */}      <Separator />
       <div className="p-4">
-        <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-muted">
-          <Avatar className="h-8 w-8">
-            <AvatarFallback className="bg-gradient-to-r from-primary-600 to-primary-500 text-white text-sm">
-              {initial}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-foreground truncate">
-              {user?.fullName || 'Admin'}
-              {user?.role?.name && (
-                <span className="text-xs font-normal text-muted-foreground ml-1">
-                  ({user.role.name})
-                </span>
-              )}
-            </p>
-            <p className="text-xs text-muted-foreground truncate">
-              {user?.email || user?.role?.code || 'Administrator'}
-            </p>
-          </div>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="flex items-center gap-3 w-full px-3 py-2 h-auto rounded-lg justify-start">
+              <Avatar className="h-8 w-8 shrink-0">
+                <AvatarFallback className="bg-gradient-to-r from-primary-600 to-primary-500 text-white text-sm">
+                  {initial}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground truncate">
+                  {user?.fullName || 'Admin'}
+                  {user?.role?.name && (
+                    <span className="text-xs font-normal text-muted-foreground ml-1">
+                      ({user.role.name})
+                    </span>
+                  )}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {user?.email || user?.role?.code || 'Administrator'}
+                </p>
+              </div>
+              <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" side="top" className="w-56 mb-2">
+            <DropdownMenuItem onClick={() => navigate('/profile')}>
+              <User className="w-4 h-4 mr-2" />
+              Profil
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/settings')}>
+              <Settings className="w-4 h-4 mr-2" />
+              Pengaturan
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">
+              <LogOut className="w-4 h-4 mr-2" />
+              Keluar
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </>
   );
@@ -522,13 +519,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             {/* Left: Toggle & Search */}
             <div className="flex items-center gap-4 flex-1 min-w-0">
               {/* Desktop toggle */}
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-2 text-muted-foreground hover:bg-muted rounded-lg transition-colors flex-shrink-0 hidden lg:inline-flex"
+                className="flex-shrink-0 hidden lg:inline-flex"
                 aria-label="Toggle sidebar"
               >
                 {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-              </button>
+              </Button>
 
               <div className="relative flex-1 max-w-md">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -564,15 +563,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               )}
 
               {/* Notifications */}
-              <button className="relative p-2 text-muted-foreground hover:bg-muted rounded-lg transition-colors">
+              <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
                 <Bell className="w-5 h-5" />
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary-600 rounded-full" />
-              </button>
+              </Button>
 
               {/* User Menu — shadcn DropdownMenu + Avatar */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-2 px-3 py-2 hover:bg-muted rounded-lg transition-colors">
+                  <Button variant="ghost" className="flex items-center gap-2 px-3 py-2 h-auto">
                     <Avatar className="h-8 w-8">
                       <AvatarFallback className="bg-gradient-to-r from-primary-600 to-primary-500 text-white text-sm">
                         {initial}
@@ -592,7 +591,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                       </span>
                     </div>
                     <ChevronDown className="w-4 h-4 text-muted-foreground hidden md:block" />
-                  </button>
+                  </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuItem onClick={() => navigate('/profile')}>
