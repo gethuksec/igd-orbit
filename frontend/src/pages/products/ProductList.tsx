@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Plus,
+  Search,
   Edit,
   Trash2,
   Eye,
@@ -449,6 +450,7 @@ export default function ProductList() {
             ))}
           </div>
         </div>
+      </div>
 
       <DataTable
         columns={columns}
