@@ -72,7 +72,22 @@ MASTER PLAN
 | **A3.1** Master Data Pilot | All 13 menus refactored to shadcn/shared components | ✅ Products, Categories, Brands, Units, Prices, Taxes, Discounts, Customers, Suppliers, Expenses, Giro, Sources, Expenditures | ✅ Done |
 | **A3.2–A3.8** Remaining Menus | Sales → Servis → Gudang → Keuangan → Pembelian → HR → User & Role | — | ⌛ Pending |
 | **A4** Cleanup | Delete Modal.tsx, audit CSS vars, remove dead classes | Codebase clean | ⌛ Pending |
+| **A5** Navbar Restructure | Remove search bar, simplify top header | `DashboardLayout.tsx` header | ⌛ Pending |
 | **Infra (bonus)** | VM memory fixes: swap + Node memory cap + BuildKit cache | 🖥️ igd-vm | ✅ Done |
+
+### Phase A5 Details: Navbar Restructure
+
+**Objective:** Simplify the top header bar by removing the site-wide search bar and cleaning up the remaining controls.
+
+**Current state:** The top bar has: [desktop sidebar toggle] [search bar] [branch selector] [notifications] [user dropdown]. The search bar is underutilized — it doesn't provide useful results across modules and adds visual clutter.
+
+**Scope:**
+- Remove the search input + icon from the header
+- Tighten spacing between remaining elements (sidebar toggle, branch selector, notifications, user menu)
+- Keep the sticky header behavior and shadow styling
+- No changes to the user dropdown or notification bell (already refactored in A2)
+
+**Modify:** `src/layouts/DashboardLayout.tsx` (header section only)
 
 ### Key Dependencies
 - A0 → A1 → A2 → A3 → A4 (strict order)
@@ -420,6 +435,11 @@ const useNewPOS = import.meta.env.DEV && localStorage.getItem('pos-v2') === 'tru
 6. ~~**Excel import for product table:** Is this a must-have for launch, or stretch goal?~~ → **Decided: Not needed for v1, maybe later**
 
 7. **Module Adjustments (C):** Do you have specific modules in mind already, or shall we add them as they come up?
+
+8. **Branch Selector Mechanism:** How should branch data be handled during actions (creating transactions, inventory operations, etc.)? Current approach uses a global Zustand store (`useBranchStore`) with `currentBranchId` injected into API calls via interceptor. Need to decide:
+   - (a) **Keep current store-based approach** — branchId in Zustand, API picks it up automatically
+   - (b) **Explicit per-action** — pass branchId in every mutation payload, no implicit store reads
+   - (c) **Hybrid** — store for display/default, explicit for submission (user confirms branch before each action)
 
 ---
 
