@@ -147,8 +147,6 @@ export default function CustomerList() {
     );
   };
 
-  const isPending = createMutation.isPending;
-
   const columns: Column<any>[] = [
     {
       key: 'name',
