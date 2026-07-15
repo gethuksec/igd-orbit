@@ -449,7 +449,6 @@ export default function ProductList() {
             ))}
           </div>
         </div>
-      </SearchFilter>
 
       <DataTable
         columns={columns}
