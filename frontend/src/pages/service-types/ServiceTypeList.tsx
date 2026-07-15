@@ -276,19 +276,21 @@ export default function ServiceTypeList() {
       {/* Status Filter */}
       <div className="flex items-center gap-2">
         <span className="text-sm font-medium text-gray-600">Status:</span>
-        {(['all', 'active', 'inactive'] as StatusFilter[]).map((filter) => (
-          <button
-            key={filter}
-            onClick={() => setStatusFilter(filter)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              statusFilter === filter
-                ? 'bg-primary-500 text-white shadow-sm'
-                : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
-            }`}
-          >
-            {filter === 'all' ? 'Semua' : filter === 'active' ? 'Aktif' : 'Tidak Aktif'}
-          </button>
-        ))}
+        <div className="flex gap-1">
+          {(['all', 'active', 'inactive'] as StatusFilter[]).map((filter) => (
+            <button
+              key={filter}
+              onClick={() => setStatusFilter(filter)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                statusFilter === filter
+                  ? 'bg-primary-600 text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {filter === 'all' ? 'Semua' : filter === 'active' ? 'Aktif' : 'Tidak Aktif'}
+            </button>
+          ))}
+        </div>
       </div>
 
       <DataTable

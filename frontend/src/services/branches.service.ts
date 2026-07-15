@@ -49,9 +49,15 @@ export const branchesService = {
     limit?: number;
     search?: string;
     includeInactive?: boolean;
+    status?: string;
   }): Promise<BranchListResponse> {
     try {
-      const response = await api.get('/branches/list', { params });
+      const { status, ...rest } = params || {};
+      const queryParams: any = { ...rest };
+      if (status && status !== 'all') {
+        queryParams.includeInactive = status === 'inactive';
+      }
+      const response = await api.get('/branches/list', { params: queryParams });
       return response.data;
     } catch (error: any) {
       return handleApiError(error, {

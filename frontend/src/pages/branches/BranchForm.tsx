@@ -5,6 +5,10 @@ import { Save, Loader2, ArrowLeft, Store, MapPin, Phone, Clock, UserCog } from '
 import { branchesService } from '../../services/branches.service';
 import { api } from '../../services/api';
 import { toast } from 'sonner';
+import { PageHeader } from '@/components/shared';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function BranchForm() {
   const { id } = useParams();
@@ -90,251 +94,257 @@ export default function BranchForm() {
 
   return (
     <div className="w-full space-y-3">
-      {/* Page Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/branches')}
-              className="p-2 text-white/80 hover:bg-white/20 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-3xl font-bold mb-1">
-                {isEdit ? 'Edit Cabang' : 'Tambah Cabang Baru'}
-              </h1>
-              <p className="text-primary-100">{isEdit ? 'Ubah informasi cabang' : 'Tambahkan cabang baru ke sistem'}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title={isEdit ? 'Edit Cabang' : 'Tambah Cabang Baru'}
+        subtitle={isEdit ? 'Ubah informasi cabang' : 'Tambahkan cabang baru ke sistem'}
+      >
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/branches')}
+          className="text-white/80 hover:text-white hover:bg-white/20"
+        >
+          <ArrowLeft className="w-4 h-4 mr-1" />
+          Kembali
+        </Button>
+      </PageHeader>
 
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {/* Informasi Dasar */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-            <Store className="w-5 h-5 text-primary-600" />
-            Informasi Dasar
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">
-                Nama Cabang <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-                placeholder="Contoh: Cabang Jakarta Pusat"
-              />
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Store className="w-5 h-5 text-primary-600" />
+              Informasi Dasar
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nama Cabang <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Contoh: Cabang Jakarta Pusat"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tipe Cabang
+                </label>
+                <select
+                  value={formData.type}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+                >
+                  <option value="store">Toko</option>
+                  <option value="warehouse">Gudang</option>
+                  <option value="office">Kantor</option>
+                </select>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">
-                Tipe Cabang
-              </label>
-              <select
-                value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-              >
-                <option value="store">Toko</option>
-                <option value="warehouse">Gudang</option>
-                <option value="office">Kantor</option>
-              </select>
-            </div>
-          </div>
-
-          {isEdit && branch?.code && (
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Kode Cabang</label>
-              <input
-                type="text"
-                value={branch.code}
-                disabled
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 text-base font-mono"
-              />
-              <p className="text-xs text-gray-500 mt-1">Kode cabang tidak dapat diubah</p>
-            </div>
-          )}
-        </div>
+            {isEdit && branch?.code && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Kode Cabang</label>
+                <Input
+                  type="text"
+                  value={branch.code}
+                  disabled
+                  className="bg-gray-50 font-mono"
+                />
+                <p className="text-xs text-gray-500 mt-1">Kode cabang tidak dapat diubah</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Alamat & Lokasi */}
-        <div className="space-y-4 pt-4 border-t border-gray-200">
-          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-primary-600" />
-            Alamat & Lokasi
-          </h2>
-
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">Alamat Lengkap</label>
-            <textarea
-              value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              rows={3}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-              placeholder="Jl. Contoh No. 123"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-primary-600" />
+              Alamat & Lokasi
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Kota</label>
-              <input
-                type="text"
-                value={formData.city}
-                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-                placeholder="Jakarta"
+              <label className="block text-sm font-medium text-gray-700 mb-1">Alamat Lengkap</label>
+              <textarea
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+                placeholder="Jl. Contoh No. 123"
               />
             </div>
-
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Provinsi</label>
-              <input
-                type="text"
-                value={formData.province}
-                onChange={(e) => setFormData({ ...formData, province: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-                placeholder="DKI Jakarta"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Kota</label>
+                <Input
+                  type="text"
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  placeholder="Jakarta"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Provinsi</label>
+                <Input
+                  type="text"
+                  value={formData.province}
+                  onChange={(e) => setFormData({ ...formData, province: e.target.value })}
+                  placeholder="DKI Jakarta"
+                />
+              </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Head of Service */}
-        <div className="space-y-4 pt-4 border-t border-gray-200">
-          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-            <UserCog className="w-5 h-5 text-primary-600" />
-            Head of Service (HS)
-          </h2>
-
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">
-              Head of Service <span className="text-red-500">*</span>
-            </label>
-            {loadingHSUsers ? (
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Memuat data HS...
-              </div>
-            ) : (
-              <select
-                required
-                value={formData.headOfServiceId}
-                onChange={(e) => setFormData({ ...formData, headOfServiceId: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-              >
-                <option value="">Pilih Head of Service</option>
-                {hsUsers.map((user: any) => (
-                  <option key={user.id} value={user.id}>
-                    {user.fullName || user.email} {user.phone ? `(${user.phone})` : ''}
-                  </option>
-                ))}
-              </select>
-            )}
-            <p className="text-xs text-gray-500 mt-1">
-              Pilih user dengan role HS (Head of Store) yang bertanggung jawab untuk cabang ini
-            </p>
-          </div>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <UserCog className="w-5 h-5 text-primary-600" />
+              Head of Service (HS)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Head of Service <span className="text-red-500">*</span>
+              </label>
+              {loadingHSUsers ? (
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Memuat data HS...
+                </div>
+              ) : (
+                <select
+                  required
+                  value={formData.headOfServiceId}
+                  onChange={(e) => setFormData({ ...formData, headOfServiceId: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+                >
+                  <option value="">Pilih Head of Service</option>
+                  {hsUsers.map((user: any) => (
+                    <option key={user.id} value={user.id}>
+                      {user.fullName || user.email} {user.phone ? `(${user.phone})` : ''}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                Pilih user dengan role HS (Head of Store) yang bertanggung jawab untuk cabang ini
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Kontak */}
-        <div className="space-y-4 pt-4 border-t border-gray-200">
-          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-            <Phone className="w-5 h-5 text-primary-600" />
-            Kontak
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Telepon</label>
-              <input
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-                placeholder="081234567890"
-              />
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Phone className="w-5 h-5 text-primary-600" />
+              Kontak
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Telepon</label>
+                <Input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="081234567890"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <Input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="cabang@example.com"
+                />
+              </div>
             </div>
-
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Email</label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-                placeholder="cabang@example.com"
-              />
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Pengaturan */}
-        <div className="space-y-4 pt-4 border-t border-gray-200">
-          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-            <Clock className="w-5 h-5 text-primary-600" />
-            Pengaturan
-          </h2>
-
-          <div className="space-y-3">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={formData.isActive}
-                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                className="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-              />
-              <span className="text-sm font-medium text-gray-700">Cabang Aktif</span>
-            </label>
-
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={formData.isWarehouse}
-                onChange={(e) => setFormData({ ...formData, isWarehouse: e.target.checked })}
-                className="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-              />
-              <span className="text-sm font-medium text-gray-700">Memiliki Gudang</span>
-            </label>
-          </div>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="w-5 h-5 text-primary-600" />
+              Pengaturan
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, isActive: !prev.isActive }))}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isActive ? 'bg-green-500' : 'bg-gray-300'}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.isActive ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+                <span className="text-sm text-gray-600">{formData.isActive ? 'Aktif' : 'Tidak Aktif'}</span>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Gudang</label>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, isWarehouse: !prev.isWarehouse }))}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isWarehouse ? 'bg-green-500' : 'bg-gray-300'}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.isWarehouse ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+                <span className="text-sm text-gray-600">{formData.isWarehouse ? 'Ya' : 'Tidak'}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Actions */}
-        <div className="flex gap-3 pt-4 border-t border-gray-200">
-          <button
+        <div className="flex gap-3 pt-2">
+          <Button
             type="button"
+            variant="outline"
             onClick={() => navigate('/branches')}
-            className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-all"
+            className="flex-1"
+            disabled={mutation.isPending}
           >
             Batal
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
             disabled={mutation.isPending}
-            className="flex-1 px-6 py-3 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
+            className="flex-1"
           >
             {mutation.isPending ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin mr-1" />
                 Menyimpan...
               </>
             ) : (
               <>
-                <Save className="w-5 h-5" />
+                <Save className="w-4 h-4 mr-1" />
                 Simpan
               </>
             )}
-          </button>
+          </Button>
         </div>
       </form>
     </div>
   );
 }
-

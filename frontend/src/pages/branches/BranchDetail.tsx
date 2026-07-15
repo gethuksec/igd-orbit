@@ -1,10 +1,9 @@
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  ArrowLeft,
   Edit,
+  ArrowLeft,
   Store,
-  Loader2,
   MapPin,
   Phone,
   Users,
@@ -14,16 +13,22 @@ import {
   ShoppingCart,
   ArrowRightLeft,
   Eye,
+  Loader2,
 } from 'lucide-react';
 import { branchesService } from '../../services/branches.service';
+import { PageHeader } from '@/components/shared';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function BranchDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const { data: branch, isLoading } = useQuery({
+  const { data: branch, isLoading, error } = useQuery({
     queryKey: ['branch', id],
     queryFn: () => branchesService.getById(id!),
+    enabled: !!id,
+    retry: 1,
   });
 
   const { data: detailedStats, isLoading: loadingStats } = useQuery({
@@ -48,101 +53,100 @@ export default function BranchDetail() {
     );
   }
 
-  if (!branch) {
+  if (error || !branch) {
     return (
-      <div className="text-center py-12">
-        <p className="text-gray-500">Cabang tidak ditemukan</p>
-        <button
+      <div className="w-full text-center py-12">
+        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm max-w-md mx-auto">
+          <p className="text-red-800 font-medium">
+            {(error as Error)?.message || 'Cabang tidak ditemukan'}
+          </p>
+        </div>
+        <Button
+          variant="link"
           onClick={() => navigate('/branches')}
-          className="mt-4 text-primary-600 hover:text-primary-700"
+          className="mt-4"
         >
           Kembali ke daftar cabang
-        </button>
+        </Button>
       </div>
     );
   }
 
   return (
     <div className="w-full space-y-4">
-      {/* Page Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/branches')}
-              className="p-2 text-white/80 hover:bg-white/20 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-3xl font-bold mb-1">{branch.name}</h1>
-              <p className="text-primary-100">Detail Cabang</p>
-            </div>
-          </div>
-          <Link
-            to={`/branches/${id}/edit`}
-            className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm text-white rounded-lg hover:bg-white/20 transition-all"
-          >
-            <Edit className="w-4 h-4" />
-            <span>Edit</span>
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        title={branch.name}
+        subtitle="Detail Cabang"
+      >
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/branches')}
+          className="text-white/80 hover:text-white hover:bg-white/20"
+        >
+          <ArrowLeft className="w-4 h-4 mr-1" />
+          Kembali
+        </Button>
+        <Link
+          to={`/branches/${id}/edit`}
+          className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm text-white rounded-lg hover:bg-white/20 transition-all"
+        >
+          <Edit className="w-4 h-4" />
+          <span>Edit</span>
+        </Link>
+      </PageHeader>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Left Column - Informasi Cabang */}
         <div className="space-y-4">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <Store className="w-5 h-5 text-primary-600" />
-              Informasi Cabang
-            </h2>
-            <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Store className="w-5 h-5 text-primary-600" />
+                Informasi Cabang
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
                 <p className="text-xs text-gray-500 mb-1">Nama Cabang</p>
                 <p className="text-sm font-semibold text-gray-900">{branch.name}</p>
               </div>
-
               {branch.code && (
                 <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
                   <p className="text-xs text-gray-500 mb-1">Kode Cabang</p>
                   <p className="text-sm font-semibold text-gray-900 font-mono">{branch.code}</p>
                 </div>
               )}
-
               {branch.type && (
                 <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
                   <p className="text-xs text-gray-500 mb-1">Tipe Cabang</p>
                   <p className="text-sm font-semibold text-gray-900 capitalize">{branch.type}</p>
                 </div>
               )}
-
               <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
                 <p className="text-xs text-gray-500 mb-1">Status</p>
                 <span
-                  className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+                  className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${
                     branch.isActive
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-red-100 text-red-800'
+                      ? 'bg-green-100 text-green-800 border-green-200'
+                      : 'bg-gray-100 text-gray-800 border-gray-200'
                   }`}
                 >
                   {branch.isActive ? 'Aktif' : 'Tidak Aktif'}
                 </span>
               </div>
-
               <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
                 <p className="text-xs text-gray-500 mb-1">Gudang</p>
                 <span
-                  className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+                  className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${
                     branch.isWarehouse
-                      ? 'bg-blue-100 text-blue-800'
-                      : 'bg-gray-100 text-gray-800'
+                      ? 'bg-blue-100 text-blue-800 border-blue-200'
+                      : 'bg-gray-100 text-gray-800 border-gray-200'
                   }`}
                 >
                   {branch.isWarehouse ? 'Memiliki Gudang' : 'Tidak Memiliki Gudang'}
                 </span>
               </div>
-
               {branch.headOfService && (
                 <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
                   <p className="text-xs text-gray-500 mb-1">Head of Service (HS)</p>
@@ -155,17 +159,19 @@ export default function BranchDetail() {
                   )}
                 </div>
               )}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Alamat & Lokasi */}
           {(branch.address || branch.city || branch.province) && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-primary-600" />
-                Alamat & Lokasi
-              </h2>
-              <div className="space-y-3">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-primary-600" />
+                  Alamat & Lokasi
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
                 {branch.address && (
                   <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
                     <p className="text-xs text-gray-500 mb-1">Alamat Lengkap</p>
@@ -178,18 +184,20 @@ export default function BranchDetail() {
                     {[branch.city, branch.province].filter(Boolean).join(', ') || '-'}
                   </p>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           )}
 
           {/* Kontak */}
           {(branch.phone || branch.email) && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <Phone className="w-5 h-5 text-primary-600" />
-                Kontak
-              </h2>
-              <div className="space-y-3">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Phone className="w-5 h-5 text-primary-600" />
+                  Kontak
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
                 {branch.phone && (
                   <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
                     <p className="text-xs text-gray-500 mb-1">Telepon</p>
@@ -202,84 +210,89 @@ export default function BranchDetail() {
                     <p className="text-sm text-gray-700">{branch.email}</p>
                   </div>
                 )}
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           )}
         </div>
 
         {/* Right Column - Statistik & Informasi Tambahan */}
         <div className="space-y-4">
-          {/* Statistik Detail */}
           {loadingStats ? (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-              <div className="flex items-center justify-center py-8">
+            <Card>
+              <CardContent className="flex items-center justify-center py-8">
                 <Loader2 className="w-6 h-6 text-primary-600 animate-spin" />
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           ) : detailedStats ? (
             <div className="space-y-4">
               {/* Stok Produk */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                    <Package className="w-5 h-5 text-green-600" />
-                    Stok Produk
-                  </h2>
-                  <Link
-                    to={`/inventory/stock?branchId=${id}`}
-                    className="text-xs text-primary-600 hover:text-primary-700 flex items-center gap-1"
-                  >
-                    <Eye className="w-3 h-3" />
-                    Lihat Detail
-                  </Link>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                    <p className="text-xs text-green-600 font-medium mb-1">Total Stok</p>
-                    <p className="text-xl font-bold text-green-600">
-                      {detailedStats.stock.totalQuantity.toLocaleString('id-ID')}
-                    </p>
-                    <p className="text-xs text-green-500 mt-1">
-                      {detailedStats.stock.productStockRecords} produk
-                    </p>
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <Package className="w-5 h-5 text-green-600" />
+                      Stok Produk
+                    </CardTitle>
+                    <Link
+                      to={`/inventory/stock?branchId=${id}`}
+                      className="text-xs text-primary-600 hover:text-primary-700 flex items-center gap-1"
+                    >
+                      <Eye className="w-3 h-3" />
+                      Lihat Detail
+                    </Link>
                   </div>
-                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-xs text-blue-600 font-medium mb-1">Tersedia</p>
-                    <p className="text-xl font-bold text-blue-600">
-                      {detailedStats.stock.totalAvailable.toLocaleString('id-ID')}
-                    </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                      <p className="text-xs text-green-600 font-medium mb-1">Total Stok</p>
+                      <p className="text-xl font-bold text-green-600">
+                        {detailedStats.stock.totalQuantity.toLocaleString('id-ID')}
+                      </p>
+                      <p className="text-xs text-green-500 mt-1">
+                        {detailedStats.stock.productStockRecords} produk
+                      </p>
+                    </div>
+                    <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <p className="text-xs text-blue-600 font-medium mb-1">Tersedia</p>
+                      <p className="text-xl font-bold text-blue-600">
+                        {detailedStats.stock.totalAvailable.toLocaleString('id-ID')}
+                      </p>
+                    </div>
+                    <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                      <p className="text-xs text-yellow-600 font-medium mb-1">Reserved</p>
+                      <p className="text-xl font-bold text-yellow-600">
+                        {detailedStats.stock.totalReserved.toLocaleString('id-ID')}
+                      </p>
+                    </div>
+                    <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+                      <p className="text-xs text-red-600 font-medium mb-1">Rusak</p>
+                      <p className="text-xl font-bold text-red-600">
+                        {detailedStats.stock.totalDamaged.toLocaleString('id-ID')}
+                      </p>
+                    </div>
                   </div>
-                  <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                    <p className="text-xs text-yellow-600 font-medium mb-1">Reserved</p>
-                    <p className="text-xl font-bold text-yellow-600">
-                      {detailedStats.stock.totalReserved.toLocaleString('id-ID')}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-red-50 rounded-lg border border-red-200">
-                    <p className="text-xs text-red-600 font-medium mb-1">Rusak</p>
-                    <p className="text-xl font-bold text-red-600">
-                      {detailedStats.stock.totalDamaged.toLocaleString('id-ID')}
-                    </p>
-                  </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
 
               {/* Penjualan */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                    <ShoppingCart className="w-5 h-5 text-purple-600" />
-                    Penjualan
-                  </h2>
-                  <Link
-                    to={`/sales/history?branchId=${id}`}
-                    className="text-xs text-primary-600 hover:text-primary-700 flex items-center gap-1"
-                  >
-                    <Eye className="w-3 h-3" />
-                    Lihat Detail
-                  </Link>
-                </div>
-                <div className="space-y-3">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <ShoppingCart className="w-5 h-5 text-purple-600" />
+                      Penjualan
+                    </CardTitle>
+                    <Link
+                      to={`/sales/history?branchId=${id}`}
+                      className="text-xs text-primary-600 hover:text-primary-700 flex items-center gap-1"
+                    >
+                      <Eye className="w-3 h-3" />
+                      Lihat Detail
+                    </Link>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
                   <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
                     <div className="flex items-center justify-between mb-1">
                       <p className="text-xs text-purple-600 font-medium">Total Transaksi</p>
@@ -305,25 +318,27 @@ export default function BranchDetail() {
                       <p>Pajak: {formatCurrency(detailedStats.sales.totalTax)}</p>
                     </div>
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
 
               {/* Service Order */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                    <Wrench className="w-5 h-5 text-orange-600" />
-                    Service Order
-                  </h2>
-                  <Link
-                    to={`/service-orders?branchId=${id}`}
-                    className="text-xs text-primary-600 hover:text-primary-700 flex items-center gap-1"
-                  >
-                    <Eye className="w-3 h-3" />
-                    Lihat Detail
-                  </Link>
-                </div>
-                <div className="space-y-3">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <Wrench className="w-5 h-5 text-orange-600" />
+                      Service Order
+                    </CardTitle>
+                    <Link
+                      to={`/service-orders?branchId=${id}`}
+                      className="text-xs text-primary-600 hover:text-primary-700 flex items-center gap-1"
+                    >
+                      <Eye className="w-3 h-3" />
+                      Lihat Detail
+                    </Link>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
                   <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
                     <div className="flex items-center justify-between mb-1">
                       <p className="text-xs text-orange-600 font-medium">Total Order</p>
@@ -350,17 +365,19 @@ export default function BranchDetail() {
                       <p>Pajak: {formatCurrency(detailedStats.service.totalTax)}</p>
                     </div>
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
 
               {/* Inventory & Users */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                  <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <ArrowRightLeft className="w-5 h-5 text-blue-600" />
-                    Inventory
-                  </h2>
-                  <div className="space-y-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <ArrowRightLeft className="w-5 h-5 text-blue-600" />
+                      Inventory
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
                     <div className="flex items-center justify-between">
                       <p className="text-xs text-gray-600">Stock Movements</p>
                       <p className="text-sm font-semibold text-gray-900">
@@ -385,15 +402,17 @@ export default function BranchDetail() {
                         {detailedStats.inventory.stockOpnames}
                       </p>
                     </div>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
 
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                  <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <Users className="w-5 h-5 text-indigo-600" />
-                    Users
-                  </h2>
-                  <div className="space-y-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="w-5 h-5 text-indigo-600" />
+                      Users
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
                     <div className="flex items-center justify-between">
                       <p className="text-xs text-gray-600">User Roles</p>
                       <p className="text-sm font-semibold text-gray-900">
@@ -406,23 +425,27 @@ export default function BranchDetail() {
                         {detailedStats.users.employees}
                       </p>
                     </div>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-              <p className="text-sm text-gray-500">Statistik tidak tersedia</p>
-            </div>
+            <Card>
+              <CardContent className="py-8">
+                <p className="text-sm text-gray-500 text-center">Statistik tidak tersedia</p>
+              </CardContent>
+            </Card>
           )}
 
           {/* Informasi Tambahan */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-primary-600" />
-              Informasi Tambahan
-            </h2>
-            <div className="space-y-3">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-primary-600" />
+                Informasi Tambahan
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
               <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
                 <p className="text-xs text-gray-500 mb-1">Dibuat</p>
                 <p className="text-sm text-gray-700">
@@ -441,11 +464,10 @@ export default function BranchDetail() {
                   })}
                 </p>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
   );
 }
-
