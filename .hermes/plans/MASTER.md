@@ -2,8 +2,8 @@
 
 > **Vision:** Modernize the entire IGD-Orbit frontend — consistent UI via shadcn, redesigned POS workflow inspired by Erzap, and targeted module adjustments per business needs.
 
-**Status:** 🚧 Draft — open for discussion
-**Last Updated:** 2026-07-13
+**Status:** 🟢 Active — in execution
+**Last Updated:** 2026-07-15
 
 ---
 
@@ -41,7 +41,9 @@
 | Forms | react-hook-form (some pages) / manual (most pages) |
 | Icons | lucide-react |
 | CSS Framework | Tailwind CSS v3 + css variables |
-| shadcn status | Partially set up (4 components installed) |
+| shadcn status | ✅ Fully set up (14 components installed) |
+| Shared components | ✅ PageHeader, StatCard, DataTable, SearchFilter, FormCard (5 shared) |
+| Master Data migration | ✅ Complete (all 13 menus use shadcn/shared) |
 
 ### Workstream Map
 
@@ -64,11 +66,13 @@ MASTER PLAN
 
 | Phase | What | Output | ~Time |
 |-------|------|--------|-------|
-| **A0** Foundation | Install 14 shadcn components + CSS vars | `components/ui/` populated | 15 min |
-| **A1** Shared Patterns | Create `PageHeader`, `StatCard`, `DataTable`, `SearchFilter` | `components/shared/` | 30 min |
-| **A2** Core Layout | Refactor sidebar (Sheet, DropdownMenu, Avatar) + user menu | `DashboardLayout.tsx` | 1 hr |
-| **A3** Per-Menu Rollout | One menu group at a time (Master Data → Sales → Servis → Gudang → Keuangan → Pembelian → HR → User & Role) | All pages use shadcn | 2-3 hr each |
-| **A4** Cleanup | Delete Modal.tsx, audit CSS vars, remove dead classes | Codebase clean | 30 min |
+| **A0** Foundation | Install 14 shadcn components + CSS vars | ✅ `components/ui/` populated | ✅ Done |
+| **A1** Shared Patterns | Create `PageHeader`, `StatCard`, `DataTable`, `SearchFilter`, `FormCard` | ✅ `components/shared/` | ✅ Done |
+| **A2** Core Layout | Refactor sidebar (Sheet, DropdownMenu, Avatar) + user menu | `DashboardLayout.tsx` | ⌛ Pending |
+| **A3.1** Master Data Pilot | All 13 menus refactored to shadcn/shared components | ✅ Products, Categories, Brands, Units, Prices, Taxes, Discounts, Customers, Suppliers, Expenses, Giro, Sources, Expenditures | ✅ Done |
+| **A3.2–A3.8** Remaining Menus | Sales → Servis → Gudang → Keuangan → Pembelian → HR → User & Role | — | ⌛ Pending |
+| **A4** Cleanup | Delete Modal.tsx, audit CSS vars, remove dead classes | Codebase clean | ⌛ Pending |
+| **Infra (bonus)** | VM memory fixes: swap + Node memory cap + BuildKit cache | 🖥️ igd-vm | ✅ Done |
 
 ### Key Dependencies
 - A0 → A1 → A2 → A3 → A4 (strict order)
@@ -310,15 +314,15 @@ End-to-end test (after B5):
 **Decided sequence: Option C**
 
 ```
-A0 (shadcn components install)
+✅ A0 (shadcn components install)
  │
- └──→ A1 (shared components: PageHeader, StatCard, etc.)
+ └──→ ✅ A1 (shared components: PageHeader, StatCard, DataTable, SearchFilter, FormCard)
        │
-       ├──→ (GROUP 1 — pilot) A3.1 Master Data rollout
+       ├──→ ✅ (GROUP 1 — pilot) ✅ A3.1 Master Data rollout
        │         │
-       │         └──→ (patterns validated, confidence built)
+       │         └──→ ✅ (patterns validated, confidence built)
        │
-       ├──→ (GROUP 2 — parallel) B0 POS API layer (backend + termin CRUD)
+       ├──→ ⌛ (GROUP 2 — parallel) B0 POS API layer (backend + termin CRUD)
        │                              │
        │                              └──→ B1 POS store + types ──→ B2 POS form fields
        │                                                              │
@@ -330,11 +334,11 @@ A0 (shadcn components install)
        │                                                              │
        │                                                        B6 POS polish + cleanup
        │
-       ├──→ (GROUP 2 — parallel) A2 sidebar refactor
+       ├──→ ⌛ (GROUP 2 — parallel) A2 sidebar refactor
        │
-       └──→ (GROUP 3) A3.2–A3.8 remaining menu rollout
+       └──→ ⌛ (GROUP 3) A3.2–A3.8 remaining menu rollout
              │
-             └──→ A4 cleanup (after everything)
+             └──→ ⌛ A4 cleanup (after everything)
 ```
 
 ---
@@ -345,9 +349,9 @@ A0 (shadcn components install)
 
 ```yaml
 Deploy cadence:
-  A0-A1:  one deploy (foundation, no visible change)
-  A2:     one deploy (sidebar changes)
-  A3.1:   one deploy (Master Data pages — first visible rollout)
+  A0-A1:  one deploy (foundation, no visible change) ✅ Done
+  A2:     one deploy (sidebar changes) ⌛
+  A3.1:   one deploy (Master Data pages — first visible rollout) ✅ Done + verified
   B1-B2:  one deploy (POS store + header — behind feature flag or unlinked)
   B3-B4:  one deploy (table + bottom section — testable but not replacing old POS)
   A3.2+:  one deploy per menu group

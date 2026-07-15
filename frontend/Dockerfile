@@ -7,8 +7,8 @@ WORKDIR /app
 # Copy package files
 COPY package.json package-lock.json* ./
 # Install dependencies with npm cache mount (BuildKit) and memory cap
+ENV NODE_OPTIONS="--max-old-space-size=1024"
 RUN --mount=type=cache,target=/root/.npm \
-    NODE_OPTIONS="--max-old-space-size=1024" \
     if [ -f package-lock.json ]; then npm ci --legacy-peer-deps; else npm install --legacy-peer-deps; fi
 
 # Build the application
@@ -17,9 +17,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # Build with npm cache mount and memory cap
+ENV NODE_OPTIONS="--max-old-space-size=1024"
 RUN --mount=type=cache,target=/root/.npm \
     --mount=type=cache,target=/app/node_modules/.cache \
-    NODE_OPTIONS="--max-old-space-size=1024" \
     npm run build
 
 # Production image with nginx
