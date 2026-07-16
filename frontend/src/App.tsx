@@ -80,6 +80,9 @@ import SizeDetail from './pages/sizes/SizeDetail';
 import ExpeditionList from './pages/expeditions/ExpeditionList';
 import ExpeditionForm from './pages/expeditions/ExpeditionForm';
 import ExpeditionDetail from './pages/expeditions/ExpeditionDetail';
+import PaymentTermList from './pages/payment-terms/PaymentTermList';
+import PaymentTermForm from './pages/payment-terms/PaymentTermForm';
+import PaymentTermDetail from './pages/payment-terms/PaymentTermDetail';
 import SalesTypeList from './pages/sales-types/SalesTypeList';
 import SalesTypeForm from './pages/sales-types/SalesTypeForm';
 import SalesTypeDetail from './pages/sales-types/SalesTypeDetail';
@@ -497,6 +500,12 @@ function App() {
             <Route path="/sales-types/new" element={<ProtectedRoute><DashboardLayout><SalesTypeForm /></DashboardLayout></ProtectedRoute>} />
             <Route path="/sales-types/:id" element={<ProtectedRoute><DashboardLayout><SalesTypeDetail /></DashboardLayout></ProtectedRoute>} />
             <Route path="/sales-types/:id/edit" element={<ProtectedRoute><DashboardLayout><SalesTypeForm /></DashboardLayout></ProtectedRoute>} />
+
+            {/* Master Data - Payment Terms */}
+            <Route path="/payment-terms" element={<ProtectedRoute><DashboardLayout><PaymentTermList /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/payment-terms/new" element={<ProtectedRoute><DashboardLayout><PaymentTermForm /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/payment-terms/:id" element={<ProtectedRoute><DashboardLayout><PaymentTermDetail /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/payment-terms/:id/edit" element={<ProtectedRoute><DashboardLayout><PaymentTermForm /></DashboardLayout></ProtectedRoute>} />
 
             {/* Master Data - Customer Tiers */}
             <Route
