@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Edit, Loader2, CreditCard, Calendar } from "lucide-react";
 import { paymentTermsService } from "../../services/payment-terms.service";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 
 export default function PaymentTermDetail() {
   const navigate = useNavigate();

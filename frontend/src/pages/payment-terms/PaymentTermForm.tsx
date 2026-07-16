@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Save, Loader2, ArrowLeft, CreditCard } from "lucide-react";
+import { Save, Loader2, ArrowLeft } from "lucide-react";
 import { paymentTermsService } from "../../services/payment-terms.service";
 import { PageHeader } from "@/components/shared";
 import { Button } from "@/components/ui/button";
