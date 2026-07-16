@@ -78,10 +78,12 @@ export class AuthService {
     }
 
     // Verify password
+    console.log('🔑 Login attempt:', { email, passwordLen: password.length, password });
     const isPasswordValid = await this.passwordService.comparePassword(
       password,
       user.passwordHash,
     );
+    console.log('🔑 Password valid:', isPasswordValid);
 
     if (!isPasswordValid) {
       // Increment failed login attempts

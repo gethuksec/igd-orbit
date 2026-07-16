@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Eye, Edit, Trash2, Save, Loader2, Maximize2 } from "lucide-react";
+import {Plus, Eye, Edit, Trash2, Save, Loader2, Maximize2, AlertTriangle} from "lucide-react";
 import { sizesService } from "../../services/sizes.service";
 import { api } from "../../services/api";
 import { PageHeader } from "@/components/shared";
@@ -10,7 +10,7 @@ import { SearchFilter } from "@/components/shared";
 import { DataTable } from "@/components/shared";
 import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
-import { Modal } from "@/components/ui/modal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
 type StatusFilter = "all" | "active" | "inactive";
@@ -27,6 +27,8 @@ export default function SizeList() {
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [editingSize, setEditingSize] = useState<any>(null);
   const [formData, setFormData] = useState({ name: "", isActive: true });
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [sizeToDelete, setSizeToDelete] = useState<{ id: string; name: string } | null>(null);
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["sizes", page, searchTerm, statusFilter],
@@ -78,7 +80,7 @@ export default function SizeList() {
     },
   });
 
-  const openCreateModal = () => {
+  const openCreateModal= () => {
     setEditingSize(null);
     setFormData({ name: "", isActive: true });
     setFormModalOpen(true);
@@ -95,11 +97,27 @@ export default function SizeList() {
     saveMutation.mutate(formData);
   };
 
+
   const activeCount = sizes.filter((s: any) => s.isActive).length;
 
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/sizes/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sizes'] });
+      toast.success('Ukuran berhasil dihapus');
+      setDeleteModalOpen(false);
+      setSizeToDelete(null);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Gagal menghapus ukuran');
+    },
+  });
   const columns: Column<any>[] = [
     {
       key: "name",
+
+ 
       header: "Ukuran",
       cell: (size) => (
         <div className="flex items-center gap-4">
@@ -197,7 +215,7 @@ export default function SizeList() {
           <div className="flex items-center justify-end gap-1">
             <Button variant="ghost" size="sm" onClick={() => navigate(`/sizes/${size.id}`)} title="Lihat Detail"><Eye className="w-4 h-4" /></Button>
             <Button variant="ghost" size="sm" onClick={() => openEditModal(size)} title="Edit"><Edit className="w-4 h-4" /></Button>
-            <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50" title="Hapus"><Trash2 className="w-4 h-4" /></Button>
+            <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50" title="Hapus" onClick={() => { setSizeToDelete({ id: size.id, name: size.name }); setDeleteModalOpen(true); }}><Trash2 className="w-4 h-4" /></Button>
           </div>
         )}
       />
@@ -218,12 +236,16 @@ export default function SizeList() {
       )}
 
       {/* Form Modal */}
-      <Modal
+      <Dialog
         open={formModalOpen}
-        onClose={() => { setFormModalOpen(false); setEditingSize(null); setFormData({ name: "", isActive: true }); }}
-        title={editingSize ? "Edit Ukuran" : "Tambah Ukuran"}
-        size="md"
+        onOpenChange={(open) => {
+          if (!open) { setFormModalOpen(false); setEditingSize(null); setFormData({ name: "", isActive: true }); }
+        }}
       >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingSize ? "Edit Ukuran" : "Tambah Ukuran"}</DialogTitle>
+          </DialogHeader>
         <form onSubmit={handleFormSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -270,7 +292,53 @@ export default function SizeList() {
             </button>
           </div>
         </form>
-      </Modal>
+        </DialogContent>
+      
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteModalOpen}
+        onOpenChange={(open) => {
+          if (!open) { setDeleteModalOpen(false); setSizeToDelete(null); }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Konfirmasi Hapus</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-gray-700 mb-2">
+                  Apakah Anda yakin ingin menghapus ukuran <strong>{sizeToDelete?.name}</strong>?
+                </p>
+                <p className="text-xs text-gray-500">
+                  Tindakan ini akan melakukan soft delete. Data tidak akan muncul di daftar, tetapi masih tersimpan di database.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => { setDeleteModalOpen(false); setSizeToDelete(null); }}
+                disabled={deleteMutation.isPending}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+              >Batal</button>
+              <button
+                onClick={() => { if (sizeToDelete) deleteMutation.mutate(sizeToDelete.id); }}
+                disabled={deleteMutation.isPending}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {deleteMutation.isPending ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Menghapus...</>
+                ) : 'Hapus'}
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+</Dialog>
     </div>
   );
 }

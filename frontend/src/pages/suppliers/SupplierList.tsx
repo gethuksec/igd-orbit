@@ -10,7 +10,7 @@ import { DataTable } from "@/components/shared";
 import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Modal } from "../../components/ui/modal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
 type StatusFilter = "all" | "active" | "inactive";
@@ -383,13 +383,17 @@ export default function SupplierList() {
         </div>
       )}
 
-      {/* Create/Edit Modal */}
-      <Modal
+      {/* Form Modal */}
+      <Dialog
         open={showFormModal}
-        onClose={closeFormModal}
-        title={editingSupplier ? "Edit Pemasok" : "Tambah Pemasok"}
-        size="md"
+        onOpenChange={(open) => {
+          if (!open) closeFormModal();
+        }}
       >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingSupplier ? "Edit Pemasok" : "Tambah Pemasok"}</DialogTitle>
+          </DialogHeader>
         <form onSubmit={handleFormSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1">
@@ -455,18 +459,23 @@ export default function SupplierList() {
             </Button>
           </div>
         </form>
-      </Modal>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Modal */}
-      <Modal
+      <Dialog
         open={deleteModalOpen}
-        onClose={() => {
-          setDeleteModalOpen(false);
-          setSupplierToDelete(null);
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteModalOpen(false);
+            setSupplierToDelete(null);
+          }
         }}
-        title="Konfirmasi Hapus"
-        size="md"
       >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Konfirmasi Hapus</DialogTitle>
+          </DialogHeader>
         <div className="space-y-4">
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
@@ -516,7 +525,8 @@ export default function SupplierList() {
             </Button>
           </div>
         </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

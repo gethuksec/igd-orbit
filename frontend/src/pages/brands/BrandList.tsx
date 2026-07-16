@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Tag, Eye, Edit, Trash2, Save, Loader2 } from "lucide-react";
+import {Plus, Tag, Eye, Edit, Trash2, Save, Loader2, AlertTriangle} from "lucide-react";
 import { brandsService } from "../../services/brands.service";
 import { PageHeader, StatCard } from "@/components/shared";
 import { SearchFilter } from "@/components/shared";
 import { DataTable } from "@/components/shared";
 import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
-import { Modal } from "@/components/ui/modal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
 type StatusFilter = "all" | "active" | "inactive";
@@ -25,6 +25,8 @@ export default function BrandList() {
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [editingBrand, setEditingBrand] = useState<any>(null);
   const [formData, setFormData] = useState({ name: "", description: "", isActive: true });
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [brandToDelete, setBrandToDelete] = useState<{ id: string; name: string } | null>(null);
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["brands", page, searchTerm, statusFilter],
@@ -77,7 +79,7 @@ export default function BrandList() {
     },
   });
 
-  const openCreateModal = () => {
+  const openCreateModal= () => {
     setEditingBrand(null);
     setFormData({ name: "", description: "", isActive: true });
     setFormModalOpen(true);
@@ -99,10 +101,25 @@ export default function BrandList() {
   };
 
   const totalProducts = brands.reduce(
-    (acc: number, b: any) => acc + (b.productCount || 0),
+    (acc: number
+ 
+, b: any) => acc + (b.productCount || 0),
     0
   );
 
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => brandsService.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['brands'] });
+      toast.success('Merk berhasil dihapus');
+      setDeleteModalOpen(false);
+      setBrandToDelete(null);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Gagal menghapus merk');
+    },
+  });
   const columns: Column<any>[] = [
     {
       key: "name",
@@ -266,6 +283,10 @@ export default function BrandList() {
               size="sm"
               className="text-red-600 hover:bg-red-50"
               title="Hapus"
+              onClick={() => {
+                setBrandToDelete({ id: brand.id, name: brand.name });
+                setDeleteModalOpen(true);
+              }}
             >
               <Trash2 className="w-4 h-4" />
             </Button>
@@ -313,16 +334,20 @@ export default function BrandList() {
       )}
 
       {/* Form Modal */}
-      <Modal
+      <Dialog
         open={formModalOpen}
-        onClose={() => {
-          setFormModalOpen(false);
-          setEditingBrand(null);
-          setFormData({ name: "", description: "", isActive: true });
+        onOpenChange={(open) => {
+          if (!open) {
+            setFormModalOpen(false);
+            setEditingBrand(null);
+            setFormData({ name: "", description: "", isActive: true });
+          }
         }}
-        title={editingBrand ? "Edit Merk" : "Tambah Merk"}
-        size="md"
       >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingBrand ? "Edit Merk" : "Tambah Merk"}</DialogTitle>
+          </DialogHeader>
         <form onSubmit={handleFormSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -396,7 +421,53 @@ export default function BrandList() {
             </button>
           </div>
         </form>
-      </Modal>
+        </DialogContent>
+      
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteModalOpen}
+        onOpenChange={(open) => {
+          if (!open) { setDeleteModalOpen(false); setBrandToDelete(null); }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Konfirmasi Hapus</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-gray-700 mb-2">
+                  Apakah Anda yakin ingin menghapus merk <strong>{brandToDelete?.name}</strong>?
+                </p>
+                <p className="text-xs text-gray-500">
+                  Tindakan ini akan melakukan soft delete. Data tidak akan muncul di daftar, tetapi masih tersimpan di database.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => { setDeleteModalOpen(false); setBrandToDelete(null); }}
+                disabled={deleteMutation.isPending}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+              >Batal</button>
+              <button
+                onClick={() => { if (brandToDelete) deleteMutation.mutate(brandToDelete.id); }}
+                disabled={deleteMutation.isPending}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {deleteMutation.isPending ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Menghapus...</>
+                ) : 'Hapus'}
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+</Dialog>
     </div>
   );
 }

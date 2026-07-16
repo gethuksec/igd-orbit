@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Palette, Eye, Edit, Trash2, Save, Loader2 } from "lucide-react";
+import {Plus, Palette, Eye, Edit, Trash2, Save, Loader2, AlertTriangle} from "lucide-react";
 import { colorsService } from "../../services/colors.service";
 import { api } from "../../services/api";
 import { PageHeader } from "@/components/shared";
@@ -10,7 +10,7 @@ import { SearchFilter } from "@/components/shared";
 import { DataTable } from "@/components/shared";
 import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
-import { Modal } from "@/components/ui/modal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
 type StatusFilter = "all" | "active" | "inactive";
@@ -27,6 +27,8 @@ export default function ColorList() {
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [editingColor, setEditingColor] = useState<any>(null);
   const [formData, setFormData] = useState({ name: "", notes: "", isActive: true });
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [colorToDelete, setColorToDelete] = useState<{ id: string; name: string } | null>(null);
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["colors", page, searchTerm, statusFilter],
@@ -79,7 +81,7 @@ export default function ColorList() {
     },
   });
 
-  const openCreateModal = () => {
+  const openCreateModal= () => {
     setEditingColor(null);
     setFormData({ name: "", notes: "", isActive: true });
     setFormModalOpen(true);
@@ -98,6 +100,19 @@ export default function ColorList() {
 
   const activeCount = colors.filter((c: any) => c.isActive).length;
 
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/colors/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['colors'] });
+      toast.success('Warna berhasil dihapus');
+      setDeleteModalOpen(false);
+      setColorToDelete(null);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Gagal menghapus warna');
+    },
+  });
   const columns: Column<any>[] = [
     {
       key: "name",
@@ -250,6 +265,10 @@ export default function ColorList() {
               size="sm"
               className="text-red-600 hover:bg-red-50"
               title="Hapus"
+              onClick={() => {
+                setColorToDelete({ id: color.id, name: color.name });
+                setDeleteModalOpen(true);
+              }}
             >
               <Trash2 className="w-4 h-4" />
             </Button>
@@ -297,16 +316,20 @@ export default function ColorList() {
       )}
 
       {/* Form Modal */}
-      <Modal
+      <Dialog
         open={formModalOpen}
-        onClose={() => {
-          setFormModalOpen(false);
-          setEditingColor(null);
-          setFormData({ name: "", notes: "", isActive: true });
+        onOpenChange={(open) => {
+          if (!open) {
+            setFormModalOpen(false);
+            setEditingColor(null);
+            setFormData({ name: "", notes: "", isActive: true });
+          }
         }}
-        title={editingColor ? "Edit Warna" : "Tambah Warna"}
-        size="md"
       >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingColor ? "Edit Warna" : "Tambah Warna"}</DialogTitle>
+          </DialogHeader>
         <form onSubmit={handleFormSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -378,7 +401,53 @@ export default function ColorList() {
             </button>
           </div>
         </form>
-      </Modal>
+        </DialogContent>
+      
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteModalOpen}
+        onOpenChange={(open) => {
+          if (!open) { setDeleteModalOpen(false); setColorToDelete(null); }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Konfirmasi Hapus</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-gray-700 mb-2">
+                  Apakah Anda yakin ingin menghapus warna <strong>{colorToDelete?.name}</strong>?
+                </p>
+                <p className="text-xs text-gray-500">
+                  Tindakan ini akan melakukan soft delete. Data tidak akan muncul di daftar, tetapi masih tersimpan di database.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => { setDeleteModalOpen(false); setColorToDelete(null); }}
+                disabled={deleteMutation.isPending}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+              >Batal</button>
+              <button
+                onClick={() => { if (colorToDelete) deleteMutation.mutate(colorToDelete.id); }}
+                disabled={deleteMutation.isPending}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {deleteMutation.isPending ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Menghapus...</>
+                ) : 'Hapus'}
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+</Dialog>
     </div>
   );
 }

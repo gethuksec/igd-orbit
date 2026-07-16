@@ -27,6 +27,8 @@ import StatusTimeline from '@/pages/public/components/StatusTimeline';
 import { api } from '@/services/api';
 import { useBranchStore } from '@/stores/branchStore';
 import { RotateCcw } from 'lucide-react';
+import { PageHeader } from '@/components/shared';
+import { Button } from '@/components/ui/button';
 
 const getCurrentUser = () => {
   try {
@@ -360,31 +362,26 @@ export default function ServiceOrderDetail() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/service-orders')}
-              className="p-2 text-white/80 hover:bg-white/20 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-3xl font-bold mb-1">
-                {order.serviceNumber || 'Service Order'}
-              </h1>
-              <p className="text-primary-100">Detail Service Order</p>
-            </div>
-          </div>
-          <Link
-            to={`/service-orders/${id}/edit`}
-            className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm text-white rounded-lg hover:bg-white/20 transition-all"
-          >
-            <Edit className="w-4 h-4" />
-            <span>Edit</span>
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        title={order.serviceNumber || 'Service Order'}
+        subtitle="Detail Service Order"
+      >
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/service-orders')}
+          className="text-white/80 hover:text-white hover:bg-white/20"
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </Button>
+        <Link
+          to={`/service-orders/${id}/edit`}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm text-white rounded-lg hover:bg-white/20 transition-all"
+        >
+          <Edit className="w-4 h-4" />
+          <span>Edit</span>
+        </Link>
+      </PageHeader>
 
       {/* Status & Workflow */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">

@@ -12,6 +12,7 @@ import {
   Clock,
   AlertTriangle,
 } from 'lucide-react';
+import { PageHeader } from '@/components/shared';
 import { inventoryService } from '../../services/inventory.service';
 import type { StockOpname } from '../../services/inventory.service';
 import { useBranchStore } from '@/stores/branchStore';
@@ -95,21 +96,15 @@ export default function StockOpnameList() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold mb-2">Stock Opname</h1>
-            <p className="text-primary-100 text-lg">Kelola stock opname dan audit stok</p>
-          </div>
-          <Link
-            to="/inventory/opname/new"
-            className="px-6 py-3 bg-white/20 hover:bg-white/30 rounded-lg font-semibold transition-all flex items-center gap-2 backdrop-blur-sm"
-          >
-            <Plus className="w-5 h-5" />
-            <span>Mulai Opname</span>
-          </Link>
-        </div>
-      </div>
+      <PageHeader title="Stock Opname" subtitle="Kelola stock opname dan audit stok">
+        <Link
+          to="/inventory/opname/new"
+          className="px-6 py-3 bg-white/20 hover:bg-white/30 rounded-lg font-semibold transition-all flex items-center gap-2 backdrop-blur-sm"
+        >
+          <Plus className="w-5 h-5" />
+          <span>Mulai Opname</span>
+        </Link>
+      </PageHeader>
 
       {/* Error Message */}
       {error && (

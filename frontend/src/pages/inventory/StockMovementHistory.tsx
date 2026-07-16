@@ -13,6 +13,7 @@ import {
   TrendingUp,
   TrendingDown,
 } from 'lucide-react';
+import { PageHeader } from '@/components/shared';
 import { inventoryService } from '../../services/inventory.service';
 import { useBranchStore } from '@/stores/branchStore';
 
@@ -131,12 +132,7 @@ export default function StockMovementHistory() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div>
-          <h1 className="text-4xl font-bold mb-2">Riwayat Perpindahan Stok</h1>
-          <p className="text-primary-100 text-lg">Lihat semua perpindahan stok produk</p>
-        </div>
-      </div>
+      <PageHeader title="Riwayat Perpindahan Stok" subtitle="Lihat semua perpindahan stok produk" />
 
       {/* Error Message */}
       {error && (

@@ -8,7 +8,7 @@ import App from './App.tsx';
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
-      .register('/sw.js')
+      .register('/sw.js?v=2')  // v2 bump due to Cloudflare edge caching
       .then((registration) => {
         console.log('SW registered:', registration);
 

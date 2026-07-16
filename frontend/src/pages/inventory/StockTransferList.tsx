@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { PageHeader } from '@/components/shared';
 import {
   Plus,
   Search,
@@ -133,21 +134,15 @@ export default function StockTransferList() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold mb-2">Transfer Stok</h1>
-            <p className="text-primary-100 text-lg">Kelola transfer stok antar cabang</p>
-          </div>
-          <Link
-            to="/inventory/transfer/new"
-            className="px-6 py-3 bg-white/20 hover:bg-white/30 rounded-lg font-semibold transition-all flex items-center gap-2 backdrop-blur-sm"
-          >
-            <Plus className="w-5 h-5" />
-            <span>Transfer Baru</span>
-          </Link>
-        </div>
-      </div>
+      <PageHeader title="Transfer Stok" subtitle="Kelola transfer stok antar cabang">
+        <Link
+          to="/inventory/transfer/new"
+          className="px-6 py-3 bg-white/20 hover:bg-white/30 rounded-lg font-semibold transition-all flex items-center gap-2 backdrop-blur-sm"
+        >
+          <Plus className="w-5 h-5" />
+          <span>Transfer Baru</span>
+        </Link>
+      </PageHeader>
 
       {/* Error Message */}
       {error && (

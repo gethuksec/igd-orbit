@@ -9,6 +9,12 @@ interface ModalProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
+/**
+ * @deprecated Use shadcn Dialog instead (@/components/ui/dialog).
+ * Replace Modal with Dialog + DialogContent + DialogHeader + DialogTitle.
+ * Props to migrate: open→open, onClose→onOpenChange, title→DialogTitle, children→DialogContent children.
+ * Sizes: sm→sm:max-w-sm, md→sm:max-w-md, lg→sm:max-w-lg, xl→sm:max-w-xl
+ */
 export function Modal({ open, onClose, title, children, size = 'md' }: ModalProps) {
   if (!open) return null;
 

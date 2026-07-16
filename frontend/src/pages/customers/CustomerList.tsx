@@ -22,7 +22,7 @@ import { SearchFilter } from '@/components/shared';
 import { DataTable } from '@/components/shared';
 import type { Column } from '@/components/shared';
 import { Button } from '@/components/ui/button';
-import { Modal } from '../../components/ui/modal';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import CustomerFormModal from './CustomerFormModal';
 
 export default function CustomerList() {
@@ -377,15 +377,19 @@ export default function CustomerList() {
       )}
 
       {/* Import Modal */}
-      <Modal
+      <Dialog
         open={showImportModal}
-        onClose={() => {
-          setShowImportModal(false);
-          setImportFile(null);
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowImportModal(false);
+            setImportFile(null);
+          }
         }}
-        title="Import Pelanggan"
-        size="md"
       >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Import Pelanggan</DialogTitle>
+          </DialogHeader>
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Pilih File CSV</label>
@@ -432,18 +436,23 @@ export default function CustomerList() {
             </Button>
           </div>
         </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Modal */}
-      <Modal
+      <Dialog
         open={deleteModalOpen}
-        onClose={() => {
-          setDeleteModalOpen(false);
-          setCustomerToDelete(null);
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteModalOpen(false);
+            setCustomerToDelete(null);
+          }
         }}
-        title="Konfirmasi Hapus"
-        size="md"
       >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Konfirmasi Hapus</DialogTitle>
+          </DialogHeader>
         <div className="space-y-4">
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
@@ -477,7 +486,8 @@ export default function CustomerList() {
             </button>
           </div>
         </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
 
       {/* Customer Form Modal (Create / Edit with tabs) */}
       <CustomerFormModal

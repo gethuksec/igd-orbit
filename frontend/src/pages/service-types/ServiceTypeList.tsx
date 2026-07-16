@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { serviceTypesService } from '../../services/service-types.service';
 import { toast } from 'sonner';
-import { Modal } from '@/components/ui/modal';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { PageHeader, StatCard, SearchFilter, DataTable } from '@/components/shared';
 import type { Column } from '@/components/shared';
@@ -336,25 +336,29 @@ export default function ServiceTypeList() {
       />
 
       {/* Form Modal */}
-      <Modal
+      <Dialog
         open={formModalOpen}
-        onClose={() => {
-          setFormModalOpen(false);
-          setEditingServiceType(null);
-          setFormData({
-            name: '',
-            code: '',
-            description: '',
-            basePrice: '',
-            minPrice: '',
-            maxPrice: '',
-            slaHours: '',
-            isActive: true,
-          });
+        onOpenChange={(open) => {
+          if (!open) {
+            setFormModalOpen(false);
+            setEditingServiceType(null);
+            setFormData({
+              name: '',
+              code: '',
+              description: '',
+              basePrice: '',
+              minPrice: '',
+              maxPrice: '',
+              slaHours: '',
+              isActive: true,
+            });
+          }
         }}
-        title={editingServiceType ? 'Edit Layanan' : 'Tambah Layanan'}
-        size="md"
       >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingServiceType ? 'Edit Layanan' : 'Tambah Layanan'}</DialogTitle>
+          </DialogHeader>
         <form onSubmit={handleFormSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -508,18 +512,23 @@ export default function ServiceTypeList() {
             </button>
           </div>
         </form>
-      </Modal>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Modal */}
-      <Modal
+      <Dialog
         open={deleteModalOpen}
-        onClose={() => {
-          setDeleteModalOpen(false);
-          setServiceTypeToDelete(null);
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteModalOpen(false);
+            setServiceTypeToDelete(null);
+          }
         }}
-        title="Konfirmasi Hapus"
-        size="md"
       >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Konfirmasi Hapus</DialogTitle>
+          </DialogHeader>
         <div className="space-y-4">
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
@@ -565,7 +574,8 @@ export default function ServiceTypeList() {
             </button>
           </div>
         </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -11,6 +11,8 @@ import {
 import { serviceReturnsService } from '../../services/service-returns.service';
 import { toast } from 'sonner';
 import { api } from '@/services/api';
+import { PageHeader } from '@/components/shared';
+import { Button } from '@/components/ui/button';
 
 const getCurrentUser = () => {
   try {
@@ -175,29 +177,26 @@ export default function ServiceReturnDetail() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header - Enhanced */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate('/service-returns')}
-              className="p-2 hover:bg-white/20 rounded-lg transition"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-4xl font-bold mb-2">{returnItem.returnNumber}</h1>
-              <p className="text-primary-100 text-lg">Detail Retur & Komplain Service</p>
-            </div>
-          </div>
-          <span
-            className={`inline-flex px-4 py-2 text-sm font-bold rounded-full border-2 ${getStatusColor(
-              returnItem.status,
-            )} bg-white/10 backdrop-blur-sm`}
-          >
-            {returnItem.status.toUpperCase()}
-          </span>
-        </div>
-      </div>
+      <PageHeader
+        title={returnItem.returnNumber}
+        subtitle="Detail Retur & Komplain Service"
+      >
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/service-returns')}
+          className="text-white/80 hover:text-white hover:bg-white/20"
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </Button>
+        <span
+          className={`inline-flex px-4 py-2 text-sm font-bold rounded-full border-2 ${getStatusColor(
+            returnItem.status,
+          )} bg-white/10 backdrop-blur-sm`}
+        >
+          {returnItem.status.toUpperCase()}
+        </span>
+      </PageHeader>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}

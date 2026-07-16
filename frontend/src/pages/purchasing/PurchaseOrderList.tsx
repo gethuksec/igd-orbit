@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { FileText, Search, Eye, Plus, CheckCircle, XCircle, Clock, Package, AlertCircle } from 'lucide-react';
 import { purchasingService, type PurchaseOrder } from '@/services/purchasing.service';
 import { formatCurrency, formatDate } from '@/utils/format';
+import { PageHeader } from '@/components/shared';
 import { useBranchStore } from '@/stores/branchStore';
 
 export default function PurchaseOrderList() {
@@ -108,24 +109,15 @@ export default function PurchaseOrderList() {
   return (
     <div className="w-full space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-              <FileText className="w-10 h-10" />
-              Purchase Order
-            </h1>
-            <p className="text-primary-100 text-lg">Kelola purchase order dan pembelian</p>
-          </div>
-          <Link
+      <PageHeader title="Purchase Order" subtitle="Kelola purchase order dan pembelian">
+        <Link
             to="/purchasing/po/new"
             className="px-6 py-3 bg-white text-primary-600 rounded-lg font-semibold hover:bg-primary-50 transition-colors flex items-center gap-2"
           >
             <Plus className="w-5 h-5" />
             PO Baru
           </Link>
-        </div>
-      </div>
+      </PageHeader>
 
       {/* Filters & Search */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">

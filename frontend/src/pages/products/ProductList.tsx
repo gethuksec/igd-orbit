@@ -21,7 +21,7 @@ import {
 import { api } from '../../services/api';
 import { productsService } from '../../services/products.service';
 import { toast } from 'sonner';
-import { Modal } from '../../components/ui/modal';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { PageHeader } from '@/components/shared';
@@ -588,12 +588,16 @@ export default function ProductList() {
       )}
 
       {/* Delete Confirmation Modal */}
-      <Modal
+      <Dialog
         open={deleteModalOpen}
-        onClose={() => { setDeleteModalOpen(false); setProductToDelete(null); }}
-        title="Konfirmasi Hapus"
-        size="md"
+        onOpenChange={(open) => {
+          if (!open) { setDeleteModalOpen(false); setProductToDelete(null); }
+        }}
       >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Konfirmasi Hapus</DialogTitle>
+          </DialogHeader>
         <div className="space-y-4">
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
@@ -627,7 +631,8 @@ export default function ProductList() {
             </button>
           </div>
         </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

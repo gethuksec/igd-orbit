@@ -6,6 +6,8 @@ import { serviceReturnsService, type CreateServiceReturnDto } from '../../servic
 import { serviceOrdersService } from '../../services/service-orders.service';
 import { toast } from 'sonner';
 import { useBranchStore } from '@/stores/branchStore';
+import { PageHeader } from '@/components/shared';
+import { Button } from '@/components/ui/button';
 
 export default function ServiceReturnForm() {
   const [searchParams] = useSearchParams();
@@ -155,20 +157,20 @@ export default function ServiceReturnForm() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header - Enhanced */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate('/service-returns')}
-            className="p-2 hover:bg-white/20 rounded-lg transition"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div>
-            <h1 className="text-4xl font-bold mb-2">Buat Retur & Komplain Service</h1>
-            <p className="text-primary-100 text-lg">Formulir untuk membuat retur atau komplain service</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title="Buat Retur & Komplain Service"
+        subtitle="Formulir untuk membuat retur atau komplain service"
+      >
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/service-returns')}
+          className="text-white/80 hover:text-white hover:bg-white/20"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Kembali
+        </Button>
+      </PageHeader>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Service Order Selection */}

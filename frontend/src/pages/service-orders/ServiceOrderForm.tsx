@@ -8,6 +8,8 @@ import { salesService } from '../../services/sales.service';
 import { customersService } from '../../services/customers.service';
 import { toast } from 'sonner';
 import kecamatanJember from '@/data/kecamatan-jember.json';
+import { PageHeader } from '@/components/shared';
+import { Button } from '@/components/ui/button';
 
 // Common device units for combobox suggestions
 const COMMON_DEVICE_UNITS = [
@@ -282,29 +284,20 @@ export default function ServiceOrderForm() {
     return (
       <div className="w-full space-y-3">
         {/* Page Header */}
-        <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate('/service-orders')}
-                className="p-2 text-white/80 hover:bg-white/20 rounded-lg transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </button>
-              <div>
-                <h1 className="text-3xl font-bold mb-1">Tambah Service Order</h1>
-                <p className="text-primary-100">Pilih kategori dan tipe service</p>
-              </div>
-            </div>
-            <button
-              onClick={() => navigate('/service-orders')}
-              className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm text-white rounded-lg hover:bg-white/20 transition-all"
-            >
-              <X className="w-4 h-4" />
-              <span>Batal</span>
-            </button>
-          </div>
-        </div>
+        <PageHeader
+          title="Tambah Service Order"
+          subtitle="Pilih kategori dan tipe service"
+        >
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/service-orders')}
+            className="text-white/80 hover:text-white hover:bg-white/20"
+          >
+            <X className="w-4 h-4 mr-2" />
+            Batal
+          </Button>
+        </PageHeader>
 
         {/* Pre-form Card */}
         <form onSubmit={handlePreFormSubmit} className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
@@ -396,40 +389,34 @@ export default function ServiceOrderForm() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => {
-                if (!isEdit) {
-                  // Go back to pre-form step
-                  setShowPreForm(true);
-                  return;
-                }
-                navigate('/service-orders');
-              }}
-              className="p-2 text-white/80 hover:bg-white/20 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-3xl font-bold mb-1">
-                {isEdit ? 'Edit Service Order' : 'Tambah Service Order'}
-              </h1>
-              <p className="text-primary-100">
-                {isEdit ? 'Ubah informasi service order' : 'Lengkapi data service order'}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => navigate('/service-orders')}
-            className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm text-white rounded-lg hover:bg-white/20 transition-all"
-          >
-            <X className="w-4 h-4" />
-            <span>Batal</span>
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title={isEdit ? 'Edit Service Order' : 'Tambah Service Order'}
+        subtitle={isEdit ? 'Ubah informasi service order' : 'Lengkapi data service order'}
+      >
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            if (!isEdit) {
+              setShowPreForm(true);
+              return;
+            }
+            navigate('/service-orders');
+          }}
+          className="text-white/80 hover:text-white hover:bg-white/20"
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/service-orders')}
+          className="text-white/80 hover:text-white hover:bg-white/20"
+        >
+          <X className="w-4 h-4 mr-2" />
+          Batal
+        </Button>
+      </PageHeader>
 
       {/* Form Card */}
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">

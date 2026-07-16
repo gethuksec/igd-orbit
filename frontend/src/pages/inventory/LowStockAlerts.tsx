@@ -9,6 +9,7 @@ import {
   Download,
   CheckCircle,
 } from 'lucide-react';
+import { PageHeader } from '@/components/shared';
 import { inventoryService } from '../../services/inventory.service';
 import { useBranchStore } from '@/stores/branchStore';
 import { api } from '@/services/api';
@@ -68,23 +69,17 @@ export default function LowStockAlerts() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header */}
-      <div className="bg-gradient-to-r from-red-600 to-red-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold mb-2">Peringatan Stok Rendah</h1>
-            <p className="text-red-100 text-lg">Produk dengan stok di bawah reorder point</p>
-          </div>
-          {alerts && alerts.items.length > 0 && (
-            <button
-              onClick={handleExport}
-              className="px-6 py-3 bg-white/20 hover:bg-white/30 rounded-lg font-semibold transition-all flex items-center gap-2 backdrop-blur-sm"
-            >
-              <Download className="w-5 h-5" />
-              <span>Export CSV</span>
-            </button>
-          )}
-        </div>
-      </div>
+      <PageHeader title="Peringatan Stok Rendah" subtitle="Produk dengan stok di bawah reorder point">
+        {alerts && alerts.items.length > 0 && (
+          <button
+            onClick={handleExport}
+            className="px-6 py-3 bg-white/20 hover:bg-white/30 rounded-lg font-semibold transition-all flex items-center gap-2 backdrop-blur-sm"
+          >
+            <Download className="w-5 h-5" />
+            <span>Export CSV</span>
+          </button>
+        )}
+      </PageHeader>
 
       {/* Error Message */}
       {error && (

@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Save, X, Loader2, ArrowLeft, Tag } from "lucide-react";
-import { api } from "../../services/api";
-import { toast } from "sonner";
+import { Save, X, Loader2, Tag } from 'lucide-react';
+import { api } from '../../services/api';
+import { toast } from 'sonner';
+import { PageHeader } from '@/components/shared';
+import { Button } from '@/components/ui/button';
 
 export default function SalesTypeForm() {
   const { id } = useParams();
@@ -69,33 +71,20 @@ export default function SalesTypeForm() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate("/sales-types")}
-              className="p-2 text-white/80 hover:bg-white/20 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-3xl font-bold mb-1">
-                {isEdit ? "Edit Tipe Penjualan" : "Tambah Tipe Penjualan"}
-              </h1>
-              <p className="text-primary-100">
-                {isEdit ? "Ubah informasi tipe penjualan" : "Tambahkan tipe penjualan baru"}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => navigate("/sales-types")}
-            className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm text-white rounded-lg hover:bg-white/20 transition-all"
-          >
-            <X className="w-4 h-4" />
-            <span>Batal</span>
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title={isEdit ? 'Edit Tipe Penjualan' : 'Tambah Tipe Penjualan'}
+        subtitle={isEdit ? 'Ubah informasi tipe penjualan' : 'Tambahkan tipe penjualan baru'}
+      >
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/sales-types')}
+          className="text-white/80 hover:text-white hover:bg-white/20"
+        >
+          <X className="w-4 h-4 mr-2" />
+          Batal
+        </Button>
+      </PageHeader>
 
       {/* Form Card */}
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">

@@ -9,7 +9,7 @@ import { SearchFilter } from "@/components/shared";
 import { DataTable } from "@/components/shared";
 import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
-import { Modal } from "@/components/ui/modal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type StatusFilter = "all" | "active" | "inactive";
 
@@ -322,16 +322,20 @@ export default function CategoryList() {
       )}
 
       {/* Form Modal */}
-      <Modal
+      <Dialog
         open={formModalOpen}
-        onClose={() => {
-          setFormModalOpen(false);
-          setEditingCategory(null);
-          setFormData({ name: "", description: "", isActive: true });
+        onOpenChange={(open) => {
+          if (!open) {
+            setFormModalOpen(false);
+            setEditingCategory(null);
+            setFormData({ name: "", description: "", isActive: true });
+          }
         }}
-        title={editingCategory ? "Edit Kategori" : "Tambah Kategori"}
-        size="md"
       >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingCategory ? "Edit Kategori" : "Tambah Kategori"}</DialogTitle>
+          </DialogHeader>
         <form onSubmit={handleFormSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -405,18 +409,23 @@ export default function CategoryList() {
             </button>
           </div>
         </form>
-      </Modal>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Modal */}
-      <Modal
+      <Dialog
         open={deleteModalOpen}
-        onClose={() => {
-          setDeleteModalOpen(false);
-          setCategoryToDelete(null);
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteModalOpen(false);
+            setCategoryToDelete(null);
+          }
         }}
-        title="Konfirmasi Hapus"
-        size="md"
       >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Konfirmasi Hapus</DialogTitle>
+          </DialogHeader>
         <div className="space-y-4">
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
@@ -463,7 +472,8 @@ export default function CategoryList() {
             </button>
           </div>
         </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
