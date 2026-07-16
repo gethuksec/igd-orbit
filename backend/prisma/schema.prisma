@@ -375,6 +375,23 @@ model SalesType {
   @@map("sales_types")
 }
 
+model PaymentTerm {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  name      String
+  days      Int      @default(0)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  customers Customer[]
+
+  @@index([code])
+  @@index([isActive])
+  @@map("payment_terms")
+}
+
 model Product {
   id                    String    @id @default(uuid())
   barcode               String?   @unique
@@ -516,6 +533,7 @@ model Customer {
   creditLimit          Decimal   @default(0) @map("credit_limit") @db.Decimal(15, 2) // Plafon Nilai
   creditLimitNoteCount Int?      @map("credit_limit_note_count") // Plafon Jumlah Nota
   creditUsed           Decimal   @default(0) @map("credit_used") @db.Decimal(15, 2)
+  paymentTermId        String?   @map("payment_term_id")
   paymentTermDays      Int?      @map("payment_term_days")
   preferredBranchId    String?   @map("preferred_branch_id")
   depositBalance       Decimal   @default(0) @map("deposit_balance") @db.Decimal(15, 2)
@@ -531,6 +549,7 @@ model Customer {
   // Relations
   tier             CustomerTier?      @relation(fields: [tierId], references: [id], onDelete: SetNull)
   preferredBranch  Branch?            @relation(fields: [preferredBranchId], references: [id], onDelete: SetNull)
+  paymentTerm      PaymentTerm?       @relation(fields: [paymentTermId], references: [id], onDelete: SetNull)
   transactions     SalesTransaction[]
   serviceOrders    ServiceOrder[]
   arPayments       ARPayment[]

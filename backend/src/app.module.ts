@@ -28,6 +28,7 @@ import { WebSocketModule } from './modules/websocket/websocket.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
 import { CustomerTiersModule } from './modules/customer-tiers/customer-tiers.module';
+import { PaymentTermsModule } from './modules/payment-terms/payment-terms.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -60,6 +61,7 @@ import { CustomerTiersModule } from './modules/customer-tiers/customer-tiers.mod
     RolesModule,
     PermissionsModule,
     CustomerTiersModule,
+    PaymentTermsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
