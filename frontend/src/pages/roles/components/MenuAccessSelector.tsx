@@ -38,7 +38,7 @@ const MENU_STRUCTURE: MenuItem[] = [
     label: 'Penjualan',
     icon: ShoppingCart,
     children: [
-      { key: 'sales.pos', label: 'POS', path: '/sales/pos' },
+      { key: 'sales.pos', label: 'POS', path: '/pos' },
       { key: 'sales.history', label: 'Riwayat Penjualan', path: '/sales/history' },
       { key: 'sales.returns', label: 'Retur Penjualan', path: '/sales/returns' },
     ],

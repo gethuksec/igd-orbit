@@ -325,7 +325,7 @@ export default function CustomerDetail() {
                   <span>Service Order</span>
                 </button>
                 <button
-                  onClick={() => navigate(`/sales/pos?customerId=${id}`)}
+                  onClick={() => navigate(`/pos?customerId=${id}`)}
                   className="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg font-medium hover:bg-blue-100 transition-all border border-blue-200 text-sm"
                   title="Buat Penjualan dengan data customer ini"
                 >

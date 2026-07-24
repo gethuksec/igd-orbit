@@ -7,7 +7,7 @@ export default function SalesLanding() {
       icon: ShoppingCart,
       title: 'POS',
       description: 'Point of Sale untuk transaksi penjualan',
-      path: '/sales/pos',
+      path: '/pos',
       color: 'from-primary-500 to-primary-600',
     },
     {

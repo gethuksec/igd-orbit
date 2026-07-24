@@ -3,7 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { HelmetProvider } from 'react-helmet-async';
 import { Toaster } from 'sonner';
-import POSPage from './pages/sales/pos/POSPage';
+import POSTransaksi from './pages/pos/POSTransaksi';
+import POSLayout from './layouts/POSLayout';
 import LandingPage from './pages/public/LandingPage';
 import ServiceTracking from './pages/public/ServiceTracking';
 import Login from './pages/auth/Login';
@@ -249,14 +250,14 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            {/* POS Route */}
+            {/* POS Route — full page, no sidebar */}
             <Route
-              path="/sales/pos"
+              path="/pos"
               element={
                 <ProtectedRoute>
-                  <DashboardLayout>
-                    <POSPage />
-                  </DashboardLayout>
+                  <POSLayout>
+                    <POSTransaksi />
+                  </POSLayout>
                 </ProtectedRoute>
               }
             />
