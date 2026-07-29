@@ -3,7 +3,7 @@
 > **Vision:** Modernize the entire IGD-Orbit frontend — consistent UI via shadcn, redesigned POS workflow inspired by Erzap, and targeted module adjustments per business needs.
 
 **Status:** 🟢 Active — in execution
-**Last Updated:** 2026-07-16
+**Last Updated:** 2026-07-24
 
 ---
 
@@ -13,10 +13,12 @@
 2. [Workstream A: shadcn/ui Migration](#2-workstream-a-shadcnui-migration)
 3. [Workstream B: POS Redesign (Erzap-style)](#3-workstream-b-pos-redesign-erzap-style)
 4. [Workstream C: Module Adjustments](#4-workstream-c-module-adjustments--tbd)
-5. [Dependencies & Ordering](#5-dependencies--ordering)
-6. [Rollout Strategy](#6-rollout-strategy)
-7. [Risk Register](#7-risk-register)
-8. [Open Questions](#8-open-questions)
+5. [Workstream D: Organization Architecture (User/Branch/Warehouse/Role)](#5-workstream-d-organization-architecture-userbranchwarehouserole)
+6. [Workstream E: Service Module Redesign](#6-workstream-e-service-module-redesign--pending-discussion)
+7. [Dependencies & Ordering](#7-dependencies--ordering)
+8. [Rollout Strategy](#8-rollout-strategy)
+9. [Risk Register](#9-risk-register)
+10. [Open Questions](#10-open-questions)
 
 ---
 
@@ -52,7 +54,9 @@
 MASTER PLAN
 ├── A. shadcn/ui Migration ─────── Foundation → Layout → Patterns → Rollout → Cleanup
 ├── B. POS Redesign ─────────────── Invoice form → Table → Payment → API → Polish
-└── C. Module Adjustments ───────── [TBD — add as needed]
+├── C. Module Adjustments ───────── [TBD — add as needed]
+├── D. Organization Architecture ── Branch → Warehouse → Role → User assignments
+└── E. Service Redesign ─────────── [Pending discussion — Erzap-style service page]
 ```
 
 ---
@@ -325,7 +329,225 @@ End-to-end test (after B5):
 
 ---
 
-## 5. Dependencies & Ordering
+## 5. Workstream D: Organization Architecture (User/Branch/Warehouse/Role)
+
+**Goal:** Redesign the organization data model — clean separation between Branch (outlet), Warehouse, User, and Role. Simplify roles (title-only, no granular permission system).
+
+**Decided:** 2026-07-24 | **Status:** 🟡 Planned (not started) | **Effort:** ~8-12 hours
+
+### D.1 — Reference Design (Erzap-style)
+
+Outlet list page with search/filter sidebar:
+
+```
+┌───────────────────────────────────────────────────────────┐
+│ [Blue top bar] ERP INDONESIA                     [🌐][🔍] │
+├────┬──────────────────────────────────────────────────────┤
+│ 🏠 │ Daftar Outlet                         Pencarian     │
+│ 🔍 │ ┌────┬─────┬──────────┬──────┬────── ───┐ ┌──────┐ │
+│ 🔄 │ │ No │Grup │ Kode     │ Nama │ Kota ...  │ │Nama  │ │
+│ 🚪 │ ├────┼─────┼──────────┼──────┼───────────┤ │Outlet│ │
+│    │ │ 1  │IGD  │1GCKG15183│Spare │ Jember    │ │______│ │
+│    │ │ 2  │IGD  │1FXH217005│Kalis │ Jember    │ │CP    │ │
+│    │ │ .. │     │          │      │           │ │______│ │
+│    │ └────┴─────┴──────────┴──────┴───────────┘ │Status│ │
+│    │ Total data = 4                       [F5=...]│ [v]  │ │
+│    │                                          │Kota  │ │
+│    │                                          │______│ │
+│    │                                          │Alamat│ │
+│    │                                          │______│ │
+│    │                                          │ ...  │ │
+│    │                                          │[Cari]│ │
+│    └──────────────────────────────────────────┴──────┘ │
+└───────────────────────────────────────────────────────────┘
+```
+
+### D.2 — Data Model
+
+#### Branch (outlet only — pure selling location)
+
+```prisma
+model Branch {
+  id             String    @id @default(uuid())
+  code           String    @unique
+  name           String
+  group          String?   // e.g. "IGD Group"
+  city           String?
+  address        String?
+  phone          String?
+  email          String?
+  director       String?
+  contactPerson  String?
+  mobilePhone    String?
+  isActive       Boolean   @default(true)
+  operatingHours Json?     // JSONB: {"monday": {"open": "08:00", "close": "22:00"}, ...}
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  warehouses    Warehouse[]      // 1 outlet → N warehouses
+  userBranches  UserBranch[]
+  // Keep existing relations: salesTransactions, serviceOrders, etc.
+}
+```
+
+#### Warehouse (separate table — exclusive to one outlet)
+
+```prisma
+model Warehouse {
+  id             String    @id @default(uuid())
+  code           String    @unique
+  name           String
+  city           String?
+  address        String?
+  phone          String?
+  email          String?
+  contactPerson  String?
+  mobilePhone    String?
+  isActive       Boolean   @default(true)
+  outletId       String    @map("outlet_id")  // FK → Branch.id (exclusive)
+  outlet         Branch    @relation(fields: [outletId], references: [id])
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  productStocks      ProductStock[]    // stock lives here
+  stockMovements     StockMovement[]
+  stockTransfersFrom StockTransfer[]   @relation("StockTransferFrom")
+  stockTransfersTo   StockTransfer[]   @relation("StockTransferTo")
+  stockOpnames       StockOpname[]
+  purchaseOrders     PurchaseOrder[]
+  goodsReceipts      GoodsReceipt[]
+}
+```
+
+#### Role (standalone CRUD — title only, no permission system)
+
+```prisma
+model Role {
+  id          String    @id @default(uuid())
+  code        String    @unique
+  name        String
+  description String?
+  level       Int       // Hierarchical level (0=SUPERADMIN, 1=OWNER, 2=MANAGER, etc.)
+  isActive    Boolean   @default(true)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  userBranches UserBranch[]
+}
+```
+
+**Removed:** `Permission`, `RolePermission`, `RoleMenuAccess` tables. Menu visibility is driven by `Role.level` (simple numeric hierarchy) + hardcoded checks per module.
+
+#### UserBranch (user → outlet + role assignment)
+
+```prisma
+model UserBranch {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  branchId  String   @map("branch_id")   // outlet only (NOT warehouse)
+  roleId    String   @map("role_id")
+  isPrimary Boolean  @default(false)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, branchId, roleId])
+  @@index([userId])
+  @@index([branchId])
+  @@index([roleId])
+  @@map("user_branches")
+}
+```
+
+#### User (simplified — no role/outlet directly on user)
+
+```prisma
+model User {
+  id                  String    @id @default(uuid())
+  email               String    @unique
+  username            String?   @unique
+  passwordHash        String    @map("password_hash")
+  fullName            String?
+  phone               String?
+  isActive            Boolean   @default(true)
+  isVerified          Boolean   @default(false)
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+  banReason           String?
+  lastLoginAt         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  // Relations
+  userBranches UserBranch[]
+  employee     Employee?
+  // Keep existing relations: transactions, service orders, etc.
+}
+```
+
+### D.3 — Key Rules
+
+| Rule | Detail |
+|------|--------|
+| **Branch = outlet** | `Branch` type removed. No `isWarehouse` flag. Pure selling locations. |
+| **Warehouse exclusive** | `Warehouse.outletId` FK. 1 outlet → N warehouses. No sharing. |
+| **Users → outlets only** | `UserBranch.branchId` references outlets only. Users cannot be assigned to warehouses directly. |
+| **Warehouse access** | Users access warehouses through their outlet assignment + warehouse selection in forms. |
+| **Role = title** | No `Permission`/`RolePermission`/`RoleMenuAccess`. Menu access driven by `Role.level` + hardcoded checks. |
+| **User multi-outlet** | User can have multiple `UserBranch` records (different outlet + same or different role). |
+
+### D.4 — CRUD Pages
+
+| Page | Path | Description |
+|------|------|-------------|
+| **Outlet List** | `/outlets` | Erzap-style table + search sidebar. Columns: No, Grup, Kode, Nama, Kota, Telepon, Email, Direktur, CP, Handphone |
+| **Outlet Form** | `/outlets/new`, `/outlets/:id/edit` | Create/edit outlet |
+| **Outlet Detail** | `/outlets/:id` | View outlet detail + list of its warehouses |
+| **Warehouse List** | `/warehouses` | Filterable by parent outlet. Columns: No, Kode, Nama, Outlet Induk, Kota, CP, Telepon |
+| **Warehouse Form** | `/warehouses/new`, `/warehouses/:id/edit` | Create/edit — outletId selects parent outlet |
+| **Warehouse Detail** | `/warehouses/:id` | View warehouse detail |
+| **Role List** | `/roles` | Simple table: No, Kode, Nama, Level, Status |
+| **Role Form** | `/roles/new`, `/roles/:id/edit` | Create/edit — code, name, description, level |
+| **User List** | `/users` | Update to show UserBranch assignments |
+| **User Form** | `/users/:id/edit` | Assign user to outlets + select role per assignment |
+
+### D.5 — Migration Steps
+
+| Phase | What | Files | ~Time |
+|-------|------|-------|-------|
+| **D1** Prisma schema | Create Warehouse model, simplify Role, create UserBranch, update Branch (drop type/isWarehouse), update User | `schema.prisma` + migration | 1.5h |
+| **D2** Backend CRUD | Warehouse module (list/create/edit/detail). Role module (simplified CRUD). Branch module (clean outlet-only). Update User module (UserBranch assignments). | `backend/src/modules/warehouse/`, `backend/src/modules/role/`, `backend/src/modules/branch/`, `backend/src/modules/user/` | 3h |
+| **D3** Frontend: Outlet pages | Outlet List (Erzap-style), Outlet Form, Outlet Detail, Warehouse List/Form/Detail | `frontend/src/pages/outlets/`, `frontend/src/pages/warehouses/` | 3h |
+| **D4** Frontend: Role + User pages | Role List/Form (simplified), update User form with UserBranch assignments | `frontend/src/pages/roles/`, `frontend/src/pages/users/` | 2h |
+| **D5** POS integration | Update POS header: outlet dropdown → Branch, warehouse dropdown → Warehouse (filtered by outlet), salesperson → filtered by UserBranch | `POSTransaksi.tsx`, `posStore.ts` | 1.5h |
+| **D6** Data migration | Seed script: migrate existing Branch records → split outlets vs warehouses. Migrate UserRole → UserBranch. | `seed.ts`, migration script | 1h |
+
+### D.6 — Open Questions
+
+1. **`Role.level` thresholding**: What level number for each role? (SUPERADMIN=0, OWNER=1, MANAGER=2, SPV=3, STAFF=4?)
+2. **Menu visibility**: Should it be purely `Role.level` based (e.g. level ≤ 1 sees everything) or need per-role menu config?
+3. **User default branch**: When a user logs in and has multiple outlet assignments, which one is default? (a) Last used, (b) Primary flag, (c) First in list
+4. **Existing data migration**: What to do with current Branch records that have `isWarehouse=true` or `type="warehouse"`?
+
+---
+
+## 6. Workstream E: Service Module Redesign
+
+**Status:** 🟡 Pending discussion — not yet started
+
+### E.0 — Context
+
+The POS page was redesigned as an Erzap-style single-page invoice form. The Service module (servis/service-orders) likely needs a similar treatment — a dedicated service intake page that follows the same design language as the new POS.
+
+---
+
+## 7. Dependencies & Ordering
 
 **Decided sequence: Option C**
 
@@ -357,22 +579,34 @@ End-to-end test (after B5):
              └──→ ⌛ A4 cleanup (after everything)
 ```
 
+**New workstreams can run in parallel after current ones complete.** D (Organization Architecture) depends on nothing except completing the current POS polish. E (Service Redesign) depends on D (needs warehouse/outlet model).
+
+```
+⌛ B6 (ongoing) ──→ 🟡 D (Organization Architecture)
+                                        │
+                                  └──→ E (Service Redesign)
+```
+
 ---
 
-## 6. Rollout Strategy
+## 8. Rollout Strategy
 
 **Recommendation:** Deploy to homelab after each workstream phase, NOT after every task.
 
 ```yaml
 Deploy cadence:
   A0-A1:  one deploy (foundation, no visible change) ✅ Done
-  A2:     one deploy (sidebar changes) ⌛
+  A2:     one deploy (sidebar changes) ✅ Done
   A3.1:   one deploy (Master Data pages — first visible rollout) ✅ Done + verified
   B1-B2:  one deploy (POS store + header — behind feature flag or unlinked)
   B3-B4:  one deploy (table + bottom section — testable but not replacing old POS)
   A3.2+:  one deploy per menu group
   B5-B6:  one deploy (POS goes live — swap routes)
   A4:     final cleanup deploy
+  D1-D2:  one deploy (schema + backend — no visible change)
+  D3-D5:  one deploy (frontend pages + POS integration)
+  D6:     one deploy (data migration + seed)
+  E:      TBD
 ```
 
 ### Feature Flag for POS
@@ -385,7 +619,7 @@ const useNewPOS = import.meta.env.DEV && localStorage.getItem('pos-v2') === 'tru
 
 ---
 
-## 7. Risk Register
+## 9. Risk Register
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|-----------|--------|------------|
@@ -396,42 +630,25 @@ const useNewPOS = import.meta.env.DEV && localStorage.getItem('pos-v2') === 'tru
 | **Backend API missing fields (salesperson, tax breakdown, draft)** | High | 🟡 Medium | Add backend endpoints in parallel, or hardcode defaults temporarily |
 | **Scope creep — "module adjustments" grows unbounded** | Medium | 🟡 Medium | Each adjustment is gated by separate PRD/approval |
 | **Build time increases with full migration** | Low | 🟢 Low | Keep vite config optimized |
+| **D data migration — existing Branch records with isWarehouse=true** | Medium | 🟡 Medium | Write careful migration script, test on backup first |
+| **Service Redesign scope unclear** | Medium | 🟡 Medium | Discuss + document requirements before starting |
 
 ---
 
-## Decisions (Resolved)
+## 10. Open Questions
 
-| # | Question | Decision |
-|---|----------|----------|
-| 1 | **Ordering** | ✅ **Option C** — A0→A1→A3.1 (Master Data pilot) → B1 (POS store) + A2 (sidebar) in parallel → continue |
-| 2 | **POS color scheme** | ✅ **(a) Follow our red theme** — consistent with rest of IGD-Orbit |
-| 4 | **Cashback column** | ✅ **Not needed** — skip the @Cashback column entirely |
-| 5 | **Tukar Tambah (Trade-in)** | ✅ **Not needed** — skip trade-in feature |
-| 6 | **Excel import for product table** | ✅ **Not needed for v1** — could add later |
-| 7 | **Module Adjustments** | ✅ **Placeholder** — discuss later as needs arise |
-
----
-
-## Open Questions
-
-1. ~~**Ordering:** Should POS redesign happen before or after shadcn migration on other menus? (see dependency graph above)~~ → **Decided: Option C**
+1. ~~**Ordering:** Should POS redesign happen before or after shadcn migration on other menus?~~ → **Decided: Option C**
 
 2. ~~**POS color scheme:** The reference uses blue as primary. Our theme is red. Should the POS:
    - (a) Follow our red theme? 
    - (b) Match the reference blue (different module = different color)?
    - (c) Neutral/grey with accent colors per function?~~ → **Decided: (a) Red theme**
 
-3. ~~**Backend readiness:** Do we need new API endpoints before POS redesign?
-   - `GET /employees?role=sales` → salesperson list
-   - `POST /sales/transactions/draft` → draft save
-   - `POST /sales/transactions/:id/duplicate` → duplicate
-   - `PATCH /sales/transactions/:id` → update draft
-   - Tax breakdown fields in create/update payload
-   - `salesType`, `paymentTerms`, `warehouseId` fields~~ → **Addressed: POS API layer B0 covers all of these**
+3. ~~**Backend readiness:** Do we need new API endpoints before POS redesign?~~ → **Addressed: POS API layer B0 covers all of these**
 
-4. ~~**Cashback:** Is per-item cashback a real requirement or nice-to-have? (affects table column layout)~~ → **Decided: Not needed**
+4. ~~**Cashback:** Is per-item cashback a real requirement or nice-to-have?~~ → **Decided: Not needed**
 
-5. ~~**Tukar Tambah (Trade-in):** Full workflow design needed — does the customer bring an old item to exchange? Is it a discount mechanism or a separate transaction type?~~ → **Decided: Not needed**
+5. ~~**Tukar Tambah (Trade-in):** Full workflow design needed~~ → **Decided: Not needed**
 
 6. ~~**Excel import for product table:** Is this a must-have for launch, or stretch goal?~~ → **Decided: Not needed for v1, maybe later**
 
@@ -441,6 +658,16 @@ const useNewPOS = import.meta.env.DEV && localStorage.getItem('pos-v2') === 'tru
    - (a) **Keep current store-based approach** — branchId in Zustand, API picks it up automatically
    - (b) **Explicit per-action** — pass branchId in every mutation payload, no implicit store reads
    - (c) **Hybrid** — store for display/default, explicit for submission (user confirms branch before each action)
+
+9. **Role.level thresholding (from D.6):** What level number for each role?
+
+10. **Menu visibility:** Per-role menu config or purely level-based?
+
+11. **User default branch:** When user has multiple outlet assignments, which is default?
+
+12. **Data migration:** How to handle existing Branch records with `isWarehouse=true` or `type="warehouse"`?
+
+---
 
 ## Resolved: ServiceWorker Cache Strategy
 
@@ -452,14 +679,11 @@ const useNewPOS = import.meta.env.DEV && localStorage.getItem('pos-v2') === 'tru
 
 ## Appendix: Current File Inventory
 
-### POS Files (to be replaced/refactored)
+### POS Files (current)
 ```
-src/pages/sales/pos/POSPage.tsx               # 264 lines — main entry
-src/pages/sales/pos/components/POSCart.tsx     # 417 lines — cart + discount
-src/pages/sales/pos/components/POSCustomer.tsx # 332 lines — customer search
-src/pages/sales/pos/components/POSActions.tsx  # 329 lines — notes, discount, hold
-src/pages/sales/pos/components/PaymentModal.tsx# 279 lines — payment processing
-src/stores/posStore.ts                         # 299 lines — state management
+src/pages/pos/POSTransaksi.tsx            # 771 lines — new POS redesign entry
+src/layouts/POSLayout.tsx                 # POS full-page layout (no sidebar)
+src/stores/posStore.ts                    # 299 lines — state management (old, may be removed)
 ```
 
 ### Files to Create (POS Redesign)
