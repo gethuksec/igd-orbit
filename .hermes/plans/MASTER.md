@@ -653,7 +653,7 @@ SmartRepairPage                              [NEW — main entry]
 ├── ServiceTypeTabs                          [NEW — tabs/radio group]
 │   ├── Quick Servis (tab)
 │   ├── Rawat Inap (tab) — default/active
-│   └── Klaim Garansi Servis (tab)
+│   └── Klaim Garansi Servis (tab) — 🟢 v2 (deferred)
 ├── TransactionHeader                        [REUSE from B — same as POS]
 │   ├── Outlet (Select — same as POS)
 │   ├── Pelanggan (Combobox — 🔍 + 📋 + ➕)
@@ -666,12 +666,10 @@ SmartRepairPage                              [NEW — main entry]
 ├── DeviceInfoSection                       [NEW — Rawat Inap only]
 │   ├── SerialNumber (Input + 🔍)
 │   ├── NamaBarang (Input + 🔍)
-│   ├── WarrantySection (checkbox + expiry date)
-│   └── Lampiran (file upload)
+│   └── WarrantySection (checkbox + expiry date)
 ├── DamageSection                           [NEW — Rawat Inap only]
-│   ├── DeskripsiKerusakan (textarea)
-│   ├── Kelengkapan (textarea)
-│   └── KondisiBarang (textarea)
+│   ├── DeskripsiKerusakan & Kondisi (textarea — merged)
+│   └── Kelengkapan (dynamic checklist — see E.8)
 ├── QuickServiceSection                     [REUSE from B — Quick Service only]
 │   ├── Gudang (Select — same as POS, filtered by outlet)
 │   ├── ProductSearchBar (same as POS — Qty<space>barcode)
@@ -686,10 +684,10 @@ SmartRepairPage                              [NEW — main entry]
 │   ├── Tindakan (Input)
 │   └── Catatan (textarea — not on receipt)
 ├── CostSummary                             [NEW — Quick Service]
-│   ├── HargaPokokServis
-│   ├── TotalJasa
-│   ├── TotalSparePart
-│   └── OngkosKirim
+│   ├── HargaPokokServis (auto-calculated)
+│   ├── TotalJasa (manual input)
+│   ├── TotalSparePart (auto-calculated from product table)
+│   └── OngkosKirim (manual input)
 ├── DownPayment                             [NEW — Rawat Inap]
 │   └── UangMuka (Input)
 └── FooterShortcutBar                       [REUSE from B — F2/F3/F5]
@@ -732,6 +730,10 @@ SmartRepairPage                              [NEW — main entry]
 | 4 | **Quick Service vs Rawat Inap** | Quick Service = lightweight (just product table + cost). Rawat Inap = full form (device info, technician, pricing). Both possible from same page via tab. |
 | 5 | **Old vs new** | Keep old `ServiceOrderForm.tsx` alongside during transition, or replace entirely? |
 | 6 | **Service number** | Keep existing `SRV-YYYYMMDD-XXXXXX` auto-generation |
+| 7 | **Deskripsi + Kondisi merged** | Single textarea covering both damage description and item condition (matches physical form). |
+| 8 | **Kelengkapan** | Dynamic checklist — CRUD-managed master list + inline add. See [E.8 — Kelengkapan System](#e8--kelengkapan-crud-system) |
+| 9 | **Klaim Garansi tab** | 🟢 Deferred to v2 |
+| 10 | **Attachment upload** | 🟢 Deferred to v2 (added to todo) |
 
 ### E.7 — Verification
 
@@ -740,13 +742,82 @@ End-to-end test (after E5):
 1. Open Smart Repair page → Rawat Inap tab selected by default
 2. Fill outlet, customer, termin
 3. Enter serial number, device name, damage description
-4. Assign technician, set work weight and service price
-5. Switch to Quick Service tab → form collapses to product table
-6. Search product by barcode → adds to table
-7. Edit qty/price/discount inline
-8. Verify cost summary updates (Harga Pokok, Total Jasa, Total Spare Part)
-9. Save as completed (F2) → service order created
-10. Save as draft (F3) → appears in held/draft list
+4. Tick kelengkapan checkboxes + write condition notes per item
+5. Assign technician, set work weight and service price
+6. Switch to Quick Service tab → form collapses to product table
+7. Search product by barcode → adds to table
+8. Edit qty/price/discount inline
+9. Verify cost summary auto-calculates (Total Spare Part, Harga Pokok)
+10. Save as completed (F2) → service order created
+11. Save as draft (F3) → appears in held/draft list
+
+### E.8 — Kelengkapan CRUD System
+
+**Reference:** Physical IGD Ponsel SERVICE FORM checklist.
+
+#### Data Model
+
+```prisma
+model ServiceCheckpoint {
+  id             String   @id @default(uuid())
+  name           String                // e.g. "Slot SIM", "LCD", "Kamera"
+  isActive       Boolean  @default(true)   // active = shown on service form by default
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+  @@map("service_checkpoints")
+}
+```
+
+#### Service Order Kelengkapan (per-transaction snapshot)
+
+Stored as JSON on the ServiceOrder:
+
+```prisma
+model ServiceOrder {
+  // ... existing fields ...
+  completenessItems Json? @map("completeness_items") 
+  // JSONB array: [{checkpointId, name, checked: bool, conditionNote: string}]
+}
+```
+
+This way:
+- The CRUD master list evolves over time
+- Each service order stores a **snapshot** of what was checked at intake time
+- Historical records don't break when checklist items change
+
+#### CRUD Page: `/service-checkpoints`
+
+| Column | Control |
+|--------|---------|
+| No | Auto |
+| Nama Item | Text input |
+| Status | Toggle active/inactive |
+| Urutan | Drag handle or number |
+| Aksi | Edit / Delete |
+
+- **Add new item** → name + isActive=true by default
+- **Toggle isActive** → controls whether it auto-appears on service form
+- **Sort order** → controls display order on form (2 columns, left→right, top→bottom)
+
+#### Service Form Behavior
+
+- Form loads all **active** checkpoints sorted by `sortOrder`
+- Arranged in **2 columns** (matching physical form layout)
+- Each row: `☐ [Nama Item]` + `[condition note input]`
+- **"+ Tambah" button** at bottom of checklist → adds a one-off item (not saved to master)
+- One-off items: name + checkbox + condition note (stored in JSON only, no master record)
+
+#### Default Seed Data
+
+```
+Slot SIM, Speaker Atas, Tombol, Back casing, SIM, Memory Card, LCD,
+Kamera, Mic Speaker, Buzzer
+```
+
+All active by default, matching the physical form.
 
 ---
 
