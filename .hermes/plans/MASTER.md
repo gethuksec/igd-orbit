@@ -537,13 +537,216 @@ model User {
 
 ---
 
-## 6. Workstream E: Service Module Redesign
+## 6. Workstream E: Service Module Redesign (Erzap-style Smart Repair)
 
-**Status:** 🟡 Pending discussion — not yet started
+**Goal:** Redesign the service intake page into an Erzap-style "Smart Repair" form with two flows — Quick Service and Rawat Inap (Inpatient). Keep the same structure current users are familiar with, but use shadcn components.
 
-### E.0 — Context
+**Status:** 🟡 Planned | **Effort:** ~10-15 hours | **Depends on:** Workstream B (POS patterns), Workstream D (warehouse/outlet model)
 
-The POS page was redesigned as an Erzap-style single-page invoice form. The Service module (servis/service-orders) likely needs a similar treatment — a dedicated service intake page that follows the same design language as the new POS.
+### E.1 — Reference Design
+
+Two service flows from Erzap:
+
+#### Rawat Inap (Full Service Intake)
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│ Inputkan data lalu tekan tombol Simpan untuk menyimpan           │
+├──────────────────────────────────────────────────────────────────┤
+│ Smart Repair                                                     │
+│ Jenis Servis:  ○ Quick Servis  ● Rawat Inap  ○ Klaim Garansi     │
+├──────────────────────────────────────────────────────────────────┤
+│ *Outlet     *Pelanggan [🔍][📋][+]  *Termin     Pajak             │
+│  [select]    [______________]        [select]    ☐PPN ☐IncPPN   │
+│                                                 ☐PPH22 ☐PPH23   │
+│ *Tgl Terima  Estimasi Selesai   *Penerima    Tipe Penjualan      │
+│  [16-07-26]  [______________]    [________]   [select]           │
+├──────────────────────────────────────────────────────────────────┤
+│ Data Servis                                                      │
+│ *Serial Number [🔍]  *Nama Barang [🔍]                          │
+│ ☐ Dalam Garansi  Tgl Akhir Garansi: [________]                  │
+│ Lampiran: [Pilih File] Tidak ada file yang dipilih              │
+│                                                                  │
+│ *Deskripsi Kerusakan     Kelengkapan        Kondisi Barang       │
+│ [____________________]   [_______________]   [_______________]   │
+├──────────────────────────────────────────────────────────────────┤
+│ *Teknisi [🔍]  *Bobot Pekerjaan [v]  Harga Jual Servis [____]  │
+│ *Tindakan [______________]                                      │
+│ Catatan (tidak tampil pada nota)                                 │
+│ [____________________________________________________________] │
+├──────────────────────────────────────────────────────────────────┤
+│ [Tambah Data Unit]                    Uang Muka: [__________]   │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+#### Quick Service (Lightweight — Spare Parts Focus)
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│ Inputkan data lalu tekan tombol Simpan untuk menyimpan           │
+├──────────────────────────────────────────────────────────────────┤
+│ Smart Repair                                                     │
+│ Jenis Servis:  ● Quick Servis  ○ Rawat Inap  ○ Klaim Garansi     │
+├──────────────────────────────────────────────────────────────────┤
+│ *Outlet   *Pelanggan [🔍][📋][+]  *Termin    Pajak               │
+│  [select]  [______________]        [select]   ☐PPN ☐IncPPN     │
+│                                               ☐PPH22 ☐PPH23     │
+├──────────────────────────────────────────────────────────────────┤
+│ *Gudang: [Tentukan Outlet Penjual]   Catatan (tidak tampil)      │
+├──────────────────────────────────────────────────────────────────┤
+│ Qty <spasi> Scan Barcode atau Ketik Nama Barang    🔍            │
+│ Daftar Barang        [Tambah Produk +]   [Isi Table via Excel↓]│
+│ ┌────┬──────────────┬────┬──────┬──────┬────────┐               │
+│ │ ✕  │ No│ Barcode/..│ Jml│ Harga│Diskon│  Total │               │
+│ ├────┼──────────────┼────┼──────┼──────┼────────┤               │
+│ │ 🔴-│ 1 │ [🔍✏️]  │    │      │      │  0     │               │
+│ │ 🔴-│ 2 │ [🔍✏️]  │    │      │      │  0     │               │
+│ │ 🔴-│ 3 │ [🔍✏️]  │    │      │      │  0     │               │
+│ │ 🔴-│ 4 │ [🔍✏️]  │    │      │      │  0     │               │
+│ │ 🔴-│ 5 │ [🔍✏️]  │    │      │      │  0     │               │
+│ └────┴──────────────┴────┴──────┴──────┴────────┘               │
+│ [Tambah Data Part +]                                             │
+├──────────────────────────────────────────────────────────────────┤
+│ Harga Pokok Servis : Rp 0.00                                     │
+│ Total Jasa         : Rp 0.00                                     │
+│ Total Spare Part   : Rp 0.00                                     │
+│ Ongkos Kirim        : 0.0                                        │
+├──────────────────────────────────────────────────────────────────┤
+│ F2=Simpan  F3=Simpan Sementara  F5=Refresh                    SC│
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### E.2 — Gap Analysis (Current Service Orders vs Erzap Reference)
+
+| # | Feature | Current | Target | Priority |
+|---|---------|---------|--------|----------|
+| 1 | **Service type tabs** (Quick/Rawat Inap/Klaim) | Single form (serviceSubType) | Tabbed interface with conditional sections | 🔴 High |
+| 2 | **Outlet selection** | branchId (implicit) | Visible dropdown (same as POS) | 🔴 High |
+| 3 | **Customer search** | Separate customer modal | Inline 🔍 combobox + 📋 grid + ➕ quick-add | 🔴 High |
+| 4 | **Termin + Tax** | Missing (no tax on services) | Termin dropdown + PPN/PPH checkboxes (same as POS) | 🔴 High |
+| 5 | **Device serial/IMEI** | Text field | Input with search icon | 🟡 Medium |
+| 6 | **Device name/brand** | deviceType + deviceUnit split | Single "*Nama Barang" field with search | 🔴 High |
+| 7 | **Warranty tracking** | ❌ Missing | Dalam Garansi checkbox + Tgl Akhir Garansi | 🟡 Medium |
+| 8 | **Attachment upload** | ❌ Missing | File upload with "Pilih File" button | 🟢 Low |
+| 9 | **Damage description** | complaint field | Large textarea (same) | 🟡 Medium |
+| 10 | **Accessories checklist** | accessoriesIncluded (JSON) | Large textarea (simpler UX) | 🟡 Medium |
+| 11 | **Device condition** | deviceCondition | Large textarea (same) | 🟡 Medium |
+| 12 | **Technician assignment** | assignedTechnicianId | Teknisi field with 🔍 search | 🔴 High |
+| 13 | **Work weight (Bobot)** | ❌ Missing | Dropdown (Ringan/Sedang/Berat) | 🟡 Medium |
+| 14 | **Service sell price** | laborCost | Harga Jual Servis input | 🔴 High |
+| 15 | **Tindakan (action)** | workNotes? | Dedicated input field | 🟡 Medium |
+| 16 | **Quick Service product table** | ❌ Missing | Same as POS — barcode search, inline table | 🔴 High |
+| 17 | **Bottom cost summary** | Estimated separately | Harga Pokok Servis, Total Jasa, Total Spare Part, Ongkir | 🔴 High |
+| 18 | **Down payment (Uang Muka)** | ❌ Missing | Uang Muka input field | 🟡 Medium |
+| 19 | **Duplicate POS-style footer** | ❌ Missing | F2/F3/F5 shortcut bar | 🟡 Medium |
+| 20 | **Notes (not on receipt)** | workNotes? | Catatan textarea (same as POS) | 🟡 Medium |
+| 21 | **Service Number auto-generation** | Existing (SRV-*) | Keep as-is | 🟢 Low |
+
+### E.3 — Component Tree
+
+```
+SmartRepairPage                              [NEW — main entry]
+├── InstructionBanner                        [shared pattern]
+│   └── "Inputkan data lalu tekan tombol Simpan untuk menyimpan"
+├── PageHeader                               [from A1 shared]
+│   └── Title: "Smart Repair"
+├── ServiceTypeTabs                          [NEW — tabs/radio group]
+│   ├── Quick Servis (tab)
+│   ├── Rawat Inap (tab) — default/active
+│   └── Klaim Garansi Servis (tab)
+├── TransactionHeader                        [REUSE from B — same as POS]
+│   ├── Outlet (Select — same as POS)
+│   ├── Pelanggan (Combobox — 🔍 + 📋 + ➕)
+│   ├── Termin (Select)
+│   ├── TaxSection (PPN, IncludePPN, PPH22, PPH23 — same as POS)
+│   ├── TanggalTerima (DatePicker)
+│   ├── EstimasiSelesai (DatePicker)
+│   ├── Penerima (Input)
+│   └── TipePenjualan (Select)
+├── DeviceInfoSection                       [NEW — Rawat Inap only]
+│   ├── SerialNumber (Input + 🔍)
+│   ├── NamaBarang (Input + 🔍)
+│   ├── WarrantySection (checkbox + expiry date)
+│   └── Lampiran (file upload)
+├── DamageSection                           [NEW — Rawat Inap only]
+│   ├── DeskripsiKerusakan (textarea)
+│   ├── Kelengkapan (textarea)
+│   └── KondisiBarang (textarea)
+├── QuickServiceSection                     [REUSE from B — Quick Service only]
+│   ├── Gudang (Select — same as POS, filtered by outlet)
+│   ├── ProductSearchBar (same as POS — Qty<space>barcode)
+│   ├── ProductTable (same as POS — inline editable table)
+│   │   └── Columns: ✕ | No | Barcode/Produk | Jml | Harga | Diskon | Total
+│   ├── TambahDataButton
+│   └── Notes (Catatan textarea)
+├── TechnicianSection                       [NEW — Rawat Inap only]
+│   ├── Teknisi (Input + 🔍)
+│   ├── BobotPekerjaan (Select)
+│   ├── HargaJualServis (Input — numeric)
+│   ├── Tindakan (Input)
+│   └── Catatan (textarea — not on receipt)
+├── CostSummary                             [NEW — Quick Service]
+│   ├── HargaPokokServis
+│   ├── TotalJasa
+│   ├── TotalSparePart
+│   └── OngkosKirim
+├── DownPayment                             [NEW — Rawat Inap]
+│   └── UangMuka (Input)
+└── FooterShortcutBar                       [REUSE from B — F2/F3/F5]
+```
+
+### E.4 — Data Flow Changes
+
+| Concept | Current | Target |
+|---------|---------|--------|
+| **Service type** | serviceSubType string | Tabbed UI → sets serviceSubType ('quick'/'inap'/'garansi') |
+| **Customer** | customerName + phone (manual) | Combobox search → autofills from existing customers |
+| **Device** | deviceType + deviceUnit (split) | "*Nama Barang" single field with product search |
+| **Warranty** | Not tracked | Checkbox → enables expiry date field |
+| **Attachments** | Not supported | File upload → stored as URL/path |
+| **Tax** | Not applied | PPN/PPH checkboxes → affects pricing calculation |
+| **Spare parts** | Not tracked (manual) | Product table (same as POS) → stored as ServiceOrderItems |
+| **Technician** | assignedTechnicianId | Searchable field filtered by outlet assignment |
+| **Cost breakdown** | partsCost + laborCost (flat) | Harga Pokok, Total Jasa, Total Spare Part, Ongkir |
+| **Down payment** | Not tracked | Uang Muka → stored as payment deposit |
+
+### E.5 — Phased Implementation
+
+| Phase | What | Key Files | ~Time |
+|-------|------|-----------|-------|
+| **E1** Foundation | Create ServiceStore (Zustand), shared types, new DTO for service transactions | `stores/serviceStore.ts`, `types/service.ts`, `services/service.service.ts` | 1.5h |
+| **E2** Header + Tabs | ServiceTypeTabs, TransactionHeader (reuse from POS with service fields), Outlet/Customer/Termin/Tax | `SmartRepairPage.tsx`, `components/ServiceTypeTabs.tsx`, `components/ServiceHeader.tsx` | 2h |
+| **E3** Rawat Inap sections | DeviceInfoSection, DamageSection, TechnicianSection | `components/DeviceInfo.tsx`, `components/DamageSection.tsx`, `components/TechnicianSection.tsx` | 2h |
+| **E4** Quick Service section | Reuse POS product table + search bar, Gudang selector, CostSummary | `components/QuickServiceParts.tsx`, `components/CostSummary.tsx` | 2h |
+| **E5** Save + Payment | Save handler (F2/F3), Uang Muka, receipt print | Service store wiring, `components/DownPayment.tsx` | 1.5h |
+| **E6** Integration + Polish | Wire to existing routes, remove old ServiceOrder pages, add sidebar | Route updates, sidebar "Servis" menu, cleanup | 1h |
+| **E7** Existing data migration | Migrate existing service orders to new schema fields if needed | Seed/migration script | 0.5h |
+
+### E.6 — Key Design Decisions
+
+| # | Decision | Choice |
+|---|----------|--------|
+| 1 | **Single page vs multi-step** | Single page with tabs (Rawat Inap / Quick Servis). Tab switch hides/shows conditional sections. Matches Erzap. |
+| 2 | **Product table reuse** | Same `ProductTable` component as POS — shared, not duplicated. Columns configurable (Quick Service has no @Cashback). |
+| 3 | **Route path** | `/services/smart-repair` or keep at `/service-orders/new`? |
+| 4 | **Quick Service vs Rawat Inap** | Quick Service = lightweight (just product table + cost). Rawat Inap = full form (device info, technician, pricing). Both possible from same page via tab. |
+| 5 | **Old vs new** | Keep old `ServiceOrderForm.tsx` alongside during transition, or replace entirely? |
+| 6 | **Service number** | Keep existing `SRV-YYYYMMDD-XXXXXX` auto-generation |
+
+### E.7 — Verification
+
+End-to-end test (after E5):
+
+1. Open Smart Repair page → Rawat Inap tab selected by default
+2. Fill outlet, customer, termin
+3. Enter serial number, device name, damage description
+4. Assign technician, set work weight and service price
+5. Switch to Quick Service tab → form collapses to product table
+6. Search product by barcode → adds to table
+7. Edit qty/price/discount inline
+8. Verify cost summary updates (Harga Pokok, Total Jasa, Total Spare Part)
+9. Save as completed (F2) → service order created
+10. Save as draft (F3) → appears in held/draft list
 
 ---
 
