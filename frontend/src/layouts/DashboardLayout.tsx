@@ -60,6 +60,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { isBranchVisible } from '@/components/shared/PermissionAccordion';
+import { PERMISSION_CATALOG } from '@/config/permission-catalog';
+import type { PermissionNode } from '@/types/permission';
 import { MenuItem, MenuGroup } from '@/components/shared';
 
 interface DashboardLayoutProps {
@@ -299,18 +302,23 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const { hasPermission, hasAnyRole } = usePermissions();
 
-  const menuPermissionMap: Record<string, string> = {
-    'Dashboard': 'menu.dashboard',
-    'Master Data': 'menu.master-data',
-    'Penjualan': 'menu.sales',
-    'Servis': 'menu.service',
-    'Gudang': 'menu.inventory',
-    'Keuangan': 'menu.finance',
-    'Pembelian': 'menu.purchasing',
-    'Karyawan': 'menu.hr',
-    'Cabang': 'menu.branches',
-    'User & Role': 'menu.users',
-  };
+  // Build a set of user's permissions for catalog visibility checks
+  const currentUserData = getUser();
+  const userPermissions: string[] = currentUserData?.permissions || [];
+  const userPermSet = new Set<string>(userPermissions);
+
+  // Map catalog labels to their top-level nodes for quick lookup
+  const catalogByLabel = new Map<string, PermissionNode>();
+  for (const node of PERMISSION_CATALOG) {
+    catalogByLabel.set(node.label, node);
+  }
+
+  // Recursively find a node in the catalog tree by label
+  function findLabelInTree(node: PermissionNode, label: string): boolean {
+    if (node.label === label) return true;
+    if (node.children) return node.children.some((c) => findLabelInTree(c, label));
+    return false;
+  }
 
   const hasAccess = (item: MenuItem): boolean => {
     const currentUser = getUser();
@@ -318,26 +326,41 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
     if (userRoles.includes('SUPERADMIN')) return true;
 
-    if (item.permission) {
-      const userPermissions = currentUser?.permissions || [];
-      if (userPermissions.length > 0) return hasPermission(item.permission);
+    // Check via permission catalog (bottom-up visibility)
+    if (item.label && catalogByLabel.has(item.label)) {
+      const catalogNode = catalogByLabel.get(item.label)!;
+      return isBranchVisible(catalogNode, userPermSet);
     }
 
-    if (menuPermissionMap[item.label]) {
-      const userPermissions = currentUser?.permissions || [];
-      if (userPermissions.length > 0) return hasPermission(menuPermissionMap[item.label]);
-    }
-
+    // Fallback: role-based access
     if (item.roles) return item.roles.includes('*') || hasAnyRole(item.roles);
 
     return true;
+  };
+
+  const getChildVisibility = (children: MenuItem[]): MenuItem[] => {
+    return children.filter((child) => {
+      // Check via catalog for this child
+      for (const node of PERMISSION_CATALOG) {
+        if (findLabelInTree(node, child.label)) {
+          if (isBranchVisible(node, userPermSet)) return true;
+        }
+      }
+      // Fallback: check child's own permission
+      if (child.permission && userPermissions.length > 0) {
+        if (hasPermission(child.permission)) return true;
+      }
+      // Check roles
+      if (child.roles) return child.roles.includes('*') || hasAnyRole(child.roles);
+      return false;
+    });
   };
 
   const menuItems = allMenuItems
     .filter((item) => hasAccess(item))
     .map((item) => ({
       ...item,
-      children: item.children?.filter((child) => hasAccess(child)),
+      children: item.children ? getChildVisibility(item.children) : undefined,
     }))
     .filter((item) => !item.children || item.children.length > 0);
 

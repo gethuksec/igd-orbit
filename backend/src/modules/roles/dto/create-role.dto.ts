@@ -23,5 +23,10 @@ export class CreateRoleDto {
   @IsOptional()
   @IsUUID()
   parentRoleId?: string | null;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  defaultPermissions?: string[];
 }
 

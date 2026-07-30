@@ -213,6 +213,7 @@ export class RolesService {
         level: dto.level,
         isSystemRole: dto.isSystemRole || false,
         parentRoleId: dto.parentRoleId || null,
+        defaultPermissions: dto.defaultPermissions || [],
       },
     });
 
@@ -274,6 +275,7 @@ export class RolesService {
         level: dto.level,
         isActive: dto.isActive,
         parentRoleId: dto.parentRoleId !== undefined ? (dto.parentRoleId || null) : undefined,
+        defaultPermissions: dto.defaultPermissions,
       },
     });
 

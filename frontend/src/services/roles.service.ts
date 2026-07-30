@@ -8,6 +8,7 @@ export interface Role {
   level: number;
   isSystemRole: boolean;
   isActive: boolean;
+  defaultPermissions?: string[];
   permissions?: Permission[] | RolePermission[];
   userCount?: number; // Number of users with this role
   createdAt: string;
@@ -50,6 +51,7 @@ export interface CreateRoleDto {
   description?: string;
   level: number;
   isSystemRole?: boolean;
+  defaultPermissions?: string[];
 }
 
 export interface UpdateRoleDto {
@@ -58,6 +60,7 @@ export interface UpdateRoleDto {
   level?: number;
   isActive?: boolean;
   parentRoleId?: string | null;
+  defaultPermissions?: string[];
 }
 
 export interface AssignPermissionDto {

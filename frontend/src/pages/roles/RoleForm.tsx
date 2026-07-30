@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Save, Loader2, ArrowLeft, Shield } from 'lucide-react';
+import { Save, Loader2, ArrowLeft, Shield, KeyRound } from 'lucide-react';
 import { rolesService } from '../../services/roles.service';
 import { toast } from 'sonner';
+import PermissionAccordion from '@/components/shared/PermissionAccordion';
 
 export default function RoleForm() {
   const { id } = useParams();
@@ -15,9 +16,10 @@ export default function RoleForm() {
     code: '',
     name: '',
     description: '',
-    level: 5, // Default level for new roles (entry level)
+    level: 5,
     isActive: true,
     parentRoleId: '' as string | undefined,
+    defaultPermissions: [] as string[],
   });
 
   const { data: role, isLoading: loadingRole } = useQuery({
@@ -25,13 +27,6 @@ export default function RoleForm() {
     queryFn: () => rolesService.getById(id!),
     enabled: !!id,
   });
-
-  const { data: rolesData } = useQuery({
-    queryKey: ['roles-for-parent'],
-    queryFn: () => rolesService.getAll({ limit: 1000 }),
-  });
-
-  const availableRoles = rolesData?.data || [];
 
   useEffect(() => {
     if (role) {
@@ -42,6 +37,7 @@ export default function RoleForm() {
         level: role.level ?? 5,
         isActive: role.isActive ?? true,
         parentRoleId: (role as any).parentRoleId || undefined,
+        defaultPermissions: (role as any).defaultPermissions || [],
       });
     }
   }, [role]);
@@ -54,11 +50,12 @@ export default function RoleForm() {
         level: data.level,
         isActive: data.isActive,
         parentRoleId: data.parentRoleId || undefined,
+        defaultPermissions: data.defaultPermissions,
       };
 
       if (!isEdit) {
         submitData.code = data.code;
-        submitData.isSystemRole = false; // New roles are never system roles
+        submitData.isSystemRole = false;
       }
 
       return isEdit ? rolesService.update(id!, submitData) : rolesService.create(submitData);
@@ -101,7 +98,7 @@ export default function RoleForm() {
               {isEdit ? 'Edit Role' : 'Tambah Role Baru'}
             </h1>
             <p className="text-gray-600 mt-1">
-              {isEdit ? 'Ubah informasi role' : 'Tambahkan role baru ke sistem'}
+              {isEdit ? 'Ubah informasi dan izin akses role' : 'Tambahkan role baru dan atur izin aksesnya'}
             </p>
           </div>
         </div>
@@ -109,6 +106,7 @@ export default function RoleForm() {
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-6">
+        {/* Basic Info */}
         <div className="space-y-4">
           <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
             <Shield className="w-5 h-5" />
@@ -169,34 +167,6 @@ export default function RoleForm() {
               <p className="text-xs text-gray-500 mt-1">Tingkat hierarki role dalam organisasi</p>
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Parent Role (Turunan dari)
-              </label>
-              <select
-                value={formData.parentRoleId || ''}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    parentRoleId: e.target.value || undefined,
-                  })
-                }
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all bg-white"
-              >
-                <option value="">Tidak ada (Root Role)</option>
-                {availableRoles
-                  .filter((r) => !id || r.id !== id) // Exclude current role if editing
-                  .map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name} ({r.code}) - Tier {r.level}
-                    </option>
-                  ))}
-              </select>
-              <p className="text-xs text-gray-500 mt-1">
-                Pilih role parent untuk membuat hierarki. Role ini akan menjadi turunan dari role yang dipilih.
-              </p>
-            </div>
-
             <div className="md:col-span-2">
               <label className="block text-sm font-semibold text-gray-700 mb-2">Deskripsi</label>
               <textarea
@@ -222,6 +192,21 @@ export default function RoleForm() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Permission Accordion */}
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+            <KeyRound className="w-5 h-5" />
+            Izin Akses
+          </h2>
+          <p className="text-sm text-gray-500 -mt-2">
+            Centang izin yang dimiliki role ini. Menu sidebar akan otomatis menyesuaikan.
+          </p>
+          <PermissionAccordion
+            value={formData.defaultPermissions}
+            onChange={(keys) => setFormData({ ...formData, defaultPermissions: keys })}
+          />
         </div>
 
         {/* Actions */}
@@ -256,4 +241,3 @@ export default function RoleForm() {
     </div>
   );
 }
-
