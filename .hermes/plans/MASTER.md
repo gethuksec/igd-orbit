@@ -323,9 +323,173 @@ End-to-end test (after B5):
 
 | Module | Adjustment | Priority | Status |
 |--------|-----------|----------|--------|
-| — | — | — | 🟢 TBD |
+| Permissions | C.1 — Granular permissions (sidebar, actions, fields) | 🔴 High | 🟡 Planned |
 
 **Note:** Each module adjustment should be its own mini-plan with scope, files, effort estimation, and verification.
+
+---
+
+### C.1 — Granular Permissions
+
+**Goal:** Implement a flexible permission system covering 3 levels — sidebar visibility, action/page access, and per-field required/readonly. Start with levels 1-2, add level 3 gradually.
+
+**Status:** 🟡 Planned | **Effort:** ~4-6 hours
+
+#### C.1.1 — Architecture
+
+One unified `hasPermission(key)` check drives all 3 levels. No new tables beyond what Workstream D defines.
+
+```
+Role {
+  defaultPermissions: string[]        // e.g. ['menu.pos', 'action.service.create', ...]
+}
+
+UserBranch {
+  deniedPermissions: string[]         // subtractive: what this user CANNOT do
+}
+```
+
+**Runtime:**
+```ts
+function hasPermission(key: string): boolean {
+  const perms = new Set(role.defaultPermissions)
+  for (const denied of userBranch.deniedPermissions) {
+    perms.delete(denied)
+  }
+  return perms.has(key)
+}
+```
+
+#### C.1.2 — Permission Key Convention
+
+| Pattern | Example | Level | Phase |
+|---------|---------|-------|-------|
+| `menu.X` | `menu.pos` | 1 — Sidebar | Phase 1 |
+| `menu.X` | `menu.service` | 1 — Sidebar | Phase 1 |
+| `action.X.Y` | `action.service.create` | 2 — Button/Page | Phase 1 |
+| `action.X.Y` | `action.pos.delete` | 2 — Button/Page | Phase 1 |
+| `field.X.Y.Z` | `field.service.serial.required` | 3 — Field | Phase 2 |
+| `field.X.Y.readonly` | `field.service.warranty.readonly` | 3 — Field | Phase 2 |
+
+**Key breakdown:**
+- `menu.X` → sidebar item visibility (show/hide entire menu)
+- `action.X.Y` → page access + CRUD action (create, edit, delete, approve)
+- `field.X.Y.Z` → per-field behavior: `required`, `optional`, `readonly`, `hidden`
+
+#### C.1.3 — Phase 1: Levels 1-2 (Sidebar + Actions)
+
+**Scope:** Sidebar menu visibility + page access + CRUD action buttons.
+
+**Permission keys needed (v1):**
+
+| Key | Where checked | Effect |
+|-----|--------------|--------|
+| `menu.dashboard` | Sidebar | Show/hide Dashboard |
+| `menu.pos` | Sidebar | Show/hide POS |
+| `menu.service` | Sidebar | Show/hide Service menu |
+| `menu.sales` | Sidebar | Show/hide Penjualan |
+| `menu.master-data` | Sidebar | Show/hide Master Data |
+| `menu.inventory` | Sidebar | Show/hide Gudang |
+| `menu.finance` | Sidebar | Show/hide Keuangan |
+| `menu.purchasing` | Sidebar | Show/hide Pembelian |
+| `menu.hr` | Sidebar | Show/hide Karyawan |
+| `menu.users` | Sidebar | Show/hide User & Role |
+| `menu.branches` | Sidebar | Show/hide Cabang |
+| `menu.settings` | Sidebar | Show/hide Settings |
+| `action.pos.create` | POS page | Enable/disable Save button |
+| `action.service.create` | Service form | Enable/disable Save |
+| `action.service.delete` | Service detail | Show/hide Delete button |
+| `action.service.edit` | Service form | Enable/disable edit mode |
+| `action.service.assign` | Technician field | Enable/disable assignment |
+| ... | ~20 keys total | |
+
+**Implementation:**
+
+```tsx
+// Sidebar (DashboardLayout.tsx)
+{menuItems
+  .filter(item => hasPermission(`menu.${item.key}`))
+  .map(item => ...)}
+
+// Page access (ProtectedRoute.tsx extension)
+<ProtectedRoute permission="action.pos.view">
+  <POSPage />
+</ProtectedRoute>
+
+// Action button
+{hasPermission('action.service.delete') && (
+  <Button onClick={handleDelete}>Hapus</Button>
+)}
+```
+
+**Files to modify:**
+- `Role` model: add `defaultPermissions: string[]` field
+- `UserBranch` model: add `deniedPermissions: string[]` field
+- `usePermissions` hook (existing) — add `hasPermission()` with subtractive logic
+- `DashboardLayout.tsx` — filter sidebar by `menu.X`
+- `ProtectedRoute.tsx` — accept `permission` prop
+- Individual pages: wrap action buttons with `hasPermission()`
+
+#### C.1.4 — Phase 2: Level 3 (Per-field Required/Readonly)
+
+**Scope:** Make individual form fields required, optional, or readonly based on permissions. No new infrastructure — just more keys + form-level checks.
+
+**Permission keys needed (v2 — ~25 additional keys):**
+
+| Key | Component | Effect |
+|-----|-----------|--------|
+| `field.service.serial.required` | Serial input | Required = true/false |
+| `field.service.device-name.required` | Nama Barang | Required = true/false |
+| `field.service.technician.required` | Teknisi select | Required = true/false |
+| `field.service.technician.readonly` | Teknisi select | Readonly = true/false |
+| `field.service.deskkondisi.required` | Deskripsi textarea | Required = true/false |
+| `field.pos.customer.required` | Customer combobox | Required = true/false |
+| `field.pos.discount.readonly` | Diskon input | Readonly = true/false |
+| `field.pos.gudang.readonly` | Gudang select | Readonly = true/false |
+
+**Implementation pattern:**
+
+```tsx
+// Custom hook or wrapper
+function useFieldPermission(key: string) {
+  const required = hasPermission(`${key}.required`)
+  const readonly = hasPermission(`${key}.readonly`)
+  return { required, readonly, disabled: readonly }
+}
+
+// In form
+const serialField = useFieldPermission('field.service.serial')
+
+<Input
+  required={serialField.required}
+  readOnly={serialField.readonly}
+/>
+```
+
+**Benefit:** Zero new infrastructure. Same `hasPermission()` function. Same `deniedPermissions` mechanism. Just add keys.
+
+#### C.1.5 — Default Permission Keys Per Role (Suggested)
+
+**SUPERADMIN (level 0):** ✅ All keys granted automatically (bypass check for level 0)
+
+**OWNER (level 1):** `menu.*`, `action.*.*`, `field.*.*.required` — all menus, all actions, all fields required
+
+**MANAGER (level 2):** `menu.*` (all), `action.*.view`, `action.*.create`, `action.*.edit` — no delete, no approve
+
+**SPV (level 3):** `menu.pos`, `menu.service`, `menu.sales`, `menu.customers` — limited menus, view + create only
+
+**STAFF (level 4):** `menu.pos`, `action.pos.view`, `action.pos.create` — POS only, no edit/delete
+
+#### C.1.6 — Migration Steps
+
+| Phase | What | Files | ~Time |
+|-------|------|-------|-------|
+| **P1** Schema | Add `defaultPermissions` to Role, `deniedPermissions` to UserBranch | Prisma schema + migration | 0.5h |
+| **P2** Backend | Update Role CRUD (edit defaultPermissions), UserBranch CRUD (edit deniedPermissions), `hasPermission` check on API | Role module, UserBranch module, auth service | 1.5h |
+| **P3** Frontend hook | Extend `usePermissions` with `hasPermission()`, sidebarn filtering | `usePermissions.ts`, `DashboardLayout.tsx` | 1h |
+| **P4** Page-level guards | Add `permission` prop to ProtectedRoute, wrap action buttons | `ProtectedRoute.tsx`, individual pages | 1.5h |
+| **P5** Field-level (v2) | Add `useFieldPermission` hook, wrap form inputs | Custom hook, form components | 1.5h |
+| **P6** Seed data | Define default permission sets per role | `seed.ts` | 0.5h |
 
 ---
 
