@@ -19,6 +19,7 @@ import {
   Info,
   User,
 } from 'lucide-react';
+import { usePermissions } from '@/hooks/usePermissions';
 
 // ─── Types ───────────────────────────────────────
 
@@ -77,6 +78,7 @@ function createInitialRows(): ItemRow[] {
 
 export default function POSTransaksi() {
   const { currentBranchId } = useBranchStore();
+  const { hasPermission } = usePermissions();
   const today = new Date().toISOString().slice(0, 10);
 
   // ── Form State ──
@@ -265,12 +267,14 @@ export default function POSTransaksi() {
   // ── Keyboard shortcuts ──
   useHotkeys('f2', (e) => {
     e.preventDefault();
+    if (!hasPermission('action.pos.create')) return;
     // Simpan action
     alert('Simpan (Save) - akan diimplementasikan dengan backend');
   }, { enableOnFormTags: true });
 
   useHotkeys('f3', (e) => {
     e.preventDefault();
+    if (!hasPermission('action.pos.create')) return;
     alert('Simpan Sementara (Save Draft) - akan diimplementasikan dengan backend');
   }, { enableOnFormTags: true });
 
@@ -730,14 +734,16 @@ export default function POSTransaksi() {
 
             {/* Add Data Button */}
             <div className="mt-2">
-              <Button
-                onClick={addRow}
-                size="sm"
-                className="bg-primary text-primary-foreground hover:bg-primary-700 text-xs"
-              >
-                <Plus className="w-3.5 h-3.5 mr-1" />
-                Tambah Data
-              </Button>
+              {hasPermission('action.pos.create') && (
+                <Button
+                  onClick={addRow}
+                  size="sm"
+                  className="bg-primary text-primary-foreground hover:bg-primary-700 text-xs"
+                >
+                  <Plus className="w-3.5 h-3.5 mr-1" />
+                  Tambah Data
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -778,8 +784,8 @@ export default function POSTransaksi() {
 
       {/* ═══ Status Bar ═══ */}
       <div className="sticky bottom-0 bg-primary text-primary-foreground text-xs py-2 px-4 flex items-center gap-6">
-        <span><strong>F2</strong> = Simpan</span>
-        <span><strong>F3</strong> = Simpan Sementara</span>
+        {hasPermission('action.pos.create') && <span><strong>F2</strong> = Simpan</span>}
+        {hasPermission('action.pos.create') && <span><strong>F3</strong> = Simpan Sementara</span>}
         <span><strong>F5</strong> = Refresh</span>
         <div className="ml-auto text-primary-200">IGD Ponsel - Sistem ERP</div>
       </div>
