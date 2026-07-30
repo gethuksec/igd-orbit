@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Save, Loader2, ArrowLeft, Shield, KeyRound } from 'lucide-react';
+import { Save, Loader2, ArrowLeft, Shield, KeyRound, Lock } from 'lucide-react';
 import { rolesService } from '../../services/roles.service';
 import { toast } from 'sonner';
 import PermissionAccordion from '@/components/shared/PermissionAccordion';
@@ -199,14 +199,33 @@ export default function RoleForm() {
           <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
             <KeyRound className="w-5 h-5" />
             Izin Akses
+            {role?.code === 'SUPERADMIN' && (
+              <span className="ml-2 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-yellow-100 text-yellow-700 text-xs font-semibold border border-yellow-200">
+                <Lock className="w-3 h-3" />
+                Terkunci
+              </span>
+            )}
           </h2>
-          <p className="text-sm text-gray-500 -mt-2">
-            Centang izin yang dimiliki role ini. Menu sidebar akan otomatis menyesuaikan.
-          </p>
-          <PermissionAccordion
-            value={formData.defaultPermissions}
-            onChange={(keys) => setFormData({ ...formData, defaultPermissions: keys })}
-          />
+          {role?.code === 'SUPERADMIN' ? (
+            <div className="rounded-xl border-2 border-yellow-200 bg-yellow-50 p-6 text-center">
+              <Lock className="w-10 h-10 text-yellow-400 mx-auto mb-3" />
+              <h3 className="text-lg font-semibold text-yellow-700 mb-1">Izin SUPERADMIN Terkunci</h3>
+              <p className="text-sm text-yellow-600 max-w-md mx-auto">
+                SUPERADMIN memiliki akses penuh ke seluruh sistem. Hak aksesnya tidak dapat
+                diubah untuk menjaga keamanan dan integritas sistem.
+              </p>
+            </div>
+          ) : (
+            <>
+              <p className="text-sm text-gray-500 -mt-2">
+                Centang izin yang dimiliki role ini. Menu sidebar akan otomatis menyesuaikan.
+              </p>
+              <PermissionAccordion
+                value={formData.defaultPermissions}
+                onChange={(keys) => setFormData({ ...formData, defaultPermissions: keys })}
+              />
+            </>
+          )}
         </div>
 
         {/* Actions */}

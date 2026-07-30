@@ -240,6 +240,11 @@ export class RolesService {
       throw new BadRequestException('Cannot modify system role properties');
     }
 
+    // SUPERADMIN permissions are immutable — anyone (including SUPERADMIN) cannot change them
+    if (role.code === 'SUPERADMIN' && dto.defaultPermissions !== undefined) {
+      throw new BadRequestException('SUPERADMIN permissions are immutable and cannot be changed');
+    }
+
     // Validate parent role if provided (prevent circular references)
     if (dto.parentRoleId !== undefined) {
       if (dto.parentRoleId === id) {
