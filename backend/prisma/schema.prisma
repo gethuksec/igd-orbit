@@ -72,16 +72,17 @@ model PasswordChangeRequest {
 }
 
 model Role {
-  id           String   @id @default(uuid())
-  code         String   @unique
-  name         String
-  description  String?
-  level        Int // Hierarchical level (0=SUPERADMIN, 1=OWNER, etc.)
-  isSystemRole Boolean  @default(false) @map("is_system_role")
-  isActive     Boolean  @default(true) @map("is_active")
-  parentRoleId String?  @map("parent_role_id") // For role hierarchy
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id                 String   @id @default(uuid())
+  code               String   @unique
+  name               String
+  description        String?
+  level              Int // Hierarchical level (0=SUPERADMIN, 1=OWNER, etc.)
+  defaultPermissions String[] @default("{}") @map("default_permissions") // Built-in permission keys for this role
+  isSystemRole       Boolean  @default(false) @map("is_system_role")
+  isActive           Boolean  @default(true) @map("is_active")
+  parentRoleId       String?  @map("parent_role_id") // For role hierarchy
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
 
   // Relations
   userRoles       UserRole[]
@@ -98,13 +99,14 @@ model Role {
 }
 
 model UserRole {
-  id         String    @id @default(uuid())
-  userId     String    @map("user_id")
-  roleId     String    @map("role_id")
-  branchId   String?   @map("branch_id") // null = all branches
-  isPrimary  Boolean   @default(false) @map("is_primary")
-  validFrom  DateTime  @default(now()) @map("valid_from")
-  validUntil DateTime? @map("valid_until") // null = no expiration
+  id                String    @id @default(uuid())
+  userId            String    @map("user_id")
+  roleId            String    @map("role_id")
+  branchId          String?   @map("branch_id") // null = all branches
+  isPrimary         Boolean   @default(false) @map("is_primary")
+  deniedPermissions String[]  @default("{}") @map("denied_permissions") // Subtractive permissions for this assignment
+  validFrom         DateTime  @default(now()) @map("valid_from")
+  validUntil        DateTime? @map("valid_until") // null = no expiration
   createdAt  DateTime  @default(now()) @map("created_at")
   updatedAt  DateTime  @updatedAt @map("updated_at")
 

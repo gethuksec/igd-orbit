@@ -766,6 +766,7 @@ export class UsersService {
         roleId: assignRoleDto.roleId,
         branchId: assignRoleDto.branchId || null,
         isPrimary: assignRoleDto.isPrimary || false,
+        deniedPermissions: assignRoleDto.deniedPermissions || [],
         validFrom: assignRoleDto.validFrom
           ? new Date(assignRoleDto.validFrom)
           : new Date(),
@@ -860,15 +861,27 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    const permissions = user.userRoles
-      .flatMap((ur) => ur.role.rolePermissions)
-      .map(
-        (rp) =>
-          `${rp.permission.module}.${rp.permission.submodule || '*'}.${rp.permission.action}`,
-      )
-      .filter((p, index, self) => self.indexOf(p) === index)
-      .sort();
+    // Merge permissions from RolePermission junction + defaultPermissions - deniedPermissions
+    const permissionSet = new Set<string>();
 
-    return permissions;
+    for (const ur of user.userRoles) {
+      // From RolePermission junction
+      for (const rp of ur.role.rolePermissions) {
+        const key = `${rp.permission.module}.${rp.permission.submodule || '*'}.${rp.permission.action}`;
+        permissionSet.add(key);
+      }
+
+      // From role's defaultPermissions
+      for (const perm of ur.role.defaultPermissions || []) {
+        permissionSet.add(perm);
+      }
+
+      // Subtract denied permissions
+      for (const denied of ur.deniedPermissions || []) {
+        permissionSet.delete(denied);
+      }
+    }
+
+    return [...permissionSet].sort();
   }
 }

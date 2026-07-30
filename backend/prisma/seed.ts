@@ -106,48 +106,60 @@ async function main() {
   console.log('👥 Creating roles...');
   const ownerRole = await prisma.role.upsert({
     where: { code: 'OWNER' },
-    update: {},
+    update: {
+      defaultPermissions: ['menu.dashboard', 'menu.pos', 'menu.service', 'menu.sales', 'menu.master-data', 'menu.inventory', 'menu.finance', 'menu.purchasing', 'menu.hr', 'menu.users', 'menu.branches', 'action.view', 'action.pos.create', 'action.pos.edit', 'action.service.create', 'action.service.edit', 'action.service.delete', 'action.service.assign'],
+    },
     create: {
       code: 'OWNER',
       name: 'Pemilik',
       description: 'Full access to all modules',
       level: 1,
+      defaultPermissions: ['menu.dashboard', 'menu.pos', 'menu.service', 'menu.sales', 'menu.master-data', 'menu.inventory', 'menu.finance', 'menu.purchasing', 'menu.hr', 'menu.users', 'menu.branches', 'action.view', 'action.pos.create', 'action.pos.edit', 'action.service.create', 'action.service.edit', 'action.service.delete', 'action.service.assign'],
       isActive: true,
     },
   });
 
   const cfoRole = await prisma.role.upsert({
     where: { code: 'CFO' },
-    update: {},
+    update: {
+      defaultPermissions: ['menu.dashboard', 'menu.finance', 'action.view'],
+    },
     create: {
       code: 'CFO',
       name: 'Chief Financial Officer',
       description: 'Finance and reporting access',
       level: 2,
+      defaultPermissions: ['menu.dashboard', 'menu.finance', 'action.view'],
       isActive: true,
     },
   });
 
   const managerRole = await prisma.role.upsert({
     where: { code: 'MGR' },
-    update: {},
+    update: {
+      defaultPermissions: ['menu.dashboard', 'menu.pos', 'menu.service', 'menu.sales', 'menu.master-data', 'menu.inventory', 'menu.purchasing', 'menu.branches', 'menu.users', 'action.view', 'action.pos.create', 'action.pos.edit', 'action.service.create', 'action.service.edit'],
+    },
     create: {
       code: 'MGR',
       name: 'Manager',
       description: 'Management access',
       level: 3,
+            defaultPermissions: ['menu.dashboard', 'menu.pos', 'menu.service', 'menu.sales', 'menu.master-data', 'menu.inventory', 'menu.purchasing', 'menu.branches', 'menu.users', 'action.view', 'action.pos.create', 'action.pos.edit', 'action.service.create', 'action.service.edit'],
       isActive: true,
     },
   });
 
   const csRole = await prisma.role.upsert({
     where: { code: 'CS' },
-    update: {},
+    update: {
+      defaultPermissions: ['menu.pos', 'menu.sales', 'action.view', 'action.pos.create', 'action.pos.edit'],
+    },
     create: {
       code: 'CS',
       name: 'Customer Service',
       description: 'Customer service and POS access',
       level: 4,
+            defaultPermissions: ['menu.pos', 'menu.sales', 'action.view', 'action.pos.create', 'action.pos.edit'],
       isActive: true,
     },
   });
@@ -206,144 +218,180 @@ async function main() {
   // Additional roles based on PRD matrix
   const csoRole = await prisma.role.upsert({
     where: { code: 'CSO' },
-    update: {},
+    update: {
+      defaultPermissions: ['menu.inventory', 'menu.sales', 'action.view'],
+    },
     create: {
       code: 'CSO',
       name: 'Chief Sales Officer',
       description: 'Sales & commercial leadership',
       level: 2,
+            defaultPermissions: ['menu.inventory', 'menu.sales', 'action.view'],
       isActive: true,
     },
   });
 
   const cmoRole = await prisma.role.upsert({
     where: { code: 'CMO' },
-    update: {},
+    update: {
+      defaultPermissions: ['menu.dashboard', 'menu.sales', 'action.view'],
+    },
     create: {
       code: 'CMO',
       name: 'Chief Marketing Officer',
       description: 'Marketing & customer strategy',
       level: 2,
+            defaultPermissions: ['menu.dashboard', 'menu.sales', 'action.view'],
       isActive: true,
     },
   });
 
   const chrRole = await prisma.role.upsert({
     where: { code: 'CHR' },
-    update: {},
+    update: {
+      defaultPermissions: ['menu.hr', 'action.view'],
+    },
     create: {
       code: 'CHR',
       name: 'HR Manager',
       description: 'Human resources & payroll',
       level: 3,
+            defaultPermissions: ['menu.hr', 'action.view'],
       isActive: true,
     },
   });
 
   const spvRole = await prisma.role.upsert({
     where: { code: 'SPV' },
-    update: {},
+    update: {
+      defaultPermissions: ['menu.pos', 'menu.service', 'menu.sales', 'action.view', 'action.service.view'],
+    },
     create: {
       code: 'SPV',
       name: 'Supervisor',
       description: 'Store / area supervisor',
       level: 3,
+            defaultPermissions: ['menu.pos', 'menu.service', 'menu.sales', 'action.view', 'action.service.view'],
       isActive: true,
     },
   });
 
   const hsRole = await prisma.role.upsert({
     where: { code: 'HS' },
-    update: {},
+    update: {
+      defaultPermissions: ['menu.pos', 'menu.service', 'menu.sales', 'menu.master-data', 'menu.inventory', 'menu.hr', 'action.view', 'action.service.create', 'action.service.edit', 'action.service.assign'],
+    },
     create: {
       code: 'HS',
       name: 'Head of Store',
       description: 'Kepala toko per cabang',
       level: 4,
+            defaultPermissions: ['menu.pos', 'menu.service', 'menu.sales', 'menu.master-data', 'menu.inventory', 'menu.hr', 'action.view', 'action.service.create', 'action.service.edit', 'action.service.assign'],
       isActive: true,
     },
   });
 
   const arRole = await prisma.role.upsert({
     where: { code: 'AR' },
-    update: {},
+    update: {
+      defaultPermissions: ['menu.finance', 'menu.sales', 'action.view'],
+    },
     create: {
       code: 'AR',
       name: 'Account Receivable',
       description: 'Pengelolaan piutang',
       level: 4,
+            defaultPermissions: ['menu.finance', 'menu.sales', 'action.view'],
       isActive: true,
     },
   });
 
   const tcRole = await prisma.role.upsert({
     where: { code: 'TC' },
-    update: {},
+    update: {
+      defaultPermissions: ['menu.service', 'action.view', 'action.service.view'],
+    },
     create: {
       code: 'TC',
       name: 'Technician',
       description: 'Teknisi servis',
       level: 5,
+            defaultPermissions: ['menu.service', 'action.view', 'action.service.view'],
       isActive: true,
     },
   });
 
   const sodoRole = await prisma.role.upsert({
     where: { code: 'SODO' },
-    update: {},
+    update: {
+      defaultPermissions: ['menu.inventory', 'menu.service', 'action.view'],
+    },
     create: {
       code: 'SODO',
       name: 'Service & Operations',
       description: 'Koordinator service & operasional',
       level: 4,
+            defaultPermissions: ['menu.inventory', 'menu.service', 'action.view'],
       isActive: true,
     },
   });
 
   const asaRole = await prisma.role.upsert({
     where: { code: 'ASA' },
-    update: {},
+    update: {
+      defaultPermissions: ['menu.inventory', 'action.view'],
+    },
     create: {
       code: 'ASA',
       name: 'Assistant Store Admin',
       description: 'Admin produk & stok',
       level: 5,
+            defaultPermissions: ['menu.inventory', 'action.view'],
       isActive: true,
     },
   });
 
   const smoRole = await prisma.role.upsert({
     where: { code: 'SMO' },
-    update: {},
+    update: {
+      defaultPermissions: ['menu.sales', 'action.view'],
+    },
     create: {
       code: 'SMO',
       name: 'Sales & Marketing Officer',
       description: 'Promosi & campaign',
       level: 5,
+      defaultPermissions: ['menu.sales', 'action.view'],
       isActive: true,
     },
   });
 
   const asRole = await prisma.role.upsert({
     where: { code: 'AS' },
-    update: {},
+    update: {
+      defaultPermissions: ['menu.finance', 'action.view'],
+    },
     create: {
       code: 'AS',
       name: 'Accounting Staff',
       description: 'Pembukuan & jurnal',
       level: 5,
+            defaultPermissions: ['menu.finance', 'action.view'],
       isActive: true,
     },
   });
 
   const crRole = await prisma.role.upsert({
     where: { code: 'CR' },
-    update: {},
+    update: {
+      defaultPermissions: ['menu.pos', 'menu.sales', 'action.view', 'action.pos.create'],
+    },
     create: {
       code: 'CR',
       name: 'Cashier',
       description: 'Kasir POS',
       level: 5,
+            defaultPermissions: ['menu.pos', 'menu.sales', 'action.view', 'action.pos.create'],
       isActive: true,
     },
   });
@@ -360,6 +408,7 @@ async function main() {
         name: 'Super Administrator',
         description: 'System administrator with full access',
         level: 0,
+        defaultPermissions: [], // Level 0 = bypass all checks
         isSystemRole: true,
         isActive: true,
       },

@@ -4,6 +4,8 @@ import {
   IsOptional,
   IsBoolean,
   IsDateString,
+  IsArray,
+  IsString,
 } from 'class-validator';
 
 /**
@@ -30,4 +32,9 @@ export class AssignRoleDto {
   @IsDateString({}, { message: 'validUntil must be a valid date string' })
   @IsOptional()
   validUntil?: string;
+
+  @IsArray({ message: 'deniedPermissions must be an array' })
+  @IsString({ each: true, message: 'Each denied permission must be a string' })
+  @IsOptional()
+  deniedPermissions?: string[];
 }

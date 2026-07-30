@@ -300,16 +300,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { hasPermission, hasAnyRole } = usePermissions();
 
   const menuPermissionMap: Record<string, string> = {
-    'Dashboard': 'dashboard.*.view',
-    'Master Data': 'master_data.*.view',
-    'Penjualan': 'sales.*.view',
-    'Servis': 'service.*.view',
-    'Gudang': 'inventory.*.view',
-    'Keuangan': 'finance.*.view',
-    'Pembelian': 'purchasing.*.view',
-    'Karyawan': 'hr.*.view',
-    'Cabang': 'master_data.*.view',
-    'User & Role': 'users.*.view',
+    'Dashboard': 'menu.dashboard',
+    'Master Data': 'menu.master-data',
+    'Penjualan': 'menu.sales',
+    'Servis': 'menu.service',
+    'Gudang': 'menu.inventory',
+    'Keuangan': 'menu.finance',
+    'Pembelian': 'menu.purchasing',
+    'Karyawan': 'menu.hr',
+    'Cabang': 'menu.branches',
+    'User & Role': 'menu.users',
   };
 
   const hasAccess = (item: MenuItem): boolean => {
