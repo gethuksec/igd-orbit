@@ -54,10 +54,20 @@
 MASTER PLAN
 ├── A. shadcn/ui Migration ─────── Foundation → Layout → Patterns → Rollout → Cleanup
 ├── B. POS Redesign ─────────────── Invoice form → Table → Payment → API → Polish
-├── C. Module Adjustments ───────── [TBD — add as needed]
-├── D. Organization Architecture ── Branch → Warehouse → Role → User assignments
-└── E. Service Redesign ─────────── [Pending discussion — Erzap-style service page]
+├── C. Module Adjustments
+│   └── C.1 Granular Permissions ── Sidebar → Actions → Fields (phased)
+├── D. Organization Architecture ── Schema → Backend → Outlet/Warehouse/Role pages
+└── E. Service Redesign ─────────── FE: SmartRepair UI → BE: Kelengkapan CRUD + API
 ```
+
+### Difficulty Ranking (easiest → hardest)
+
+| Rank | Workstream | Total Effort | Why |
+|------|-----------|-------------|-----|
+| **1** 🟢 | **C.1 Permissions** | ~4-6h | Purely additive. Add arrays to Role/UserBranch + `hasPermission()` checks. No new UI, no data migration, no schema breaking. |
+| **2** 🟡 | **E-FE Frontend** | ~6-10h | Big scope but **additive** (new page alongside old). Heavy reuse of POS components (ProductTable, TransactionHeader, FooterShortcutBar). Can start with current API. |
+| **3** 🟡 | **E-BE Backend** | ~4-6h | New Kelengkapan CRUD + extend ServiceOrder API. Independent from FE work. |
+| **4** 🔴 | **D Organization** | ~8-12h | **Hardest.** Schema migration (split Branch, remove old Role tables, migrate data). New CRUD for 3 modules. Touches many existing relations. |
 
 ---
 
@@ -703,9 +713,22 @@ model User {
 
 ## 6. Workstream E: Service Module Redesign (Erzap-style Smart Repair)
 
-**Goal:** Redesign the service intake page into an Erzap-style "Smart Repair" form with two flows — Quick Service and Rawat Inap (Inpatient). Keep the same structure current users are familiar with, but use shadcn components.
+**Goal:** Redesign the service intake page into an Erzap-style "Smart Repair" form with two flows — Quick Service and Rawat Inap.
 
-**Status:** 🟡 Planned | **Effort:** ~10-15 hours | **Depends on:** Workstream B (POS patterns), Workstream D (warehouse/outlet model)
+**Status:** 🟡 Planned | **Effort:** FE ~6-10h + BE ~4-6h
+
+**Depends on:** Workstream D schema (Warehouse, Branch models). FE can start with mock/current API while BE is built.
+
+---
+
+### E.0 — Split Scope
+
+| Layer | Effort | What |
+|-------|--------|------|
+| **E-FE** Frontend | ~6-10h | SmartRepairPage, all UI components, reuse POS patterns, hook to existing API |
+| **E-BE** Backend | ~4-6h | Kelengkapan CRUD, warehouse/outlet endpoints, tax support, down payment |
+
+FE can start development using mock data or existing API endpoints while BE is built in parallel.
 
 ### E.1 — Reference Design
 
@@ -874,15 +897,18 @@ SmartRepairPage                              [NEW — main entry]
 
 ### E.5 — Phased Implementation
 
-| Phase | What | Key Files | ~Time |
-|-------|------|-----------|-------|
-| **E1** Foundation | Create ServiceStore (Zustand), shared types, new DTO for service transactions | `stores/serviceStore.ts`, `types/service.ts`, `services/service.service.ts` | 1.5h |
-| **E2** Header + Tabs | ServiceTypeTabs, TransactionHeader (reuse from POS with service fields), Outlet/Customer/Termin/Tax | `SmartRepairPage.tsx`, `components/ServiceTypeTabs.tsx`, `components/ServiceHeader.tsx` | 2h |
-| **E3** Rawat Inap sections | DeviceInfoSection, DamageSection, TechnicianSection | `components/DeviceInfo.tsx`, `components/DamageSection.tsx`, `components/TechnicianSection.tsx` | 2h |
-| **E4** Quick Service section | Reuse POS product table + search bar, Gudang selector, CostSummary | `components/QuickServiceParts.tsx`, `components/CostSummary.tsx` | 2h |
-| **E5** Save + Payment | Save handler (F2/F3), Uang Muka, receipt print | Service store wiring, `components/DownPayment.tsx` | 1.5h |
-| **E6** Integration + Polish | Wire to existing routes, remove old ServiceOrder pages, add sidebar | Route updates, sidebar "Servis" menu, cleanup | 1h |
-| **E7** Existing data migration | Migrate existing service orders to new schema fields if needed | Seed/migration script | 0.5h |
+| Phase | Layer | What | Key Files | ~Time |
+|-------|-------|------|-----------|-------|
+| **E-BE1** | Backend | ServiceCheckpoint model + CRUD endpoints (kelengkapan master list) | `prisma/schema.prisma`, `modules/service-checkpoint/` | 1.5h |
+| **E-BE2** | Backend | Extend ServiceOrder API: warehouseId, tax fields, down payment, completenessItems storage | `modules/service-orders/`, DTOs | 2h |
+| **E-BE3** | Backend | GET technicians by outlet, GET active checkpoints, auto service number | `modules/employees/`, `modules/service-orders/` | 1h |
+| **E-FE1** | Frontend | ServiceStore (Zustand), shared types, service API service | `stores/serviceStore.ts`, `types/service.ts`, `services/service.service.ts` | 1h |
+| **E-FE2** | Frontend | SmartRepairPage shell + ServiceTypeTabs + TransactionHeader (reuse from POS) | `SmartRepairPage.tsx`, `components/ServiceTypeTabs.tsx` | 1.5h |
+| **E-FE3** | Frontend | DeviceInfo + DamageSection (deskripsi+kondisi merged) + Kelengkapan checklist component | `components/DeviceInfo.tsx`, `components/DamageSection.tsx`, `components/KelengkapanChecklist.tsx` | 2h |
+| **E-FE4** | Frontend | TechnicianSection + CostSummary (auto-calc) + DownPayment | `components/TechnicianSection.tsx`, `components/CostSummary.tsx` | 1.5h |
+| **E-FE5** | Frontend | QuickServiceSection (reuse POS ProductTable) + FooterShortcutBar + Save logic | Reuse from POS components | 1.5h |
+| **E-FE6** | Integration | Wire to routes, sidebar, replace old ServiceOrderForm, cleanup | `App.tsx`, `DashboardLayout.tsx` sidebar | 1h |
+| **E-FE7** | Integration | Kelengkapan CRUD page at `/service-checkpoints` | `pages/service-checkpoints/` | 1h |
 
 ### E.6 — Key Design Decisions
 
