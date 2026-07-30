@@ -582,6 +582,9 @@ model SalesTransaction {
   branchId           String    @map("branch_id")
   customerId         String?   @map("customer_id")
   cashierId          String    @map("cashier_id") // User ID
+  paymentTermId      String?   @map("payment_term_id")
+  salesPersonId      String?   @map("sales_person_id")
+  warehouseId        String?   @map("warehouse_id")
   status             String    @default("pending") // 'pending', 'completed', 'cancelled', 'void', 'held'
   subtotal           Decimal   @db.Decimal(15, 2)
   discountAmount     Decimal   @default(0) @map("discount_amount") @db.Decimal(15, 2)
