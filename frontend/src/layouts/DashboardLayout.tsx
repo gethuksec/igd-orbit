@@ -337,12 +337,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       for (const topNode of PERMISSION_CATALOG) {
         const found = findChildInTree(topNode, child.label);
         if (found) {
-          // Check visibility of THIS specific node only, not the whole branch
-          if (isBranchVisible(found, userPermSet)) return true;
-          break;
+          // Catalog explicitly controls visibility for this child
+          return isBranchVisible(found, userPermSet);
         }
       }
-      // Fallback: check child's own permission
+      // Not in catalog: fallback to traditional checks
+      // Check child's own permission
       if (child.permission && userPermissions.length > 0) {
         if (hasPermission(child.permission)) return true;
       }
