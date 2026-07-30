@@ -53,6 +53,11 @@ export default function RoleForm() {
         defaultPermissions: data.defaultPermissions,
       };
 
+      // SUPERADMIN permissions are immutable — don't send them so the backend only updates non-permission fields
+      if (role?.code === 'SUPERADMIN') {
+        delete submitData.defaultPermissions;
+      }
+
       if (!isEdit) {
         submitData.code = data.code;
         submitData.isSystemRole = false;
