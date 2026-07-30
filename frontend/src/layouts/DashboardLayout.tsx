@@ -313,13 +313,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     catalogByLabel.set(node.label, node);
   }
 
-  // Recursively find a node in the catalog tree by label
-  function findLabelInTree(node: PermissionNode, label: string): boolean {
-    if (node.label === label) return true;
-    if (node.children) return node.children.some((c) => findLabelInTree(c, label));
-    return false;
-  }
-
   const hasAccess = (item: MenuItem): boolean => {
     const currentUser = getUser();
     const userRoles = currentUser?.roles || (currentUser?.role?.code ? [currentUser.role.code] : []);
@@ -340,10 +333,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const getChildVisibility = (children: MenuItem[]): MenuItem[] => {
     return children.filter((child) => {
-      // Check via catalog for this child
-      for (const node of PERMISSION_CATALOG) {
-        if (findLabelInTree(node, child.label)) {
-          if (isBranchVisible(node, userPermSet)) return true;
+      // Find the child node in the catalog by searching all top-level sections
+      for (const topNode of PERMISSION_CATALOG) {
+        const found = findChildInTree(topNode, child.label);
+        if (found) {
+          // Check visibility of THIS specific node only, not the whole branch
+          if (isBranchVisible(found, userPermSet)) return true;
+          break;
         }
       }
       // Fallback: check child's own permission
@@ -355,6 +351,18 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       return false;
     });
   };
+
+  // Find a node by label in the catalog tree, return the matched node itself
+  function findChildInTree(node: PermissionNode, label: string): PermissionNode | null {
+    if (node.label === label) return node;
+    if (node.children) {
+      for (const c of node.children) {
+        const result = findChildInTree(c, label);
+        if (result) return result;
+      }
+    }
+    return null;
+  }
 
   const menuItems = allMenuItems
     .filter((item) => hasAccess(item))
