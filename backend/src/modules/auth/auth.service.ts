@@ -173,11 +173,20 @@ export class AuthService {
       .filter((id): id is string => id !== null);
 
     const permissions = userRoles
-      .flatMap((ur) => ur.role.rolePermissions)
-      .map(
-        (rp) =>
-          `${rp.permission.module}.${rp.permission.submodule || '*'}.${rp.permission.action}`,
-      )
+      .flatMap((ur) => { 
+        const perms: string[] = [];
+        // From RolePermission junction
+        for (const rp of ur.role.rolePermissions || []) {
+          perms.push(`${rp.permission.module}.${rp.permission.submodule || '*'}.${rp.permission.action}`);
+        }
+        // From role's defaultPermissions array
+        for (const dp of ur.role.defaultPermissions || []) {
+          perms.push(dp);
+        }
+        // Subtract deniedPermissions
+        const denied = new Set(ur.deniedPermissions || []);
+        return perms.filter(p => !denied.has(p));
+      })
       .filter((p, index, self) => self.indexOf(p) === index);
 
     // Generate JWT payload
@@ -299,11 +308,17 @@ export class AuthService {
       .filter((id): id is string => id !== null);
 
     const permissions = activeRoles
-      .flatMap((ur) => ur.role.rolePermissions)
-      .map(
-        (rp) =>
-          `${rp.permission.module}.${rp.permission.submodule || '*'}.${rp.permission.action}`,
-      )
+      .flatMap((ur) => {
+        const perms: string[] = [];
+        for (const rp of ur.role.rolePermissions || []) {
+          perms.push(`${rp.permission.module}.${rp.permission.submodule || '*'}.${rp.permission.action}`);
+        }
+        for (const dp of ur.role.defaultPermissions || []) {
+          perms.push(dp);
+        }
+        const denied = new Set(ur.deniedPermissions || []);
+        return perms.filter(p => !denied.has(p));
+      })
       .filter((p, index, self) => self.indexOf(p) === index);
 
     // Generate new access token
