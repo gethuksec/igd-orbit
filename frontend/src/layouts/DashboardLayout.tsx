@@ -47,7 +47,6 @@ import {
 import type { Branch } from '@/services/public.service';
 import { publicService } from '@/services/public.service';
 import { useBranchStore } from '@/stores/branchStore';
-import { usePermissions } from '@/hooks/usePermissions';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -300,12 +299,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     },
   ];
 
-  const { hasPermission, hasAnyRole } = usePermissions();
-
   // Build a set of user's permissions for catalog visibility checks
   const currentUserData = getUser();
-  const userPermissions: string[] = currentUserData?.permissions || [];
-  const userPermSet = new Set<string>(userPermissions);
+  const userPermSet = new Set<string>(currentUserData?.permissions || []);
 
   // Map catalog labels to their top-level nodes for quick lookup
   const catalogByLabel = new Map<string, PermissionNode>();
@@ -319,35 +315,35 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
     if (userRoles.includes('SUPERADMIN')) return true;
 
-    // Check via permission catalog (bottom-up visibility)
+    // Permission catalog is the SINGLE source of truth for sidebar visibility.
+    // Every sidebar item must have a matching entry in PERMISSION_CATALOG.
     if (item.label && catalogByLabel.has(item.label)) {
       const catalogNode = catalogByLabel.get(item.label)!;
       return isBranchVisible(catalogNode, userPermSet);
     }
 
-    // Fallback: role-based access
-    if (item.roles) return item.roles.includes('*') || hasAnyRole(item.roles);
-
-    return true;
+    // Item has no catalog entry — hidden (no legacy fallback)
+    return false;
   };
 
-  const getChildVisibility = (children: MenuItem[]): MenuItem[] => {
-    return children.filter((child) => {
-      // Find the child node in the catalog by searching all top-level sections
+  const getChildVisibility = (parentItem: MenuItem): MenuItem[] => {
+    // Find the catalog section matching the parent label for scoped search
+    const parentCatalogNode = parentItem.label ? catalogByLabel.get(parentItem.label) : null;
+
+    return (parentItem.children || []).filter((child) => {
+      // Search only within the parent's catalog section (avoids sibling label collisions)
+      if (parentCatalogNode) {
+        const found = findChildInTree(parentCatalogNode, child.label);
+        if (found) return isBranchVisible(found, userPermSet);
+      }
+
+      // Fallback: search all sections (for cross-section lookup as last resort)
       for (const topNode of PERMISSION_CATALOG) {
         const found = findChildInTree(topNode, child.label);
-        if (found) {
-          // Catalog explicitly controls visibility for this child
-          return isBranchVisible(found, userPermSet);
-        }
+        if (found) return isBranchVisible(found, userPermSet);
       }
-      // Not in catalog: fallback to traditional checks
-      // Check child's own permission
-      if (child.permission && userPermissions.length > 0) {
-        if (hasPermission(child.permission)) return true;
-      }
-      // Check roles
-      if (child.roles) return child.roles.includes('*') || hasAnyRole(child.roles);
+
+      // Child has no catalog entry — hidden (no legacy fallback)
       return false;
     });
   };
@@ -368,7 +364,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     .filter((item) => hasAccess(item))
     .map((item) => ({
       ...item,
-      children: item.children ? getChildVisibility(item.children) : undefined,
+      children: item.children ? getChildVisibility(item) : undefined,
     }))
     .filter((item) => !item.children || item.children.length > 0);
 

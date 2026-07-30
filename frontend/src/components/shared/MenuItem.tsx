@@ -24,10 +24,10 @@ export function MenuItem({
       <Link
         to={path}
         className={cn(
-          'flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all text-sm',
+          'flex items-center gap-3 px-4 py-2.5 rounded-md text-sm transition-all',
           isActive
-            ? 'bg-primary-50 text-primary-700 font-semibold border-l-2 border-primary-600'
-            : 'text-muted-foreground hover:bg-muted'
+            ? 'bg-primary-50 text-primary-700 font-semibold border-l-2 border-primary-600 -ml-[3px]'
+            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
         )}
       >
         <Icon className="w-4 h-4 shrink-0" />
