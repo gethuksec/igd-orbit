@@ -372,7 +372,6 @@ export default function SmartRepairPage() {
             <TabsTrigger value="inap">Rawat Inap</TabsTrigger>
             <TabsTrigger value="garansi" disabled>Klaim Garansi (v2)</TabsTrigger>
           </TabsList>
-        </Tabs>
 
         {/* ═══ Transaction Header ═══ */}
         <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-4">
@@ -862,6 +861,7 @@ export default function SmartRepairPage() {
             </div>
           </div>
         </TabsContent>
+        </Tabs>
 
         {/* ═══ Notes (shared) ═══ */}
         <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-4">
