@@ -6,12 +6,14 @@ import { PageHeader, StatCard, SearchFilter, DataTable } from "@/components/shar
 import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { usePermissions } from "@/hooks/usePermissions";
 import { toast } from "sonner";
 
 type StatusFilter = "all" | "active" | "inactive";
 
 export default function ServiceCheckpointList() {
   const queryClient = useQueryClient();
+  const { hasPermission } = usePermissions();
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -159,10 +161,12 @@ export default function ServiceCheckpointList() {
   return (
     <div className="w-full space-y-3">
       <PageHeader title="Manajemen Kelengkapan" subtitle="Kelola checklist kelengkapan untuk form servis">
-        <Button onClick={openCreateModal} className="flex items-center gap-2 bg-white text-primary-600 hover:bg-primary-50">
-          <Plus className="w-5 h-5" />
-          <span>Tambah Kelengkapan</span>
-        </Button>
+        {hasPermission('service.checkpoint.create') && (
+          <Button onClick={openCreateModal} className="flex items-center gap-2 bg-white text-primary-600 hover:bg-primary-50">
+            <Plus className="w-5 h-5" />
+            <span>Tambah Kelengkapan</span>
+          </Button>
+        )}
       </PageHeader>
 
       {error && (
@@ -207,21 +211,25 @@ export default function ServiceCheckpointList() {
         emptyIcon={<ClipboardCheck className="w-16 h-16" />}
         actions={(item: any) => (
           <div className="flex items-center justify-end gap-1">
-            <Button variant="ghost" size="sm" onClick={() => openEditModal(item)} title="Edit">
-              <Edit className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-red-600 hover:bg-red-50"
-              title="Hapus"
-              onClick={() => {
-                setItemToDelete({ id: item.id, name: item.name });
-                setDeleteModalOpen(true);
-              }}
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
+            {hasPermission('service.checkpoint.edit') && (
+              <Button variant="ghost" size="sm" onClick={() => openEditModal(item)} title="Edit">
+                <Edit className="w-4 h-4" />
+              </Button>
+            )}
+            {hasPermission('service.checkpoint.delete') && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-red-600 hover:bg-red-50"
+                title="Hapus"
+                onClick={() => {
+                  setItemToDelete({ id: item.id, name: item.name });
+                  setDeleteModalOpen(true);
+                }}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )}
           </div>
         )}
       />

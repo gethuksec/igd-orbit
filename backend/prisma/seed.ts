@@ -152,14 +152,14 @@ async function main() {
   const csRole = await prisma.role.upsert({
     where: { code: 'CS' },
     update: {
-      defaultPermissions: ['menu.pos', 'menu.sales', 'action.view', 'action.pos.create', 'action.pos.edit', 'action.service.smart_repair.create', 'service.checkpoint.view', 'service.checkpoint.create', 'service.checkpoint.edit', 'service.checkpoint.delete'],
+      defaultPermissions: ['menu.pos', 'menu.sales', 'action.view', 'action.pos.create', 'action.pos.edit', 'action.service.smart_repair.create', 'service.checkpoint.view'],
     },
     create: {
       code: 'CS',
       name: 'Customer Service',
       description: 'Customer service and POS access',
       level: 4,
-            defaultPermissions: ['menu.pos', 'menu.sales', 'action.view', 'action.pos.create', 'action.pos.edit', 'action.service.smart_repair.create', 'service.checkpoint.view', 'service.checkpoint.create', 'service.checkpoint.edit', 'service.checkpoint.delete'],
+            defaultPermissions: ['menu.pos', 'menu.sales', 'action.view', 'action.pos.create', 'action.pos.edit', 'action.service.smart_repair.create', 'service.checkpoint.view'],
       isActive: true,
     },
   });
