@@ -100,6 +100,8 @@ import BranchDetail from './pages/branches/BranchDetail';
 import WarehouseLanding from './pages/warehouse/WarehouseLanding';
 import SalesLanding from './pages/sales/SalesLanding';
 import ServiceLanding from './pages/services/ServiceLanding';
+import SmartRepairPage from './pages/services/SmartRepairPage';
+import ServiceCheckpointList from './pages/service-checkpoints/ServiceCheckpointList';
 import FinanceLanding from './pages/finance/FinanceLanding';
 import COAList from './pages/finance/coa/COAList';
 import COADetail from './pages/finance/coa/COADetail';
@@ -657,6 +659,28 @@ function App() {
                 <ProtectedRoute>
                   <DashboardLayout>
                     <ServiceLanding />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            {/* Smart Repair (E-FE) */}
+            <Route
+              path="/services/smart-repair"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <SmartRepairPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            {/* Kelengkapan CRUD (E-FE) */}
+            <Route
+              path="/service-checkpoints"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <ServiceCheckpointList />
                   </DashboardLayout>
                 </ProtectedRoute>
               }

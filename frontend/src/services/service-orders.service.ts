@@ -144,5 +144,11 @@ export const serviceOrdersService = {
     const response = await api.post(`/service-orders/${id}/payment`, payload);
     return response.data.data || response.data;
   },
+
+  /** Smart Repair (E-FE): create with tax flags, completeness items, parts, cost breakdown */
+  async createSmartRepair(data: import('@/types/service').SmartRepairPayload): Promise<any> {
+    const response = await api.post('/service-orders', data);
+    return response.data?.data || response.data;
+  },
 };
 
