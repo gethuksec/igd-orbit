@@ -10,7 +10,26 @@ import {
   IsDateString,
   Matches,
   Min,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class CompletenessItemDto {
+  @IsString()
+  @IsOptional()
+  checkpointId?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  name!: string;
+
+  @IsBoolean()
+  checked!: boolean;
+
+  @IsString()
+  @IsOptional()
+  conditionNote?: string;
+}
 
 export class CreateServiceOrderDto {
   // Customer info
@@ -140,12 +159,9 @@ export class CreateServiceOrderDto {
 
   @IsArray()
   @IsOptional()
-  completenessItems?: Array<{
-    checkpointId?: string;
-    name: string;
-    checked: boolean;
-    conditionNote?: string;
-  }>;
+  @ValidateNested({ each: true })
+  @Type(() => CompletenessItemDto)
+  completenessItems?: CompletenessItemDto[];
 }
 
 
