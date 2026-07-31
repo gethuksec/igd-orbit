@@ -162,6 +162,8 @@ export class ServiceOrdersService {
       promisedDate,
       customerNotes,
       assignedTechnicianId,
+      laborCost,
+      otherCost,
     } = dto;
 
     // Validate or create customer
@@ -199,13 +201,51 @@ export class ServiceOrdersService {
     // Encrypt device password if provided
     const encryptedPassword = devicePassword ? encryptPassword(devicePassword) : null;
 
+    // Resolve parts: validate products exist, compute parts cost + auto finalPrice (E-FE)
+    let partsCost: Decimal | null = null;
+    const resolvedParts: Array<{ productId: string; quantity: number; unitPrice: number; purchaseType?: string; notes?: string; costPrice: Decimal }> = [];
+    if (dto.parts && dto.parts.length > 0) {
+      const productIds = [...new Set(dto.parts.map((p) => p.productId))];
+      const products = await this.prisma.product.findMany({
+        where: { id: { in: productIds } },
+        select: { id: true, costPrice: true },
+      });
+      if (products.length !== productIds.length) {
+        throw new BadRequestException('One or more parts reference a non-existent product');
+      }
+      const costMap = new Map(products.map((p) => [p.id, p.costPrice]));
+      partsCost = new Decimal(0);
+      for (const p of dto.parts) {
+        const qty = new Decimal(p.quantity);
+        const unitPrice = new Decimal(p.unitPrice);
+        partsCost = partsCost.plus(qty.mul(unitPrice));
+        resolvedParts.push({
+          productId: p.productId,
+          quantity: p.quantity,
+          unitPrice: p.unitPrice,
+          purchaseType: p.purchaseType,
+          notes: p.notes,
+          costPrice: costMap.get(p.productId) ?? unitPrice,
+        });
+      }
+    }
+
+    // Auto finalPrice from cost breakdown when not provided (Quick Service convenience)
+    let finalPriceValue = dto.finalPrice;
+    if (finalPriceValue === undefined && partsCost !== null) {
+      finalPriceValue = partsCost
+        .plus(laborCost ? new Decimal(laborCost) : new Decimal(0))
+        .plus(otherCost ? new Decimal(otherCost) : new Decimal(0))
+        .toNumber();
+    }
+
     return await this.prisma.$transaction(async (tx) => {
       // Compute tax totals if final price provided (E-BE2)
       let taxAmount: Decimal | null = null;
       let totalPrice: Decimal | null = null;
-      if (dto.finalPrice !== undefined && dto.finalPrice !== null) {
+      if (finalPriceValue !== undefined && finalPriceValue !== null) {
         const totals = this.computeTaxTotals(
-          new Decimal(dto.finalPrice),
+          new Decimal(finalPriceValue),
           dto.taxPpn ?? false,
           dto.taxIncPpn ?? false,
           dto.taxPph22 ?? false,
@@ -239,7 +279,7 @@ export class ServiceOrdersService {
           initialDiagnosis,
           estimatedCost: estimatedCost ? new Decimal(estimatedCost) : null,
           quotedPrice: dto.quotedPrice !== undefined ? new Decimal(dto.quotedPrice) : null,
-          finalPrice: dto.finalPrice !== undefined ? new Decimal(dto.finalPrice) : null,
+          finalPrice: finalPriceValue !== undefined ? new Decimal(finalPriceValue) : null,
           priority,
           promisedDate: promisedDate ? new Date(promisedDate) : null,
           slaDueDate,
@@ -255,6 +295,9 @@ export class ServiceOrdersService {
           taxPph22: dto.taxPph22 ?? false,
           taxPph23: dto.taxPph23 ?? false,
           downPayment: dto.downPayment !== undefined ? new Decimal(dto.downPayment) : null,
+          laborCost: laborCost !== undefined ? new Decimal(laborCost) : null,
+          partsCost: partsCost !== null ? partsCost : new Decimal(0),
+          otherCost: otherCost !== undefined ? new Decimal(otherCost) : null,
           completenessItems: dto.completenessItems
             ? JSON.parse(JSON.stringify(dto.completenessItems))
             : null,
@@ -265,6 +308,7 @@ export class ServiceOrdersService {
           branch: true,
           customer: true,
           serviceType: true,
+          partsUsed: true,
         },
       });
 
@@ -277,6 +321,23 @@ export class ServiceOrdersService {
           changedBy: userId,
         },
       });
+
+      // Persist spare parts line items (E-FE Quick Service)
+      if (resolvedParts.length > 0) {
+        await tx.servicePartsUsed.createMany({
+          data: resolvedParts.map((p) => ({
+            serviceOrderId: serviceOrder.id,
+            productId: p.productId,
+            purchaseType: p.purchaseType ?? 'internal',
+            quantity: new Decimal(p.quantity),
+            unitCost: p.costPrice,
+            unitPrice: new Decimal(p.unitPrice),
+            totalCost: p.costPrice.mul(p.quantity),
+            totalPrice: new Decimal(p.quantity).mul(p.unitPrice),
+            notes: p.notes,
+          })),
+        });
+      }
 
       return serviceOrder;
     });
@@ -432,7 +493,7 @@ export class ServiceOrdersService {
     }
 
     // Update other fields (exclude relation fields, special-handled fields, and non-model fields)
-    const excludedFields = ['customerId', 'serviceTypeId', 'assignedTechnicianId'];
+    const excludedFields = ['customerId', 'serviceTypeId', 'assignedTechnicianId', 'parts'];
     Object.keys(dto).forEach((key) => {
       if (
         key !== 'devicePassword' &&
@@ -459,6 +520,37 @@ export class ServiceOrdersService {
     // Handle date fields
     if (dto.promisedDate) {
       updateData.promisedDate = new Date(dto.promisedDate);
+    }
+
+    // Handle parts replacement (E-FE): resolve cost prices, recompute partsCost
+    if (dto.parts) {
+      const productIds = [...new Set(dto.parts.map((p) => p.productId))];
+      const products = await this.prisma.product.findMany({
+        where: { id: { in: productIds } },
+        select: { id: true, costPrice: true },
+      });
+      if (products.length !== productIds.length) {
+        throw new BadRequestException('One or more parts reference a non-existent product');
+      }
+      const costMap = new Map(products.map((p) => [p.id, p.costPrice]));
+      let newPartsCost = new Decimal(0);
+      for (const p of dto.parts) {
+        newPartsCost = newPartsCost.plus(new Decimal(p.quantity).mul(p.unitPrice));
+      }
+      updateData.partsUsed = {
+        deleteMany: {},
+        create: dto.parts.map((p) => ({
+          productId: p.productId,
+          purchaseType: p.purchaseType ?? 'internal',
+          quantity: new Decimal(p.quantity),
+          unitCost: costMap.get(p.productId) ?? new Decimal(p.unitPrice),
+          unitPrice: new Decimal(p.unitPrice),
+          totalCost: (costMap.get(p.productId) ?? new Decimal(p.unitPrice)).mul(p.quantity),
+          totalPrice: new Decimal(p.quantity).mul(p.unitPrice),
+          notes: p.notes,
+        })),
+      };
+      updateData.partsCost = newPartsCost;
     }
 
     return this.prisma.serviceOrder.update({

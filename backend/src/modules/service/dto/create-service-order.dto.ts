@@ -31,6 +31,27 @@ export class CompletenessItemDto {
   conditionNote?: string;
 }
 
+export class ServicePartItemDto {
+  @IsUUID()
+  productId!: string;
+
+  @IsNumber()
+  @Min(0.001)
+  quantity!: number;
+
+  @IsNumber()
+  @Min(0)
+  unitPrice!: number;
+
+  @IsString()
+  @IsOptional()
+  purchaseType?: string; // 'internal' | 'external'
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
+
 export class CreateServiceOrderDto {
   // Customer info
   @IsUUID()
@@ -156,6 +177,22 @@ export class CreateServiceOrderDto {
   @IsOptional()
   @Min(0)
   downPayment?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  laborCost?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  otherCost?: number;
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => ServicePartItemDto)
+  parts?: ServicePartItemDto[];
 
   @IsArray()
   @IsOptional()
