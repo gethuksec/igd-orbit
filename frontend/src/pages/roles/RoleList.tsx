@@ -1,12 +1,20 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Edit, Trash2, Eye, Shield, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Eye, Shield, CheckCircle, XCircle, Loader2, Network } from 'lucide-react';
 import { rolesService } from '../../services/roles.service';
 import { toast } from 'sonner';
 import { Modal } from '../../components/ui/modal';
 import RequirePermission from '../../components/guards/RequirePermission';
 import { usePermissions } from '../../hooks/usePermissions';
+import { RoleHierarchyTree } from './components/RoleHierarchyTree';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '../../components/ui/dialog';
 
 export default function RoleList() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -14,7 +22,9 @@ export default function RoleList() {
   const [limit, setLimit] = useState<10 | 20 | 50 | 100>(20);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [roleToDelete, setRoleToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [hierarchyModalOpen, setHierarchyModalOpen] = useState(false);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { userRoles } = usePermissions();
   const isSuperAdmin = userRoles.includes('SUPERADMIN');
 
@@ -90,14 +100,23 @@ export default function RoleList() {
           <h1 className="text-3xl font-bold text-gray-900">Manajemen Role</h1>
           <p className="text-gray-600 mt-1">Kelola role dan permissions</p>
         </div>
-        <RequirePermission permission="roles.create" fallbackRoles={['SUPERADMIN']}>
-          <Link to="/roles/new">
-            <button className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-500 text-white rounded-lg font-semibold hover:from-primary-700 hover:to-primary-600 shadow-lg transition-all">
-              <Plus className="w-5 h-5" />
-              <span>Tambah Role</span>
-            </button>
-          </Link>
-        </RequirePermission>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setHierarchyModalOpen(true)}
+            className="flex items-center gap-2 px-6 py-3 border-2 border-primary-200 bg-primary-50 text-primary-700 rounded-lg font-semibold hover:bg-primary-100 transition-all"
+          >
+            <Network className="w-5 h-5" />
+            <span>Lihat Hierarki</span>
+          </button>
+          <RequirePermission permission="roles.create" fallbackRoles={['SUPERADMIN']}>
+            <Link to="/roles/new">
+              <button className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-500 text-white rounded-lg font-semibold hover:from-primary-700 hover:to-primary-600 shadow-lg transition-all">
+                <Plus className="w-5 h-5" />
+                <span>Tambah Role</span>
+              </button>
+            </Link>
+          </RequirePermission>
+        </div>
       </div>
 
       {/* Statistics Card */}
@@ -391,6 +410,29 @@ export default function RoleList() {
           </div>
         </div>
       </Modal>
+
+      {/* Role Hierarchy Modal */}
+      <Dialog open={hierarchyModalOpen} onOpenChange={setHierarchyModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Network className="w-5 h-5 text-primary-600" />
+              Role Hierarchy
+            </DialogTitle>
+            <DialogDescription>
+              Struktur hierarki role — klik role untuk melihat detailnya
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[65vh] overflow-y-auto pr-2">
+            <RoleHierarchyTree
+              onRoleSelect={(roleId) => {
+                setHierarchyModalOpen(false);
+                navigate(`/roles/${roleId}`);
+              }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

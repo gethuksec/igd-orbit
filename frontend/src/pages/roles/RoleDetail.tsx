@@ -18,7 +18,6 @@ import { Modal } from '../../components/ui/modal';
 import RequirePermission from '../../components/guards/RequirePermission';
 import { PermissionTree } from './components/PermissionTree';
 import { usePermissions } from '../../hooks/usePermissions';
-import { RoleHierarchyTree } from './components/RoleHierarchyTree';
 import { MenuAccessSelector } from './components/MenuAccessSelector';
 
 export default function RoleDetail() {
@@ -207,15 +206,6 @@ export default function RoleDetail() {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Role Hierarchy Section */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-        <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2 mb-4">
-          <Shield className="w-5 h-5" />
-          Role Hierarchy
-        </h2>
-        <RoleHierarchyTree selectedRoleId={role.id} />
       </div>
 
       {/* Menu Access Section */}
