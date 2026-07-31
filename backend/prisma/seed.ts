@@ -2724,6 +2724,42 @@ async function main() {
     }
   }
 
+  // ============================================
+  // SERVICE CHECKPOINTS (Kelengkapan)
+  // ============================================
+  console.log('☑️ Creating service checkpoints (Kelengkapan)...');
+
+  const defaultCheckpoints = [
+    'Slot SIM',
+    'Speaker Atas',
+    'Tombol',
+    'Back casing',
+    'SIM',
+    'Memory Card',
+    'LCD',
+    'Kamera',
+    'Mic Speaker',
+    'Buzzer',
+  ];
+
+  for (let i = 0; i < defaultCheckpoints.length; i++) {
+    const name = defaultCheckpoints[i];
+    const existing = await prisma.serviceCheckpoint.findFirst({
+      where: { name },
+    });
+    if (!existing) {
+      await prisma.serviceCheckpoint.create({
+        data: {
+          name,
+          isActive: true,
+          sortOrder: i,
+        },
+      });
+    }
+  }
+
+  console.log('✅ Service checkpoints created');
+
   console.log('✅ Database seed completed!');
   console.log('\n📋 Demo Credentials (Organized by Tier):');
   console.log('\n🟣 TIER 0 - SUPER ADMIN (Password: SuperAdmin@1234)');

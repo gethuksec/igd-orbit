@@ -33,6 +33,64 @@ export class UsersService {
   ) {}
 
   /**
+   * Find technicians (users with TC role), optionally filtered by branch
+   * @param options - { branchId?, search? }
+   * @returns List of technician users (id, fullName, email, phone, employeeCode)
+   */
+  async findTechnicians(options: { branchId?: string; search?: string } = {}) {
+    const { branchId, search } = options;
+
+    const tcRole = await this.prisma.role.findUnique({
+      where: { code: 'TC' },
+    });
+
+    if (!tcRole) {
+      return [];
+    }
+
+    const where: Prisma.UserWhereInput = {
+      isActive: true,
+      deletedAt: null,
+      userRoles: {
+        some: {
+          roleId: tcRole.id,
+          ...(branchId ? { branchId } : {}),
+        },
+      },
+    };
+
+    if (search) {
+      where.OR = [
+        { fullName: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { phone: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const users = await this.prisma.user.findMany({
+      where,
+      orderBy: { fullName: 'asc' },
+      include: {
+        employee: {
+          select: {
+            employeeCode: true,
+            position: true,
+          },
+        },
+      },
+    });
+
+    return users.map((u) => ({
+      id: u.id,
+      fullName: u.fullName,
+      email: u.email,
+      phone: u.phone,
+      employeeCode: u.employee?.employeeCode ?? null,
+      position: u.employee?.position ?? null,
+    }));
+  }
+
+  /**
    * Find all users with pagination and filters
    * @param query - Query parameters (pagination, search, filters)
    * @param currentUser - Current user for permission checks

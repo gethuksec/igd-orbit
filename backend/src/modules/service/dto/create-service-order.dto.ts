@@ -5,6 +5,8 @@ import {
   IsString,
   IsEnum,
   IsNumber,
+  IsBoolean,
+  IsArray,
   IsDateString,
   Matches,
   Min,
@@ -83,6 +85,16 @@ export class CreateServiceOrderDto {
   @Min(0)
   estimatedCost?: number;
 
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  finalPrice?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  quotedPrice?: number;
+
   @IsEnum(['normal', 'urgent'])
   @IsOptional()
   priority?: 'normal' | 'urgent';
@@ -99,6 +111,41 @@ export class CreateServiceOrderDto {
   @IsUUID()
   @IsOptional()
   assignedTechnicianId?: string;
+
+  // Smart Repair extension (E-BE2)
+  @IsString()
+  @IsOptional()
+  warehouseId?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  taxPpn?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  taxIncPpn?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  taxPph22?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  taxPph23?: boolean;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  downPayment?: number;
+
+  @IsArray()
+  @IsOptional()
+  completenessItems?: Array<{
+    checkpointId?: string;
+    name: string;
+    checked: boolean;
+    conditionNote?: string;
+  }>;
 }
 
 

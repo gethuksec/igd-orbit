@@ -27,6 +27,40 @@ export class ServiceOrdersService {
     private journalEntriesService?: JournalEntriesService,
   ) {}
 
+  /**
+   * Calculate tax amount based on tax flags (E-BE2)
+   * PPN 11%, PPH22 2%, PPH23 2%
+   */
+  private calculateTaxAmount(
+    subtotal: Decimal,
+    taxPpn: boolean,
+    taxPph22: boolean,
+    taxPph23: boolean,
+  ): Decimal {
+    let tax = new Decimal(0);
+    if (taxPpn) tax = tax.plus(subtotal.mul(0.11));
+    if (taxPph22) tax = tax.plus(subtotal.mul(0.02));
+    if (taxPph23) tax = tax.plus(subtotal.mul(0.02));
+    return tax;
+  }
+
+  /**
+   * Compute taxAmount + totalPrice from subtotal + tax flags (E-BE2)
+   * If taxIncPpn: price already includes PPN → total = subtotal
+   * Otherwise: total = subtotal + tax
+   */
+  private computeTaxTotals(
+    subtotal: Decimal,
+    taxPpn: boolean,
+    taxIncPpn: boolean,
+    taxPph22: boolean,
+    taxPph23: boolean,
+  ): { taxAmount: Decimal; totalPrice: Decimal } {
+    const taxAmount = this.calculateTaxAmount(subtotal, taxPpn, taxPph22, taxPph23);
+    const totalPrice = taxIncPpn ? subtotal : subtotal.plus(taxAmount);
+    return { taxAmount, totalPrice };
+  }
+
   private generateServiceNumber(): string {
     const date = new Date();
     const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
@@ -166,6 +200,21 @@ export class ServiceOrdersService {
     const encryptedPassword = devicePassword ? encryptPassword(devicePassword) : null;
 
     return await this.prisma.$transaction(async (tx) => {
+      // Compute tax totals if final price provided (E-BE2)
+      let taxAmount: Decimal | null = null;
+      let totalPrice: Decimal | null = null;
+      if (dto.finalPrice !== undefined && dto.finalPrice !== null) {
+        const totals = this.computeTaxTotals(
+          new Decimal(dto.finalPrice),
+          dto.taxPpn ?? false,
+          dto.taxIncPpn ?? false,
+          dto.taxPph22 ?? false,
+          dto.taxPph23 ?? false,
+        );
+        taxAmount = totals.taxAmount;
+        totalPrice = totals.totalPrice;
+      }
+
       const serviceOrder = await tx.serviceOrder.create({
         data: {
           serviceNumber: this.generateServiceNumber(),
@@ -189,6 +238,8 @@ export class ServiceOrdersService {
           complaint,
           initialDiagnosis,
           estimatedCost: estimatedCost ? new Decimal(estimatedCost) : null,
+          quotedPrice: dto.quotedPrice !== undefined ? new Decimal(dto.quotedPrice) : null,
+          finalPrice: dto.finalPrice !== undefined ? new Decimal(dto.finalPrice) : null,
           priority,
           promisedDate: promisedDate ? new Date(promisedDate) : null,
           slaDueDate,
@@ -197,6 +248,18 @@ export class ServiceOrdersService {
           createdBy: userId,
           customerNotes,
           assignedTechnicianId,
+          // Smart Repair extension (E-BE2)
+          warehouseId: dto.warehouseId ?? null,
+          taxPpn: dto.taxPpn ?? false,
+          taxIncPpn: dto.taxIncPpn ?? false,
+          taxPph22: dto.taxPph22 ?? false,
+          taxPph23: dto.taxPph23 ?? false,
+          downPayment: dto.downPayment !== undefined ? new Decimal(dto.downPayment) : null,
+          completenessItems: dto.completenessItems
+            ? JSON.parse(JSON.stringify(dto.completenessItems))
+            : null,
+          taxAmount: taxAmount ?? new Decimal(0),
+          totalPrice: totalPrice ?? undefined,
         },
         include: {
           branch: true,

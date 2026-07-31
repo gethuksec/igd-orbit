@@ -969,6 +969,15 @@ model ServiceOrder {
   customerFeedback String?   @map("customer_feedback") @db.Text
   feedbackDate     DateTime? @map("feedback_date")
 
+  // Smart Repair extension (E-BE2)
+  warehouseId       String?  @map("warehouse_id") // plain ref until Workstream D adds Warehouse model
+  taxPpn            Boolean  @default(false) @map("tax_ppn")
+  taxIncPpn         Boolean  @default(false) @map("tax_inc_ppn")
+  taxPph22          Boolean  @default(false) @map("tax_pph22")
+  taxPph23          Boolean  @default(false) @map("tax_pph23")
+  downPayment       Decimal? @map("down_payment") @db.Decimal(15, 2)
+  completenessItems Json?    @map("completeness_items") // JSONB: [{checkpointId, name, checked, conditionNote}]
+
   // Notes
   customerNotes      String? @map("customer_notes") @db.Text
   internalNotes      String? @map("internal_notes") @db.Text
@@ -1003,6 +1012,22 @@ model ServiceOrder {
   @@index([slaDueDate])
   @@index([isOverdue])
   @@map("service_orders")
+}
+
+// ============================================
+// SERVICE CHECKPOINTS (Kelengkapan)
+// ============================================
+
+model ServiceCheckpoint {
+  id        String   @id @default(uuid())
+  name      String
+  isActive  Boolean  @default(true) @map("is_active")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([isActive, sortOrder])
+  @@map("service_checkpoints")
 }
 
 model ServiceStatusHistory {

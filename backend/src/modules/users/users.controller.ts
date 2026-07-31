@@ -46,6 +46,21 @@ export class UsersController {
   }
 
   /**
+   * List technicians (users with TC role)
+   * GET /api/v1/users/technicians?branchId=X
+   * Permissions: All service-related roles
+   */
+  @Get('technicians')
+  @UseGuards(RolesGuard)
+  @Roles('SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'TC', 'CS', 'SODO', 'ASA', 'AR', 'AS', 'SMO', 'CR')
+  async findTechnicians(
+    @Query('branchId') branchId?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.usersService.findTechnicians({ branchId, search });
+  }
+
+  /**
    * Get user detail with roles
    * GET /api/v1/users/:id
    * Permissions: All authenticated users (own profile or admin)

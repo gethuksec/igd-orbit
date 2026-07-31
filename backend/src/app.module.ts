@@ -29,6 +29,7 @@ import { RolesModule } from './modules/roles/roles.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
 import { CustomerTiersModule } from './modules/customer-tiers/customer-tiers.module';
 import { PaymentTermsModule } from './modules/payment-terms/payment-terms.module';
+import { ServiceCheckpointsModule } from './modules/service-checkpoints/service-checkpoints.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -62,6 +63,7 @@ import { PaymentTermsModule } from './modules/payment-terms/payment-terms.module
     PermissionsModule,
     CustomerTiersModule,
     PaymentTermsModule,
+    ServiceCheckpointsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
