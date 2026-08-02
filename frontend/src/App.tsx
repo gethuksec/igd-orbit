@@ -663,14 +663,14 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            {/* Smart Repair (E-FE) */}
+            {/* Smart Repair (E-FE) — full-page like POS, no sidebar */}
             <Route
               path="/services/smart-repair"
               element={
                 <ProtectedRoute>
-                  <DashboardLayout>
+                  <POSLayout>
                     <SmartRepairPage />
-                  </DashboardLayout>
+                  </POSLayout>
                 </ProtectedRoute>
               }
             />
