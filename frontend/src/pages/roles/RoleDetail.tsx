@@ -11,10 +11,13 @@ import {
   Loader2,
   Trash2,
   Save,
+  AlertTriangle,
 } from 'lucide-react';
 import { rolesService, permissionsService } from '../../services/roles.service';
 import { toast } from 'sonner';
-import { Modal } from '../../components/ui/modal';
+import { PageHeader } from '@/components/shared';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import RequirePermission from '../../components/guards/RequirePermission';
 import { PermissionTree } from './components/PermissionTree';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -99,7 +102,7 @@ export default function RoleDetail() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
       </div>
     );
@@ -107,52 +110,46 @@ export default function RoleDetail() {
 
   if (error || !role) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <p className="text-gray-600 mb-4">Role tidak ditemukan</p>
-        <Link to="/roles">
-          <button className="px-4 py-2 bg-primary-600 text-white rounded-lg">Kembali ke Daftar</button>
-        </Link>
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <p className="text-muted-foreground mb-4">Role tidak ditemukan</p>
+        <Button asChild>
+          <Link to="/roles">Kembali ke Daftar</Link>
+        </Button>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <PageHeader title={role.name} subtitle="Detail role dan permissions">
+        <Button asChild variant="ghost" size="sm" className="text-white hover:bg-white/20">
           <Link to="/roles">
-            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <ArrowLeft className="w-5 h-5 text-gray-600" />
-            </button>
+            <ArrowLeft className="w-4 h-4" />
+            Kembali
           </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">{role.name}</h1>
-            <p className="text-gray-600 mt-1">Detail role dan permissions</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <RequirePermission permission="roles.update" fallbackRoles={['SUPERADMIN']}>
+        </Button>
+        <RequirePermission permission="roles.update" fallbackRoles={['SUPERADMIN']}>
+          <Button asChild size="sm" className="bg-white text-primary-600 hover:bg-primary-50 font-semibold">
             <Link to={`/roles/${role.id}/edit`}>
-              <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                <Edit className="w-4 h-4" />
-                Edit
-              </button>
+              <Edit className="w-4 h-4" />
+              Edit
             </Link>
-          </RequirePermission>
-          <RequirePermission permission="roles.delete" fallbackRoles={['SUPERADMIN']}>
-            {(!role.isSystemRole || isSuperAdmin) && (
-              <button
-                onClick={() => setDeleteModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
-                Hapus
-              </button>
-            )}
-          </RequirePermission>
-        </div>
-      </div>
+          </Button>
+        </RequirePermission>
+        <RequirePermission permission="roles.delete" fallbackRoles={['SUPERADMIN']}>
+          {(!role.isSystemRole || isSuperAdmin) && (
+            <Button
+              variant="destructive"
+              size="sm"
+              className="font-semibold"
+              onClick={() => setDeleteModalOpen(true)}
+            >
+              <Trash2 className="w-4 h-4" />
+              Hapus
+            </Button>
+          )}
+        </RequirePermission>
+      </PageHeader>
 
       {/* Role Info Card */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
@@ -270,32 +267,58 @@ export default function RoleDetail() {
         )}
       </div>
 
-      {/* Delete Confirmation Modal */}
-      <Modal open={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="Hapus Role">
-        <div className="space-y-4">
-          <p className="text-gray-600">
-            Apakah Anda yakin ingin menghapus role <strong>{role.name}</strong>?
-          </p>
-          <p className="text-sm text-gray-500">
-            Tindakan ini tidak dapat dibatalkan. Semua data role akan dihapus secara permanen.
-          </p>
-          <div className="flex justify-end gap-3">
-            <button
-              onClick={() => setDeleteModalOpen(false)}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              Batal
-            </button>
-            <button
-              onClick={() => deleteMutation.mutate()}
-              disabled={deleteMutation.isPending}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {deleteMutation.isPending ? 'Menghapus...' : 'Hapus'}
-            </button>
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteModalOpen}
+        onOpenChange={(open) => {
+          if (!open) setDeleteModalOpen(false);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Konfirmasi Hapus</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-gray-700 mb-2">
+                  Apakah Anda yakin ingin menghapus role <strong>{role.name}</strong>?
+                </p>
+                <p className="text-xs text-gray-500">
+                  Tindakan ini tidak dapat dibatalkan. Semua data role akan dihapus secara permanen.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setDeleteModalOpen(false)}
+                disabled={deleteMutation.isPending}
+              >
+                Batal
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-1"
+                onClick={() => deleteMutation.mutate()}
+                disabled={deleteMutation.isPending}
+              >
+                {deleteMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" /> Menghapus...
+                  </>
+                ) : (
+                  'Hapus'
+                )}
+              </Button>
+            </div>
           </div>
-        </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Shield, CheckCircle, XCircle, Loader2, Clock, User, Mail } from 'lucide-react';
 import { authService } from '../../services/users.service';
 import { toast } from 'sonner';
+import { PageHeader } from '@/components/shared';
+import { Button } from '@/components/ui/button';
 
 export default function PasswordRequests() {
   const queryClient = useQueryClient();
@@ -44,11 +46,7 @@ export default function PasswordRequests() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Persetujuan Password</h1>
-        <p className="text-gray-600 mt-1">Setujui atau tolak permintaan perubahan password dari karyawan</p>
-      </div>
+      <PageHeader title="Persetujuan Password" subtitle="Setujui atau tolak permintaan perubahan password dari karyawan" />
 
       {/* Requests List */}
       {(!requests || requests.length === 0) ? (
@@ -81,10 +79,11 @@ export default function PasswordRequests() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button
+                  <Button
+                    size="sm"
+                    className="bg-green-50 text-green-700 hover:bg-green-100 font-semibold"
                     onClick={() => approveMutation.mutate(req.id)}
                     disabled={approveMutation.isPending}
-                    className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors font-semibold disabled:opacity-50"
                   >
                     {approveMutation.isPending ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -92,15 +91,17 @@ export default function PasswordRequests() {
                       <CheckCircle className="w-4 h-4" />
                     )}
                     Setujui
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="bg-red-50 text-red-700 hover:bg-red-100 font-semibold"
                     onClick={() => rejectMutation.mutate(req.id)}
                     disabled={rejectMutation.isPending}
-                    className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors font-semibold disabled:opacity-50"
                   >
                     <XCircle className="w-4 h-4" />
                     Tolak
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>

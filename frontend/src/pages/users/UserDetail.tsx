@@ -13,10 +13,13 @@ import {
   Loader2,
   Trash2,
   Plus,
+  AlertTriangle,
 } from 'lucide-react';
 import { usersService } from '../../services/users.service';
 import { toast } from 'sonner';
-import { Modal } from '../../components/ui/modal';
+import { PageHeader } from '@/components/shared';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import RequirePermission from '../../components/guards/RequirePermission';
 import { AssignRoleModal } from './components/AssignRoleModal';
 
@@ -26,6 +29,7 @@ export default function UserDetail() {
   const queryClient = useQueryClient();
   const [showAssignRoleModal, setShowAssignRoleModal] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [roleToRemove, setRoleToRemove] = useState<{ id: string; name: string } | null>(null);
 
   const { data: user, isLoading, error } = useQuery({
     queryKey: ['user', id],
@@ -50,6 +54,7 @@ export default function UserDetail() {
     onSuccess: () => {
       toast.success('Role berhasil dihapus');
       queryClient.invalidateQueries({ queryKey: ['user', id] });
+      setRoleToRemove(null);
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Gagal menghapus role');
@@ -58,7 +63,7 @@ export default function UserDetail() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
       </div>
     );
@@ -66,55 +71,49 @@ export default function UserDetail() {
 
   if (error || !user) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <p className="text-gray-600 mb-4">Pengguna tidak ditemukan</p>
-        <Link to="/users">
-          <button className="px-4 py-2 bg-primary-600 text-white rounded-lg">Kembali ke Daftar</button>
-        </Link>
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <p className="text-muted-foreground mb-4">Pengguna tidak ditemukan</p>
+        <Button asChild>
+          <Link to="/users">Kembali ke Daftar</Link>
+        </Button>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <PageHeader title={user.fullName} subtitle="Detail pengguna">
+        <Button asChild variant="ghost" size="sm" className="text-white hover:bg-white/20">
           <Link to="/users">
-            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <ArrowLeft className="w-5 h-5 text-gray-600" />
-            </button>
+            <ArrowLeft className="w-4 h-4" />
+            Kembali
           </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">{user.fullName}</h1>
-            <p className="text-gray-600 mt-1">Detail pengguna</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <RequirePermission permission="users.update" fallbackRoles={['SUPERADMIN', 'CHR']}>
+        </Button>
+        <RequirePermission permission="users.update" fallbackRoles={['SUPERADMIN', 'CHR']}>
+          <Button asChild size="sm" className="bg-white text-primary-600 hover:bg-primary-50 font-semibold">
             <Link to={`/users/${user.id}/edit`}>
-              <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                <Edit className="w-4 h-4" />
-                Edit
-              </button>
+              <Edit className="w-4 h-4" />
+              Edit
             </Link>
-          </RequirePermission>
-          <RequirePermission permission="users.delete" fallbackRoles={['SUPERADMIN']}>
-            <button
-              onClick={() => setDeleteModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
-              Hapus
-            </button>
-          </RequirePermission>
-        </div>
-      </div>
+          </Button>
+        </RequirePermission>
+        <RequirePermission permission="users.delete" fallbackRoles={['SUPERADMIN']}>
+          <Button
+            variant="destructive"
+            size="sm"
+            className="font-semibold"
+            onClick={() => setDeleteModalOpen(true)}
+          >
+            <Trash2 className="w-4 h-4" />
+            Hapus
+          </Button>
+        </RequirePermission>
+      </PageHeader>
 
       {/* User Info Card */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
         <div className="flex items-start gap-6">
-          <div className="flex-shrink-0 h-24 w-24 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white font-bold text-3xl shadow-md">
+          <div className="flex-shrink-0 h-20 w-20 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white font-bold text-3xl shadow-md">
             {user.fullName.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 space-y-4">
@@ -122,12 +121,12 @@ export default function UserDetail() {
               <h2 className="text-2xl font-bold text-gray-900">{user.fullName}</h2>
               <div className="flex items-center gap-2 mt-2">
                 {user.isActive ? (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-md text-sm font-medium">
+                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 border border-green-200 rounded-lg text-sm font-semibold">
                     <CheckCircle className="w-4 h-4" />
                     Aktif
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 rounded-md text-sm font-medium">
+                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-600 border border-gray-200 rounded-lg text-sm font-semibold">
                     <XCircle className="w-4 h-4" />
                     Non-Aktif
                   </span>
@@ -137,25 +136,25 @@ export default function UserDetail() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex items-center gap-3">
-                <Mail className="w-5 h-5 text-gray-400" />
+                <Mail className="w-5 h-5 text-muted-foreground" />
                 <div>
-                  <p className="text-sm text-gray-500">Email</p>
+                  <p className="text-sm text-muted-foreground">Email</p>
                   <p className="text-base font-medium text-gray-900">{user.email}</p>
                 </div>
               </div>
               {user.phone && (
                 <div className="flex items-center gap-3">
-                  <Phone className="w-5 h-5 text-gray-400" />
+                  <Phone className="w-5 h-5 text-muted-foreground" />
                   <div>
-                    <p className="text-sm text-gray-500">Telepon</p>
+                    <p className="text-sm text-muted-foreground">Telepon</p>
                     <p className="text-base font-medium text-gray-900">{user.phone}</p>
                   </div>
                 </div>
               )}
               <div className="flex items-center gap-3">
-                <Calendar className="w-5 h-5 text-gray-400" />
+                <Calendar className="w-5 h-5 text-muted-foreground" />
                 <div>
-                  <p className="text-sm text-gray-500">Tanggal Dibuat</p>
+                  <p className="text-sm text-muted-foreground">Tanggal Dibuat</p>
                   <p className="text-base font-medium text-gray-900">
                     {new Date(user.createdAt).toLocaleDateString('id-ID', {
                       year: 'numeric',
@@ -173,18 +172,15 @@ export default function UserDetail() {
       {/* Roles Section */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-            <Shield className="w-5 h-5" />
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <Shield className="w-5 h-5 text-primary-600" />
             Roles & Permissions
           </h2>
           <RequirePermission permission="users.assignRole" fallbackRoles={['SUPERADMIN', 'CHR']}>
-            <button
-              onClick={() => setShowAssignRoleModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-            >
+            <Button size="sm" onClick={() => setShowAssignRoleModal(true)}>
               <Plus className="w-4 h-4" />
               Assign Role
-            </button>
+            </Button>
           </RequirePermission>
         </div>
 
@@ -206,12 +202,12 @@ export default function UserDetail() {
                       <Shield className="w-5 h-5 text-primary-600" />
                       <div>
                         <p className="font-semibold text-gray-900">{roleName}</p>
-                        <p className="text-sm text-gray-500">Code: {roleCode}</p>
+                        <p className="text-sm text-muted-foreground">Code: {roleCode}</p>
                         {branchName && (
-                          <p className="text-xs text-gray-400 mt-1">Cabang: {branchName}</p>
+                          <p className="text-xs text-muted-foreground mt-1">Cabang: {branchName}</p>
                         )}
                         {userRole.validUntil && (
-                          <p className="text-xs text-gray-400">
+                          <p className="text-xs text-muted-foreground">
                             Berlaku hingga: {new Date(userRole.validUntil).toLocaleDateString('id-ID')}
                           </p>
                         )}
@@ -219,33 +215,32 @@ export default function UserDetail() {
                     </div>
                   </div>
                   <RequirePermission permission="users.removeRole" fallbackRoles={['SUPERADMIN', 'CHR']}>
-                    <button
-                      onClick={() => {
-                        if (confirm('Yakin ingin menghapus role ini?')) {
-                          removeRoleMutation.mutate(userRole.id);
-                        }
-                      }}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-red-600 hover:bg-red-50"
                       title="Hapus Role"
+                      onClick={() => setRoleToRemove({ id: userRole.id, name: roleName })}
                     >
                       <Trash2 className="w-4 h-4" />
-                    </button>
+                    </Button>
                   </RequirePermission>
                 </div>
               );
             })}
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-500">
-            <Shield className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+          <div className="text-center py-8 text-muted-foreground">
+            <Shield className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
             <p>Belum ada role yang ditetapkan</p>
             <RequirePermission permission="users.assignRole" fallbackRoles={['SUPERADMIN', 'CHR']}>
-              <button
-                onClick={() => setShowAssignRoleModal(true)}
+              <Button
+                variant="link"
                 className="mt-4 text-primary-600 hover:text-primary-700 font-medium"
+                onClick={() => setShowAssignRoleModal(true)}
               >
                 Assign Role Sekarang
-              </button>
+              </Button>
             </RequirePermission>
           </div>
         )}
@@ -263,33 +258,106 @@ export default function UserDetail() {
         />
       )}
 
-      {/* Delete Confirmation Modal */}
-      <Modal open={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="Hapus Pengguna">
-        <div className="space-y-4">
-          <p className="text-gray-600">
-            Apakah Anda yakin ingin menghapus pengguna <strong>{user.fullName}</strong>?
-          </p>
-          <p className="text-sm text-gray-500">
-            Tindakan ini tidak dapat dibatalkan. Semua data pengguna akan dihapus secara permanen.
-          </p>
-          <div className="flex justify-end gap-3">
-            <button
-              onClick={() => setDeleteModalOpen(false)}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              Batal
-            </button>
-            <button
-              onClick={() => deleteMutation.mutate()}
-              disabled={deleteMutation.isPending}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {deleteMutation.isPending ? 'Menghapus...' : 'Hapus'}
-            </button>
+      {/* Remove Role Dialog */}
+      <Dialog
+        open={!!roleToRemove}
+        onOpenChange={(open) => {
+          if (!open) setRoleToRemove(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Hapus Role</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <p className="text-sm text-gray-700">
+                Yakin ingin menghapus role <strong>{roleToRemove?.name}</strong> dari pengguna ini?
+              </p>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setRoleToRemove(null)}
+                disabled={removeRoleMutation.isPending}
+              >
+                Batal
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-1"
+                onClick={() => roleToRemove && removeRoleMutation.mutate(roleToRemove.id)}
+                disabled={removeRoleMutation.isPending}
+              >
+                {removeRoleMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" /> Menghapus...
+                  </>
+                ) : (
+                  'Hapus'
+                )}
+              </Button>
+            </div>
           </div>
-        </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteModalOpen}
+        onOpenChange={(open) => {
+          if (!open) setDeleteModalOpen(false);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Konfirmasi Hapus</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-gray-700 mb-2">
+                  Apakah Anda yakin ingin menghapus pengguna <strong>{user.fullName}</strong>?
+                </p>
+                <p className="text-xs text-gray-500">
+                  Tindakan ini tidak dapat dibatalkan. Semua data pengguna akan dihapus secara permanen.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setDeleteModalOpen(false)}
+                disabled={deleteMutation.isPending}
+              >
+                Batal
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-1"
+                onClick={() => deleteMutation.mutate()}
+                disabled={deleteMutation.isPending}
+              >
+                {deleteMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" /> Menghapus...
+                  </>
+                ) : (
+                  'Hapus'
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
-

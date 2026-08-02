@@ -5,6 +5,8 @@ import { Save, Loader2, ArrowLeft, Shield, KeyRound, Lock } from 'lucide-react';
 import { rolesService } from '../../services/roles.service';
 import { toast } from 'sonner';
 import PermissionAccordion from '@/components/shared/PermissionAccordion';
+import { PageHeader } from '@/components/shared';
+import { Button } from '@/components/ui/button';
 
 export default function RoleForm() {
   const { id } = useParams();
@@ -82,7 +84,7 @@ export default function RoleForm() {
 
   if (loadingRole) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
       </div>
     );
@@ -90,24 +92,17 @@ export default function RoleForm() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <PageHeader
+        title={isEdit ? 'Edit Role' : 'Tambah Role Baru'}
+        subtitle={isEdit ? 'Ubah informasi dan izin akses role' : 'Tambahkan role baru dan atur izin aksesnya'}
+      >
+        <Button asChild variant="ghost" size="sm" className="text-white hover:bg-white/20">
           <Link to="/roles">
-            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <ArrowLeft className="w-5 h-5 text-gray-600" />
-            </button>
+            <ArrowLeft className="w-4 h-4" />
+            Kembali
           </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              {isEdit ? 'Edit Role' : 'Tambah Role Baru'}
-            </h1>
-            <p className="text-gray-600 mt-1">
-              {isEdit ? 'Ubah informasi dan izin akses role' : 'Tambahkan role baru dan atur izin aksesnya'}
-            </p>
-          </div>
-        </div>
-      </div>
+        </Button>
+      </PageHeader>
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-6">
@@ -235,31 +230,22 @@ export default function RoleForm() {
 
         {/* Actions */}
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-          <Link to="/roles">
-            <button
-              type="button"
-              className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
-            >
-              Batal
-            </button>
-          </Link>
-          <button
-            type="submit"
-            disabled={mutation.isPending}
-            className="px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-500 text-white rounded-lg hover:from-primary-700 hover:to-primary-600 transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
+          <Button asChild variant="outline">
+            <Link to="/roles">Batal</Link>
+          </Button>
+          <Button type="submit" disabled={mutation.isPending}>
             {mutation.isPending ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" />
                 Menyimpan...
               </>
             ) : (
               <>
-                <Save className="w-5 h-5" />
+                <Save className="w-4 h-4" />
                 Simpan
               </>
             )}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

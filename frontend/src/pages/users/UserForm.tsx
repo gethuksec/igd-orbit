@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Save, Loader2, ArrowLeft, User, Phone, Mail } from 'lucide-react';
+import { Save, Loader2, ArrowLeft, User, Phone, Mail, KeyRound } from 'lucide-react';
 import { usersService } from '../../services/users.service';
 import { toast } from 'sonner';
-import { Link } from 'react-router-dom';
+import { PageHeader } from '@/components/shared';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export default function UserForm() {
   const { id } = useParams();
@@ -68,7 +71,7 @@ export default function UserForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!isEdit && !formData.password) {
       toast.error('Password wajib diisi untuk pengguna baru');
       return;
@@ -79,7 +82,7 @@ export default function UserForm() {
 
   if (loadingUser) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
       </div>
     );
@@ -87,110 +90,108 @@ export default function UserForm() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <PageHeader
+        title={isEdit ? 'Edit Pengguna' : 'Tambah Pengguna Baru'}
+        subtitle={isEdit ? 'Ubah informasi pengguna' : 'Tambahkan pengguna baru ke sistem'}
+      >
+        <Button asChild variant="ghost" size="sm" className="text-white hover:bg-white/20">
           <Link to="/users">
-            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <ArrowLeft className="w-5 h-5 text-gray-600" />
-            </button>
+            <ArrowLeft className="w-4 h-4" />
+            Kembali
           </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              {isEdit ? 'Edit Pengguna' : 'Tambah Pengguna Baru'}
-            </h1>
-            <p className="text-gray-600 mt-1">
-              {isEdit ? 'Ubah informasi pengguna' : 'Tambahkan pengguna baru ke sistem'}
-            </p>
-          </div>
-        </div>
-      </div>
+        </Button>
+      </PageHeader>
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-6">
         {/* Basic Information */}
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-            <User className="w-5 h-5" />
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <User className="w-5 h-5 text-primary-600" />
             Informasi Dasar
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="fullName" className="font-semibold">
                 Nama Lengkap <span className="text-red-500">*</span>
-              </label>
-              <input
+              </Label>
+              <Input
+                id="fullName"
                 type="text"
                 value={formData.fullName}
                 onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                 required
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
                 placeholder="Masukkan nama lengkap"
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="font-semibold">
                 Email <span className="text-red-500">*</span>
-              </label>
+              </Label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Mail className="w-5 h-5 text-gray-400" />
-                </div>
-                <input
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  id="email"
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
-                  className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                  className="pl-9"
                   placeholder="user@example.com"
                 />
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="phone" className="font-semibold">
                 Telepon
-              </label>
+              </Label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Phone className="w-5 h-5 text-gray-400" />
-                </div>
-                <input
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  id="phone"
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                  className="pl-9"
                   placeholder="081234567890"
                 />
               </div>
             </div>
 
             {!isEdit && (
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="password" className="font-semibold">
                   Password <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  required={!isEdit}
-                  minLength={6}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
-                  placeholder="Minimal 6 karakter"
-                />
-                <p className="text-xs text-gray-500 mt-1">Password minimal 6 karakter</p>
+                </Label>
+                <div className="relative">
+                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    required={!isEdit}
+                    minLength={6}
+                    className="pl-9"
+                    placeholder="Minimal 6 karakter"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">Password minimal 6 karakter</p>
               </div>
             )}
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
+            <div className="space-y-1.5">
+              <Label htmlFor="status" className="font-semibold">
+                Status
+              </Label>
               <select
+                id="status"
                 value={formData.isActive ? 'active' : 'inactive'}
                 onChange={(e) => setFormData({ ...formData, isActive: e.target.value === 'active' })}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all bg-white"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 <option value="active">Aktif</option>
                 <option value="inactive">Non-Aktif</option>
@@ -214,34 +215,24 @@ export default function UserForm() {
 
         {/* Actions */}
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-          <Link to="/users">
-            <button
-              type="button"
-              className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
-            >
-              Batal
-            </button>
-          </Link>
-          <button
-            type="submit"
-            disabled={mutation.isPending}
-            className="px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-500 text-white rounded-lg hover:from-primary-700 hover:to-primary-600 transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
+          <Button asChild variant="outline">
+            <Link to="/users">Batal</Link>
+          </Button>
+          <Button type="submit" disabled={mutation.isPending}>
             {mutation.isPending ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" />
                 Menyimpan...
               </>
             ) : (
               <>
-                <Save className="w-5 h-5" />
+                <Save className="w-4 h-4" />
                 Simpan
               </>
             )}
-          </button>
+          </Button>
         </div>
       </form>
     </div>
   );
 }
-
