@@ -44,6 +44,7 @@ import {
   RotateCcw,
   TrendingUp,
   AlertTriangle,
+  Zap,
 } from 'lucide-react';
 import type { Branch } from '@/services/public.service';
 import { publicService } from '@/services/public.service';
@@ -100,27 +101,34 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Menu key definitions for auto-expand on route change
-  const menuDefinitions = [
-    { key: 'masterdata', paths: ['/customers', '/products', '/branches', '/service-types', '/suppliers', '/categories', '/brands', '/colors', '/units', '/sizes', '/expeditions', '/sales-types', '/customer-tiers'] },
-    { key: 'penjualan', paths: ['/sales'] },
-    { key: 'servis', paths: ['/service-orders', '/service-returns'] },
-    { key: 'gudang', paths: ['/inventory'] },
-    { key: 'keuangan', paths: ['/finance'] },
-    { key: 'pembelian', paths: ['/purchasing'] },
-    { key: 'karyawan', paths: ['/hr'] },
-  ];
+  // Menu keys are namespaced: top-level = lowercase label, nested = `<parent>-<label>`
+  const getMenuKey = (label: string) => label.toLowerCase().replace(/\s+/g, '');
+  const menuKeyFor = (item: MenuItem, parentKey?: string): string =>
+    parentKey ? `${parentKey}-${getMenuKey(item.label)}` : getMenuKey(item.label);
+
+  // Find the chain of menu keys (group → subgroup → …) matching the current path
+  function findMenuChain(items: MenuItem[], path: string, parentKey?: string): string[] {
+    for (const item of items) {
+      const key = menuKeyFor(item, parentKey);
+      if (item.path && (path === item.path || path.startsWith(item.path + '/'))) {
+        return [key];
+      }
+      if (item.children) {
+        const sub = findMenuChain(item.children, path, key);
+        if (sub.length > 0) return [key, ...sub];
+      }
+    }
+    return [];
+  }
 
   useEffect(() => {
-    const currentPath = location.pathname;
-    const match = menuDefinitions.find((def) =>
-      def.paths.some((p) => currentPath.startsWith(p)),
-    );
-    if (match) {
-      setExpandedMenus((prev) => ({
-        ...Object.keys(prev).reduce((acc, key) => ({ ...acc, [key]: false }), {}),
-        [match.key]: true,
-      }));
+    const chain = findMenuChain(allMenuItems, location.pathname);
+    if (chain.length > 0) {
+      setExpandedMenus(() => {
+        const next: Record<string, boolean> = {};
+        for (const key of chain) next[key] = true;
+        return next;
+      });
     }
   }, [location.pathname]);
 
@@ -189,19 +197,50 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       permission: 'master_data.*.view',
       roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CS'],
       children: [
-        { icon: Users, label: 'Pelanggan', path: '/customers', permission: 'master_data.customer.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CS'] },
-        { icon: Package, label: 'Produk', path: '/products', permission: 'master_data.product.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
-        { icon: Building2, label: 'Supplier', path: '/suppliers', permission: 'master_data.supplier.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
-        { icon: Tag, label: 'Kategori', path: '/categories', permission: 'master_data.category.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
-        { icon: Award, label: 'Brand', path: '/brands', permission: 'master_data.brand.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
-        { icon: Palette, label: 'Warna', path: '/colors', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
-        { icon: Ruler, label: 'Satuan', path: '/units', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
-        { icon: Maximize, label: 'Ukuran', path: '/sizes', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
-        { icon: Truck, label: 'Ekspedisi', path: '/expeditions', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
-        { icon: Tag, label: 'Tipe Penjualan', path: '/sales-types', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
-        { icon: CreditCard, label: 'Termin Pembayaran', path: '/payment-terms', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
-        { icon: Target, label: 'Customer Tiers', path: '/customer-tiers', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER'] },
-        { icon: Wrench, label: 'Layanan', path: '/service-types', permission: 'master_data.service_type.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS'] },
+        {
+          icon: Users,
+          label: 'Pelanggan',
+          children: [
+            { icon: Users, label: 'Pelanggan', path: '/customers', permission: 'master_data.customer.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CS'] },
+            { icon: Target, label: 'Customer Tiers', path: '/customer-tiers', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER'] },
+          ],
+        },
+        {
+          icon: Package,
+          label: 'Produk',
+          children: [
+            { icon: Package, label: 'Produk', path: '/products', permission: 'master_data.product.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
+            { icon: Tag, label: 'Kategori', path: '/categories', permission: 'master_data.category.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
+            { icon: Award, label: 'Brand', path: '/brands', permission: 'master_data.brand.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
+            { icon: Palette, label: 'Warna', path: '/colors', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
+            { icon: Ruler, label: 'Satuan', path: '/units', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
+            { icon: Maximize, label: 'Ukuran', path: '/sizes', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
+          ],
+        },
+        {
+          icon: Truck,
+          label: 'Supplier & Logistik',
+          children: [
+            { icon: Building2, label: 'Supplier', path: '/suppliers', permission: 'master_data.supplier.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
+            { icon: Truck, label: 'Ekspedisi', path: '/expeditions', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
+          ],
+        },
+        {
+          icon: CreditCard,
+          label: 'Penjualan',
+          children: [
+            { icon: Tag, label: 'Tipe Penjualan', path: '/sales-types', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
+            { icon: CreditCard, label: 'Termin Pembayaran', path: '/payment-terms', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
+          ],
+        },
+        {
+          icon: Wrench,
+          label: 'Servis',
+          children: [
+            { icon: Wrench, label: 'Layanan', path: '/service-types', permission: 'master_data.service_type.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS'] },
+            { icon: ClipboardList, label: 'Kelengkapan', path: '/service-checkpoints', permission: 'service.checkpoint.view', roles: ['SUPERADMIN', 'OWNER', 'MGR', 'CS', 'HS', 'SPV'] },
+          ],
+        },
       ],
     },
     {
@@ -210,7 +249,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       permission: 'sales.*.view',
       roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CS', 'CR', 'HS', 'SPV'],
       children: [
-        { icon: ShoppingCart, label: 'POS', path: '/pos', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CS', 'CR', 'HS', 'SPV'] },
         { icon: Receipt, label: 'Riwayat Penjualan', path: '/sales/history', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CS', 'CR', 'HS', 'SPV'] },
         { icon: ArrowRightLeft, label: 'Retur Penjualan', path: '/sales/returns', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'HS', 'SPV'] },
       ],
@@ -224,8 +262,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         { icon: Wrench, label: 'Semua Service Order', path: '/service-orders', roles: ['SUPERADMIN', 'OWNER', 'MGR', 'CS', 'HS', 'SPV'] },
         { icon: UserCog, label: 'Service Saya', path: '/service-orders/my', roles: ['SUPERADMIN', 'TC', 'HS', 'SPV'] },
         { icon: Plus, label: 'Tambah Service', path: '/service-orders/new', roles: ['SUPERADMIN', 'OWNER', 'MGR', 'CS'] },
-        { icon: ClipboardCheck, label: 'Smart Repair', path: '/services/smart-repair', roles: ['SUPERADMIN', 'OWNER', 'MGR', 'CS', 'HS', 'SPV'] },
-        { icon: ClipboardList, label: 'Kelengkapan', path: '/service-checkpoints', roles: ['SUPERADMIN', 'OWNER', 'MGR', 'CS', 'HS', 'SPV'] },
         { icon: RotateCcw, label: 'Retur & Komplain', path: '/service-returns', roles: ['SUPERADMIN', 'OWNER', 'MGR', 'CS', 'CR', 'HS', 'SPV', 'CMO', 'CSO'] },
       ],
     },
@@ -329,26 +365,39 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     return false;
   };
 
-  const getChildVisibility = (parentItem: MenuItem): MenuItem[] => {
-    // Find the catalog section matching the parent label for scoped search
-    const parentCatalogNode = parentItem.label ? catalogByLabel.get(parentItem.label) : null;
+  // Leaf visibility: exact catalog match by label within section, fallback global search
+  const isLeafVisible = (item: MenuItem, sectionNode: PermissionNode | null): boolean => {
+    const currentUser = getUser();
+    const userRoles = currentUser?.roles || (currentUser?.role?.code ? [currentUser.role.code] : []);
+    if (userRoles.includes('SUPERADMIN')) return true;
 
-    return (parentItem.children || []).filter((child) => {
-      // Search only within the parent's catalog section (avoids sibling label collisions)
-      if (parentCatalogNode) {
-        const found = findChildInTree(parentCatalogNode, child.label);
-        if (found) return isBranchVisible(found, userPermSet);
+    if (sectionNode) {
+      const found = findChildInTree(sectionNode, item.label);
+      if (found) return isBranchVisible(found, userPermSet);
+    }
+
+    // Fallback: search all sections (for cross-section lookup as last resort)
+    for (const topNode of PERMISSION_CATALOG) {
+      const found = findChildInTree(topNode, item.label);
+      if (found) return isBranchVisible(found, userPermSet);
+    }
+
+    // Leaf has no catalog entry — hidden (no legacy fallback)
+    return false;
+  };
+
+  // Recursive menu filtering: subgroups visible when any descendant leaf is visible
+  const filterMenuTree = (items: MenuItem[], sectionNode: PermissionNode | null): MenuItem[] => {
+    const result: MenuItem[] = [];
+    for (const item of items) {
+      if (item.children && item.children.length > 0) {
+        const children = filterMenuTree(item.children, sectionNode);
+        if (children.length > 0) result.push({ ...item, children });
+      } else if (isLeafVisible(item, sectionNode)) {
+        result.push(item);
       }
-
-      // Fallback: search all sections (for cross-section lookup as last resort)
-      for (const topNode of PERMISSION_CATALOG) {
-        const found = findChildInTree(topNode, child.label);
-        if (found) return isBranchVisible(found, userPermSet);
-      }
-
-      // Child has no catalog entry — hidden (no legacy fallback)
-      return false;
-    });
+    }
+    return result;
   };
 
   // Find a node by label in the catalog tree, return the matched node itself
@@ -367,7 +416,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     .filter((item) => hasAccess(item))
     .map((item) => ({
       ...item,
-      children: item.children ? getChildVisibility(item) : undefined,
+      children: item.children
+        ? filterMenuTree(item.children, item.label ? catalogByLabel.get(item.label) ?? null : null)
+        : undefined,
     }))
     .filter((item) => !item.children || item.children.length > 0);
 
@@ -384,16 +435,76 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const toggleMenu = (menuKey: string) => {
     setExpandedMenus((prev) => {
-      const newState: Record<string, boolean> = {};
-      Object.keys(prev).forEach((key) => {
-        newState[key] = key === menuKey ? !prev[key] : false;
-      });
-      if (!(menuKey in prev)) newState[menuKey] = true;
-      return newState;
+      const next: Record<string, boolean> = {};
+      const depth = menuKey.split('-').length - 1;
+      const targetState = !(prev[menuKey] ?? false);
+
+      // Ancestors of the toggled key stay open; the key itself toggles
+      const parts = menuKey.split('-');
+      for (let i = 0; i < parts.length; i++) {
+        const prefixKey = parts.slice(0, i + 1).join('-');
+        next[prefixKey] = prefixKey === menuKey ? targetState : true;
+      }
+
+      // Per-level accordion: collapse other branches at same-or-deeper depth
+      for (const [key, val] of Object.entries(prev)) {
+        const keyDepth = key.split('-').length - 1;
+        if (keyDepth >= depth && key !== menuKey && !key.startsWith(menuKey + '-')) {
+          next[key] = false;
+        } else if (!(key in next)) {
+          next[key] = val;
+        }
+      }
+      return next;
     });
   };
 
-  const getMenuKey = (label: string) => label.toLowerCase().replace(/\s+/g, '');
+  // Quick-access header buttons gated by catalog nodes (e.g. POS, Smart Repair)
+  const hasQuickAccess = (label: string): boolean => {
+    const currentUser = getUser();
+    const userRoles = currentUser?.roles || (currentUser?.role?.code ? [currentUser.role.code] : []);
+    if (userRoles.includes('SUPERADMIN')) return true;
+    for (const topNode of PERMISSION_CATALOG) {
+      const found = findChildInTree(topNode, label);
+      if (found) return isBranchVisible(found, userPermSet);
+    }
+    return false;
+  };
+
+  // Recursive sidebar renderer (supports group → subgroup → item, arbitrary depth)
+  const renderMenuItems = (items: MenuItem[], parentKey?: string): ReactNode[] =>
+    items.map((item) => {
+      const menuKey = menuKeyFor(item, parentKey);
+      const hasChildren = item.children && item.children.length > 0;
+
+      if (hasChildren) {
+        const isExpanded = expandedMenus[menuKey] ?? false;
+        const parentActive = isParentActive(item);
+        return (
+          <MenuGroup
+            key={menuKey}
+            icon={item.icon}
+            label={item.label}
+            isExpanded={isExpanded}
+            isActive={parentActive}
+            onToggle={() => toggleMenu(menuKey)}
+          >
+            {renderMenuItems(item.children!, menuKey)}
+          </MenuGroup>
+        );
+      }
+
+      return (
+        <MenuItem
+          key={item.path || item.label}
+          icon={item.icon}
+          label={item.label}
+          path={item.path || '#'}
+          isActive={item.path ? isActive(item.path) : false}
+          variant={parentKey ? 'child' : 'default'}
+        />
+      );
+    });
 
   const initial = user?.fullName?.charAt(0).toUpperCase() || 'A';
 
@@ -413,7 +524,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <nav className="space-y-1">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const menuKey = getMenuKey(item.label);
+            const menuKey = menuKeyFor(item);
             const hasChildren = item.children && item.children.length > 0;
             const isExpanded = expandedMenus[menuKey] ?? false;
             const parentActive = isParentActive(item);
@@ -429,20 +540,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   isActive={parentActive}
                   onToggle={() => toggleMenu(menuKey)}
                 >
-                  {item.children!.map((child) => {
-                    const ChildIcon = child.icon;
-                    const childActive = child.path ? location.pathname === child.path : false;
-                    return (
-                      <MenuItem
-                        key={child.path || child.label}
-                        icon={ChildIcon}
-                        label={child.label}
-                        path={child.path || '#'}
-                        isActive={childActive}
-                        variant="child"
-                      />
-                    );
-                  })}
+                  {renderMenuItems(item.children!, menuKey)}
                 </MenuGroup>
               );
             }
@@ -580,7 +678,25 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 </div>
               )}
 
-              {/* Notifications */}
+              {/* Quick actions — full-page tools, open in new tab */}
+            {hasQuickAccess('POS') && (
+              <Button asChild variant="default" size="sm" className="hidden md:inline-flex items-center gap-1.5 font-semibold">
+                <a href="/pos" target="_blank" rel="noopener noreferrer">
+                  <ShoppingCart className="w-4 h-4" />
+                  POS
+                </a>
+              </Button>
+            )}
+            {hasQuickAccess('Smart Repair') && (
+              <Button asChild variant="outline" size="sm" className="hidden md:inline-flex items-center gap-1.5 font-semibold">
+                <a href="/services/smart-repair" target="_blank" rel="noopener noreferrer">
+                  <Zap className="w-4 h-4" />
+                  Smart Repair
+                </a>
+              </Button>
+            )}
+
+            {/* Notifications */}
               <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
                 <Bell className="w-5 h-5" />
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary-600 rounded-full" />

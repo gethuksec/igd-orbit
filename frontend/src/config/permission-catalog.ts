@@ -142,6 +142,15 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
           { label: 'Hapus', key: 'master_data.service_type.delete' },
         ],
       },
+      {
+        label: 'Kelengkapan',
+        children: [
+          { label: 'Lihat', key: 'service.checkpoint.view' },
+          { label: 'Tambah', key: 'service.checkpoint.create' },
+          { label: 'Edit', key: 'service.checkpoint.edit' },
+          { label: 'Hapus', key: 'service.checkpoint.delete' },
+        ],
+      },
     ],
   },
 
@@ -198,15 +207,6 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
         label: 'Smart Repair',
         children: [
           { label: 'Buat Smart Repair', key: 'action.service.smart_repair.create' },
-        ],
-      },
-      {
-        label: 'Kelengkapan',
-        children: [
-          { label: 'Lihat', key: 'service.checkpoint.view' },
-          { label: 'Tambah', key: 'service.checkpoint.create' },
-          { label: 'Edit', key: 'service.checkpoint.edit' },
-          { label: 'Hapus', key: 'service.checkpoint.delete' },
         ],
       },
       {
