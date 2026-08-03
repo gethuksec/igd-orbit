@@ -3,7 +3,7 @@
 > **Vision:** Modernize the entire IGD-Orbit frontend — consistent UI via shadcn, redesigned POS workflow inspired by Erzap, and targeted module adjustments per business needs.
 
 **Status:** 🟢 Active — in execution
-**Last Updated:** 2026-07-24
+**Last Updated:** 2026-08-03
 
 ---
 
@@ -15,6 +15,7 @@
 4. [Workstream C: Module Adjustments](#4-workstream-c-module-adjustments--tbd)
 5. [Workstream D: Organization Architecture (User/Branch/Warehouse/Role)](#5-workstream-d-organization-architecture-userbranchwarehouserole)
 6. [Workstream E: Service Module Redesign](#6-workstream-e-service-module-redesign--pending-discussion)
+6b. [T19 — Sidebar UX (bonus)](#6b-t19--sidebar-ux-bonus)
 7. [Dependencies & Ordering](#7-dependencies--ordering)
 8. [Rollout Strategy](#8-rollout-strategy)
 9. [Risk Register](#9-risk-register)
@@ -52,22 +53,24 @@
 
 ```
 MASTER PLAN
-├── A. shadcn/ui Migration ─────── Foundation → Layout → Patterns → Rollout → Cleanup
-├── B. POS Redesign ─────────────── Invoice form → Table → Payment → API → Polish
+├── A. shadcn/ui Migration ─────── ✅ Done (A0–A5 + infra)
+├── B. POS Redesign ─────────────── ✅ Done (Erzap-style, live)
 ├── C. Module Adjustments
-│   └── C.1 Granular Permissions ── Sidebar → Actions → Fields (phased)
-├── D. Organization Architecture ── Schema → Backend → Outlet/Warehouse/Role pages
-└── E. Service Redesign ─────────── FE: SmartRepair UI → BE: Kelengkapan CRUD + API
+│   └── C.1 Granular Permissions ── ✅ Done (t18)
+├── D. Organization Architecture ── ❌ Pending (not started)
+├── E. Service Redesign ─────────── ✅ E-FE + E-BE done (deferred: Klaim Garansi, attachments)
+└── T19 Sidebar UX (bonus) ──────── ✅ Done (3-level nav, header POS/Smart Repair, User & Role redesign)
 ```
 
 ### Difficulty Ranking (easiest → hardest)
 
 | Rank | Workstream | Total Effort | Why |
 |------|-----------|-------------|-----|
-| **1** 🟢 | **C.1 Permissions** | ~4-6h | Purely additive. Add arrays to Role/UserBranch + `hasPermission()` checks. No new UI, no data migration, no schema breaking. |
-| **2** 🟡 | **E-FE Frontend** | ~6-10h | Big scope but **additive** (new page alongside old). Heavy reuse of POS components (ProductTable, TransactionHeader, FooterShortcutBar). Can start with current API. |
-| **3** 🟡 | **E-BE Backend** | ~4-6h | New Kelengkapan CRUD + extend ServiceOrder API. Independent from FE work. |
-| **4** 🔴 | **D Organization** | ~8-12h | **Hardest.** Schema migration (split Branch, remove old Role tables, migrate data). New CRUD for 3 modules. Touches many existing relations. |
+| **1** 🟢 | **C.1 Permissions** ✅ | ~4-6h | Purely additive. Add arrays to Role/UserBranch + `hasPermission()` checks. No new UI, no data migration, no schema breaking. **Shipped** (t18). |
+| **2** 🟡 | **E-FE Frontend** ✅ | ~6-10h | Big scope but **additive** (new page alongside old). Heavy reuse of POS components (ProductTable, TransactionHeader, FooterShortcutBar). Can start with current API. **Shipped**. |
+| **3** 🟡 | **E-BE Backend** ✅ | ~4-6h | New Kelengkapan CRUD + extend ServiceOrder API. Independent from FE work. **Shipped**. |
+| **4** 🔴 | **D Organization** | ~8-12h | **Hardest.** Schema migration (split Branch, remove old Role tables, migrate data). New CRUD for 3 modules. Touches many existing relations. **Not started — next up.** |
+| **5** 🟢 | **T19 Sidebar UX** ✅ | ~4-6h | Bonus: 3-level sidebar + Kelengkapan → Master Data, header POS/Smart Repair buttons, User & Role redesign (7 pages). FE-only. **Shipped**. |
 
 ---
 
@@ -333,7 +336,7 @@ End-to-end test (after B5):
 
 | Module | Adjustment | Priority | Status |
 |--------|-----------|----------|--------|
-| Permissions | C.1 — Granular permissions (sidebar, actions, fields) | 🔴 High | 🟡 Planned |
+| Permissions | C.1 — Granular permissions (sidebar, actions, fields) | 🔴 High | ✅ Done (t18) |
 
 **Note:** Each module adjustment should be its own mini-plan with scope, files, effort estimation, and verification.
 
@@ -343,7 +346,7 @@ End-to-end test (after B5):
 
 **Goal:** Implement a flexible permission system covering 3 levels — sidebar visibility, action/page access, and per-field required/readonly. Start with levels 1-2, add level 3 gradually.
 
-**Status:** 🟡 Planned | **Effort:** ~4-6 hours
+**Status:** ✅ Done — shipped as `t18-granular-permissions` (2026-07-31): `permission-catalog.ts` (label-based nodes), recursive sidebar/action gating, PermissionAccordion + hierarchy tree in role editor, CS view-only on Kelengkapan (backend RolesGuard parity). | **Effort:** ~4-6 hours
 
 #### C.1.1 — Architecture
 
@@ -507,7 +510,7 @@ const serialField = useFieldPermission('field.service.serial')
 
 **Goal:** Redesign the organization data model — clean separation between Branch (outlet), Warehouse, User, and Role. Simplify roles (title-only, no granular permission system).
 
-**Decided:** 2026-07-24 | **Status:** 🟡 Planned (not started) | **Effort:** ~8-12 hours
+**Decided:** 2026-07-24 | **Status:** ❌ Not started (next workstream) | **Effort:** ~8-12 hours
 
 ### D.1 — Reference Design (Erzap-style)
 
@@ -715,7 +718,7 @@ model User {
 
 **Goal:** Redesign the service intake page into an Erzap-style "Smart Repair" form with two flows — Quick Service and Rawat Inap.
 
-**Status:** 🟡 Planned | **Effort:** FE ~6-10h + BE ~4-6h
+**Status:** ✅ Done — E-FE + E-BE shipped (2026-08-01, commits `ac9e018` `589ef65` `78710b7` `e8d76e1`): Smart Repair (Quick Service + Rawat Inap) on POSLayout, ServiceOrder API + PPN/PPH23 + DP + parts, Kelengkapan CRUD (FE page + BE module, permission-gated). **Deferred:** Klaim Garansi tab, file attachment upload. | **Effort:** FE ~6-10h + BE ~4-6h
 
 **Depends on:** Workstream D schema (Warehouse, Branch models). FE can start with mock/current API while BE is built.
 
@@ -1011,6 +1014,18 @@ All active by default, matching the physical form.
 
 ---
 
+## 6b. T19 — Sidebar UX (bonus, shipped)
+
+**Shipped:** 2026-08-02 | **Branch:** `t19-sidebar-ux` (commits `99c8e44`, `2c7dc2b`, `7d2c865`; fast-forward merged to main) | **FE-only**
+
+- **3-level recursive sidebar** — any group can have subgroups; Master Data grouped into 5: Pelanggan, Produk, Supplier & Logistik, Penjualan, Servis (incl. **Kelengkapan**, moved from Servis group)
+- Kelengkapan permission keys unchanged (`service.checkpoint.*`) → zero DB/role changes
+- **POS + Smart Repair** removed from sidebar → permission-gated header buttons (`<a target="_blank">`, no "new tab" label); Smart Repair full-page via POSLayout
+- **User & Role redesign** (all 7 pages: UserList/Detail/Form, RoleList/Detail/Form, PasswordRequests) on shared design system; PermissionAccordion + RoleHierarchyTree + AssignRoleModal preserved; console.log noise stripped
+- E2E verified (SUPERADMIN/CS/Technician gating, auto-expand, accordion, search/pagination), zero JS errors; deployed bundle = main tree (verified by grep on live bundle)
+
+---
+
 ## 7. Dependencies & Ordering
 
 **Decided sequence: Option C**
@@ -1024,31 +1039,31 @@ All active by default, matching the physical form.
        │         │
        │         └──→ ✅ (patterns validated, confidence built)
        │
-       ├──→ ⌛ (GROUP 2 — parallel) B0 POS API layer (backend + termin CRUD)
+       ├──→ ✅ (GROUP 2 — parallel) B0 POS API layer (backend + termin CRUD)
        │                              │
-       │                              └──→ B1 POS store + types ──→ B2 POS form fields
+       │                              └──→ ✅ B1 POS store + types ──→ ✅ B2 POS form fields
        │                                                              │
-       │                                                        B3 POS product table
+       │                                                        ✅ B3 POS product table
        │                                                              │
-       │                                                        B4 POS notes + summary
+       │                                                        ✅ B4 POS notes + summary
        │                                                              │
-       │                                                        B5 POS save logic
+       │                                                        ✅ B5 POS save logic
        │                                                              │
-       │                                                        B6 POS polish + cleanup
+       │                                                        ✅ B6 POS polish + cleanup
        │
-       ├──→ ⌛ (GROUP 2 — parallel) A2 sidebar refactor
+       ├──→ ✅ (GROUP 2 — parallel) A2 sidebar refactor
        │
-       └──→ ⌛ (GROUP 3) A3.2–A3.8 remaining menu rollout
+       └──→ ✅ (GROUP 3) A3.2–A3.8 remaining menu rollout
              │
-             └──→ ⌛ A4 cleanup (after everything)
+             └──→ ✅ A4 cleanup (after everything)
 ```
 
-**New workstreams can run in parallel after current ones complete.** D (Organization Architecture) depends on nothing except completing the current POS polish. E (Service Redesign) depends on D (needs warehouse/outlet model).
+**All current workstreams complete.** D (Organization Architecture) is the only remaining one and depends on nothing (schema + backend first, then frontend). E (Service Redesign) **shipped without D** — it used the current API/warehouse model; D's warehouse/outlet split can integrate later.
 
 ```
-⌛ B6 (ongoing) ──→ 🟡 D (Organization Architecture)
+✅ B0–B6 (POS) ──→ ❌ D (Organization Architecture — next)
                                         │
-                                  └──→ E (Service Redesign)
+                                  └──→ ✅ E (Service Redesign, shipped w/o D)
 ```
 
 ---
@@ -1062,15 +1077,16 @@ Deploy cadence:
   A0-A1:  one deploy (foundation, no visible change) ✅ Done
   A2:     one deploy (sidebar changes) ✅ Done
   A3.1:   one deploy (Master Data pages — first visible rollout) ✅ Done + verified
-  B1-B2:  one deploy (POS store + header — behind feature flag or unlinked)
-  B3-B4:  one deploy (table + bottom section — testable but not replacing old POS)
-  A3.2+:  one deploy per menu group
-  B5-B6:  one deploy (POS goes live — swap routes)
-  A4:     final cleanup deploy
-  D1-D2:  one deploy (schema + backend — no visible change)
-  D3-D5:  one deploy (frontend pages + POS integration)
-  D6:     one deploy (data migration + seed)
-  E:      TBD
+  B1-B2:  one deploy (POS store + header — behind feature flag or unlinked) ✅ Done
+  B3-B4:  one deploy (table + bottom section — testable but not replacing old POS) ✅ Done
+  A3.2+:  one deploy per menu group ✅ Done
+  B5-B6:  one deploy (POS goes live — swap routes) ✅ Done
+  A4:     final cleanup deploy ✅ Done
+  D1-D2:  one deploy (schema + backend — no visible change) — pending (D)
+  D3-D5:  one deploy (frontend pages + POS integration) — pending (D)
+  D6:     one deploy (data migration + seed) — pending (D)
+  E:      ✅ shipped (Smart Repair + Kelengkapan, FE+BE)
+  T19:    ✅ one deploy (sidebar UX bundle, main = live build)
 ```
 
 ### Feature Flag for POS
