@@ -11,7 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { formatCurrency } from '@/utils/format';
 import { useBranchStore } from '@/stores/branchStore';
 import { toast } from 'sonner';
-import { Search, Plus, Trash2, X, Wrench, Calculator, Loader2 } from 'lucide-react';
+import { Search, Plus, Trash2, Wrench, Calculator, Loader2, Save } from 'lucide-react';
 import { serviceOrdersService } from '@/services/service-orders.service';
 import type { CompletenessItem, SmartRepairPayload } from '@/types/service';
 import KelengkapanChecklist from '@/components/service/KelengkapanChecklist';
@@ -366,8 +366,15 @@ export default function SmartRepairPage() {
             <p className="text-xs text-gray-600 mt-1">Pencatatan servis — Rawat Inap atau Quick Service</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/service-orders')}>
-              <X className="w-3.5 h-3.5 mr-1" /> Batal
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs border-primary text-primary hover:bg-primary-50"
+              onClick={handleSave}
+              disabled={saveMutation.isPending}
+            >
+              {saveMutation.isPending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-1" />}
+              Simpan
             </Button>
           </div>
         </div>
