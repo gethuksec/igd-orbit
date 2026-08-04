@@ -69,7 +69,7 @@ export default function POSLayout({ children }: POSLayoutProps) {
   const initial = user?.fullName?.charAt(0).toUpperCase() || 'A';
 
   return (
-    <div className="min-h-screen bg-gray-50 w-full overflow-x-hidden flex flex-col">
+    <div className="h-dvh bg-gray-50 w-full overflow-x-hidden flex flex-col">
       {/* Minimal Header — logo left, account right */}
       <header className="sticky top-0 z-30 bg-white border-b border-border shadow-sm">
         <div className="flex items-center justify-between h-14 px-4">
@@ -146,7 +146,7 @@ export default function POSLayout({ children }: POSLayoutProps) {
       </header>
 
       {/* Full-width page content — no sidebar */}
-      <main className="flex-1 w-full">
+      <main className="flex-1 min-h-0 w-full flex flex-col">
         {children}
       </main>
     </div>
