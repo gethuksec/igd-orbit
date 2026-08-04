@@ -8,7 +8,6 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { PageHeader } from '@/components/shared';
 import { formatCurrency } from '@/utils/format';
 import { useBranchStore } from '@/stores/branchStore';
 import { toast } from 'sonner';
@@ -360,11 +359,18 @@ export default function SmartRepairPage() {
   return (
     <div className="flex-1 min-h-0 flex flex-col bg-gray-50">
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
-        <PageHeader title="Smart Repair" subtitle="Pencatatan servis — Rawat Inap atau Quick Service">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/service-orders')}>
-            <X className="w-4 h-4 mr-2" /> Batal
-          </Button>
-        </PageHeader>
+        {/* ═══ Header (PoS-style, no gradient) ═══ */}
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">Smart Repair</h1>
+            <p className="text-xs text-gray-600 mt-1">Pencatatan servis — Rawat Inap atau Quick Service</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => navigate('/service-orders')}>
+              <X className="w-3.5 h-3.5 mr-1" /> Batal
+            </Button>
+          </div>
+        </div>
 
         {/* ═══ Service Type Tabs ═══ */}
         <Tabs value={tab} onValueChange={(v) => setTab(v as ServiceTab)} className="mb-4">

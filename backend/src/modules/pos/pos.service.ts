@@ -14,10 +14,23 @@ export class PosService {
   // TRANSACTION
   // ════════════════════════════════════════════
 
-  async createTransaction(dto: CreatePosTransactionDto) {
+  async createTransaction(dto: CreatePosTransactionDto, userId: string) {
     // Validate items
     if (!dto.items || dto.items.length === 0) {
       throw new BadRequestException('Transaction must have at least one item');
+    }
+
+    // Resolve products (snapshot names + stock deduction)
+    const productIds = dto.items.map((i) => i.productId);
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: productIds } },
+      include: { productStocks: true },
+    });
+    const productMap = new Map(products.map((p) => [p.id, p]));
+    for (const item of dto.items) {
+      if (!productMap.has(item.productId)) {
+        throw new BadRequestException(`Product ${item.productId} not found`);
+      }
     }
 
     // Calculate totals
@@ -41,65 +54,103 @@ export class PosService {
     const seq = randomBytes(3).toString('hex').toUpperCase();
     const transactionNumber = `TRX-${dateStr}-${seq}`;
 
-    // Create the transaction with items
-    const transaction = await this.prisma.salesTransaction.create({
-      data: {
-        transactionNumber,
-        transactionType: 'pos',
-        branchId: dto.branchId,
-        customerId: dto.customerId || null,
-        cashierId: dto.salesPersonId || 'system', // fallback
-        paymentTermId: dto.paymentTermId || null,
-        salesPersonId: dto.salesPersonId || null,
-        warehouseId: dto.warehouseId || null,
-        status: dto.payment ? 'completed' : 'pending',
-        subtotal,
-        discountAmount: discountValue,
-        discountPercentage: dto.discountPercentage || null,
-        taxAmount,
-        taxPercentage,
-        total,
-        paymentStatus: dto.payment ? 'paid' : 'pending',
-        receiptNotes: dto.receiptNotes || null,
-        internalNotes: dto.internalNotes || dto.keterangan || null,
-        items: {
-          create: dto.items.map((item) => {
-            const itemSubtotal = item.quantity * item.unitPrice - (item.discountAmount || 0);
-            return {
-              productId: item.productId,
-              productName: '', // Will be populated
-              productSku: '',  // Will be populated
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              discountAmount: item.discountAmount || 0,
-              discountPercentage: null,
-              subtotal: itemSubtotal,
-              cashback: item.cashback || 0,
-            };
-          }),
-        },
-      },
-      include: {
-        items: true,
-        payments: true,
-      },
-    });
+    // T21: draft saves (status 'held') have no payment; completed otherwise
+    const status = dto.status || (dto.payment ? 'completed' : 'pending');
 
-    // Handle payment if provided
-    if (dto.payment) {
-      await this.prisma.payment.create({
+    return this.prisma.$transaction(async (tx) => {
+      // Create the transaction with items (snapshot real product name/sku)
+      const transaction = await tx.salesTransaction.create({
         data: {
-          transactionId: transaction.id,
-          paymentMethod: dto.payment.method,
-          amount: dto.payment.amount,
-          paymentDetails: dto.payment.details || undefined,
-          status: 'completed',
-          paidAt: new Date(),
+          transactionNumber,
+          transactionType: 'pos',
+          branchId: dto.branchId,
+          customerId: dto.customerId || null,
+          cashierId: userId,
+          paymentTermId: dto.paymentTermId || null,
+          salesPersonId: dto.salesPersonId || null,
+          warehouseId: dto.warehouseId || null,
+          salesTypeId: dto.salesTypeId || null,
+          status,
+          subtotal,
+          discountAmount: discountValue,
+          discountPercentage: dto.discountPercentage || null,
+          taxAmount,
+          taxPercentage,
+          total,
+          paymentStatus: dto.payment ? 'paid' : 'pending',
+          receiptNotes: dto.receiptNotes || null,
+          internalNotes: dto.internalNotes || dto.keterangan || null,
+          items: {
+            create: dto.items.map((item) => {
+              const product = productMap.get(item.productId)!;
+              const itemSubtotal = item.quantity * item.unitPrice - (item.discountAmount || 0);
+              return {
+                productId: item.productId,
+                productName: product.name,
+                productSku: product.sku,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                discountAmount: item.discountAmount || 0,
+                discountPercentage: null,
+                subtotal: itemSubtotal,
+              };
+            }),
+          },
+        },
+        include: {
+          items: true,
+          payments: true,
         },
       });
-    }
 
-    return transaction;
+      // Deduct stock + create OUT/SALE movement (mirror sales-transactions.service.ts)
+      for (const item of dto.items) {
+        const product = productMap.get(item.productId)!;
+        const stock = product.productStocks[0];
+        if (!stock) continue; // no stock record → skip (parity-safe)
+
+        const quantityBefore = stock.quantityAvailable.toNumber();
+        const quantityAfter = quantityBefore - item.quantity;
+
+        await tx.productStock.update({
+          where: { id: stock.id },
+          data: {
+            quantityAvailable: quantityAfter,
+          },
+        });
+
+        await tx.stockMovement.create({
+          data: {
+            productId: item.productId,
+            branchId: dto.branchId,
+            movementType: 'OUT',
+            referenceType: 'SALE',
+            referenceId: transaction.id,
+            quantityChange: -item.quantity,
+            quantityBefore,
+            quantityAfter,
+            notes: `Sale: ${transaction.transactionNumber} - ${product.name} (${item.quantity} unit)`,
+            createdBy: userId,
+          },
+        });
+      }
+
+      // Handle payment if provided
+      if (dto.payment) {
+        await tx.payment.create({
+          data: {
+            transactionId: transaction.id,
+            paymentMethod: dto.payment.method,
+            amount: dto.payment.amount,
+            paymentDetails: dto.payment.details || undefined,
+            status: 'completed',
+            paidAt: new Date(),
+          },
+        });
+      }
+
+      return transaction;
+    });
   }
 
   // ════════════════════════════════════════════

@@ -8,6 +8,7 @@ import {
   Min,
   Max,
   IsString,
+  IsIn,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -27,11 +28,6 @@ export class PosTransactionItemDto {
   @Min(0)
   @IsOptional()
   discountAmount?: number;
-
-  @IsNumber({}, { message: 'Cashback must be a number' })
-  @Min(0)
-  @IsOptional()
-  cashback?: number;
 }
 
 export class PosPaymentDto {
@@ -89,6 +85,15 @@ export class CreatePosTransactionDto {
   @Max(100)
   @IsOptional()
   taxPercentage?: number;
+
+  // T21: sales type (Tipe Penjualan) + draft status
+  @IsString()
+  @IsOptional()
+  salesTypeId?: string;
+
+  @IsIn(['pending', 'held', 'completed'])
+  @IsOptional()
+  status?: string;
 
   @ValidateNested()
   @Type(() => PosPaymentDto)
