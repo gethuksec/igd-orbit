@@ -53,11 +53,12 @@ interface FormData {
   barangDikirim: boolean;
   manualFaktur: boolean;
   keterangan: string;
+  keteranganStruk: string;
 }
 
 // ─── Constants ────────────────────────────────────
 
-const EMPTY_ROWS = 5;
+const EMPTY_ROWS = 1;
 
 function createEmptyRow(): ItemRow {
   return {
@@ -67,7 +68,7 @@ function createEmptyRow(): ItemRow {
     barcode: '',
     productName: '',
     refCode: '',
-    quantity: 1,
+    quantity: 0,
     price: 0,
     discount: 0,
     total: 0,
@@ -101,6 +102,7 @@ export default function POSTransaksi() {
     barangDikirim: false,
     manualFaktur: false,
     keterangan: '',
+    keteranganStruk: '',
   });
 
   // ── Item Rows ──
@@ -308,6 +310,7 @@ export default function POSTransaksi() {
       taxPercentage: 0, // T21: tax disabled by decision — charge what's shown
       items,
       internalNotes: form.keterangan || undefined,
+      receiptNotes: form.keteranganStruk || undefined,
       status,
     };
     if (status === 'completed' && total > 0) {
@@ -348,7 +351,7 @@ export default function POSTransaksi() {
       setRows(createInitialRows);
       setForm((prev) => ({
         ...prev,
-        pelanggan: '', pelangganId: '', keterangan: '', termin: 'Tunai',
+        pelanggan: '', pelangganId: '', keterangan: '', keteranganStruk: '', termin: 'Tunai',
         sales: '', tipePenjualan: '', gudang: '', tanggalJatuhTempo: '',
       }));
       setCustomerSearch('');
@@ -885,14 +888,25 @@ export default function POSTransaksi() {
         {/* ═══ Bottom Section: Notes + Summary ═══ */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           {/* Notes */}
-          <div className="md:col-span-2 bg-white rounded-lg border border-gray-200 shadow-sm p-4">
-            <Label className="text-xs font-medium text-gray-700 mb-2 block">Keterangan</Label>
-            <Textarea
-              value={form.keterangan}
-              onChange={(e) => setForm((prev) => ({ ...prev, keterangan: e.target.value }))}
-              className="w-full min-h-[100px] resize-y"
-              placeholder="Catatan transaksi..."
-            />
+          <div className="md:col-span-2 bg-white rounded-lg border border-gray-200 shadow-sm p-4 space-y-4">
+            <div>
+              <Label className="text-xs font-medium text-gray-700 mb-2 block">Catatan Internal</Label>
+              <Textarea
+                value={form.keterangan}
+                onChange={(e) => setForm((prev) => ({ ...prev, keterangan: e.target.value }))}
+                className="w-full min-h-[80px] resize-y"
+                placeholder="Catatan untuk tim internal (tidak tercetak di struk)..."
+              />
+            </div>
+            <div>
+              <Label className="text-xs font-medium text-gray-700 mb-2 block">Catatan Struk</Label>
+              <Textarea
+                value={form.keteranganStruk}
+                onChange={(e) => setForm((prev) => ({ ...prev, keteranganStruk: e.target.value }))}
+                className="w-full min-h-[80px] resize-y"
+                placeholder="Catatan yang tercetak di struk pembeli..."
+              />
+            </div>
           </div>
 
           {/* Summary */}

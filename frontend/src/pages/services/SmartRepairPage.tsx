@@ -11,7 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { formatCurrency } from '@/utils/format';
 import { useBranchStore } from '@/stores/branchStore';
 import { toast } from 'sonner';
-import { Search, Plus, Trash2, Wrench, Calculator, Loader2, Save } from 'lucide-react';
+import { Search, Plus, Trash2, Calculator, Loader2, Save } from 'lucide-react';
 import { serviceOrdersService } from '@/services/service-orders.service';
 import type { CompletenessItem, SmartRepairPayload } from '@/types/service';
 import KelengkapanChecklist from '@/components/service/KelengkapanChecklist';
@@ -897,15 +897,6 @@ export default function SmartRepairPage() {
         <span><strong>F3</strong> = Simpan Sementara</span>
         <span><strong>F5</strong> = Refresh</span>
         <div className="ml-auto text-primary-200">IGD Ponsel - Smart Repair</div>
-        <Button
-          size="sm"
-          className="text-xs bg-white text-primary hover:bg-primary-50"
-          onClick={handleSave}
-          disabled={saveMutation.isPending}
-        >
-          {saveMutation.isPending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Wrench className="w-3.5 h-3.5 mr-1" />}
-          Simpan
-        </Button>
       </div>
     </div>
   );
