@@ -3,7 +3,7 @@
 > **Vision:** Modernize the entire IGD-Orbit frontend — consistent UI via shadcn, redesigned POS workflow inspired by Erzap, and targeted module adjustments per business needs.
 
 **Status:** 🟢 Active — in execution
-**Last Updated:** 2026-08-03
+**Last Updated:** 2026-08-04
 
 ---
 
@@ -16,6 +16,7 @@
 5. [Workstream D: Organization Architecture (User/Branch/Warehouse/Role)](#5-workstream-d-organization-architecture-userbranchwarehouserole)
 6. [Workstream E: Service Module Redesign](#6-workstream-e-service-module-redesign--pending-discussion)
 6b. [T19 — Sidebar UX (bonus)](#6b-t19--sidebar-ux-bonus)
+6c. [T21 — PoS + Smart Repair Rewire](#6c-t21--pos--smart-repair-rewire-shipped-not-merged)
 7. [Dependencies & Ordering](#7-dependencies--ordering)
 8. [Rollout Strategy](#8-rollout-strategy)
 9. [Risk Register](#9-risk-register)
@@ -60,6 +61,7 @@ MASTER PLAN
 ├── D. Organization Architecture ── ❌ Pending (not started)
 ├── E. Service Redesign ─────────── ✅ E-FE + E-BE done (deferred: Klaim Garansi, attachments)
 └── T19 Sidebar UX (bonus) ──────── ✅ Done (3-level nav, header POS/Smart Repair, User & Role redesign)
+└── T21 PoS+Smart Repair Rewire ── ✅ Done (red header removed, POS backend+FE rewired, superadmin service-orders)
 ```
 
 ### Difficulty Ranking (easiest → hardest)
@@ -71,6 +73,7 @@ MASTER PLAN
 | **3** 🟡 | **E-BE Backend** ✅ | ~4-6h | New Kelengkapan CRUD + extend ServiceOrder API. Independent from FE work. **Shipped**. |
 | **4** 🔴 | **D Organization** | ~8-12h | **Hardest.** Schema migration (split Branch, remove old Role tables, migrate data). New CRUD for 3 modules. Touches many existing relations. **Not started — next up.** |
 | **5** 🟢 | **T19 Sidebar UX** ✅ | ~4-6h | Bonus: 3-level sidebar + Kelengkapan → Master Data, header POS/Smart Repair buttons, User & Role redesign (7 pages). FE-only. **Shipped**. |
+| **6** 🟡 | **T21 PoS+Smart Repair Rewire** ✅ | ~6-8h | Remove Smart Repair red header (PoS-style); POS backend fixes (cashback crash, snapshots, JWT cashier, salesTypeId, stock+StockMovement, held drafts); POS frontend rewired (real save, payment selector cash-only, dropdowns, top-search). Branch `t21-pos-smartrepair-rewire`. **Shipped — not yet merged**. |
 
 ---
 
@@ -1023,6 +1026,18 @@ All active by default, matching the physical form.
 - **POS + Smart Repair** removed from sidebar → permission-gated header buttons (`<a target="_blank">`, no "new tab" label); Smart Repair full-page via POSLayout
 - **User & Role redesign** (all 7 pages: UserList/Detail/Form, RoleList/Detail/Form, PasswordRequests) on shared design system; PermissionAccordion + RoleHierarchyTree + AssignRoleModal preserved; console.log noise stripped
 - E2E verified (SUPERADMIN/CS/Technician gating, auto-expand, accordion, search/pagination), zero JS errors; deployed bundle = main tree (verified by grep on live bundle)
+
+---
+
+## 6c. T21 — PoS + Smart Repair Rewire (shipped, not merged)
+
+**Shipped:** 2026-08-04 | **Branch:** `t21-pos-smartrepair-rewire` (commits `720c293` D, `4583481` A/B/C) | **Status:** live on igd.ad8ya.cloud, awaiting merge to main
+
+- **A — Smart Repair red header removed** — shared `PageHeader` (red gradient from `--primary: 0 84.2% 60.2%`) removed from SmartRepairPage; now PoS-style plain header (title + subtitle + Batal). Browser-verified.
+- **D — Global roles can create service orders** — `CreateServiceOrderDto.branchId?` added; controller passes it to `ensureBranchAccess(dto.branchId)`; SmartRepairPage sends selected outlet as branchId (fallback: first branch). API-verified: 201 with branchId, 403 without.
+- **B — POS backend rewired** — `cashback` field removed (was crashing every `POST /pos/transactions` with `Unknown argument cashback`); real productName/productSku snapshots; `cashierId` from JWT `req.user.id` (was fake `'system'` → FK violation); `salesTypeId` column added (db push); stock deduction + StockMovement OUT/SALE inside `$transaction` (mirrors sales-transactions); `status: 'held'` drafts supported. API-verified: 201 completed + 201 held.
+- **C — POS frontend rewired** (`POSTransaksi.tsx`) — F2 Simpan + F3 Draf are real API saves (were `alert()` stubs); payment selector (Tunai only; Transfer/E-Wallet/Kartu disabled); sales-persons + warehouse dropdowns populated; top search bar fixed (strips qty prefix, e.g. `2 baterai` → search `baterai`, qty 2); @Cashback column removed; Simpan button visible; tax sent as 0% (decision); after draft save stays on page. Browser E2E verified: TRX-20260804-E7C753 (2× Baterai SPR-002 = 600.000, customer Budi Santoso, sales Bambang, Kalisat branch, Pusat warehouse, tax 0, cash paid, stock OUT 15→13, payment row).
+- **Note:** superadmin login password is `SuperAdmin@1234` (mixed case — seed.ts `hashPassword('SuperAdmin@1234')`), the login page hint shows all-caps which is wrong.
 
 ---
 
