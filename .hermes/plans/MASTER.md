@@ -17,6 +17,8 @@
 6. [Workstream E: Service Module Redesign](#6-workstream-e-service-module-redesign--pending-discussion)
 6b. [T19 — Sidebar UX (bonus)](#6b-t19--sidebar-ux-bonus)
 6c. [T21 — PoS + Smart Repair Rewire](#6c-t21--pos--smart-repair-rewire-shipped-not-merged)
+6d. [T22 — Global 401 (Session Expired) Handling](#6d-t22--global-401-session-expired-handling-planned)
+6e. [T23 — Replace Menu Red Header with Breadcrumbs](#6e-t23--replace-menu-red-header-with-breadcrumbs-planned)
 7. [Dependencies & Ordering](#7-dependencies--ordering)
 8. [Rollout Strategy](#8-rollout-strategy)
 9. [Risk Register](#9-risk-register)
@@ -62,6 +64,8 @@ MASTER PLAN
 ├── E. Service Redesign ─────────── ✅ E-FE + E-BE done (deferred: Klaim Garansi, attachments)
 └── T19 Sidebar UX (bonus) ──────── ✅ Done (3-level nav, header POS/Smart Repair, User & Role redesign)
 └── T21 PoS+Smart Repair Rewire ── ✅ Done (red header removed, POS backend+FE rewired, superadmin service-orders)
+└── T22 401 Session-Expiry Handling ── 🔴 Planned (global axios 401 → login redirect + toast)
+└── T23 Breadcrumb Headers ─────────── 🔴 Planned (replace red PageHeader with breadcrumbs)
 ```
 
 ### Difficulty Ranking (easiest → hardest)
@@ -74,6 +78,8 @@ MASTER PLAN
 | **4** 🔴 | **D Organization** | ~8-12h | **Hardest.** Schema migration (split Branch, remove old Role tables, migrate data). New CRUD for 3 modules. Touches many existing relations. **Not started — next up.** |
 | **5** 🟢 | **T19 Sidebar UX** ✅ | ~4-6h | Bonus: 3-level sidebar + Kelengkapan → Master Data, header POS/Smart Repair buttons, User & Role redesign (7 pages). FE-only. **Shipped**. |
 | **6** 🟡 | **T21 PoS+Smart Repair Rewire** ✅ | ~6-8h | Remove Smart Repair red header (PoS-style); POS backend fixes (cashback crash, snapshots, JWT cashier, salesTypeId, stock+StockMovement, held drafts); POS frontend rewired (real save, payment selector cash-only, dropdowns, top-search). Branch `t21-pos-smartrepair-rewire`. **Shipped — not yet merged**. |
+| **7** 🟢 | **T22 401 Session-Expiry** 🔴 | ~2-4h | Axios response interceptor: 401 → clear tokens + toast + redirect `/login` (exclude auth endpoints). Additive FE change. |
+| **8** 🟡 | **T23 Breadcrumb Headers** 🔴 | ~8-12h | Replace red `PageHeader`/gradient headers with breadcrumbs across ~139 menu pages, batched by module. Medium risk (every page's header). |
 
 ---
 
@@ -1038,6 +1044,39 @@ All active by default, matching the physical form.
 - **B — POS backend rewired** — `cashback` field removed (was crashing every `POST /pos/transactions` with `Unknown argument cashback`); real productName/productSku snapshots; `cashierId` from JWT `req.user.id` (was fake `'system'` → FK violation); `salesTypeId` column added (db push); stock deduction + StockMovement OUT/SALE inside `$transaction` (mirrors sales-transactions); `status: 'held'` drafts supported. API-verified: 201 completed + 201 held.
 - **C — POS frontend rewired** (`POSTransaksi.tsx`) — F2 Simpan + F3 Draf are real API saves (were `alert()` stubs); payment selector (Tunai only; Transfer/E-Wallet/Kartu disabled); sales-persons + warehouse dropdowns populated; top search bar fixed (strips qty prefix, e.g. `2 baterai` → search `baterai`, qty 2); @Cashback column removed; Simpan button visible; tax sent as 0% (decision); after draft save stays on page. Browser E2E verified: TRX-20260804-E7C753 (2× Baterai SPR-002 = 600.000, customer Budi Santoso, sales Bambang, Kalisat branch, Pusat warehouse, tax 0, cash paid, stock OUT 15→13, payment row).
 - **Note:** superadmin login password is `SuperAdmin@1234` (mixed case — seed.ts `hashPassword('SuperAdmin@1234')`), the login page hint shows all-caps which is wrong.
+
+---
+
+## 6d. T22 — Global 401 (Session Expired) Handling (planned)
+
+**Status:** 🔴 Planned — not started | **Goal:** any API call returning `401` (expired/invalid JWT) should trigger a clean session-expiry UX instead of silent failures or stuck screens.
+
+**Problem:** today a 401 mid-session leaves the user on the page with broken data/actions (or an unhandled error toast); there is no centralized redirect to login.
+
+**Scope (proposed):**
+- Add a response interceptor on the shared `api` client (axios) that catches `401`.
+- Exclusions: the `/auth/login`, `/auth/refresh`, `/auth/forgot-password`, `/auth/reset-password` endpoints must NOT trigger the handler (avoid redirect loops).
+- On 401: clear `localStorage` (`access_token`, `refresh_token`, `user`), show one toast ("Sesi berakhir, silakan login kembali"), redirect to `/login` (preserving intended destination, e.g. `?next=`), and prevent duplicate toasts/redirects while already redirecting.
+- If a `refresh_token` exists and a `/auth/refresh` endpoint is usable, consider silent refresh with single-flight (queue in-flight requests during refresh) before falling back to logout.
+- Verify with an expired token: `POST /api/v1/pos/transactions` with a tampered/old JWT → expect redirect + toast, no infinite loop, login page works afterwards.
+
+**Effort:** ~2-4h | **Risk:** low — additive frontend change, no schema/API change.
+
+---
+
+## 6e. T23 — Replace Menu Red Header with Breadcrumbs (planned)
+
+**Status:** 🔴 Planned — not started | **Goal:** replace the red gradient `PageHeader` (and remaining old gradient headers) on menu pages with a simple breadcrumb-style header, matching the "simpler is better" direction set by T21 (POS/Smart Repair already use plain headers).
+
+**Context:** `--primary` hue is 0 (RED) — every `PageHeader` renders a red gradient banner. The user wants menu pages to move from the big red banner to **breadcrumbs** (e.g. `Beranda / Master Data / Produk`) + a small page title row, freeing vertical space and reducing visual noise.
+
+**Scope (proposed):**
+- Build a shared `BreadcrumbHeader` (or extend PageHeader with a `variant="breadcrumb"`) — breadcrumb trail + compact title + right-side actions (keeps the existing children/action-button API so pages migrate with minimal churn).
+- Audit scope: ~139 page TSX files; ~37 use `PageHeader`, 60+ still have hand-rolled gradient headers (`references/shadcn-audit-2026-07-16.md`). Migrate list/detail/form pages in batches by module (Master Data → Sales → Service → Gudang → Keuangan → Karyawan), keeping POS/Smart Repair full-page plain-header style untouched.
+- Keep `PageHeader` available during migration; remove/replace it only after all callers move (check `grep -rl PageHeader frontend/src/pages`).
+- Watch for `TS6133` unused imports after each batch (ArrowLeft/X removal pattern from T21).
+
+**Effort:** ~8-12h (batch migration + shared component + E2E per module) | **Risk:** medium — touches every page's header; needs per-module browser verification.
 
 ---
 
