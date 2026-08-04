@@ -39,6 +39,7 @@ export interface ServicePartItem {
 
 /** Smart Repair service order create payload (matches CreateServiceOrderDto) */
 export interface SmartRepairPayload {
+  branchId?: string;
   customerId?: string;
   customerName: string;
   customerPhone: string;

@@ -8,11 +8,10 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { PageHeader } from '@/components/shared';
 import { formatCurrency } from '@/utils/format';
 import { useBranchStore } from '@/stores/branchStore';
 import { toast } from 'sonner';
-import { Search, Plus, Trash2, X, Wrench, Calculator, Loader2 } from 'lucide-react';
+import { Search, Plus, Trash2, Calculator, Loader2, Save } from 'lucide-react';
 import { serviceOrdersService } from '@/services/service-orders.service';
 import type { CompletenessItem, SmartRepairPayload } from '@/types/service';
 import KelengkapanChecklist from '@/components/service/KelengkapanChecklist';
@@ -307,6 +306,7 @@ export default function SmartRepairPage() {
     });
 
     const payload: SmartRepairPayload = {
+      branchId: form.outlet || undefined,
       customerName: form.customerName.trim(),
       customerPhone: form.customerPhone.trim(),
       deviceType: form.deviceType,
@@ -359,11 +359,25 @@ export default function SmartRepairPage() {
   return (
     <div className="flex-1 min-h-0 flex flex-col bg-gray-50">
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
-        <PageHeader title="Smart Repair" subtitle="Pencatatan servis — Rawat Inap atau Quick Service">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/service-orders')}>
-            <X className="w-4 h-4 mr-2" /> Batal
-          </Button>
-        </PageHeader>
+        {/* ═══ Header (PoS-style, no gradient) ═══ */}
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">Smart Repair</h1>
+            <p className="text-xs text-gray-600 mt-1">Pencatatan servis — Rawat Inap atau Quick Service</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs border-primary text-primary hover:bg-primary-50"
+              onClick={handleSave}
+              disabled={saveMutation.isPending}
+            >
+              {saveMutation.isPending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-1" />}
+              Simpan
+            </Button>
+          </div>
+        </div>
 
         {/* ═══ Service Type Tabs ═══ */}
         <Tabs value={tab} onValueChange={(v) => setTab(v as ServiceTab)} className="mb-4">
@@ -883,15 +897,6 @@ export default function SmartRepairPage() {
         <span><strong>F3</strong> = Simpan Sementara</span>
         <span><strong>F5</strong> = Refresh</span>
         <div className="ml-auto text-primary-200">IGD Ponsel - Smart Repair</div>
-        <Button
-          size="sm"
-          className="text-xs bg-white text-primary hover:bg-primary-50"
-          onClick={handleSave}
-          disabled={saveMutation.isPending}
-        >
-          {saveMutation.isPending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Wrench className="w-3.5 h-3.5 mr-1" />}
-          Simpan
-        </Button>
       </div>
     </div>
   );

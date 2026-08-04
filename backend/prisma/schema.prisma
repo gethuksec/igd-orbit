@@ -585,6 +585,7 @@ model SalesTransaction {
   paymentTermId      String?   @map("payment_term_id")
   salesPersonId      String?   @map("sales_person_id")
   warehouseId        String?   @map("warehouse_id")
+  salesTypeId        String?   @map("sales_type_id") // T21: plain ref to sales_types (no FK until Workstream D)
   status             String    @default("pending") // 'pending', 'completed', 'cancelled', 'void', 'held'
   subtotal           Decimal   @db.Decimal(15, 2)
   discountAmount     Decimal   @default(0) @map("discount_amount") @db.Decimal(15, 2)

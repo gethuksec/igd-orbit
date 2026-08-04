@@ -53,6 +53,11 @@ export class ServicePartItemDto {
 }
 
 export class CreateServiceOrderDto {
+  // Branch (T21: allow global roles to pick a branch explicitly)
+  @IsUUID()
+  @IsOptional()
+  branchId?: string;
+
   // Customer info
   @IsUUID()
   @IsOptional()

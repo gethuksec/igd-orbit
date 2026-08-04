@@ -67,7 +67,8 @@ export class ServiceOrdersController {
     @Request() req: ExpressRequest & { user: any },
   ) {
     // Determine and validate branch based on user access
-    const branchId = ensureBranchAccess(req, undefined) as string;
+    // T21: global roles (SUPERADMIN/OWNER/CFO) may pass branchId from the form (selected outlet)
+    const branchId = ensureBranchAccess(req, dto.branchId) as string;
     if (!branchId) {
       throw new ForbiddenException('Branch ID is required');
     }

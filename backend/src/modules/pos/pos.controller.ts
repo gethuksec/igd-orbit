@@ -4,10 +4,12 @@ import {
   Post,
   Body,
   Query,
+  Request,
   UseGuards,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { Request as ExpressRequest } from 'express';
 import { PosService } from './pos.service';
 import { JwtAuthGuard } from '../../shared/guards';
 import { CreatePosTransactionDto } from './dto/create-pos-transaction.dto';
@@ -21,8 +23,12 @@ export class PosController {
 
   @Post('transactions')
   @HttpCode(HttpStatus.CREATED)
-  async createTransaction(@Body() dto: CreatePosTransactionDto) {
-    return this.posService.createTransaction(dto);
+  async createTransaction(
+    @Body() dto: CreatePosTransactionDto,
+    @Request() req: ExpressRequest & { user: any },
+  ) {
+    // T21: cashierId comes from the JWT user, not from the payload
+    return this.posService.createTransaction(dto, req.user.id);
   }
 
   // ─── Supporting list endpoints ───
