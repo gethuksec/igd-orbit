@@ -441,17 +441,19 @@ export default function POSTransaksi() {
   });
 
   // T21: top search bar results (was disconnected from quickSearch — never populated)
+  // Strip the "qty space" prefix before querying: "2 baterai" → "baterai"
+  const quickClean = quickSearch.trim().replace(/^\d+\s+/, '');
   const { data: quickResults = [] } = useQuery({
-    queryKey: ['pos-quick-products', quickSearch],
+    queryKey: ['pos-quick-products', quickClean],
     queryFn: async () => {
       const token = localStorage.getItem('access_token');
-      const res = await fetch('/api/v1/pos/products?q=' + encodeURIComponent(quickSearch) + '&limit=10', {
+      const res = await fetch('/api/v1/pos/products?q=' + encodeURIComponent(quickClean) + '&limit=10', {
         headers: { Authorization: 'Bearer ' + token }
       });
       if (!res.ok) return [];
       return res.json();
     },
-    enabled: quickSearch.length >= 2,
+    enabled: quickClean.length >= 2,
   });
 
   // ── Render ──
