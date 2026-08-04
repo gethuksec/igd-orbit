@@ -22,9 +22,12 @@ export class PosService {
 
     // Resolve products (snapshot names + stock deduction)
     const productIds = dto.items.map((i) => i.productId);
+    // T21-fix: stock is per-branch; deduct from the warehouse's branch when given,
+    // else the transaction branch (mirrors sales-transactions.service.ts branch filter)
+    const stockBranchId = dto.warehouseId ?? dto.branchId;
     const products = await this.prisma.product.findMany({
       where: { id: { in: productIds } },
-      include: { productStocks: true },
+      include: { productStocks: { where: { branchId: stockBranchId } } },
     });
     const productMap = new Map(products.map((p) => [p.id, p]));
     for (const item of dto.items) {
@@ -107,7 +110,12 @@ export class PosService {
       for (const item of dto.items) {
         const product = productMap.get(item.productId)!;
         const stock = product.productStocks[0];
-        if (!stock) continue; // no stock record → skip (parity-safe)
+        if (!stock) {
+          // Parity with sales-transactions.service.ts: never sell without a stock row
+          throw new BadRequestException(
+            `Product ${product.name} has no stock in branch ${stockBranchId}`,
+          );
+        }
 
         const quantityBefore = stock.quantityAvailable.toNumber();
         const quantityAfter = quantityBefore - item.quantity;
@@ -122,7 +130,7 @@ export class PosService {
         await tx.stockMovement.create({
           data: {
             productId: item.productId,
-            branchId: dto.branchId,
+            branchId: stock.branchId, // actual row's branch, not dto.branchId
             movementType: 'OUT',
             referenceType: 'SALE',
             referenceId: transaction.id,
