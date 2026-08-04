@@ -307,6 +307,7 @@ export default function SmartRepairPage() {
     });
 
     const payload: SmartRepairPayload = {
+      branchId: form.outlet || undefined,
       customerName: form.customerName.trim(),
       customerPhone: form.customerPhone.trim(),
       deviceType: form.deviceType,
