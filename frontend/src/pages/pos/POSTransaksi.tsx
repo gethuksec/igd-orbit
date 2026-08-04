@@ -462,13 +462,13 @@ export default function POSTransaksi() {
   // ── Render ──
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex-1 min-h-0 flex flex-col bg-gray-50">
       {/* ═══ Top Alert Banner ═══ */}
       <div className="bg-orange-50 border-b border-orange-200 px-4 py-2 text-center text-sm text-orange-800">
         Inputkan data lalu tekan tombol <strong>Simpan</strong> untuk menyimpan
       </div>
 
-      <div className="px-4 py-4 max-w-full">
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 max-w-full">
         {/* ═══ Header Section ═══ */}
         <div className="flex items-start justify-between mb-4">
           <div>
@@ -954,11 +954,11 @@ export default function POSTransaksi() {
       </div>
 
       {/* ═══ Status Bar ═══ */}
-      <div className="sticky bottom-0 bg-primary text-primary-foreground text-xs py-2 px-4 flex items-center gap-6">
-        {hasPermission('action.pos.create') && <span><strong>F2</strong> = Simpan</span>}
-        {hasPermission('action.pos.create') && <span><strong>F3</strong> = Simpan Sementara</span>}
+      <div className="shrink-0 bg-primary text-primary-foreground text-xs py-2 px-4 flex items-center gap-6">
+        <span><strong>F2</strong> = Simpan</span>
+        <span><strong>F3</strong> = Simpan Sementara</span>
         <span><strong>F5</strong> = Refresh</span>
-        <div className="ml-auto text-primary-200">IGD Ponsel - Sistem ERP</div>
+        <div className="ml-auto text-primary-200">IGD Ponsel - POS</div>
       </div>
     </div>
   );
