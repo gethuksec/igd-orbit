@@ -215,6 +215,12 @@ export class RolesService {
       throw new ConflictException(`Role with code '${dto.code}' already exists`);
     }
 
+    // D-SEC: SUPERADMIN is a reserved code — a duplicate role would grant the
+    // SUPERADMIN bypass (RolesGuard checks role-code membership) → privilege escalation.
+    if (dto.code === 'SUPERADMIN') {
+      throw new ConflictException("Role code 'SUPERADMIN' is reserved and cannot be created");
+    }
+
     // Validate parent role if provided
     if (dto.parentRoleId) {
       const parentRole = await this.prisma.role.findUnique({
@@ -260,9 +266,22 @@ export class RolesService {
       throw new BadRequestException('Cannot modify system role properties');
     }
 
-    // SUPERADMIN permissions are immutable — anyone (including SUPERADMIN) cannot change them
-    if (role.code === 'SUPERADMIN' && dto.defaultPermissions !== undefined) {
-      throw new BadRequestException('SUPERADMIN permissions are immutable and cannot be changed');
+    // D-SEC: SUPERADMIN role is FULLY immutable via API — DB-only edits.
+    // Reject any field change attempt (permissions, name, description, level, status, parent).
+    if (role.code === 'SUPERADMIN') {
+      const hasChanges = [
+        dto.name,
+        dto.description,
+        dto.level,
+        dto.isActive,
+        dto.parentRoleId,
+        dto.defaultPermissions,
+      ].some((v) => v !== undefined);
+      if (hasChanges) {
+        throw new BadRequestException(
+          'SUPERADMIN role is immutable and can only be edited directly in the database',
+        );
+      }
     }
 
     // Validate parent role if provided (prevent circular references)
@@ -333,6 +352,11 @@ export class RolesService {
       throw new NotFoundException('Role not found');
     }
 
+    // D-SEC: the SUPERADMIN role itself cannot be deactivated — total lockout risk
+    if (role.code === 'SUPERADMIN') {
+      throw new BadRequestException('SUPERADMIN role cannot be deactivated');
+    }
+
     const userRoles = user?.roles || [];
     const isSuperAdmin = userRoles.includes('SUPERADMIN');
 
@@ -374,6 +398,11 @@ export class RolesService {
 
     if (!role) {
       throw new NotFoundException('Role not found');
+    }
+
+    // D-SEC: SUPERADMIN role permissions are immutable — legacy junction included
+    if (role.code === 'SUPERADMIN') {
+      throw new BadRequestException('SUPERADMIN role permissions are immutable');
     }
 
     const permission = await this.prisma.permission.findUnique({
@@ -421,6 +450,19 @@ export class RolesService {
    * Remove permission from role
    */
   async removePermission(roleId: string, permissionId: string, _removedBy: string) {
+    // D-SEC: load role first to guard the immutable SUPERADMIN role
+    const role = await this.prisma.role.findUnique({
+      where: { id: roleId },
+    });
+
+    if (!role) {
+      throw new NotFoundException('Role not found');
+    }
+
+    if (role.code === 'SUPERADMIN') {
+      throw new BadRequestException('SUPERADMIN role permissions are immutable');
+    }
+
     const rolePermission = await this.prisma.rolePermission.findUnique({
       where: {
         roleId_permissionId: {
