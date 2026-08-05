@@ -523,13 +523,8 @@ export class AuthService {
       .map((ur) => ur.branchId)
       .filter((id): id is string => id !== null);
 
-    const permissions = activeRoles
-      .flatMap((ur) => ur.role.rolePermissions)
-      .map(
-        (rp) =>
-          `${rp.permission.module}.${rp.permission.submodule || '*'}.${rp.permission.action}`,
-      )
-      .filter((p, index, self) => self.indexOf(p) === index);
+    // D-PERM: single merge function (junction + defaultPermissions − deniedPermissions)
+    const permissions = computeEffectivePermissions(activeRoles);
 
     return {
       id: user.id,
