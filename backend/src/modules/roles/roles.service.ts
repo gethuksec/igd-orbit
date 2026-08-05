@@ -339,7 +339,7 @@ export class RolesService {
     }
 
     // Check if role is assigned to any users (unless SUPERADMIN)
-    if (!isSuperAdmin && role._count.userRoles > 0) {
+    if (!isSuperAdmin && role._count.userBranches > 0) {
       throw new BadRequestException(
         'Cannot delete role that is assigned to users. Deactivate it instead.',
       );

@@ -518,7 +518,7 @@ export class AuthService {
       canChangePassword: user.canChangePassword,
       roles,
       permissions,
-      branchIds: branchIds.length > 0 ? branchIds : null,
+      branchIds: branchIds && branchIds.length > 0 ? branchIds : null,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };

@@ -598,7 +598,7 @@ export class BranchesService {
         stockOpnames: stockOpnameCount,
       },
       users: {
-        userRoles: userRoleCount,
+        userBranches: userRoleCount,
         employees: employeeCount,
       },
     };
@@ -611,7 +611,7 @@ export class BranchesService {
   async getHSUsers() {
     const hsUsers = await this.prisma.user.findMany({
       where: {
-        userRoles: {
+        userBranches: {
           some: {
             role: {
               code: 'HS',
@@ -648,7 +648,7 @@ export class BranchesService {
       include: {
         _count: {
           select: {
-            userRoles: true,
+            userBranches: true,
             productStocks: true,
             salesTransactions: true,
             serviceOrders: true,
@@ -663,7 +663,7 @@ export class BranchesService {
 
     // Check if has related data
     const hasRelatedData =
-      branch._count.userRoles > 0 ||
+      branch._count.userBranches > 0 ||
       branch._count.productStocks > 0 ||
       branch._count.salesTransactions > 0 ||
       branch._count.serviceOrders > 0;
