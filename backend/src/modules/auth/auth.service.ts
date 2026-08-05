@@ -20,6 +20,7 @@ import { JwtPayload } from './strategies/jwt.strategy';
 import {
   computeEffectivePermissions,
   getPermissionVersionKey,
+  bumpPermissionVersion,
 } from '../../shared/utils/permissions.util';
 import Redis from 'ioredis';
 
@@ -121,6 +122,8 @@ export class AuthService {
             banReason: 'failed_logins',
           },
         });
+        // D-PERM: banned → invalidate any valid JWTs immediately
+        await bumpPermissionVersion(this.redis, user.id);
         throw new UnauthorizedException(
           'Account banned due to 3 failed login attempts. Contact your supervisor to reactivate.',
         );
@@ -619,6 +622,9 @@ export class AuthService {
         console.warn('Redis unavailable during password change:', error);
       }
 
+      // D-PERM: password changed → invalidate existing access tokens too
+      await bumpPermissionVersion(this.redis, userId);
+
       return {
         status: 'approved',
         message: 'Password changed successfully',
@@ -696,6 +702,9 @@ export class AuthService {
     } catch (error) {
       console.warn('Redis unavailable during password change:', error);
     }
+
+    // D-PERM: password changed via approval → invalidate existing access tokens
+    await bumpPermissionVersion(this.redis, request.userId);
 
     return {
       status: 'approved',

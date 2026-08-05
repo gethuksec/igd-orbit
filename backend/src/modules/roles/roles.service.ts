@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Inject,
   NotFoundException,
   BadRequestException,
   ConflictException,
@@ -12,6 +13,8 @@ import {
   CloneRoleDto,
 } from './dto';
 import { Prisma } from '@prisma/client';
+import Redis from 'ioredis';
+import { bumpPermissionVersion } from '../../shared/utils/permissions.util';
 
 /**
  * Roles Service
@@ -21,7 +24,24 @@ import { Prisma } from '@prisma/client';
  */
 @Injectable()
 export class RolesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject('REDIS_CLIENT') private readonly redis: Redis,
+  ) {}
+
+  /**
+   * D-PERM: bump permission version for EVERY user assigned this role.
+   * Role-level changes (defaultPermissions, level, isActive) affect all holders.
+   */
+  private async bumpAllRoleHolders(roleId: string): Promise<void> {
+    const holders = await this.prisma.userRole.findMany({
+      where: { roleId },
+      select: { userId: true },
+    });
+    await Promise.all(
+      holders.map((h) => bumpPermissionVersion(this.redis, h.userId)),
+    );
+  }
 
   /**
    * Find all roles
@@ -284,6 +304,9 @@ export class RolesService {
       },
     });
 
+    // D-PERM: role permissions/level/active changed → invalidate all holders' JWTs
+    await this.bumpAllRoleHolders(id);
+
     return updated;
   }
 
@@ -326,10 +349,15 @@ export class RolesService {
     }
 
     // Soft delete by setting isActive to false
-    return this.prisma.role.update({
+    const updated = await this.prisma.role.update({
       where: { id },
       data: { isActive: false },
     });
+
+    // D-PERM: role deactivated → invalidate all holders' JWTs
+    await this.bumpAllRoleHolders(id);
+
+    return updated;
   }
 
   /**
@@ -383,6 +411,9 @@ export class RolesService {
       },
     });
 
+    // D-PERM: legacy junction changed → still part of merge until D1 → bump holders
+    await this.bumpAllRoleHolders(roleId);
+
     return rolePermission;
   }
 
@@ -411,6 +442,9 @@ export class RolesService {
         },
       },
     });
+
+    // D-PERM: legacy junction changed → still part of merge until D1 → bump holders
+    await this.bumpAllRoleHolders(roleId);
 
     return { success: true };
   }

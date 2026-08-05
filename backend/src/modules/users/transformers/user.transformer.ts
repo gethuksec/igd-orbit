@@ -5,6 +5,7 @@ import {
   RolePermission,
   Permission,
 } from '@prisma/client';
+import { computeEffectivePermissions } from '../../../shared/utils/permissions.util';
 
 /**
  * User with relations type
@@ -88,38 +89,6 @@ export interface TransformedUser {
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
-}
-
-/**
- * Compute effective permissions for a user by merging:
- * 1. Permissions from old RolePermission junction table
- * 2. defaultPermissions from each Role
- * 3. Subtract deniedPermissions from each UserRole
- */
-function computeEffectivePermissions(
-  userRoles: UserWithRelations['userRoles'] = [],
-): string[] {
-  const permissionSet = new Set<string>();
-
-  for (const ur of userRoles) {
-    // 1. Permissions from old RolePermission junction table
-    for (const rp of ur.role.rolePermissions || []) {
-      const key = `${rp.permission.module}.${rp.permission.submodule || '*'}.${rp.permission.action}`;
-      permissionSet.add(key);
-    }
-
-    // 2. Permissions from role's defaultPermissions array
-    for (const perm of ur.role.defaultPermissions || []) {
-      permissionSet.add(perm);
-    }
-
-    // 3. Subtract denied permissions for this UserRole assignment
-    for (const denied of (ur as any).deniedPermissions || []) {
-      permissionSet.delete(denied);
-    }
-  }
-
-  return [...permissionSet].sort();
 }
 
 /**

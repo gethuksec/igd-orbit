@@ -20,6 +20,12 @@ import {
 } from './transformers/user.transformer';
 import { Prisma } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
+import Redis from 'ioredis';
+import { Inject } from '@nestjs/common';
+import {
+  bumpPermissionVersion,
+  computeEffectivePermissions,
+} from '../../shared/utils/permissions.util';
 
 /**
  * Users Service
@@ -30,6 +36,7 @@ export class UsersService {
   constructor(
     private prisma: PrismaService,
     private passwordService: PasswordService,
+    @Inject('REDIS_CLIENT') private readonly redis: Redis,
   ) {}
 
   /**
@@ -673,6 +680,14 @@ export class UsersService {
       },
     });
 
+    // D-PERM: invalidate user's JWTs if active-state or password changed
+    if (
+      updateUserDto.isActive !== undefined ||
+      updateUserDto.password !== undefined
+    ) {
+      await bumpPermissionVersion(this.redis, id);
+    }
+
     return UserTransformer.transform(finalUser!);
   }
 
@@ -709,6 +724,9 @@ export class UsersService {
         isActive: false,
       },
     });
+
+    // D-PERM: invalidate user's JWTs — deactivated/deleted
+    await bumpPermissionVersion(this.redis, id);
   }
 
   /**
@@ -754,6 +772,9 @@ export class UsersService {
         banReason: null,
       },
     });
+
+    // D-PERM: invalidate user's JWTs — reactivated (fresh permissions)
+    await bumpPermissionVersion(this.redis, id);
 
     return { message: "User reactivated successfully" };
   }
@@ -834,6 +855,9 @@ export class UsersService {
       },
     });
 
+    // D-PERM: invalidate user's JWTs — permissions changed
+    await bumpPermissionVersion(this.redis, userId);
+
     // Return updated user
     return this.findById(userId, { roles: ['SUPERADMIN'], branchIds: null });
   }
@@ -885,6 +909,9 @@ export class UsersService {
     await this.prisma.userRole.delete({
       where: { id: userRole.id },
     });
+
+    // D-PERM: invalidate user's JWTs — role removed
+    await bumpPermissionVersion(this.redis, userId);
   }
 
   /**
@@ -919,27 +946,7 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    // Merge permissions from RolePermission junction + defaultPermissions - deniedPermissions
-    const permissionSet = new Set<string>();
-
-    for (const ur of user.userRoles) {
-      // From RolePermission junction
-      for (const rp of ur.role.rolePermissions) {
-        const key = `${rp.permission.module}.${rp.permission.submodule || '*'}.${rp.permission.action}`;
-        permissionSet.add(key);
-      }
-
-      // From role's defaultPermissions
-      for (const perm of ur.role.defaultPermissions || []) {
-        permissionSet.add(perm);
-      }
-
-      // Subtract denied permissions
-      for (const denied of ur.deniedPermissions || []) {
-        permissionSet.delete(denied);
-      }
-    }
-
-    return [...permissionSet].sort();
+    // D-PERM: single merge function (junction + defaultPermissions - deniedPermissions)
+    return computeEffectivePermissions(user.userRoles);
   }
 }
