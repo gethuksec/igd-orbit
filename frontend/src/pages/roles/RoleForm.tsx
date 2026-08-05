@@ -106,20 +106,6 @@ export default function RoleForm() {
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-6">
-        {/* D-SEC: SUPERADMIN role is fully immutable — entire form locked */}
-        {role?.code === 'SUPERADMIN' && (
-          <div className="rounded-xl border-2 border-yellow-200 bg-yellow-50 p-4 flex items-start gap-3">
-            <Lock className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="font-semibold text-yellow-700">Role SUPERADMIN Terkunci Penuh</h3>
-              <p className="text-sm text-yellow-600">
-                Seluruh field role ini tidak dapat diubah melalui aplikasi — hanya dapat diedit
-                langsung di database.
-              </p>
-            </div>
-          </div>
-        )}
-
         {/* Basic Info */}
         <div className="space-y-4">
           <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
