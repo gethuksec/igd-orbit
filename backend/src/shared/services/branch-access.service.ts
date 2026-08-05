@@ -38,14 +38,9 @@ export class BranchAccessService {
    * @returns Array of branch IDs, or null if user has access to all branches
    */
   async getAccessibleBranchIds(userId: string): Promise<string[] | null> {
-    const userRoles = await this.prisma.userRole.findMany({
+    const userRoles = await this.prisma.userBranch.findMany({
       where: {
         userId,
-        // Only active roles (not expired)
-        OR: [
-          { validUntil: null },
-          { validUntil: { gt: new Date() } },
-        ],
       },
       include: {
         role: true,
@@ -56,8 +51,9 @@ export class BranchAccessService {
       return []; // No roles = no access
     }
 
-    // Check if any role has global access (branchId is null)
-    const hasGlobalAccess = userRoles.some((ur) => ur.branchId === null);
+    // D1: branchId is required on every assignment now — SUPERADMIN is the only
+    // global role (pre-D1, NULL branchId meant all branches; backfilled to BR-001).
+    const hasGlobalAccess = userRoles.some((ur) => ur.role.code === 'SUPERADMIN');
 
     if (hasGlobalAccess) {
       // User has global access (all branches)

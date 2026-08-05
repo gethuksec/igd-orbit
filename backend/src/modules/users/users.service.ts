@@ -58,7 +58,7 @@ export class UsersService {
     const where: Prisma.UserWhereInput = {
       isActive: true,
       deletedAt: null,
-      userRoles: {
+      userBranches: {
         some: {
           roleId: tcRole.id,
           ...(branchId ? { branchId } : {}),
@@ -144,10 +144,9 @@ export class UsersService {
         where: { code: filterRole },
       });
       if (role) {
-        where.userRoles = {
+        where.userBranches = {
           some: {
             roleId: role.id,
-            OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
           },
         };
       }
@@ -155,11 +154,10 @@ export class UsersService {
 
     // Branch filter
     if (filterBranch) {
-      where.userRoles = {
-        ...where.userRoles,
+      where.userBranches = {
+        ...where.userBranches,
         some: {
           branchId: filterBranch,
-          OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
         },
       };
     }
@@ -170,11 +168,10 @@ export class UsersService {
       !currentUser.roles.includes('CHR')
     ) {
       if (currentUser.branchIds && currentUser.branchIds.length > 0) {
-        where.userRoles = {
-          ...where.userRoles,
+        where.userBranches = {
+          ...where.userBranches,
           some: {
             branchId: { in: currentUser.branchIds },
-            OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
           },
         };
       }
@@ -187,20 +184,9 @@ export class UsersService {
         take: limitNum,
         orderBy: { [sort]: order },
         include: {
-          userRoles: {
-            where: {
-              OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
-            },
-            include: {
-              role: {
-                include: {
-                  rolePermissions: {
-                    include: {
-                      permission: true,
-                    },
-                  },
-                },
-              },
+          userBranches: {
+                        include: {
+              role: true,
               branch: {
                 select: {
                   id: true,
@@ -253,17 +239,9 @@ export class UsersService {
     const user = await this.prisma.user.findUnique({
       where: { id },
       include: {
-        userRoles: {
+        userBranches: {
           include: {
-            role: {
-              include: {
-                rolePermissions: {
-                  include: {
-                    permission: true,
-                  },
-                },
-              },
-            },
+            role: true,
             branch: {
               select: {
                 id: true,
@@ -303,8 +281,7 @@ export class UsersService {
       !currentUser.roles.includes('CHR')
     ) {
       if (currentUser.branchIds && currentUser.branchIds.length > 0) {
-        const userBranchIds = user.userRoles
-          .filter((ur) => !ur.validUntil || ur.validUntil > new Date())
+        const userBranchIds = user.userBranches
           .map((ur) => ur.branchId)
           .filter((id): id is string => id !== null);
 
@@ -332,7 +309,7 @@ export class UsersService {
     return this.prisma.user.findUnique({
       where: { email },
       include: {
-        userRoles: {
+        userBranches: {
           include: {
             role: true,
           },
@@ -454,17 +431,9 @@ export class UsersService {
               },
             },
           },
-          userRoles: {
+          userBranches: {
             include: {
-              role: {
-                include: {
-                  rolePermissions: {
-                    include: {
-                      permission: true,
-                    },
-                  },
-                },
-              },
+              role: true,
               branch: {
                 select: {
                   id: true,
@@ -567,17 +536,9 @@ export class UsersService {
             },
           },
         },
-        userRoles: {
+        userBranches: {
           include: {
-            role: {
-              include: {
-                rolePermissions: {
-                  include: {
-                    permission: true,
-                  },
-                },
-              },
-            },
+            role: true,
             branch: {
               select: {
                 id: true,
@@ -657,17 +618,9 @@ export class UsersService {
             },
           },
         },
-        userRoles: {
+        userBranches: {
           include: {
-            role: {
-              include: {
-                rolePermissions: {
-                  include: {
-                    permission: true,
-                  },
-                },
-              },
-            },
+            role: true,
             branch: {
               select: {
                 id: true,
@@ -740,7 +693,7 @@ export class UsersService {
     const user = await this.prisma.user.findUnique({
       where: { id },
       include: {
-        userRoles: {
+        userBranches: {
           include: {
             role: true,
           },
@@ -757,7 +710,7 @@ export class UsersService {
     }
 
     // Superadmin cannot be reactivated via API - must use DB recovery
-    if (user.userRoles?.some((ur) => ur.role.code === "SUPERADMIN")) {
+    if (user.userBranches?.some((ur) => ur.role.code === "SUPERADMIN")) {
       throw new ForbiddenException(
         "Superadmin cannot be reactivated via API. Use database recovery.",
       );
@@ -812,25 +765,37 @@ export class UsersService {
       const assigner = await this.prisma.user.findUnique({
         where: { id: assignedBy },
         include: {
-          userRoles: {
+          userBranches: {
             include: { role: true },
           },
         },
       });
 
-      const assignerRoles = assigner?.userRoles.map((ur) => ur.role.code) || [];
+      const assignerRoles = assigner?.userBranches.map((ur) => ur.role.code) || [];
       if (!assignerRoles.includes('SUPERADMIN')) {
         throw new ForbiddenException('Only SUPERADMIN can assign OWNER role');
       }
     }
 
+    // D1: branchId required — default to first-in-list branch (decision #32)
+    let resolvedBranchId = assignRoleDto.branchId;
+    if (!resolvedBranchId) {
+      const firstBranch = await this.prisma.branch.findFirst({
+        where: { isActive: true },
+        orderBy: [{ createdAt: 'asc' }, { code: 'asc' }],
+      });
+      if (!firstBranch) {
+        throw new BadRequestException('No active branch available for role assignment');
+      }
+      resolvedBranchId = firstBranch.id;
+    }
+
     // Check for duplicate role assignment
-    const existingAssignment = await this.prisma.userRole.findFirst({
+    const existingAssignment = await this.prisma.userBranch.findFirst({
       where: {
         userId,
         roleId: assignRoleDto.roleId,
-        branchId: assignRoleDto.branchId || null,
-        OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
+        branchId: resolvedBranchId,
       },
     });
 
@@ -839,19 +804,13 @@ export class UsersService {
     }
 
     // Create role assignment
-    await this.prisma.userRole.create({
+    await this.prisma.userBranch.create({
       data: {
         userId,
         roleId: assignRoleDto.roleId,
-        branchId: assignRoleDto.branchId || null,
+        branchId: resolvedBranchId,
         isPrimary: assignRoleDto.isPrimary || false,
         deniedPermissions: assignRoleDto.deniedPermissions || [],
-        validFrom: assignRoleDto.validFrom
-          ? new Date(assignRoleDto.validFrom)
-          : new Date(),
-        validUntil: assignRoleDto.validUntil
-          ? new Date(assignRoleDto.validUntil)
-          : null,
       },
     });
 
@@ -895,19 +854,19 @@ export class UsersService {
     }
 
     // Find and delete role assignment
-    const userRole = await this.prisma.userRole.findFirst({
+    const userBranch = await this.prisma.userBranch.findFirst({
       where: {
         userId,
         roleId,
       },
     });
 
-    if (!userRole) {
+    if (!userBranch) {
       throw new NotFoundException('Role assignment not found');
     }
 
-    await this.prisma.userRole.delete({
-      where: { id: userRole.id },
+    await this.prisma.userBranch.delete({
+      where: { id: userBranch.id },
     });
 
     // D-PERM: invalidate user's JWTs — role removed
@@ -923,20 +882,9 @@ export class UsersService {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
-        userRoles: {
-          where: {
-            OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
-          },
-          include: {
-            role: {
-              include: {
-                rolePermissions: {
-                  include: {
-                    permission: true,
-                  },
-                },
-              },
-            },
+        userBranches: {
+                    include: {
+            role: true,
           },
         },
       },
@@ -947,6 +895,6 @@ export class UsersService {
     }
 
     // D-PERM: single merge function (junction + defaultPermissions - deniedPermissions)
-    return computeEffectivePermissions(user.userRoles);
+    return computeEffectivePermissions(user.userBranches);
   }
 }

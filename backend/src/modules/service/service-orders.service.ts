@@ -584,11 +584,10 @@ export class ServiceOrdersService {
     }
 
     // Extra safety: ensure selected user has technician role (TC)
-    const technicianRole = await this.prisma.userRole.findFirst({
+    const technicianRole = await this.prisma.userBranch.findFirst({
       where: {
         userId: dto.technicianId,
         role: { code: 'TC' },
-        OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
       },
       include: { role: true },
     });

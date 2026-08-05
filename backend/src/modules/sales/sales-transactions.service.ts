@@ -555,12 +555,12 @@ export class SalesTransactionsService {
       const voidUser = await this.prisma.user.findUnique({
         where: { id: userId },
         select: {
-          userRoles: {
+          userBranches: {
             select: { role: { select: { code: true } } },
           },
         },
       });
-      const userRoleCodes = voidUser?.userRoles?.map((ur: any) => ur.role.code) || [];
+      const userRoleCodes = voidUser?.userBranches?.map((ur: any) => ur.role.code) || [];
       if (userRoleCodes.includes('SUPERADMIN')) {
         // Allow — no date restriction
       } else if (!isSameDay) {

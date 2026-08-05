@@ -26,7 +26,6 @@ import { SuppliersModule } from './modules/suppliers/suppliers.module';
 import { PurchasingModule } from './modules/purchasing/purchasing.module';
 import { WebSocketModule } from './modules/websocket/websocket.module';
 import { RolesModule } from './modules/roles/roles.module';
-import { PermissionsModule } from './modules/permissions/permissions.module';
 import { CustomerTiersModule } from './modules/customer-tiers/customer-tiers.module';
 import { PaymentTermsModule } from './modules/payment-terms/payment-terms.module';
 import { ServiceCheckpointsModule } from './modules/service-checkpoints/service-checkpoints.module';
@@ -61,7 +60,6 @@ import { PosModule } from './modules/pos/pos.module';
     DashboardModule,
     WebSocketModule,
     RolesModule,
-    PermissionsModule,
     CustomerTiersModule,
     PaymentTermsModule,
     ServiceCheckpointsModule,

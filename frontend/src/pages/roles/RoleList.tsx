@@ -123,15 +123,17 @@ export default function RoleList() {
     {
       key: 'permissions',
       header: 'Permissions',
-      cell: (role) =>
-        role.permissions && role.permissions.length > 0 ? (
+      cell: (role) => {
+        const count = role.defaultPermissions?.length ?? 0;
+        return count > 0 ? (
           <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
             <KeyRound className="w-4 h-4 text-muted-foreground" />
-            {role.permissions.length} permissions
+            {count} permissions
           </span>
         ) : (
           <span className="text-muted-foreground italic text-sm">0 permissions</span>
-        ),
+        );
+      },
     },
     {
       key: 'isActive',

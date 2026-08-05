@@ -8,7 +8,7 @@ describe('BranchAccessService', () => {
   let prismaService: PrismaService;
 
   const mockPrismaService = {
-    userRole: {
+    userBranch: {
       findMany: jest.fn(),
     },
   };
@@ -33,14 +33,14 @@ describe('BranchAccessService', () => {
   });
 
   describe('getAccessibleBranchIds', () => {
-    it('should return null when user has global access (branchId is null)', async () => {
-      mockPrismaService.userRole.findMany.mockResolvedValue([
+    it('should return null when user has SUPERADMIN role (global access)', async () => {
+      mockPrismaService.userBranch.findMany.mockResolvedValue([
         {
           id: 'ur-1',
           userId: 'user-1',
           roleId: 'role-1',
-          branchId: null, // Global access
-          validUntil: null,
+          branchId: 'branch-1',
+          role: { code: 'SUPERADMIN' },
         },
       ]);
 
@@ -50,20 +50,20 @@ describe('BranchAccessService', () => {
     });
 
     it('should return array of branch IDs when user has specific branch access', async () => {
-      mockPrismaService.userRole.findMany.mockResolvedValue([
+      mockPrismaService.userBranch.findMany.mockResolvedValue([
         {
           id: 'ur-1',
           userId: 'user-1',
           roleId: 'role-1',
           branchId: 'branch-1',
-          validUntil: null,
+          role: { code: 'CS' },
         },
         {
           id: 'ur-2',
           userId: 'user-1',
           roleId: 'role-2',
           branchId: 'branch-2',
-          validUntil: null,
+          role: { code: 'CR' },
         },
       ]);
 
@@ -73,67 +73,28 @@ describe('BranchAccessService', () => {
     });
 
     it('should return empty array when user has no roles', async () => {
-      mockPrismaService.userRole.findMany.mockResolvedValue([]);
+      mockPrismaService.userBranch.findMany.mockResolvedValue([]);
 
       const result = await service.getAccessibleBranchIds('user-1');
 
       expect(result).toEqual([]);
     });
 
-    it('should filter out expired roles', async () => {
-      const expiredDate = new Date();
-      expiredDate.setDate(expiredDate.getDate() - 1);
-
-      // Mock findMany to filter expired roles (service does this in where clause)
-      mockPrismaService.userRole.findMany.mockImplementation((args: any) => {
-        // Simulate Prisma filtering - only return non-expired roles
-        const mockData = [
-          {
-            id: 'ur-1',
-            userId: 'user-1',
-            roleId: 'role-1',
-            branchId: 'branch-1',
-            validUntil: expiredDate, // Expired
-          },
-          {
-            id: 'ur-2',
-            userId: 'user-1',
-            roleId: 'role-2',
-            branchId: 'branch-2',
-            validUntil: null, // Not expired
-          },
-        ];
-        
-        // Filter based on where clause (simulate Prisma behavior)
-        const now = new Date();
-        return Promise.resolve(
-          mockData.filter(
-            (ur) => !ur.validUntil || ur.validUntil > now,
-          ),
-        );
-      });
-
-      const result = await service.getAccessibleBranchIds('user-1');
-
-      // Should only include non-expired roles
-      expect(result).toEqual(['branch-2']);
-    });
-
     it('should remove duplicate branch IDs', async () => {
-      mockPrismaService.userRole.findMany.mockResolvedValue([
+      mockPrismaService.userBranch.findMany.mockResolvedValue([
         {
           id: 'ur-1',
           userId: 'user-1',
           roleId: 'role-1',
           branchId: 'branch-1',
-          validUntil: null,
+          role: { code: 'CS' },
         },
         {
           id: 'ur-2',
           userId: 'user-1',
           roleId: 'role-2',
           branchId: 'branch-1', // Duplicate
-          validUntil: null,
+          role: { code: 'CR' },
         },
       ]);
 

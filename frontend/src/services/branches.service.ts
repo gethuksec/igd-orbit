@@ -4,12 +4,15 @@ export interface Branch {
   id: string;
   code: string;
   name: string;
-  type?: string;
+  group?: string;
   phone?: string;
   email?: string;
   address?: string;
   city?: string;
   province?: string;
+  director?: string;
+  contactPerson?: string;
+  mobilePhone?: string;
   headOfServiceId?: string;
   headOfService?: {
     id: string;
@@ -18,7 +21,6 @@ export interface Branch {
     phone?: string;
   } | null;
   isActive: boolean;
-  isWarehouse: boolean;
   operatingHours?: Record<string, any>;
   userCount?: number;
   productStockCount?: number;

@@ -52,11 +52,10 @@ async function assignCFORole() {
 
     // Step 3: Check if role is already assigned
     console.log('\n3. Checking existing role assignments...');
-    const existingRole = await prisma.userRole.findFirst({
+    const existingRole = await prisma.userBranch.findFirst({
       where: {
         userId: user.id,
         roleId: cfoRole.id,
-        OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
       },
     });
 
@@ -64,15 +63,20 @@ async function assignCFORole() {
       console.log('   ✓ CFO role already assigned');
       console.log(`   Role assignment ID: ${existingRole.id}`);
     } else {
+      // Step 3b: resolve default branch (D1: branchId required — first-in-list)
+      const firstBranch = await prisma.branch.findFirst({
+        where: { isActive: true },
+        orderBy: [{ createdAt: 'asc' }, { code: 'asc' }],
+      });
+
       // Step 4: Assign role
       console.log('\n4. Assigning CFO role...');
-      const userRole = await prisma.userRole.create({
+      const userRole = await prisma.userBranch.create({
         data: {
           userId: user.id,
           roleId: cfoRole.id,
-          branchId: null, // All branches
+          branchId: firstBranch?.id || '',
           isPrimary: true,
-          validFrom: new Date(),
         },
       });
 
@@ -85,7 +89,7 @@ async function assignCFORole() {
     const userWithRoles = await prisma.user.findUnique({
       where: { id: user.id },
       include: {
-        userRoles: {
+        userBranches: {
           include: {
             role: true,
           },
@@ -94,7 +98,7 @@ async function assignCFORole() {
     });
 
     console.log('\n=== User Roles ===');
-    userWithRoles?.userRoles.forEach((ur) => {
+    userWithRoles?.userBranches.forEach((ur) => {
       console.log(`  - ${ur.role.code} (${ur.role.name})`);
       if (ur.isPrimary) {
         console.log('    Primary role');

@@ -117,10 +117,10 @@ export default function BranchDetail() {
                   <p className="text-sm font-semibold text-gray-900 font-mono">{branch.code}</p>
                 </div>
               )}
-              {branch.type && (
+              {branch.group && (
                 <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-xs text-gray-500 mb-1">Tipe Cabang</p>
-                  <p className="text-sm font-semibold text-gray-900 capitalize">{branch.type}</p>
+                  <p className="text-xs text-gray-500 mb-1">Grup</p>
+                  <p className="text-sm font-semibold text-gray-900">{branch.group}</p>
                 </div>
               )}
               <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
@@ -135,18 +135,21 @@ export default function BranchDetail() {
                   {branch.isActive ? 'Aktif' : 'Tidak Aktif'}
                 </span>
               </div>
-              <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <p className="text-xs text-gray-500 mb-1">Gudang</p>
-                <span
-                  className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${
-                    branch.isWarehouse
-                      ? 'bg-blue-100 text-blue-800 border-blue-200'
-                      : 'bg-gray-100 text-gray-800 border-gray-200'
-                  }`}
-                >
-                  {branch.isWarehouse ? 'Memiliki Gudang' : 'Tidak Memiliki Gudang'}
-                </span>
-              </div>
+              {branch.director && (
+                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="text-xs text-gray-500 mb-1">Direktur</p>
+                  <p className="text-sm font-semibold text-gray-900">{branch.director}</p>
+                </div>
+              )}
+              {branch.contactPerson && (
+                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="text-xs text-gray-500 mb-1">Contact Person</p>
+                  <p className="text-sm font-semibold text-gray-900">{branch.contactPerson}</p>
+                  {branch.mobilePhone && (
+                    <p className="text-xs text-gray-500 mt-1">{branch.mobilePhone}</p>
+                  )}
+                </div>
+              )}
               {branch.headOfService && (
                 <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
                   <p className="text-xs text-gray-500 mb-1">Head of Service (HS)</p>

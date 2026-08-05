@@ -36,14 +36,14 @@ model User {
   deletedAt           DateTime? @map("deleted_at")
 
   // Relations
-  userRoles              UserRole[]
-  employee               Employee?
-  cashierTransactions    SalesTransaction[]
-  heldTransactions       HeldTransaction[]
-  assignedServices       ServiceOrder[]          @relation("ServiceTechnician")
-  statusHistoryChanges   ServiceStatusHistory[]  @relation("ServiceStatusHistoryChangedBy")
-  branchHeadOfService    Branch[]                @relation("BranchHeadOfService")
-  passwordChangeRequests PasswordChangeRequest[]
+  userBranches            UserBranch[]
+  employee                Employee?
+  cashierTransactions     SalesTransaction[]
+  heldTransactions        HeldTransaction[]
+  assignedServices        ServiceOrder[]          @relation("ServiceTechnician")
+  statusHistoryChanges    ServiceStatusHistory[]  @relation("ServiceStatusHistoryChangedBy")
+  branchHeadOfService     Branch[]                @relation("BranchHeadOfService")
+  passwordChangeRequests  PasswordChangeRequest[]
 
   @@index([email])
   @@index([username])
@@ -76,8 +76,8 @@ model Role {
   code               String   @unique
   name               String
   description        String?
-  level              Int // Hierarchical level (0=SUPERADMIN, 1=OWNER, etc.)
-  defaultPermissions String[] @default([]) @map("default_permissions") // Built-in permission keys for this role
+  level              Int // Hierarchical level (0=SUPERADMIN, 1=OWNER, etc.) — ordering only, NOT the menu gate
+  defaultPermissions String[] @default([]) @map("default_permissions") // Permission keys for this role (D-PERM static catalog)
   isSystemRole       Boolean  @default(false) @map("is_system_role")
   isActive           Boolean  @default(true) @map("is_active")
   parentRoleId       String?  @map("parent_role_id") // For role hierarchy
@@ -85,11 +85,9 @@ model Role {
   updatedAt          DateTime @updatedAt @map("updated_at")
 
   // Relations
-  userRoles       UserRole[]
-  rolePermissions RolePermission[]
-  roleMenuAccess  RoleMenuAccess[]
-  parentRole      Role?            @relation("RoleHierarchy", fields: [parentRoleId], references: [id], onDelete: SetNull)
-  childRoles      Role[]           @relation("RoleHierarchy")
+  userBranches UserBranch[]
+  parentRole   Role?      @relation("RoleHierarchy", fields: [parentRoleId], references: [id], onDelete: SetNull)
+  childRoles   Role[]     @relation("RoleHierarchy")
 
   @@index([code])
   @@index([level])
@@ -98,87 +96,27 @@ model Role {
   @@map("roles")
 }
 
-model UserRole {
-  id                String    @id @default(uuid())
-  userId            String    @map("user_id")
-  roleId            String    @map("role_id")
-  branchId          String?   @map("branch_id") // null = all branches
-  isPrimary         Boolean   @default(false) @map("is_primary")
-  deniedPermissions String[]  @default([]) @map("denied_permissions") // Subtractive permissions for this assignment
-  validFrom         DateTime  @default(now()) @map("valid_from")
-  validUntil        DateTime? @map("valid_until") // null = no expiration
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
+model UserBranch {
+  id                String   @id @default(uuid())
+  userId            String   @map("user_id")
+  roleId            String   @map("role_id")
+  branchId          String   @map("branch_id") // outlet only (required) — multi-outlet users via multiple rows
+  isPrimary         Boolean  @default(false) @map("is_primary")
+  deniedPermissions String[] @default([]) @map("denied_permissions") // Deny-only: can never exceed role defaults
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
 
   // Relations
   user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   role   Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  branch Branch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  branch Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, roleId, branchId])
+  @@unique([userId, branchId, roleId])
   @@index([userId])
   @@index([roleId])
   @@index([branchId])
   @@index([isPrimary])
-  @@map("user_roles")
-}
-
-model Permission {
-  id          String   @id @default(uuid())
-  module      String // e.g., "inventory", "sales", "service"
-  submodule   String? // e.g., "stock_transfer", "pos", "repair"
-  action      String // e.g., "view", "create", "edit", "delete", "approve", "export"
-  description String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  rolePermissions RolePermission[]
-
-  @@unique([module, submodule, action])
-  @@index([module])
-  @@index([submodule])
-  @@index([action])
-  @@map("permissions")
-}
-
-model RolePermission {
-  id               String   @id @default(uuid())
-  roleId           String   @map("role_id")
-  permissionId     String   @map("permission_id")
-  maxAmount        Decimal? @map("max_amount") @db.Decimal(15, 2) // For amount-based permissions
-  requiresApproval Boolean  @default(false) @map("requires_approval")
-  conditions       Json? // JSONB for flexible conditions (e.g., {"approverRoles": ["HS", "SPV"]})
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-
-  @@unique([roleId, permissionId])
-  @@index([roleId])
-  @@index([permissionId])
-  @@map("role_permissions")
-}
-
-model RoleMenuAccess {
-  id        String   @id @default(uuid())
-  roleId    String   @map("role_id")
-  menuKey   String   @map("menu_key") // e.g., "dashboard", "master_data", "master_data.products"
-  menuPath  String?  @map("menu_path") // e.g., "/dashboard", "/products"
-  menuLabel String   @map("menu_label") // e.g., "Dashboard", "Master Data", "Products"
-  isEnabled Boolean  @default(true) @map("is_enabled")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
-
-  @@unique([roleId, menuKey])
-  @@index([roleId])
-  @@index([menuKey])
-  @@map("role_menu_access")
+  @@map("user_branches")
 }
 
 // ============================================
@@ -189,22 +127,25 @@ model Branch {
   id              String   @id @default(uuid())
   code            String   @unique
   name            String
-  type            String // e.g., "store", "warehouse", "office"
+  group           String?  @map("group") // e.g., "Pusat", "Cabang"
   phone           String?
   email           String?
   address         String?
   city            String?
   province        String?
+  director        String?
+  contactPerson   String?  @map("contact_person")
+  mobilePhone     String?  @map("mobile_phone")
   headOfServiceId String?  @map("head_of_service_id") // HS (Head of Store) responsible for this branch
   isActive        Boolean  @default(true) @map("is_active")
-  isWarehouse     Boolean  @default(false) @map("is_warehouse") // Warehouse capability flag
   operatingHours  Json?    @map("operating_hours") // JSONB: {"monday": {"open": "08:00", "close": "22:00"}, ...}
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   // Relations
   headOfService      User?              @relation("BranchHeadOfService", fields: [headOfServiceId], references: [id], onDelete: SetNull)
-  userRoles          UserRole[]
+  userBranches       UserBranch[]
+  warehouses         Warehouse[]
   departments        Department[]
   productStocks      ProductStock[]
   preferredCustomers Customer[]
@@ -227,6 +168,31 @@ model Branch {
   @@index([isActive])
   @@index([headOfServiceId])
   @@map("branches")
+}
+
+model Warehouse {
+  id            String   @id @default(uuid())
+  code          String   @unique
+  name          String
+  city          String?
+  address       String?
+  phone         String?
+  email         String?
+  contactPerson String?  @map("contact_person")
+  mobilePhone   String?  @map("mobile_phone")
+  isActive      Boolean  @default(true) @map("is_active")
+  outletId      String   @map("outlet_id") // exclusive: 1 outlet → N warehouses, no sharing
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  outlet           Branch             @relation(fields: [outletId], references: [id], onDelete: Restrict)
+  salesTransactions SalesTransaction[]
+  serviceOrders     ServiceOrder[]
+
+  @@index([outletId])
+  @@index([isActive])
+  @@map("warehouses")
 }
 
 model Department {
@@ -605,6 +571,7 @@ model SalesTransaction {
 
   // Relations
   branch         Branch?                @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  warehouse      Warehouse?             @relation(fields: [warehouseId], references: [id], onDelete: SetNull)
   customer       Customer?              @relation(fields: [customerId], references: [id], onDelete: SetNull)
   cashier        User                   @relation(fields: [cashierId], references: [id], onDelete: Restrict)
   items          SalesTransactionItem[]
@@ -971,7 +938,7 @@ model ServiceOrder {
   feedbackDate     DateTime? @map("feedback_date")
 
   // Smart Repair extension (E-BE2)
-  warehouseId       String?  @map("warehouse_id") // plain ref until Workstream D adds Warehouse model
+  warehouseId       String?  @map("warehouse_id")
   taxPpn            Boolean  @default(false) @map("tax_ppn")
   taxIncPpn         Boolean  @default(false) @map("tax_inc_ppn")
   taxPph22          Boolean  @default(false) @map("tax_pph22")
@@ -991,6 +958,7 @@ model ServiceOrder {
 
   // Relations
   branch             Branch                 @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  warehouse          Warehouse?             @relation(fields: [warehouseId], references: [id], onDelete: SetNull)
   customer           Customer?              @relation(fields: [customerId], references: [id], onDelete: SetNull)
   serviceType        ServiceType?           @relation(fields: [serviceTypeId], references: [id], onDelete: SetNull)
   assignedTechnician User?                  @relation("ServiceTechnician", fields: [assignedTechnicianId], references: [id], onDelete: SetNull)

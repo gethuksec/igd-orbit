@@ -80,7 +80,7 @@ export class BranchesService {
           },
           _count: {
             select: {
-              userRoles: true,
+              userBranches: true,
               productStocks: true,
               salesTransactions: true,
               serviceOrders: true,
@@ -99,12 +99,15 @@ export class BranchesService {
         id: branch.id,
         code: branch.code,
         name: branch.name,
-        type: branch.type,
+        group: branch.group,
         phone: branch.phone,
         email: branch.email,
         address: branch.address,
         city: branch.city,
         province: branch.province,
+        director: branch.director,
+        contactPerson: branch.contactPerson,
+        mobilePhone: branch.mobilePhone,
         headOfServiceId: branch.headOfServiceId,
         headOfService: branch.headOfService
           ? {
@@ -114,9 +117,8 @@ export class BranchesService {
             }
           : null,
         isActive: branch.isActive,
-        isWarehouse: branch.isWarehouse,
         operatingHours: branch.operatingHours,
-        userCount: branch._count.userRoles,
+        userCount: branch._count.userBranches,
         productStockCount: branch._count.productStocks,
         salesTransactionCount: branch._count.salesTransactions,
         serviceOrderCount: branch._count.serviceOrders,
@@ -149,7 +151,7 @@ export class BranchesService {
         },
         _count: {
           select: {
-            userRoles: true,
+            userBranches: true,
             productStocks: true,
             salesTransactions: true,
             serviceOrders: true,
@@ -171,12 +173,15 @@ export class BranchesService {
       id: branch.id,
       code: branch.code,
       name: branch.name,
-      type: branch.type,
+      group: branch.group,
       phone: branch.phone,
       email: branch.email,
       address: branch.address,
       city: branch.city,
       province: branch.province,
+      director: branch.director,
+      contactPerson: branch.contactPerson,
+      mobilePhone: branch.mobilePhone,
       headOfServiceId: branch.headOfServiceId,
       headOfService: branch.headOfService
         ? {
@@ -187,9 +192,8 @@ export class BranchesService {
           }
         : null,
       isActive: branch.isActive,
-      isWarehouse: branch.isWarehouse,
       operatingHours: branch.operatingHours,
-      userCount: branch._count.userRoles,
+      userCount: branch._count.userBranches,
       productStockCount: branch._count.productStocks,
       salesTransactionCount: branch._count.salesTransactions,
       serviceOrderCount: branch._count.serviceOrders,
@@ -240,10 +244,7 @@ export class BranchesService {
       const headOfService = await this.prisma.user.findUnique({
         where: { id: createBranchDto.headOfServiceId },
         include: {
-          userRoles: {
-            where: {
-              OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
-            },
+          userBranches: {
             include: {
               role: true,
             },
@@ -255,7 +256,7 @@ export class BranchesService {
         throw new NotFoundException('Head of Service user not found');
       }
 
-      const hasHSRole = headOfService.userRoles.some((ur) => ur.role.code === 'HS');
+      const hasHSRole = headOfService.userBranches.some((ur) => ur.role.code === 'HS');
       if (!hasHSRole) {
         throw new BadRequestException('Selected user must have HS (Head of Store) role');
       }
@@ -265,15 +266,17 @@ export class BranchesService {
       data: {
         code,
         name: createBranchDto.name,
-        type: createBranchDto.type || 'store',
+        group: createBranchDto.group || null,
         phone: createBranchDto.phone || null,
         email: createBranchDto.email || null,
         address: createBranchDto.address || null,
         city: createBranchDto.city || null,
         province: createBranchDto.province || null,
+        director: createBranchDto.director || null,
+        contactPerson: createBranchDto.contactPerson || null,
+        mobilePhone: createBranchDto.mobilePhone || null,
         headOfServiceId: createBranchDto.headOfServiceId,
         isActive: createBranchDto.isActive !== undefined ? createBranchDto.isActive : true,
-        isWarehouse: createBranchDto.isWarehouse !== undefined ? createBranchDto.isWarehouse : false,
         operatingHours: createBranchDto.operatingHours
           ? (createBranchDto.operatingHours as Prisma.InputJsonValue)
           : Prisma.JsonNull,
@@ -293,12 +296,15 @@ export class BranchesService {
       id: branch.id,
       code: branch.code,
       name: branch.name,
-      type: branch.type,
+      group: branch.group,
       phone: branch.phone,
       email: branch.email,
       address: branch.address,
       city: branch.city,
       province: branch.province,
+      director: branch.director,
+      contactPerson: branch.contactPerson,
+      mobilePhone: branch.mobilePhone,
       headOfServiceId: branch.headOfServiceId,
       headOfService: branch.headOfService
         ? {
@@ -308,7 +314,6 @@ export class BranchesService {
           }
         : null,
       isActive: branch.isActive,
-      isWarehouse: branch.isWarehouse,
       operatingHours: branch.operatingHours,
       createdAt: branch.createdAt,
       updatedAt: branch.updatedAt,
@@ -361,8 +366,8 @@ export class BranchesService {
     if (updateBranchDto.name !== undefined) {
       updateData.name = updateBranchDto.name;
     }
-    if (updateBranchDto.type !== undefined) {
-      updateData.type = updateBranchDto.type;
+    if (updateBranchDto.group !== undefined) {
+      updateData.group = updateBranchDto.group || null;
     }
     if (updateBranchDto.phone !== undefined) {
       updateData.phone = updateBranchDto.phone || null;
@@ -379,14 +384,20 @@ export class BranchesService {
     if (updateBranchDto.province !== undefined) {
       updateData.province = updateBranchDto.province || null;
     }
+    if (updateBranchDto.director !== undefined) {
+      updateData.director = updateBranchDto.director || null;
+    }
+    if (updateBranchDto.contactPerson !== undefined) {
+      updateData.contactPerson = updateBranchDto.contactPerson || null;
+    }
+    if (updateBranchDto.mobilePhone !== undefined) {
+      updateData.mobilePhone = updateBranchDto.mobilePhone || null;
+    }
     if (updateBranchDto.headOfServiceId !== undefined) {
       updateData.headOfServiceId = updateBranchDto.headOfServiceId || null;
     }
     if (updateBranchDto.isActive !== undefined) {
       updateData.isActive = updateBranchDto.isActive;
-    }
-    if (updateBranchDto.isWarehouse !== undefined) {
-      updateData.isWarehouse = updateBranchDto.isWarehouse;
     }
     if (updateBranchDto.operatingHours !== undefined) {
       updateData.operatingHours = updateBranchDto.operatingHours
@@ -412,12 +423,15 @@ export class BranchesService {
       id: updated.id,
       code: updated.code,
       name: updated.name,
-      type: updated.type,
+      group: updated.group,
       phone: updated.phone,
       email: updated.email,
       address: updated.address,
       city: updated.city,
       province: updated.province,
+      director: updated.director,
+      contactPerson: updated.contactPerson,
+      mobilePhone: updated.mobilePhone,
       headOfServiceId: updated.headOfServiceId,
       headOfService: updated.headOfService
         ? {
@@ -427,7 +441,6 @@ export class BranchesService {
           }
         : null,
       isActive: updated.isActive,
-      isWarehouse: updated.isWarehouse,
       operatingHours: updated.operatingHours,
       createdAt: updated.createdAt,
       updatedAt: updated.updatedAt,
@@ -547,7 +560,7 @@ export class BranchesService {
     });
 
     // User roles count
-    const userRoleCount = await this.prisma.userRole.count({
+    const userRoleCount = await this.prisma.userBranch.count({
       where: { branchId: id },
     });
 
@@ -585,7 +598,7 @@ export class BranchesService {
         stockOpnames: stockOpnameCount,
       },
       users: {
-        userRoles: userRoleCount,
+        userBranches: userRoleCount,
         employees: employeeCount,
       },
     };
@@ -598,7 +611,7 @@ export class BranchesService {
   async getHSUsers() {
     const hsUsers = await this.prisma.user.findMany({
       where: {
-        userRoles: {
+        userBranches: {
           some: {
             role: {
               code: 'HS',
@@ -635,7 +648,7 @@ export class BranchesService {
       include: {
         _count: {
           select: {
-            userRoles: true,
+            userBranches: true,
             productStocks: true,
             salesTransactions: true,
             serviceOrders: true,
@@ -650,7 +663,7 @@ export class BranchesService {
 
     // Check if has related data
     const hasRelatedData =
-      branch._count.userRoles > 0 ||
+      branch._count.userBranches > 0 ||
       branch._count.productStocks > 0 ||
       branch._count.salesTransactions > 0 ||
       branch._count.serviceOrders > 0;

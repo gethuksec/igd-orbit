@@ -214,8 +214,9 @@ export class PosService {
   }
 
   async listWarehouses() {
-    return this.prisma.branch.findMany({
-      where: { isWarehouse: true, isActive: true },
+    // D1: warehouses now live in their own table (were branches with isWarehouse=true)
+    return this.prisma.warehouse.findMany({
+      where: { isActive: true },
       select: { id: true, name: true, code: true },
       orderBy: { name: 'asc' },
     });
@@ -228,7 +229,7 @@ export class PosService {
       where: {
         isActive: true,
         deletedAt: null,
-        userRoles: {
+        userBranches: {
           some: {
             role: {
               code: { in: salesRoles },
