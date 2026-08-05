@@ -12,7 +12,6 @@ import {
   Trash2,
   Save,
   AlertTriangle,
-  Lock,
 } from 'lucide-react';
 import { rolesService, permissionsService } from '../../services/roles.service';
 import { toast } from 'sonner';
@@ -156,19 +155,6 @@ export default function RoleDetail() {
           )}
         </RequirePermission>
       </PageHeader>
-
-      {/* D-SEC: locked banner for immutable SUPERADMIN role */}
-      {isSuperAdminRole && (
-        <div className="rounded-xl border-2 border-yellow-200 bg-yellow-50 p-4 flex items-start gap-3">
-          <Lock className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
-          <div>
-            <h3 className="font-semibold text-yellow-700">Role SUPERADMIN Terkunci Penuh</h3>
-            <p className="text-sm text-yellow-600">
-              Role ini tidak dapat diubah melalui aplikasi — hanya dapat diedit langsung di database.
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* Role Info Card */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
