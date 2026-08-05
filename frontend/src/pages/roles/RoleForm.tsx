@@ -106,6 +106,20 @@ export default function RoleForm() {
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-6">
+        {/* D-SEC: SUPERADMIN role is fully immutable — entire form locked */}
+        {role?.code === 'SUPERADMIN' && (
+          <div className="rounded-xl border-2 border-yellow-200 bg-yellow-50 p-4 flex items-start gap-3">
+            <Lock className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-semibold text-yellow-700">Role SUPERADMIN Terkunci Penuh</h3>
+              <p className="text-sm text-yellow-600">
+                Seluruh field role ini tidak dapat diubah melalui aplikasi — hanya dapat diedit
+                langsung di database.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Basic Info */}
         <div className="space-y-4">
           <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
@@ -141,7 +155,8 @@ export default function RoleForm() {
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                disabled={role?.code === 'SUPERADMIN'}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
                 placeholder="Cashier, Head of Store, etc"
               />
             </div>
@@ -154,7 +169,8 @@ export default function RoleForm() {
                 value={formData.level}
                 onChange={(e) => setFormData({ ...formData, level: parseInt(e.target.value) })}
                 required
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all bg-white"
+                disabled={role?.code === 'SUPERADMIN'}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all bg-white disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
               >
                 <option value={0}>0 - SUPERADMIN</option>
                 <option value={1}>1 - OWNER</option>
@@ -173,7 +189,8 @@ export default function RoleForm() {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                disabled={role?.code === 'SUPERADMIN'}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
                 placeholder="Deskripsi role dan tanggung jawabnya..."
               />
             </div>
@@ -184,7 +201,8 @@ export default function RoleForm() {
                 <select
                   value={formData.isActive ? 'active' : 'inactive'}
                   onChange={(e) => setFormData({ ...formData, isActive: e.target.value === 'active' })}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all bg-white"
+                  disabled={role?.code === 'SUPERADMIN'}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all bg-white disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
                 >
                   <option value="active">Aktif</option>
                   <option value="inactive">Non-Aktif</option>
@@ -233,7 +251,7 @@ export default function RoleForm() {
           <Button asChild variant="outline">
             <Link to="/roles">Batal</Link>
           </Button>
-          <Button type="submit" disabled={mutation.isPending}>
+          <Button type="submit" disabled={mutation.isPending || role?.code === 'SUPERADMIN'}>
             {mutation.isPending ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
