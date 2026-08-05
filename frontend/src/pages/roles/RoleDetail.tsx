@@ -12,6 +12,7 @@ import {
   Trash2,
   Save,
   AlertTriangle,
+  Lock,
 } from 'lucide-react';
 import { rolesService, permissionsService } from '../../services/roles.service';
 import { toast } from 'sonner';
@@ -119,6 +120,9 @@ export default function RoleDetail() {
     );
   }
 
+  // D-SEC: SUPERADMIN role is immutable — view-only page
+  const isSuperAdminRole = role.code === 'SUPERADMIN';
+
   return (
     <div className="space-y-6">
       <PageHeader title={role.name} subtitle="Detail role dan permissions">
@@ -129,15 +133,17 @@ export default function RoleDetail() {
           </Link>
         </Button>
         <RequirePermission permission="roles.update" fallbackRoles={['SUPERADMIN']}>
-          <Button asChild size="sm" className="bg-white text-primary-600 hover:bg-primary-50 font-semibold">
-            <Link to={`/roles/${role.id}/edit`}>
-              <Edit className="w-4 h-4" />
-              Edit
-            </Link>
-          </Button>
+          {!isSuperAdminRole && (
+            <Button asChild size="sm" className="bg-white text-primary-600 hover:bg-primary-50 font-semibold">
+              <Link to={`/roles/${role.id}/edit`}>
+                <Edit className="w-4 h-4" />
+                Edit
+              </Link>
+            </Button>
+          )}
         </RequirePermission>
         <RequirePermission permission="roles.delete" fallbackRoles={['SUPERADMIN']}>
-          {(!role.isSystemRole || isSuperAdmin) && (
+          {!isSuperAdminRole && (!role.isSystemRole || isSuperAdmin) && (
             <Button
               variant="destructive"
               size="sm"
@@ -150,6 +156,19 @@ export default function RoleDetail() {
           )}
         </RequirePermission>
       </PageHeader>
+
+      {/* D-SEC: locked banner for immutable SUPERADMIN role */}
+      {isSuperAdminRole && (
+        <div className="rounded-xl border-2 border-yellow-200 bg-yellow-50 p-4 flex items-start gap-3">
+          <Lock className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-semibold text-yellow-700">Role SUPERADMIN Terkunci Penuh</h3>
+            <p className="text-sm text-yellow-600">
+              Role ini tidak dapat diubah melalui aplikasi — hanya dapat diedit langsung di database.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Role Info Card */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
@@ -205,67 +224,71 @@ export default function RoleDetail() {
         </div>
       </div>
 
-      {/* Menu Access Section */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-        <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2 mb-4">
-          <Shield className="w-5 h-5" />
-          Menu Access
-        </h2>
-        <p className="text-sm text-gray-600 mb-4">
-          Pilih menu dan halaman yang boleh diakses oleh role ini
-        </p>
-        <MenuAccessSelector roleId={role.id} />
-      </div>
-
-      {/* Permissions Section */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+      {/* Menu Access Section — hidden for immutable SUPERADMIN role */}
+      {!isSuperAdminRole && (
+        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+          <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2 mb-4">
             <Shield className="w-5 h-5" />
-            Permissions
+            Menu Access
           </h2>
-          <RequirePermission permission="roles.assignPermission" fallbackRoles={['SUPERADMIN']}>
-            <button
-              onClick={() => savePermissionsMutation.mutate()}
-              disabled={savePermissionsMutation.isPending}
-              className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {savePermissionsMutation.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Menyimpan...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4" />
-                  Simpan Permissions
-                </>
-              )}
-            </button>
-          </RequirePermission>
+          <p className="text-sm text-gray-600 mb-4">
+            Pilih menu dan halaman yang boleh diakses oleh role ini
+          </p>
+          <MenuAccessSelector roleId={role.id} />
         </div>
+      )}
 
-        {groupedPermissions && Object.keys(groupedPermissions).length > 0 ? (
-          <PermissionTree
-            permissions={groupedPermissions}
-            selectedPermissions={selectedPermissions}
-            onPermissionToggle={(permissionId) => {
-              const newSelected = new Set(selectedPermissions);
-              if (newSelected.has(permissionId)) {
-                newSelected.delete(permissionId);
-              } else {
-                newSelected.add(permissionId);
-              }
-              setSelectedPermissions(newSelected);
-            }}
-          />
-        ) : (
-          <div className="text-center py-8 text-gray-500">
-            <Shield className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-            <p>Belum ada permissions tersedia</p>
+      {/* Permissions Section — hidden for immutable SUPERADMIN role */}
+      {!isSuperAdminRole && (
+        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+              <Shield className="w-5 h-5" />
+              Permissions
+            </h2>
+            <RequirePermission permission="roles.assignPermission" fallbackRoles={['SUPERADMIN']}>
+              <button
+                onClick={() => savePermissionsMutation.mutate()}
+                disabled={savePermissionsMutation.isPending}
+                className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {savePermissionsMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Menyimpan...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    Simpan Permissions
+                  </>
+                )}
+              </button>
+            </RequirePermission>
           </div>
-        )}
-      </div>
+
+          {groupedPermissions && Object.keys(groupedPermissions).length > 0 ? (
+            <PermissionTree
+              permissions={groupedPermissions}
+              selectedPermissions={selectedPermissions}
+              onPermissionToggle={(permissionId) => {
+                const newSelected = new Set(selectedPermissions);
+                if (newSelected.has(permissionId)) {
+                  newSelected.delete(permissionId);
+                } else {
+                  newSelected.add(permissionId);
+                }
+                setSelectedPermissions(newSelected);
+              }}
+            />
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <Shield className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+              <p>Belum ada permissions tersedia</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Delete Confirmation Dialog */}
       <Dialog
