@@ -18,15 +18,17 @@ export default function BranchForm() {
 
   const [formData, setFormData] = useState({
     name: '',
-    type: 'store',
+    group: '',
     phone: '',
     email: '',
     address: '',
     city: '',
     province: '',
+    director: '',
+    contactPerson: '',
+    mobilePhone: '',
     headOfServiceId: '',
     isActive: true,
-    isWarehouse: false,
     operatingHours: {} as Record<string, any>,
   });
 
@@ -48,15 +50,17 @@ export default function BranchForm() {
     if (branch) {
       setFormData({
         name: branch.name || '',
-        type: branch.type || 'store',
+        group: branch.group || '',
         phone: branch.phone || '',
         email: branch.email || '',
         address: branch.address || '',
         city: branch.city || '',
         province: branch.province || '',
+        director: branch.director || '',
+        contactPerson: branch.contactPerson || '',
+        mobilePhone: branch.mobilePhone || '',
         headOfServiceId: branch.headOfServiceId || '',
         isActive: branch.isActive !== false,
-        isWarehouse: branch.isWarehouse || false,
         operatingHours: branch.operatingHours || {},
       });
     }
@@ -134,17 +138,14 @@ export default function BranchForm() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tipe Cabang
+                  Grup
                 </label>
-                <select
-                  value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
-                >
-                  <option value="store">Toko</option>
-                  <option value="warehouse">Gudang</option>
-                  <option value="office">Kantor</option>
-                </select>
+                <Input
+                  type="text"
+                  value={formData.group}
+                  onChange={(e) => setFormData({ ...formData, group: e.target.value })}
+                  placeholder="Contoh: Pusat, Cabang"
+                />
               </div>
             </div>
 
@@ -273,6 +274,33 @@ export default function BranchForm() {
                   placeholder="cabang@example.com"
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Direktur</label>
+                <Input
+                  type="text"
+                  value={formData.director}
+                  onChange={(e) => setFormData({ ...formData, director: e.target.value })}
+                  placeholder="Nama direktur"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Contact Person</label>
+                <Input
+                  type="text"
+                  value={formData.contactPerson}
+                  onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
+                  placeholder="Nama contact person"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">No. HP Contact Person</label>
+                <Input
+                  type="tel"
+                  value={formData.mobilePhone}
+                  onChange={(e) => setFormData({ ...formData, mobilePhone: e.target.value })}
+                  placeholder="081234567890"
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -297,19 +325,6 @@ export default function BranchForm() {
                   <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.isActive ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
                 <span className="text-sm text-gray-600">{formData.isActive ? 'Aktif' : 'Tidak Aktif'}</span>
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Gudang</label>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, isWarehouse: !prev.isWarehouse }))}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isWarehouse ? 'bg-green-500' : 'bg-gray-300'}`}
-                >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.isWarehouse ? 'translate-x-6' : 'translate-x-1'}`} />
-                </button>
-                <span className="text-sm text-gray-600">{formData.isWarehouse ? 'Ya' : 'Tidak'}</span>
               </div>
             </div>
           </CardContent>

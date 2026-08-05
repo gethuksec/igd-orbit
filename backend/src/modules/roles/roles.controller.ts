@@ -20,9 +20,7 @@ import { Roles } from '../../shared/decorators';
 import {
   CreateRoleDto,
   UpdateRoleDto,
-  AssignPermissionDto,
   CloneRoleDto,
-  UpdateMenuAccessDto,
 } from './dto';
 
 /**
@@ -95,48 +93,6 @@ export class RolesController {
   }
 
   /**
-   * Get role permissions
-   * GET /api/v1/roles/:id/permissions
-   */
-  @Get(':id/permissions')
-  async getPermissions(@Param('id', ParseUUIDPipe) id: string) {
-    const role = await this.rolesService.findById(id);
-    return { permissions: role.permissions };
-  }
-
-  /**
-   * Assign permission to role
-   * POST /api/v1/roles/:id/permissions
-   */
-  @Post(':id/permissions')
-  @HttpCode(HttpStatus.OK)
-  async assignPermission(
-    @Param('id', ParseUUIDPipe) roleId: string,
-    @Body() assignPermissionDto: AssignPermissionDto,
-    @Request() req: ExpressRequest & { user: any },
-  ) {
-    return this.rolesService.assignPermission(
-      roleId,
-      assignPermissionDto,
-      req.user.id,
-    );
-  }
-
-  /**
-   * Remove permission from role
-   * DELETE /api/v1/roles/:id/permissions/:permissionId
-   */
-  @Delete(':id/permissions/:permissionId')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async removePermission(
-    @Param('id', ParseUUIDPipe) roleId: string,
-    @Param('permissionId', ParseUUIDPipe) permissionId: string,
-    @Request() req: ExpressRequest & { user: any },
-  ) {
-    await this.rolesService.removePermission(roleId, permissionId, req.user.id);
-  }
-
-  /**
    * Clone role
    * POST /api/v1/roles/:id/clone
    */
@@ -148,32 +104,6 @@ export class RolesController {
     @Request() req: ExpressRequest & { user: any },
   ) {
     return this.rolesService.cloneRole(roleId, cloneRoleDto, req.user.id);
-  }
-
-  /**
-   * Get menu access for role
-   * GET /api/v1/roles/:id/menu-access
-   */
-  @Get(':id/menu-access')
-  async getMenuAccess(@Param('id', ParseUUIDPipe) roleId: string) {
-    return this.rolesService.getMenuAccess(roleId);
-  }
-
-  /**
-   * Update menu access for role
-   * PUT /api/v1/roles/:id/menu-access
-   */
-  @Put(':id/menu-access')
-  async updateMenuAccess(
-    @Param('id', ParseUUIDPipe) roleId: string,
-    @Body() updateMenuAccessDto: UpdateMenuAccessDto,
-    @Request() req: ExpressRequest & { user: any },
-  ) {
-    return this.rolesService.updateMenuAccess(
-      roleId,
-      updateMenuAccessDto.menuKeys,
-      req.user.id,
-    );
   }
 }
 

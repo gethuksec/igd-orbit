@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -10,18 +10,15 @@ import {
   Calendar,
   Loader2,
   Trash2,
-  Save,
   AlertTriangle,
 } from 'lucide-react';
-import { rolesService, permissionsService } from '../../services/roles.service';
+import { rolesService } from '../../services/roles.service';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import RequirePermission from '../../components/guards/RequirePermission';
-import { PermissionTree } from './components/PermissionTree';
 import { usePermissions } from '../../hooks/usePermissions';
-import { MenuAccessSelector } from './components/MenuAccessSelector';
 
 export default function RoleDetail() {
   const { id } = useParams();
@@ -37,29 +34,6 @@ export default function RoleDetail() {
     enabled: !!id,
   });
 
-  const { data: groupedPermissions } = useQuery({
-    queryKey: ['permissions-grouped'],
-    queryFn: () => permissionsService.getAllGrouped(),
-  });
-
-  const { data: rolePermissionsData } = useQuery({
-    queryKey: ['role-permissions', id],
-    queryFn: () => rolesService.getPermissions(id!),
-    enabled: !!id,
-  });
-
-  const [selectedPermissions, setSelectedPermissions] = useState<Set<string>>(new Set());
-
-  // Update selected permissions when rolePermissions loads
-  useEffect(() => {
-    if (rolePermissionsData?.permissions) {
-      // Backend returns: { permissions: Array<{ id, module, submodule, action, ... }> }
-      setSelectedPermissions(
-        new Set(rolePermissionsData.permissions.map((p: any) => p.id)),
-      );
-    }
-  }, [rolePermissionsData]);
-
   const deleteMutation = useMutation({
     mutationFn: () => rolesService.delete(id!),
     onSuccess: () => {
@@ -69,34 +43,6 @@ export default function RoleDetail() {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Gagal menghapus role');
-    },
-  });
-
-  const savePermissionsMutation = useMutation({
-    mutationFn: async () => {
-      if (!rolePermissionsData?.permissions) return;
-
-      const currentPermissionIds = new Set(rolePermissionsData.permissions.map((p: any) => p.id));
-      const toAdd = Array.from(selectedPermissions).filter((id) => !currentPermissionIds.has(id));
-      const toRemove = Array.from(currentPermissionIds).filter((id) => !selectedPermissions.has(id));
-
-      // Add new permissions
-      for (const permissionId of toAdd) {
-        await rolesService.assignPermission(id!, { permissionId });
-      }
-
-      // Remove permissions
-      for (const permissionId of toRemove) {
-        await rolesService.removePermission(id!, permissionId);
-      }
-    },
-    onSuccess: () => {
-      toast.success('Permissions berhasil diupdate');
-      queryClient.invalidateQueries({ queryKey: ['role-permissions', id] });
-      queryClient.invalidateQueries({ queryKey: ['role', id] });
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Gagal mengupdate permissions');
     },
   });
 
@@ -210,72 +156,6 @@ export default function RoleDetail() {
         </div>
       </div>
 
-      {/* Menu Access Section — hidden for immutable SUPERADMIN role */}
-      {!isSuperAdminRole && (
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2 mb-4">
-            <Shield className="w-5 h-5" />
-            Menu Access
-          </h2>
-          <p className="text-sm text-gray-600 mb-4">
-            Pilih menu dan halaman yang boleh diakses oleh role ini
-          </p>
-          <MenuAccessSelector roleId={role.id} />
-        </div>
-      )}
-
-      {/* Permissions Section — hidden for immutable SUPERADMIN role */}
-      {!isSuperAdminRole && (
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-              <Shield className="w-5 h-5" />
-              Permissions
-            </h2>
-            <RequirePermission permission="roles.assignPermission" fallbackRoles={['SUPERADMIN']}>
-              <button
-                onClick={() => savePermissionsMutation.mutate()}
-                disabled={savePermissionsMutation.isPending}
-                className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {savePermissionsMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Menyimpan...
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4" />
-                    Simpan Permissions
-                  </>
-                )}
-              </button>
-            </RequirePermission>
-          </div>
-
-          {groupedPermissions && Object.keys(groupedPermissions).length > 0 ? (
-            <PermissionTree
-              permissions={groupedPermissions}
-              selectedPermissions={selectedPermissions}
-              onPermissionToggle={(permissionId) => {
-                const newSelected = new Set(selectedPermissions);
-                if (newSelected.has(permissionId)) {
-                  newSelected.delete(permissionId);
-                } else {
-                  newSelected.add(permissionId);
-                }
-                setSelectedPermissions(newSelected);
-              }}
-            />
-          ) : (
-            <div className="text-center py-8 text-gray-500">
-              <Shield className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-              <p>Belum ada permissions tersedia</p>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Delete Confirmation Dialog */}
       <Dialog
         open={deleteModalOpen}
@@ -331,4 +211,3 @@ export default function RoleDetail() {
     </div>
   );
 }
-

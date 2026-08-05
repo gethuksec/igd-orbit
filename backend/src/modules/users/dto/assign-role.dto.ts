@@ -3,7 +3,6 @@ import {
   IsUUID,
   IsOptional,
   IsBoolean,
-  IsDateString,
   IsArray,
   IsString,
 } from 'class-validator';
@@ -24,14 +23,6 @@ export class AssignRoleDto {
   @IsBoolean({ message: 'isPrimary must be a boolean' })
   @IsOptional()
   isPrimary?: boolean = false;
-
-  @IsDateString({}, { message: 'validFrom must be a valid date string' })
-  @IsOptional()
-  validFrom?: string;
-
-  @IsDateString({}, { message: 'validUntil must be a valid date string' })
-  @IsOptional()
-  validUntil?: string;
 
   @IsArray({ message: 'deniedPermissions must be an array' })
   @IsString({ each: true, message: 'Each denied permission must be a string' })

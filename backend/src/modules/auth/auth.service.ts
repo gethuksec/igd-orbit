@@ -65,7 +65,7 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { email },
       include: {
-        userRoles: {
+        userBranches: {
           include: {
             role: true,
           },
@@ -170,31 +170,24 @@ export class AuthService {
     }
 
     // Get user roles and permissions
-    const userRoles = await this.prisma.userRole.findMany({
+    const userBranches = await this.prisma.userBranch.findMany({
       where: {
         userId: user.id,
-        OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
       },
       include: {
-        role: {
-          include: {
-            rolePermissions: {
-              include: {
-                permission: true,
-              },
-            },
-          },
-        },
+        role: true,
       },
     });
 
-    const roles = userRoles.map((ur) => ur.role.code);
-    const branchIds = userRoles
-      .map((ur) => ur.branchId)
-      .filter((id): id is string => id !== null);
+    const roles = userBranches.map((ur) => ur.role.code);
+    const branchIds = roles.includes('SUPERADMIN')
+      ? undefined
+      : userBranches
+          .map((ur) => ur.branchId)
+          .filter((id): id is string => id !== null);
 
-    // D-PERM: single merge function (junction + defaultPermissions − deniedPermissions)
-    const permissions = computeEffectivePermissions(userRoles);
+    // D-PERM: single merge function (defaultPermissions − deniedPermissions)
+    const permissions = computeEffectivePermissions(userBranches);
 
     // D-PERM: read permission version for JWT claim
     const permVer = await this.getPermissionVersion(user.id);
@@ -237,7 +230,7 @@ export class AuthService {
     }
 
     // Get primary role for user object
-    const primaryRole = userRoles.find((ur) => ur.isPrimary) || userRoles[0];
+    const primaryRole = userBranches.find((ur) => ur.isPrimary) || userBranches[0];
     const role = primaryRole?.role;
 
     return {
@@ -290,17 +283,9 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
-        userRoles: {
+        userBranches: {
           include: {
-            role: {
-              include: {
-                rolePermissions: {
-                  include: {
-                    permission: true,
-                  },
-                },
-              },
-            },
+            role: true,
           },
         },
       },
@@ -311,14 +296,15 @@ export class AuthService {
     }
 
     // Get active roles
-    const activeRoles = user.userRoles.filter(
-      (ur) => !ur.validUntil || ur.validUntil > new Date(),
-    );
+    const activeRoles = user.userBranches;
 
     const roles = activeRoles.map((ur) => ur.role.code);
-    const branchIds = activeRoles
-      .map((ur) => ur.branchId)
-      .filter((id): id is string => id !== null);
+    // D1: SUPERADMIN stays global (see login)
+    const branchIds = roles.includes('SUPERADMIN')
+      ? undefined
+      : activeRoles
+          .map((ur) => ur.branchId)
+          .filter((id): id is string => id !== null);
 
     // D-PERM: single merge function
     const permissions = computeEffectivePermissions(activeRoles);
@@ -494,17 +480,9 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
-        userRoles: {
+        userBranches: {
           include: {
-            role: {
-              include: {
-                rolePermissions: {
-                  include: {
-                    permission: true,
-                  },
-                },
-              },
-            },
+            role: true,
           },
         },
       },
@@ -514,16 +492,17 @@ export class AuthService {
       throw new UnauthorizedException('User not found or inactive');
     }
 
-    const activeRoles = user.userRoles.filter(
-      (ur) => !ur.validUntil || ur.validUntil > new Date(),
-    );
+    const activeRoles = user.userBranches;
 
     const roles = activeRoles.map((ur) => ur.role.code);
-    const branchIds = activeRoles
-      .map((ur) => ur.branchId)
-      .filter((id): id is string => id !== null);
+    // D1: SUPERADMIN stays global (see login)
+    const branchIds = roles.includes('SUPERADMIN')
+      ? undefined
+      : activeRoles
+          .map((ur) => ur.branchId)
+          .filter((id): id is string => id !== null);
 
-    // D-PERM: single merge function (junction + defaultPermissions − deniedPermissions)
+    // D-PERM: single merge function (defaultPermissions − deniedPermissions)
     const permissions = computeEffectivePermissions(activeRoles);
 
     return {

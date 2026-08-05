@@ -6,10 +6,10 @@
  * - ONE merge function used by login, refresh, jwt.strategy, user detail, guards
  * - Redis permVersion (`auth:ver:{userId}`) invalidates JWTs on permission changes
  *
- * NOTE: the legacy RolePermission junction is still read (backward compat with the
- * module wildcard keys like `master_data.*.view` that the FE sidebar depends on).
- * D1 removes the junction tables; at that point remove the junction loop below and
- * ensure role.defaultPermissions carries the wildcard keys (D6 data migration).
+ * NOTE: legacy RolePermission junction dropped in D1 — the merge now reads only
+ * role.defaultPermissions minus assignment.deniedPermissions. Wildcard keys that
+ * the junction used to serve (e.g. `master_data.*.view`) were ported into
+ * defaultPermissions by the D1 data migration (d1-org-architecture.sql).
  */
 
 /** Redis key prefix for the per-user permission version. */
@@ -42,19 +42,12 @@ export async function bumpPermissionVersion(
 
 /**
  * Shape of a userRole row with everything the merge needs.
- * Compatible with Prisma's include: { role: { include: { rolePermissions: { include: { permission: true } } } } }
+ * Compatible with Prisma's include: { role: true }
  */
 export interface MergeUserRole {
   role: {
     code?: string;
     defaultPermissions?: string[];
-    rolePermissions?: Array<{
-      permission: {
-        module: string;
-        submodule?: string | null;
-        action: string;
-      };
-    }>;
   };
   deniedPermissions?: string[];
 }
@@ -62,8 +55,7 @@ export interface MergeUserRole {
 /**
  * THE single merge function.
  *
- * effective = (∪ role.rolePermissions junction keys) ∪ (∪ role.defaultPermissions)
- *             − (∪ assignment.deniedPermissions)
+ * effective = (∪ role.defaultPermissions) − (∪ assignment.deniedPermissions)
  *
  * Used by: auth login, auth refresh, jwt.strategy, user detail, roles service.
  */
@@ -71,13 +63,7 @@ export function computeEffectivePermissions(userRoles: MergeUserRole[]): string[
   const permissionSet = new Set<string>();
 
   for (const ur of userRoles || []) {
-    // Legacy junction (module.submodule.action) — removed in D1
-    for (const rp of ur.role?.rolePermissions || []) {
-      permissionSet.add(
-        `${rp.permission.module}.${rp.permission.submodule || '*'}.${rp.permission.action}`,
-      );
-    }
-    // New model: role.defaultPermissions
+    // New model: role.defaultPermissions (junction tables dropped in D1)
     for (const perm of ur.role?.defaultPermissions || []) {
       permissionSet.add(perm);
     }

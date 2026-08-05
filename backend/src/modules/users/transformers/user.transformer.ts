@@ -1,9 +1,7 @@
 import {
   User,
-  UserRole,
+  UserBranch,
   Role,
-  RolePermission,
-  Permission,
 } from '@prisma/client';
 import { computeEffectivePermissions } from '../../../shared/utils/permissions.util';
 
@@ -11,12 +9,8 @@ import { computeEffectivePermissions } from '../../../shared/utils/permissions.u
  * User with relations type
  */
 type UserWithRelations = User & {
-  userRoles?: (UserRole & {
-    role: Role & {
-      rolePermissions?: (RolePermission & {
-        permission: Permission;
-      })[];
-    };
+  userBranches?: (UserBranch & {
+    role: Role;
     branch?: { id: string; code: string; name: string } | null;
   })[];
   employee?: {
@@ -80,8 +74,6 @@ export interface TransformedUser {
     branchId: string | null;
     branchName: string | null;
     isPrimary: boolean;
-    validFrom: Date;
-    validUntil: Date | null;
     deniedPermissions: string[];
   }>;
   permissions: string[];
@@ -102,27 +94,28 @@ export class UserTransformer {
    * @returns Transformed user object without sensitive data
    */
   static transform(user: UserWithRelations): TransformedUser {
-    const activeRoles = (user.userRoles || []).filter(
-      (ur) => !ur.validUntil || ur.validUntil > new Date(),
-    );
+    const activeRoles = (user.userBranches || []).filter((ur) => ur.role.isActive);
 
     const roles = activeRoles.map((ur) => ({
-      id: ur.id, // UserRole ID (not role ID) - needed for removing role
+      id: ur.id, // UserBranch ID (not role ID) - needed for removing role
       code: ur.role.code,
       name: ur.role.name,
       branchId: ur.branchId,
       branchName: ur.branch?.name || null,
       isPrimary: ur.isPrimary,
-      validFrom: ur.validFrom,
-      validUntil: ur.validUntil,
       deniedPermissions: (ur as any).deniedPermissions || [],
     }));
 
     const permissions = computeEffectivePermissions(activeRoles);
 
-    const branchIds = activeRoles
-      .map((ur) => ur.branchId)
-      .filter((id): id is string => id !== null);
+    // D1: SUPERADMIN stays global — branchId required on every assignment,
+    // global access is expressed by role (see branch-access.service)
+    const isSuperAdmin = activeRoles.some((ur) => ur.role.code === 'SUPERADMIN');
+    const branchIds = isSuperAdmin
+      ? null
+      : activeRoles
+          .map((ur) => ur.branchId)
+          .filter((id): id is string => id !== null);
 
     // Transform employee data if exists
     const employee = user.employee

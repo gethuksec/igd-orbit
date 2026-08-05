@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Permission Model — Current vs Target (IGD-Orbit)</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #020617; font-family: 'JetBrains Mono', monospace; color: #e2e8f0; padding: 32px 24px; }
+  .wrap { max-width: 1280px; margin: 0 auto; }
+  .header { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: #22d3ee; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+  h1 { font-size: 20px; font-weight: 700; color: #f1f5f9; }
+  .sub { font-size: 11px; color: #64748b; margin-top: 4px; }
+  .card { background: #0f172a; border: 1px solid #1e293b; border-radius: 14px; padding: 20px; margin-bottom: 28px; }
+  .card h2 { font-size: 14px; color: #94a3b8; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .card h2 .tag { font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+  .tag.red { background: #451a2b; color: #fb7185; border: 1px solid #fb7185; }
+  .tag.green { background: #064e3b; color: #34d399; border: 1px solid #34d399; }
+  svg { width: 100%; height: auto; display: block; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 4px; }
+  .info { border: 1px solid #1e293b; border-radius: 12px; padding: 14px; background: #0b1220; }
+  .info h3 { font-size: 11px; color: #22d3ee; margin-bottom: 8px; }
+  .info ul { list-style: none; }
+  .info li { font-size: 10px; color: #cbd5e1; line-height: 1.7; padding-left: 12px; position: relative; }
+  .info li::before { content: "•"; position: absolute; left: 0; color: #475569; }
+  .info li.warn { color: #fb7185; }
+  .info li.ok { color: #34d399; }
+  .footer { font-size: 9px; color: #334155; text-align: center; margin-top: 8px; }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 9px; color: #94a3b8; margin-bottom: 12px; }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+  .sw { width: 12px; height: 3px; border-radius: 2px; display: inline-block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <div class="dot"></div>
+    <div>
+      <h1>IGD-Orbit — Permission Model: Current vs Target</h1>
+      <div class="sub">defaultPermissions / deniedPermissions explained · grounded in auth.service.ts, jwt.strategy.ts, users.service.ts, usePermissions.ts</div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span><span class="sw" style="background:#22d3ee"></span> Frontend</span>
+    <span><span class="sw" style="background:#34d399"></span> Backend</span>
+    <span><span class="sw" style="background:#a78bfa"></span> Database</span>
+    <span><span class="sw" style="background:#fb7185"></span> Problem / mismatch</span>
+    <span><span class="sw" style="background:#fbbf24"></span> Notes</span>
+    <span><span class="sw" style="background:#94a3b8; border: 1px dashed #64748b"></span> Dropped in target</span>
+  </div>
+
+  <!-- ===================== CURRENT ===================== -->
+  <div class="card">
+    <h2><span class="tag red">CURRENT</span> Three divergent permission paths — this is the confusion</h2>
+    <svg viewBox="0 0 1240 640" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+          <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+        </pattern>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+        </marker>
+        <marker id="arrred" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#fb7185"/>
+        </marker>
+      </defs>
+      <rect width="1240" height="640" fill="#020617"/>
+      <rect width="1240" height="640" fill="url(#grid)"/>
+
+      <!-- === DB TABLES (right) === -->
+      <!-- roles -->
+      <g>
+        <rect x="900" y="40" width="300" height="86" rx="8" fill="#0f172a"/>
+        <rect x="900" y="40" width="300" height="86" rx="8" fill="rgba(76,29,149,0.35)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="918" y="62" font-size="11" font-weight="700" fill="#e9d5ff">roles</text>
+        <text x="918" y="80" font-size="8.5" fill="#c4b5fd">code · name · level (0-5) · isSystemRole</text>
+        <text x="918" y="95" font-size="8.5" fill="#c4b5fd">parentRoleId · <tspan fill="#fbbf24">defaultPermissions[]</tspan></text>
+        <text x="918" y="110" font-size="8.5" fill="#94a3b8">17 rows — SUPERADMIN has ~90 keys</text>
+      </g>
+
+      <!-- user_roles -->
+      <g>
+        <rect x="900" y="160" width="300" height="86" rx="8" fill="#0f172a"/>
+        <rect x="900" y="160" width="300" height="86" rx="8" fill="rgba(76,29,149,0.35)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="918" y="182" font-size="11" font-weight="700" fill="#e9d5ff">user_roles (UserRole)</text>
+        <text x="918" y="200" font-size="8.5" fill="#c4b5fd">userId · roleId · branchId? · isPrimary</text>
+        <text x="918" y="215" font-size="8.5" fill="#c4b5fd"><tspan fill="#fbbf24">deniedPermissions[]</tspan> · validFrom/Until</text>
+        <text x="918" y="230" font-size="8.5" fill="#94a3b8">19 rows — 3 with branchId = NULL</text>
+      </g>
+
+      <!-- permissions catalog -->
+      <g>
+        <rect x="900" y="280" width="300" height="72" rx="8" fill="#0f172a"/>
+        <rect x="900" y="280" width="300" height="72" rx="8" fill="rgba(76,29,149,0.25)" stroke="#a78bfa" stroke-width="1" stroke-dasharray="4 3"/>
+        <text x="918" y="302" font-size="11" font-weight="700" fill="#e9d5ff">permissions (catalog)</text>
+        <text x="918" y="320" font-size="8.5" fill="#c4b5fd">module · submodule · action</text>
+        <text x="918" y="335" font-size="8.5" fill="#fb7185">only 10 rows — real keys NOT in here</text>
+      </g>
+
+      <!-- role_permissions -->
+      <g>
+        <rect x="900" y="386" width="300" height="72" rx="8" fill="#0f172a"/>
+        <rect x="900" y="386" width="300" height="72" rx="8" fill="rgba(76,29,149,0.25)" stroke="#a78bfa" stroke-width="1" stroke-dasharray="4 3"/>
+        <text x="918" y="408" font-size="11" font-weight="700" fill="#e9d5ff">role_permissions (junction)</text>
+        <text x="918" y="426" font-size="8.5" fill="#c4b5fd">roleId → permissionId</text>
+        <text x="918" y="441" font-size="8.5" fill="#94a3b8">76 rows — maxAmount · requiresApproval</text>
+      </g>
+
+      <!-- role_menu_access -->
+      <g>
+        <rect x="900" y="492" width="300" height="72" rx="8" fill="#0f172a"/>
+        <rect x="900" y="492" width="300" height="72" rx="8" fill="rgba(76,29,149,0.25)" stroke="#a78bfa" stroke-width="1" stroke-dasharray="4 3"/>
+        <text x="918" y="514" font-size="11" font-weight="700" fill="#e9d5ff">role_menu_access</text>
+        <text x="918" y="532" font-size="8.5" fill="#c4b5fd">roleId · menuKey · path · isEnabled</text>
+        <text x="918" y="547" font-size="8.5" fill="#94a3b8">7 rows — only CSO, stale</text>
+      </g>
+
+      <!-- === BACKEND (middle) === -->
+      <!-- path A: login -->
+      <g>
+        <rect x="330" y="40" width="420" height="120" rx="8" fill="#0f172a"/>
+        <rect x="330" y="40" width="420" height="120" rx="8" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="350" y="62" font-size="11" font-weight="700" fill="#a7f3d0">① auth.service — LOGIN</text>
+        <text x="350" y="82" font-size="9" fill="#6ee7b7">perms = rolePermissions junction</text>
+        <text x="350" y="97" font-size="9" fill="#6ee7b7">       + role.defaultPermissions</text>
+        <text x="350" y="112" font-size="9" fill="#6ee7b7">       − userRole.deniedPermissions</text>
+        <text x="350" y="132" font-size="8.5" fill="#fbbf24">→ merged list → JWT payload + login response</text>
+      </g>
+
+      <!-- path B: jwt strategy -->
+      <g>
+        <rect x="330" y="200" width="420" height="110" rx="8" fill="#0f172a"/>
+        <rect x="330" y="200" width="420" height="110" rx="8" fill="rgba(136,19,55,0.4)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="350" y="222" font-size="11" font-weight="700" fill="#fecdd3">② jwt.strategy — EVERY REQUEST ⚠️</text>
+        <text x="350" y="244" font-size="9" fill="#fda4af">perms = rolePermissions junction ONLY</text>
+        <text x="350" y="262" font-size="9" fill="#fda4af">(ignores defaultPermissions &amp; deniedPermissions)</text>
+        <text x="350" y="284" font-size="8.5" fill="#fb7185">→ req.user.permissions — DIFFERENT from login!</text>
+      </g>
+
+      <!-- path C: user detail -->
+      <g>
+        <rect x="330" y="350" width="420" height="110" rx="8" fill="#0f172a"/>
+        <rect x="330" y="350" width="420" height="110" rx="8" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="350" y="372" font-size="11" font-weight="700" fill="#a7f3d0">③ users.service — USER DETAIL / EDIT</text>
+        <text x="350" y="394" font-size="9" fill="#6ee7b7">perms = junction + defaultPermissions − denied</text>
+        <text x="350" y="412" font-size="9" fill="#6ee7b7">(same merge as login — correct)</text>
+        <text x="350" y="434" font-size="8.5" fill="#6ee7b7">→ GET /users/:id shows effective permissions</text>
+      </g>
+
+      <!-- FE -->
+      <g>
+        <rect x="40" y="130" width="220" height="200" rx="8" fill="#0f172a"/>
+        <rect x="40" y="130" width="220" height="200" rx="8" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="60" y="152" font-size="11" font-weight="700" fill="#a5f3fc">Frontend</text>
+        <text x="60" y="176" font-size="9" fill="#67e8f9">localStorage.user.permissions</text>
+        <text x="60" y="192" font-size="9" fill="#67e8f9">(from LOGIN response = merged)</text>
+        <text x="60" y="216" font-size="9" fill="#67e8f9">usePermissions():</text>
+        <text x="60" y="232" font-size="8.5" fill="#94a3b8">  SUPERADMIN → always true</text>
+        <text x="60" y="247" font-size="8.5" fill="#94a3b8">  exact match</text>
+        <text x="60" y="262" font-size="8.5" fill="#94a3b8">  wildcard a.b.c 3-part only</text>
+        <text x="60" y="286" font-size="8.5" fill="#fbbf24">sees MERGED perms from ①</text>
+      </g>
+
+      <!-- arrows -->
+      <!-- FE login -->
+      <line x1="260" y1="180" x2="330" y2="120" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arr)"/>
+      <text x="252" y="140" font-size="8" fill="#67e8f9">login POST</text>
+      <!-- login --><!-- jwt response -->
+      <line x1="540" y1="160" x2="540" y2="200" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr)"/>
+      <text x="550" y="185" font-size="8" fill="#94a3b8">JWT + user</text>
+      <!-- FE request -->
+      <line x1="260" y1="220" x2="330" y2="245" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arr)"/>
+      <text x="252" y="250" font-size="8" fill="#67e8f9">API calls (Bearer)</text>
+      <!-- jwt strategy to FE -->
+      <line x1="540" y1="310" x2="150" y2="335" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arrred)"/>
+      <text x="240" y="330" font-size="8" fill="#fb7185">req.user.permissions (junction only)</text>
+      <!-- login -> roles -->
+      <line x1="750" y1="80" x2="900" y2="80" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arr)"/>
+      <text x="800" y="72" font-size="8" fill="#c4b5fd">reads defaultPermissions</text>
+      <!-- login -> user_roles -->
+      <line x1="750" y1="180" x2="900" y2="195" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arr)"/>
+      <text x="800" y="172" font-size="8" fill="#c4b5fd">reads deniedPermissions</text>
+      <!-- login -> junction -->
+      <line x1="750" y1="110" x2="1050" y2="386" stroke="#a78bfa" stroke-width="1.2" marker-end="url(#arr)"/>
+      <text x="790" y="250" font-size="8" fill="#94a3b8">reads junction</text>
+      <!-- jwt -> junction -->
+      <line x1="750" y1="250" x2="1020" y2="386" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrred)"/>
+      <text x="790" y="330" font-size="8" fill="#fb7185">junction ONLY (mismatch)</text>
+      <!-- user detail -> all -->
+      <line x1="750" y1="400" x2="900" y2="310" stroke="#34d399" stroke-width="1.2" marker-end="url(#arr)"/>
+      <line x1="750" y1="420" x2="1000" y2="430" stroke="#34d399" stroke-width="1.2" marker-end="url(#arr)"/>
+      <text x="755" y="395" font-size="8" fill="#6ee7b7">reads all 3</text>
+
+      <!-- mismatch badge -->
+      <g>
+        <rect x="330" y="480" width="420" height="70" rx="8" fill="#0f172a"/>
+        <rect x="330" y="480" width="420" height="70" rx="8" fill="rgba(136,19,55,0.25)" stroke="#fb7185" stroke-width="1" stroke-dasharray="4 3"/>
+        <text x="350" y="502" font-size="10" font-weight="700" fill="#fecdd3">THE BUG: ① and ③ say one thing, ② says another</text>
+        <text x="350" y="520" font-size="8.5" fill="#fda4af">- FE guards use login-time merged perms</text>
+        <text x="350" y="534" font-size="8.5" fill="#fda4af">- Backend guards (if checking req.user.permissions) use junction-only perms</text>
+        <text x="350" y="548" font-size="8.5" fill="#fda4af">- A denied permission still passes backend checks if it came from junction</text>
+      </g>
+    </svg>
+  </div>
+
+  <!-- ===================== TARGET ===================== -->
+  <div class="card">
+    <h2><span class="tag green">TARGET</span> One source of truth — defaultPermissions − deniedPermissions, single merge</h2>
+    <svg viewBox="0 0 1240 430" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <pattern id="grid2" width="40" height="40" patternUnits="userSpaceOnUse">
+          <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+        </pattern>
+        <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+        </marker>
+        <marker id="arr2g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#34d399"/>
+        </marker>
+      </defs>
+      <rect width="1240" height="430" fill="#020617"/>
+      <rect width="1240" height="430" fill="url(#grid2)"/>
+
+      <!-- roles (kept) -->
+      <g>
+        <rect x="40" y="40" width="280" height="100" rx="8" fill="#0f172a"/>
+        <rect x="40" y="40" width="280" height="100" rx="8" fill="rgba(76,29,149,0.35)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="60" y="62" font-size="11" font-weight="700" fill="#e9d5ff">roles — KEPT (simplified)</text>
+        <text x="60" y="82" font-size="8.5" fill="#c4b5fd">code · name · description · level</text>
+        <text x="60" y="97" font-size="8.5" fill="#fbbf24">defaultPermissions[] ← source of truth</text>
+        <text x="60" y="116" font-size="8.5" fill="#94a3b8">dropped: isSystemRole, parentRoleId</text>
+      </g>
+
+      <!-- user_branches (kept) -->
+      <g>
+        <rect x="40" y="190" width="280" height="100" rx="8" fill="#0f172a"/>
+        <rect x="40" y="190" width="280" height="100" rx="8" fill="rgba(76,29,149,0.35)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="60" y="212" font-size="11" font-weight="700" fill="#e9d5ff">user_branches (renamed)</text>
+        <text x="60" y="232" font-size="8.5" fill="#c4b5fd">userId · branchId(required) · roleId</text>
+        <text x="60" y="247" font-size="8.5" fill="#fbbf24">deniedPermissions[] ← subtractive</text>
+        <text x="60" y="266" font-size="8.5" fill="#94a3b8">dropped: validFrom/validUntil, isPrimary? (unused)</text>
+      </g>
+
+      <!-- dropped tables -->
+      <g>
+        <rect x="40" y="340" width="280" height="64" rx="8" fill="rgba(30,41,59,0.4)"/>
+        <rect x="40" y="340" width="280" height="64" rx="8" fill="rgba(30,41,59,0.4)" stroke="#64748b" stroke-width="1" stroke-dasharray="4 3"/>
+        <text x="60" y="362" font-size="10" font-weight="700" fill="#94a3b8" text-decoration="line-through">permissions · role_permissions · role_menu_access</text>
+        <text x="60" y="382" font-size="8.5" fill="#64748b">DROP TABLE — catalog becomes static code list</text>
+      </g>
+
+      <!-- merge engine -->
+      <g>
+        <rect x="470" y="100" width="320" height="130" rx="8" fill="#0f172a"/>
+        <rect x="470" y="100" width="320" height="130" rx="8" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="490" y="122" font-size="11" font-weight="700" fill="#a7f3d0">SINGLE merge function (one impl)</text>
+        <text x="490" y="146" font-size="9" fill="#6ee7b7">effective =</text>
+        <text x="490" y="164" font-size="9" fill="#6ee7b7">  ∪ defaultPermissions (all assignments)</text>
+        <text x="490" y="182" font-size="9" fill="#6ee7b7">  − ∪ deniedPermissions</text>
+        <text x="490" y="206" font-size="8.5" fill="#fbbf24">used by: login · jwt.strategy · user detail · guards</text>
+      </g>
+
+      <!-- consumers -->
+      <g>
+        <rect x="930" y="40" width="270" height="90" rx="8" fill="#0f172a"/>
+        <rect x="930" y="40" width="270" height="90" rx="8" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="950" y="62" font-size="10" font-weight="700" fill="#a5f3fc">Frontend usePermissions</text>
+        <text x="950" y="82" font-size="8.5" fill="#67e8f9">reads user.permissions (login response)</text>
+        <text x="950" y="97" font-size="8.5" fill="#67e8f9">same list as backend guards → consistent</text>
+        <text x="950" y="116" font-size="8.5" fill="#fbbf24">SUPERADMIN still hard-bypasses</text>
+      </g>
+      <g>
+        <rect x="930" y="170" width="270" height="80" rx="8" fill="#0f172a"/>
+        <rect x="930" y="170" width="270" height="80" rx="8" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="950" y="192" font-size="10" font-weight="700" fill="#a7f3d0">Backend guards</text>
+        <text x="950" y="212" font-size="8.5" fill="#6ee7b7">@RequirePermission('action.pos.create')</text>
+        <text x="950" y="228" font-size="8.5" fill="#6ee7b7">checks req.user.permissions (merged)</text>
+      </g>
+      <g>
+        <rect x="930" y="290" width="270" height="80" rx="8" fill="#0f172a"/>
+        <rect x="930" y="290" width="270" height="80" rx="8" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="950" y="312" font-size="10" font-weight="700" fill="#a7f3d0">Role / User admin UI</text>
+        <text x="950" y="332" font-size="8.5" fill="#6ee7b7">Role form: edit defaultPermissions</text>
+        <text x="950" y="348" font-size="8.5" fill="#6ee7b7">User form: deny-only checkboxes</text>
+      </g>
+
+      <!-- arrows -->
+      <line x1="320" y1="80" x2="470" y2="130" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arr2)"/>
+      <text x="360" y="105" font-size="8" fill="#c4b5fd">defaults</text>
+      <line x1="320" y1="240" x2="470" y2="200" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arr2)"/>
+      <text x="360" y="225" font-size="8" fill="#c4b5fd">denied</text>
+      <line x1="790" y1="150" x2="930" y2="100" stroke="#34d399" stroke-width="1.5" marker-end="url(#arr2g)"/>
+      <text x="820" y="118" font-size="8" fill="#6ee7b7">effective perms</text>
+      <line x1="790" y1="170" x2="930" y2="200" stroke="#34d399" stroke-width="1.5" marker-end="url(#arr2g)"/>
+      <line x1="790" y1="185" x2="930" y2="320" stroke="#34d399" stroke-width="1.5" marker-end="url(#arr2g)"/>
+      <line x1="320" y1="372" x2="930" y2="330" stroke="#64748b" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arr2)"/>
+      <text x="560" y="372" font-size="8" fill="#94a3b8">no more DB lookups — static catalog in code</text>
+    </svg>
+  </div>
+
+  <div class="grid3">
+    <div class="info">
+      <h3>Why it was confusing</h3>
+      <ul>
+        <li>3 code paths compute permissions differently</li>
+        <li class="warn">jwt.strategy ignores default/denied entirely</li>
+        <li class="warn">jwt.strategy is the one that runs on every request</li>
+        <li>role_menu_access was a 4th, barely-used system</li>
+        <li>permissions catalog has 10 rows that don't match the ~90 real keys</li>
+      </ul>
+    </div>
+    <div class="info">
+      <h3>How defaultPermissions works</h3>
+      <ul>
+        <li>Role owns a list of permission keys</li>
+        <li>e.g. OWNER: menu.pos, action.pos.create, ...</li>
+        <li>Anyone assigned that role inherits the whole list</li>
+        <li>Keys live in code (static catalog), not DB</li>
+        <li>SUPERADMIN bypasses all checks regardless</li>
+      </ul>
+    </div>
+    <div class="info">
+      <h3>How deniedPermissions works</h3>
+      <ul>
+        <li>Per-assignment (UserBranch) subtractive list</li>
+        <li>Admin can only REMOVE from role's defaults</li>
+        <li class="ok">Can never add beyond role defaults</li>
+        <li>e.g. HS role minus finance.* for branch B</li>
+        <li>Effective = defaults − denied, applied at login &amp; every request</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer">IGD-Orbit · D1 schema + C.1 permissions · generated from live code audit</div>
+</div>
+</body>
+</html>
