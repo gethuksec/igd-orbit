@@ -17,6 +17,10 @@ import {
   ChangePasswordDto,
 } from './dto';
 import { JwtPayload } from './strategies/jwt.strategy';
+import {
+  computeEffectivePermissions,
+  getPermissionVersionKey,
+} from '../../shared/utils/permissions.util';
 import Redis from 'ioredis';
 
 /**
@@ -35,6 +39,20 @@ export class AuthService {
     private configService: ConfigService,
     @Inject('REDIS_CLIENT') private readonly redis: Redis,
   ) {}
+
+  /**
+   * Read the current permission version for a user (0 if never bumped).
+   * D-PERM: stamped into JWTs so jwt.strategy can reject stale tokens.
+   */
+  private async getPermissionVersion(userId: string): Promise<number> {
+    try {
+      const ver = await this.redis.get(getPermissionVersionKey(userId));
+      return ver === null ? 0 : parseInt(ver, 10) || 0;
+    } catch (e) {
+      console.warn('[D-PERM] Redis unavailable reading permission version:', e);
+      return 0;
+    }
+  }
 
   /**
    * Validate user credentials
@@ -172,30 +190,22 @@ export class AuthService {
       .map((ur) => ur.branchId)
       .filter((id): id is string => id !== null);
 
-    const permissions = userRoles
-      .flatMap((ur) => { 
-        const perms: string[] = [];
-        // From RolePermission junction
-        for (const rp of ur.role.rolePermissions || []) {
-          perms.push(`${rp.permission.module}.${rp.permission.submodule || '*'}.${rp.permission.action}`);
-        }
-        // From role's defaultPermissions array
-        for (const dp of ur.role.defaultPermissions || []) {
-          perms.push(dp);
-        }
-        // Subtract deniedPermissions
-        const denied = new Set(ur.deniedPermissions || []);
-        return perms.filter(p => !denied.has(p));
-      })
-      .filter((p, index, self) => self.indexOf(p) === index);
+    // D-PERM: single merge function (junction + defaultPermissions − deniedPermissions)
+    const permissions = computeEffectivePermissions(userRoles);
+
+    // D-PERM: read permission version for JWT claim
+    const permVer = await this.getPermissionVersion(user.id);
 
     // Generate JWT payload
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
+      username: user.username ?? undefined,
+      fullName: user.fullName ?? undefined,
       roles,
       permissions,
       branchIds: branchIds.length > 0 ? branchIds : undefined,
+      permVer,
     };
 
     // Generate access token (1 hour)
@@ -307,27 +317,22 @@ export class AuthService {
       .map((ur) => ur.branchId)
       .filter((id): id is string => id !== null);
 
-    const permissions = activeRoles
-      .flatMap((ur) => {
-        const perms: string[] = [];
-        for (const rp of ur.role.rolePermissions || []) {
-          perms.push(`${rp.permission.module}.${rp.permission.submodule || '*'}.${rp.permission.action}`);
-        }
-        for (const dp of ur.role.defaultPermissions || []) {
-          perms.push(dp);
-        }
-        const denied = new Set(ur.deniedPermissions || []);
-        return perms.filter(p => !denied.has(p));
-      })
-      .filter((p, index, self) => self.indexOf(p) === index);
+    // D-PERM: single merge function
+    const permissions = computeEffectivePermissions(activeRoles);
+
+    // D-PERM: read permission version for JWT claim
+    const permVer = await this.getPermissionVersion(user.id);
 
     // Generate new access token
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
+      username: user.username ?? undefined,
+      fullName: user.fullName ?? undefined,
       roles,
       permissions,
       branchIds: branchIds.length > 0 ? branchIds : undefined,
+      permVer,
     };
 
     const accessToken = this.jwtService.sign(payload, {
@@ -526,8 +531,8 @@ export class AuthService {
     return {
       id: user.id,
       email: user.email,
-      username: user.username,
-      fullName: user.fullName,
+      username: user.username ?? undefined,
+      fullName: user.fullName ?? undefined,
       phone: user.phone,
       profilePhotoUrl: user.profilePhotoUrl,
       isActive: user.isActive,
