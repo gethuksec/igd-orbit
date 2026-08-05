@@ -111,11 +111,10 @@ export class UserTransformer {
     // D1: SUPERADMIN stays global — branchId required on every assignment,
     // global access is expressed by role (see branch-access.service)
     const isSuperAdmin = activeRoles.some((ur) => ur.role.code === 'SUPERADMIN');
-    const branchIds = isSuperAdmin
-      ? null
-      : activeRoles
-          .map((ur) => ur.branchId)
-          .filter((id): id is string => id !== null);
+    const userBranchIds = activeRoles
+      .map((ur) => ur.branchId)
+      .filter((id): id is string => id !== null);
+    const branchIds = isSuperAdmin || userBranchIds.length === 0 ? null : userBranchIds;
 
     // Transform employee data if exists
     const employee = user.employee
@@ -163,7 +162,7 @@ export class UserTransformer {
       employee,
       roles,
       permissions,
-      branchIds: branchIds.length > 0 ? branchIds : null,
+      branchIds: branchIds && branchIds.length > 0 ? branchIds : null,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       deletedAt: user.deletedAt,

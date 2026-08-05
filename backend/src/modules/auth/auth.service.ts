@@ -200,7 +200,7 @@ export class AuthService {
       fullName: user.fullName ?? undefined,
       roles,
       permissions,
-      branchIds: branchIds.length > 0 ? branchIds : undefined,
+      branchIds: branchIds && branchIds.length > 0 ? branchIds : undefined,
       permVer,
     };
 
@@ -253,7 +253,7 @@ export class AuthService {
             }
           : null,
         permissions,
-        branchIds: branchIds.length > 0 ? branchIds : null,
+        branchIds: branchIds && branchIds.length > 0 ? branchIds : null,
       },
     };
   }
@@ -320,7 +320,7 @@ export class AuthService {
       fullName: user.fullName ?? undefined,
       roles,
       permissions,
-      branchIds: branchIds.length > 0 ? branchIds : undefined,
+      branchIds: branchIds && branchIds.length > 0 ? branchIds : undefined,
       permVer,
     };
 
