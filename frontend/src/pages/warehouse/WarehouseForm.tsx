@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Save, Loader2, ArrowLeft, Warehouse as WarehouseIcon } from "lucide-react";
@@ -48,24 +48,25 @@ export default function WarehouseForm() {
     queryKey: ["warehouse", id],
     queryFn: () => warehousesService.getById(id!),
     enabled: isEdit,
-    onSuccess: (data) => {
-      if (!loaded) {
-        setForm({
-          name: data.name || "",
-          code: data.code || "",
-          outletId: data.outletId || "",
-          city: data.city || "",
-          address: data.address || "",
-          phone: data.phone || "",
-          email: data.email || "",
-          contactPerson: data.contactPerson || "",
-          mobilePhone: data.mobilePhone || "",
-          isActive: data.isActive !== false,
-        });
-        setLoaded(true);
-      }
-    },
   });
+
+  useEffect(() => {
+    if (warehouse && !loaded) {
+      setForm({
+        name: warehouse.name || "",
+        code: warehouse.code || "",
+        outletId: warehouse.outletId || "",
+        city: warehouse.city || "",
+        address: warehouse.address || "",
+        phone: warehouse.phone || "",
+        email: warehouse.email || "",
+        contactPerson: warehouse.contactPerson || "",
+        mobilePhone: warehouse.mobilePhone || "",
+        isActive: warehouse.isActive !== false,
+      });
+      setLoaded(true);
+    }
+  }, [warehouse, loaded]);
 
   const { data: outletsData } = useQuery({
     queryKey: ["branches-active"],

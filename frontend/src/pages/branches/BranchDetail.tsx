@@ -494,12 +494,12 @@ export default function BranchDetail() {
                 <div className="flex items-center justify-center py-6">
                   <Loader2 className="w-5 h-5 text-primary-600 animate-spin" />
                 </div>
-              ) : warehouses.length === 0 ? (
+              ) : (warehouses || []).length === 0 ? (
                 <p className="text-sm text-gray-500 py-3">
                   Belum ada gudang untuk outlet ini.
                 </p>
               ) : (
-                warehouses.map((wh: any) => (
+                (warehouses || []).map((wh: any) => (
                   <Link
                     key={wh.id}
                     to={`/warehouses/${wh.id}`}
