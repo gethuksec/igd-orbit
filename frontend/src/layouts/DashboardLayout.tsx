@@ -241,6 +241,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             { icon: ClipboardList, label: 'Kelengkapan', path: '/service-checkpoints', permission: 'service.checkpoint.view', roles: ['SUPERADMIN', 'OWNER', 'MGR', 'CS', 'HS', 'SPV'] },
           ],
         },
+        {
+          icon: Store,
+          label: 'Outlet & Gudang',
+          children: [
+            { icon: Store, label: 'Cabang', path: '/branches', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
+            { icon: Warehouse, label: 'Gudang', path: '/warehouses', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA'] },
+          ],
+        },
       ],
     },
     {
@@ -266,12 +274,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       ],
     },
     {
-      icon: Warehouse,
-      label: 'Gudang',
+      icon: Boxes,
+      label: 'Inventory',
       permission: 'inventory.*.view',
       roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'],
       children: [
-        { icon: Warehouse, label: 'Data Gudang', path: '/warehouses', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
         { icon: Boxes, label: 'Stok', path: '/inventory/stock', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
         { icon: ArrowRightLeft, label: 'Transfer Stok', path: '/inventory/transfer', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
         { icon: ClipboardCheck, label: 'Stock Opname', path: '/inventory/opname', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
