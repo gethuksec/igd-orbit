@@ -327,13 +327,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       ],
     },
     {
-      icon: Store,
-      label: 'Cabang',
-      path: '/branches',
-      permission: 'master_data.*.view',
-      roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'],
-    },
-    {
       icon: Shield,
       label: 'User & Role',
       permission: 'users.*.view',
