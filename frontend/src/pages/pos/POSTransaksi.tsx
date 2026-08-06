@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { formatCurrency } from '@/utils/format';
-import { useBranchStore } from '@/stores/branchStore';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -82,7 +81,6 @@ function createInitialRows(): ItemRow[] {
 // ─── Component ───────────────────────────────────
 
 export default function POSTransaksi() {
-  const { currentBranchId } = useBranchStore();
   const { hasPermission } = usePermissions();
   const navigate = useNavigate();
   const today = new Date().toISOString().slice(0, 10);
@@ -145,7 +143,7 @@ export default function POSTransaksi() {
   const [productSearchState, setProductSearchState] = useState<{ rowId: string; query: string }>({ rowId: '', query: '' });
 
   const { data: productResults = [] } = useQuery({
-    queryKey: ['pos-products', productSearchState.query, currentBranchId],
+    queryKey: ['pos-products', productSearchState.query],
     queryFn: async () => {
       const token = localStorage.getItem('access_token');
       const res = await fetch('/api/v1/pos/products?q=' + encodeURIComponent(productSearchState.query) + '&limit=10', {
@@ -220,7 +218,7 @@ export default function POSTransaksi() {
     return () => {
       if (barcodeTimeoutRef.current) clearTimeout(barcodeTimeoutRef.current);
     };
-  }, [barcodeBuffer, currentBranchId, rows, addProductToRow]);
+  }, [barcodeBuffer, rows, addProductToRow]);
 
   // ── Quick search (top bar) product handler ──
   const handleQuickSearchSelect = (product: any) => {
@@ -419,11 +417,15 @@ export default function POSTransaksi() {
   });
 
   // T21: sales persons + warehouses (were empty dropdowns)
+  // D5: both scoped to the selected outlet (per-page explicit branch model)
   const { data: salesPersons = [] } = useQuery({
-    queryKey: ['pos-sales-persons'],
+    queryKey: ['pos-sales-persons', form.outletPenjual || 'all'],
     queryFn: async () => {
       const token = localStorage.getItem('access_token');
-      const res = await fetch('/api/v1/pos/sales-persons', {
+      const url = form.outletPenjual
+        ? '/api/v1/pos/sales-persons?outletId=' + encodeURIComponent(form.outletPenjual)
+        : '/api/v1/pos/sales-persons';
+      const res = await fetch(url, {
         headers: { Authorization: 'Bearer ' + token }
       });
       if (!res.ok) return [];
@@ -432,16 +434,36 @@ export default function POSTransaksi() {
   });
 
   const { data: warehouses = [] } = useQuery({
-    queryKey: ['pos-warehouses'],
+    queryKey: ['pos-warehouses', form.outletPenjual || 'all'],
+    enabled: Boolean(form.outletPenjual),
     queryFn: async () => {
       const token = localStorage.getItem('access_token');
-      const res = await fetch('/api/v1/pos/warehouses', {
+      const res = await fetch('/api/v1/pos/warehouses?outletId=' + encodeURIComponent(form.outletPenjual), {
         headers: { Authorization: 'Bearer ' + token }
       });
       if (!res.ok) return [];
       return res.json();
     },
   });
+
+  // D5: auto-select outlet when only one branch exists (decision #32)
+  useEffect(() => {
+    if (branches.length === 1 && !form.outletPenjual) {
+      setForm((prev) => ({ ...prev, outletPenjual: branches[0].id }));
+    }
+  }, [branches, form.outletPenjual]);
+
+  // D5: auto-select warehouse when the outlet has exactly one
+  useEffect(() => {
+    if (warehouses.length === 1 && !form.gudang) {
+      setForm((prev) => ({ ...prev, gudang: warehouses[0].id }));
+    }
+  }, [warehouses, form.gudang]);
+
+  // D5: outlet change resets outlet-scoped selections (warehouse + salesperson)
+  const handleOutletChange = (outletId: string) => {
+    setForm((prev) => ({ ...prev, outletPenjual: outletId, gudang: '', sales: '' }));
+  };
 
   // T21: top search bar results (was disconnected from quickSearch — never populated)
   // Strip the "qty space" prefix before querying: "2 baterai" → "baterai"
@@ -514,7 +536,7 @@ export default function POSTransaksi() {
                 </Label>
                 <select
                   value={form.outletPenjual}
-                  onChange={(e) => setForm((prev) => ({ ...prev, outletPenjual: e.target.value }))}
+                  onChange={(e) => handleOutletChange(e.target.value)}
                   className="w-full h-9 border border-gray-300 rounded-md px-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary bg-white"
                 >
                   <option value="">Please select</option>

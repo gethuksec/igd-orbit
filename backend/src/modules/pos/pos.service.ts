@@ -213,17 +213,21 @@ export class PosService {
     });
   }
 
-  async listWarehouses() {
+  async listWarehouses(outletId?: string) {
     // D1: warehouses now live in their own table (were branches with isWarehouse=true)
+    // D5: optional outlet filter — per-page explicit branch model (no global context)
     return this.prisma.warehouse.findMany({
-      where: { isActive: true },
-      select: { id: true, name: true, code: true },
+      where: {
+        isActive: true,
+        ...(outletId ? { outletId } : {}),
+      },
+      select: { id: true, name: true, code: true, outletId: true },
       orderBy: { name: 'asc' },
     });
   }
 
-  async listSalesPersons() {
-    // Users with sales-related roles
+  async listSalesPersons(outletId?: string) {
+    // Users with sales-related roles, optionally scoped to a branch (D5: UserBranch filter)
     const salesRoles = ['CSO', 'SPV', 'HS', 'SMO', 'CS'];
     return this.prisma.user.findMany({
       where: {
@@ -234,6 +238,7 @@ export class PosService {
             role: {
               code: { in: salesRoles },
             },
+            ...(outletId ? { branchId: outletId } : {}),
           },
         },
       },

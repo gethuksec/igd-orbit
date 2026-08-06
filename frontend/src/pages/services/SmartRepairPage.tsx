@@ -9,7 +9,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { formatCurrency } from '@/utils/format';
-import { useBranchStore } from '@/stores/branchStore';
 import { toast } from 'sonner';
 import { Search, Plus, Trash2, Calculator, Loader2, Save } from 'lucide-react';
 import { serviceOrdersService } from '@/services/service-orders.service';
@@ -61,7 +60,6 @@ function createInitialRows(): ItemRow[] {
 
 export default function SmartRepairPage() {
   const navigate = useNavigate();
-  const { currentBranchId } = useBranchStore();
   const today = new Date().toISOString().slice(0, 10);
 
   const [tab, setTab] = useState<ServiceTab>('inap');
@@ -118,14 +116,17 @@ export default function SmartRepairPage() {
     queryFn: () => fetchList('/api/v1/pos/branches'),
   });
 
+  // D5: queries scoped to the selected outlet — decoupled from global branch store
   const { data: warehouses = [] } = useQuery({
-    queryKey: ['smart-repair', 'warehouses'],
-    queryFn: () => fetchList('/api/v1/pos/warehouses'),
+    queryKey: ['smart-repair', 'warehouses', form.outlet || 'all'],
+    enabled: Boolean(form.outlet),
+    queryFn: () => fetchList('/api/v1/pos/warehouses?outletId=' + encodeURIComponent(form.outlet)),
   });
 
   const { data: technicians = [] } = useQuery({
-    queryKey: ['smart-repair', 'technicians'],
-    queryFn: () => fetchList('/api/v1/users/technicians'),
+    queryKey: ['smart-repair', 'technicians', form.outlet || 'all'],
+    enabled: Boolean(form.outlet),
+    queryFn: () => fetchList('/api/v1/users/technicians?branchId=' + encodeURIComponent(form.outlet)),
   });
 
   const { data: customerResults = [] } = useQuery({
@@ -140,12 +141,25 @@ export default function SmartRepairPage() {
     queryFn: () => fetchList('/api/v1/pos/products?q=' + encodeURIComponent(quickSearch) + '&limit=10'),
   });
 
-  // Preselect outlet from branch store
+  // D5: auto-select outlet when only one branch exists (decision #32) — replaces the old
+  // global branchStore preselect (per-page explicit model, no global context)
   useEffect(() => {
-    if (!form.outlet && currentBranchId) {
-      setForm((prev) => ({ ...prev, outlet: currentBranchId }));
+    if (branches.length === 1 && !form.outlet) {
+      setForm((prev) => ({ ...prev, outlet: branches[0].id }));
     }
-  }, [currentBranchId, form.outlet]);
+  }, [branches, form.outlet]);
+
+  // D5: auto-select warehouse when the outlet has exactly one
+  useEffect(() => {
+    if (warehouses.length === 1 && !form.warehouseId) {
+      setForm((prev) => ({ ...prev, warehouseId: warehouses[0].id }));
+    }
+  }, [warehouses, form.warehouseId]);
+
+  // D5: outlet change resets outlet-scoped selections (warehouse + technician)
+  const handleOutletChange = (outletId: string) => {
+    setForm((prev) => ({ ...prev, outlet: outletId, warehouseId: '', technicianId: '' }));
+  };
 
   // ── Barcode scanner buffer (captures rapid typing outside inputs) ──
   useEffect(() => {
@@ -398,7 +412,7 @@ export default function SmartRepairPage() {
                 </Label>
                 <select
                   value={form.outlet}
-                  onChange={(e) => setF({ outlet: e.target.value })}
+                  onChange={(e) => handleOutletChange(e.target.value)}
                   className="w-full h-9 border border-gray-300 rounded-md px-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary bg-white"
                 >
                   <option value="">Please select</option>
@@ -681,8 +695,9 @@ export default function SmartRepairPage() {
                     value={form.warehouseId}
                     onChange={(e) => setF({ warehouseId: e.target.value })}
                     className="w-full h-9 border border-gray-300 rounded-md px-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary bg-white"
+                    disabled={!form.outlet}
                   >
-                    <option value="">Pilih Gudang</option>
+                    <option value="">{form.outlet ? 'Pilih Gudang' : 'Tentukan Outlet'}</option>
                     {warehouses.map((w: any) => (
                       <option key={w.id} value={w.id}>{w.name}</option>
                     ))}

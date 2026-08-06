@@ -50,13 +50,13 @@ export class PosController {
   }
 
   @Get('warehouses')
-  async listWarehouses() {
-    return this.posService.listWarehouses();
+  async listWarehouses(@Query('outletId') outletId?: string) {
+    return this.posService.listWarehouses(outletId);
   }
 
   @Get('sales-persons')
-  async listSalesPersons() {
-    return this.posService.listSalesPersons();
+  async listSalesPersons(@Query('outletId') outletId?: string) {
+    return this.posService.listSalesPersons(outletId);
   }
 
   @Get('payment-terms')
