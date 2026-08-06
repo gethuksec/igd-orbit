@@ -25,7 +25,8 @@ import { Inject } from '@nestjs/common';
 import {
   bumpPermissionVersion,
   computeEffectivePermissions,
-, isPermissionWithinDefaults } from '../../shared/utils/permissions.util';
+  isPermissionWithinDefaults,
+} from '../../shared/utils/permissions.util';
 
 /**
  * Users Service
