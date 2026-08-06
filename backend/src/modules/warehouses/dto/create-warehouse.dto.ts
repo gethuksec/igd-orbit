@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  ValidateIf,
 } from 'class-validator';
 
 /**
@@ -35,6 +36,7 @@ export class CreateWarehouseDto {
   @IsOptional()
   phone?: string;
 
+  @ValidateIf((o) => o.email !== undefined && o.email !== null && o.email !== '')
   @IsEmail({}, { message: 'Email must be a valid email address' })
   @IsOptional()
   email?: string;

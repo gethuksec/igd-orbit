@@ -91,8 +91,9 @@ export default function WarehouseList() {
 
   const saveMutation = useMutation({
     mutationFn: (data: any) => {
-      const submitData = { ...data };
-      if (submitData.code === "") delete submitData.code; // auto-generate
+      const submitData = Object.fromEntries(
+        Object.entries(data).filter(([, v]) => v !== "")
+      );
       if (editingWarehouse) {
         return warehousesService.update(editingWarehouse.id, submitData);
       }
