@@ -74,6 +74,17 @@ export const branchesService = {
     }
   },
 
+  /** Active branches for dropdowns — public endpoint, array response (role-safe) */
+  async getActive(): Promise<Branch[]> {
+    try {
+      const response = await api.get('/branches');
+      const data = Array.isArray(response.data) ? response.data : response.data?.data || [];
+      return data.filter((b: any) => b.isActive !== false);
+    } catch (error: any) {
+      return [];
+    }
+  },
+
   async getById(id: string): Promise<Branch> {
     try {
       const response = await api.get(`/branches/${id}`);
