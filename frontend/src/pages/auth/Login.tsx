@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { LogIn, Mail, Lock, AlertCircle } from 'lucide-react';
 import { api } from '../../services/api';
 
@@ -20,14 +20,27 @@ const getDefaultRouteForUser = (user: any): string => {
   return '/dashboard';
 };
 
+// T22 — a safe destination from the ?next= query param (local paths only)
+const getNextPath = (search: string): string | null => {
+  const next = new URLSearchParams(search).get('next');
+  if (next && next.startsWith('/') && !next.startsWith('//')) {
+    return next;
+  }
+  return null;
+};
+
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // If already logged in, redirect away from /login
+  // T22 — session expired banner (?expired=1 set by the 401 interceptor)
+  const sessionExpired = new URLSearchParams(location.search).get('expired') === '1';
+
+  // If already logged in, redirect away from /login (honoring ?next= if present)
   useEffect(() => {
     try {
       const token = localStorage.getItem('access_token');
@@ -35,13 +48,13 @@ export default function Login() {
       const user = rawUser ? JSON.parse(rawUser) : null;
 
       if (token && user) {
-        const target = getDefaultRouteForUser(user);
+        const target = getNextPath(location.search) || getDefaultRouteForUser(user);
         navigate(target, { replace: true });
       }
     } catch {
       // ignore parse errors, treat as not logged in
     }
-  }, [navigate]);
+  }, [navigate, location.search]);
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
@@ -64,7 +77,7 @@ export default function Login() {
         localStorage.setItem('user', JSON.stringify(data.user));
       }
 
-      const target = getDefaultRouteForUser(data.user);
+      const target = getNextPath(location.search) || getDefaultRouteForUser(data.user);
       navigate(target, { replace: true });
     } catch (err: any) {
       console.error('Login error:', err);
@@ -91,6 +104,18 @@ export default function Login() {
 
         {/* Login Card */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+          {/* Session expired banner (from ?expired=1 set by the 401 interceptor) */}
+          {sessionExpired && (
+            <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-amber-800">
+                  Sesi berakhir, silakan login kembali
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Error Message */}
           {error && (
             <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
