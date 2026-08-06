@@ -98,6 +98,7 @@ import BranchForm from './pages/branches/BranchForm';
 import BranchDetail from './pages/branches/BranchDetail';
 // Landing Pages
 import WarehouseLanding from './pages/warehouse/WarehouseLanding';
+import WarehouseList from './pages/warehouse/WarehouseList';
 import SalesLanding from './pages/sales/SalesLanding';
 import ServiceLanding from './pages/services/ServiceLanding';
 import SmartRepairPage from './pages/services/SmartRepairPage';
@@ -780,6 +781,17 @@ function App() {
                 <ProtectedRoute>
                   <DashboardLayout>
                     <WarehouseLanding />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            {/* Warehouse Management (D2) */}
+            <Route
+              path="/warehouses"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <WarehouseList />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
