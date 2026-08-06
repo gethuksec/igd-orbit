@@ -835,14 +835,13 @@ export class UsersService {
   }
 
   /**
-   * Remove role from user
-   * @param userId - User ID
-   * @param roleId - Role ID
-   * @param _removedBy - User ID who removed this role (for audit trail)
+   * Remove a role assignment (UserBranch) from a user.
+   * The :roleId path param is the USERBRANCH id (transformer `roles[].id`),
+   * not the Role id — the FE always has the assignment id in hand.
    */
   async removeRole(
     userId: string,
-    roleId: string,
+    userRoleId: string,
     _removedBy: string,
   ): Promise<void> {
     const user = await this.prisma.user.findUnique({
@@ -853,24 +852,11 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    const role = await this.prisma.role.findUnique({
-      where: { id: roleId },
-    });
-
-    if (!role) {
-      throw new NotFoundException('Role not found');
-    }
-
-    // Check if system role - cannot be deleted
-    if (role.isSystemRole) {
-      throw new BadRequestException('Cannot remove system role');
-    }
-
-    // Find and delete role assignment
+    // Find the exact assignment row (user-scoped) and delete it
     const userBranch = await this.prisma.userBranch.findFirst({
       where: {
+        id: userRoleId,
         userId,
-        roleId,
       },
     });
 
