@@ -241,14 +241,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             { icon: ClipboardList, label: 'Kelengkapan', path: '/service-checkpoints', permission: 'service.checkpoint.view', roles: ['SUPERADMIN', 'OWNER', 'MGR', 'CS', 'HS', 'SPV'] },
           ],
         },
-        {
-          icon: Store,
-          label: 'Outlet & Gudang',
-          children: [
-            { icon: Store, label: 'Cabang', path: '/branches', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
-            { icon: Warehouse, label: 'Gudang', path: '/warehouses', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA'] },
-          ],
-        },
+        { icon: Store, label: 'Cabang', path: '/branches', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
+        { icon: Warehouse, label: 'Gudang', path: '/warehouses', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA'] },
       ],
     },
     {
