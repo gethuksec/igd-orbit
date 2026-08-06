@@ -66,6 +66,7 @@ const routeToModulePermission: Record<string, string> = {
   '/purchasing/goods-receipt': 'purchasing.*.view',
   '/users': 'users.*.view',
   '/roles': 'roles.*.view',
+  '/roles/:id/permissions': 'roles.*.view',
   '/branches': 'master_data.*.view',
   '/profile': 'dashboard.*.view', // Profile accessible if user has dashboard access
   '/settings': 'dashboard.*.view', // Settings accessible if user has dashboard access

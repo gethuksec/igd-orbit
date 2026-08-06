@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Eye, Edit, Trash2, Users, Mail, Phone, Shield, CheckCircle, XCircle, RefreshCw, Loader2, AlertTriangle } from 'lucide-react';
-import { usersService } from '../../services/users.service';
+import { usersService, type User } from '../../services/users.service';
 import { toast } from 'sonner';
 import { PageHeader, StatCard, SearchFilter, DataTable } from '@/components/shared';
 import type { Column } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import RequirePermission from '../../components/guards/RequirePermission';
+import { UserFormModal } from './components/UserFormModal';
 
 type StatusFilter = 'all' | 'active' | 'banned';
 
@@ -21,6 +22,23 @@ export default function UserList() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<{ id: string; fullName: string } | null>(null);
+  // D4: create/edit via modal (same surface)
+  const [formModal, setFormModal] = useState<{ open: boolean; user: User | null }>({ open: false, user: null });
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // UserDetail "Edit" → /users?edit=<id> → open modal here
+  const editId = searchParams.get('edit');
+  const { data: editUser } = useQuery({
+    queryKey: ['user', editId],
+    queryFn: () => usersService.getById(editId!),
+    enabled: !!editId,
+  });
+  useEffect(() => {
+    if (editUser) {
+      setFormModal({ open: true, user: editUser });
+      setSearchParams({}, { replace: true });
+    }
+  }, [editUser, setSearchParams]);
   const queryClient = useQueryClient();
 
   const { data, isLoading, error, refetch } = useQuery({
@@ -205,11 +223,9 @@ export default function UserList() {
     <div className="space-y-6">
       <PageHeader title="Manajemen Pengguna" subtitle="Kelola pengguna dan akses sistem">
         <RequirePermission permission="users.create" fallbackRoles={['SUPERADMIN', 'CHR']}>
-          <Button asChild size="sm" className="bg-white text-primary-600 hover:bg-primary-50 font-semibold">
-            <Link to="/users/new">
-              <Plus className="w-4 h-4" />
-              Tambah Pengguna
-            </Link>
+          <Button size="sm" className="bg-white text-primary-600 hover:bg-primary-50 font-semibold" onClick={() => setFormModal({ open: true, user: null })}>
+            <Plus className="w-4 h-4" />
+            Tambah Pengguna
           </Button>
         </RequirePermission>
       </PageHeader>
@@ -292,10 +308,14 @@ export default function UserList() {
               </Button>
             )}
             <RequirePermission permission="users.update" fallbackRoles={['SUPERADMIN', 'CHR']}>
-              <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:bg-green-50" title="Edit">
-                <Link to={`/users/${user.id}/edit`}>
-                  <Edit className="w-4 h-4" />
-                </Link>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-green-600 hover:bg-green-50"
+                title="Edit"
+                onClick={() => setFormModal({ open: true, user })}
+              >
+                <Edit className="w-4 h-4" />
               </Button>
             </RequirePermission>
             <RequirePermission permission="users.delete" fallbackRoles={['SUPERADMIN']}>
@@ -409,6 +429,13 @@ export default function UserList() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* D4: Create/Edit User Modal */}
+      <UserFormModal
+        open={formModal.open}
+        user={formModal.user}
+        onClose={() => setFormModal({ open: false, user: null })}
+      />
     </div>
   );
 }

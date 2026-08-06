@@ -151,6 +151,27 @@ export class RolesService {
             userBranches: true,
           },
         },
+        // D4: users tied to this role (RoleDetail "Pengguna dengan role ini")
+        userBranches: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+                isActive: true,
+              },
+            },
+            branch: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+              },
+            },
+          },
+          orderBy: { isPrimary: 'desc' },
+        },
       },
     });
 

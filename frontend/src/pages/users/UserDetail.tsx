@@ -12,7 +12,6 @@ import {
   Calendar,
   Loader2,
   Trash2,
-  Plus,
   AlertTriangle,
 } from 'lucide-react';
 import { usersService } from '../../services/users.service';
@@ -21,15 +20,13 @@ import { PageHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import RequirePermission from '../../components/guards/RequirePermission';
-import { AssignRoleModal } from './components/AssignRoleModal';
+import { labelForPermission } from '../../utils/permissionLabels';
 
 export default function UserDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [showAssignRoleModal, setShowAssignRoleModal] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [roleToRemove, setRoleToRemove] = useState<{ id: string; name: string } | null>(null);
 
   const { data: user, isLoading, error } = useQuery({
     queryKey: ['user', id],
@@ -46,18 +43,6 @@ export default function UserDetail() {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Gagal menghapus pengguna');
-    },
-  });
-
-  const removeRoleMutation = useMutation({
-    mutationFn: (userRoleId: string) => usersService.removeRole(id!, userRoleId),
-    onSuccess: () => {
-      toast.success('Role berhasil dihapus');
-      queryClient.invalidateQueries({ queryKey: ['user', id] });
-      setRoleToRemove(null);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Gagal menghapus role');
     },
   });
 
@@ -90,11 +75,9 @@ export default function UserDetail() {
           </Link>
         </Button>
         <RequirePermission permission="users.update" fallbackRoles={['SUPERADMIN', 'CHR']}>
-          <Button asChild size="sm" className="bg-white text-primary-600 hover:bg-primary-50 font-semibold">
-            <Link to={`/users/${user.id}/edit`}>
-              <Edit className="w-4 h-4" />
-              Edit
-            </Link>
+          <Button size="sm" className="bg-white text-primary-600 hover:bg-primary-50 font-semibold" onClick={() => navigate(`/users?edit=${user.id}`)}>
+            <Edit className="w-4 h-4" />
+            Edit User
           </Button>
         </RequirePermission>
         <RequirePermission permission="users.delete" fallbackRoles={['SUPERADMIN']}>
@@ -169,62 +152,61 @@ export default function UserDetail() {
         </div>
       </div>
 
-      {/* Roles Section */}
+      {/* Roles Section — read-only (edit via modal) */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
             <Shield className="w-5 h-5 text-primary-600" />
-            Roles & Permissions
+            Penugasan Cabang &amp; Role
           </h2>
-          <RequirePermission permission="users.assignRole" fallbackRoles={['SUPERADMIN', 'CHR']}>
-            <Button size="sm" onClick={() => setShowAssignRoleModal(true)}>
-              <Plus className="w-4 h-4" />
-              Assign Role
-            </Button>
-          </RequirePermission>
+          <span className="text-xs text-gray-400">klik Edit User untuk mengubah</span>
         </div>
 
         {user.roles && user.roles.length > 0 ? (
           <div className="space-y-3">
             {user.roles.map((userRole) => {
-              // Support both formats: new format (code/name directly) and legacy format (role.code/role.name)
               const roleName = userRole.name || userRole.role?.name || 'Unknown Role';
               const roleCode = userRole.code || userRole.role?.code || 'N/A';
               const branchName = userRole.branchName || userRole.branch?.name;
+              const denies: string[] = (userRole as any).deniedPermissions || [];
 
               return (
-                <div
-                  key={userRole.id}
-                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <Shield className="w-5 h-5 text-primary-600" />
-                      <div>
+                <div key={userRole.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Shield className="w-4 h-4 text-primary-600" />
                         <p className="font-semibold text-gray-900">{roleName}</p>
-                        <p className="text-sm text-muted-foreground">Code: {roleCode}</p>
-                        {branchName && (
-                          <p className="text-xs text-muted-foreground mt-1">Cabang: {branchName}</p>
-                        )}
-                        {userRole.validUntil && (
-                          <p className="text-xs text-muted-foreground">
-                            Berlaku hingga: {new Date(userRole.validUntil).toLocaleDateString('id-ID')}
-                          </p>
+                        <span className="text-xs font-mono text-gray-400">{roleCode}</span>
+                        {userRole.isPrimary && (
+                          <span className="text-[10px] bg-gray-100 text-gray-600 border border-gray-200 px-2 py-0.5 rounded-md font-semibold">
+                            Primary
+                          </span>
                         )}
                       </div>
+                      {branchName && (
+                        <p className="text-xs text-muted-foreground mt-1">Outlet: {branchName}</p>
+                      )}
+                      {!branchName && (
+                        <p className="text-xs text-muted-foreground mt-1 italic">Semua cabang (global)</p>
+                      )}
                     </div>
                   </div>
-                  <RequirePermission permission="users.removeRole" fallbackRoles={['SUPERADMIN', 'CHR']}>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-red-600 hover:bg-red-50"
-                      title="Hapus Role"
-                      onClick={() => setRoleToRemove({ id: userRole.id, name: roleName })}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </RequirePermission>
+                  {denies.length > 0 && (
+                    <div className="mt-2 flex items-center gap-2 flex-wrap">
+                      <span className="text-[11px] text-gray-500 font-medium">Ditolak (deny-only):</span>
+                      {denies.map((k) => (
+                        <span
+                          key={k}
+                          className="bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded-md flex flex-col leading-tight"
+                          title={k}
+                        >
+                          <span className="text-[11px] font-semibold">{labelForPermission(k)}</span>
+                          <span className="text-[10px] font-mono text-red-400">{k}</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -232,79 +214,10 @@ export default function UserDetail() {
         ) : (
           <div className="text-center py-8 text-muted-foreground">
             <Shield className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
-            <p>Belum ada role yang ditetapkan</p>
-            <RequirePermission permission="users.assignRole" fallbackRoles={['SUPERADMIN', 'CHR']}>
-              <Button
-                variant="link"
-                className="mt-4 text-primary-600 hover:text-primary-700 font-medium"
-                onClick={() => setShowAssignRoleModal(true)}
-              >
-                Assign Role Sekarang
-              </Button>
-            </RequirePermission>
+            <p>Belum ada penugasan</p>
           </div>
         )}
       </div>
-
-      {/* Assign Role Modal */}
-      {showAssignRoleModal && (
-        <AssignRoleModal
-          userId={user.id}
-          onClose={() => setShowAssignRoleModal(false)}
-          onSuccess={() => {
-            setShowAssignRoleModal(false);
-            queryClient.invalidateQueries({ queryKey: ['user', id] });
-          }}
-        />
-      )}
-
-      {/* Remove Role Dialog */}
-      <Dialog
-        open={!!roleToRemove}
-        onOpenChange={(open) => {
-          if (!open) setRoleToRemove(null);
-        }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Hapus Role</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
-              </div>
-              <p className="text-sm text-gray-700">
-                Yakin ingin menghapus role <strong>{roleToRemove?.name}</strong> dari pengguna ini?
-              </p>
-            </div>
-            <div className="flex gap-3 pt-2">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => setRoleToRemove(null)}
-                disabled={removeRoleMutation.isPending}
-              >
-                Batal
-              </Button>
-              <Button
-                variant="destructive"
-                className="flex-1"
-                onClick={() => roleToRemove && removeRoleMutation.mutate(roleToRemove.id)}
-                disabled={removeRoleMutation.isPending}
-              >
-                {removeRoleMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" /> Menghapus...
-                  </>
-                ) : (
-                  'Hapus'
-                )}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <Dialog

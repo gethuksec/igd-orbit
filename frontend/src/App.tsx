@@ -149,10 +149,9 @@ import KPIRecordForm from './pages/hr/kpi/KPIRecordForm';
 // User & Role Management
 import UserList from './pages/users/UserList';
 import UserDetail from './pages/users/UserDetail';
-import UserForm from './pages/users/UserForm';
 import RoleList from './pages/roles/RoleList';
 import RoleDetail from './pages/roles/RoleDetail';
-import RoleForm from './pages/roles/RoleForm';
+import RolePermissionPage from './pages/roles/RolePermissionPage';
 import PasswordRequests from './pages/auth/PasswordRequests';
 import './App.css';
 
@@ -1484,31 +1483,11 @@ function App() {
               }
             />
             <Route
-              path="/users/new"
-              element={
-                <ProtectedRoute>
-                  <DashboardLayout>
-                    <UserForm />
-                  </DashboardLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
               path="/users/:id"
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
                     <UserDetail />
-                  </DashboardLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/users/:id/edit"
-              element={
-                <ProtectedRoute>
-                  <DashboardLayout>
-                    <UserForm />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
@@ -1524,16 +1503,6 @@ function App() {
               }
             />
             <Route
-              path="/roles/new"
-              element={
-                <ProtectedRoute>
-                  <DashboardLayout>
-                    <RoleForm />
-                  </DashboardLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
               path="/roles/:id"
               element={
                 <ProtectedRoute>
@@ -1544,11 +1513,11 @@ function App() {
               }
             />
             <Route
-              path="/roles/:id/edit"
+              path="/roles/:id/permissions"
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <RoleForm />
+                    <RolePermissionPage />
                   </DashboardLayout>
                 </ProtectedRoute>
               }

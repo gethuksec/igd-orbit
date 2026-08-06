@@ -22,6 +22,7 @@ export interface UserRole {
   isPrimary: boolean;
   validFrom: string;
   validUntil?: string | null;
+  deniedPermissions?: string[];
   // Legacy format support (for backward compatibility)
   role?: {
     id: string;
@@ -67,6 +68,7 @@ export interface AssignRoleDto {
   branchId?: string | null;
   validFrom?: string;
   validUntil?: string | null;
+  deniedPermissions?: string[];
 }
 
 export const usersService = {

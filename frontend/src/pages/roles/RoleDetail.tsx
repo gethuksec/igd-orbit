@@ -11,6 +11,8 @@ import {
   Loader2,
   Trash2,
   AlertTriangle,
+  KeyRound,
+  Users,
 } from 'lucide-react';
 import { rolesService } from '../../services/roles.service';
 import { toast } from 'sonner';
@@ -79,12 +81,18 @@ export default function RoleDetail() {
         </Button>
         <RequirePermission permission="roles.update" fallbackRoles={['SUPERADMIN']}>
           {!isSuperAdminRole && (
-            <Button asChild size="sm" className="bg-white text-primary-600 hover:bg-primary-50 font-semibold">
-              <Link to={`/roles/${role.id}/edit`}>
+            <>
+              <Button asChild size="sm" className="bg-white text-primary-600 hover:bg-primary-50 font-semibold">
+                <Link to={`/roles/${role.id}/permissions`}>
+                  <KeyRound className="w-4 h-4" />
+                  Kelola Hak Default
+                </Link>
+              </Button>
+              <Button size="sm" className="bg-white text-primary-600 hover:bg-primary-50 font-semibold" onClick={() => navigate(`/roles?edit=${role.id}`)}>
                 <Edit className="w-4 h-4" />
                 Edit
-              </Link>
-            </Button>
+              </Button>
+            </>
           )}
         </RequirePermission>
         <RequirePermission permission="roles.delete" fallbackRoles={['SUPERADMIN']}>
@@ -153,6 +161,79 @@ export default function RoleDetail() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* D4: Users with this role */}
+      <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+            <Users className="w-4 h-4 text-primary-600" />
+            Pengguna dengan role ini
+          </h3>
+          <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-md font-semibold text-gray-600">
+            {role.userCount ?? 0} user
+          </span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-100">
+              <tr>
+                <th className="px-6 py-2.5 text-left text-[11px] font-bold uppercase text-gray-500">Nama</th>
+                <th className="px-6 py-2.5 text-left text-[11px] font-bold uppercase text-gray-500">Email</th>
+                <th className="px-6 py-2.5 text-left text-[11px] font-bold uppercase text-gray-500">Outlet</th>
+                <th className="px-6 py-2.5 text-left text-[11px] font-bold uppercase text-gray-500">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {(() => {
+                const ub: Array<{
+                  user: { id: string; fullName: string | null; email: string; isActive: boolean };
+                  branch: { id: string; code: string; name: string } | null;
+                  isPrimary: boolean;
+                }> = (role as any).userBranches || [];
+                // Dedupe by user, join branch names
+                const byUser = new Map<string, { user: typeof ub[0]['user']; branches: string[] }>();
+                for (const row of ub) {
+                  if (!byUser.has(row.user.id)) {
+                    byUser.set(row.user.id, { user: row.user, branches: [] });
+                  }
+                  if (row.branch) {
+                    byUser.get(row.user.id)!.branches.push(`${row.branch.name} (${row.branch.code})`);
+                  }
+                }
+                return [...byUser.values()].map(({ user, branches }) => (
+                  <tr key={user.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-3 text-sm font-semibold text-gray-800">
+                      {user.fullName || '-'}
+                    </td>
+                    <td className="px-6 py-3 text-sm text-gray-500">{user.email}</td>
+                    <td className="px-6 py-3 text-sm text-gray-600">
+                      {branches.length > 0 ? branches.join(', ') : <span className="italic">-</span>}
+                    </td>
+                    <td className="px-6 py-3 text-sm">
+                      {user.isActive ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-semibold">
+                          <CheckCircle className="w-3 h-3" /> Aktif
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 text-gray-600 rounded-lg text-xs font-semibold">
+                          <XCircle className="w-3 h-3" /> Non-Aktif
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ));
+              })()}
+              {((role as any).userBranches?.length ?? 0) === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-6 py-8 text-center text-sm text-gray-400">
+                    Belum ada pengguna dengan role ini
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 

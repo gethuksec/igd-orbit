@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Eye, Edit, Trash2, Shield, CheckCircle, XCircle, Loader2, Network, AlertTriangle, KeyRound } from 'lucide-react';
-import { rolesService } from '../../services/roles.service';
+import { Plus, Eye, Edit, Trash2, Shield, CheckCircle, XCircle, Loader2, Network, AlertTriangle, KeyRound, Users } from 'lucide-react';
+import { rolesService, type Role } from '../../services/roles.service';
 import { toast } from 'sonner';
 import { PageHeader, StatCard, SearchFilter, DataTable } from '@/components/shared';
 import type { Column } from '@/components/shared';
@@ -17,6 +17,7 @@ import {
 import RequirePermission from '../../components/guards/RequirePermission';
 import { usePermissions } from '../../hooks/usePermissions';
 import { RoleHierarchyTree } from './components/RoleHierarchyTree';
+import { RoleFormModal } from './components/RoleFormModal';
 
 export default function RoleList() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -25,10 +26,27 @@ export default function RoleList() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [roleToDelete, setRoleToDelete] = useState<{ id: string; name: string } | null>(null);
   const [hierarchyModalOpen, setHierarchyModalOpen] = useState(false);
+  // D4: create/edit via modal (same surface)
+  const [formModal, setFormModal] = useState<{ open: boolean; role: Role | null }>({ open: false, role: null });
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { userRoles } = usePermissions();
   const isSuperAdmin = userRoles.includes('SUPERADMIN');
+
+  // RoleDetail "Edit" → /roles?edit=<id> → open modal here
+  const editId = searchParams.get('edit');
+  const { data: editRole } = useQuery({
+    queryKey: ['role', editId],
+    queryFn: () => rolesService.getById(editId!),
+    enabled: !!editId,
+  });
+  useEffect(() => {
+    if (editRole) {
+      setFormModal({ open: true, role: editRole });
+      setSearchParams({}, { replace: true });
+    }
+  }, [editRole, setSearchParams]);
 
   // Query for paginated roles
   const { data, isLoading, error, refetch } = useQuery({
@@ -136,6 +154,16 @@ export default function RoleList() {
       },
     },
     {
+      key: 'userCount',
+      header: 'User',
+      cell: (role) => (
+        <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+          <Users className="w-4 h-4" />
+          {role.userCount ?? 0}
+        </span>
+      ),
+    },
+    {
       key: 'isActive',
       header: 'Status',
       cell: (role) =>
@@ -166,11 +194,9 @@ export default function RoleList() {
           Lihat Hierarki
         </Button>
         <RequirePermission permission="roles.create" fallbackRoles={['SUPERADMIN']}>
-          <Button asChild size="sm" className="bg-white text-primary-600 hover:bg-primary-50 font-semibold">
-            <Link to="/roles/new">
-              <Plus className="w-4 h-4" />
-              Tambah Role
-            </Link>
+          <Button size="sm" className="bg-white text-primary-600 hover:bg-primary-50 font-semibold" onClick={() => setFormModal({ open: true, role: null })}>
+            <Plus className="w-4 h-4" />
+            Tambah Role
           </Button>
         </RequirePermission>
       </PageHeader>
@@ -222,10 +248,14 @@ export default function RoleList() {
               </Link>
             </Button>
             <RequirePermission permission="roles.update" fallbackRoles={['SUPERADMIN']}>
-              <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:bg-green-50" title="Edit">
-                <Link to={`/roles/${role.id}/edit`}>
-                  <Edit className="w-4 h-4" />
-                </Link>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-green-600 hover:bg-green-50"
+                title="Edit"
+                onClick={() => setFormModal({ open: true, role })}
+              >
+                <Edit className="w-4 h-4" />
               </Button>
             </RequirePermission>
             <RequirePermission permission="roles.delete" fallbackRoles={['SUPERADMIN']}>
@@ -364,6 +394,13 @@ export default function RoleList() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* D4: Create/Edit Role Modal */}
+      <RoleFormModal
+        open={formModal.open}
+        role={formModal.role}
+        onClose={() => setFormModal({ open: false, role: null })}
+      />
     </div>
   );
 }
