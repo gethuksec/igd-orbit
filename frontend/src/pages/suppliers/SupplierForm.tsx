@@ -3,9 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Save,
-  X,
   Loader2,
-  ArrowLeft,
   Building2,
   Phone,
   Mail,
@@ -17,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { BreadcrumbHeader } from '@/components/shared';
 import { suppliersService } from '../../services/suppliers.service';
 import { toast } from 'sonner';
 
@@ -110,7 +109,7 @@ export default function SupplierForm() {
         notes: data.notes || undefined,
         contactPerson: data.contactPerson || undefined,
       };
-      
+
       if (isEdit) {
         return suppliersService.update(id!, submitData);
       } else {
@@ -126,7 +125,7 @@ export default function SupplierForm() {
       // Extract validation errors from backend
       const errorResponse = error.response?.data;
       let errorMessage = 'Terjadi kesalahan saat menyimpan data';
-      
+
       if (errorResponse?.message) {
         // Single error message
         errorMessage = errorResponse.message;
@@ -139,7 +138,7 @@ export default function SupplierForm() {
       } else if (errorResponse?.error) {
         errorMessage = errorResponse.error;
       }
-      
+
       toast.error(errorMessage);
     },
   });
@@ -166,36 +165,12 @@ export default function SupplierForm() {
   return (
     <div className="w-full space-y-4">
       {/* Page Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-2xl shadow-lg p-8 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/suppliers')}
-              className="text-white/80 hover:bg-white/20"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div>
-              <h1 className="text-4xl font-bold mb-2">
-                {isEdit ? 'Edit Supplier' : 'Tambah Supplier'}
-              </h1>
-              <p className="text-primary-100 text-lg">
-                {isEdit ? 'Ubah informasi supplier' : 'Tambahkan supplier baru'}
-              </p>
-            </div>
-          </div>
-          <Button
-            variant="outline"
-            onClick={() => navigate('/suppliers')}
-            className="text-white border-white/20 bg-white/10 backdrop-blur-sm hover:bg-white/20"
-          >
-            <X className="w-4 h-4" />
-            <span>Batal</span>
-          </Button>
-        </div>
-      </div>
+      <BreadcrumbHeader
+        title={isEdit ? 'Edit Supplier' : 'Tambah Supplier'}
+        subtitle={isEdit ? 'Ubah informasi supplier' : 'Tambahkan supplier baru'}
+      >
+
+      </BreadcrumbHeader>
 
       {/* Tabs */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">

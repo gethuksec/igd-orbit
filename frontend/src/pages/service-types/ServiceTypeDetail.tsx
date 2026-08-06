@@ -2,7 +2,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Edit, Wrench, Clock, DollarSign, Package, Calendar, Loader2 } from "lucide-react";
 import { serviceTypesService } from "../../services/service-types.service";
-import { PageHeader } from "@/components/shared";
+import { BreadcrumbHeader } from "@/components/shared";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 export default function ServiceTypeDetail() {
@@ -62,15 +62,15 @@ export default function ServiceTypeDetail() {
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex-1">
-          <PageHeader title={serviceType.name} subtitle="Detail Layanan">
+          <BreadcrumbHeader title={serviceType.name} subtitle="Detail Layanan">
             <Link
               to={`/service-types/${id}/edit`}
-              className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm text-white rounded-lg hover:bg-white/20 transition-all"
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all"
             >
               <Edit className="w-4 h-4" />
               <span>Edit</span>
             </Link>
-          </PageHeader>
+          </BreadcrumbHeader>
         </div>
       </div>
 

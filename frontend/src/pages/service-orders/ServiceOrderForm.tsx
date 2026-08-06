@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Save, X, Loader2, ArrowLeft, Wrench, User, Package, Search, Plus } from 'lucide-react';
+import { Save, Loader2, ArrowLeft, Wrench, User, Package, Search, Plus } from 'lucide-react';
 import { serviceOrdersService } from '../../services/service-orders.service';
 import { api } from '../../services/api';
 import { salesService } from '../../services/sales.service';
 import { customersService } from '../../services/customers.service';
 import { toast } from 'sonner';
 import kecamatanJember from '@/data/kecamatan-jember.json';
-import { PageHeader } from '@/components/shared';
+import { BreadcrumbHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 
 // Common device units for combobox suggestions
@@ -284,20 +284,12 @@ export default function ServiceOrderForm() {
     return (
       <div className="w-full space-y-3">
         {/* Page Header */}
-        <PageHeader
+        <BreadcrumbHeader
           title="Tambah Service Order"
           subtitle="Pilih kategori dan tipe service"
         >
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/service-orders')}
-            className="text-white/80 hover:text-white hover:bg-white/20"
-          >
-            <X className="w-4 h-4 mr-2" />
-            Batal
-          </Button>
-        </PageHeader>
+
+        </BreadcrumbHeader>
 
         {/* Pre-form Card */}
         <form onSubmit={handlePreFormSubmit} className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
@@ -389,7 +381,7 @@ export default function ServiceOrderForm() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header */}
-      <PageHeader
+      <BreadcrumbHeader
         title={isEdit ? 'Edit Service Order' : 'Tambah Service Order'}
         subtitle={isEdit ? 'Ubah informasi service order' : 'Lengkapi data service order'}
       >
@@ -403,20 +395,12 @@ export default function ServiceOrderForm() {
             }
             navigate('/service-orders');
           }}
-          className="text-white/80 hover:text-white hover:bg-white/20"
+
         >
           <ArrowLeft className="w-4 h-4" />
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate('/service-orders')}
-          className="text-white/80 hover:text-white hover:bg-white/20"
-        >
-          <X className="w-4 h-4 mr-2" />
-          Batal
-        </Button>
-      </PageHeader>
+
+      </BreadcrumbHeader>
 
       {/* Form Card */}
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
@@ -461,7 +445,7 @@ export default function ServiceOrderForm() {
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="Cari nama, telepon, atau kode customer..."
               />
-              
+
               {/* Search Results Dropdown */}
               {showCustomerSearch && customerSearchQuery.length >= 2 && (
                 <div className="absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto z-50">

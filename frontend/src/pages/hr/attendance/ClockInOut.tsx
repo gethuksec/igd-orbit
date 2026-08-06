@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { BreadcrumbHeader } from '@/components/shared';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, MapPin, ArrowLeft, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { MapPin, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { hrService } from '@/services/hr.service';
 import { formatDateTime } from '@/utils/format';
 import { toast } from 'sonner';
@@ -101,25 +102,7 @@ export default function ClockInOut() {
   return (
     <div className="w-full space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center gap-4">
-          <Link
-            to="/hr/attendance"
-            className="p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <div>
-            <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-              <Clock className="w-10 h-10" />
-              Clock In / Out
-            </h1>
-            <p className="text-blue-100 text-lg">
-              {employee?.fullName || employee?.email || 'Karyawan'} - {formatDateTime(new Date())}
-            </p>
-          </div>
-        </div>
-      </div>
+      <BreadcrumbHeader title="Clock In / Out" subtitle={<>{employee?.fullName || employee?.email || 'Karyawan'} - {formatDateTime(new Date())}</>} />
 
       {/* Today's Status */}
       {todayAttendance && (

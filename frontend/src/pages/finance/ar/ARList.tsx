@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BreadcrumbHeader } from '@/components/shared';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -47,14 +48,7 @@ export default function ARList() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold mb-2">Accounts Receivable</h1>
-            <p className="text-primary-100 text-lg">Laporan aging piutang usaha</p>
-          </div>
-        </div>
-      </div>
+      <BreadcrumbHeader title="Accounts Receivable" subtitle="Laporan aging piutang usaha" />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-3">

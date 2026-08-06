@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BreadcrumbHeader } from '@/components/shared';
 import { useQuery } from '@tanstack/react-query';
 import {
   BarChart3,
@@ -445,14 +446,7 @@ export default function FinancialReports() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold mb-2">Laporan Keuangan</h1>
-            <p className="text-primary-100 text-lg">Laporan keuangan dan analisis</p>
-          </div>
-        </div>
-      </div>
+      <BreadcrumbHeader title="Laporan Keuangan" subtitle="Laporan keuangan dan analisis" />
 
       {/* Report Selection */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">

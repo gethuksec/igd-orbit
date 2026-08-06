@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Save, Plus, Trash2, Loader2, X } from 'lucide-react';
+import { Save, Plus, Trash2, Loader2, X } from 'lucide-react';
+import { BreadcrumbHeader } from '@/components/shared';
 import { purchasingService } from '@/services/purchasing.service';
 import { productsService } from '@/services/products.service';
 import { suppliersService } from '@/services/suppliers.service';
@@ -250,19 +251,7 @@ export default function PurchaseOrderForm() {
 
   return (
     <div className="w-full space-y-6">
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate('/purchasing/po')}
-            className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-          >
-            <ArrowLeft className="w-6 h-6" />
-          </button>
-          <div>
-            <h1 className="text-4xl font-bold">{isEdit ? 'Edit' : 'Buat'} Purchase Order</h1>
-          </div>
-        </div>
-      </div>
+      <BreadcrumbHeader title={isEdit ? 'Edit Purchase Order' : 'Buat Purchase Order'} />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-4">

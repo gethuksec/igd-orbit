@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { usersService } from '../../services/users.service';
 import { toast } from 'sonner';
-import { PageHeader } from '@/components/shared';
+import { BreadcrumbHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import RequirePermission from '../../components/guards/RequirePermission';
@@ -67,7 +67,7 @@ export default function UserDetail() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={user.fullName} subtitle="Detail pengguna">
+      <BreadcrumbHeader title={user.fullName} subtitle="Detail pengguna">
         <Button asChild variant="ghost" size="sm" className="text-white hover:bg-white/20">
           <Link to="/users">
             <ArrowLeft className="w-4 h-4" />
@@ -91,7 +91,7 @@ export default function UserDetail() {
             Hapus
           </Button>
         </RequirePermission>
-      </PageHeader>
+      </BreadcrumbHeader>
 
       {/* User Info Card */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">

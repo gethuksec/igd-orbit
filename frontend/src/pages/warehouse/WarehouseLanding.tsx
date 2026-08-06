@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { BreadcrumbHeader } from '@/components/shared';
 import { Boxes, ArrowRightLeft, ClipboardCheck, PackageSearch } from 'lucide-react';
 
 export default function WarehouseLanding() {
@@ -36,12 +37,7 @@ export default function WarehouseLanding() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div>
-          <h1 className="text-4xl font-bold mb-2">Gudang & Inventory</h1>
-          <p className="text-primary-100 text-lg">Kelola stok, transfer, dan inventory</p>
-        </div>
-      </div>
+      <BreadcrumbHeader title="Gudang & Inventory" subtitle="Kelola stok, transfer, dan inventory" />
 
       {/* Menu Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">

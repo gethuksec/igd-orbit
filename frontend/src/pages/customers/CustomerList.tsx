@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { customersService } from '../../services/customers.service';
 import { toast } from 'sonner';
-import { PageHeader } from '@/components/shared';
+import { BreadcrumbHeader } from '@/components/shared';
 import { StatCard } from '@/components/shared';
 import { SearchFilter } from '@/components/shared';
 import { DataTable } from '@/components/shared';
@@ -224,12 +224,12 @@ export default function CustomerList() {
 
   return (
     <div className="w-full space-y-3">
-      <PageHeader title="Manajemen Pelanggan" subtitle="Kelola data pelanggan dan riwayat transaksi">
+      <BreadcrumbHeader title="Manajemen Pelanggan" subtitle="Kelola data pelanggan dan riwayat transaksi">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setShowImportModal(true)}
-          className="text-white/80 hover:text-white hover:bg-white/20"
+
         >
           <Upload className="w-4 h-4 mr-1" />
           Import
@@ -238,19 +238,19 @@ export default function CustomerList() {
           variant="ghost"
           size="sm"
           onClick={handleExport}
-          className="text-white/80 hover:text-white hover:bg-white/20"
+
         >
           <Download className="w-4 h-4 mr-1" />
           Export
         </Button>
         <Button
           onClick={() => setShowFormModal(true)}
-          className="flex items-center gap-2 bg-white text-primary-600 hover:bg-primary-50"
+          className="flex items-center gap-2 bg-white text-primary-600 border border-gray-200 hover:bg-primary-50"
         >
           <Plus className="w-5 h-5" />
           <span>Tambah Pelanggan</span>
         </Button>
-      </PageHeader>
+      </BreadcrumbHeader>
 
       {error && (
         <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">

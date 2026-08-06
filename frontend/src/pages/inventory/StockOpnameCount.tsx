@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { BreadcrumbHeader } from '@/components/shared';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -109,22 +110,7 @@ export default function StockOpnameCount() {
   return (
     <div className="w-full space-y-3">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              to={`/inventory/opname/${id}`}
-              className="p-2 text-white/80 hover:bg-white/20 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold mb-1">Catat Hasil Perhitungan</h1>
-              <p className="text-primary-100">{opname.opnameNumber}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <BreadcrumbHeader title="Catat Hasil Perhitungan" subtitle={opname.opnameNumber} />
 
       {/* Search */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">

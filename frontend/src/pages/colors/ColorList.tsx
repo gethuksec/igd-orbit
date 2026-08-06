@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {Plus, Palette, Eye, Edit, Trash2, Save, Loader2, AlertTriangle} from "lucide-react";
 import { colorsService } from "../../services/colors.service";
 import { api } from "../../services/api";
-import { PageHeader } from "@/components/shared";
+import { BreadcrumbHeader } from "@/components/shared";
 import { StatCard } from "@/components/shared";
 import { SearchFilter } from "@/components/shared";
 import { DataTable } from "@/components/shared";
@@ -167,15 +167,15 @@ export default function ColorList() {
 
   return (
     <div className="w-full space-y-3">
-      <PageHeader title="Manajemen Warna" subtitle="Kelola warna produk">
+      <BreadcrumbHeader title="Manajemen Warna" subtitle="Kelola warna produk">
         <Button
           onClick={openCreateModal}
-          className="flex items-center gap-2 bg-white text-primary-600 hover:bg-primary-50"
+          className="flex items-center gap-2 bg-white text-primary-600 border border-gray-200 hover:bg-primary-50"
         >
           <Plus className="w-5 h-5" />
           <span>Tambah Warna</span>
         </Button>
-      </PageHeader>
+      </BreadcrumbHeader>
 
       {error && (
         <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
@@ -402,7 +402,7 @@ export default function ColorList() {
           </div>
         </form>
         </DialogContent>
-      
+
       {/* Delete Confirmation Dialog */}
       <Dialog
         open={deleteModalOpen}

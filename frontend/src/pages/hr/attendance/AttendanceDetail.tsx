@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom';
+import { BreadcrumbHeader } from '@/components/shared';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { hrService, type Attendance } from '@/services/hr.service';
 import { formatDate, formatDateTime } from '@/utils/format';
 
@@ -75,28 +76,7 @@ export default function AttendanceDetail() {
   return (
     <div className="w-full space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              to="/hr/attendance"
-              className="p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <div>
-              <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-                <Clock className="w-10 h-10" />
-                Detail Absensi
-              </h1>
-              <p className="text-blue-100 text-lg">
-                {attendance.employee?.user?.fullName || attendance.employee?.employeeCode || 'N/A'} -{' '}
-                {formatDate(attendance.date)}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <BreadcrumbHeader title="Detail Absensi" subtitle={<>{attendance.employee?.user?.fullName || attendance.employee?.employeeCode || 'N/A'} -{' '} {formatDate(attendance.date)}</>} />
 
       {/* Info Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -1,4 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
+import { BreadcrumbHeader } from '@/components/shared';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
@@ -131,25 +132,12 @@ export default function JournalEntryDetail() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              to="/finance/journal"
-              className="p-2 text-white/80 hover:bg-white/20 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold mb-1">Detail Jurnal</h1>
-              <p className="text-primary-100">Informasi lengkap jurnal akuntansi</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
+      <BreadcrumbHeader title="Detail Jurnal" subtitle="Informasi lengkap jurnal akuntansi">
+        <div className="flex items-center gap-2">
             {entry.status === 'draft' && (
               <Link
                 to={`/finance/journal/${entry.id}/edit`}
-                className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors"
               >
                 <Edit className="w-4 h-4" />
                 <span>Edit</span>
@@ -159,7 +147,7 @@ export default function JournalEntryDetail() {
               <button
                 onClick={() => postMutation.mutate()}
                 disabled={postMutation.isPending || !isBalanced}
-                className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-50"
               >
                 {postMutation.isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -181,7 +169,7 @@ export default function JournalEntryDetail() {
                   }
                 }}
                 disabled={reverseMutation.isPending}
-                className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-50"
               >
                 {reverseMutation.isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -192,8 +180,7 @@ export default function JournalEntryDetail() {
               </button>
             )}
           </div>
-        </div>
-      </div>
+      </BreadcrumbHeader>
 
       {/* Entry Information */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">

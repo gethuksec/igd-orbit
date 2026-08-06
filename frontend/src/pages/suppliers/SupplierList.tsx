@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Truck, Eye, Edit, Trash2, AlertTriangle, Loader2 } from "lucide-react";
 import { suppliersService } from "../../services/suppliers.service";
-import { PageHeader } from "@/components/shared";
+import { BreadcrumbHeader } from "@/components/shared";
 import { StatCard } from "@/components/shared";
 import { SearchFilter } from "@/components/shared";
 import { DataTable } from "@/components/shared";
@@ -235,15 +235,15 @@ export default function SupplierList() {
 
   return (
     <div className="w-full space-y-3">
-      <PageHeader title="Manajemen Pemasok" subtitle="Kelola data pemasok dan vendor">
+      <BreadcrumbHeader title="Manajemen Pemasok" subtitle="Kelola data pemasok dan vendor">
         <Button
           onClick={openCreateModal}
-          className="flex items-center gap-2 bg-white text-primary-600 hover:bg-primary-50"
+          className="flex items-center gap-2 bg-white text-primary-600 border border-gray-200 hover:bg-primary-50"
         >
           <Plus className="w-5 h-5" />
           <span>Tambah Pemasok</span>
         </Button>
-      </PageHeader>
+      </BreadcrumbHeader>
 
       {error && (
         <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">

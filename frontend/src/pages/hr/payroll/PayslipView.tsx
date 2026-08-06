@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom';
+import { BreadcrumbHeader } from '@/components/shared';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Download, Printer, FileText, AlertCircle } from 'lucide-react';
+import { Download, Printer, AlertCircle } from 'lucide-react';
 import { hrService } from '@/services/hr.service';
 import { formatCurrency, formatDate } from '@/utils/format';
 
@@ -54,41 +55,24 @@ export default function PayslipView() {
   return (
     <div className="w-full space-y-6">
       {/* Header - Hidden on print */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white print:hidden">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              to={`/hr/payroll/${id}`}
-              className="p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <div>
-              <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-                <FileText className="w-10 h-10" />
-                Payslip
-              </h1>
-              <p className="text-primary-100 text-lg">{payroll.payrollNumber}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handlePrint}
-              className="px-6 py-3 bg-white text-primary-600 rounded-lg font-semibold hover:bg-primary-50 transition-colors flex items-center gap-2"
-            >
-              <Printer className="w-5 h-5" />
-              Print
-            </button>
-            <button
-              onClick={handleDownload}
-              className="px-6 py-3 bg-white text-primary-600 rounded-lg font-semibold hover:bg-primary-50 transition-colors flex items-center gap-2"
-            >
-              <Download className="w-5 h-5" />
-              Download PDF
-            </button>
-          </div>
+      <BreadcrumbHeader title="Payslip" subtitle={payroll.payrollNumber}>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handlePrint}
+            className="px-4 py-2 bg-white text-primary-600 border border-gray-200 rounded-lg font-semibold hover:bg-primary-50 transition-colors flex items-center gap-2"
+          >
+            <Printer className="w-5 h-5" />
+            Print
+          </button>
+          <button
+            onClick={handleDownload}
+            className="px-4 py-2 bg-white text-primary-600 border border-gray-200 rounded-lg font-semibold hover:bg-primary-50 transition-colors flex items-center gap-2"
+          >
+            <Download className="w-5 h-5" />
+            Download PDF
+          </button>
         </div>
-      </div>
+      </BreadcrumbHeader>
 
       {/* Payslip Content */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-8 print:shadow-none print:border-none">

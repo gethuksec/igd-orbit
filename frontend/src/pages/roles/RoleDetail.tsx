@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { rolesService } from '../../services/roles.service';
 import { toast } from 'sonner';
-import { PageHeader } from '@/components/shared';
+import { BreadcrumbHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import RequirePermission from '../../components/guards/RequirePermission';
@@ -72,7 +72,7 @@ export default function RoleDetail() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={role.name} subtitle="Detail role dan permissions">
+      <BreadcrumbHeader title={role.name} subtitle="Detail role dan permissions">
         <Button asChild variant="ghost" size="sm" className="text-white hover:bg-white/20">
           <Link to="/roles">
             <ArrowLeft className="w-4 h-4" />
@@ -108,7 +108,7 @@ export default function RoleDetail() {
             </Button>
           )}
         </RequirePermission>
-      </PageHeader>
+      </BreadcrumbHeader>
 
       {/* Role Info Card */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">

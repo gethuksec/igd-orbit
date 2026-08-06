@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { BreadcrumbHeader } from '@/components/shared';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Users, Search, User, Building2, Briefcase, Calendar, CheckCircle, XCircle, AlertCircle, Eye, Edit, Save, Plus } from 'lucide-react';
@@ -172,24 +173,15 @@ export default function EmployeeList() {
   return (
     <div className="w-full space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-              <Users className="w-10 h-10" />
-              Data Karyawan
-            </h1>
-            <p className="text-primary-100 text-lg">Kelola data karyawan dan informasi HR</p>
-          </div>
-          <button
+      <BreadcrumbHeader title="Data Karyawan" subtitle="Kelola data karyawan dan informasi HR">
+        <button
             onClick={openAddModal}
-            className="px-6 py-3 bg-white/20 hover:bg-white/30 rounded-xl font-semibold transition-all flex items-center gap-2"
+            className="px-6 py-3 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-semibold transition-all flex items-center gap-2"
           >
             <Plus className="w-5 h-5" />
             Tambah Karyawan
           </button>
-        </div>
-      </div>
+      </BreadcrumbHeader>
 
       {/* Filters & Search */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">

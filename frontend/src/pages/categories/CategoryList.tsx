@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Layers, Eye, Edit, Trash2, Save, AlertTriangle, Loader2 } from "lucide-react";
 import { categoriesService } from "../../services/categories.service";
 import { toast } from "sonner";
-import { PageHeader, StatCard } from "@/components/shared";
+import { BreadcrumbHeader, StatCard } from "@/components/shared";
 import { SearchFilter } from "@/components/shared";
 import { DataTable } from "@/components/shared";
 import type { Column } from "@/components/shared";
@@ -172,15 +172,15 @@ export default function CategoryList() {
 
   return (
     <div className="w-full space-y-3">
-      <PageHeader title="Manajemen Kategori" subtitle="Kelola kategori produk">
+      <BreadcrumbHeader title="Manajemen Kategori" subtitle="Kelola kategori produk">
         <Button
           onClick={openCreateModal}
-          className="flex items-center gap-2 bg-white text-primary-600 hover:bg-primary-50"
+          className="flex items-center gap-2 bg-white text-primary-600 border border-gray-200 hover:bg-primary-50"
         >
           <Plus className="w-5 h-5" />
           <span>Tambah Kategori</span>
         </Button>
-      </PageHeader>
+      </BreadcrumbHeader>
 
       {error && (
         <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">

@@ -6,7 +6,7 @@ import { serviceReturnsService, type CreateServiceReturnDto } from '../../servic
 import { serviceOrdersService } from '../../services/service-orders.service';
 import { toast } from 'sonner';
 import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
-import { PageHeader } from '@/components/shared';
+import { BreadcrumbHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 
 export default function ServiceReturnForm() {
@@ -157,7 +157,7 @@ export default function ServiceReturnForm() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header - Enhanced */}
-      <PageHeader
+      <BreadcrumbHeader
         title="Buat Retur & Komplain Service"
         subtitle="Formulir untuk membuat retur atau komplain service"
       >
@@ -166,12 +166,12 @@ export default function ServiceReturnForm() {
           variant="ghost"
           size="sm"
           onClick={() => navigate('/service-returns')}
-          className="text-white/80 hover:text-white hover:bg-white/20"
+
         >
           <ArrowLeft className="w-4 h-4" />
           Kembali
         </Button>
-      </PageHeader>
+      </BreadcrumbHeader>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Service Order Selection */}

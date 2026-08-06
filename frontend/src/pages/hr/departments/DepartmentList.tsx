@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
+import { BreadcrumbHeader } from "@/components/shared";
 import { Loader2, Plus, Pencil, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
 
@@ -115,15 +116,11 @@ export default function DepartmentList() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Departemen</h1>
-          <p className="text-sm text-gray-500">Kelola departemen organisasi</p>
-        </div>
+      <BreadcrumbHeader title="Departemen" subtitle="Kelola departemen organisasi">
         <Button onClick={openCreate} className="flex items-center gap-2">
           <Plus className="w-4 h-4" /> Tambah Departemen
         </Button>
-      </div>
+      </BreadcrumbHeader>
 
       <div className="relative max-w-xs">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />

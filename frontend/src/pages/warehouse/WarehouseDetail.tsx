@@ -1,7 +1,6 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
-  ArrowLeft,
   Edit,
   Warehouse as WarehouseIcon,
   Building2,
@@ -13,7 +12,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { warehousesService } from "../../services/warehouses.service";
-import { PageHeader } from "@/components/shared";
+import { BreadcrumbHeader } from "@/components/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -37,11 +36,7 @@ export default function WarehouseDetail() {
   if (error || !warehouse) {
     return (
       <div className="w-full space-y-3">
-        <PageHeader title="Detail Gudang" subtitle="Gudang tidak ditemukan">
-          <Button variant="outline" onClick={() => navigate("/warehouses")}>
-            <ArrowLeft className="w-4 h-4" /> Kembali
-          </Button>
-        </PageHeader>
+        <BreadcrumbHeader title="Detail Gudang" subtitle="Gudang tidak ditemukan" />
         <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
           <p className="text-red-800 font-medium">
             {(error as Error)?.message || "Gudang tidak ditemukan"}
@@ -67,25 +62,15 @@ export default function WarehouseDetail() {
 
   return (
     <div className="w-full space-y-3">
-      <PageHeader title={wh.name} subtitle={`Kode: ${wh.code || "-"}`}>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => navigate("/warehouses")}
-            className="flex items-center gap-2 bg-white"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Kembali</span>
-          </Button>
-          <Button
-            onClick={() => navigate(`/warehouses/${wh.id}/edit`)}
-            className="flex items-center gap-2 bg-white text-primary-600 hover:bg-primary-50"
-          >
-            <Edit className="w-4 h-4" />
-            <span>Edit</span>
-          </Button>
-        </div>
-      </PageHeader>
+      <BreadcrumbHeader title={wh.name} subtitle={`Kode: ${wh.code || "-"}`}>
+        <Button
+          onClick={() => navigate(`/warehouses/${wh.id}/edit`)}
+          className="flex items-center gap-2"
+        >
+          <Edit className="w-4 h-4" />
+          <span>Edit</span>
+        </Button>
+      </BreadcrumbHeader>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Informasi Gudang */}

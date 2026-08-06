@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Save, Loader2, ArrowLeft } from "lucide-react";
 import { paymentTermsService } from "../../services/payment-terms.service";
-import { PageHeader } from "@/components/shared";
+import { BreadcrumbHeader } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -67,7 +67,7 @@ export default function PaymentTermForm() {
 
   return (
     <div className="w-full max-w-2xl mx-auto space-y-6">
-      <PageHeader
+      <BreadcrumbHeader
         title={isEdit ? "Edit Termin Pembayaran" : "Tambah Termin Pembayaran"}
         subtitle={isEdit ? "Ubah data termin pembayaran" : "Buat termin pembayaran baru"}
       >
@@ -79,7 +79,7 @@ export default function PaymentTermForm() {
           <ArrowLeft className="w-4 h-4" />
           <span>Kembali</span>
         </Button>
-      </PageHeader>
+      </BreadcrumbHeader>
 
       <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
         <form onSubmit={handleSubmit} className="space-y-5">

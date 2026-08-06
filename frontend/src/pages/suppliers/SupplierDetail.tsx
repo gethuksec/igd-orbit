@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { suppliersService } from '../../services/suppliers.service';
 import { api } from '../../services/api';
-import { PageHeader } from '@/components/shared';
+import { BreadcrumbHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -116,7 +116,7 @@ export default function SupplierDetail() {
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div className="flex-1">
-          <PageHeader
+          <BreadcrumbHeader
             title={supplier.name}
             subtitle={
               <div className="flex items-center gap-3">
@@ -143,7 +143,7 @@ export default function SupplierDetail() {
                 <span>Edit</span>
               </Link>
             )}
-          </PageHeader>
+          </BreadcrumbHeader>
         </div>
       </div>
 

@@ -24,7 +24,7 @@ import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
-import { PageHeader } from '@/components/shared';
+import { BreadcrumbHeader } from '@/components/shared';
 import { StatCard } from '@/components/shared';
 import { DataTable } from '@/components/shared';
 import type { Column } from '@/components/shared';
@@ -315,12 +315,12 @@ export default function ProductList() {
 
   return (
     <div className="w-full space-y-3">
-      <PageHeader title="Manajemen Produk" subtitle="Kelola inventori dan harga produk dengan mudah">
+      <BreadcrumbHeader title="Manajemen Produk" subtitle="Kelola inventori dan harga produk dengan mudah">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setShowImportModal(true)}
-          className="text-white/80 hover:text-white hover:bg-white/20"
+
         >
           <Upload className="w-4 h-4 mr-1" />
           Import
@@ -330,18 +330,18 @@ export default function ProductList() {
           size="sm"
           onClick={handleExport}
           disabled={isLoading}
-          className="text-white/80 hover:text-white hover:bg-white/20"
+
         >
           <Download className="w-4 h-4 mr-1" />
           Export
         </Button>
         <Link to="/products/new">
-          <Button className="flex items-center gap-2 bg-white text-primary-600 hover:bg-primary-50">
+          <Button className="flex items-center gap-2 bg-white text-primary-600 border border-gray-200 hover:bg-primary-50">
             <Plus className="w-5 h-5" />
             <span>Tambah Produk</span>
           </Button>
         </Link>
-      </PageHeader>
+      </BreadcrumbHeader>
 
       {error && (
         <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">

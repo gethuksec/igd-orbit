@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { BreadcrumbHeader } from '@/components/shared';
 import { FileText, ReceiptText, Wallet, CreditCard, Receipt, BarChart3 } from 'lucide-react';
 
 export default function FinanceLanding() {
@@ -50,12 +51,7 @@ export default function FinanceLanding() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div>
-          <h1 className="text-4xl font-bold mb-2">Keuangan</h1>
-          <p className="text-primary-100 text-lg">Kelola keuangan dan akuntansi</p>
-        </div>
-      </div>
+      <BreadcrumbHeader title="Keuangan" subtitle="Kelola keuangan dan akuntansi" />
 
       {/* Menu Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">

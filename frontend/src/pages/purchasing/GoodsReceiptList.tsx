@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Package, Search, Eye, Plus, AlertCircle, Loader2 } from 'lucide-react';
+import { BreadcrumbHeader } from '@/components/shared';
 import { purchasingService, type GoodsReceipt } from '@/services/purchasing.service';
 import { formatDate } from '@/utils/format';
 import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
@@ -57,24 +58,15 @@ export default function GoodsReceiptList() {
 
   return (
     <div className="w-full space-y-6">
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-              <Package className="w-10 h-10" />
-              Goods Receipt
-            </h1>
-            <p className="text-primary-100 text-lg">Kelola penerimaan barang</p>
-          </div>
-          <Link
-            to="/purchasing/goods-receipt/new"
-            className="px-6 py-3 bg-white text-primary-600 rounded-lg font-semibold hover:bg-primary-50 transition-colors flex items-center gap-2"
-          >
-            <Plus className="w-5 h-5" />
-            GR Baru
-          </Link>
-        </div>
-      </div>
+      <BreadcrumbHeader title="Goods Receipt" subtitle="Kelola penerimaan barang">
+        <Link
+          to="/purchasing/goods-receipt/new"
+          className="px-4 py-2 bg-white text-primary-600 border border-gray-200 rounded-lg font-semibold hover:bg-primary-50 transition-colors flex items-center gap-2"
+        >
+          <Plus className="w-5 h-5" />
+          GR Baru
+        </Link>
+      </BreadcrumbHeader>
 
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
         <div className="flex flex-col lg:flex-row gap-4">

@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Search, Package, AlertTriangle, Warehouse, Filter } from 'lucide-react';
 import { api } from '../../services/api';
 import { useBranchStore } from '@/stores/branchStore';
-import { PageHeader } from '@/components/shared';
+import { BreadcrumbHeader } from '@/components/shared';
 import { StatCard } from '@/components/shared';
 import { DataTable } from '@/components/shared';
 import type { Column } from '@/components/shared';
@@ -102,7 +102,7 @@ export default function StockList() {
 
   return (
     <div className="w-full space-y-3">
-      <PageHeader title="Manajemen Stok" subtitle="Kelola stok produk per cabang" />
+      <BreadcrumbHeader title="Manajemen Stok" subtitle="Kelola stok produk per cabang" />
 
       {error && (
         <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">

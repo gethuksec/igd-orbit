@@ -26,7 +26,7 @@ import { toast } from 'sonner';
 import StatusTimeline from '@/pages/public/components/StatusTimeline';
 import { api } from '@/services/api';
 import { RotateCcw } from 'lucide-react';
-import { PageHeader } from '@/components/shared';
+import { BreadcrumbHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 
 const getCurrentUser = () => {
@@ -362,7 +362,7 @@ export default function ServiceOrderDetail() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header */}
-      <PageHeader
+      <BreadcrumbHeader
         title={order.serviceNumber || 'Service Order'}
         subtitle="Detail Service Order"
       >
@@ -370,7 +370,7 @@ export default function ServiceOrderDetail() {
           variant="ghost"
           size="sm"
           onClick={() => navigate('/service-orders')}
-          className="text-white/80 hover:text-white hover:bg-white/20"
+
         >
           <ArrowLeft className="w-4 h-4" />
         </Button>
@@ -381,7 +381,7 @@ export default function ServiceOrderDetail() {
           <Edit className="w-4 h-4" />
           <span>Edit</span>
         </Link>
-      </PageHeader>
+      </BreadcrumbHeader>
 
       {/* Status & Workflow */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">

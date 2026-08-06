@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Save, X, Loader2, Maximize } from 'lucide-react';
+import { Save, Loader2, Maximize } from 'lucide-react';
 import { api } from '../../services/api';
 import { toast } from 'sonner';
-import { PageHeader } from '@/components/shared';
-import { Button } from '@/components/ui/button';
+import { BreadcrumbHeader } from '@/components/shared';
 
 export default function SizeForm() {
   const { id } = useParams();
@@ -71,20 +70,12 @@ export default function SizeForm() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header */}
-      <PageHeader
+      <BreadcrumbHeader
         title={isEdit ? 'Edit Ukuran' : 'Tambah Ukuran'}
         subtitle={isEdit ? 'Ubah informasi ukuran' : 'Tambahkan ukuran baru'}
       >
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate('/sizes')}
-          className="text-white/80 hover:text-white hover:bg-white/20"
-        >
-          <X className="w-4 h-4 mr-2" />
-          Batal
-        </Button>
-      </PageHeader>
+
+      </BreadcrumbHeader>
 
       {/* Form Card */}
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">

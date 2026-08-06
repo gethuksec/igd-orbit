@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { BreadcrumbHeader } from '@/components/shared';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Save, Loader2, ArrowLeft, CreditCard, Search } from 'lucide-react';
+import { Save, Loader2, CreditCard, Search } from 'lucide-react';
 import { financeService } from '../../../services/finance.service';
 import { toast } from 'sonner';
 import { useBranchFilter } from '@/components/branch/BranchFilter';
@@ -98,22 +99,7 @@ export default function PettyCashFundForm() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/finance/petty-cash')}
-              className="p-2 text-white/80 hover:bg-white/20 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-3xl font-bold mb-1">Buat Petty Cash Fund</h1>
-              <p className="text-primary-100">Buat fund kas kecil baru</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <BreadcrumbHeader title="Buat Petty Cash Fund" subtitle="Buat fund kas kecil baru" />
 
       <form onSubmit={handleSubmit} className="space-y-3">
         {/* Fund Information */}

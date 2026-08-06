@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { BreadcrumbHeader } from '@/components/shared';
 import { useNavigate, Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Target, Save } from 'lucide-react';
+import { Save } from 'lucide-react';
 import { hrService } from '@/services/hr.service';
 import { toast } from 'sonner';
 import { api } from '@/services/api';
@@ -126,23 +127,7 @@ export default function KPIRecordForm() {
   return (
     <div className="w-full space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center gap-4">
-          <Link
-            to="/hr/kpi"
-            className="p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <div>
-            <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-              <Target className="w-10 h-10" />
-              Record KPI
-            </h1>
-            <p className="text-purple-100 text-lg">Formulir pencatatan KPI karyawan</p>
-          </div>
-        </div>
-      </div>
+      <BreadcrumbHeader title="Record KPI" subtitle="Formulir pencatatan KPI karyawan" />
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-6">

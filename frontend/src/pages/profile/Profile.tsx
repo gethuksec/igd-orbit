@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { BreadcrumbHeader } from '@/components/shared';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { User, Mail, Phone, Calendar, Edit, Save, Loader2, Shield, Lock, CheckCircle } from 'lucide-react';
 import { usersService, authService } from '../../services/users.service';
@@ -89,10 +90,7 @@ export default function Profile() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Profile Saya</h1>
-        <p className="text-gray-600 mt-1">Kelola informasi profile Anda</p>
-      </div>
+      <BreadcrumbHeader title="Profile Saya" subtitle="Kelola informasi profile Anda" />
 
       {/* Profile Card */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-6">

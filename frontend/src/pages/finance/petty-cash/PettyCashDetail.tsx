@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BreadcrumbHeader } from '@/components/shared';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -130,25 +131,12 @@ export default function PettyCashDetail() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              to="/finance/petty-cash"
-              className="p-2 text-white/80 hover:bg-white/20 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold mb-1">Detail Petty Cash Fund</h1>
-              <p className="text-primary-100">Informasi lengkap kas kecil</p>
-            </div>
-          </div>
-          {fund.isActive && (
+      <BreadcrumbHeader title="Detail Petty Cash Fund" subtitle="Informasi lengkap kas kecil">
+        {fund.isActive && (
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowTransactionForm(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 <span>Record Transaction</span>
@@ -161,15 +149,14 @@ export default function PettyCashDetail() {
                   });
                   setShowReconcileForm(true);
                 }}
-                className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors"
               >
                 <CheckCircle className="w-4 h-4" />
                 <span>Reconcile</span>
               </button>
             </div>
           )}
-        </div>
-      </div>
+      </BreadcrumbHeader>
 
       {/* Fund Information */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">

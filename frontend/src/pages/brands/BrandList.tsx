@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {Plus, Tag, Eye, Edit, Trash2, Save, Loader2, AlertTriangle} from "lucide-react";
 import { brandsService } from "../../services/brands.service";
-import { PageHeader, StatCard } from "@/components/shared";
+import { BreadcrumbHeader, StatCard } from "@/components/shared";
 import { SearchFilter } from "@/components/shared";
 import { DataTable } from "@/components/shared";
 import type { Column } from "@/components/shared";
@@ -102,7 +102,7 @@ export default function BrandList() {
 
   const totalProducts = brands.reduce(
     (acc: number
- 
+
 , b: any) => acc + (b.productCount || 0),
     0
   );
@@ -185,15 +185,15 @@ export default function BrandList() {
 
   return (
     <div className="w-full space-y-3">
-      <PageHeader title="Manajemen Merk" subtitle="Kelola merk produk">
+      <BreadcrumbHeader title="Manajemen Merk" subtitle="Kelola merk produk">
         <Button
           onClick={openCreateModal}
-          className="flex items-center gap-2 bg-white text-primary-600 hover:bg-primary-50"
+          className="flex items-center gap-2 bg-white text-primary-600 border border-gray-200 hover:bg-primary-50"
         >
           <Plus className="w-5 h-5" />
           <span>Tambah Merk</span>
         </Button>
-      </PageHeader>
+      </BreadcrumbHeader>
 
       {error && (
         <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
@@ -422,7 +422,7 @@ export default function BrandList() {
           </div>
         </form>
         </DialogContent>
-      
+
       {/* Delete Confirmation Dialog */}
       <Dialog
         open={deleteModalOpen}

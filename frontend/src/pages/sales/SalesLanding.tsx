@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ShoppingCart, Receipt, ArrowRightLeft } from 'lucide-react';
+import { BreadcrumbHeader } from '@/components/shared';
 
 export default function SalesLanding() {
   const menuItems = [
@@ -29,12 +30,7 @@ export default function SalesLanding() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div>
-          <h1 className="text-4xl font-bold mb-2">Penjualan</h1>
-          <p className="text-primary-100 text-lg">Kelola transaksi penjualan dan POS</p>
-        </div>
-      </div>
+      <BreadcrumbHeader title="Penjualan" subtitle="Kelola transaksi penjualan dan POS" />
 
       {/* Menu Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">

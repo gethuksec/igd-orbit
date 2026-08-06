@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Save, Loader2, ArrowLeft, Warehouse as WarehouseIcon } from "lucide-react";
+import { Save, Loader2, Warehouse as WarehouseIcon } from "lucide-react";
 import { warehousesService } from "../../services/warehouses.service";
 import { branchesService } from "../../services/branches.service";
-import { PageHeader } from "@/components/shared";
+import { BreadcrumbHeader } from "@/components/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -114,19 +114,10 @@ export default function WarehouseForm() {
 
   return (
     <div className="w-full space-y-3">
-      <PageHeader
+      <BreadcrumbHeader
         title={isEdit ? "Edit Gudang" : "Tambah Gudang"}
         subtitle={isEdit ? `Kode: ${warehouse?.code || "-"}` : "Kelola gudang per outlet"}
-      >
-        <Button
-          variant="outline"
-          onClick={() => navigate("/warehouses")}
-          className="flex items-center gap-2 bg-white"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Kembali</span>
-        </Button>
-      </PageHeader>
+      />
 
       <div className="max-w-2xl">
         <Card>

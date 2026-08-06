@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { BreadcrumbHeader } from '@/components/shared';
 import { useNavigate, Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Banknote, Plus, X, Save } from 'lucide-react';
+import { Plus, X, Save } from 'lucide-react';
 import { hrService } from '@/services/hr.service';
 import { toast } from 'sonner';
 import { api } from '@/services/api';
@@ -67,10 +68,10 @@ export default function PayrollCalculationForm() {
     onSuccess: (data) => {
       const calculatedCount = data.calculatedPayrolls || data.payrolls?.length || 0;
       toast.success(`Payroll berhasil dihitung untuk ${calculatedCount} karyawan`);
-      
+
       // Invalidate all payroll queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ['payrolls'] });
-      
+
       // If only one employee was selected and calculated, navigate to that payroll detail
       if (formData.employee_ids.length === 1 && data.payrolls && data.payrolls.length === 1) {
         // Wait a bit for the query to invalidate, then navigate
@@ -160,23 +161,7 @@ export default function PayrollCalculationForm() {
   return (
     <div className="w-full space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center gap-4">
-          <Link
-            to="/hr/payroll"
-            className="p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <div>
-            <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-              <Banknote className="w-10 h-10" />
-              Hitung Payroll
-            </h1>
-            <p className="text-primary-100 text-lg">Formulir perhitungan payroll karyawan</p>
-          </div>
-        </div>
-      </div>
+      <BreadcrumbHeader title="Hitung Payroll" subtitle="Formulir perhitungan payroll karyawan" />
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-6">

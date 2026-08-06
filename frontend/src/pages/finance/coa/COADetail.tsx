@@ -1,4 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
+import { BreadcrumbHeader } from '@/components/shared';
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowLeft,
@@ -91,22 +92,7 @@ export default function COADetail() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              to="/finance/coa"
-              className="p-2 text-white/80 hover:bg-white/20 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold mb-1">Detail Akun</h1>
-              <p className="text-primary-100">Informasi lengkap akun akuntansi</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <BreadcrumbHeader title="Detail Akun" subtitle="Informasi lengkap akun akuntansi" />
 
       {/* Account Information */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">

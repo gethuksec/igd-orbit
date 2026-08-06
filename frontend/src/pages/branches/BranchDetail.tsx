@@ -18,7 +18,7 @@ import {
 import { branchesService } from '../../services/branches.service';
 import { warehousesService } from '../../services/warehouses.service';
 import { Warehouse as WarehouseIcon } from 'lucide-react';
-import { PageHeader } from '@/components/shared';
+import { BreadcrumbHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -85,7 +85,7 @@ export default function BranchDetail() {
 
   return (
     <div className="w-full space-y-4">
-      <PageHeader
+      <BreadcrumbHeader
         title={branch.name}
         subtitle="Detail Cabang"
       >
@@ -93,19 +93,19 @@ export default function BranchDetail() {
           variant="ghost"
           size="sm"
           onClick={() => navigate('/branches')}
-          className="text-white/80 hover:text-white hover:bg-white/20"
+
         >
           <ArrowLeft className="w-4 h-4 mr-1" />
           Kembali
         </Button>
         <Link
           to={`/branches/${id}/edit`}
-          className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm text-white rounded-lg hover:bg-white/20 transition-all"
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all"
         >
           <Edit className="w-4 h-4" />
           <span>Edit</span>
         </Link>
-      </PageHeader>
+      </BreadcrumbHeader>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Left Column - Informasi Cabang */}

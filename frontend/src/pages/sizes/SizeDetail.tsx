@@ -1,7 +1,7 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Edit, Maximize, Loader2, Calendar } from "lucide-react";
-import { PageHeader } from "@/components/shared";
+import { BreadcrumbHeader } from "@/components/shared";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { api } from "../../services/api";
 
@@ -50,15 +50,15 @@ export default function SizeDetail() {
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex-1">
-          <PageHeader title={size.name} subtitle="Detail Ukuran">
+          <BreadcrumbHeader title={size.name} subtitle="Detail Ukuran">
             <Link
               to={`/sizes/${id}/edit`}
-              className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm text-white rounded-lg hover:bg-white/20 transition-all"
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all"
             >
               <Edit className="w-4 h-4" />
               <span>Edit</span>
             </Link>
-          </PageHeader>
+          </BreadcrumbHeader>
         </div>
       </div>
 

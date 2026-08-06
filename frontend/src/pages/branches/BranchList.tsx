@@ -12,7 +12,7 @@ import {
   MapPin,
 } from 'lucide-react';
 import { branchesService } from '../../services/branches.service';
-import { PageHeader } from '@/components/shared';
+import { BreadcrumbHeader } from '@/components/shared';
 import { StatCard } from '@/components/shared';
 import { SearchFilter } from '@/components/shared';
 import { DataTable } from '@/components/shared';
@@ -235,15 +235,15 @@ export default function BranchList() {
 
   return (
     <div className="w-full space-y-3">
-      <PageHeader title="Manajemen Cabang" subtitle="Kelola cabang dan lokasi">
+      <BreadcrumbHeader title="Manajemen Cabang" subtitle="Kelola cabang dan lokasi">
         <Button
           onClick={openCreateModal}
-          className="flex items-center gap-2 bg-white text-primary-600 hover:bg-primary-50"
+          className="flex items-center gap-2 bg-white text-primary-600 border border-gray-200 hover:bg-primary-50"
         >
           <Plus className="w-5 h-5" />
           <span>Tambah Cabang</span>
         </Button>
-      </PageHeader>
+      </BreadcrumbHeader>
 
       {error && (
         <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Search, Wrench, Filter } from 'lucide-react';
 import { serviceOrdersService } from '@/services/service-orders.service';
 import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
-import { PageHeader } from '@/components/shared';
+import { BreadcrumbHeader } from '@/components/shared';
 import { DataTable } from '@/components/shared';
 import type { Column } from '@/components/shared';
 import { Input } from '@/components/ui/input';
@@ -120,7 +120,7 @@ export default function MyServiceOrders() {
 
   return (
     <div className="w-full space-y-3">
-      <PageHeader title="Service Saya" subtitle="Daftar service order yang sedang ditangani oleh kamu sebagai teknisi" />
+      <BreadcrumbHeader title="Service Saya" subtitle="Daftar service order yang sedang ditangani oleh kamu sebagai teknisi" />
 
       {error && (
         <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">

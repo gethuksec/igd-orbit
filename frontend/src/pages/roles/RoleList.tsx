@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Eye, Edit, Trash2, Shield, CheckCircle, XCircle, Loader2, Network, AlertTriangle, KeyRound, Users } from 'lucide-react';
 import { rolesService, type Role } from '../../services/roles.service';
 import { toast } from 'sonner';
-import { PageHeader, StatCard, SearchFilter, DataTable } from '@/components/shared';
+import { BreadcrumbHeader, StatCard, SearchFilter, DataTable } from '@/components/shared';
 import type { Column } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import {
@@ -183,7 +183,7 @@ export default function RoleList() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Manajemen Role" subtitle="Kelola role dan permissions">
+      <BreadcrumbHeader title="Manajemen Role" subtitle="Kelola role dan permissions">
         <Button
           variant="secondary"
           size="sm"
@@ -199,7 +199,7 @@ export default function RoleList() {
             Tambah Role
           </Button>
         </RequirePermission>
-      </PageHeader>
+      </BreadcrumbHeader>
 
       {/* Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

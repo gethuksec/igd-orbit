@@ -1,11 +1,11 @@
 import { useState } from 'react';
+import { BreadcrumbHeader } from '@/components/shared';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Save,
   X,
   Loader2,
-  ArrowLeft,
   Package,
   Truck,
   Plus,
@@ -136,22 +136,7 @@ export default function StockTransfer() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/inventory/transfer')}
-              className="p-2 text-white/80 hover:bg-white/20 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-3xl font-bold mb-1">Transfer Stok</h1>
-              <p className="text-primary-100">Transfer stok antar cabang</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <BreadcrumbHeader title="Transfer Stok" subtitle="Transfer stok antar cabang" />
 
       <form onSubmit={handleSubmit} className="space-y-3">
         {/* Branch Selection */}

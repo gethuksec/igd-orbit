@@ -1,7 +1,8 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { ArrowLeft, FileText, CheckCircle, XCircle, Package, AlertCircle, Loader2, Eye } from 'lucide-react';
+import { CheckCircle, XCircle, Package, AlertCircle, Loader2, Eye } from 'lucide-react';
+import { BreadcrumbHeader } from '@/components/shared';
 import { purchasingService } from '@/services/purchasing.service';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { toast } from 'sonner';
@@ -123,29 +124,14 @@ export default function PurchaseOrderDetail() {
   return (
     <div className="w-full space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              to="/purchasing/po"
-              className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-6 h-6" />
-            </Link>
-            <div>
-              <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-                <FileText className="w-10 h-10" />
-                {po.poNumber}
-              </h1>
-              <p className="text-primary-100 text-lg">{getStatusBadge(po.status)}</p>
-            </div>
-          </div>
-          <div className="flex gap-2">
+      <BreadcrumbHeader title={po.poNumber} subtitle={getStatusBadge(po.status)}>
+        <div className="flex gap-2">
+          
             {canApprove && (
               <button
                 onClick={() => setApproveModalOpen(true)}
                 disabled={approveMutation.isPending}
-                className="px-4 py-2 bg-white text-primary-600 rounded-lg font-semibold hover:bg-primary-50 transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-white text-primary-600 border border-gray-200 rounded-lg font-semibold hover:bg-primary-50 transition-colors disabled:opacity-50"
               >
                 <CheckCircle className="w-5 h-5 inline mr-2" />
                 Approve
@@ -155,7 +141,7 @@ export default function PurchaseOrderDetail() {
               <button
                 onClick={() => orderMutation.mutate()}
                 disabled={orderMutation.isPending}
-                className="px-4 py-2 bg-white text-primary-600 rounded-lg font-semibold hover:bg-primary-50 transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-white text-primary-600 border border-gray-200 rounded-lg font-semibold hover:bg-primary-50 transition-colors disabled:opacity-50"
               >
                 <Package className="w-5 h-5 inline mr-2" />
                 Mark as Ordered
@@ -171,9 +157,9 @@ export default function PurchaseOrderDetail() {
                 Cancel
               </button>
             )}
-          </div>
+          
         </div>
-      </div>
+      </BreadcrumbHeader>
 
       {/* Info Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
