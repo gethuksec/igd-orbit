@@ -12,6 +12,7 @@ import { ColorsModule } from "./modules/colors/colors.module";
 import { UnitsModule } from "./modules/units/units.module";
 import { SizesModule } from "./modules/sizes/sizes.module";
 import { ExpeditionsModule } from "./modules/expeditions/expeditions.module";
+import { WarehousesModule } from "./modules/warehouses/warehouses.module";
 import { SalesTypesModule } from "./modules/sales-types/sales-types.module";
 import { CustomersModule } from './modules/customers/customers.module';
 import { SalesModule } from './modules/sales/sales.module';
@@ -46,6 +47,7 @@ import { PosModule } from './modules/pos/pos.module';
     UnitsModule,
     SizesModule,
     ExpeditionsModule,
+    WarehousesModule,
     SalesTypesModule,
     CustomersModule,
     SuppliersModule,
