@@ -25,7 +25,7 @@ import { Inject } from '@nestjs/common';
 import {
   bumpPermissionVersion,
   computeEffectivePermissions,
-} from '../../shared/utils/permissions.util';
+, isPermissionWithinDefaults } from '../../shared/utils/permissions.util';
 
 /**
  * Users Service
@@ -793,7 +793,7 @@ export class UsersService {
     // Decision #31: deny-only — deniedPermissions can NEVER exceed role defaults
     if (assignRoleDto.deniedPermissions && assignRoleDto.deniedPermissions.length > 0) {
       const beyondDefaults = assignRoleDto.deniedPermissions.filter(
-        (p) => !role.defaultPermissions.includes(p),
+        (p) => !isPermissionWithinDefaults(p, role.defaultPermissions || []),
       );
       if (beyondDefaults.length > 0) {
         throw new BadRequestException(

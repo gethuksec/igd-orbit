@@ -59,6 +59,40 @@ export interface MergeUserRole {
  *
  * Used by: auth login, auth refresh, jwt.strategy, user detail, roles service.
  */
+/**
+ * Wildcard-aware permission matching (decision #31 deny-only rule).
+ * '*' consumes zero or more segments: 'dashboard.*.view' matches 'dashboard.view'
+ * and 'dashboard.pos.view'; exact keys match themselves.
+ */
+function patternMatchesKey(pattern: string, key: string): boolean {
+  const p = pattern.split('.');
+  const k = key.split('.');
+  const m = p.length;
+  const n = k.length;
+  const dp: boolean[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(false));
+  dp[0][0] = true;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 0; j <= n; j++) {
+      if (p[i - 1] === '*') {
+        dp[i][j] = dp[i - 1][j] || (j > 0 && dp[i][j - 1]);
+      } else if (j > 0) {
+        dp[i][j] = dp[i - 1][j - 1] && p[i - 1] === k[j - 1];
+      }
+    }
+  }
+  return dp[m][n];
+}
+
+/** True if `permission` is covered by any of the role's default permission patterns. */
+export function isPermissionWithinDefaults(
+  permission: string,
+  defaultPermissions: string[],
+): boolean {
+  return (defaultPermissions || []).some(
+    (p) => p === permission || patternMatchesKey(p, permission),
+  );
+}
+
 export function computeEffectivePermissions(userRoles: MergeUserRole[]): string[] {
   const permissionSet = new Set<string>();
 
