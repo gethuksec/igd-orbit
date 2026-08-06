@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Search, Wrench, Filter } from 'lucide-react';
 import { serviceOrdersService } from '@/services/service-orders.service';
-import { useBranchStore } from '@/stores/branchStore';
+import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
 import { PageHeader } from '@/components/shared';
 import { DataTable } from '@/components/shared';
 import type { Column } from '@/components/shared';
@@ -24,19 +24,19 @@ export default function MyServiceOrders() {
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [page, setPage] = useState(1);
   const limit = 20;
-  const { currentBranchId } = useBranchStore();
+  const { branchId, setBranchId } = useBranchFilter();
   const user = getCurrentUser();
   const technicianId = user?.id;
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['my-service-orders', page, searchTerm, selectedStatus, currentBranchId, technicianId],
+    queryKey: ['my-service-orders', page, searchTerm, selectedStatus, branchId, technicianId],
     queryFn: () =>
       serviceOrdersService.getAll({
         page,
         limit,
         search: searchTerm || undefined,
         status: selectedStatus !== 'ALL' ? selectedStatus : undefined,
-        branchId: currentBranchId || undefined,
+        branchId: branchId || undefined,
         technicianId,
       }),
     enabled: !!technicianId,
@@ -133,6 +133,9 @@ export default function MyServiceOrders() {
       {/* Filters */}
       <div className="bg-white rounded-xl border border-gray-200 p-4">
         <div className="flex flex-col lg:flex-row gap-4">
+          <div className="flex items-end">
+            <BranchFilterSelect value={branchId} onChange={setBranchId} />
+          </div>
           <div className="flex-1">
             <label className="block text-sm font-medium text-gray-700 mb-2">Cari Service Order</label>
             <div className="relative">

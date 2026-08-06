@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import type { SalesTransaction } from '../../services/sales.service';
 import { api } from '../../services/api';
-import { useBranchStore } from '@/stores/branchStore';
+import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
 import { PageHeader } from '@/components/shared';
 import { StatCard } from '@/components/shared';
 import { DataTable } from '@/components/shared';
@@ -38,10 +38,10 @@ export default function ReturnsList() {
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [page, setPage] = useState(1);
   const limit = 20;
-  const { currentBranchId } = useBranchStore();
+  const { branchId, setBranchId } = useBranchFilter();
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['sales-returns', page, searchTerm, selectedStatus, currentBranchId],
+    queryKey: ['sales-returns', page, searchTerm, selectedStatus, branchId],
     queryFn: async () => {
       try {
         const response = await api.get('/sales/transactions', {
@@ -49,7 +49,7 @@ export default function ReturnsList() {
             page,
             limit,
             search: searchTerm || undefined,
-            branchId: currentBranchId || undefined,
+            branchId: branchId || undefined,
             includeItems: 'true',
           },
         });
@@ -243,6 +243,9 @@ export default function ReturnsList() {
       {/* Search & Filters */}
       <div className="bg-white rounded-xl border border-gray-200 p-4">
         <div className="flex flex-col lg:flex-row gap-4">
+          <div className="flex items-end">
+            <BranchFilterSelect value={branchId} onChange={setBranchId} />
+          </div>
           <div className="flex-1">
             <label className="block text-sm font-medium text-gray-700 mb-2">Cari Nomor Transaksi</label>
             <div className="relative">

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Eye, Receipt, DollarSign, ShoppingCart, Search } from 'lucide-react';
 import { salesService } from '../../services/sales.service';
-import { useBranchStore } from '@/stores/branchStore';
+import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
 import { PageHeader } from '@/components/shared';
 import { StatCard } from '@/components/shared';
 import { DataTable } from '@/components/shared';
@@ -16,16 +16,16 @@ export default function SalesHistory() {
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const limit = 20;
-  const { currentBranchId } = useBranchStore();
+  const { branchId, setBranchId } = useBranchFilter();
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['sales-transactions', page, searchTerm, currentBranchId],
+    queryKey: ['sales-transactions', page, searchTerm, branchId],
     queryFn: () =>
       salesService.getAll({
         page,
         limit,
         search: searchTerm || undefined,
-        branchId: currentBranchId || undefined,
+        branchId: branchId || undefined,
       }),
   });
 
@@ -149,6 +149,11 @@ export default function SalesHistory() {
           value={isLoading ? '-' : totalTransactions}
           subtitle="Semua transaksi terdaftar"
         />
+      </div>
+
+      {/* Branch filter (D7) */}
+      <div className="flex justify-end">
+        <BranchFilterSelect value={branchId} onChange={setBranchId} />
       </div>
 
       {/* Search */}

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Search, Edit, Eye, Wrench, Filter, UserCircle } from 'lucide-react';
 import { serviceOrdersService } from '../../services/service-orders.service';
-import { useBranchStore } from '@/stores/branchStore';
+import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
 import { api } from '@/services/api';
 import { PageHeader } from '@/components/shared';
 import { DataTable } from '@/components/shared';
@@ -17,17 +17,17 @@ export default function ServiceOrderList() {
   const [selectedTechnician, setSelectedTechnician] = useState<string>('ALL');
   const [page, setPage] = useState(1);
   const limit = 20;
-  const { currentBranchId } = useBranchStore();
+  const { branchId, setBranchId } = useBranchFilter();
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['service-orders', page, searchTerm, selectedStatus, selectedTechnician, currentBranchId],
+    queryKey: ['service-orders', page, searchTerm, selectedStatus, selectedTechnician, branchId],
     queryFn: () =>
       serviceOrdersService.getAll({
         page,
         limit,
         search: searchTerm || undefined,
         status: selectedStatus !== 'ALL' ? selectedStatus : undefined,
-        branchId: currentBranchId || undefined,
+        branchId: branchId || undefined,
         technicianId: selectedTechnician !== 'ALL' ? selectedTechnician : undefined,
       }),
   });
@@ -156,6 +156,9 @@ export default function ServiceOrderList() {
       {/* Filters */}
       <div className="bg-white rounded-xl border border-gray-200 p-4">
         <div className="flex flex-col lg:flex-row gap-4">
+          <div className="flex items-end">
+            <BranchFilterSelect value={branchId} onChange={setBranchId} />
+          </div>
           <div className="flex-1">
             <label className="block text-sm font-medium text-gray-700 mb-2">Cari Service Order</label>
             <div className="relative">

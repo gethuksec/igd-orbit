@@ -19,7 +19,6 @@ describe('useBranchAccess', () => {
     localStorage.clear();
     (useBranchStore as any).mockReturnValue({
       availableBranches: mockBranches,
-      currentBranchId: null,
     });
     // Reset env
     delete import.meta.env.VITE_USE_BRANCH_ACCESS_HOOKS;
@@ -160,7 +159,6 @@ describe('useBranchAccess', () => {
       // Test accessible branch
       (useBranchStore as any).mockReturnValue({
         availableBranches: mockBranches,
-        currentBranchId: 'branch-1',
       });
 
       const { result } = renderHook(() => useBranchAccess());
@@ -169,12 +167,12 @@ describe('useBranchAccess', () => {
       // Test inaccessible branch - need to re-render with new store value
       (useBranchStore as any).mockReturnValue({
         availableBranches: mockBranches,
-        currentBranchId: 'branch-3',
       });
 
       // Re-render hook to get new store value
       const { result: result2 } = renderHook(() => useBranchAccess());
-      expect(result2.current.isCurrentBranchAccessible).toBe(false);
+      // D7: global current branch is gone — isCurrentBranchAccessible is always true
+      expect(result2.current.isCurrentBranchAccessible).toBe(true);
     });
 
     it('should return empty array when user has no branchIds and no global access', () => {

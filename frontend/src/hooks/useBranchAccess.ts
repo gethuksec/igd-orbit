@@ -40,7 +40,7 @@ const getUseBranchAccessHooks = () => {
  */
 export function useBranchAccess() {
   const user = useMemo(() => getUser(), []);
-  const { availableBranches, currentBranchId } = useBranchStore();
+  const { availableBranches } = useBranchStore();
 
   const accessibleBranchIds = useMemo(() => {
     if (!getUseBranchAccessHooks()) {
@@ -146,19 +146,10 @@ export function useBranchAccess() {
   );
 
   /**
-   * Check if current branch is accessible
+   * D7 (#62): global currentBranchId is gone — there is no "current branch"
+   * to check anymore. Kept as always-true for API compatibility.
    */
-  const isCurrentBranchAccessible = useMemo(() => {
-    if (!getUseBranchAccessHooks()) {
-      return true; // Backward compatible
-    }
-
-    if (!currentBranchId) {
-      return true; // No branch selected = allowed
-    }
-
-    return canAccessBranch(currentBranchId);
-  }, [currentBranchId, canAccessBranch]);
+  const isCurrentBranchAccessible = useMemo(() => true, []);
 
   return {
     canAccessBranch,

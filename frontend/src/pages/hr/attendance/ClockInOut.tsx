@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Clock, MapPin, ArrowLeft, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { hrService } from '@/services/hr.service';
 import { formatDateTime } from '@/utils/format';
 import { toast } from 'sonner';
+import { useBranchFilter } from '@/components/branch/BranchFilter';
 import { useBranchStore } from '@/stores/branchStore';
 import { api } from '@/services/api';
 
@@ -19,10 +20,10 @@ const getCurrentUser = () => {
 
 export default function ClockInOut() {
   const queryClient = useQueryClient();
-  const { availableBranches, currentBranchId } = useBranchStore();
+  const { availableBranches } = useBranchStore();
+  const { branchId: selectedBranchId, setBranchId: setSelectedBranchId } = useBranchFilter();
   const currentUser = getCurrentUser();
 
-  const [selectedBranchId, setSelectedBranchId] = useState<string>(currentBranchId || '');
   const [clockMethod, setClockMethod] = useState<'fingerprint' | 'manual'>('manual');
   const [notes, setNotes] = useState('');
   const [location, setLocation] = useState('');
@@ -96,11 +97,6 @@ export default function ClockInOut() {
   const canClockIn = !todayAttendance?.clockIn;
   const canClockOut = todayAttendance?.clockIn && !todayAttendance?.clockOut;
 
-  useEffect(() => {
-    if (currentBranchId && !selectedBranchId) {
-      setSelectedBranchId(currentBranchId);
-    }
-  }, [currentBranchId, selectedBranchId]);
 
   return (
     <div className="w-full space-y-6">

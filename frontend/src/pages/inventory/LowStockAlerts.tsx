@@ -11,12 +11,11 @@ import {
 } from 'lucide-react';
 import { PageHeader } from '@/components/shared';
 import { inventoryService } from '../../services/inventory.service';
-import { useBranchStore } from '@/stores/branchStore';
 import { api } from '@/services/api';
 
 export default function LowStockAlerts() {
-  const { currentBranchId } = useBranchStore();
-  const [selectedBranch, setSelectedBranch] = useState<string>(currentBranchId || 'ALL');
+  // D7: page-local filter (kept its own 'ALL' option; no global context)
+  const [selectedBranch, setSelectedBranch] = useState<string>('ALL');
 
   const { data: alerts, isLoading, error } = useQuery({
     queryKey: ['low-stock-alerts', selectedBranch],

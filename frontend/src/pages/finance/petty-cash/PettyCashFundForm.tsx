@@ -4,17 +4,19 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Save, Loader2, ArrowLeft, CreditCard, Search } from 'lucide-react';
 import { financeService } from '../../../services/finance.service';
 import { toast } from 'sonner';
+import { useBranchFilter } from '@/components/branch/BranchFilter';
 import { useBranchStore } from '@/stores/branchStore';
 import { api } from '../../../services/api';
 
 export default function PettyCashFundForm() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { currentBranchId, availableBranches } = useBranchStore();
+  const { availableBranches } = useBranchStore();
+  const { branchId } = useBranchFilter();
 
   const [formData, setFormData] = useState({
     fund_number: '',
-    branch_id: currentBranchId || '',
+    branch_id: branchId || '',
     opening_balance: 0,
     custodian_id: '',
     period_start: new Date().toISOString().split('T')[0],

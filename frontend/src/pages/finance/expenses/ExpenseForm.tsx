@@ -11,14 +11,14 @@ import {
 } from 'lucide-react';
 import { financeService, type ChartOfAccount } from '../../../services/finance.service';
 import { toast } from 'sonner';
-import { useBranchStore } from '@/stores/branchStore';
+import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
 
 export default function ExpenseForm() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isEdit = !!id;
-  const { currentBranchId } = useBranchStore();
+  const { branchId } = useBranchFilter();
 
   const [formData, setFormData] = useState({
     expense_category: '',
@@ -27,7 +27,7 @@ export default function ExpenseForm() {
     tax_amount: 0,
     payment_method: 'cash' as 'cash' | 'transfer' | 'petty-cash',
     bank_account_id: '',
-    branch_id: currentBranchId || '',
+    branch_id: branchId || '',
     gl_account_id: '',
     description: '',
     receipt_url: '',
@@ -59,14 +59,14 @@ export default function ExpenseForm() {
         tax_amount: existingExpense.taxAmount || 0,
         payment_method: existingExpense.paymentMethod || 'cash',
         bank_account_id: existingExpense.bankAccountId || '',
-        branch_id: existingExpense.branchId || currentBranchId || '',
+        branch_id: existingExpense.branchId || branchId || '',
         gl_account_id: existingExpense.glAccountId,
         description: existingExpense.description,
         receipt_url: existingExpense.receiptUrl || '',
         notes: existingExpense.notes || '',
       });
     }
-  }, [existingExpense, currentBranchId]);
+  }, [existingExpense, branchId]);
 
   const mutation = useMutation({
     mutationFn: (data: any) => {
@@ -174,6 +174,12 @@ export default function ExpenseForm() {
               </h1>
               <p className="text-primary-100">Buat atau edit pengeluaran</p>
             </div>
+          </div>
+          <div className="flex items-center">
+            <BranchFilterSelect
+              value={formData.branch_id}
+              onChange={(id) => setFormData({ ...formData, branch_id: id })}
+            />
           </div>
         </div>
       </div>

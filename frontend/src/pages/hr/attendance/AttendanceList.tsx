@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { Clock, Calendar, Search, User, CheckCircle, XCircle, AlertCircle, Eye } from 'lucide-react';
 import { hrService, type Attendance } from '@/services/hr.service';
 import { formatDate, formatDateTime } from '@/utils/format';
-import { useBranchStore } from '@/stores/branchStore';
+import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
 
 export default function AttendanceList() {
   const [page, setPage] = useState(1);
@@ -12,11 +12,11 @@ export default function AttendanceList() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const { currentBranchId } = useBranchStore();
+  const { branchId, setBranchId } = useBranchFilter();
   const limit = 20;
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['attendances', page, searchTerm, statusFilter, startDate, endDate, currentBranchId],
+    queryKey: ['attendances', page, searchTerm, statusFilter, startDate, endDate, branchId],
     queryFn: async () => {
       const params: any = {};
 
@@ -36,8 +36,8 @@ export default function AttendanceList() {
         params.endDate = endDate;
       }
 
-      if (currentBranchId) {
-        params.branchId = currentBranchId;
+      if (branchId) {
+        params.branchId = branchId;
       }
 
       return hrService.getAttendances(params);
@@ -107,6 +107,9 @@ export default function AttendanceList() {
       {/* Filters & Search - Enhanced */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
         <div className="flex flex-col lg:flex-row gap-4">
+          <div className="flex items-end">
+            <BranchFilterSelect value={branchId} onChange={setBranchId} />
+          </div>
           <div className="flex-1">
             <label className="block text-sm font-semibold text-gray-700 mb-2">Cari Absensi</label>
             <div className="relative">

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Search, Eye, Filter, Package } from 'lucide-react';
 import { serviceReturnsService } from '../../services/service-returns.service';
-import { useBranchStore } from '@/stores/branchStore';
+import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
 import { PageHeader } from '@/components/shared';
 import { DataTable } from '@/components/shared';
 import type { Column } from '@/components/shared';
@@ -16,10 +16,10 @@ export default function ServiceReturnsList() {
   const [selectedReturnType, setSelectedReturnType] = useState<string>('ALL');
   const [page, setPage] = useState(1);
   const limit = 20;
-  const { currentBranchId } = useBranchStore();
+  const { branchId, setBranchId } = useBranchFilter();
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['service-returns', page, searchTerm, selectedStatus, selectedReturnType, currentBranchId],
+    queryKey: ['service-returns', page, searchTerm, selectedStatus, selectedReturnType, branchId],
     queryFn: () =>
       serviceReturnsService.getAll({
         page,
@@ -27,7 +27,7 @@ export default function ServiceReturnsList() {
         search: searchTerm || undefined,
         status: selectedStatus !== 'ALL' ? selectedStatus : undefined,
         returnType: selectedReturnType !== 'ALL' ? selectedReturnType : undefined,
-        branchId: currentBranchId || undefined,
+        branchId: branchId || undefined,
       }),
   });
 
@@ -179,6 +179,9 @@ export default function ServiceReturnsList() {
       {/* Filters */}
       <div className="bg-white rounded-xl border border-gray-200 p-4">
         <div className="flex flex-col lg:flex-row gap-4">
+          <div className="flex items-end">
+            <BranchFilterSelect value={branchId} onChange={setBranchId} />
+          </div>
           <div className="flex-1">
             <label className="block text-sm font-medium text-gray-700 mb-2">Cari Retur</label>
             <div className="relative">

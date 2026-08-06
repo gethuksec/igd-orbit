@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { PageHeader } from '@/components/shared';
 import { inventoryService } from '../../services/inventory.service';
-import { useBranchStore } from '@/stores/branchStore';
+import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
 
 export default function StockMovementHistory() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -25,7 +25,7 @@ export default function StockMovementHistory() {
   const [endDate, setEndDate] = useState('');
   const [page, setPage] = useState(1);
   const limit = 20;
-  const { currentBranchId } = useBranchStore();
+  const { branchId, setBranchId } = useBranchFilter();
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: [
@@ -36,13 +36,13 @@ export default function StockMovementHistory() {
       selectedReferenceType,
       startDate,
       endDate,
-      currentBranchId,
+      branchId,
     ],
     queryFn: () =>
       inventoryService.getStockMovementHistory({
         page,
         limit,
-        branchId: currentBranchId || undefined,
+        branchId: branchId || undefined,
         movementType: selectedMovementType !== 'ALL' ? selectedMovementType : undefined,
         referenceType: selectedReferenceType !== 'ALL' ? selectedReferenceType : undefined,
         startDate: startDate || undefined,
@@ -144,6 +144,9 @@ export default function StockMovementHistory() {
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div>
+            <BranchFilterSelect value={branchId} onChange={setBranchId} />
+          </div>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <Search className="h-5 w-5 text-gray-400" />

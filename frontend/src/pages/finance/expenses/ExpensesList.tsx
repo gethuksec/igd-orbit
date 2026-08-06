@@ -15,7 +15,7 @@ import {
   DollarSign,
 } from 'lucide-react';
 import { financeService, type Expense } from '../../../services/finance.service';
-import { useBranchStore } from '@/stores/branchStore';
+import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
 
 export default function ExpensesList() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -24,20 +24,20 @@ export default function ExpensesList() {
   const [endDate, setEndDate] = useState('');
   const [page, setPage] = useState(1);
   const limit = 20;
-  const { currentBranchId } = useBranchStore();
+  const { branchId, setBranchId } = useBranchFilter();
 
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, selectedStatus, startDate, endDate, currentBranchId]);
+  }, [searchTerm, selectedStatus, startDate, endDate, branchId]);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['expenses', page, selectedStatus, startDate, endDate, currentBranchId],
+    queryKey: ['expenses', page, selectedStatus, startDate, endDate, branchId],
     queryFn: () =>
       financeService.getExpenses({
         page,
         limit,
         status: selectedStatus !== 'all' ? selectedStatus : undefined,
-        branchId: currentBranchId || undefined,
+        branchId: branchId || undefined,
         startDate: startDate || undefined,
         endDate: endDate || undefined,
       }),
@@ -116,6 +116,9 @@ export default function ExpensesList() {
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <BranchFilterSelect value={branchId} onChange={setBranchId} />
+          </div>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <Search className="h-5 w-5 text-gray-400" />

@@ -5,7 +5,7 @@ import { Save, Loader2, ArrowLeft, AlertCircle, CheckCircle2, Clock } from 'luci
 import { serviceReturnsService, type CreateServiceReturnDto } from '../../services/service-returns.service';
 import { serviceOrdersService } from '../../services/service-orders.service';
 import { toast } from 'sonner';
-import { useBranchStore } from '@/stores/branchStore';
+import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
 import { PageHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 
@@ -13,7 +13,7 @@ export default function ServiceReturnForm() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { currentBranchId } = useBranchStore();
+  const { branchId, setBranchId } = useBranchFilter();
   const serviceOrderIdFromUrl = searchParams.get('serviceOrderId');
 
   const [selectedServiceOrderId, setSelectedServiceOrderId] = useState<string>(
@@ -54,13 +54,13 @@ export default function ServiceReturnForm() {
 
   // Fetch delivered service orders for dropdown
   const { data: deliveredOrders } = useQuery({
-    queryKey: ['delivered-service-orders', currentBranchId],
+    queryKey: ['delivered-service-orders', branchId],
     queryFn: () =>
       serviceOrdersService.getAll({
         page: 1,
         limit: 100,
         status: 'delivered',
-        branchId: currentBranchId || undefined,
+        branchId: branchId || undefined,
       }),
     enabled: !serviceOrderIdFromUrl,
   });
@@ -161,6 +161,7 @@ export default function ServiceReturnForm() {
         title="Buat Retur & Komplain Service"
         subtitle="Formulir untuk membuat retur atau komplain service"
       >
+        <BranchFilterSelect value={branchId} onChange={setBranchId} />
         <Button
           variant="ghost"
           size="sm"

@@ -4,17 +4,17 @@ import { useQuery } from '@tanstack/react-query';
 import { Package, Search, Eye, Plus, AlertCircle, Loader2 } from 'lucide-react';
 import { purchasingService, type GoodsReceipt } from '@/services/purchasing.service';
 import { formatDate } from '@/utils/format';
-import { useBranchStore } from '@/stores/branchStore';
+import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
 
 export default function GoodsReceiptList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
   const limit = 20;
-  const { currentBranchId } = useBranchStore();
+  const { branchId, setBranchId } = useBranchFilter();
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['goods-receipts', page, limit, searchTerm, statusFilter, currentBranchId],
+    queryKey: ['goods-receipts', page, limit, searchTerm, statusFilter, branchId],
     queryFn: async () => {
       try {
         const result = await purchasingService.getGoodsReceipts({
@@ -22,7 +22,7 @@ export default function GoodsReceiptList() {
           limit,
           search: searchTerm || undefined,
           status: statusFilter !== 'all' ? statusFilter : undefined,
-          branchId: currentBranchId || undefined,
+          branchId: branchId || undefined,
         });
         return result;
       } catch (err: any) {
@@ -78,8 +78,11 @@ export default function GoodsReceiptList() {
 
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
         <div className="flex flex-col lg:flex-row gap-4">
+          <div className="flex items-end">
+            <BranchFilterSelect value={branchId} onChange={setBranchId} />
+          </div>
           <div className="flex-1">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Cari GR</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Cari Penerimaan Barang</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <Search className="h-5 w-5 text-gray-400" />

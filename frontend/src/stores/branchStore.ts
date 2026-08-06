@@ -1,19 +1,20 @@
 import { create } from 'zustand';
 import type { Branch } from '@/services/public.service';
 
+/**
+ * Branch reference list (user-accessible branches).
+ *
+ * D7 (#62): global selection context (currentBranchId) is REMOVED — every page
+ * owns its branch/warehouse selection via useBranchFilter (page-local state).
+ * availableBranches is kept purely as the shared reference list of branches
+ * the user may pick from (populated by DashboardLayout on mount).
+ */
 export interface BranchState {
   availableBranches: Branch[];
-  /** null = semua cabang, otherwise specific branch id */
-  currentBranchId: string | null;
   setBranches: (branches: Branch[]) => void;
-  setCurrentBranchId: (branchId: string | null) => void;
 }
 
 export const useBranchStore = create<BranchState>((set) => ({
   availableBranches: [],
-  currentBranchId: null,
   setBranches: (branches) => set({ availableBranches: branches }),
-  setCurrentBranchId: (branchId) => set({ currentBranchId: branchId }),
 }));
-
-

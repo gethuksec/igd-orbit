@@ -17,7 +17,7 @@ import { CustomGraphBuilder } from '../../components/dashboard/CustomGraphBuilde
 import { dashboardService } from '../../services/dashboard.service';
 import { formatCurrency, formatNumber } from '../../utils/format';
 import { io } from 'socket.io-client';
-import { useBranchStore } from '@/stores/branchStore';
+import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
 import {
   Users,
   Package2,
@@ -29,7 +29,7 @@ const API_URL = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://
 
 export function ExecutiveDashboard() {
   const { t } = useTranslation();
-  const { currentBranchId } = useBranchStore();
+  const { branchId, setBranchId } = useBranchFilter();
   const [dateRange, setDateRange] = useState<{ startDate: Date; endDate: Date }>({
     startDate: new Date(),
     endDate: new Date(),
@@ -128,53 +128,53 @@ export function ExecutiveDashboard() {
 
   // Fetch KPIs
   const { data: kpis, isLoading: kpisLoading } = useQuery({
-    queryKey: ['dashboard', 'kpis', dateRange, currentBranchId],
+    queryKey: ['dashboard', 'kpis', dateRange, branchId],
     queryFn: () =>
       dashboardService.getKPIs({
         startDate: dateRange.startDate.toISOString(),
         endDate: dateRange.endDate.toISOString(),
-        branchId: currentBranchId || undefined,
+        branchId: branchId || undefined,
       }),
   });
 
   // Fetch revenue trend
   const { data: revenueTrend } = useQuery({
-    queryKey: ['dashboard', 'revenue-trend', currentBranchId],
-    queryFn: () => dashboardService.getRevenueTrend(30, currentBranchId || undefined),
+    queryKey: ['dashboard', 'revenue-trend', branchId],
+    queryFn: () => dashboardService.getRevenueTrend(30, branchId || undefined),
   });
 
   // Fetch sales by category
   const { data: salesByCategory } = useQuery({
-    queryKey: ['dashboard', 'sales-by-category', dateRange, currentBranchId],
+    queryKey: ['dashboard', 'sales-by-category', dateRange, branchId],
     queryFn: () =>
       dashboardService.getSalesByCategory({
         startDate: dateRange.startDate.toISOString(),
         endDate: dateRange.endDate.toISOString(),
-        branchId: currentBranchId || undefined,
+        branchId: branchId || undefined,
       }),
   });
 
   // Fetch top products
   const { data: topProducts } = useQuery({
-    queryKey: ['dashboard', 'top-products', currentBranchId],
-    queryFn: () => dashboardService.getTopProducts(30, 10, currentBranchId || undefined),
+    queryKey: ['dashboard', 'top-products', branchId],
+    queryFn: () => dashboardService.getTopProducts(30, 10, branchId || undefined),
   });
 
   // Fetch branch performance
   const { data: branchPerformance } = useQuery({
-    queryKey: ['dashboard', 'branch-performance', dateRange, currentBranchId],
+    queryKey: ['dashboard', 'branch-performance', dateRange, branchId],
     queryFn: () =>
       dashboardService.getBranchPerformance({
         startDate: dateRange.startDate.toISOString(),
         endDate: dateRange.endDate.toISOString(),
-        branchId: currentBranchId || undefined,
+        branchId: branchId || undefined,
       }),
   });
 
   // Fetch recent transactions
   const { data: recentTransactions } = useQuery({
-    queryKey: ['dashboard', 'recent-transactions', currentBranchId],
-    queryFn: () => dashboardService.getRecentTransactions(10, currentBranchId || undefined),
+    queryKey: ['dashboard', 'recent-transactions', branchId],
+    queryFn: () => dashboardService.getRecentTransactions(10, branchId || undefined),
   });
 
   // Fetch pending approvals
@@ -185,12 +185,12 @@ export function ExecutiveDashboard() {
 
   // Fetch additional metrics
   const { data: serviceKPIs } = useQuery({
-    queryKey: ['dashboard', 'service-kpis', currentBranchId],
+    queryKey: ['dashboard', 'service-kpis', branchId],
     queryFn: () => dashboardService.getServiceKPIs(),
   });
 
   const { data: inventoryKPIs } = useQuery({
-    queryKey: ['dashboard', 'inventory-kpis', currentBranchId],
+    queryKey: ['dashboard', 'inventory-kpis', branchId],
     queryFn: () => dashboardService.getInventoryKPIs(),
   });
 
@@ -226,6 +226,7 @@ export function ExecutiveDashboard() {
           {t('dashboard.executive.title')}
         </h1>
         <div className="flex items-center gap-4">
+          <BranchFilterSelect value={branchId} onChange={setBranchId} allowAll />
           <DateRangePicker onRangeChange={setDateRange} />
           <RefreshButton
             onRefresh={handleRefresh}

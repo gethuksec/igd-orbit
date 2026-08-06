@@ -15,19 +15,19 @@ import {
 import { PageHeader } from '@/components/shared';
 import { inventoryService } from '../../services/inventory.service';
 import type { StockOpname } from '../../services/inventory.service';
-import { useBranchStore } from '@/stores/branchStore';
+import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
 
 export default function StockOpnameList() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
-  const { currentBranchId } = useBranchStore();
+  const { branchId, setBranchId } = useBranchFilter();
 
   const { data: opnames, isLoading, error, refetch } = useQuery({
-    queryKey: ['inventory-opnames', searchTerm, selectedStatus, currentBranchId],
+    queryKey: ['inventory-opnames', searchTerm, selectedStatus, branchId],
     queryFn: () =>
       inventoryService.getOpnames({
-        branchId: currentBranchId || undefined,
+        branchId: branchId || undefined,
         status: selectedStatus !== 'ALL' ? selectedStatus : undefined,
       }),
   });
@@ -148,6 +148,9 @@ export default function StockOpnameList() {
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <BranchFilterSelect value={branchId} onChange={setBranchId} />
+          </div>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <Search className="h-5 w-5 text-gray-400" />

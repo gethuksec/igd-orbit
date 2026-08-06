@@ -7,18 +7,18 @@ import { productsService } from '@/services/products.service';
 import { api } from '@/services/api';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/utils/format';
-import { useBranchStore } from '@/stores/branchStore';
+import { useBranchFilter } from '@/components/branch/BranchFilter';
 
 export default function GoodsReceiptForm() {
   const { poId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { currentBranchId } = useBranchStore();
+  const { branchId } = useBranchFilter();
 
   const [isHibah, setIsHibah] = useState(false);
   const [formData, setFormData] = useState({
     purchase_order_id: poId || '',
-    branch_id: currentBranchId || '',
+    branch_id: branchId || '',
     receipt_date: new Date().toISOString().split('T')[0],
     notes: '',
   });
@@ -49,11 +49,11 @@ export default function GoodsReceiptForm() {
 
   // Fetch ordered POs for selection
   const { data: orderedPOs } = useQuery({
-    queryKey: ['purchase-orders', 'ordered', currentBranchId],
+    queryKey: ['purchase-orders', 'ordered', branchId],
     queryFn: async () => {
       const result = await purchasingService.getPurchaseOrders({
         status: 'ordered',
-        branchId: currentBranchId || undefined,
+        branchId: branchId || undefined,
         limit: 100,
       });
       return result.data || [];

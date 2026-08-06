@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, Loader2, X } from 'lucide-react';
 import { salesService, type SalesTransaction } from '../../services/sales.service';
-import { useBranchStore } from '@/stores/branchStore';
+import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
 import { PageHeader } from '@/components/shared';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,7 @@ export default function ReturnForm() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const transactionId = searchParams.get('transactionId');
-  const { currentBranchId } = useBranchStore();
+  const { branchId, setBranchId } = useBranchFilter();
   const queryClient = useQueryClient();
 
   const [transactionSearch, setTransactionSearch] = useState('');
@@ -36,13 +36,13 @@ export default function ReturnForm() {
   }, [preloadedTransaction]);
 
   const { data: transactionSearchResults } = useQuery({
-    queryKey: ['sales-transactions-search', transactionSearch, currentBranchId],
+    queryKey: ['sales-transactions-search', transactionSearch, branchId],
     queryFn: () =>
       salesService.getAll({
         page: 1,
         limit: 10,
         search: transactionSearch || undefined,
-        branchId: currentBranchId || undefined,
+        branchId: branchId || undefined,
       }),
     enabled: !transactionId && transactionSearch.length >= 3,
   });
@@ -85,7 +85,9 @@ export default function ReturnForm() {
 
   return (
     <div className="w-full space-y-4">
-      <PageHeader title="Buat Retur Penjualan" subtitle="Pilih transaksi dan masukkan alasan retur" />
+      <PageHeader title="Buat Retur Penjualan" subtitle="Pilih transaksi dan masukkan alasan retur">
+        <BranchFilterSelect value={branchId} onChange={setBranchId} />
+      </PageHeader>
 
       <Card>
         <CardContent className="p-6">

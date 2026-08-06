@@ -25,7 +25,6 @@ import { serviceReturnsService } from '../../services/service-returns.service';
 import { toast } from 'sonner';
 import StatusTimeline from '@/pages/public/components/StatusTimeline';
 import { api } from '@/services/api';
-import { useBranchStore } from '@/stores/branchStore';
 import { RotateCcw } from 'lucide-react';
 import { PageHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
@@ -73,7 +72,6 @@ export default function ServiceOrderDetail() {
   const [paymentAmount, setPaymentAmount] = useState<string>('');
   const [paymentReference, setPaymentReference] = useState('');
   const [paymentNotes, setPaymentNotes] = useState('');
-  const { currentBranchId } = useBranchStore();
 
   // Fetch service returns for this service order
   const { data: serviceReturns } = useQuery({
@@ -197,8 +195,10 @@ export default function ServiceOrderDetail() {
     },
   });
 
+  // D7: stock lookup scoped to the service order's own branch (detail page has no filter)
+  const orderBranchId = (serviceOrder as any)?.branchId || '';
   const { data: products, isLoading: productsLoading } = useQuery({
-    queryKey: ['products', 'for-service', productSearch, currentBranchId],
+    queryKey: ['products', 'for-service', productSearch, orderBranchId],
     queryFn: async () => {
       try {
         // Build query params with include stock
@@ -214,15 +214,15 @@ export default function ServiceOrderDetail() {
         const res = await api.get('/products', { params });
         const productsData = res.data?.data || res.data || [];
         
-        // Filter products with stock > 0 for current branch
+        // Filter products with stock > 0 for the order's branch
         // Stock info is in stockSummary or productStocks
         return productsData
           .map((p: any) => {
-            // Get stock for current branch
+            // Get stock for the order's branch
             let stockQty = 0;
-            if (currentBranchId && p.stockSummary?.branches) {
+            if (orderBranchId && p.stockSummary?.branches) {
               const branchStock = p.stockSummary.branches.find(
-                (b: any) => b.branchId === currentBranchId,
+                (b: any) => b.branchId === orderBranchId,
               );
               stockQty = branchStock?.available || 0;
             } else if (p.stockSummary?.totalAvailable) {

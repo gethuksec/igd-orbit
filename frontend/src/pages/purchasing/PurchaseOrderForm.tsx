@@ -8,18 +8,19 @@ import { suppliersService } from '@/services/suppliers.service';
 import { api } from '@/services/api';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/utils/format';
-import { useBranchStore } from '@/stores/branchStore';
+import { useBranchFilter } from '@/components/branch/BranchFilter';
 
 export default function PurchaseOrderForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isEdit = !!id;
-  const { currentBranchId } = useBranchStore();
+  const { branchId } = useBranchFilter();
 
   const [formData, setFormData] = useState({
+    // D7: default = first-in-list branch (hook)
+    branch_id: branchId || '',
     supplier_id: '',
-    branch_id: currentBranchId || '',
     order_date: new Date().toISOString().split('T')[0],
     expected_delivery_date: '',
     payment_terms: '',

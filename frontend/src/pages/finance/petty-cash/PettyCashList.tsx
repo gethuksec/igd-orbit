@@ -12,22 +12,22 @@ import {
   XCircle,
 } from 'lucide-react';
 import { financeService, type PettyCashFund } from '../../../services/finance.service';
-import { useBranchStore } from '@/stores/branchStore';
+import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
 
 export default function PettyCashList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
-  const { currentBranchId } = useBranchStore();
+  const { branchId, setBranchId } = useBranchFilter();
 
   useEffect(() => {
     setSearchTerm('');
-  }, [selectedStatus, currentBranchId]);
+  }, [selectedStatus, branchId]);
 
   const { data: funds, isLoading } = useQuery({
-    queryKey: ['petty-cash-funds', currentBranchId, selectedStatus],
+    queryKey: ['petty-cash-funds', branchId, selectedStatus],
     queryFn: () =>
       financeService.getPettyCashFunds({
-        branchId: currentBranchId || undefined,
+        branchId: branchId || undefined,
         isActive: selectedStatus === 'all' ? undefined : selectedStatus === 'active',
       }),
   });
@@ -71,6 +71,9 @@ export default function PettyCashList() {
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <BranchFilterSelect value={branchId} onChange={setBranchId} />
+          </div>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <Search className="h-5 w-5 text-gray-400" />

@@ -12,18 +12,19 @@ import {
 } from 'lucide-react';
 import { inventoryService } from '../../services/inventory.service';
 import { productsService } from '../../services/products.service';
-import { useBranchStore } from '@/stores/branchStore';
+import { useBranchFilter } from '@/components/branch/BranchFilter';
 import { toast } from 'sonner';
 import { api } from '@/services/api';
 
 export default function StockAdjustment() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { currentBranchId } = useBranchStore();
+  const { branchId } = useBranchFilter();
 
   const [formData, setFormData] = useState({
+    // D7: default = first-in-list branch (hook)
+    branchId: branchId || '',
     productId: '',
-    branchId: currentBranchId || '',
     type: 'IN' as 'IN' | 'OUT' | 'DAMAGE' | 'FOUND' | 'CORRECTION',
     quantityChange: 1,
     reason: '',

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Save, Loader2, ClipboardCheck, Calendar } from 'lucide-react';
 import { inventoryService } from '../../services/inventory.service';
-import { useBranchStore } from '@/stores/branchStore';
+import { useBranchFilter } from '@/components/branch/BranchFilter';
 import { toast } from 'sonner';
 import { api } from '@/services/api';
 import { useQuery } from '@tanstack/react-query';
@@ -11,10 +11,11 @@ import { useQuery } from '@tanstack/react-query';
 export default function StockOpnameForm() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { currentBranchId } = useBranchStore();
+  const { branchId } = useBranchFilter();
 
   const [formData, setFormData] = useState({
-    branchId: currentBranchId || '',
+    // D7: default = first-in-list branch (hook)
+    branchId: branchId || '',
     opnameDate: new Date().toISOString().split('T')[0],
     notes: '',
   });
