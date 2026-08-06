@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { financeService, type ChartOfAccount } from '../../../services/finance.service';
 import { toast } from 'sonner';
-import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
+import { useBranchFilter } from '@/components/branch/BranchFilter';
 
 export default function ExpenseForm() {
   const { id } = useParams<{ id: string }>();

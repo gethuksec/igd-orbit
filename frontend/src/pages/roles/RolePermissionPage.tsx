@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Loader2, Save, Lock, Search } from 'lucide-react';
+import { Loader2, Save, Lock, Search } from 'lucide-react';
 import { rolesService } from '../../services/roles.service';
 import { toast } from 'sonner';
-import { PageHeader } from '@/components/shared';
+import { BreadcrumbHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -105,16 +105,9 @@ export default function RolePermissionPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={`Kelola Hak Default — ${role.name}`} subtitle={`${role.code} · ${selectedCount} dari ${PERMISSION_CATALOG_KEYS.length} hak dipilih`}>
-        <Button asChild variant="ghost" size="sm" className="text-white hover:bg-white/20">
-          <Link to={`/roles/${role.id}`}>
-            <ArrowLeft className="w-4 h-4" />
-            Kembali ke Role
-          </Link>
-        </Button>
+      <BreadcrumbHeader title={`Kelola Hak Default — ${role.name}`} subtitle={`${role.code} · ${selectedCount} dari ${PERMISSION_CATALOG_KEYS.length} hak dipilih`}>
         <Button
           size="sm"
-          className="bg-white text-primary-600 hover:bg-primary-50 font-semibold"
           disabled={!canEdit || mutation.isPending}
           onClick={() => mutation.mutate(effectiveSelected)}
         >
@@ -125,7 +118,7 @@ export default function RolePermissionPage() {
           )}
           Simpan Perubahan
         </Button>
-      </PageHeader>
+      </BreadcrumbHeader>
 
       {isSuperAdminRole && (
         <div className="rounded-xl border-2 border-yellow-200 bg-yellow-50 p-5">

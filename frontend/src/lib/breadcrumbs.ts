@@ -171,7 +171,14 @@ const TRAILS: Record<string, Crumb[]> = {
   '/roles/new': [{ label: 'User & Role' }, { label: 'Roles', href: '/roles' }],
   '/roles/:id': [{ label: 'User & Role' }, { label: 'Roles', href: '/roles' }],
   '/roles/:id/edit': [{ label: 'User & Role' }, { label: 'Roles', href: '/roles' }],
+  '/roles/:id/permissions': [{ label: 'User & Role' }, { label: 'Roles', href: '/roles' }, { label: 'Hak Default' }],
   '/password-requests': [{ label: 'User & Role' }, { label: 'Password Requests' }],
+
+  // ── Gudang (D2/D3) ───────────────────────────────────────────
+  '/warehouses': [{ label: 'Gudang' }, { label: 'Manajemen Gudang' }],
+  '/warehouses/new': [{ label: 'Gudang' }, { label: 'Manajemen Gudang', href: '/warehouses' }],
+  '/warehouses/:id': [{ label: 'Gudang' }, { label: 'Manajemen Gudang', href: '/warehouses' }],
+  '/warehouses/:id/edit': [{ label: 'Gudang' }, { label: 'Manajemen Gudang', href: '/warehouses' }],
 
   // ── Misc ─────────────────────────────────────────────────────
   '/profile': [{ label: 'Profile' }],

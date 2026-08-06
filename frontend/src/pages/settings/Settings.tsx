@@ -1,13 +1,10 @@
 import { Bell, Shield, Globe, Moon, Sun } from 'lucide-react';
+import { BreadcrumbHeader } from '@/components/shared';
 
 export default function Settings() {
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Pengaturan</h1>
-        <p className="text-gray-600 mt-1">Kelola preferensi dan pengaturan akun Anda</p>
-      </div>
+      <BreadcrumbHeader title="Pengaturan" subtitle="Kelola preferensi dan pengaturan akun Anda" />
 
       {/* Settings Sections */}
       <div className="space-y-6">

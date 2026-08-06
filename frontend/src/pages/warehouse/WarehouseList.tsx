@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Warehouse as WarehouseIcon, MapPin, Phone, Eye, Edit, Trash2, Loader2, AlertTriangle, Building2 } from "lucide-react";
 import { warehousesService } from "../../services/warehouses.service";
 import { branchesService } from "../../services/branches.service";
-import { PageHeader, StatCard, SearchFilter, DataTable } from "@/components/shared";
+import { BreadcrumbHeader, StatCard, SearchFilter, DataTable } from "@/components/shared";
 import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -181,15 +181,15 @@ export default function WarehouseList() {
 
   return (
     <div className="w-full space-y-3">
-      <PageHeader title="Manajemen Gudang" subtitle="Kelola gudang per outlet">
+      <BreadcrumbHeader title="Manajemen Gudang" subtitle="Kelola gudang per outlet">
         <Button
           onClick={() => navigate("/warehouses/new")}
-          className="flex items-center gap-2 bg-white text-primary-600 hover:bg-primary-50"
+          className="flex items-center gap-2"
         >
           <Plus className="w-5 h-5" />
           <span>Tambah Gudang</span>
         </Button>
-      </PageHeader>
+      </BreadcrumbHeader>
 
       {error && (
         <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">

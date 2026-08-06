@@ -40,7 +40,7 @@ export function BreadcrumbHeader({ title, subtitle, children, trail, className }
               const isLast = i === crumbs.length - 1;
               return (
                 <BreadcrumbItem key={i}>
-                  {isLast || !crumb.href ? (
+                  {!crumb.href ? (
                     <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
                   ) : (
                     <BreadcrumbLink asChild>
