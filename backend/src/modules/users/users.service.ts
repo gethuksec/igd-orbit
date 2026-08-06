@@ -790,6 +790,18 @@ export class UsersService {
       resolvedBranchId = firstBranch.id;
     }
 
+    // Decision #31: deny-only — deniedPermissions can NEVER exceed role defaults
+    if (assignRoleDto.deniedPermissions && assignRoleDto.deniedPermissions.length > 0) {
+      const beyondDefaults = assignRoleDto.deniedPermissions.filter(
+        (p) => !role.defaultPermissions.includes(p),
+      );
+      if (beyondDefaults.length > 0) {
+        throw new BadRequestException(
+          `Cannot deny permissions beyond role defaults: ${beyondDefaults.join(', ')}`,
+        );
+      }
+    }
+
     // Check for duplicate role assignment
     const existingAssignment = await this.prisma.userBranch.findFirst({
       where: {

@@ -43,6 +43,18 @@ export class WarehousesController {
   }
 
   /**
+   * Get active warehouses (flat list for dropdowns — D2)
+   * GET /api/v1/warehouses/active?outletId=
+   * Permissions: same as list
+   */
+  @Get('active')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA', 'SODO')
+  async findActive(@Query('outletId') outletId?: string) {
+    return this.warehousesService.findActive(outletId);
+  }
+
+  /**
    * Get warehouse detail
    * GET /api/v1/warehouses/:id
    * Permissions: OWNER, CFO, MGR, CSO, CMO, SPV, HS, ASA, SODO
