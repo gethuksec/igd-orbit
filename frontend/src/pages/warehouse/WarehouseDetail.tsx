@@ -102,7 +102,7 @@ export default function WarehouseDetail() {
             {infoRow(
               <Building2 className="w-4 h-4" />,
               "Outlet",
-              <Link to={`/outlets/${wh.outlet?.id || ""}`} className="text-primary-600 hover:text-primary-700">
+              <Link to={`/branches/${wh.outlet?.id || ""}`} className="text-primary-600 hover:text-primary-700">
                 {wh.outlet?.name || "-"}
                 {wh.outlet?.code ? ` (${wh.outlet.code})` : ""}
               </Link>
