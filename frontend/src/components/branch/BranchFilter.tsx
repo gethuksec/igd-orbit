@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useBranchStore } from '@/stores/branchStore';
 
 /**
@@ -7,18 +7,27 @@ import { useBranchStore } from '@/stores/branchStore';
  * Defaults to the first-in-list branch once `availableBranches` loads
  * (decision #32: default = first-in-list; auto-select when only 1 branch).
  * Switching branch on one page never affects another page.
+ *
+ * The auto-default only applies until the user makes their own choice —
+ * picking "Semua Cabang" (empty value) is respected, never overwritten.
  */
 export function useBranchFilter() {
   const { availableBranches } = useBranchStore();
   const [branchId, setBranchId] = useState<string>('');
+  const userTouched = useRef(false);
+
+  const handleSetBranchId = useCallback((id: string) => {
+    userTouched.current = true;
+    setBranchId(id);
+  }, []);
 
   useEffect(() => {
-    if (!branchId && availableBranches.length > 0) {
+    if (!userTouched.current && branchId === '' && availableBranches.length > 0) {
       setBranchId(availableBranches[0].id);
     }
   }, [availableBranches, branchId]);
 
-  return { branchId, setBranchId, branches: availableBranches };
+  return { branchId, setBranchId: handleSetBranchId, branches: availableBranches };
 }
 
 interface BranchFilterSelectProps {
