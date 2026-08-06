@@ -25,6 +25,7 @@ import { Inject } from '@nestjs/common';
 import {
   bumpPermissionVersion,
   computeEffectivePermissions,
+  isPermissionWithinDefaults,
 } from '../../shared/utils/permissions.util';
 
 /**
@@ -788,6 +789,18 @@ export class UsersService {
         throw new BadRequestException('No active branch available for role assignment');
       }
       resolvedBranchId = firstBranch.id;
+    }
+
+    // Decision #31: deny-only — deniedPermissions can NEVER exceed role defaults
+    if (assignRoleDto.deniedPermissions && assignRoleDto.deniedPermissions.length > 0) {
+      const beyondDefaults = assignRoleDto.deniedPermissions.filter(
+        (p) => !isPermissionWithinDefaults(p, role.defaultPermissions || []),
+      );
+      if (beyondDefaults.length > 0) {
+        throw new BadRequestException(
+          `Cannot deny permissions beyond role defaults: ${beyondDefaults.join(', ')}`,
+        );
+      }
     }
 
     // Check for duplicate role assignment

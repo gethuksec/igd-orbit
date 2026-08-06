@@ -119,6 +119,21 @@ export class WarehousesService {
   }
 
   /**
+   * Find active warehouses (flat list for POS/Smart Repair dropdowns — D2)
+   * @param outletId - Optional filter by parent outlet
+   */
+  async findActive(outletId?: string) {
+    return this.prisma.warehouse.findMany({
+      where: {
+        isActive: true,
+        ...(outletId ? { outletId } : {}),
+      },
+      select: { id: true, code: true, name: true, outletId: true },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  /**
    * Find warehouse by ID
    * @param id - Warehouse ID
    * @returns Warehouse detail (with outlet info)
@@ -277,6 +292,19 @@ export class WarehousesService {
 
     if (!warehouse) {
       throw new NotFoundException('Warehouse not found');
+    }
+
+    // D2 guard: block deactivate if referenced by transactions/service orders.
+    // (D8 extends this to stock rows once warehouse-level stock lands.)
+    const [txCount, soCount] = await Promise.all([
+      this.prisma.salesTransaction.count({ where: { warehouseId: id } }),
+      this.prisma.serviceOrder.count({ where: { warehouseId: id } }),
+    ]);
+
+    if (txCount > 0 || soCount > 0) {
+      throw new BadRequestException(
+        `Warehouse has ${txCount} transaction(s) and ${soCount} service order(s) — cannot be deleted`,
+      );
     }
 
     // Soft delete (set isActive to false)

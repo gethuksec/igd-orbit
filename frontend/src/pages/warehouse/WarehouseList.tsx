@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Warehouse as WarehouseIcon, MapPin, Save, Loader2, AlertTriangle, Edit, Trash2, Building2 } from "lucide-react";
+import { Plus, Warehouse as WarehouseIcon, MapPin, Phone, Eye, Edit, Trash2, Loader2, AlertTriangle, Building2 } from "lucide-react";
 import { warehousesService } from "../../services/warehouses.service";
 import { branchesService } from "../../services/branches.service";
 import { PageHeader, StatCard, SearchFilter, DataTable } from "@/components/shared";
@@ -11,63 +12,38 @@ import { toast } from "sonner";
 
 type StatusFilter = "all" | "active" | "inactive";
 
-interface WarehouseFormData {
-  name: string;
-  code: string;
-  outletId: string;
-  city: string;
-  address: string;
-  phone: string;
-  email: string;
-  contactPerson: string;
-  mobilePhone: string;
-  isActive: boolean;
-}
-
-const defaultForm: WarehouseFormData = {
-  name: "",
-  code: "",
-  outletId: "",
-  city: "",
-  address: "",
-  phone: "",
-  email: "",
-  contactPerson: "",
-  mobilePhone: "",
-  isActive: true,
-};
-
 export default function WarehouseList() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [outletFilter, setOutletFilter] = useState<string>(searchParams.get("outletId") || "");
   const limit = 20;
 
-  // Modal state
-  const [formModalOpen, setFormModalOpen] = useState(false);
-  const [editingWarehouse, setEditingWarehouse] = useState<any>(null);
-  const [formData, setFormData] = useState<WarehouseFormData>({ ...defaultForm });
+  // Modal state (delete only — create/edit now on dedicated pages)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [warehouseToDelete, setWarehouseToDelete] = useState<{ id: string; name: string } | null>(null);
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["warehouses", page, searchTerm, statusFilter],
+    queryKey: ["warehouses", page, searchTerm, statusFilter, outletFilter],
     queryFn: () =>
       warehousesService.getAll({
         page,
         limit,
         search: searchTerm || undefined,
         ...(statusFilter !== "all" ? { status: statusFilter } : {}),
+        ...(outletFilter ? { outletId: outletFilter } : {}),
       }),
   });
 
-  // Active outlets (branches) for the dropdown
+  // Active outlets (branches) for the filter dropdown — public endpoint (role-safe)
   const { data: outletsData } = useQuery({
     queryKey: ["branches-active"],
-    queryFn: () => branchesService.getAll({ status: "active", limit: 100 }),
+    queryFn: () => branchesService.getActive(),
   });
-  const outlets = outletsData?.data || [];
+  const outlets = outletsData || [];
 
   useEffect(() => {
     const debounce = setTimeout(() => {
@@ -79,7 +55,7 @@ export default function WarehouseList() {
 
   useEffect(() => {
     setPage(1);
-  }, [statusFilter]);
+  }, [statusFilter, outletFilter]);
 
   const warehouses = data?.data || [];
   const pagination = data?.meta || {
@@ -87,65 +63,6 @@ export default function WarehouseList() {
     limit: 20,
     total: 0,
     totalPages: 1,
-  };
-
-  const saveMutation = useMutation({
-    mutationFn: (data: any) => {
-      const submitData = Object.fromEntries(
-        Object.entries(data).filter(([, v]) => v !== "")
-      );
-      if (editingWarehouse) {
-        return warehousesService.update(editingWarehouse.id, submitData);
-      }
-      return warehousesService.create(submitData);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["warehouses"] });
-      queryClient.invalidateQueries({ queryKey: ["pos-warehouses"] });
-      toast.success(editingWarehouse ? "Gudang berhasil diupdate" : "Gudang berhasil ditambahkan");
-      closeFormModal();
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Terjadi kesalahan");
-    },
-  });
-
-  const closeFormModal = () => {
-    setFormModalOpen(false);
-    setEditingWarehouse(null);
-    setFormData({ ...defaultForm });
-  };
-
-  const openCreateModal = () => {
-    setFormData({ ...defaultForm });
-    // Default outlet = first active branch
-    if (outlets.length === 1) {
-      setFormData((prev) => ({ ...prev, outletId: outlets[0].id }));
-    }
-    setEditingWarehouse(null);
-    setFormModalOpen(true);
-  };
-
-  const openEditModal = (warehouse: any) => {
-    setEditingWarehouse(warehouse);
-    setFormData({
-      name: warehouse.name || "",
-      code: warehouse.code || "",
-      outletId: warehouse.outletId || "",
-      city: warehouse.city || "",
-      address: warehouse.address || "",
-      phone: warehouse.phone || "",
-      email: warehouse.email || "",
-      contactPerson: warehouse.contactPerson || "",
-      mobilePhone: warehouse.mobilePhone || "",
-      isActive: warehouse.isActive !== false,
-    });
-    setFormModalOpen(true);
-  };
-
-  const handleFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    saveMutation.mutate(formData);
   };
 
   const deleteMutation = useMutation({
@@ -206,6 +123,25 @@ export default function WarehouseList() {
       ),
     },
     {
+      key: "address",
+      header: "Alamat",
+      cell: (wh) => (
+        <div className="text-sm text-muted-foreground max-w-[220px] truncate" title={wh.address || ""}>
+          {wh.address || "-"}
+        </div>
+      ),
+    },
+    {
+      key: "phone",
+      header: "Telepon",
+      cell: (wh) => (
+        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          <Phone className="w-4 h-4" />
+          {wh.phone || "-"}
+        </div>
+      ),
+    },
+    {
       key: "contactPerson",
       header: "Contact Person",
       cell: (wh) => (
@@ -243,14 +179,11 @@ export default function WarehouseList() {
     { key: "inactive", label: "Tidak Aktif" },
   ];
 
-  const inputCls =
-    "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent";
-
   return (
     <div className="w-full space-y-3">
       <PageHeader title="Manajemen Gudang" subtitle="Kelola gudang per outlet">
         <Button
-          onClick={openCreateModal}
+          onClick={() => navigate("/warehouses/new")}
           className="flex items-center gap-2 bg-white text-primary-600 hover:bg-primary-50"
         >
           <Plus className="w-5 h-5" />
@@ -296,23 +229,40 @@ export default function WarehouseList() {
         searchPlaceholder="Cari nama gudang, kode, kota..."
       />
 
-      {/* Status Filter */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-gray-600">Status:</span>
-        <div className="flex gap-1">
-          {statusBtns.map((btn) => (
-            <button
-              key={btn.key}
-              onClick={() => setStatusFilter(btn.key)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                statusFilter === btn.key
-                  ? "bg-primary-600 text-white shadow-sm"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              {btn.label}
-            </button>
-          ))}
+      {/* Filter row: Outlet + Status */}
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-600">Outlet:</span>
+          <select
+            value={outletFilter}
+            onChange={(e) => setOutletFilter(e.target.value)}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-300 bg-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          >
+            <option value="">Semua Outlet</option>
+            {outlets.map((b: any) => (
+              <option key={b.id} value={b.id}>
+                {b.name} ({b.code})
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-600">Status:</span>
+          <div className="flex gap-1">
+            {statusBtns.map((btn) => (
+              <button
+                key={btn.key}
+                onClick={() => setStatusFilter(btn.key)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  statusFilter === btn.key
+                    ? "bg-primary-600 text-white shadow-sm"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {btn.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -328,7 +278,15 @@ export default function WarehouseList() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => openEditModal(wh)}
+              onClick={() => navigate(`/warehouses/${wh.id}`)}
+              title="Lihat Detail"
+            >
+              <Eye className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate(`/warehouses/${wh.id}/edit`)}
               title="Edit"
             >
               <Edit className="w-4 h-4" />
@@ -387,177 +345,6 @@ export default function WarehouseList() {
           </div>
         </div>
       )}
-
-      {/* Form Modal */}
-      <Dialog
-        open={formModalOpen}
-        onOpenChange={(open) => {
-          if (!open) closeFormModal();
-        }}
-      >
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{editingWarehouse ? "Edit Gudang" : "Tambah Gudang"}</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleFormSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nama Gudang <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className={inputCls}
-                placeholder="Nama gudang"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Kode
-              </label>
-              <input
-                type="text"
-                value={formData.code}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                className={inputCls}
-                placeholder="Kosongkan untuk otomatis (WH-XXXXXXXX)"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Outlet <span className="text-red-500">*</span>
-              </label>
-              <select
-                required
-                value={formData.outletId}
-                onChange={(e) => setFormData({ ...formData, outletId: e.target.value })}
-                className={inputCls}
-              >
-                <option value="">Pilih outlet...</option>
-                {outlets.map((b: any) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name} ({b.code})
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Kota</label>
-                <input
-                  type="text"
-                  value={formData.city}
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  className={inputCls}
-                  placeholder="Kota"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Telepon</label>
-                <input
-                  type="text"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className={inputCls}
-                  placeholder="Telepon"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Alamat</label>
-              <textarea
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                rows={2}
-                className={inputCls}
-                placeholder="Alamat gudang (opsional)"
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className={inputCls}
-                  placeholder="Email (opsional)"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Contact Person</label>
-                <input
-                  type="text"
-                  value={formData.contactPerson}
-                  onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
-                  className={inputCls}
-                  placeholder="Nama contact person"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">No. HP</label>
-              <input
-                type="text"
-                value={formData.mobilePhone}
-                onChange={(e) => setFormData({ ...formData, mobilePhone: e.target.value })}
-                className={inputCls}
-                placeholder="No. HP contact person"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setFormData((prev) => ({ ...prev, isActive: !prev.isActive }))}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    formData.isActive ? "bg-green-500" : "bg-gray-300"
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      formData.isActive ? "translate-x-6" : "translate-x-1"
-                    }`}
-                  />
-                </button>
-                <span className="text-sm text-gray-600">
-                  {formData.isActive ? "Aktif" : "Tidak Aktif"}
-                </span>
-              </div>
-            </div>
-            <div className="flex gap-3 pt-2">
-              <button
-                type="button"
-                onClick={closeFormModal}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
-                disabled={saveMutation.isPending}
-              >
-                Batal
-              </button>
-              <button
-                type="submit"
-                disabled={saveMutation.isPending}
-                className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {saveMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Menyimpan...
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4" />
-                    Simpan
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <Dialog
