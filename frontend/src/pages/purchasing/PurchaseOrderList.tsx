@@ -4,8 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { FileText, Search, Eye, Plus, CheckCircle, XCircle, Clock, Package, AlertCircle } from 'lucide-react';
 import { purchasingService, type PurchaseOrder } from '@/services/purchasing.service';
 import { formatCurrency, formatDate } from '@/utils/format';
-import { PageHeader } from '@/components/shared';
 import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
+import { BreadcrumbHeader } from '@/components/shared';
 
 export default function PurchaseOrderList() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -109,7 +109,7 @@ export default function PurchaseOrderList() {
   return (
     <div className="w-full space-y-6">
       {/* Header */}
-      <PageHeader title="Purchase Order" subtitle="Kelola purchase order dan pembelian">
+      <BreadcrumbHeader title="Purchase Order" subtitle="Kelola purchase order dan pembelian">
         <Link
             to="/purchasing/po/new"
             className="px-6 py-3 bg-white text-primary-600 rounded-lg font-semibold hover:bg-primary-50 transition-colors flex items-center gap-2"
@@ -117,7 +117,7 @@ export default function PurchaseOrderList() {
             <Plus className="w-5 h-5" />
             PO Baru
           </Link>
-      </PageHeader>
+      </BreadcrumbHeader>
 
       {/* Filters & Search */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">

@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Eye, Edit, Trash2, Users, Mail, Phone, Shield, CheckCircle, XCircle, RefreshCw, Loader2, AlertTriangle } from 'lucide-react';
 import { usersService, type User } from '../../services/users.service';
 import { toast } from 'sonner';
-import { PageHeader, StatCard, SearchFilter, DataTable } from '@/components/shared';
+import { BreadcrumbHeader, StatCard, SearchFilter, DataTable } from '@/components/shared';
 import type { Column } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -221,14 +221,14 @@ export default function UserList() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Manajemen Pengguna" subtitle="Kelola pengguna dan akses sistem">
+      <BreadcrumbHeader title="Manajemen Pengguna" subtitle="Kelola pengguna dan akses sistem">
         <RequirePermission permission="users.create" fallbackRoles={['SUPERADMIN', 'CHR']}>
           <Button size="sm" className="bg-white text-primary-600 hover:bg-primary-50 font-semibold" onClick={() => setFormModal({ open: true, user: null })}>
             <Plus className="w-4 h-4" />
             Tambah Pengguna
           </Button>
         </RequirePermission>
-      </PageHeader>
+      </BreadcrumbHeader>
 
       {/* Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

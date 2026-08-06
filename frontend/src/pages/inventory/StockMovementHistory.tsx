@@ -13,7 +13,7 @@ import {
   TrendingUp,
   TrendingDown,
 } from 'lucide-react';
-import { PageHeader } from '@/components/shared';
+import { BreadcrumbHeader } from '@/components/shared';
 import { inventoryService } from '../../services/inventory.service';
 import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
 
@@ -132,7 +132,7 @@ export default function StockMovementHistory() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header */}
-      <PageHeader title="Riwayat Perpindahan Stok" subtitle="Lihat semua perpindahan stok produk" />
+      <BreadcrumbHeader title="Riwayat Perpindahan Stok" subtitle="Lihat semua perpindahan stok produk" />
 
       {/* Error Message */}
       {error && (

@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { BreadcrumbHeader } from '@/components/shared';
 import { useNavigate, Link } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Calendar, Save } from 'lucide-react';
+import { Save } from 'lucide-react';
 import { hrService } from '@/services/hr.service';
 import { toast } from 'sonner';
 
@@ -67,23 +68,7 @@ export default function LeaveRequestForm() {
   return (
     <div className="w-full space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center gap-4">
-          <Link
-            to="/hr/leave"
-            className="p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <div>
-            <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-              <Calendar className="w-10 h-10" />
-              Ajukan Cuti
-            </h1>
-            <p className="text-green-100 text-lg">Formulir permohonan cuti</p>
-          </div>
-        </div>
-      </div>
+      <BreadcrumbHeader title="Ajukan Cuti" subtitle="Formulir permohonan cuti" />
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-6">

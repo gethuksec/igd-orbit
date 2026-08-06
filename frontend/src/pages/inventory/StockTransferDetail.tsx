@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BreadcrumbHeader } from '@/components/shared';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -187,29 +188,15 @@ export default function StockTransferDetail() {
   return (
     <div className="w-full space-y-3">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              to="/inventory/transfer"
-              className="p-2 text-white/80 hover:bg-white/20 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold mb-1">{transfer.transferNumber}</h1>
-              <p className="text-primary-100">Detail Transfer Stok</p>
-            </div>
-          </div>
-          <span
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border ${getStatusColor(
-              transfer.status,
-            )} bg-white/10 backdrop-blur-sm border-white/20`}
-          >
-            {getStatusLabel(transfer.status)}
-          </span>
-        </div>
-      </div>
+      <BreadcrumbHeader title={transfer.transferNumber} subtitle="Detail Transfer Stok">
+        <span
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border ${getStatusColor(
+            transfer.status,
+          )}`}
+        >
+          {getStatusLabel(transfer.status)}
+        </span>
+      </BreadcrumbHeader>
 
       {/* Transfer Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

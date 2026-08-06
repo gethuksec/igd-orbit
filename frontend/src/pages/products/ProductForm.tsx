@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Save, X, Loader2, Package, DollarSign, FileText, Tag } from 'lucide-react';
+import { Save, Loader2, Package, DollarSign, FileText, Tag } from 'lucide-react';
 import { productsService } from '../../services/products.service';
 import { api } from '../../services/api';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select } from '@/components/ui/select';
-import { PageHeader } from '@/components/shared';
+import { BreadcrumbHeader } from '@/components/shared';
 
 function generateBarcode(): string {
   const now = new Date();
@@ -271,20 +271,12 @@ export default function ProductForm() {
   return (
     <div className="w-full space-y-4">
       {/* Page Header */}
-      <PageHeader
+      <BreadcrumbHeader
         title={isEdit ? 'Edit Produk' : 'Tambah Produk'}
         subtitle={isEdit ? 'Ubah informasi produk' : 'Tambahkan produk baru ke inventori'}
       >
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate('/products')}
-          className="text-white/80 hover:text-white hover:bg-white/20"
-        >
-          <X className="w-4 h-4 mr-2" />
-          Batal
-        </Button>
-      </PageHeader>
+
+      </BreadcrumbHeader>
 
       {/* Single Long-Scroll Form */}
       <Card className="shadow-md border border-gray-100 overflow-hidden">

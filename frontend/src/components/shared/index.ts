@@ -1,4 +1,4 @@
-export { PageHeader } from './PageHeader';
+export { BreadcrumbHeader } from './BreadcrumbHeader';
 export { StatCard } from './StatCard';
 export { DataTable } from './DataTable';
 export type { Column } from './DataTable';

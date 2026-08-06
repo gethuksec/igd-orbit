@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Save, X, Loader2, ArrowLeft, Wrench, Clock, DollarSign } from 'lucide-react';
+import { Save, Loader2, Wrench, Clock, DollarSign } from 'lucide-react';
+import { BreadcrumbHeader } from '@/components/shared';
 import { serviceTypesService } from '../../services/service-types.service';
 import { toast } from 'sonner';
 
@@ -48,7 +49,7 @@ export default function ServiceTypeForm() {
     mutationFn: (data: any) => {
       // Calculate SLA hours from days and hours remainder
       const slaHours = Number(data.slaDays) * 24 + Number(data.slaHoursRemainder);
-      
+
       const submitData: any = {
         name: data.name,
         description: data.description || undefined,
@@ -95,33 +96,12 @@ export default function ServiceTypeForm() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/service-types')}
-              className="p-2 text-white/80 hover:bg-white/20 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-3xl font-bold mb-1">
-                {isEdit ? 'Edit Layanan' : 'Tambah Layanan'}
-              </h1>
-              <p className="text-primary-100">
-                {isEdit ? 'Ubah informasi layanan' : 'Tambahkan layanan baru'}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => navigate('/service-types')}
-            className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm text-white rounded-lg hover:bg-white/20 transition-all"
-          >
-            <X className="w-4 h-4" />
-            <span>Batal</span>
-          </button>
-        </div>
-      </div>
+      <BreadcrumbHeader
+        title={isEdit ? 'Edit Layanan' : 'Tambah Layanan'}
+        subtitle={isEdit ? 'Ubah informasi layanan' : 'Tambahkan layanan baru'}
+      >
+
+      </BreadcrumbHeader>
 
       {/* Form Card */}
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">

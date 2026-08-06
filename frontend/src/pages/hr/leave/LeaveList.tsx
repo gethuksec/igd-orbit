@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BreadcrumbHeader } from '@/components/shared';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Calendar, Search, User, CheckCircle, XCircle, Clock, AlertCircle, Eye } from 'lucide-react';
@@ -10,7 +11,6 @@ export default function LeaveList() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['leave-requests', statusFilter, startDate, endDate],
@@ -100,23 +100,14 @@ export default function LeaveList() {
   return (
     <div className="w-full space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-              <Calendar className="w-10 h-10" />
-              Cuti & Izin
-            </h1>
-            <p className="text-green-100 text-lg">Kelola cuti dan izin karyawan</p>
-          </div>
-          <Link
+      <BreadcrumbHeader title="Cuti & Izin" subtitle="Kelola cuti dan izin karyawan">
+        <Link
             to="/hr/leave/new"
             className="px-6 py-3 bg-white text-green-600 rounded-lg font-semibold hover:bg-green-50 transition-colors"
           >
             Ajukan Cuti
           </Link>
-        </div>
-      </div>
+      </BreadcrumbHeader>
 
       {/* Filters & Search - Enhanced */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
@@ -322,4 +313,3 @@ export default function LeaveList() {
     </div>
   );
 }
-

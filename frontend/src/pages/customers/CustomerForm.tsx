@@ -3,9 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Save,
-  X,
   Loader2,
-  ArrowLeft,
   User,
   Phone,
   Mail,
@@ -15,6 +13,7 @@ import {
   FileText,
   Calendar,
 } from 'lucide-react';
+import { BreadcrumbHeader } from '@/components/shared';
 import { customersService } from '../../services/customers.service';
 import { toast } from 'sonner';
 import kecamatanJember from '@/data/kecamatan-jember.json';
@@ -132,12 +131,12 @@ export default function CustomerForm() {
         paymentTermDays: data.paymentTermDays || 0,
         notes: data.notes || undefined,
       };
-      
+
       // Convert tier code to tierCode field for backend
       if (data.tier) {
         submitData.tierCode = data.tier; // Backend will lookup tier ID from code
       }
-      
+
       return isEdit
         ? customersService.update(id!, submitData)
         : customersService.create(submitData);
@@ -152,7 +151,7 @@ export default function CustomerForm() {
       // Extract validation errors from backend
       const errorResponse = error.response?.data;
       let errorMessage = 'Terjadi kesalahan saat menyimpan data';
-      
+
       if (errorResponse?.message) {
         // Single error message
         errorMessage = errorResponse.message;
@@ -165,7 +164,7 @@ export default function CustomerForm() {
       } else if (errorResponse?.error) {
         errorMessage = errorResponse.error;
       }
-      
+
       toast.error(errorMessage);
     },
   });
@@ -193,33 +192,12 @@ export default function CustomerForm() {
   return (
     <div className="w-full space-y-4">
       {/* Page Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-2xl shadow-lg p-8 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/customers')}
-              className="p-2 text-white/80 hover:bg-white/20 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-4xl font-bold mb-2">
-                {isEdit ? 'Edit Pelanggan' : 'Tambah Pelanggan'}
-              </h1>
-              <p className="text-primary-100 text-lg">
-                {isEdit ? 'Ubah informasi pelanggan' : 'Tambahkan pelanggan baru'}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => navigate('/customers')}
-            className="flex items-center gap-2 px-5 py-2.5 bg-white/10 backdrop-blur-sm text-white rounded-lg hover:bg-white/20 transition-all border border-white/20 font-medium"
-          >
-            <X className="w-4 h-4" />
-            <span>Batal</span>
-          </button>
-        </div>
-      </div>
+      <BreadcrumbHeader
+        title={isEdit ? 'Edit Pelanggan' : 'Tambah Pelanggan'}
+        subtitle={isEdit ? 'Ubah informasi pelanggan' : 'Tambahkan pelanggan baru'}
+      >
+
+      </BreadcrumbHeader>
 
       {/* Tabs */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
@@ -653,8 +631,6 @@ export default function CustomerForm() {
               </div>
             </div>
           )}
-
-
           {/* Form Actions */}
           <div className="mt-8 pt-6 border-t border-gray-200 flex items-center justify-end gap-4">
             <button

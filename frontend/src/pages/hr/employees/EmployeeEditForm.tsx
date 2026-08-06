@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
+import { BreadcrumbHeader } from '@/components/shared';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, User, Save, AlertCircle, Building2, Briefcase, Calendar, DollarSign, Banknote, FileText } from 'lucide-react';
+import { Save, AlertCircle, Building2, Briefcase, Calendar, DollarSign, Banknote, FileText } from 'lucide-react';
 import { api } from '@/services/api';
 import { toast } from 'sonner';
 import { useBranchStore } from '@/stores/branchStore';
@@ -149,23 +150,7 @@ export default function EmployeeEditForm() {
   return (
     <div className="w-full space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center gap-4">
-          <Link
-            to={`/hr/employees/${id}`}
-            className="p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <div>
-            <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-              <User className="w-10 h-10" />
-              Edit Karyawan
-            </h1>
-            <p className="text-primary-100 text-lg">Perbarui informasi karyawan</p>
-          </div>
-        </div>
-      </div>
+      <BreadcrumbHeader title="Edit Karyawan" subtitle="Perbarui informasi karyawan" />
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-6">

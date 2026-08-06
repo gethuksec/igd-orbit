@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
+import { BreadcrumbHeader } from '@/components/shared';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Save,
   Loader2,
-  ArrowLeft,
   Wallet,
   Search,
   DollarSign,
@@ -159,30 +159,7 @@ export default function ExpenseForm() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/finance/expenses')}
-              className="p-2 text-white/80 hover:bg-white/20 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-3xl font-bold mb-1">
-                {isEdit ? 'Edit Pengeluaran' : 'Buat Pengeluaran Baru'}
-              </h1>
-              <p className="text-primary-100">Buat atau edit pengeluaran</p>
-            </div>
-          </div>
-          <div className="flex items-center">
-            <BranchFilterSelect
-              value={formData.branch_id}
-              onChange={(id) => setFormData({ ...formData, branch_id: id })}
-            />
-          </div>
-        </div>
-      </div>
+      <BreadcrumbHeader title={isEdit ? 'Edit Pengeluaran' : 'Buat Pengeluaran Baru'} subtitle="Buat atau edit pengeluaran" />
 
       <form onSubmit={handleSubmit} className="space-y-3">
         {/* Expense Information */}

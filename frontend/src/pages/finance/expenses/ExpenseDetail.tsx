@@ -1,4 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
+import { BreadcrumbHeader } from '@/components/shared';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
@@ -136,26 +137,13 @@ export default function ExpenseDetail() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              to="/finance/expenses"
-              className="p-2 text-white/80 hover:bg-white/20 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold mb-1">Detail Pengeluaran</h1>
-              <p className="text-primary-100">Informasi lengkap pengeluaran</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
+      <BreadcrumbHeader title="Detail Pengeluaran" subtitle="Informasi lengkap pengeluaran">
+        <div className="flex items-center gap-2">
             {expense.status === 'pending' && (
               <>
                 <Link
                   to={`/finance/expenses/${expense.id}/edit`}
-                  className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors"
                 >
                   <Edit className="w-4 h-4" />
                   <span>Edit</span>
@@ -168,7 +156,7 @@ export default function ExpenseDetail() {
                     }
                   }}
                   disabled={approveMutation.isPending}
-                  className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-50"
                 >
                   {approveMutation.isPending ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -185,7 +173,7 @@ export default function ExpenseDetail() {
                     }
                   }}
                   disabled={rejectMutation.isPending}
-                  className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-50"
                 >
                   {rejectMutation.isPending ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -208,7 +196,7 @@ export default function ExpenseDetail() {
                   }
                 }}
                 disabled={payMutation.isPending}
-                className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-50"
               >
                 {payMutation.isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -219,8 +207,7 @@ export default function ExpenseDetail() {
               </button>
             )}
           </div>
-        </div>
-      </div>
+      </BreadcrumbHeader>
 
       {/* Expense Information */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">

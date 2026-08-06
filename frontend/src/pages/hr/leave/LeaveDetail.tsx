@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom';
+import { BreadcrumbHeader } from '@/components/shared';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Calendar, CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react';
 import { hrService, type LeaveRequest } from '@/services/hr.service';
 import { formatDate } from '@/utils/format';
 import { toast } from 'sonner';
@@ -145,26 +146,8 @@ export default function LeaveDetail() {
   return (
     <div className="w-full space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              to="/hr/leave"
-              className="p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <div>
-              <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-                <Calendar className="w-10 h-10" />
-                Detail Cuti
-              </h1>
-              <p className="text-green-100 text-lg">
-                {leaveRequest.employee?.user?.fullName || leaveRequest.employee?.employeeCode || 'N/A'}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
+      <BreadcrumbHeader title="Detail Cuti" subtitle={leaveRequest.employee?.user?.fullName || leaveRequest.employee?.employeeCode || 'N/A'}>
+        <div className="flex items-center gap-2">
             {canApprove && leaveRequest.status === 'pending' && (
               <button
                 onClick={() => setShowApproveModal(true)}
@@ -182,8 +165,7 @@ export default function LeaveDetail() {
               </button>
             )}
           </div>
-        </div>
-      </div>
+      </BreadcrumbHeader>
 
       {/* Info Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

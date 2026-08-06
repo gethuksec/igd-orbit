@@ -11,7 +11,7 @@ import {
 import { serviceReturnsService } from '../../services/service-returns.service';
 import { toast } from 'sonner';
 import { api } from '@/services/api';
-import { PageHeader } from '@/components/shared';
+import { BreadcrumbHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 
 const getCurrentUser = () => {
@@ -177,7 +177,7 @@ export default function ServiceReturnDetail() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header - Enhanced */}
-      <PageHeader
+      <BreadcrumbHeader
         title={returnItem.returnNumber}
         subtitle="Detail Retur & Komplain Service"
       >
@@ -185,7 +185,7 @@ export default function ServiceReturnDetail() {
           variant="ghost"
           size="sm"
           onClick={() => navigate('/service-returns')}
-          className="text-white/80 hover:text-white hover:bg-white/20"
+
         >
           <ArrowLeft className="w-4 h-4" />
         </Button>
@@ -196,7 +196,7 @@ export default function ServiceReturnDetail() {
         >
           {returnItem.status.toUpperCase()}
         </span>
-      </PageHeader>
+      </BreadcrumbHeader>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}

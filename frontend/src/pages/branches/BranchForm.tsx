@@ -5,7 +5,7 @@ import { Save, Loader2, ArrowLeft, Store, MapPin, Phone, Clock, UserCog } from '
 import { branchesService } from '../../services/branches.service';
 import { api } from '../../services/api';
 import { toast } from 'sonner';
-import { PageHeader } from '@/components/shared';
+import { BreadcrumbHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -98,7 +98,7 @@ export default function BranchForm() {
 
   return (
     <div className="w-full space-y-3">
-      <PageHeader
+      <BreadcrumbHeader
         title={isEdit ? 'Edit Cabang' : 'Tambah Cabang Baru'}
         subtitle={isEdit ? 'Ubah informasi cabang' : 'Tambahkan cabang baru ke sistem'}
       >
@@ -106,12 +106,12 @@ export default function BranchForm() {
           variant="ghost"
           size="sm"
           onClick={() => navigate('/branches')}
-          className="text-white/80 hover:text-white hover:bg-white/20"
+
         >
           <ArrowLeft className="w-4 h-4 mr-1" />
           Kembali
         </Button>
-      </PageHeader>
+      </BreadcrumbHeader>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Informasi Dasar */}

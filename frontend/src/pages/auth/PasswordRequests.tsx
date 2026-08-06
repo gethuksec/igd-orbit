@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Shield, CheckCircle, XCircle, Loader2, Clock, User, Mail } from 'lucide-react';
 import { authService } from '../../services/users.service';
 import { toast } from 'sonner';
-import { PageHeader } from '@/components/shared';
+import { BreadcrumbHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 
 export default function PasswordRequests() {
@@ -46,7 +46,7 @@ export default function PasswordRequests() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Persetujuan Password" subtitle="Setujui atau tolak permintaan perubahan password dari karyawan" />
+      <BreadcrumbHeader title="Persetujuan Password" subtitle="Setujui atau tolak permintaan perubahan password dari karyawan" />
 
       {/* Requests List */}
       {(!requests || requests.length === 0) ? (

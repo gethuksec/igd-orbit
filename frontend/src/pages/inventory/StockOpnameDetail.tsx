@@ -1,4 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
+import { BreadcrumbHeader } from '@/components/shared';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
@@ -137,29 +138,15 @@ export default function StockOpnameDetail() {
   return (
     <div className="w-full space-y-3">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              to="/inventory/opname"
-              className="p-2 text-white/80 hover:bg-white/20 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold mb-1">{opname.opnameNumber}</h1>
-              <p className="text-primary-100">Detail Stock Opname</p>
-            </div>
-          </div>
-          <span
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border ${getStatusColor(
-              opname.status,
-            )} bg-white/10 backdrop-blur-sm border-white/20`}
-          >
-            {getStatusLabel(opname.status)}
-          </span>
-        </div>
-      </div>
+      <BreadcrumbHeader title={opname.opnameNumber} subtitle="Detail Stock Opname">
+        <span
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border ${getStatusColor(
+            opname.status,
+          )}`}
+        >
+          {getStatusLabel(opname.status)}
+        </span>
+      </BreadcrumbHeader>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">

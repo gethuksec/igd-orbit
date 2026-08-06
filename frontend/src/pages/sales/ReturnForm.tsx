@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, Loader2, X } from 'lucide-react';
 import { salesService, type SalesTransaction } from '../../services/sales.service';
 import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
-import { PageHeader } from '@/components/shared';
+import { BreadcrumbHeader } from '@/components/shared';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -85,9 +85,9 @@ export default function ReturnForm() {
 
   return (
     <div className="w-full space-y-4">
-      <PageHeader title="Buat Retur Penjualan" subtitle="Pilih transaksi dan masukkan alasan retur">
+      <BreadcrumbHeader title="Buat Retur Penjualan" subtitle="Pilih transaksi dan masukkan alasan retur">
         <BranchFilterSelect value={branchId} onChange={setBranchId} />
-      </PageHeader>
+      </BreadcrumbHeader>
 
       <Card>
         <CardContent className="p-6">

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Wrench, Plus } from 'lucide-react';
+import { BreadcrumbHeader } from '@/components/shared';
 
 export default function ServiceLanding() {
   const menuItems = [
@@ -22,12 +23,7 @@ export default function ServiceLanding() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div>
-          <h1 className="text-4xl font-bold mb-2">Servis</h1>
-          <p className="text-primary-100 text-lg">Kelola pesanan servis dan perbaikan</p>
-        </div>
-      </div>
+      <BreadcrumbHeader title="Servis" subtitle="Kelola pesanan servis dan perbaikan" />
 
       {/* Menu Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

@@ -9,7 +9,7 @@ import {
   Download,
   CheckCircle,
 } from 'lucide-react';
-import { PageHeader } from '@/components/shared';
+import { BreadcrumbHeader } from '@/components/shared';
 import { inventoryService } from '../../services/inventory.service';
 import { api } from '@/services/api';
 
@@ -68,7 +68,7 @@ export default function LowStockAlerts() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header */}
-      <PageHeader title="Peringatan Stok Rendah" subtitle="Produk dengan stok di bawah reorder point">
+      <BreadcrumbHeader title="Peringatan Stok Rendah" subtitle="Produk dengan stok di bawah reorder point">
         {alerts && alerts.items.length > 0 && (
           <button
             onClick={handleExport}
@@ -78,7 +78,7 @@ export default function LowStockAlerts() {
             <span>Export CSV</span>
           </button>
         )}
-      </PageHeader>
+      </BreadcrumbHeader>
 
       {/* Error Message */}
       {error && (

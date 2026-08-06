@@ -16,7 +16,7 @@ import { serviceTypesService } from '../../services/service-types.service';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { PageHeader, StatCard, SearchFilter, DataTable } from '@/components/shared';
+import { BreadcrumbHeader, StatCard, SearchFilter, DataTable } from '@/components/shared';
 import type { Column } from '@/components/shared';
 
 export default function ServiceTypeList() {
@@ -227,15 +227,15 @@ export default function ServiceTypeList() {
 
   return (
     <div className="w-full space-y-3">
-      <PageHeader title="Manajemen Layanan" subtitle="Kelola jenis layanan servis">
+      <BreadcrumbHeader title="Manajemen Layanan" subtitle="Kelola jenis layanan servis">
         <Button
           onClick={openCreateModal}
-          className="flex items-center gap-2 bg-white text-primary-600 hover:bg-primary-50"
+          className="flex items-center gap-2 bg-white text-primary-600 border border-gray-200 hover:bg-primary-50"
         >
           <Plus className="w-5 h-5" />
           <span>Tambah Layanan</span>
         </Button>
-      </PageHeader>
+      </BreadcrumbHeader>
 
       {error && (
         <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">

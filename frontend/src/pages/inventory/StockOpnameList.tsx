@@ -12,7 +12,7 @@ import {
   Clock,
   AlertTriangle,
 } from 'lucide-react';
-import { PageHeader } from '@/components/shared';
+import { BreadcrumbHeader } from '@/components/shared';
 import { inventoryService } from '../../services/inventory.service';
 import type { StockOpname } from '../../services/inventory.service';
 import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
@@ -96,7 +96,7 @@ export default function StockOpnameList() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header */}
-      <PageHeader title="Stock Opname" subtitle="Kelola stock opname dan audit stok">
+      <BreadcrumbHeader title="Stock Opname" subtitle="Kelola stock opname dan audit stok">
         <Link
           to="/inventory/opname/new"
           className="px-6 py-3 bg-white/20 hover:bg-white/30 rounded-lg font-semibold transition-all flex items-center gap-2 backdrop-blur-sm"
@@ -104,7 +104,7 @@ export default function StockOpnameList() {
           <Plus className="w-5 h-5" />
           <span>Mulai Opname</span>
         </Link>
-      </PageHeader>
+      </BreadcrumbHeader>
 
       {/* Error Message */}
       {error && (

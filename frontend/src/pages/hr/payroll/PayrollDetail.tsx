@@ -1,7 +1,8 @@
 import { useParams, Link } from 'react-router-dom';
+import { BreadcrumbHeader } from '@/components/shared';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { ArrowLeft, Banknote, CheckCircle, XCircle, Clock, AlertCircle, DollarSign, FileText } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, AlertCircle, DollarSign, FileText } from 'lucide-react';
 import { hrService } from '@/services/hr.service';
 import { formatCurrency } from '@/utils/format';
 import { toast } from 'sonner';
@@ -35,12 +36,12 @@ export default function PayrollDetail() {
     onSuccess: (response) => {
       console.log('Approve success:', response);
       toast.success(response?.message || 'Payroll berhasil disetujui');
-      
+
       // If response includes updated data, update the cache directly
       if (response?.data) {
         queryClient.setQueryData(['payroll', id], response.data);
       }
-      
+
       // Invalidate and refetch immediately
       queryClient.invalidateQueries({ queryKey: ['payroll', id] });
       queryClient.invalidateQueries({ queryKey: ['payrolls'] });
@@ -60,12 +61,12 @@ export default function PayrollDetail() {
     onSuccess: (response) => {
       console.log('Process payment success:', response);
       toast.success(response?.message || 'Pembayaran payroll berhasil diproses');
-      
+
       // If response includes updated data, update the cache directly
       if (response?.data) {
         queryClient.setQueryData(['payroll', id], response.data);
       }
-      
+
       queryClient.invalidateQueries({ queryKey: ['payroll', id] });
       queryClient.invalidateQueries({ queryKey: ['payrolls'] });
       setTimeout(() => {
@@ -83,12 +84,12 @@ export default function PayrollDetail() {
     onSuccess: (response) => {
       console.log('Cancel success:', response);
       toast.success(response?.message || 'Payroll berhasil dibatalkan');
-      
+
       // If response includes updated data, update the cache directly
       if (response?.data) {
         queryClient.setQueryData(['payroll', id], response.data);
       }
-      
+
       queryClient.invalidateQueries({ queryKey: ['payroll', id] });
       queryClient.invalidateQueries({ queryKey: ['payrolls'] });
       setTimeout(() => {
@@ -101,10 +102,9 @@ export default function PayrollDetail() {
     },
   });
 
-
   const isCHR = userRoles.some((r) => r === 'CHR');
   const isCFO = userRoles.some((r) => r === 'CFO');
-  
+
   // CHR can approve if status is draft and not yet approved by CHR
   const canCHRApprove = isCHR && payroll?.status === 'draft' && !payroll?.approvedBy;
   // CFO can approve if status is draft, already approved by CHR, but not yet approved by CFO
@@ -178,26 +178,8 @@ export default function PayrollDetail() {
   return (
     <div className="w-full space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              to="/hr/payroll"
-              className="p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <div>
-              <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-                <Banknote className="w-10 h-10" />
-                Detail Payroll
-              </h1>
-              <p className="text-primary-100 text-lg">
-                {payroll.payrollNumber} - {payroll.employee?.user?.fullName || payroll.employee?.employeeCode || 'N/A'}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
+      <BreadcrumbHeader title="Detail Payroll" subtitle={<>{payroll.payrollNumber} - {payroll.employee?.user?.fullName || payroll.employee?.employeeCode || 'N/A'}</>}>
+        <div className="flex items-center gap-2">
             {canApprove && (
               <button
                 onClick={() => approveMutation.mutate()}
@@ -246,8 +228,7 @@ export default function PayrollDetail() {
               </Link>
             )}
           </div>
-        </div>
-      </div>
+      </BreadcrumbHeader>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -450,4 +431,3 @@ export default function PayrollDetail() {
     </div>
   );
 }
-

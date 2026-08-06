@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { BreadcrumbHeader } from '@/components/shared';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -100,21 +101,15 @@ export default function JournalEntriesList() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold mb-2">Jurnal Umum</h1>
-            <p className="text-primary-100 text-lg">Kelola jurnal akuntansi</p>
-          </div>
-          <Link
+      <BreadcrumbHeader title="Jurnal Umum" subtitle="Kelola jurnal akuntansi">
+        <Link
             to="/finance/journal/new"
-            className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors"
           >
             <Plus className="w-4 h-4" />
             <span>Buat Jurnal</span>
           </Link>
-        </div>
-      </div>
+      </BreadcrumbHeader>
 
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">

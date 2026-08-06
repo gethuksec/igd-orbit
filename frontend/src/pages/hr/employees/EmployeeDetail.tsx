@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom';
+import { BreadcrumbHeader } from '@/components/shared';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, User, Building2, Briefcase, Calendar, Mail, Phone, CheckCircle, XCircle, AlertCircle, DollarSign } from 'lucide-react';
+import { Building2, Briefcase, Calendar, Mail, Phone, CheckCircle, XCircle, AlertCircle, DollarSign } from 'lucide-react';
 import { api } from '@/services/api';
 import { formatDate, formatCurrency } from '@/utils/format';
 
@@ -46,23 +47,7 @@ export default function EmployeeDetail() {
   return (
     <div className="w-full space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center gap-4">
-          <Link
-            to="/hr/employees"
-            className="p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <div>
-            <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-              <User className="w-10 h-10" />
-              Detail Karyawan
-            </h1>
-            <p className="text-primary-100 text-lg">{user.fullName || user.email}</p>
-          </div>
-        </div>
-      </div>
+      <BreadcrumbHeader title="Detail Karyawan" subtitle={user.fullName || user.email} />
 
       {/* Info Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

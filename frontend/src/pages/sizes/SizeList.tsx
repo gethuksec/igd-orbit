@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {Plus, Eye, Edit, Trash2, Save, Loader2, Maximize2, AlertTriangle} from "lucide-react";
 import { sizesService } from "../../services/sizes.service";
 import { api } from "../../services/api";
-import { PageHeader } from "@/components/shared";
+import { BreadcrumbHeader } from "@/components/shared";
 import { StatCard } from "@/components/shared";
 import { SearchFilter } from "@/components/shared";
 import { DataTable } from "@/components/shared";
@@ -117,7 +117,6 @@ export default function SizeList() {
     {
       key: "name",
 
- 
       header: "Ukuran",
       cell: (size) => (
         <div className="flex items-center gap-4">
@@ -163,12 +162,12 @@ export default function SizeList() {
 
   return (
     <div className="w-full space-y-3">
-      <PageHeader title="Manajemen Ukuran" subtitle="Kelola ukuran produk">
-        <Button onClick={openCreateModal} className="flex items-center gap-2 bg-white text-primary-600 hover:bg-primary-50">
+      <BreadcrumbHeader title="Manajemen Ukuran" subtitle="Kelola ukuran produk">
+        <Button onClick={openCreateModal} className="flex items-center gap-2 bg-white text-primary-600 border border-gray-200 hover:bg-primary-50">
           <Plus className="w-5 h-5" />
           <span>Tambah Ukuran</span>
         </Button>
-      </PageHeader>
+      </BreadcrumbHeader>
 
       {error && (
         <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
@@ -293,7 +292,7 @@ export default function SizeList() {
           </div>
         </form>
         </DialogContent>
-      
+
       {/* Delete Confirmation Dialog */}
       <Dialog
         open={deleteModalOpen}

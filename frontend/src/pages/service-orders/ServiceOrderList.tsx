@@ -5,7 +5,7 @@ import { Plus, Search, Edit, Eye, Wrench, Filter, UserCircle } from 'lucide-reac
 import { serviceOrdersService } from '../../services/service-orders.service';
 import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
 import { api } from '@/services/api';
-import { PageHeader } from '@/components/shared';
+import { BreadcrumbHeader } from '@/components/shared';
 import { DataTable } from '@/components/shared';
 import type { Column } from '@/components/shared';
 import { Input } from '@/components/ui/input';
@@ -135,17 +135,17 @@ export default function ServiceOrderList() {
 
   return (
     <div className="w-full space-y-3">
-      <PageHeader
+      <BreadcrumbHeader
         title="Manajemen Service Order"
         subtitle="Kelola pesanan servis dan perbaikan"
       >
         <Link to="/service-orders/new">
-          <Button className="flex items-center gap-2 bg-white text-primary-600 hover:bg-primary-50">
+          <Button className="flex items-center gap-2 bg-white text-primary-600 border border-gray-200 hover:bg-primary-50">
             <Plus className="w-5 h-5" />
             <span>Tambah Service Order</span>
           </Button>
         </Link>
-      </PageHeader>
+      </BreadcrumbHeader>
 
       {error && (
         <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">

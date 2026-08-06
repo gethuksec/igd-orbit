@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Eye, Receipt, DollarSign, ShoppingCart, Search } from 'lucide-react';
 import { salesService } from '../../services/sales.service';
 import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
-import { PageHeader } from '@/components/shared';
+import { BreadcrumbHeader } from '@/components/shared';
 import { StatCard } from '@/components/shared';
 import { DataTable } from '@/components/shared';
 import type { Column } from '@/components/shared';
@@ -126,7 +126,7 @@ export default function SalesHistory() {
 
   return (
     <div className="w-full space-y-3">
-      <PageHeader title="Riwayat Penjualan" subtitle="Daftar semua transaksi penjualan" />
+      <BreadcrumbHeader title="Riwayat Penjualan" subtitle="Daftar semua transaksi penjualan" />
 
       {error && (
         <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">

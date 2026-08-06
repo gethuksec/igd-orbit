@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BreadcrumbHeader } from '@/components/shared';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Clock, Calendar, Search, User, CheckCircle, XCircle, AlertCircle, Eye } from 'lucide-react';
@@ -86,23 +87,14 @@ export default function AttendanceList() {
   return (
     <div className="w-full space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-              <Clock className="w-10 h-10" />
-              Absensi
-            </h1>
-            <p className="text-primary-100 text-lg">Kelola absensi karyawan</p>
-          </div>
-          <Link
+      <BreadcrumbHeader title="Absensi" subtitle="Kelola absensi karyawan">
+        <Link
             to="/hr/attendance/clock"
             className="px-6 py-3 bg-white text-primary-600 rounded-lg font-semibold hover:bg-primary-50 transition-colors"
           >
             Clock In/Out
           </Link>
-        </div>
-      </div>
+      </BreadcrumbHeader>
 
       {/* Filters & Search - Enhanced */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">

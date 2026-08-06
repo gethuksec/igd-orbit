@@ -1,8 +1,8 @@
 import { useState } from 'react';
+import { BreadcrumbHeader } from '@/components/shared';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowLeft,
   Save,
   Loader2,
   Package,
@@ -121,22 +121,7 @@ export default function StockAdjustment() {
   return (
     <div className="w-full space-y-3">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/inventory/stock')}
-              className="p-2 text-white/80 hover:bg-white/20 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-3xl font-bold mb-1">Penyesuaian Stok</h1>
-              <p className="text-primary-100">Lakukan penyesuaian stok produk</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <BreadcrumbHeader title="Penyesuaian Stok" subtitle="Lakukan penyesuaian stok produk" />
 
       <form onSubmit={handleSubmit} className="space-y-3">
         {/* Product & Branch Selection */}

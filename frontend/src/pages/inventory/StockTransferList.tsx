@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { PageHeader } from '@/components/shared';
+import { BreadcrumbHeader } from '@/components/shared';
 import {
   Plus,
   Search,
@@ -134,7 +134,7 @@ export default function StockTransferList() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header */}
-      <PageHeader title="Transfer Stok" subtitle="Kelola transfer stok antar cabang">
+      <BreadcrumbHeader title="Transfer Stok" subtitle="Kelola transfer stok antar cabang">
         <Link
           to="/inventory/transfer/new"
           className="px-6 py-3 bg-white/20 hover:bg-white/30 rounded-lg font-semibold transition-all flex items-center gap-2 backdrop-blur-sm"
@@ -142,7 +142,7 @@ export default function StockTransferList() {
           <Plus className="w-5 h-5" />
           <span>Transfer Baru</span>
         </Link>
-      </PageHeader>
+      </BreadcrumbHeader>
 
       {/* Error Message */}
       {error && (

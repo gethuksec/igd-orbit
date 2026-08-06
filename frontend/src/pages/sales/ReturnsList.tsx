@@ -16,7 +16,7 @@ import {
 import type { SalesTransaction } from '../../services/sales.service';
 import { api } from '../../services/api';
 import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
-import { PageHeader } from '@/components/shared';
+import { BreadcrumbHeader } from '@/components/shared';
 import { StatCard } from '@/components/shared';
 import { DataTable } from '@/components/shared';
 import type { Column } from '@/components/shared';
@@ -205,17 +205,17 @@ export default function ReturnsList() {
 
   return (
     <div className="w-full space-y-3">
-      <PageHeader
+      <BreadcrumbHeader
         title="Retur Penjualan"
         subtitle="Kelola retur dan refund penjualan"
       >
         <Link to="/sales/returns/new">
-          <Button className="flex items-center gap-2 bg-white text-primary-600 hover:bg-primary-50">
+          <Button className="flex items-center gap-2 bg-white text-primary-600 border border-gray-200 hover:bg-primary-50">
             <Plus className="w-5 h-5" />
             <span>Buat Retur</span>
           </Button>
         </Link>
-      </PageHeader>
+      </BreadcrumbHeader>
 
       {error && (
         <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">

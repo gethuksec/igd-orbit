@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { BreadcrumbHeader } from '@/components/shared';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Banknote, Search, CheckCircle, XCircle, Clock, AlertCircle, DollarSign, Eye, CheckSquare } from 'lucide-react';
@@ -23,10 +24,10 @@ export default function PayrollList() {
   const queryClient = useQueryClient();
   const currentUser = getCurrentUser();
   const userRoles: string[] = currentUser?.roles || (currentUser?.role?.code ? [currentUser.role.code] : []);
-  
+
   const isCHR = userRoles.some((r) => r === 'CHR');
   const isCFO = userRoles.some((r) => r === 'CFO');
-  
+
   const [periodMonth, setPeriodMonth] = useState<number | undefined>(() => {
     const month = searchParams.get('periodMonth');
     return month ? parseInt(month, 10) : undefined;
@@ -51,7 +52,6 @@ export default function PayrollList() {
     }
     setSearchParams(params, { replace: true });
   }, [periodMonth, periodYear, searchParams, setSearchParams]);
-
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['payrolls', statusFilter, periodMonth, periodYear],
@@ -83,7 +83,7 @@ export default function PayrollList() {
   // Handle both response formats: { data: [], total: number } or array directly
   let payrolls: Payroll[] = [];
   let total = 0;
-  
+
   if (Array.isArray(data)) {
     // Backend returned array directly
     payrolls = data;
@@ -93,7 +93,7 @@ export default function PayrollList() {
     payrolls = data.data || [];
     total = data.total || payrolls.length;
   }
-  
+
   console.log('Payrolls in component:', payrolls.length, payrolls, 'data:', data);
 
   const filteredPayrolls = payrolls.filter((payroll: Payroll) => {
@@ -215,16 +215,8 @@ export default function PayrollList() {
   return (
     <div className="w-full space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-              <Banknote className="w-10 h-10" />
-              Payroll
-            </h1>
-            <p className="text-primary-100 text-lg">Kelola penggajian karyawan</p>
-          </div>
-          <div className="flex items-center gap-4">
+      <BreadcrumbHeader title="Payroll" subtitle="Kelola penggajian karyawan">
+        <div className="flex items-center gap-4">
             {canBulkApprove && selectedPayrolls.length > 0 && (
               <button
                 onClick={handleBulkApprove}
@@ -242,8 +234,7 @@ export default function PayrollList() {
               Hitung Payroll
             </Link>
           </div>
-        </div>
-      </div>
+      </BreadcrumbHeader>
 
       {/* Filters & Search - Enhanced */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
@@ -441,7 +432,7 @@ export default function PayrollList() {
                     const canApproveThis = 
                       (isCHR && payroll.status === 'draft' && !payroll.approvedBy) ||
                       (isCFO && payroll.status === 'draft' && payroll.approvedBy && !payroll.approvedBy2);
-                    
+
                     return (
                     <tr key={payroll.id} className="hover:bg-gray-50 transition-colors">
                       {canBulkApprove && (
@@ -507,4 +498,3 @@ export default function PayrollList() {
     </div>
   );
 }
-

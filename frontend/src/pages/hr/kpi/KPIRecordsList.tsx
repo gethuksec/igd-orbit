@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BreadcrumbHeader } from '@/components/shared';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Target, Search, AlertCircle, TrendingUp, User, Eye } from 'lucide-react';
@@ -32,7 +33,7 @@ export default function KPIRecordsList() {
       if (!employees || employees.length === 0) {
         return { data: [] as KPIRecord[], total: 0 };
       }
-      
+
       // Fetch KPI records for all employees
       const kpiPromises = employees.map(async (emp: any) => {
         try {
@@ -45,10 +46,10 @@ export default function KPIRecordsList() {
           return [];
         }
       });
-      
+
       const allKPIs = await Promise.all(kpiPromises);
       const flattened = allKPIs.flat();
-      
+
       return { data: flattened, total: flattened.length };
     },
     enabled: !!employees && employees.length > 0,
@@ -101,23 +102,14 @@ export default function KPIRecordsList() {
   return (
     <div className="w-full space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-              <Target className="w-10 h-10" />
-              KPI Records
-            </h1>
-            <p className="text-purple-100 text-lg">Kelola KPI dan performa karyawan</p>
-          </div>
-          <Link
+      <BreadcrumbHeader title="KPI Records" subtitle="Kelola KPI dan performa karyawan">
+        <Link
             to="/hr/kpi/new"
             className="px-6 py-3 bg-white text-purple-600 rounded-lg font-semibold hover:bg-purple-50 transition-colors"
           >
             Record KPI
           </Link>
-        </div>
-      </div>
+      </BreadcrumbHeader>
 
       {/* Filters & Search - Enhanced */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">

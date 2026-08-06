@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { BreadcrumbHeader } from '@/components/shared';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -47,7 +48,7 @@ export default function COAList() {
 
     // Find root accounts (no parent)
     const roots = accounts.filter((acc) => !acc.parentId);
-    
+
     // Build tree recursively
     const buildTree = (parentId: string | null): ChartOfAccount[] => {
       return accounts
@@ -226,16 +227,11 @@ export default function COAList() {
   return (
     <div className="w-full space-y-3">
       {/* Page Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-500 rounded-xl shadow-lg p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold mb-2">Chart of Accounts</h1>
-            <p className="text-primary-100 text-lg">Daftar akun akuntansi</p>
-          </div>
-          <button
+      <BreadcrumbHeader title="Chart of Accounts" subtitle="Daftar akun akuntansi">
+        <button
             onClick={() => seedMutation.mutate()}
             disabled={seedMutation.isPending}
-            className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-50"
           >
             {seedMutation.isPending ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -244,8 +240,7 @@ export default function COAList() {
             )}
             <span>Seed COA</span>
           </button>
-        </div>
-      </div>
+      </BreadcrumbHeader>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
