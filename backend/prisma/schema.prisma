@@ -795,6 +795,8 @@ model StockTransferItem {
   id                String   @id @default(uuid())
   transferId        String   @map("transfer_id")
   productId         String   @map("product_id")
+  productName       String?  @map("product_name") // snapshot at transfer time
+  productSku        String?  @map("product_sku") // snapshot at transfer time
   quantityRequested Decimal  @map("quantity_requested") @db.Decimal(15, 3)
   quantitySent      Decimal? @map("quantity_sent") @db.Decimal(15, 3)
   quantityReceived  Decimal? @map("quantity_received") @db.Decimal(15, 3)

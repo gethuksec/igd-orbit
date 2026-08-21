@@ -113,7 +113,7 @@ export default function StockMovementHistory() {
       case 'SERVICE':
         return `/service-orders/${referenceId}`;
       case 'TRANSFER':
-        return `/inventory/transfers/${referenceId}`;
+        return `/inventory/transfer/${referenceId}`;
       case 'OPNAME':
         return `/inventory/opname/${referenceId}`;
       default:

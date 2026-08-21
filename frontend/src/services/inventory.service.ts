@@ -3,20 +3,19 @@ import { api, handleApiError } from './api';
 export interface StockTransfer {
   id: string;
   transferNumber: string;
-  fromBranchId: string;
+  fromWarehouseId: string;
+  toWarehouseId: string;
+  fromBranchId: string | null;
+  toBranchId: string | null;
+  fromWarehouse?: { id: string; code: string; name: string };
+  toWarehouse?: { id: string; code: string; name: string };
   fromBranch?: { id: string; name: string; code: string };
-  toBranchId: string;
-  toBranch?: { id: string; name: string; code: string };
-  transferType: 'regular' | 'urgent';
-  status: 'pending' | 'approved' | 'sent' | 'received' | 'cancelled';
+  toBranch?: { id: string; name: string; code: string } | null;
+  transferType: string;
+  status: string;
   items: StockTransferItem[];
   requestedBy: string;
-  approvedBy?: string;
-  approvedAt?: string | null;
-  sentBy?: string;
-  sentAt?: string | null;
-  receivedBy?: string;
-  receivedAt?: string | null;
+  picName?: string | null;
   notes?: string;
   createdAt: string;
   updatedAt: string;
@@ -26,11 +25,32 @@ export interface StockTransferItem {
   id: string;
   transferId: string;
   productId: string;
+  productName?: string | null;
+  productSku?: string | null;
   product?: { id: string; name: string; sku: string; costPrice: any };
   quantityRequested: number;
   quantitySent?: number | null;
   quantityReceived?: number | null;
   notes?: string;
+}
+
+export interface StockTransferWarehouse {
+  id: string;
+  code: string;
+  name: string;
+  type: string;
+  scope: string;
+  outletId?: string | null;
+}
+
+export interface TransferStockProduct {
+  id: string;
+  name: string;
+  sku: string;
+  barcode?: string | null;
+  unitId?: string | null;
+  unit?: { id: string; name: string } | null;
+  availableQuantity: number;
 }
 
 
@@ -257,78 +277,83 @@ export const inventoryService = {
     }
   },
 
-  // Stock Transfer
-  async getTransfers(params?: {
-    branchId?: string;
-    status?: string;
-  }): Promise<StockTransfer[]> {
+  // ── Transfer Stock (Pemindahan Barang) ──
+  async createTransferStock(data: {
+    outletId: string;
+    warehouseId: string;
+    destinationMode: 'outlet' | 'central_bad';
+    toOutletId?: string;
+    toWarehouseId?: string;
+    notes?: string;
+    items: Array<{ productId: string; quantity: number }>;
+  }): Promise<StockTransfer> {
     try {
-      const response = await api.get('/inventory/transfers', { params });
-      return Array.isArray(response.data) ? response.data : response.data.data || [];
+      const response = await api.post('/transfer-stock', data);
+      return response.data;
     } catch (error: any) {
-      return handleApiError(error, []);
+      throw error;
+    }
+  },
+
+  async getTransfers(params?: {
+    page?: number;
+    limit?: number;
+    outletId?: string;
+    warehouseId?: string;
+  }): Promise<{ data: StockTransfer[]; meta: any }> {
+    try {
+      const response = await api.get('/transfer-stock', { params });
+      return response.data;
+    } catch (error: any) {
+      return handleApiError(error, {
+        data: [],
+        meta: { page: 1, limit: 20, total: 0, totalPages: 0 },
+      });
     }
   },
 
   async getTransferById(id: string): Promise<StockTransfer> {
     try {
-      const response = await api.get(`/inventory/transfers/${id}`);
+      const response = await api.get(`/transfer-stock/${id}`);
       return response.data;
     } catch (error: any) {
       throw error;
     }
   },
 
-  async createTransfer(data: {
-    fromBranchId: string;
-    toBranchId: string;
-    transferType: 'regular' | 'urgent';
-    items: Array<{ productId: string; quantityRequested: number; notes?: string }>;
-    notes?: string;
-  }): Promise<StockTransfer> {
+  // Transfer Stock form supporting lists
+  async getTransferWarehouses(outletId?: string): Promise<StockTransferWarehouse[]> {
     try {
-      const response = await api.post('/inventory/transfers', data);
-      return response.data;
+      const response = await api.get('/transfer-stock/warehouses', {
+        params: outletId ? { outletId } : {},
+      });
+      return Array.isArray(response.data) ? response.data : [];
     } catch (error: any) {
-      throw error;
+      return handleApiError(error, []);
     }
   },
 
-  async approveTransfer(id: string): Promise<StockTransfer> {
+  async getCentralBadWarehouse(): Promise<StockTransferWarehouse | null> {
     try {
-      const response = await api.post(`/inventory/transfers/${id}/approve`);
+      const response = await api.get('/transfer-stock/central-bad');
       return response.data;
     } catch (error: any) {
-      throw error;
+      return handleApiError(error, null);
     }
   },
 
-  async sendTransfer(id: string): Promise<StockTransfer> {
+  async searchTransferProducts(
+    q: string,
+    limit = 15,
+    warehouseId?: string,
+  ): Promise<TransferStockProduct[]> {
     try {
-      const response = await api.post(`/inventory/transfers/${id}/send`);
-      return response.data;
+      const response = await api.get('/transfer-stock/products', {
+        params: { q, limit, ...(warehouseId ? { warehouseId } : {}) },
+      });
+      return Array.isArray(response.data) ? response.data : [];
     } catch (error: any) {
-      throw error;
-    }
-  },
-
-  async receiveTransfer(id: string, data: {
-    items: Array<{ itemId: string; quantityReceived: number; condition?: 'good' | 'damaged' | 'expired'; notes?: string }>;
-  }): Promise<StockTransfer> {
-    try {
-      const response = await api.post(`/inventory/transfers/${id}/receive`, data);
-      return response.data;
-    } catch (error: any) {
-      throw error;
-    }
-  },
-
-  async cancelTransfer(id: string): Promise<StockTransfer> {
-    try {
-      const response = await api.post(`/inventory/transfers/${id}/cancel`);
-      return response.data;
-    } catch (error: any) {
-      throw error;
+      return handleApiError(error, []);
     }
   },
 
