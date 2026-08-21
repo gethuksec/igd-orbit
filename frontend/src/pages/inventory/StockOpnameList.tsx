@@ -16,7 +16,7 @@ import { BreadcrumbHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { inventoryService } from '../../services/inventory.service';
 import type { StockOpname } from '../../services/inventory.service';
-import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
+import { useBranchFilter } from '@/components/branch/BranchFilter';
 
 export default function StockOpnameList() {
   const navigate = useNavigate();
@@ -150,12 +150,19 @@ export default function StockOpnameList() {
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-          <div>
-            <BranchFilterSelect
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500 whitespace-nowrap">Cabang:</span>
+            <select
               value={branchId}
-              onChange={setBranchId}
-              className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-base bg-white focus:ring-2 focus:ring-primary-500"
-            />
+              onChange={(e) => setBranchId(e.target.value)}
+              className="block w-full px-3 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base bg-white"
+            >
+              {branches.map((branch: { id: string; name: string }) => (
+                <option key={branch.id} value={branch.id}>
+                  {branch.name}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
