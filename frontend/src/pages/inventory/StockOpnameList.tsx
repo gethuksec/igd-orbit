@@ -22,7 +22,7 @@ export default function StockOpnameList() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
-  const { branchId, setBranchId } = useBranchFilter();
+  const { branchId, setBranchId, branches } = useBranchFilter();
 
   const { data: opnames, isLoading, error, refetch } = useQuery({
     queryKey: ['inventory-opnames', searchTerm, selectedStatus, branchId],
