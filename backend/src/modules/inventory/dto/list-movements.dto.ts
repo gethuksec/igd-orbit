@@ -17,6 +17,10 @@ export class ListMovementsDto {
 
   @IsUUID()
   @IsOptional()
+  warehouseId?: string;
+
+  @IsUUID()
+  @IsOptional()
   branchId?: string;
 
   @IsEnum(['IN', 'OUT', 'TRANSFER', 'ADJUSTMENT'])

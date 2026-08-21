@@ -22,21 +22,38 @@ export class StockOpnameService {
   }
 
   async startOpname(dto: StartOpnameDto, userId: string) {
-    const { branchId, opnameDate, notes } = dto;
+    const { warehouseId, branchId: legacyBranchId, opnameDate, notes } = dto;
 
-    // Validate branch
-    const branch = await this.prisma.branch.findUnique({
-      where: { id: branchId },
-    });
+    const warehouse = warehouseId
+      ? await this.prisma.warehouse.findUnique({ where: { id: warehouseId } })
+      : legacyBranchId
+        ? await this.prisma.warehouse.findFirst({
+            where: {
+              outletId: legacyBranchId,
+              type: 'GOOD',
+              scope: 'OUTLET',
+              isActive: true,
+            },
+            orderBy: { createdAt: 'asc' },
+          })
+        : null;
 
-    if (!branch) {
-      throw new NotFoundException('Branch not found');
+    if (!warehouse) {
+      throw new NotFoundException(
+        warehouseId ? 'Warehouse not found' : 'An active outlet warehouse is required',
+      );
     }
+
+    if (!warehouse.isActive) {
+      throw new BadRequestException('Cannot start opname for an inactive warehouse');
+    }
+
+    const effectiveBranchId = warehouse.outletId;
 
     // Check if there's an active opname (draft or counting)
     const activeOpname = await this.prisma.stockOpname.findFirst({
       where: {
-        branchId,
+        warehouseId: warehouse.id,
         status: {
           in: ['draft', 'counting'],
         },
@@ -52,7 +69,7 @@ export class StockOpnameService {
     // Get all products with stock in this branch
     const stocks = await this.prisma.productStock.findMany({
       where: {
-        branchId,
+        warehouseId: warehouse.id,
         product: {
           isActive: true,
           deletedAt: null,
@@ -68,7 +85,8 @@ export class StockOpnameService {
       const opname = await tx.stockOpname.create({
         data: {
           opnameNumber: this.generateOpnameNumber(),
-          branchId,
+          warehouseId: warehouse.id,
+          branchId: effectiveBranchId,
           opnameDate: new Date(opnameDate),
           status: 'draft',
           startedBy: userId,
@@ -340,9 +358,9 @@ export class StockOpnameService {
           // Get current stock
           let stock = await tx.productStock.findUnique({
             where: {
-              productId_branchId: {
+              productId_warehouseId: {
                 productId: item.productId,
-                branchId: opname.branchId,
+                warehouseId: opname.warehouseId,
               },
             },
           });
@@ -351,6 +369,7 @@ export class StockOpnameService {
             stock = await tx.productStock.create({
               data: {
                 productId: item.productId,
+                warehouseId: opname.warehouseId,
                 branchId: opname.branchId,
                 quantityAvailable: new Decimal(0),
                 quantityReserved: new Decimal(0),
@@ -366,9 +385,9 @@ export class StockOpnameService {
           // Update stock to match physical count
           await tx.productStock.update({
             where: {
-              productId_branchId: {
+              productId_warehouseId: {
                 productId: item.productId,
-                branchId: opname.branchId,
+                warehouseId: opname.warehouseId,
               },
             },
             data: {
@@ -384,6 +403,7 @@ export class StockOpnameService {
           await tx.stockMovement.create({
             data: {
               productId: item.productId,
+              warehouseId: opname.warehouseId,
               branchId: opname.branchId,
               movementType: 'ADJUSTMENT',
               referenceType: 'OPNAME',

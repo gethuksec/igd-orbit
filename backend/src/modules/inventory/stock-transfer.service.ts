@@ -12,6 +12,24 @@ import { Decimal } from '@prisma/client/runtime/library';
 export class StockTransferService {
   constructor(private prisma: PrismaService) {}
 
+  private async resolveOutletWarehouse(outletId: string) {
+    const warehouse = await this.prisma.warehouse.findFirst({
+      where: {
+        outletId,
+        type: 'GOOD',
+        scope: 'OUTLET',
+        isActive: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    if (!warehouse) {
+      throw new NotFoundException(`No active GOOD warehouse found for outlet ${outletId}`);
+    }
+
+    return warehouse;
+  }
+
   private generateTransferNumber(): string {
     const date = new Date();
     const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
@@ -45,6 +63,9 @@ export class StockTransferService {
       throw new BadRequestException('Cannot transfer to the same branch');
     }
 
+    const fromWarehouse = await this.resolveOutletWarehouse(fromBranchId);
+    const toWarehouse = await this.resolveOutletWarehouse(toBranchId);
+
     // Validate products and check stock
     for (const item of items) {
       const product = await this.prisma.product.findUnique({
@@ -58,9 +79,9 @@ export class StockTransferService {
       // Check available stock
       const stock = await this.prisma.productStock.findUnique({
         where: {
-          productId_branchId: {
+          productId_warehouseId: {
             productId: item.productId,
-            branchId: fromBranchId,
+            warehouseId: fromWarehouse.id,
           },
         },
       });
@@ -86,6 +107,8 @@ export class StockTransferService {
       const transfer = await tx.stockTransfer.create({
         data: {
           transferNumber: this.generateTransferNumber(),
+          fromWarehouseId: fromWarehouse.id,
+          toWarehouseId: toWarehouse.id,
           fromBranchId,
           toBranchId,
           transferType,
@@ -115,10 +138,10 @@ export class StockTransferService {
       for (const item of items) {
         await tx.productStock.update({
           where: {
-            productId_branchId: {
-              productId: item.productId,
-              branchId: fromBranchId,
-            },
+          productId_warehouseId: {
+            productId: item.productId,
+            warehouseId: fromWarehouse.id,
+          },
           },
           data: {
             quantityReserved: {
@@ -269,9 +292,9 @@ export class StockTransferService {
       for (const item of transfer.items) {
         const stock = await tx.productStock.findUnique({
           where: {
-            productId_branchId: {
+            productId_warehouseId: {
               productId: item.productId,
-              branchId: transfer.fromBranchId,
+              warehouseId: transfer.fromWarehouseId,
             },
           },
         });
@@ -297,9 +320,9 @@ export class StockTransferService {
         // Update stock
         await tx.productStock.update({
           where: {
-            productId_branchId: {
+            productId_warehouseId: {
               productId: item.productId,
-              branchId: transfer.fromBranchId,
+              warehouseId: transfer.fromWarehouseId,
             },
           },
           data: {
@@ -312,6 +335,7 @@ export class StockTransferService {
         await tx.stockMovement.create({
           data: {
             productId: item.productId,
+            warehouseId: transfer.fromWarehouseId,
             branchId: transfer.fromBranchId,
             movementType: 'OUT',
             referenceType: 'TRANSFER',
@@ -319,7 +343,7 @@ export class StockTransferService {
             quantityChange: new Decimal(-quantityRequested),
             quantityBefore: new Decimal(quantityBefore),
             quantityAfter: new Decimal(quantityAfter),
-            notes: `Stock transfer to ${transfer.toBranch.name}`,
+            notes: `Stock transfer to ${transfer.toBranch?.name ?? transfer.toWarehouseId}`,
             createdBy: userId,
           },
         });
@@ -397,9 +421,9 @@ export class StockTransferService {
         // Get or create stock at destination branch
         let stock = await tx.productStock.findUnique({
           where: {
-            productId_branchId: {
+            productId_warehouseId: {
               productId: transferItem.productId,
-              branchId: transfer.toBranchId,
+              warehouseId: transfer.toWarehouseId,
             },
           },
         });
@@ -408,6 +432,7 @@ export class StockTransferService {
           stock = await tx.productStock.create({
             data: {
               productId: transferItem.productId,
+              warehouseId: transfer.toWarehouseId,
               branchId: transfer.toBranchId,
               quantityAvailable: new Decimal(0),
               quantityReserved: new Decimal(0),
@@ -422,9 +447,9 @@ export class StockTransferService {
         // Update stock at destination
         await tx.productStock.update({
           where: {
-            productId_branchId: {
+            productId_warehouseId: {
               productId: transferItem.productId,
-              branchId: transfer.toBranchId,
+              warehouseId: transfer.toWarehouseId,
             },
           },
           data: {
@@ -440,6 +465,7 @@ export class StockTransferService {
         await tx.stockMovement.create({
           data: {
             productId: transferItem.productId,
+            warehouseId: transfer.toWarehouseId,
             branchId: transfer.toBranchId,
             movementType: 'IN',
             referenceType: 'TRANSFER',
@@ -447,7 +473,7 @@ export class StockTransferService {
             quantityChange: new Decimal(quantityReceived),
             quantityBefore: new Decimal(quantityBefore),
             quantityAfter: new Decimal(quantityAfter),
-            notes: `Stock transfer from ${transfer.fromBranch.name}${receivedItem.notes ? ` - ${receivedItem.notes}` : ''}`,
+            notes: `Stock transfer from ${transfer.fromBranch?.name ?? transfer.fromWarehouseId}${receivedItem.notes ? ` - ${receivedItem.notes}` : ''}`,
             createdBy: userId,
           },
         });
@@ -503,9 +529,9 @@ export class StockTransferService {
       for (const item of transfer.items) {
         await tx.productStock.update({
           where: {
-            productId_branchId: {
+            productId_warehouseId: {
               productId: item.productId,
-              branchId: transfer.fromBranchId,
+              warehouseId: transfer.fromWarehouseId,
             },
           },
           data: {

@@ -85,12 +85,26 @@ export default function WarehouseDetail() {
             {infoRow(<WarehouseIcon className="w-4 h-4" />, "Nama Gudang", wh.name)}
             {infoRow(<WarehouseIcon className="w-4 h-4" />, "Kode", <span className="font-mono">{wh.code || "-"}</span>)}
             {infoRow(
+              <WarehouseIcon className="w-4 h-4" />,
+              "Jenis",
+              wh.type === "BAD" ? "BAD — Central Bad Stock" : "GOOD — Stok normal",
+            )}
+            {infoRow(
+              <WarehouseIcon className="w-4 h-4" />,
+              "Scope",
+              wh.scope === "SYSTEM" ? "System-wide" : "Outlet",
+            )}
+            {infoRow(
               <Building2 className="w-4 h-4" />,
               "Outlet",
-              <Link to={`/branches/${wh.outlet?.id || ""}`} className="text-primary-600 hover:text-primary-700">
-                {wh.outlet?.name || "-"}
-                {wh.outlet?.code ? ` (${wh.outlet.code})` : ""}
-              </Link>
+              wh.scope === "SYSTEM" ? (
+                "Tidak ada — system warehouse"
+              ) : (
+                <Link to={`/branches/${wh.outlet?.id || ""}`} className="text-primary-600 hover:text-primary-700">
+                  {wh.outlet?.name || "-"}
+                  {wh.outlet?.code ? ` (${wh.outlet.code})` : ""}
+                </Link>
+              ),
             )}
             {infoRow(<MapPin className="w-4 h-4" />, "Kota", wh.city || "-")}
             {infoRow(<MapPin className="w-4 h-4" />, "Alamat", wh.address || "-")}

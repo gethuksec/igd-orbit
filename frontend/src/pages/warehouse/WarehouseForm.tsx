@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Save, Loader2, Warehouse as WarehouseIcon } from "lucide-react";
 import { warehousesService } from "../../services/warehouses.service";
+import type { WarehouseInput } from "../../services/warehouses.service";
 import { branchesService } from "../../services/branches.service";
 import { BreadcrumbHeader } from "@/components/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +13,8 @@ import { toast } from "sonner";
 interface WarehouseFormData {
   name: string;
   code: string;
+  type: "GOOD" | "BAD";
+  scope: "OUTLET" | "SYSTEM";
   outletId: string;
   city: string;
   address: string;
@@ -25,6 +28,8 @@ interface WarehouseFormData {
 const defaultForm: WarehouseFormData = {
   name: "",
   code: "",
+  type: "GOOD",
+  scope: "OUTLET",
   outletId: "",
   city: "",
   address: "",
@@ -55,6 +60,8 @@ export default function WarehouseForm() {
       setForm({
         name: warehouse.name || "",
         code: warehouse.code || "",
+        type: warehouse.type || "GOOD",
+        scope: warehouse.scope || "OUTLET",
         outletId: warehouse.outletId || "",
         city: warehouse.city || "",
         address: warehouse.address || "",
@@ -75,10 +82,11 @@ export default function WarehouseForm() {
   const outlets = outletsData || [];
 
   const saveMutation = useMutation({
-    mutationFn: (data: any) => {
-      const submitData = Object.fromEntries(
-        Object.entries(data).filter(([, v]) => v !== "")
-      );
+    mutationFn: (data: WarehouseFormData) => {
+      const submitData: WarehouseInput = {
+        ...data,
+        outletId: data.scope === "SYSTEM" ? null : data.outletId || undefined,
+      };
       if (isEdit) {
         return warehousesService.update(id!, submitData);
       }
@@ -154,22 +162,53 @@ export default function WarehouseForm() {
               </div>
               <div>
                 <label className={labelCls}>
-                  Outlet <span className="text-red-500">*</span>
+                  Jenis Gudang <span className="text-red-500">*</span>
                 </label>
                 <select
                   required
-                  value={form.outletId}
-                  onChange={(e) => setForm({ ...form, outletId: e.target.value })}
+                  value={form.type}
+                  onChange={(e) => {
+                    const type = e.target.value as "GOOD" | "BAD";
+                    setForm({
+                      ...form,
+                      type,
+                      scope: type === "BAD" ? "SYSTEM" : "OUTLET",
+                      outletId: type === "BAD" ? "" : form.outletId,
+                    });
+                  }}
                   className={inputCls}
                 >
-                  <option value="">Pilih outlet...</option>
-                  {outlets.map((b: any) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name} ({b.code})
-                    </option>
-                  ))}
+                  <option value="GOOD">GOOD — Stok normal</option>
+                  <option value="BAD">BAD — Central Bad Stock</option>
                 </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Scope: {form.scope === "SYSTEM" ? "System-wide" : "Outlet"}
+                </p>
               </div>
+              {form.scope === "OUTLET" ? (
+                <div>
+                  <label className={labelCls}>
+                    Outlet <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    required
+                    value={form.outletId}
+                    onChange={(e) => setForm({ ...form, outletId: e.target.value })}
+                    className={inputCls}
+                  >
+                    <option value="">Pilih outlet...</option>
+                    {outlets.map((b: any) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name} ({b.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                  Central Bad Stock adalah satu gudang system-wide tanpa outlet pemilik.
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <label className={labelCls}>Kota</label>

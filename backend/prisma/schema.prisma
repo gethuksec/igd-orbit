@@ -36,14 +36,14 @@ model User {
   deletedAt           DateTime? @map("deleted_at")
 
   // Relations
-  userBranches            UserBranch[]
-  employee                Employee?
-  cashierTransactions     SalesTransaction[]
-  heldTransactions        HeldTransaction[]
-  assignedServices        ServiceOrder[]          @relation("ServiceTechnician")
-  statusHistoryChanges    ServiceStatusHistory[]  @relation("ServiceStatusHistoryChangedBy")
-  branchHeadOfService     Branch[]                @relation("BranchHeadOfService")
-  passwordChangeRequests  PasswordChangeRequest[]
+  userBranches           UserBranch[]
+  employee               Employee?
+  cashierTransactions    SalesTransaction[]
+  heldTransactions       HeldTransaction[]
+  assignedServices       ServiceOrder[]          @relation("ServiceTechnician")
+  statusHistoryChanges   ServiceStatusHistory[]  @relation("ServiceStatusHistoryChangedBy")
+  branchHeadOfService    Branch[]                @relation("BranchHeadOfService")
+  passwordChangeRequests PasswordChangeRequest[]
 
   @@index([email])
   @@index([username])
@@ -86,8 +86,8 @@ model Role {
 
   // Relations
   userBranches UserBranch[]
-  parentRole   Role?      @relation("RoleHierarchy", fields: [parentRoleId], references: [id], onDelete: SetNull)
-  childRoles   Role[]     @relation("RoleHierarchy")
+  parentRole   Role?        @relation("RoleHierarchy", fields: [parentRoleId], references: [id], onDelete: SetNull)
+  childRoles   Role[]       @relation("RoleHierarchy")
 
   @@index([code])
   @@index([level])
@@ -107,9 +107,9 @@ model UserBranch {
   updatedAt         DateTime @updatedAt @map("updated_at")
 
   // Relations
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role   Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  branch Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
 
   @@unique([userId, branchId, roleId])
   @@index([userId])
@@ -181,17 +181,26 @@ model Warehouse {
   contactPerson String?  @map("contact_person")
   mobilePhone   String?  @map("mobile_phone")
   isActive      Boolean  @default(true) @map("is_active")
-  outletId      String   @map("outlet_id") // exclusive: 1 outlet → N warehouses, no sharing
+  type          String   @default("GOOD") // GOOD or BAD; BAD is the centralized damaged-stock warehouse
+  scope         String   @default("OUTLET") // OUTLET or SYSTEM
+  outletId      String?  @map("outlet_id") // null only for the system-scoped Central Bad Stock warehouse
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
   // Relations
-  outlet           Branch             @relation(fields: [outletId], references: [id], onDelete: Restrict)
-  salesTransactions SalesTransaction[]
-  serviceOrders     ServiceOrder[]
+  outlet             Branch?            @relation(fields: [outletId], references: [id], onDelete: Restrict)
+  productStocks      ProductStock[]
+  stockMovements     StockMovement[]
+  stockTransfersFrom StockTransfer[]    @relation("StockTransferFromWarehouse")
+  stockTransfersTo   StockTransfer[]    @relation("StockTransferToWarehouse")
+  stockOpnames       StockOpname[]
+  salesTransactions  SalesTransaction[]
+  serviceOrders      ServiceOrder[]
 
   @@index([outletId])
   @@index([isActive])
+  @@index([type, isActive])
+  @@index([scope])
   @@map("warehouses")
 }
 
@@ -264,7 +273,6 @@ model Brand {
   @@index([isActive])
   @@map("brands")
 }
-
 
 model Color {
   id        String   @id @default(uuid())
@@ -425,7 +433,8 @@ model Product {
 model ProductStock {
   id                String   @id @default(uuid())
   productId         String   @map("product_id")
-  branchId          String   @map("branch_id")
+  warehouseId       String   @map("warehouse_id")
+  branchId          String?  @map("branch_id") // denormalized outlet; null for system-scoped warehouses
   quantityAvailable Decimal  @default(0) @map("quantity_available") @db.Decimal(15, 3)
   quantityReserved  Decimal  @default(0) @map("quantity_reserved") @db.Decimal(15, 3)
   quantityDamaged   Decimal  @default(0) @map("quantity_damaged") @db.Decimal(15, 3)
@@ -437,11 +446,13 @@ model ProductStock {
   updatedAt         DateTime @updatedAt @map("updated_at")
 
   // Relations
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  branch  Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  branch    Branch?   @relation(fields: [branchId], references: [id], onDelete: SetNull)
 
-  @@unique([productId, branchId])
+  @@unique([productId, warehouseId])
   @@index([productId])
+  @@index([warehouseId])
   @@index([branchId])
   @@index([reorderPoint])
   @@map("product_stock")
@@ -638,7 +649,8 @@ model Payment {
 model StockMovement {
   id             String   @id @default(uuid())
   productId      String   @map("product_id")
-  branchId       String   @map("branch_id")
+  warehouseId    String   @map("warehouse_id")
+  branchId       String?  @map("branch_id") // denormalized outlet; null for system-scoped warehouses
   movementType   String   @map("movement_type") // 'IN', 'OUT', 'TRANSFER', 'ADJUSTMENT'
   referenceType  String   @map("reference_type") // 'SALE', 'PURCHASE', 'TRANSFER', 'OPNAME', etc
   referenceId    String?  @map("reference_id") // Transaction ID, Transfer ID, etc
@@ -653,10 +665,12 @@ model StockMovement {
 
   // Relations
   product     Product           @relation(fields: [productId], references: [id], onDelete: Restrict)
-  branch      Branch            @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  warehouse   Warehouse         @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  branch      Branch?           @relation(fields: [branchId], references: [id], onDelete: SetNull)
   transaction SalesTransaction? @relation(fields: [referenceId], references: [id], onDelete: SetNull)
 
   @@index([productId])
+  @@index([warehouseId])
   @@index([branchId])
   @@index([movementType])
   @@index([referenceType])
@@ -731,28 +745,34 @@ model Employee {
 // ============================================
 
 model StockTransfer {
-  id             String    @id @default(uuid())
-  transferNumber String    @unique @map("transfer_number") // TRF-YYYYMMDD-XXXXXX
-  fromBranchId   String    @map("from_branch_id")
-  toBranchId     String    @map("to_branch_id")
-  transferType   String    @map("transfer_type") // 'regular', 'urgent'
-  status         String    @default("pending") // 'pending', 'approved', 'sent', 'received', 'cancelled'
-  requestedBy    String    @map("requested_by") // User ID
-  approvedBy     String?   @map("approved_by") // User ID
-  sentBy         String?   @map("sent_by") // User ID
-  receivedBy     String?   @map("received_by") // User ID
-  sentAt         DateTime? @map("sent_at")
-  receivedAt     DateTime? @map("received_at")
-  notes          String?   @db.Text
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  id              String    @id @default(uuid())
+  transferNumber  String    @unique @map("transfer_number") // TRF-YYYYMMDD-XXXXXX
+  fromWarehouseId String    @map("from_warehouse_id")
+  toWarehouseId   String    @map("to_warehouse_id")
+  fromBranchId    String?   @map("from_branch_id") // denormalized outlet; null for Central Bad Stock
+  toBranchId      String?   @map("to_branch_id") // denormalized outlet; null for Central Bad Stock
+  transferType    String    @map("transfer_type") // 'regular', 'urgent'
+  status          String    @default("pending") // 'pending', 'approved', 'sent', 'received', 'cancelled'
+  requestedBy     String    @map("requested_by") // User ID
+  approvedBy      String?   @map("approved_by") // User ID
+  sentBy          String?   @map("sent_by") // User ID
+  receivedBy      String?   @map("received_by") // User ID
+  sentAt          DateTime? @map("sent_at")
+  receivedAt      DateTime? @map("received_at")
+  notes           String?   @db.Text
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  fromBranch Branch              @relation("StockTransferFrom", fields: [fromBranchId], references: [id], onDelete: Restrict)
-  toBranch   Branch              @relation("StockTransferTo", fields: [toBranchId], references: [id], onDelete: Restrict)
-  items      StockTransferItem[]
+  fromWarehouse Warehouse           @relation("StockTransferFromWarehouse", fields: [fromWarehouseId], references: [id], onDelete: Restrict)
+  toWarehouse   Warehouse           @relation("StockTransferToWarehouse", fields: [toWarehouseId], references: [id], onDelete: Restrict)
+  fromBranch    Branch?             @relation("StockTransferFrom", fields: [fromBranchId], references: [id], onDelete: SetNull)
+  toBranch      Branch?             @relation("StockTransferTo", fields: [toBranchId], references: [id], onDelete: SetNull)
+  items         StockTransferItem[]
 
   @@index([transferNumber])
+  @@index([fromWarehouseId])
+  @@index([toWarehouseId])
   @@index([fromBranchId])
   @@index([toBranchId])
   @@index([status])
@@ -784,7 +804,8 @@ model StockTransferItem {
 model StockOpname {
   id                    String    @id @default(uuid())
   opnameNumber          String    @unique @map("opname_number") // OP-YYYYMMDD-XXXXXX
-  branchId              String    @map("branch_id")
+  warehouseId           String    @map("warehouse_id")
+  branchId              String?   @map("branch_id") // denormalized outlet; null for system-scoped warehouses
   opnameDate            DateTime  @map("opname_date")
   status                String    @default("draft") // 'draft', 'counting', 'completed', 'approved'
   startedBy             String    @map("started_by") // User ID
@@ -798,10 +819,12 @@ model StockOpname {
   updatedAt             DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  branch Branch            @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  items  StockOpnameItem[]
+  warehouse Warehouse         @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  branch    Branch?           @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  items     StockOpnameItem[]
 
   @@index([opnameNumber])
+  @@index([warehouseId])
   @@index([branchId])
   @@index([status])
   @@index([opnameDate])
@@ -867,10 +890,10 @@ model ServiceOrder {
   assignedTechnicianId String? @map("assigned_technician_id")
 
   // Customer info (snapshot or walk-in)
-  customerName           String  @map("customer_name")
-  customerPhone          String  @map("customer_phone")
-  customerEmail          String? @map("customer_email")
-  customerSubdistrict  String? @map("customer_subdistrict")
+  customerName        String  @map("customer_name")
+  customerPhone       String  @map("customer_phone")
+  customerEmail       String? @map("customer_email")
+  customerSubdistrict String? @map("customer_subdistrict")
 
   // Device info
   deviceType          String  @map("device_type") // 'handphone', 'laptop', 'tablet', 'other'
@@ -1348,9 +1371,9 @@ model WriteOff {
 model CustomerDeposit {
   id          String   @id @default(uuid())
   customerId  String   @map("customer_id")
-  amount      Decimal  @db.Decimal(15, 2)  // positive = add, negative = deduct
-  type        String   // 'return_credit', 'payment_used', 'refund'
-  referenceId String?  @map("reference_id")  // SalesTransaction ID
+  amount      Decimal  @db.Decimal(15, 2) // positive = add, negative = deduct
+  type        String // 'return_credit', 'payment_used', 'refund'
+  referenceId String?  @map("reference_id") // SalesTransaction ID
   notes       String?
   createdAt   DateTime @default(now()) @map("created_at")
 

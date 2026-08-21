@@ -13,7 +13,12 @@ export class StockAdjustmentDto {
   productId!: string;
 
   @IsUUID()
-  branchId!: string;
+  @IsOptional()
+  warehouseId?: string;
+
+  @IsUUID()
+  @IsOptional()
+  branchId?: string; // Legacy fallback: resolves to the outlet's default GOOD warehouse
 
   @IsEnum(['IN', 'OUT', 'DAMAGE', 'FOUND', 'CORRECTION'])
   type!: 'IN' | 'OUT' | 'DAMAGE' | 'FOUND' | 'CORRECTION';

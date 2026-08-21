@@ -12,6 +12,10 @@ import { Type } from 'class-transformer';
 export class ListStockDto {
   @IsUUID()
   @IsOptional()
+  warehouseId?: string;
+
+  @IsUUID()
+  @IsOptional()
   branchId?: string;
 
   @IsUUID()

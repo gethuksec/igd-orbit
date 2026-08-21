@@ -94,7 +94,7 @@ async function main() {
 
   // 1b. Create Warehouse (D1: warehouse is a separate table, owned by an outlet)
   console.log('🏭 Creating warehouse...');
-  await prisma.warehouse.upsert({
+  const warehouse1 = await prisma.warehouse.upsert({
     where: { code: 'GUDANG-001' },
     update: {
       name: 'Gudang Pusat',
@@ -110,6 +110,25 @@ async function main() {
       email: 'jember.pusat@igdgroup.com',
       isActive: true,
       outletId: branch1.id,
+    },
+  });
+
+  const warehouse2 = await prisma.warehouse.upsert({
+    where: { code: 'GUDANG-002' },
+    update: {
+      name: 'Gudang Cabang Jember',
+      outletId: branch2.id,
+      isActive: true,
+    },
+    create: {
+      code: 'GUDANG-002',
+      name: 'Gudang Cabang Jember',
+      city: 'Jember',
+      address: 'Jl. Hayam Wuruk No. 45',
+      phone: '0331-654321',
+      email: 'jember.cabang@igdgroup.com',
+      isActive: true,
+      outletId: branch2.id,
     },
   });
 
@@ -1403,18 +1422,22 @@ async function main() {
       reorderPoint = 10;
     }
 
-    // Create stock for all branches
-    for (const branch of [branch1, branch2]) {
+    // Create stock for all branch warehouses
+    for (const [branch, warehouse] of [
+      [branch1, warehouse1],
+      [branch2, warehouse2],
+    ] as const) {
       await prisma.productStock.upsert({
         where: {
-          productId_branchId: {
+          productId_warehouseId: {
             productId: product.id,
-            branchId: branch.id,
+            warehouseId: warehouse.id,
           },
         },
         update: {},
         create: {
           productId: product.id,
+          warehouseId: warehouse.id,
           branchId: branch.id,
           quantityAvailable: stockQty,
           reorderPoint: reorderPoint,

@@ -459,9 +459,15 @@ export class BranchesService {
       throw new NotFoundException('Branch not found');
     }
 
+    const outletWarehouses = await this.prisma.warehouse.findMany({
+      where: { outletId: id },
+      select: { id: true },
+    });
+    const warehouseIds = outletWarehouses.map((warehouse) => warehouse.id);
+
     // Total stock quantity (sum of quantityAvailable - quantityReserved)
     const stockAggregation = await this.prisma.productStock.aggregate({
-      where: { branchId: id },
+      where: { warehouseId: { in: warehouseIds } },
       _sum: {
         quantityAvailable: true,
         quantityReserved: true,
@@ -537,21 +543,21 @@ export class BranchesService {
 
     // Stock movements count
     const stockMovementCount = await this.prisma.stockMovement.count({
-      where: { branchId: id },
+      where: { warehouseId: { in: warehouseIds } },
     });
 
     // Stock transfers (from and to)
     const stockTransferFromCount = await this.prisma.stockTransfer.count({
-      where: { fromBranchId: id },
+      where: { fromWarehouseId: { in: warehouseIds } },
     });
 
     const stockTransferToCount = await this.prisma.stockTransfer.count({
-      where: { toBranchId: id },
+      where: { toWarehouseId: { in: warehouseIds } },
     });
 
     // Stock opnames count
     const stockOpnameCount = await this.prisma.stockOpname.count({
-      where: { branchId: id },
+      where: { warehouseId: { in: warehouseIds } },
     });
 
     // Employees count

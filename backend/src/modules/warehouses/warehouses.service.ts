@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services';
 import { CreateWarehouseDto, UpdateWarehouseDto, ListWarehousesDto } from './dto';
+import { normalizeWarehouseIdentity } from './warehouse-rules';
 import { Prisma } from '@prisma/client';
 import { randomBytes } from 'crypto';
 
@@ -62,7 +63,7 @@ export class WarehousesService {
    * @returns Paginated list of warehouses (with outlet info)
    */
   async findAll(query: ListWarehousesDto) {
-    const { page = 1, limit = 20, search, includeInactive, status, outletId } = query;
+    const { page = 1, limit = 20, search, includeInactive, status, outletId, type, scope } = query;
 
     const pageNum = typeof page === 'string' ? parseInt(page, 10) : page || 1;
     const limitNum = typeof limit === 'string' ? parseInt(limit, 10) : limit || 20;
@@ -96,6 +97,14 @@ export class WarehousesService {
       where.outletId = outletId;
     }
 
+    if (type) {
+      where.type = type;
+    }
+
+    if (scope) {
+      where.scope = scope;
+    }
+
     const [data, total] = await Promise.all([
       this.prisma.warehouse.findMany({
         where,
@@ -121,14 +130,22 @@ export class WarehousesService {
   /**
    * Find active warehouses (flat list for POS/Smart Repair dropdowns — D2)
    * @param outletId - Optional filter by parent outlet
+   * @param includeSystem - Explicitly include the centralized BAD warehouse
    */
-  async findActive(outletId?: string) {
+  async findActive(outletId?: string, includeSystem = false) {
+    const where: Prisma.WarehouseWhereInput = { isActive: true };
+
+    if (outletId) {
+      where.outletId = outletId;
+      where.scope = 'OUTLET';
+    } else if (!includeSystem) {
+      // Normal outlet selectors must not silently include Central Bad Stock.
+      where.scope = 'OUTLET';
+    }
+
     return this.prisma.warehouse.findMany({
-      where: {
-        isActive: true,
-        ...(outletId ? { outletId } : {}),
-      },
-      select: { id: true, code: true, name: true, outletId: true },
+      where,
+      select: { id: true, code: true, name: true, outletId: true, type: true, scope: true },
       orderBy: { name: 'asc' },
     });
   }
@@ -157,12 +174,25 @@ export class WarehousesService {
    * @returns Created warehouse
    */
   async create(dto: CreateWarehouseDto) {
-    // Verify outlet exists (branches are the outlets — decision #33)
-    const outlet = await this.prisma.branch.findUnique({
-      where: { id: dto.outletId },
-    });
-    if (!outlet) {
-      throw new NotFoundException('Outlet not found');
+    const identity = normalizeWarehouseIdentity(dto);
+
+    // Verify outlet exists only for outlet-owned GOOD warehouses.
+    if (identity.outletId) {
+      const outlet = await this.prisma.branch.findUnique({
+        where: { id: identity.outletId },
+      });
+      if (!outlet) {
+        throw new NotFoundException('Outlet not found');
+      }
+    }
+
+    if (identity.type === 'BAD') {
+      const existingBad = await this.prisma.warehouse.findFirst({
+        where: { type: 'BAD', scope: 'SYSTEM', isActive: true },
+      });
+      if (existingBad) {
+        throw new ConflictException('The active Central Bad Stock warehouse already exists');
+      }
     }
 
     // Generate code if not provided
@@ -190,12 +220,13 @@ export class WarehousesService {
       throw new ConflictException('Warehouse name must be unique');
     }
 
-    // Create warehouse
-    const warehouse = await this.prisma.warehouse.create({
+    return this.prisma.warehouse.create({
       data: {
         code,
         name: dto.name,
-        outletId: dto.outletId,
+        type: identity.type,
+        scope: identity.scope,
+        outletId: identity.outletId,
         city: dto.city,
         address: dto.address,
         phone: dto.phone,
@@ -205,8 +236,6 @@ export class WarehousesService {
         isActive: dto.isActive !== false,
       },
     });
-
-    return warehouse;
   }
 
   /**
@@ -224,17 +253,50 @@ export class WarehousesService {
       throw new NotFoundException('Warehouse not found');
     }
 
-    // Verify outlet exists if changing it
-    if (dto.outletId && dto.outletId !== warehouse.outletId) {
+    const identity = normalizeWarehouseIdentity({
+      type: dto.type ?? warehouse.type,
+      scope: dto.scope ?? warehouse.scope,
+      outletId: dto.outletId !== undefined ? dto.outletId : warehouse.outletId,
+    });
+
+    if (identity.outletId && identity.outletId !== warehouse.outletId) {
       const outlet = await this.prisma.branch.findUnique({
-        where: { id: dto.outletId },
+        where: { id: identity.outletId },
       });
       if (!outlet) {
         throw new NotFoundException('Outlet not found');
       }
     }
 
-    // Check name uniqueness if updating
+    if (
+      warehouse.type === 'BAD' &&
+      warehouse.scope === 'SYSTEM' &&
+      warehouse.isActive &&
+      dto.isActive === false
+    ) {
+      throw new BadRequestException(
+        'Central Bad Stock cannot be deactivated while it is the active system BAD warehouse',
+      );
+    }
+
+    if (
+      identity.type === 'BAD' &&
+      identity.scope === 'SYSTEM' &&
+      warehouse.isActive
+    ) {
+      const existingBad = await this.prisma.warehouse.findFirst({
+        where: {
+          type: 'BAD',
+          scope: 'SYSTEM',
+          isActive: true,
+          id: { not: id },
+        },
+      });
+      if (existingBad) {
+        throw new ConflictException('The active Central Bad Stock warehouse already exists');
+      }
+    }
+
     if (dto.name && dto.name !== warehouse.name) {
       const existingName = await this.prisma.warehouse.findFirst({
         where: {
@@ -249,7 +311,6 @@ export class WarehousesService {
       }
     }
 
-    // Check code uniqueness if updating
     if (dto.code && dto.code !== warehouse.code) {
       const existing = await this.prisma.warehouse.findUnique({
         where: { code: dto.code },
@@ -259,12 +320,17 @@ export class WarehousesService {
       }
     }
 
-    // Prepare update data
-    const updateData: Prisma.WarehouseUpdateInput = {};
+    const updateData: Prisma.WarehouseUpdateInput = {
+      type: identity.type,
+      scope: identity.scope,
+      outlet:
+        identity.outletId === null
+          ? { disconnect: true }
+          : { connect: { id: identity.outletId } },
+    };
 
     if (dto.name !== undefined) updateData.name = dto.name;
     if (dto.code !== undefined) updateData.code = dto.code;
-    if (dto.outletId !== undefined) updateData.outlet = { connect: { id: dto.outletId } };
     if (dto.city !== undefined) updateData.city = dto.city;
     if (dto.address !== undefined) updateData.address = dto.address;
     if (dto.phone !== undefined) updateData.phone = dto.phone;
@@ -273,12 +339,10 @@ export class WarehousesService {
     if (dto.mobilePhone !== undefined) updateData.mobilePhone = dto.mobilePhone;
     if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
 
-    const updatedWarehouse = await this.prisma.warehouse.update({
+    return this.prisma.warehouse.update({
       where: { id },
       data: updateData,
     });
-
-    return updatedWarehouse;
   }
 
   /**
@@ -294,20 +358,37 @@ export class WarehousesService {
       throw new NotFoundException('Warehouse not found');
     }
 
-    // D2 guard: block deactivate if referenced by transactions/service orders.
-    // (D8 extends this to stock rows once warehouse-level stock lands.)
-    const [txCount, soCount] = await Promise.all([
-      this.prisma.salesTransaction.count({ where: { warehouseId: id } }),
-      this.prisma.serviceOrder.count({ where: { warehouseId: id } }),
-    ]);
-
-    if (txCount > 0 || soCount > 0) {
+    if (warehouse.type === 'BAD' && warehouse.isActive) {
       throw new BadRequestException(
-        `Warehouse has ${txCount} transaction(s) and ${soCount} service order(s) — cannot be deleted`,
+        'Central Bad Stock cannot be deactivated while it is the active system BAD warehouse',
       );
     }
 
-    // Soft delete (set isActive to false)
+    const [txCount, soCount, stockCount, movementCount, transferFromCount, transferToCount, opnameCount] =
+      await Promise.all([
+        this.prisma.salesTransaction.count({ where: { warehouseId: id } }),
+        this.prisma.serviceOrder.count({ where: { warehouseId: id } }),
+        this.prisma.productStock.count({ where: { warehouseId: id } }),
+        this.prisma.stockMovement.count({ where: { warehouseId: id } }),
+        this.prisma.stockTransfer.count({ where: { fromWarehouseId: id } }),
+        this.prisma.stockTransfer.count({ where: { toWarehouseId: id } }),
+        this.prisma.stockOpname.count({ where: { warehouseId: id } }),
+      ]);
+
+    if (
+      txCount > 0 ||
+      soCount > 0 ||
+      stockCount > 0 ||
+      movementCount > 0 ||
+      transferFromCount > 0 ||
+      transferToCount > 0 ||
+      opnameCount > 0
+    ) {
+      throw new BadRequestException(
+        `Warehouse is referenced by transactions, service orders, stock, movements, transfers, or opname and cannot be deleted`,
+      );
+    }
+
     await this.prisma.warehouse.update({
       where: { id },
       data: {

@@ -12,7 +12,17 @@ type ProductWithRelations = Product & {
   unit?: { id: string; name: string } | null;
   size?: { id: string; name: string } | null;
   color?: { id: string; name: string } | null;
-  productStocks?: (ProductStock & { branch?: { id: string; name: string; code: string } })[];
+  productStocks?: (ProductStock & {
+    branch?: { id: string; name: string; code: string } | null;
+    warehouse?: {
+      id: string;
+      code: string;
+      name: string;
+      type: string;
+      scope: string;
+      outletId: string | null;
+    } | null;
+  })[];
 };
 
 /**
@@ -23,6 +33,7 @@ interface StockSummary {
   totalReserved: number;
   totalDamaged: number;
   branches: Array<{
+    warehouseId: string;
     branchId: string;
     branchName: string;
     available: number;
@@ -170,8 +181,10 @@ export class ProductTransformer {
         totalReserved,
         totalDamaged,
         branches: stocks.map((stock) => ({
-          branchId: stock.branchId,
-          branchName: (stock as any).branch?.name || 'Unknown',
+          warehouseId: stock.warehouseId,
+          branchId: stock.branchId ?? stock.warehouseId,
+          branchName:
+            (stock as any).warehouse?.name || (stock as any).branch?.name || 'Central Bad Stock',
           available: this.toNumber(stock.quantityAvailable),
           reserved: this.toNumber(stock.quantityReserved),
           damaged: this.toNumber(stock.quantityDamaged),
