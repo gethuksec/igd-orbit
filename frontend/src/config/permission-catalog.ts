@@ -237,6 +237,12 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
         ],
       },
       {
+        label: 'Stock Out',
+        children: [
+          { label: 'Buat Stok Keluar', key: 'inventory.stock_out.create' },
+        ],
+      },
+      {
         label: 'Transfer Stok',
         children: [
           { label: 'Buat Transfer', key: 'inventory.transfer.create' },

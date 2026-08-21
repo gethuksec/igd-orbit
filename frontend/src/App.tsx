@@ -53,6 +53,7 @@ import StockOpnameCount from './pages/inventory/StockOpnameCount';
 import StockOpnameForm from './pages/inventory/StockOpnameForm';
 import StockAdjustment from './pages/inventory/StockAdjustment';
 import StockIn from './pages/inventory/StockIn';
+import StockOut from './pages/inventory/StockOut';
 import StockMovementHistory from './pages/inventory/StockMovementHistory';
 import LowStockAlerts from './pages/inventory/LowStockAlerts';
 // Unauthorized
@@ -845,6 +846,16 @@ function App() {
                 <ProtectedRoute>
                   <DashboardLayout>
                     <StockIn />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/inventory/stock-out"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <StockOut />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
