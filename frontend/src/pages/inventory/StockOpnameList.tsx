@@ -58,6 +58,8 @@ export default function StockOpnameList() {
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'approved':
         return 'bg-green-100 text-green-800 border-green-200';
+      case 'cancelled':
+        return 'bg-red-50 text-red-700 border-red-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -73,6 +75,8 @@ export default function StockOpnameList() {
         return 'Selesai';
       case 'approved':
         return 'Disetujui';
+      case 'cancelled':
+        return 'Dibatalkan';
       default:
         return status;
     }
@@ -177,6 +181,7 @@ export default function StockOpnameList() {
               <option value="counting">Sedang Dihitung</option>
               <option value="completed">Selesai</option>
               <option value="approved">Disetujui</option>
+              <option value="cancelled">Dibatalkan</option>
             </select>
           </div>
         </div>
@@ -283,9 +288,19 @@ export default function StockOpnameList() {
                           {countedItems} / {totalItems}
                         </div>
                         {opname.status === 'counting' && (
-                          <div className="text-xs text-gray-500">
-                            {Math.round((countedItems / totalItems) * 100)}% selesai
-                          </div>
+                          <>
+                            <div className="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden ml-auto mt-1">
+                              <div
+                                className="h-full bg-blue-500 rounded-full"
+                                style={{
+                                  width: `${totalItems > 0 ? Math.round((countedItems / totalItems) * 100) : 0}%`,
+                                }}
+                              />
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {Math.round((countedItems / totalItems) * 100)}% selesai
+                            </div>
+                          </>
                         )}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-right">
@@ -302,14 +317,25 @@ export default function StockOpnameList() {
                         </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-center">
-                        <Link
-                          to={`/inventory/opname/${opname.id}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
-                        >
-                          <Eye className="w-4 h-4" />
-                          <span>Detail</span>
-                        </Link>
+                        {opname.status === 'counting' ? (
+                          <Link
+                            to={`/inventory/opname/${opname.id}/count`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
+                          >
+                            <ClipboardCheck className="w-4 h-4" />
+                            <span>Lanjutkan</span>
+                          </Link>
+                        ) : (
+                          <Link
+                            to={`/inventory/opname/${opname.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
+                          >
+                            <Eye className="w-4 h-4" />
+                            <span>Detail</span>
+                          </Link>
+                        )}
                       </td>
                     </tr>
                   );
