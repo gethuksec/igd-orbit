@@ -186,6 +186,25 @@ export default function StockOpnameCount() {
     }
   };
 
+  // Live suggestions while typing in the scan box (like master product search)
+  const scanMatches = useMemo(() => {
+    const q = scanQuery.trim().toLowerCase();
+    if (!q || !opname) return [];
+    return opname.items
+      .filter((i) => {
+        const barcode = (i.product?.barcode || '').toLowerCase();
+        const sku = (i.product?.sku || '').toLowerCase();
+        const name = (i.product?.name || '').toLowerCase();
+        return barcode.includes(q) || sku.includes(q) || name.includes(q);
+      })
+      .slice(0, 8);
+  }, [scanQuery, opname]);
+
+  const pickScanMatch = (item: any) => {
+    setActiveItemId(item.id);
+    setScanQuery('');
+  };
+
   const saveItem = (item: any, qty?: string, cond?: Condition, note?: string) => {
     const q = qty ?? counts[item.id];
     const parsed = q !== undefined && q !== '' ? parseInt(q, 10) : NaN;
@@ -337,7 +356,7 @@ export default function StockOpnameCount() {
       </div>
 
       {/* Scan box */}
-      <form onSubmit={handleScanSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-3">
+      <form onSubmit={handleScanSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 relative">
         <div className="flex items-center gap-3 rounded-lg border-2 border-primary-600 bg-white px-4 shadow-[0_0_0_4px_rgba(220,38,38,0.08)]">
           <ScanBarcode className="w-5 h-5 text-primary-600" />
           <input
@@ -350,6 +369,29 @@ export default function StockOpnameCount() {
             Enter
           </kbd>
         </div>
+        {scanMatches.length > 0 && (
+          <div className="absolute z-30 left-3 right-3 mt-2 border border-gray-200 rounded-lg bg-white shadow-lg max-h-64 overflow-y-auto">
+            {scanMatches.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => pickScanMatch(m)}
+                className="w-full px-4 py-3 text-left hover:bg-primary-50 border-b border-gray-100 last:border-b-0 transition-colors"
+              >
+                <div className="font-medium text-gray-900 flex items-center gap-2">
+                  {m.product?.name || '-'}
+                  <span className="text-[10px] rounded-full bg-gray-100 px-2 py-0.5 font-bold text-gray-500">
+                    {toNumber(m.liveQuantity)} stok
+                  </span>
+                </div>
+                <div className="text-sm text-gray-500">
+                  SKU: {m.product?.sku || '-'}
+                  {m.product?.barcode ? ` • Barcode: ${m.product.barcode}` : ''}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
         <p className="text-[11px] text-gray-400 mt-2 px-1">
           Scanner USB (keyboard-wedge) langsung berfungsi — scan atau ketik → item muncul di kartu atas → isi jumlah →{' '}
           <b className="text-primary-600">Enter</b> → otomatis lanjut ke item berikutnya.
@@ -394,7 +436,7 @@ export default function StockOpnameCount() {
                   }
                 }}
                 placeholder="Jumlah"
-                className="w-28 rounded-lg border-2 border-primary-600 bg-white px-3 py-2.5 text-xl font-bold text-center outline-none"
+                className="w-28 h-11 rounded-lg border-2 border-primary-600 bg-white px-3 text-xl font-bold text-center outline-none"
               />
               {counts[activeItem.id] !== undefined && counts[activeItem.id] !== '' && (
                 <div className="text-[11px] mt-1 text-gray-500">
@@ -411,7 +453,7 @@ export default function StockOpnameCount() {
               onChange={(e) =>
                 setConditions({ ...conditions, [activeItem.id]: e.target.value as Condition })
               }
-              className="rounded-lg border border-gray-300 bg-white px-2 py-2.5 text-sm"
+              className="h-11 rounded-lg border-2 border-gray-300 bg-white px-3 text-sm"
             >
               <option value="good">Baik</option>
               <option value="damaged">Rusak</option>
