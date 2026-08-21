@@ -155,7 +155,7 @@ export default function StockOpnameList() {
             <select
               value={branchId}
               onChange={(e) => setBranchId(e.target.value)}
-              className="block w-full px-3 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base bg-white"
+              className="block w-full h-11 px-3 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base bg-white"
             >
               {branches.map((branch: { id: string; name: string }) => (
                 <option key={branch.id} value={branch.id}>
@@ -173,7 +173,7 @@ export default function StockOpnameList() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Cari nomor opname, cabang..."
-              className="block w-full pl-12 pr-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+              className="block w-full h-11 pl-12 pr-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
             />
           </div>
           <div className="relative">
@@ -183,7 +183,7 @@ export default function StockOpnameList() {
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="block w-full pl-12 pr-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white"
+              className="block w-full h-11 pl-12 pr-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white"
             >
               <option value="ALL">Semua Status</option>
               <option value="draft">Draft</option>
