@@ -155,6 +155,7 @@ model Branch {
   stockTransfersFrom StockTransfer[]    @relation("StockTransferFrom")
   stockTransfersTo   StockTransfer[]    @relation("StockTransferTo")
   stockOpnames       StockOpname[]
+  stockIns           StockIn[]
   serviceOrders      ServiceOrder[]
   journalEntryLines  JournalEntryLine[]
   purchaseOrders     PurchaseOrder[]
@@ -194,6 +195,7 @@ model Warehouse {
   stockTransfersFrom StockTransfer[]    @relation("StockTransferFromWarehouse")
   stockTransfersTo   StockTransfer[]    @relation("StockTransferToWarehouse")
   stockOpnames       StockOpname[]
+  stockIns           StockIn[]
   salesTransactions  SalesTransaction[]
   serviceOrders      ServiceOrder[]
 
@@ -415,6 +417,7 @@ model Product {
   stockMovements     StockMovement[]
   transferItems      StockTransferItem[]
   opnameItems        StockOpnameItem[]
+  stockInItems       StockInItem[]
   servicePartsUsed   ServicePartsUsed[]
   purchaseOrderItems PurchaseOrderItem[]
   goodsReceiptItems  GoodsReceiptItem[]     @relation("GoodsReceiptItemProduct")
@@ -587,7 +590,9 @@ model SalesTransaction {
   cashier        User                   @relation(fields: [cashierId], references: [id], onDelete: Restrict)
   items          SalesTransactionItem[]
   payments       Payment[]
-  stockMovements StockMovement[]
+  // NOTE: stockMovements relation removed — StockMovement.referenceId is now a
+  // polymorphic plain reference (no FK); sales movements are linked by referenceId
+  // at the service layer only.
 
   @@index([transactionNumber])
   @@index([branchId])
@@ -664,10 +669,12 @@ model StockMovement {
   createdAt      DateTime @default(now()) @map("created_at")
 
   // Relations
-  product     Product           @relation(fields: [productId], references: [id], onDelete: Restrict)
-  warehouse   Warehouse         @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
-  branch      Branch?           @relation(fields: [branchId], references: [id], onDelete: SetNull)
-  transaction SalesTransaction? @relation(fields: [referenceId], references: [id], onDelete: SetNull)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Restrict)
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  branch    Branch?   @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  // NOTE: referenceId is intentionally polymorphic ("Transaction ID, Transfer ID, etc") —
+  // no FK constraint. It may point to sales_transactions, stock_transfers, stock_opname,
+  // or stock_ins ids depending on referenceType.
 
   @@index([productId])
   @@index([warehouseId])
@@ -853,6 +860,54 @@ model StockOpnameItem {
   @@index([opnameId])
   @@index([productId])
   @@map("stock_opname_items")
+}
+
+model StockIn {
+  id             String   @id @default(uuid())
+  documentNumber String   @unique @map("document_number") // SIN-YYYYMMDD-XXXXXX
+  outletId       String   @map("outlet_id")
+  warehouseId    String   @map("warehouse_id")
+  supplierId     String?  @map("supplier_id") // real supplier (Customer wholesale) UUID or the 'NO_SUPPLIER' sentinel
+  supplierName   String?  @map("supplier_name") // snapshot for display
+  documentDate   DateTime @map("document_date") @default(now())
+  reason         String   @db.Text // required free-text reason
+  totalValue     Decimal  @default(0) @map("total_value") @db.Decimal(15, 2) // sum(qty * stock_value)
+  createdBy      String   @map("created_by") // User ID
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  outlet    Branch         @relation(fields: [outletId], references: [id], onDelete: Restrict)
+  warehouse Warehouse      @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  items     StockInItem[]
+
+  @@index([documentNumber])
+  @@index([outletId])
+  @@index([warehouseId])
+  @@index([documentDate])
+  @@map("stock_ins")
+}
+
+model StockInItem {
+  id          String   @id @default(uuid())
+  stockInId   String   @map("stock_in_id")
+  productId   String   @map("product_id")
+  productName String   @map("product_name") // snapshot
+  productSku  String   @map("product_sku") // snapshot
+  quantity    Decimal  @map("quantity") @db.Decimal(15, 3)
+  unitId      String?  @map("unit_id")
+  unitName    String?  @map("unit_name") // snapshot
+  stockValue  Decimal  @map("stock_value") @db.Decimal(15, 2) // per-unit stock value, defaults to Product.minSellingPrice
+  lineTotal   Decimal  @map("line_total") @db.Decimal(15, 2) // quantity * stockValue
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  stockIn StockIn  @relation(fields: [stockInId], references: [id], onDelete: Cascade)
+  product Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([stockInId])
+  @@index([productId])
+  @@map("stock_in_items")
 }
 
 // ============================================
