@@ -13,6 +13,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { BreadcrumbHeader } from '@/components/shared';
+import { Button } from '@/components/ui/button';
 import { inventoryService } from '../../services/inventory.service';
 import type { StockOpname } from '../../services/inventory.service';
 import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
@@ -101,13 +102,10 @@ export default function StockOpnameList() {
     <div className="w-full space-y-3">
       {/* Page Header */}
       <BreadcrumbHeader title="Stock Opname" subtitle="Kelola stock opname dan audit stok">
-        <Link
-          to="/inventory/opname/new"
-          className="px-6 py-3 bg-white/20 hover:bg-white/30 rounded-lg font-semibold transition-all flex items-center gap-2 backdrop-blur-sm"
-        >
-          <Plus className="w-5 h-5" />
-          <span>Mulai Opname</span>
-        </Link>
+        <Button onClick={() => navigate('/inventory/opname/new')}>
+          <Plus className="w-4 h-4 mr-2" />
+          Mulai Opname
+        </Button>
       </BreadcrumbHeader>
 
       {/* Error Message */}
@@ -151,9 +149,13 @@ export default function StockOpnameList() {
 
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
           <div>
-            <BranchFilterSelect value={branchId} onChange={setBranchId} />
+            <BranchFilterSelect
+              value={branchId}
+              onChange={setBranchId}
+              className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-base bg-white focus:ring-2 focus:ring-primary-500"
+            />
           </div>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -164,7 +166,7 @@ export default function StockOpnameList() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Cari nomor opname, cabang..."
-              className="block w-full pl-12 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+              className="block w-full pl-12 pr-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
             />
           </div>
           <div className="relative">
@@ -174,7 +176,7 @@ export default function StockOpnameList() {
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="block w-full pl-12 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white"
+              className="block w-full pl-12 pr-4 py-2 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white"
             >
               <option value="ALL">Semua Status</option>
               <option value="draft">Draft</option>
