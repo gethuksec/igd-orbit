@@ -17,7 +17,9 @@ import { Type } from 'class-transformer';
  * to Product.minSellingPrice (Harga Jual Minimum) when omitted.
  */
 export class StockOutItemDto {
-  @IsUUID('4', { message: 'Product ID must be a valid UUID' })
+  // NOTE: plain @IsUUID() (not version 4) — the live DB contains legacy
+  // non-v4 UUIDs (e.g. Kalisat warehouse 690c292c-5548-1076-1145-...)
+  @IsUUID(undefined, { message: 'Product ID must be a valid UUID' })
   @IsNotEmpty({ message: 'Product ID is required' })
   productId!: string;
 
@@ -25,7 +27,7 @@ export class StockOutItemDto {
   @Min(0.001, { message: 'Quantity must be greater than zero' })
   quantity!: number;
 
-  @IsUUID('4', { message: 'Unit ID must be a valid UUID' })
+  @IsUUID(undefined, { message: 'Unit ID must be a valid UUID' })
   @IsOptional()
   unitId?: string;
 
@@ -42,11 +44,13 @@ export class StockOutItemDto {
  * Bad Stock warehouse (scope SYSTEM, type BAD).
  */
 export class CreateStockOutDto {
-  @IsUUID('4', { message: 'Outlet ID must be a valid UUID' })
+  // NOTE: plain @IsUUID() (not version 4) — the live DB contains legacy
+  // non-v4 UUIDs (e.g. Kalisat warehouse 690c292c-5548-1076-1145-...)
+  @IsUUID(undefined, { message: 'Outlet ID must be a valid UUID' })
   @IsOptional()
   outletId?: string;
 
-  @IsUUID('4', { message: 'Warehouse ID must be a valid UUID' })
+  @IsUUID(undefined, { message: 'Warehouse ID must be a valid UUID' })
   @IsNotEmpty({ message: 'Warehouse is required' })
   warehouseId!: string;
 
