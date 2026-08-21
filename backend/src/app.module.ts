@@ -31,6 +31,7 @@ import { CustomerTiersModule } from './modules/customer-tiers/customer-tiers.mod
 import { PaymentTermsModule } from './modules/payment-terms/payment-terms.module';
 import { ServiceCheckpointsModule } from './modules/service-checkpoints/service-checkpoints.module';
 import { PosModule } from './modules/pos/pos.module';
+import { StockInModule } from './modules/stock-in/stock-in.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -66,6 +67,7 @@ import { PosModule } from './modules/pos/pos.module';
     PaymentTermsModule,
     ServiceCheckpointsModule,
     PosModule,
+    StockInModule,
   ],
   controllers: [AppController],
   providers: [AppService],

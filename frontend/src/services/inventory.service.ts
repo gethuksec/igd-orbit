@@ -67,6 +67,65 @@ export interface StockOpnameItem {
   countedBy?: string | null;
 }
 
+export interface StockIn {
+  id: string;
+  documentNumber: string;
+  outletId: string;
+  outlet?: { id: string; name: string; code: string };
+  warehouseId: string;
+  warehouse?: { id: string; code: string; name: string; type: string; scope: string };
+  supplierId?: string | null;
+  supplierName?: string | null;
+  documentDate: string;
+  reason: string;
+  totalValue: number;
+  createdBy: string;
+  createdAt: string;
+  items: StockInItem[];
+}
+
+export interface StockInItem {
+  id: string;
+  stockInId: string;
+  productId: string;
+  product?: { id: string; name: string; sku: string; barcode?: string | null };
+  productName: string;
+  productSku: string;
+  quantity: number;
+  unitId?: string | null;
+  unitName?: string | null;
+  stockValue: number;
+  lineTotal: number;
+}
+
+export interface StockInWarehouse {
+  id: string;
+  code: string;
+  name: string;
+  type: string;
+  scope: string;
+  outletId?: string | null;
+}
+
+export interface StockInProduct {
+  id: string;
+  name: string;
+  sku: string;
+  barcode?: string | null;
+  sellingPrice: number;
+  minSellingPrice?: number | null;
+  memberPricing?: Record<string, number> | null;
+  unitId?: string | null;
+  unit?: { id: string; name: string } | null;
+}
+
+export interface StockInTier {
+  id: string;
+  code: string;
+  name: string;
+  level: number;
+}
+
 
 export const inventoryService = {
   // Stock Summary
@@ -289,6 +348,88 @@ export const inventoryService = {
       return response.data;
     } catch (error: any) {
       throw error;
+    }
+  },
+
+  // ── Stock In (Stok Masuk) ──
+  async createStockIn(data: {
+    outletId: string;
+    warehouseId: string;
+    supplierId?: string;
+    date?: string;
+    reason: string;
+    items: Array<{
+      productId: string;
+      quantity: number;
+      unitId?: string;
+      stockValue?: number;
+    }>;
+  }): Promise<StockIn> {
+    try {
+      const response = await api.post('/stock-in', data);
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  async getStockIns(params?: {
+    page?: number;
+    limit?: number;
+    outletId?: string;
+    warehouseId?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<{ data: StockIn[]; meta: any }> {
+    try {
+      const response = await api.get('/stock-in', { params });
+      return response.data;
+    } catch (error: any) {
+      return handleApiError(error, {
+        data: [],
+        meta: { page: 1, limit: 20, total: 0, totalPages: 0 },
+      });
+    }
+  },
+
+  async getStockInById(id: string): Promise<StockIn> {
+    try {
+      const response = await api.get(`/stock-in/${id}`);
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  // Stock In form supporting lists
+  async getStockInWarehouses(outletId?: string): Promise<StockInWarehouse[]> {
+    try {
+      const response = await api.get('/stock-in/warehouses', {
+        params: outletId ? { outletId } : {},
+      });
+      return Array.isArray(response.data) ? response.data : [];
+    } catch (error: any) {
+      return handleApiError(error, []);
+    }
+  },
+
+  async searchStockInProducts(q: string, limit = 15): Promise<StockInProduct[]> {
+    try {
+      const response = await api.get('/stock-in/products', {
+        params: { q, limit },
+      });
+      return Array.isArray(response.data) ? response.data : [];
+    } catch (error: any) {
+      return handleApiError(error, []);
+    }
+  },
+
+  async getStockInTiers(): Promise<StockInTier[]> {
+    try {
+      const response = await api.get('/stock-in/tiers');
+      return Array.isArray(response.data) ? response.data : [];
+    } catch (error: any) {
+      return handleApiError(error, []);
     }
   },
 
