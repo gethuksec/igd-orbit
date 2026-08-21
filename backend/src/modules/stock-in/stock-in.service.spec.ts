@@ -187,7 +187,7 @@ describe('StockInService', () => {
       // Single stock movement with merged quantity
       expect(tx.stockMovement.create).toHaveBeenCalledTimes(1);
       expect(Number(tx.stockMovement.create.mock.calls[0][0].data.quantityChange)).toBe(7);
-      expect(result.totalValue).toEqual(new Decimal(70000));
+      expect(result.totalValue).toBe(70000); // serialized to number by create()
     });
 
     it('keeps the first explicit stockValue when merging', async () => {
@@ -329,7 +329,7 @@ describe('StockInService', () => {
         },
         'user-1',
       );
-      expect(result.totalValue).toEqual(new Decimal(65000));
+      expect(result.totalValue).toBe(65000); // serialized to number by create()
     });
 
     it('generates a SIN-YYYYMMDD-XXXXXX document number', async () => {

@@ -156,6 +156,7 @@ model Branch {
   stockTransfersTo   StockTransfer[]    @relation("StockTransferTo")
   stockOpnames       StockOpname[]
   stockIns           StockIn[]
+  stockOuts          StockOut[]
   serviceOrders      ServiceOrder[]
   journalEntryLines  JournalEntryLine[]
   purchaseOrders     PurchaseOrder[]
@@ -196,6 +197,7 @@ model Warehouse {
   stockTransfersTo   StockTransfer[]    @relation("StockTransferToWarehouse")
   stockOpnames       StockOpname[]
   stockIns           StockIn[]
+  stockOuts          StockOut[]
   salesTransactions  SalesTransaction[]
   serviceOrders      ServiceOrder[]
 
@@ -418,6 +420,7 @@ model Product {
   transferItems      StockTransferItem[]
   opnameItems        StockOpnameItem[]
   stockInItems       StockInItem[]
+  stockOutItems      StockOutItem[]
   servicePartsUsed   ServicePartsUsed[]
   purchaseOrderItems PurchaseOrderItem[]
   goodsReceiptItems  GoodsReceiptItem[]     @relation("GoodsReceiptItemProduct")
@@ -908,6 +911,52 @@ model StockInItem {
   @@index([stockInId])
   @@index([productId])
   @@map("stock_in_items")
+}
+
+model StockOut {
+  id             String   @id @default(uuid())
+  documentNumber String   @unique @map("document_number") // SOUT-YYYYMMDD-XXXXXX
+  outletId       String?  @map("outlet_id") // null when source is the system-scoped Central Bad Stock warehouse
+  warehouseId    String   @map("warehouse_id")
+  documentDate   DateTime @map("document_date") @default(now())
+  reason         String   @db.Text // required free-text reason
+  totalValue     Decimal  @default(0) @map("total_value") @db.Decimal(15, 2) // sum(qty * stock_value)
+  createdBy      String   @map("created_by") // User ID
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  outlet    Branch?         @relation(fields: [outletId], references: [id], onDelete: Restrict)
+  warehouse Warehouse       @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  items     StockOutItem[]
+
+  @@index([documentNumber])
+  @@index([outletId])
+  @@index([warehouseId])
+  @@index([documentDate])
+  @@map("stock_outs")
+}
+
+model StockOutItem {
+  id          String   @id @default(uuid())
+  stockOutId  String   @map("stock_out_id")
+  productId   String   @map("product_id")
+  productName String   @map("product_name") // snapshot
+  productSku  String   @map("product_sku") // snapshot
+  quantity    Decimal  @map("quantity") @db.Decimal(15, 3)
+  unitId      String?  @map("unit_id")
+  unitName    String?  @map("unit_name") // snapshot
+  stockValue  Decimal  @map("stock_value") @db.Decimal(15, 2) // per-unit stock value, defaults to Product.minSellingPrice
+  lineTotal   Decimal  @map("line_total") @db.Decimal(15, 2) // quantity * stockValue
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  stockOut StockOut @relation(fields: [stockOutId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([stockOutId])
+  @@index([productId])
+  @@map("stock_out_items")
 }
 
 // ============================================

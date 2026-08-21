@@ -27,6 +27,7 @@ import {
   Boxes,
   ArrowRightLeft,
   ArrowDownToLine,
+  ArrowUpFromLine,
   Palette,
   Ruler,
   Maximize,
@@ -270,6 +271,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       children: [
         { icon: Boxes, label: 'Stok', path: '/inventory/stock', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
         { icon: ArrowDownToLine, label: 'Stock In', path: '/inventory/stock-in', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
+        { icon: ArrowUpFromLine, label: 'Stock Out', path: '/inventory/stock-out', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
         { icon: ArrowRightLeft, label: 'Transfer Stok', path: '/inventory/transfer', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
         { icon: ClipboardCheck, label: 'Stock Opname', path: '/inventory/opname', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
         { icon: PackageSearch, label: 'Stock Adjustment', path: '/inventory/adjustment', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS'] },

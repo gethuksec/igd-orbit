@@ -126,6 +126,57 @@ export interface StockInTier {
   level: number;
 }
 
+export interface StockOut {
+  id: string;
+  documentNumber: string;
+  outletId?: string | null;
+  outlet?: { id: string; name: string; code: string } | null;
+  warehouseId: string;
+  warehouse?: { id: string; code: string; name: string; type: string; scope: string } | null;
+  documentDate: string;
+  reason: string;
+  totalValue: number;
+  createdBy: string;
+  createdAt: string;
+  items: StockOutItem[];
+}
+
+export interface StockOutItem {
+  id: string;
+  stockOutId: string;
+  productId: string;
+  product?: { id: string; name: string; sku: string; barcode?: string | null };
+  productName: string;
+  productSku: string;
+  quantity: number;
+  unitId?: string | null;
+  unitName?: string | null;
+  stockValue: number;
+  lineTotal: number;
+}
+
+export interface StockOutWarehouse {
+  id: string;
+  code: string;
+  name: string;
+  type: string;
+  scope: string;
+  outletId?: string | null;
+}
+
+export interface StockOutProduct {
+  id: string;
+  name: string;
+  sku: string;
+  barcode?: string | null;
+  sellingPrice: number;
+  minSellingPrice?: number | null;
+  memberPricing?: Record<string, number> | null;
+  unitId?: string | null;
+  unit?: { id: string; name: string } | null;
+  availableQuantity: number;
+}
+
 
 export const inventoryService = {
   // Stock Summary
@@ -427,6 +478,78 @@ export const inventoryService = {
   async getStockInTiers(): Promise<StockInTier[]> {
     try {
       const response = await api.get('/stock-in/tiers');
+      return Array.isArray(response.data) ? response.data : [];
+    } catch (error: any) {
+      return handleApiError(error, []);
+    }
+  },
+
+  // ── Stock Out (Stok Keluar) ──
+  async createStockOut(data: {
+    outletId?: string;
+    warehouseId: string;
+    date?: string;
+    reason: string;
+    items: Array<{
+      productId: string;
+      quantity: number;
+      unitId?: string;
+      stockValue?: number;
+    }>;
+  }): Promise<StockOut> {
+    try {
+      const response = await api.post('/stock-out', data);
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  async getStockOuts(params?: {
+    page?: number;
+    limit?: number;
+    outletId?: string;
+    warehouseId?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<{ data: StockOut[]; meta: any }> {
+    try {
+      const response = await api.get('/stock-out', { params });
+      return response.data;
+    } catch (error: any) {
+      return handleApiError(error, {
+        data: [],
+        meta: { page: 1, limit: 20, total: 0, totalPages: 0 },
+      });
+    }
+  },
+
+  async getStockOutById(id: string): Promise<StockOut> {
+    try {
+      const response = await api.get(`/stock-out/${id}`);
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  // Stock Out form supporting lists
+  async getStockOutWarehouses(outletId?: string): Promise<StockOutWarehouse[]> {
+    try {
+      const response = await api.get('/stock-out/warehouses', {
+        params: outletId ? { outletId } : {},
+      });
+      return Array.isArray(response.data) ? response.data : [];
+    } catch (error: any) {
+      return handleApiError(error, []);
+    }
+  },
+
+  async searchStockOutProducts(q: string, limit = 15, warehouseId?: string): Promise<StockOutProduct[]> {
+    try {
+      const response = await api.get('/stock-out/products', {
+        params: { q, limit, ...(warehouseId ? { warehouseId } : {}) },
+      });
       return Array.isArray(response.data) ? response.data : [];
     } catch (error: any) {
       return handleApiError(error, []);

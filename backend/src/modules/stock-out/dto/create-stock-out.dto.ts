@@ -18,11 +18,11 @@ const ANY_UUID =
   /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
 /**
- * Stock In line item DTO.
+ * Stock Out line item DTO.
  * quantity must be > 0; stockValue is optional and defaults server-side
  * to Product.minSellingPrice (Harga Jual Minimum) when omitted.
  */
-export class StockInItemDto {
+export class StockOutItemDto {
   @Matches(ANY_UUID, { message: 'Product ID must be a valid UUID' })
   @IsNotEmpty({ message: 'Product ID is required' })
   productId!: string;
@@ -42,22 +42,19 @@ export class StockInItemDto {
 }
 
 /**
- * Create Stock In document DTO.
- * supplierId is either a real supplier (Customer wholesale) UUID or the
- * explicit 'NO_SUPPLIER' sentinel.
+ * Create Stock Out document DTO.
+ * outletId is optional: required when the source is an outlet-owned GOOD
+ * warehouse, ignored/absent when the source is the system-scoped Central
+ * Bad Stock warehouse (scope SYSTEM, type BAD).
  */
-export class CreateStockInDto {
+export class CreateStockOutDto {
   @Matches(ANY_UUID, { message: 'Outlet ID must be a valid UUID' })
-  @IsNotEmpty({ message: 'Outlet is required' })
-  outletId!: string;
+  @IsOptional()
+  outletId?: string;
 
   @Matches(ANY_UUID, { message: 'Warehouse ID must be a valid UUID' })
   @IsNotEmpty({ message: 'Warehouse is required' })
   warehouseId!: string;
-
-  @IsString({ message: 'Supplier must be a string' })
-  @IsOptional()
-  supplierId?: string;
 
   @IsDateString({}, { message: 'Date must be a valid ISO date' })
   @IsOptional()
@@ -69,6 +66,6 @@ export class CreateStockInDto {
 
   @IsArray({ message: 'Items must be an array' })
   @ValidateNested({ each: true })
-  @Type(() => StockInItemDto)
-  items!: StockInItemDto[];
+  @Type(() => StockOutItemDto)
+  items!: StockOutItemDto[];
 }

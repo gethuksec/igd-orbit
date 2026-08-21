@@ -32,6 +32,7 @@ import { PaymentTermsModule } from './modules/payment-terms/payment-terms.module
 import { ServiceCheckpointsModule } from './modules/service-checkpoints/service-checkpoints.module';
 import { PosModule } from './modules/pos/pos.module';
 import { StockInModule } from './modules/stock-in/stock-in.module';
+import { StockOutModule } from './modules/stock-out/stock-out.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -68,6 +69,7 @@ import { StockInModule } from './modules/stock-in/stock-in.module';
     ServiceCheckpointsModule,
     PosModule,
     StockInModule,
+    StockOutModule,
   ],
   controllers: [AppController],
   providers: [AppService],
