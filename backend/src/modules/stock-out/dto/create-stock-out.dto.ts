@@ -5,11 +5,17 @@ import {
   IsNumber,
   IsOptional,
   IsString,
-  IsUUID,
+  Matches,
   Min,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+
+/** UUID format regardless of version — the live DB has legacy non-v4 ids
+ * (e.g. Kalisat warehouse 690c292c-5548-1076-1145-...), which class-validator's
+ * @IsUUID() rejects even with 'all'. */
+const ANY_UUID =
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
 /**
  * Stock Out line item DTO.
@@ -17,9 +23,7 @@ import { Type } from 'class-transformer';
  * to Product.minSellingPrice (Harga Jual Minimum) when omitted.
  */
 export class StockOutItemDto {
-  // NOTE: plain @IsUUID() (not version 4) — the live DB contains legacy
-  // non-v4 UUIDs (e.g. Kalisat warehouse 690c292c-5548-1076-1145-...)
-  @IsUUID(undefined, { message: 'Product ID must be a valid UUID' })
+  @Matches(ANY_UUID, { message: 'Product ID must be a valid UUID' })
   @IsNotEmpty({ message: 'Product ID is required' })
   productId!: string;
 
@@ -27,7 +31,7 @@ export class StockOutItemDto {
   @Min(0.001, { message: 'Quantity must be greater than zero' })
   quantity!: number;
 
-  @IsUUID(undefined, { message: 'Unit ID must be a valid UUID' })
+  @Matches(ANY_UUID, { message: 'Unit ID must be a valid UUID' })
   @IsOptional()
   unitId?: string;
 
@@ -44,13 +48,11 @@ export class StockOutItemDto {
  * Bad Stock warehouse (scope SYSTEM, type BAD).
  */
 export class CreateStockOutDto {
-  // NOTE: plain @IsUUID() (not version 4) — the live DB contains legacy
-  // non-v4 UUIDs (e.g. Kalisat warehouse 690c292c-5548-1076-1145-...)
-  @IsUUID(undefined, { message: 'Outlet ID must be a valid UUID' })
+  @Matches(ANY_UUID, { message: 'Outlet ID must be a valid UUID' })
   @IsOptional()
   outletId?: string;
 
-  @IsUUID(undefined, { message: 'Warehouse ID must be a valid UUID' })
+  @Matches(ANY_UUID, { message: 'Warehouse ID must be a valid UUID' })
   @IsNotEmpty({ message: 'Warehouse is required' })
   warehouseId!: string;
 
