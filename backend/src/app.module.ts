@@ -33,6 +33,7 @@ import { ServiceCheckpointsModule } from './modules/service-checkpoints/service-
 import { PosModule } from './modules/pos/pos.module';
 import { StockInModule } from './modules/stock-in/stock-in.module';
 import { StockOutModule } from './modules/stock-out/stock-out.module';
+import { TransferStockModule } from './modules/transfer-stock/transfer-stock.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -70,6 +71,7 @@ import { StockOutModule } from './modules/stock-out/stock-out.module';
     PosModule,
     StockInModule,
     StockOutModule,
+    TransferStockModule,
   ],
   controllers: [AppController],
   providers: [AppService],
