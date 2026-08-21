@@ -76,17 +76,17 @@ ALTER TABLE product_stock
 
 -- Existing branch-level rows map to the first/default warehouse for that
 -- outlet. created_at/id make the choice deterministic when an outlet has N
--- warehouses.
+-- warehouses. (Correlated subquery: UPDATE ... FROM LATERAL cannot reference
+-- the target table in Postgres.)
 UPDATE product_stock ps
-SET warehouse_id = w.id
-FROM LATERAL (
+SET warehouse_id = (
   SELECT w0.id
   FROM warehouses w0
   WHERE w0.outlet_id = ps.branch_id
     AND w0.scope = 'OUTLET'
   ORDER BY w0.created_at ASC, w0.id ASC
   LIMIT 1
-) w
+)
 WHERE ps.warehouse_id IS NULL;
 
 ALTER TABLE product_stock
@@ -118,15 +118,14 @@ ALTER TABLE stock_movements
   ADD COLUMN IF NOT EXISTS warehouse_id TEXT;
 
 UPDATE stock_movements sm
-SET warehouse_id = w.id
-FROM LATERAL (
+SET warehouse_id = (
   SELECT w0.id
   FROM warehouses w0
   WHERE w0.outlet_id = sm.branch_id
     AND w0.scope = 'OUTLET'
   ORDER BY w0.created_at ASC, w0.id ASC
   LIMIT 1
-) w
+)
 WHERE sm.warehouse_id IS NULL;
 
 ALTER TABLE stock_movements
@@ -150,27 +149,25 @@ ALTER TABLE stock_transfers
   ADD COLUMN IF NOT EXISTS to_warehouse_id TEXT;
 
 UPDATE stock_transfers st
-SET from_warehouse_id = w.id
-FROM LATERAL (
+SET from_warehouse_id = (
   SELECT w0.id
   FROM warehouses w0
   WHERE w0.outlet_id = st.from_branch_id
     AND w0.scope = 'OUTLET'
   ORDER BY w0.created_at ASC, w0.id ASC
   LIMIT 1
-) w
+)
 WHERE st.from_warehouse_id IS NULL;
 
 UPDATE stock_transfers st
-SET to_warehouse_id = w.id
-FROM LATERAL (
+SET to_warehouse_id = (
   SELECT w0.id
   FROM warehouses w0
   WHERE w0.outlet_id = st.to_branch_id
     AND w0.scope = 'OUTLET'
   ORDER BY w0.created_at ASC, w0.id ASC
   LIMIT 1
-) w
+)
 WHERE st.to_warehouse_id IS NULL;
 
 ALTER TABLE stock_transfers
@@ -203,15 +200,14 @@ ALTER TABLE stock_opname
   ADD COLUMN IF NOT EXISTS warehouse_id TEXT;
 
 UPDATE stock_opname so
-SET warehouse_id = w.id
-FROM LATERAL (
+SET warehouse_id = (
   SELECT w0.id
   FROM warehouses w0
   WHERE w0.outlet_id = so.branch_id
     AND w0.scope = 'OUTLET'
   ORDER BY w0.created_at ASC, w0.id ASC
   LIMIT 1
-) w
+)
 WHERE so.warehouse_id IS NULL;
 
 ALTER TABLE stock_opname
