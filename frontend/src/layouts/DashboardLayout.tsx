@@ -33,7 +33,6 @@ import {
   Maximize,
   ClipboardCheck,
   ClipboardList,
-  PackageSearch,
   Truck,
   ReceiptText,
   Wallet,
@@ -44,8 +43,6 @@ import {
   Target,
   Plus,
   RotateCcw,
-  TrendingUp,
-  AlertTriangle,
   Zap,
 } from 'lucide-react';
 import type { Branch } from '@/services/public.service';

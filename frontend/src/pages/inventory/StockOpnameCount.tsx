@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
@@ -25,14 +25,7 @@ import {
 import { inventoryService } from '../../services/inventory.service';
 import { productsService } from '../../services/products.service';
 import { toast } from 'sonner';
-
 type Condition = 'good' | 'damaged' | 'expired';
-
-const CONDITION_LABEL: Record<Condition, string> = {
-  good: 'Baik',
-  damaged: 'Rusak',
-  expired: 'Kadaluarsa',
-};
 
 const toNumber = (v: any): number => {
   if (v === null || v === undefined) return 0;
@@ -464,7 +457,6 @@ export default function StockOpnameCount() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {opname.items.map((item) => {
-                const systemQty = toNumber(item.systemQuantity);
                 const liveQty = toNumber(item.liveQuantity);
                 const physRaw = counts[item.id];
                 const phys = physRaw !== undefined && physRaw !== '' ? parseInt(physRaw, 10) : null;
@@ -661,14 +653,15 @@ function AddProductResults({
 }) {
   const { data, isLoading } = useQuery({
     queryKey: ['opname-add-products', search],
-    queryFn: async () => {
+    queryFn: async (): Promise<any[]> => {
       const res = await productsService.getAll({ search: search || undefined, limit: 10 });
-      return res.data || res;
+      const payload: any = res as any;
+      return Array.isArray(payload) ? payload : payload.data || [];
     },
     enabled: search.trim().length > 0,
   });
 
-  const list = Array.isArray(data) ? data : data?.data || [];
+  const list: any[] = data || [];
 
   if (!search.trim()) {
     return <p className="text-sm text-gray-400 py-4 text-center">Ketik untuk mencari produk…</p>;
