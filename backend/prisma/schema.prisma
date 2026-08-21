@@ -819,14 +819,16 @@ model StockOpname {
   warehouseId           String    @map("warehouse_id")
   branchId              String?   @map("branch_id") // denormalized outlet; null for system-scoped warehouses
   opnameDate            DateTime  @map("opname_date")
-  status                String    @default("draft") // 'draft', 'counting', 'completed', 'approved'
+  status                String    @default("draft") // 'draft', 'counting', 'completed', 'approved', 'cancelled'
   startedBy             String    @map("started_by") // User ID
   completedBy           String?   @map("completed_by") // User ID
   approvedBy            String?   @map("approved_by") // User ID
+  cancelledBy           String?   @map("cancelled_by") // User ID
   totalDiscrepancyValue Decimal?  @map("total_discrepancy_value") @db.Decimal(15, 2)
   notes                 String?   @db.Text
   completedAt           DateTime? @map("completed_at")
   approvedAt            DateTime? @map("approved_at")
+  cancelledAt           DateTime? @map("cancelled_at")
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt @map("updated_at")
 
@@ -848,7 +850,8 @@ model StockOpnameItem {
   id               String   @id @default(uuid())
   opnameId         String   @map("opname_id")
   productId        String   @map("product_id")
-  systemQuantity   Decimal  @map("system_quantity") @db.Decimal(15, 3) // From product_stock
+  systemQuantity   Decimal  @map("system_quantity") @db.Decimal(15, 3) // Snapshot from product_stock at opname creation
+  systemQuantityAtCount Decimal? @map("system_quantity_at_count") @db.Decimal(15, 3) // LIVE product_stock qty when the count was recorded
   physicalQuantity Decimal? @map("physical_quantity") @db.Decimal(15, 3) // Counted quantity
   discrepancy      Decimal? @db.Decimal(15, 3) // physical - system
   discrepancyValue Decimal? @map("discrepancy_value") @db.Decimal(15, 2) // discrepancy * cost_price

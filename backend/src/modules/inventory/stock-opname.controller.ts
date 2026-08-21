@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Body,
   Param,
   Query,
@@ -14,6 +15,7 @@ import { Roles } from '../../shared/decorators/roles.decorator';
 import { StockOpnameService } from './stock-opname.service';
 import { StartOpnameDto } from './dto/start-opname.dto';
 import { RecordCountDto } from './dto/record-count.dto';
+import { AddOpnameItemDto } from './dto/add-opname-item.dto';
 
 @Controller('inventory/opname')
 @UseGuards(JwtAuthGuard)
@@ -44,6 +46,22 @@ export class StockOpnameController {
     return this.opnameService.findById(id);
   }
 
+  /** Draft model: add a product to the ongoing opname. */
+  @Post(':id/items/add')
+  @UseGuards(RolesGuard)
+  @Roles('HS', 'ASA', 'SODO')
+  async addItem(@Param('id') id: string, @Body() dto: AddOpnameItemDto) {
+    return this.opnameService.addItem(id, dto.productId);
+  }
+
+  /** Draft model: remove a product from the ongoing opname. */
+  @Delete(':id/items/:productId')
+  @UseGuards(RolesGuard)
+  @Roles('HS', 'ASA', 'SODO')
+  async removeItem(@Param('id') id: string, @Param('productId') productId: string) {
+    return this.opnameService.removeItem(id, productId);
+  }
+
   @Post(':id/items')
   @UseGuards(RolesGuard)
   @Roles('HS', 'ASA', 'SODO')
@@ -53,6 +71,13 @@ export class StockOpnameController {
     @Request() req: any,
   ) {
     return this.opnameService.recordCount(id, dto, req.user.id);
+  }
+
+  @Post(':id/cancel')
+  @UseGuards(RolesGuard)
+  @Roles('HS', 'ASA', 'SODO', 'SPV')
+  async cancelOpname(@Param('id') id: string, @Request() req: any) {
+    return this.opnameService.cancelOpname(id, req.user.id);
   }
 
   @Post(':id/complete')
@@ -69,4 +94,3 @@ export class StockOpnameController {
     return this.opnameService.approveOpname(id, req.user.id);
   }
 }
-
