@@ -34,4 +34,12 @@ export class ListWarehousesDto {
   @IsUUID('4', { message: 'Outlet must be a valid UUID' })
   @IsOptional()
   outletId?: string; // Filter by parent outlet
+
+  @IsString()
+  @IsOptional()
+  type?: 'GOOD' | 'BAD';
+
+  @IsString()
+  @IsOptional()
+  scope?: 'OUTLET' | 'SYSTEM';
 }

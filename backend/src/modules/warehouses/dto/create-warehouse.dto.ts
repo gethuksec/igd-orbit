@@ -9,7 +9,8 @@ import {
 
 /**
  * Create Warehouse DTO
- * Validates warehouse creation request payload
+ * Validates warehouse creation request payload. Scope/type combinations
+ * are normalized and enforced by WarehousesService.
  */
 export class CreateWarehouseDto {
   @IsString({ message: 'Code must be a string' })
@@ -20,9 +21,17 @@ export class CreateWarehouseDto {
   @IsNotEmpty({ message: 'Warehouse name is required' })
   name!: string;
 
+  @IsString({ message: 'Warehouse type must be a string' })
+  @IsOptional()
+  type?: string; // GOOD (default) or BAD (Central Bad Stock)
+
+  @IsString({ message: 'Warehouse scope must be a string' })
+  @IsOptional()
+  scope?: string; // OUTLET (default) or SYSTEM
+
   @IsUUID('4', { message: 'Outlet must be a valid UUID' })
-  @IsNotEmpty({ message: 'Outlet is required' })
-  outletId!: string;
+  @IsOptional()
+  outletId?: string | null; // Required for OUTLET scope, null for SYSTEM scope
 
   @IsString({ message: 'City must be a string' })
   @IsOptional()

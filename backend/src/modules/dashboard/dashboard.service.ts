@@ -20,6 +20,15 @@ export class DashboardService {
     const end = endDate ? new Date(endDate) : today;
     end.setHours(23, 59, 59, 999);
 
+    let branchWarehouseIds: string[] | undefined;
+    if (branchId) {
+      const branchWarehouses = await this.prisma.warehouse.findMany({
+        where: { outletId: branchId },
+        select: { id: true },
+      });
+      branchWarehouseIds = branchWarehouses.map((warehouse) => warehouse.id);
+    }
+
     const baseSalesWhere: any = {
       status: 'completed',
       createdAt: {
@@ -173,7 +182,7 @@ export class DashboardService {
     };
 
     if (branchId) {
-      stockWhere.branchId = branchId;
+      stockWhere.warehouseId = { in: branchWarehouseIds || [] };
     }
 
     const allStocks = await this.prisma.productStock.findMany({
@@ -197,7 +206,7 @@ export class DashboardService {
     };
 
     if (branchId) {
-      outOfStockWhere.branchId = branchId;
+      outOfStockWhere.warehouseId = { in: branchWarehouseIds || [] };
     }
 
     const outOfStockItems = await this.prisma.productStock.count({
@@ -1037,6 +1046,10 @@ export class DashboardService {
     >();
 
     stocks.forEach((stock) => {
+      if (!stock.branchId || !stock.branch) {
+        return;
+      }
+
       const branchId = stock.branchId;
       const existing = branchMap.get(branchId) || {
         name: stock.branch.name,
@@ -1224,8 +1237,8 @@ export class DashboardService {
 
     return transfers.map((transfer) => ({
       id: transfer.transferNumber,
-      from: transfer.fromBranch.name,
-      to: transfer.toBranch.name,
+      from: transfer.fromBranch?.name ?? transfer.fromWarehouseId,
+      to: transfer.toBranch?.name ?? transfer.toWarehouseId,
       items: transfer.items.length,
       status: transfer.status,
     }));

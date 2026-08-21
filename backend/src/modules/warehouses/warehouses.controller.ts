@@ -50,8 +50,11 @@ export class WarehousesController {
   @Get('active')
   @UseGuards(RolesGuard)
   @Roles('OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA', 'SODO')
-  async findActive(@Query('outletId') outletId?: string) {
-    return this.warehousesService.findActive(outletId);
+  async findActive(
+    @Query('outletId') outletId?: string,
+    @Query('includeSystem') includeSystem?: string,
+  ) {
+    return this.warehousesService.findActive(outletId, includeSystem === 'true');
   }
 
   /**

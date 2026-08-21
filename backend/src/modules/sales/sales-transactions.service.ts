@@ -210,6 +210,22 @@ export class SalesTransactionsService {
       throw new NotFoundException('Branch not found');
     }
 
+    const warehouse = createDto.warehouseId
+      ? await this.prisma.warehouse.findUnique({ where: { id: createDto.warehouseId } })
+      : await this.prisma.warehouse.findFirst({
+          where: {
+            outletId: branchId,
+            type: 'GOOD',
+            scope: 'OUTLET',
+            isActive: true,
+          },
+          orderBy: { createdAt: 'asc' },
+        });
+
+    if (!warehouse || !warehouse.isActive || warehouse.type !== 'GOOD' || warehouse.outletId !== branchId) {
+      throw new BadRequestException('An active GOOD warehouse belonging to the sale branch is required');
+    }
+
     // Validate all products exist and have stock
     const productIds = createDto.items.map((item) => item.productId);
     const products = await this.prisma.product.findMany({
@@ -220,7 +236,7 @@ export class SalesTransactionsService {
       },
       include: {
         productStocks: {
-          where: { branchId },
+          where: { warehouseId: warehouse.id },
         },
       },
     });
@@ -238,7 +254,7 @@ export class SalesTransactionsService {
 
       const stock = product.productStocks[0];
       if (!stock) {
-        throw new BadRequestException(`Product ${product.name} has no stock in this branch`);
+        throw new BadRequestException(`Product ${product.name} has no stock in warehouse ${warehouse.id}`);
       }
 
       const availableStock = stock.quantityAvailable.toNumber() - stock.quantityReserved.toNumber();
@@ -311,6 +327,7 @@ export class SalesTransactionsService {
           branchId,
           customerId: createDto.customerId || null,
           cashierId: userId,
+          warehouseId: warehouse.id,
           status: 'completed', // All transactions are completed once created (pending is for held transactions)
           subtotal: calculation.subtotal,
           discountAmount: calculation.discount,
@@ -383,7 +400,8 @@ export class SalesTransactionsService {
         await tx.stockMovement.create({
           data: {
             productId: itemDto.productId,
-            branchId,
+            warehouseId: stock.warehouseId,
+            branchId: stock.branchId,
             movementType: 'OUT',
             referenceType: 'SALE',
             referenceId: transaction.id,
@@ -595,12 +613,33 @@ export class SalesTransactionsService {
 
         if (stockMovement) {
           // Restore stock
-          const stock = await tx.productStock.findFirst({
-            where: {
-              productId: item.productId,
-              branchId: transaction.branchId,
-            },
-          });
+          const stockWarehouseId = transaction.warehouseId
+            ? transaction.warehouseId
+            : transaction.branchId
+              ? (
+                  await tx.warehouse.findFirst({
+                    where: {
+                      outletId: transaction.branchId,
+                      type: 'GOOD',
+                      scope: 'OUTLET',
+                      isActive: true,
+                    },
+                    orderBy: { createdAt: 'asc' },
+                    select: { id: true },
+                  })
+                )?.id
+              : undefined;
+
+          const stock = stockWarehouseId
+            ? await tx.productStock.findUnique({
+                where: {
+                  productId_warehouseId: {
+                    productId: item.productId,
+                    warehouseId: stockWarehouseId,
+                  },
+                },
+              })
+            : null;
 
           if (stock) {
             const damagedBefore = stock.quantityDamaged.toNumber();
@@ -619,7 +658,8 @@ export class SalesTransactionsService {
             await tx.stockMovement.create({
               data: {
                 productId: item.productId,
-                branchId: transaction.branchId,
+                warehouseId: stock.warehouseId,
+                branchId: stock.branchId,
                 movementType: 'DAMAGED',
                 referenceType: 'VOID',
                 referenceId: transactionId,

@@ -10,7 +10,7 @@ export class StockService {
   constructor(private prisma: PrismaService) {}
 
   async getStockSummary(query: ListStockDto) {
-    const { branchId, categoryId, brandId, stockStatus, search, page = 1, limit = 20 } = query;
+    const { branchId, warehouseId, categoryId, brandId, stockStatus, search, page = 1, limit = 20 } = query;
     const skip = (page - 1) * limit;
 
     // Build where clause
@@ -21,7 +21,9 @@ export class StockService {
       },
     };
 
-    if (branchId) {
+    if (warehouseId) {
+      where.warehouseId = warehouseId;
+    } else if (branchId) {
       where.branchId = branchId;
     }
 
@@ -61,6 +63,7 @@ export class StockService {
           },
         },
         branch: true,
+        warehouse: true,
       },
       skip,
       take: limit,
@@ -121,6 +124,7 @@ export class StockService {
       where: { productId },
       include: {
         branch: true,
+        warehouse: true,
       },
     });
 
@@ -139,9 +143,18 @@ export class StockService {
   }
 
   async adjustStock(dto: StockAdjustmentDto, userId: string) {
-    const { productId, branchId, type, quantityChange, reason, notes, batchNumber, serialNumber } = dto;
+    const {
+      productId,
+      warehouseId,
+      branchId: legacyBranchId,
+      type,
+      quantityChange,
+      reason,
+      notes,
+      batchNumber,
+      serialNumber,
+    } = dto;
 
-    // Validate product exists
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
     });
@@ -150,31 +163,48 @@ export class StockService {
       throw new NotFoundException('Product not found');
     }
 
-    // Validate branch exists
-    const branch = await this.prisma.branch.findUnique({
-      where: { id: branchId },
-    });
+    // warehouseId is authoritative. Legacy branchId resolves to the outlet's
+    // oldest active GOOD warehouse until all callers have migrated.
+    const warehouse = warehouseId
+      ? await this.prisma.warehouse.findUnique({ where: { id: warehouseId } })
+      : legacyBranchId
+        ? await this.prisma.warehouse.findFirst({
+            where: {
+              outletId: legacyBranchId,
+              type: 'GOOD',
+              scope: 'OUTLET',
+              isActive: true,
+            },
+            orderBy: { createdAt: 'asc' },
+          })
+        : null;
 
-    if (!branch) {
-      throw new NotFoundException('Branch not found');
+    if (!warehouse) {
+      throw new NotFoundException(
+        warehouseId ? 'Warehouse not found' : 'An active outlet warehouse is required',
+      );
     }
 
-    // Get current stock
+    if (!warehouse.isActive) {
+      throw new BadRequestException('Cannot adjust stock in an inactive warehouse');
+    }
+
+    const effectiveBranchId = warehouse.outletId;
     let stock = await this.prisma.productStock.findUnique({
       where: {
-        productId_branchId: {
+        productId_warehouseId: {
           productId,
-          branchId,
+          warehouseId: warehouse.id,
         },
       },
     });
 
-    // Create stock record if doesn't exist
     if (!stock) {
       stock = await this.prisma.productStock.create({
         data: {
           productId,
-          branchId,
+          warehouseId: warehouse.id,
+          branchId: effectiveBranchId,
           quantityAvailable: new Decimal(0),
           quantityReserved: new Decimal(0),
           quantityDamaged: new Decimal(0),
@@ -182,7 +212,6 @@ export class StockService {
       });
     }
 
-    // Determine quantity change based on type
     let actualQuantityChange = quantityChange;
     let movementType = 'ADJUSTMENT';
 
@@ -194,7 +223,6 @@ export class StockService {
       movementType = 'ADJUSTMENT';
     }
 
-    // Validate sufficient stock for OUT operations
     if (actualQuantityChange < 0) {
       const available = Number(stock.quantityAvailable);
       if (available + actualQuantityChange < 0) {
@@ -202,18 +230,15 @@ export class StockService {
       }
     }
 
-    // Calculate new quantities
     const quantityBefore = Number(stock.quantityAvailable);
     const quantityAfter = quantityBefore + actualQuantityChange;
 
-    // Start transaction
     return await this.prisma.$transaction(async (tx) => {
-      // Update stock
       const updatedStock = await tx.productStock.update({
         where: {
-          productId_branchId: {
+          productId_warehouseId: {
             productId,
-            branchId,
+            warehouseId: warehouse.id,
           },
         },
         data: {
@@ -225,11 +250,11 @@ export class StockService {
         },
       });
 
-      // Create stock movement
       await tx.stockMovement.create({
         data: {
           productId,
-          branchId,
+          warehouseId: warehouse.id,
+          branchId: effectiveBranchId,
           movementType,
           referenceType: 'ADJUSTMENT',
           quantityChange: new Decimal(actualQuantityChange),
@@ -272,6 +297,7 @@ export class StockService {
           },
         },
         branch: true,
+        warehouse: true,
       },
     });
 
@@ -296,7 +322,7 @@ export class StockService {
 
     // Group by branch
     const groupedByBranch = lowStockItems.reduce((acc, item) => {
-      const branchName = item.branch.name;
+      const branchName = item.branch?.name ?? item.warehouse.name;
       if (!acc[branchName]) {
         acc[branchName] = [];
       }
@@ -314,6 +340,7 @@ export class StockService {
   async getStockMovementHistory(query: ListMovementsDto) {
     const {
       productId,
+      warehouseId,
       branchId,
       movementType,
       referenceType,
@@ -330,7 +357,9 @@ export class StockService {
       where.productId = productId;
     }
 
-    if (branchId) {
+    if (warehouseId) {
+      where.warehouseId = warehouseId;
+    } else if (branchId) {
       where.branchId = branchId;
     }
 
@@ -363,6 +392,7 @@ export class StockService {
             },
           },
           branch: true,
+        warehouse: true,
         },
         orderBy: { createdAt: 'desc' },
         skip,

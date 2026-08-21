@@ -239,8 +239,29 @@ export class ServiceOrdersService {
         .toNumber();
     }
 
+    const serviceWarehouse = dto.warehouseId
+      ? await this.prisma.warehouse.findUnique({ where: { id: dto.warehouseId } })
+      : await this.prisma.warehouse.findFirst({
+          where: {
+            outletId: branchId,
+            type: 'GOOD',
+            scope: 'OUTLET',
+            isActive: true,
+          },
+          orderBy: { createdAt: 'asc' },
+        });
+
+    if (
+      !serviceWarehouse ||
+      !serviceWarehouse.isActive ||
+      serviceWarehouse.type !== 'GOOD' ||
+      serviceWarehouse.scope !== 'OUTLET' ||
+      serviceWarehouse.outletId !== branchId
+    ) {
+      throw new BadRequestException('An active GOOD warehouse is required for this service order outlet');
+    }
+
     return await this.prisma.$transaction(async (tx) => {
-      // Compute tax totals if final price provided (E-BE2)
       let taxAmount: Decimal | null = null;
       let totalPrice: Decimal | null = null;
       if (finalPriceValue !== undefined && finalPriceValue !== null) {
@@ -260,6 +281,7 @@ export class ServiceOrdersService {
           serviceNumber: this.generateServiceNumber(),
           internalNumber: this.generateInternalNumber(),
           branchId,
+          warehouseId: serviceWarehouse.id,
           customerId: finalCustomerId,
           serviceTypeId,
           serviceSubType,
@@ -289,7 +311,6 @@ export class ServiceOrdersService {
           customerNotes,
           assignedTechnicianId,
           // Smart Repair extension (E-BE2)
-          warehouseId: dto.warehouseId ?? null,
           taxPpn: dto.taxPpn ?? false,
           taxIncPpn: dto.taxIncPpn ?? false,
           taxPph22: dto.taxPph22 ?? false,
@@ -794,6 +815,28 @@ export class ServiceOrdersService {
       );
     }
 
+    const warehouse = serviceOrder.warehouseId
+      ? await this.prisma.warehouse.findUnique({ where: { id: serviceOrder.warehouseId } })
+      : await this.prisma.warehouse.findFirst({
+          where: {
+            outletId: serviceOrder.branchId,
+            type: 'GOOD',
+            scope: 'OUTLET',
+            isActive: true,
+          },
+          orderBy: { createdAt: 'asc' },
+        });
+
+    if (
+      !warehouse ||
+      !warehouse.isActive ||
+      warehouse.type !== 'GOOD' ||
+      warehouse.scope !== 'OUTLET' ||
+      warehouse.outletId !== serviceOrder.branchId
+    ) {
+      throw new BadRequestException('An active GOOD warehouse is required for this service order branch');
+    }
+
     return await this.prisma.$transaction(async (tx) => {
       let totalPartsCost = Number(serviceOrder.partsCost);
       let totalPartsPrice = 0;
@@ -812,9 +855,9 @@ export class ServiceOrdersService {
         // Check stock availability
         const stock = await tx.productStock.findUnique({
           where: {
-            productId_branchId: {
+            productId_warehouseId: {
               productId: part.productId,
-              branchId: serviceOrder.branchId,
+              warehouseId: warehouse.id,
             },
           },
         });
@@ -866,9 +909,9 @@ export class ServiceOrdersService {
 
           await tx.productStock.update({
             where: {
-              productId_branchId: {
+              productId_warehouseId: {
                 productId: part.productId,
-                branchId: serviceOrder.branchId,
+                warehouseId: warehouse.id,
               },
             },
             data: {
@@ -880,7 +923,7 @@ export class ServiceOrdersService {
           await tx.stockMovement.create({
             data: {
               productId: part.productId,
-              branchId: serviceOrder.branchId,
+              warehouseId: warehouse.id,
               movementType: 'OUT',
               referenceType: 'SERVICE',
               referenceId: null, // Foreign key constraint only for SalesTransaction, so set null for SERVICE
@@ -952,13 +995,35 @@ export class ServiceOrdersService {
       throw new BadRequestException('Part does not belong to this service order');
     }
 
+    const warehouse = serviceOrder.warehouseId
+      ? await this.prisma.warehouse.findUnique({ where: { id: serviceOrder.warehouseId } })
+      : await this.prisma.warehouse.findFirst({
+          where: {
+            outletId: serviceOrder.branchId,
+            type: 'GOOD',
+            scope: 'OUTLET',
+            isActive: true,
+          },
+          orderBy: { createdAt: 'asc' },
+        });
+
+    if (
+      !warehouse ||
+      !warehouse.isActive ||
+      warehouse.type !== 'GOOD' ||
+      warehouse.scope !== 'OUTLET' ||
+      warehouse.outletId !== serviceOrder.branchId
+    ) {
+      throw new BadRequestException('An active GOOD warehouse is required for this service order branch');
+    }
+
     return await this.prisma.$transaction(async (tx) => {
       // Get current stock
       const stock = await tx.productStock.findUnique({
         where: {
-          productId_branchId: {
+          productId_warehouseId: {
             productId: part.productId,
-            branchId: serviceOrder.branchId,
+            warehouseId: warehouse.id,
           },
         },
       });
@@ -973,9 +1038,9 @@ export class ServiceOrdersService {
 
       await tx.productStock.update({
         where: {
-          productId_branchId: {
+          productId_warehouseId: {
             productId: part.productId,
-            branchId: serviceOrder.branchId,
+            warehouseId: warehouse.id,
           },
         },
         data: {
@@ -987,7 +1052,7 @@ export class ServiceOrdersService {
       await tx.stockMovement.create({
         data: {
           productId: part.productId,
-          branchId: serviceOrder.branchId,
+          warehouseId: warehouse.id,
           movementType: 'IN',
           referenceType: 'SERVICE',
           referenceId: null,

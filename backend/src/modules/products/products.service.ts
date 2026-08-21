@@ -145,9 +145,10 @@ export class ProductsService {
       totalDamaged,
       totalStock: totalAvailable - totalReserved,
       branches: stocks.map((stock) => ({
+        warehouseId: stock.warehouseId,
         branchId: stock.branchId,
-        branchCode: stock.branch.code,
-        branchName: stock.branch.name,
+        branchCode: stock.branch?.code || 'SYSTEM',
+        branchName: stock.branch?.name || 'Central Bad Stock',
         available: stock.quantityAvailable.toNumber(),
         reserved: stock.quantityReserved.toNumber(),
         damaged: stock.quantityDamaged.toNumber(),
@@ -264,10 +265,21 @@ export class ProductsService {
       includeObj.productStocks = {
         select: {
           id: true,
+          warehouseId: true,
           branchId: true,
           quantityAvailable: true,
           quantityReserved: true,
           quantityDamaged: true,
+          warehouse: {
+            select: {
+              id: true,
+              code: true,
+              name: true,
+              type: true,
+              scope: true,
+              outletId: true,
+            },
+          },
           branch: {
             select: {
               id: true,
@@ -358,6 +370,16 @@ export class ProductsService {
         productStocks: includeStock
           ? {
               include: {
+                warehouse: {
+                  select: {
+                    id: true,
+                    code: true,
+                    name: true,
+                    type: true,
+                    scope: true,
+                    outletId: true,
+                  },
+                },
                 branch: {
                   select: {
                     id: true,
@@ -728,6 +750,16 @@ export class ProductsService {
         brand: true,
         productStocks: {
           include: {
+            warehouse: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+                type: true,
+                scope: true,
+                outletId: true,
+              },
+            },
             branch: {
               select: {
                 id: true,
@@ -1143,6 +1175,16 @@ export class ProductsService {
         },
         productStocks: {
           include: {
+            warehouse: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+                type: true,
+                scope: true,
+                outletId: true,
+              },
+            },
             branch: {
               select: {
                 id: true,
@@ -1236,7 +1278,7 @@ export class ProductsService {
       // Get stock per branch
       const branchStocks: Record<string, number> = {};
       product.productStocks.forEach((stock) => {
-        const branchName = stock.branch.name;
+        const branchName = stock.branch?.name || 'Central Bad Stock';
         branchStocks[branchName] = stock.quantityAvailable.toNumber() - stock.quantityReserved.toNumber();
       });
 

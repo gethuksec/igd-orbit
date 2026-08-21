@@ -364,6 +364,20 @@ export class GoodsReceiptsService {
       // Log warning but allow approval (business rule: variance < 2% acceptable, but can be approved with notes)
     }
 
+    const warehouse = await this.prisma.warehouse.findFirst({
+      where: {
+        outletId: gr.branchId,
+        type: 'GOOD',
+        scope: 'OUTLET',
+        isActive: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    if (!warehouse) {
+      throw new BadRequestException(`No active GOOD warehouse found for outlet ${gr.branchId}`);
+    }
+
     // Update stock and create movements
     return await this.prisma.$transaction(async (tx) => {
       // Update stock for each item
@@ -375,9 +389,9 @@ export class GoodsReceiptsService {
         // Get or create product stock
         let stock = await tx.productStock.findUnique({
           where: {
-            productId_branchId: {
+            productId_warehouseId: {
               productId: item.productId,
-              branchId: gr.branchId,
+              warehouseId: warehouse.id,
             },
           },
         });
@@ -386,6 +400,7 @@ export class GoodsReceiptsService {
           stock = await tx.productStock.create({
             data: {
               productId: item.productId,
+              warehouseId: warehouse.id,
               branchId: gr.branchId,
               quantityAvailable: new Decimal(0),
               quantityReserved: new Decimal(0),
@@ -400,9 +415,9 @@ export class GoodsReceiptsService {
         // Update stock
         await tx.productStock.update({
           where: {
-            productId_branchId: {
+            productId_warehouseId: {
               productId: item.productId,
-              branchId: gr.branchId,
+              warehouseId: warehouse.id,
             },
           },
           data: {
@@ -414,6 +429,7 @@ export class GoodsReceiptsService {
         await tx.stockMovement.create({
           data: {
             productId: item.productId,
+            warehouseId: warehouse.id,
             branchId: gr.branchId,
             movementType: 'IN',
             referenceType: 'PURCHASE',

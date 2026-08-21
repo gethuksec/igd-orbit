@@ -20,14 +20,29 @@ export class PosService {
       throw new BadRequestException('Transaction must have at least one item');
     }
 
-    // Resolve products (snapshot names + stock deduction)
+    // Resolve the outlet-owned GOOD warehouse. Legacy callers may still send
+    // only branchId; new callers should send warehouseId explicitly.
+    const warehouse = dto.warehouseId
+      ? await this.prisma.warehouse.findUnique({ where: { id: dto.warehouseId } })
+      : await this.prisma.warehouse.findFirst({
+          where: {
+            outletId: dto.branchId,
+            type: 'GOOD',
+            scope: 'OUTLET',
+            isActive: true,
+          },
+          orderBy: { createdAt: 'asc' },
+        });
+
+    if (!warehouse || !warehouse.isActive || warehouse.type !== 'GOOD' || warehouse.outletId !== dto.branchId) {
+      throw new BadRequestException('An active GOOD warehouse belonging to the sale outlet is required');
+    }
+
+    const stockWarehouseId = warehouse.id;
     const productIds = dto.items.map((i) => i.productId);
-    // T21-fix: stock is per-branch; deduct from the warehouse's branch when given,
-    // else the transaction branch (mirrors sales-transactions.service.ts branch filter)
-    const stockBranchId = dto.warehouseId ?? dto.branchId;
     const products = await this.prisma.product.findMany({
       where: { id: { in: productIds } },
-      include: { productStocks: { where: { branchId: stockBranchId } } },
+      include: { productStocks: { where: { warehouseId: stockWarehouseId } } },
     });
     const productMap = new Map(products.map((p) => [p.id, p]));
     for (const item of dto.items) {
@@ -71,7 +86,7 @@ export class PosService {
           cashierId: userId,
           paymentTermId: dto.paymentTermId || null,
           salesPersonId: dto.salesPersonId || null,
-          warehouseId: dto.warehouseId || null,
+          warehouseId: warehouse.id,
           salesTypeId: dto.salesTypeId || null,
           status,
           subtotal,
@@ -113,7 +128,7 @@ export class PosService {
         if (!stock) {
           // Parity with sales-transactions.service.ts: never sell without a stock row
           throw new BadRequestException(
-            `Product ${product.name} has no stock in branch ${stockBranchId}`,
+            `Product ${product.name} has no stock in warehouse ${stockWarehouseId}`,
           );
         }
 
@@ -130,7 +145,8 @@ export class PosService {
         await tx.stockMovement.create({
           data: {
             productId: item.productId,
-            branchId: stock.branchId, // actual row's branch, not dto.branchId
+            warehouseId: stock.warehouseId,
+            branchId: stock.branchId, // actual row's outlet, not dto.branchId
             movementType: 'OUT',
             referenceType: 'SALE',
             referenceId: transaction.id,

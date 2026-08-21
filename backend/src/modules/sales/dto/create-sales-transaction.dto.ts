@@ -30,6 +30,10 @@ export class CreateSalesTransactionDto {
   @IsUUID('4', { message: 'Branch ID must be a valid UUID' })
   branchId!: string;
 
+  @IsUUID('4', { message: 'Warehouse ID must be a valid UUID' })
+  @IsOptional()
+  warehouseId?: string;
+
   @IsArray({ message: 'Items must be an array' })
   @ValidateNested({ each: true })
   @Type(() => TransactionItemDto)
