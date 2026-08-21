@@ -255,7 +255,7 @@ export class StockInService {
           warehouse: true,
         },
       });
-    });
+    }).then((doc) => this.serialize(doc));
   }
 
   async findAll(query: {
