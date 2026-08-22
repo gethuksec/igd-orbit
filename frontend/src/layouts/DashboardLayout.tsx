@@ -254,7 +254,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           label: 'Customer',
           children: [
             { icon: Users, label: 'Pelanggan', path: '/customers', permission: 'master_data.customer.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CS'] },
-            { icon: Tag, label: 'Tipe Customer', path: '/sales-types', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
+            { icon: Tag, label: 'Tipe Customer', path: '/customer-types', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
             { icon: Award, label: 'Level', path: '/customer-tiers', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER'] },
             { icon: CreditCard, label: 'Termin', path: '/payment-terms', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
           ],

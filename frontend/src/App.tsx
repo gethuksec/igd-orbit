@@ -87,9 +87,9 @@ import ExpeditionDetail from './pages/expeditions/ExpeditionDetail';
 import PaymentTermList from './pages/payment-terms/PaymentTermList';
 import PaymentTermForm from './pages/payment-terms/PaymentTermForm';
 import PaymentTermDetail from './pages/payment-terms/PaymentTermDetail';
-import SalesTypeList from './pages/sales-types/SalesTypeList';
-import SalesTypeForm from './pages/sales-types/SalesTypeForm';
-import SalesTypeDetail from './pages/sales-types/SalesTypeDetail';
+import CustomerTypeList from './pages/customer-types/CustomerTypeList';
+import CustomerTypeForm from './pages/customer-types/CustomerTypeForm';
+import CustomerTypeDetail from './pages/customer-types/CustomerTypeDetail';
 // Master Data - Service Types
 import CustomerTierList from "./pages/master-data/customer-tiers/CustomerTierList";
 import ServiceTypeList from './pages/service-types/ServiceTypeList';
@@ -504,10 +504,10 @@ function App() {
             <Route path="/expeditions/:id/edit" element={<ProtectedRoute><DashboardLayout><ExpeditionForm /></DashboardLayout></ProtectedRoute>} />
 
             {/* Master Data - Sales Types */}
-            <Route path="/sales-types" element={<ProtectedRoute><DashboardLayout><SalesTypeList /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/sales-types/new" element={<ProtectedRoute><DashboardLayout><SalesTypeForm /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/sales-types/:id" element={<ProtectedRoute><DashboardLayout><SalesTypeDetail /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/sales-types/:id/edit" element={<ProtectedRoute><DashboardLayout><SalesTypeForm /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/customer-types" element={<ProtectedRoute><DashboardLayout><CustomerTypeList /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/customer-types/new" element={<ProtectedRoute><DashboardLayout><CustomerTypeForm /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/customer-types/:id" element={<ProtectedRoute><DashboardLayout><CustomerTypeDetail /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/customer-types/:id/edit" element={<ProtectedRoute><DashboardLayout><CustomerTypeForm /></DashboardLayout></ProtectedRoute>} />
 
             {/* Master Data - Payment Terms */}
             <Route path="/payment-terms" element={<ProtectedRoute><DashboardLayout><PaymentTermList /></DashboardLayout></ProtectedRoute>} />

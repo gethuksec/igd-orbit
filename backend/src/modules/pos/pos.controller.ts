@@ -64,9 +64,9 @@ export class PosController {
     return this.posService.listPaymentTerms();
   }
 
-  @Get('sales-types')
-  async listSalesTypes() {
-    return this.posService.listSalesTypes();
+  @Get('customer-types')
+  async listCustomerTypes() {
+    return this.posService.listCustomerTypes();
   }
 
   @Get('branches')

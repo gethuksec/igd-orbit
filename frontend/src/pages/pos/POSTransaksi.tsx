@@ -43,7 +43,7 @@ interface FormData {
   termin: string;
   tanggalJatuhTempo: string;
   sales: string;
-  tipePenjualan: string;
+  tipeCustomer: string;
   gudang: string;
   tanggalFaktur: string;
   pelanggan: string;
@@ -91,7 +91,7 @@ export default function POSTransaksi() {
     termin: 'Tunai',
     tanggalJatuhTempo: '',
     sales: '',
-    tipePenjualan: '',
+    tipeCustomer: '',
     gudang: '',
     tanggalFaktur: today,
     pelanggan: '',
@@ -296,7 +296,7 @@ export default function POSTransaksi() {
         discountAmount: r.discount || 0,
       }));
     const termId = paymentTerms.find((pt: any) => pt.name === form.termin)?.id || undefined;
-    const typeId = salesTypes.find((st: any) => st.name === form.tipePenjualan)?.id || undefined;
+    const typeId = customerTypes.find((st: any) => st.name === form.tipeCustomer)?.id || undefined;
     const total = items.reduce((s, i) => s + i.quantity * i.unitPrice - i.discountAmount, 0);
     const payload: any = {
       branchId: form.outletPenjual,
@@ -304,7 +304,7 @@ export default function POSTransaksi() {
       paymentTermId: termId,
       salesPersonId: form.sales || undefined,
       warehouseId: form.gudang || undefined,
-      salesTypeId: typeId,
+      customerTypeId: typeId,
       taxPercentage: 0, // T21: tax disabled by decision — charge what's shown
       items,
       internalNotes: form.keterangan || undefined,
@@ -321,7 +321,7 @@ export default function POSTransaksi() {
   const saveTransaction = async (status: 'completed' | 'held') => {
     if (!form.outletPenjual) { toast.error('Outlet Penjual wajib diisi'); return; }
     if (!form.sales) { toast.error('Sales wajib diisi'); return; }
-    if (!form.tipePenjualan) { toast.error('Tipe Customer wajib diisi'); return; }
+    if (!form.tipeCustomer) { toast.error('Tipe Customer wajib diisi'); return; }
     if (!form.pelangganId) { toast.error('Pelanggan wajib diisi'); return; }
     const items = rows.filter((r) => r.productId);
     if (items.length === 0) { toast.error('Minimal satu barang wajib diisi'); return; }
@@ -350,7 +350,7 @@ export default function POSTransaksi() {
       setForm((prev) => ({
         ...prev,
         pelanggan: '', pelangganId: '', keterangan: '', keteranganStruk: '', termin: 'Tunai',
-        sales: '', tipePenjualan: '', gudang: '', tanggalJatuhTempo: '',
+        sales: '', tipeCustomer: '', gudang: '', tanggalJatuhTempo: '',
       }));
       setCustomerSearch('');
       setQuickSearch('');
@@ -404,11 +404,11 @@ export default function POSTransaksi() {
     },
   });
 
-  const { data: salesTypes = [] } = useQuery({
-    queryKey: ['pos-sales-types'],
+  const { data: customerTypes = [] } = useQuery({
+    queryKey: ['pos-customer-types'],
     queryFn: async () => {
       const token = localStorage.getItem('access_token');
-      const res = await fetch('/api/v1/pos/sales-types', {
+      const res = await fetch('/api/v1/pos/customer-types', {
         headers: { Authorization: 'Bearer ' + token }
       });
       if (!res.ok) return [];
@@ -603,12 +603,12 @@ export default function POSTransaksi() {
                   <span className="text-red-500">*</span> Tipe Customer
                 </Label>
                 <select
-                  value={form.tipePenjualan}
-                  onChange={(e) => setForm((prev) => ({ ...prev, tipePenjualan: e.target.value }))}
+                  value={form.tipeCustomer}
+                  onChange={(e) => setForm((prev) => ({ ...prev, tipeCustomer: e.target.value }))}
                   className="w-full h-9 border border-gray-300 rounded-md px-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary bg-white"
                 >
                   <option value="">Please select</option>
-                  {salesTypes.map((st: any) => (
+                  {customerTypes.map((st: any) => (
                     <option key={st.id} value={st.name}>{st.name}</option>
                   ))}
                 </select>

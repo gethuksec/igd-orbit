@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {Plus, Eye, Edit, Trash2, Save, Loader2, Tag, AlertTriangle} from "lucide-react";
-import { salesTypesService } from "../../services/sales-types.service";
+import { customerTypesService } from "../../services/customer-types.service";
 import { api } from "../../services/api";
 import { BreadcrumbHeader } from "@/components/shared";
 import { StatCard } from "@/components/shared";
@@ -15,7 +15,7 @@ import { toast } from "sonner";
 
 type StatusFilter = "all" | "active" | "inactive";
 
-export default function SalesTypeList() {
+export default function CustomerTypeList() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
@@ -25,15 +25,15 @@ export default function SalesTypeList() {
 
   // Modal state
   const [formModalOpen, setFormModalOpen] = useState(false);
-  const [editingSalesType, setEditingSalesType] = useState<any>(null);
+  const [editingCustomerType, setEditingCustomerType] = useState<any>(null);
   const [formData, setFormData] = useState({ name: "", isActive: true });
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [salesTypeToDelete, setSalesTypeToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [customerTypeToDelete, setCustomerTypeToDelete] = useState<{ id: string; name: string } | null>(null);
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["sales-types", page, searchTerm, statusFilter],
+    queryKey: ["customer-types", page, searchTerm, statusFilter],
     queryFn: () =>
-      salesTypesService.getAll({
+      customerTypesService.getAll({
         page,
         limit,
         search: searchTerm || undefined,
@@ -53,7 +53,7 @@ export default function SalesTypeList() {
     setPage(1);
   }, [statusFilter]);
 
-  const salesTypes = data?.data || [];
+  const customerTypes = data?.data || [];
   const pagination = data?.meta || {
     page: 1,
     limit: 20,
@@ -64,16 +64,16 @@ export default function SalesTypeList() {
   const saveMutation = useMutation({
     mutationFn: (data: any) => {
       const submitData = { ...data };
-      if (editingSalesType) {
-        return api.put(`/sales-types/${editingSalesType.id}`, submitData);
+      if (editingCustomerType) {
+        return api.put(`/customer-types/${editingCustomerType.id}`, submitData);
       }
-      return api.post("/sales-types", submitData);
+      return api.post("/customer-types", submitData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sales-types"] });
-      toast.success(editingSalesType ? "Tipe Customer berhasil diupdate" : "Tipe Customer berhasil ditambahkan");
+      queryClient.invalidateQueries({ queryKey: ["customer-types"] });
+      toast.success(editingCustomerType ? "Tipe Customer berhasil diupdate" : "Tipe Customer berhasil ditambahkan");
       setFormModalOpen(false);
-      setEditingSalesType(null);
+      setEditingCustomerType(null);
       setFormData({ name: "", isActive: true });
     },
     onError: (error: any) => {
@@ -82,13 +82,13 @@ export default function SalesTypeList() {
   });
 
   const openCreateModal= () => {
-    setEditingSalesType(null);
+    setEditingCustomerType(null);
     setFormData({ name: "", isActive: true });
     setFormModalOpen(true);
   };
 
   const openEditModal = (type: any) => {
-    setEditingSalesType(type);
+    setEditingCustomerType(type);
     setFormData({ name: type.name || "", isActive: type.isActive ?? true });
     setFormModalOpen(true);
   };
@@ -99,16 +99,16 @@ export default function SalesTypeList() {
   };
 
 
-  const activeCount = salesTypes.filter((t: any) => t.isActive).length;
+  const activeCount = customerTypes.filter((t: any) => t.isActive).length;
 
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/sales-types/${id}`),
+    mutationFn: (id: string) => api.delete(`/customer-types/${id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sales-types'] });
+      queryClient.invalidateQueries({ queryKey: ['customer-types'] });
       toast.success('Tipe Customer berhasil dihapus');
       setDeleteModalOpen(false);
-      setSalesTypeToDelete(null);
+      setCustomerTypeToDelete(null);
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Gagal menghapus tipe customer');
@@ -189,7 +189,7 @@ export default function SalesTypeList() {
           icon={<Tag className="w-6 h-6 text-white" />}
           iconBg="from-blue-500 to-blue-600"
           label="Total Terisi"
-          value={isLoading ? "-" : salesTypes.length}
+          value={isLoading ? "-" : customerTypes.length}
           subtitle="Tipe pada halaman ini"
         />
         <StatCard
@@ -229,7 +229,7 @@ export default function SalesTypeList() {
 
       <DataTable
         columns={columns}
-        data={salesTypes}
+        data={customerTypes}
         keyExtractor={(t: any) => t.id}
         isLoading={isLoading}
         emptyMessage="Tidak ada tipe customer ditemukan"
@@ -239,7 +239,7 @@ export default function SalesTypeList() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate(`/sales-types/${type.id}`)}
+              onClick={() => navigate(`/customer-types/${type.id}`)}
               title="Lihat Detail"
             >
               <Eye className="w-4 h-4" />
@@ -258,7 +258,7 @@ export default function SalesTypeList() {
               className="text-red-600 hover:bg-red-50"
               title="Hapus"
               onClick={() => {
-                setSalesTypeToDelete({ id: type.id, name: type.name });
+                setCustomerTypeToDelete({ id: type.id, name: type.name });
                 setDeleteModalOpen(true);
               }}
             >
@@ -268,13 +268,13 @@ export default function SalesTypeList() {
         )}
       />
 
-      {!isLoading && salesTypes.length > 0 && (
+      {!isLoading && customerTypes.length > 0 && (
         <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 rounded-lg border border-gray-200">
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
               Menampilkan{" "}
               <span className="font-bold text-foreground">
-                {salesTypes.length}
+                {customerTypes.length}
               </span>{" "}
               dari{" "}
               <span className="font-bold text-foreground">
@@ -313,14 +313,14 @@ export default function SalesTypeList() {
         onOpenChange={(open) => {
           if (!open) {
             setFormModalOpen(false);
-            setEditingSalesType(null);
+            setEditingCustomerType(null);
             setFormData({ name: "", isActive: true });
           }
         }}
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingSalesType ? "Edit Tipe Customer" : "Tambah Tipe Customer"}</DialogTitle>
+            <DialogTitle>{editingCustomerType ? "Edit Tipe Customer" : "Tambah Tipe Customer"}</DialogTitle>
           </DialogHeader>
         <form onSubmit={handleFormSubmit} className="space-y-4">
           <div>
@@ -356,7 +356,7 @@ export default function SalesTypeList() {
               type="button"
               onClick={() => {
                 setFormModalOpen(false);
-                setEditingSalesType(null);
+                setEditingCustomerType(null);
                 setFormData({ name: "", isActive: true });
               }}
               className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
@@ -389,7 +389,7 @@ export default function SalesTypeList() {
       <Dialog
         open={deleteModalOpen}
         onOpenChange={(open) => {
-          if (!open) { setDeleteModalOpen(false); setSalesTypeToDelete(null); }
+          if (!open) { setDeleteModalOpen(false); setCustomerTypeToDelete(null); }
         }}
       >
         <DialogContent className="sm:max-w-md">
@@ -403,7 +403,7 @@ export default function SalesTypeList() {
               </div>
               <div className="flex-1">
                 <p className="text-sm text-gray-700 mb-2">
-                  Apakah Anda yakin ingin menghapus tipe customer <strong>{salesTypeToDelete?.name}</strong>?
+                  Apakah Anda yakin ingin menghapus tipe customer <strong>{customerTypeToDelete?.name}</strong>?
                 </p>
                 <p className="text-xs text-gray-500">
                   Tindakan ini akan melakukan soft delete. Data tidak akan muncul di daftar, tetapi masih tersimpan di database.
@@ -412,12 +412,12 @@ export default function SalesTypeList() {
             </div>
             <div className="flex gap-3 pt-2">
               <button
-                onClick={() => { setDeleteModalOpen(false); setSalesTypeToDelete(null); }}
+                onClick={() => { setDeleteModalOpen(false); setCustomerTypeToDelete(null); }}
                 disabled={deleteMutation.isPending}
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
               >Batal</button>
               <button
-                onClick={() => { if (salesTypeToDelete) deleteMutation.mutate(salesTypeToDelete.id); }}
+                onClick={() => { if (customerTypeToDelete) deleteMutation.mutate(customerTypeToDelete.id); }}
                 disabled={deleteMutation.isPending}
                 className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >

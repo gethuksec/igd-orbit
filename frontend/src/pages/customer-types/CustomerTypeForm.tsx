@@ -6,7 +6,7 @@ import { api } from '../../services/api';
 import { toast } from 'sonner';
 import { BreadcrumbHeader } from '@/components/shared';
 
-export default function SalesTypeForm() {
+export default function CustomerTypeForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -17,37 +17,37 @@ export default function SalesTypeForm() {
     isActive: true,
   });
 
-  const { data: salesType, isLoading: loadingSalesType } = useQuery({
-    queryKey: ["sales-type", id],
+  const { data: customerType, isLoading: loadingCustomerType } = useQuery({
+    queryKey: ["customer-type", id],
     queryFn: async () => {
-      const res = await api.get(`/sales-types/${id}`);
+      const res = await api.get(`/customer-types/${id}`);
       return res.data.data || res.data;
     },
     enabled: !!id,
   });
 
   useEffect(() => {
-    if (salesType) {
+    if (customerType) {
       setFormData({
-        name: salesType.name || "",
-        isActive: salesType.isActive !== false,
+        name: customerType.name || "",
+        isActive: customerType.isActive !== false,
       });
     }
-  }, [salesType]);
+  }, [customerType]);
 
   const mutation = useMutation({
     mutationFn: (data: any) => {
       const submitData = { ...data };
       delete submitData.code;
       if (isEdit) {
-        return api.put(`/sales-types/${id}`, submitData);
+        return api.put(`/customer-types/${id}`, submitData);
       }
-      return api.post("/sales-types", submitData);
+      return api.post("/customer-types", submitData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sales-types"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-types"] });
       toast.success(isEdit ? "Tipe customer berhasil diupdate" : "Tipe customer berhasil ditambahkan");
-      navigate("/sales-types");
+      navigate("/customer-types");
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || "Terjadi kesalahan");
@@ -59,7 +59,7 @@ export default function SalesTypeForm() {
     mutation.mutate(formData);
   };
 
-  if (loadingSalesType) {
+  if (loadingCustomerType) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
@@ -100,14 +100,14 @@ export default function SalesTypeForm() {
                 placeholder="Nama tipe customer"
               />
             </div>
-            {isEdit && salesType?.code && (
+            {isEdit && customerType?.code && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Kode Tipe Customer
                 </label>
                 <input
                   type="text"
-                  value={salesType.code}
+                  value={customerType.code}
                   disabled
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
                   placeholder="Kode tipe customer (auto-generated)"
@@ -135,7 +135,7 @@ export default function SalesTypeForm() {
         <div className="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-end gap-3">
           <button
             type="button"
-            onClick={() => navigate("/sales-types")}
+            onClick={() => navigate("/customer-types")}
             className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
             Batal

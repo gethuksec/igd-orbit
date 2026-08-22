@@ -8,7 +8,7 @@ import {
  * Create Sales Type DTO
  * Validates sales type creation request payload
  */
-export class CreateSalesTypeDto {
+export class CreateCustomerTypeDto {
   @IsString({ message: 'Code must be a string' })
   @IsOptional()
   code?: string; // Auto-generate if not provided

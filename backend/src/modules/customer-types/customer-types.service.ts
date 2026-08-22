@@ -5,7 +5,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services';
-import { CreateSalesTypeDto, UpdateSalesTypeDto, ListSalesTypesDto } from './dto';
+import { CreateCustomerTypeDto, UpdateCustomerTypeDto, ListCustomerTypesDto } from './dto';
 import { Prisma } from '@prisma/client';
 import { randomBytes } from 'crypto';
 
@@ -14,7 +14,7 @@ import { randomBytes } from 'crypto';
  * Handles sales type management operations
  */
 @Injectable()
-export class SalesTypesService {
+export class CustomerTypesService {
   constructor(private prisma: PrismaService) {}
 
   /**
@@ -32,7 +32,7 @@ export class SalesTypesService {
       const random = randomBytes(4).toString('hex').toUpperCase();
       code = `SLT-${random}`;
 
-      const existing = await this.prisma.salesType.findUnique({
+      const existing = await this.prisma.customerType.findUnique({
         where: { code },
       });
 
@@ -55,7 +55,7 @@ export class SalesTypesService {
    * @param query - Query parameters
    * @returns Paginated list of sales types
    */
-  async findAll(query: ListSalesTypesDto) {
+  async findAll(query: ListCustomerTypesDto) {
     const { page = 1, limit = 20, search, includeInactive, status } = query;
     
     // Ensure page and limit are numbers (fallback if transform didn't work)
@@ -63,7 +63,7 @@ export class SalesTypesService {
     const limitNum = typeof limit === 'string' ? parseInt(limit, 10) : limit || 20;
 
     const skip = (pageNum - 1) * limitNum;
-    const where: Prisma.SalesTypeWhereInput = {};
+    const where: Prisma.CustomerTypeWhereInput = {};
 
     // Apply status filter
     if (status === 'active') {
@@ -86,13 +86,13 @@ export class SalesTypesService {
     }
 
     const [data, total] = await Promise.all([
-      this.prisma.salesType.findMany({
+      this.prisma.customerType.findMany({
         where,
         skip,
         take: limitNum,
         orderBy: { name: 'asc' },
       }),
-      this.prisma.salesType.count({ where }),
+      this.prisma.customerType.count({ where }),
     ]);
 
     return {
@@ -112,30 +112,30 @@ export class SalesTypesService {
    * @returns Sales type detail
    */
   async findById(id: string) {
-    const salesType = await this.prisma.salesType.findUnique({
+    const customerType = await this.prisma.customerType.findUnique({
       where: { id },
     });
 
-    if (!salesType) {
+    if (!customerType) {
       throw new NotFoundException('Sales type not found');
     }
 
-    return salesType;
+    return customerType;
   }
 
   /**
    * Create new sales type
-   * @param createSalesTypeDto - Sales type creation data
+   * @param createCustomerTypeDto - Sales type creation data
    * @returns Created sales type
    */
-  async create(createSalesTypeDto: CreateSalesTypeDto) {
+  async create(createCustomerTypeDto: CreateCustomerTypeDto) {
     // Generate code if not provided
-    let code = createSalesTypeDto.code;
+    let code = createCustomerTypeDto.code;
     if (!code) {
       code = await this.generateCode();
     } else {
       // Check code uniqueness
-      const existing = await this.prisma.salesType.findUnique({
+      const existing = await this.prisma.customerType.findUnique({
         where: { code },
       });
       if (existing) {
@@ -144,9 +144,9 @@ export class SalesTypesService {
     }
 
     // Check name uniqueness
-    const existingName = await this.prisma.salesType.findFirst({
+    const existingName = await this.prisma.customerType.findFirst({
       where: {
-        name: createSalesTypeDto.name,
+        name: createCustomerTypeDto.name,
         isActive: true,
       },
     });
@@ -156,37 +156,37 @@ export class SalesTypesService {
     }
 
     // Create sales type
-    const salesType = await this.prisma.salesType.create({
+    const customerType = await this.prisma.customerType.create({
       data: {
         code,
-        name: createSalesTypeDto.name,
+        name: createCustomerTypeDto.name,
         isActive: true,
       },
     });
 
-    return salesType;
+    return customerType;
   }
 
   /**
    * Update sales type
    * @param id - Sales Type ID
-   * @param updateSalesTypeDto - Sales type update data
+   * @param updateCustomerTypeDto - Sales type update data
    * @returns Updated sales type
    */
-  async update(id: string, updateSalesTypeDto: UpdateSalesTypeDto) {
-    const salesType = await this.prisma.salesType.findUnique({
+  async update(id: string, updateCustomerTypeDto: UpdateCustomerTypeDto) {
+    const customerType = await this.prisma.customerType.findUnique({
       where: { id },
     });
 
-    if (!salesType) {
+    if (!customerType) {
       throw new NotFoundException('Sales type not found');
     }
 
     // Check name uniqueness if updating
-    if (updateSalesTypeDto.name && updateSalesTypeDto.name !== salesType.name) {
-      const existingName = await this.prisma.salesType.findFirst({
+    if (updateCustomerTypeDto.name && updateCustomerTypeDto.name !== customerType.name) {
+      const existingName = await this.prisma.customerType.findFirst({
         where: {
-          name: updateSalesTypeDto.name,
+          name: updateCustomerTypeDto.name,
           isActive: true,
           id: { not: id },
         },
@@ -198,9 +198,9 @@ export class SalesTypesService {
     }
 
     // Check code uniqueness if updating
-    if (updateSalesTypeDto.code && updateSalesTypeDto.code !== salesType.code) {
-      const existing = await this.prisma.salesType.findUnique({
-        where: { code: updateSalesTypeDto.code },
+    if (updateCustomerTypeDto.code && updateCustomerTypeDto.code !== customerType.code) {
+      const existing = await this.prisma.customerType.findUnique({
+        where: { code: updateCustomerTypeDto.code },
       });
       if (existing) {
         throw new ConflictException('Sales type code already exists');
@@ -210,23 +210,23 @@ export class SalesTypesService {
     // Prepare update data
     const updateData: any = {};
 
-    if (updateSalesTypeDto.name !== undefined) {
-      updateData.name = updateSalesTypeDto.name;
+    if (updateCustomerTypeDto.name !== undefined) {
+      updateData.name = updateCustomerTypeDto.name;
     }
-    if (updateSalesTypeDto.code !== undefined) {
-      updateData.code = updateSalesTypeDto.code;
+    if (updateCustomerTypeDto.code !== undefined) {
+      updateData.code = updateCustomerTypeDto.code;
     }
-    if (updateSalesTypeDto.isActive !== undefined) {
-      updateData.isActive = updateSalesTypeDto.isActive;
+    if (updateCustomerTypeDto.isActive !== undefined) {
+      updateData.isActive = updateCustomerTypeDto.isActive;
     }
 
     // Update sales type
-    const updatedSalesType = await this.prisma.salesType.update({
+    const updatedCustomerType = await this.prisma.customerType.update({
       where: { id },
       data: updateData,
     });
 
-    return updatedSalesType;
+    return updatedCustomerType;
   }
 
   /**
@@ -234,16 +234,16 @@ export class SalesTypesService {
    * @param id - Sales Type ID
    */
   async delete(id: string): Promise<void> {
-    const salesType = await this.prisma.salesType.findUnique({
+    const customerType = await this.prisma.customerType.findUnique({
       where: { id },
     });
 
-    if (!salesType) {
+    if (!customerType) {
       throw new NotFoundException('Sales type not found');
     }
 
     // Soft delete (set isActive to false)
-    await this.prisma.salesType.update({
+    await this.prisma.customerType.update({
       where: { id },
       data: {
         isActive: false,

@@ -31,7 +31,7 @@ const routeToModulePermission: Record<string, string> = {
   '/sizes': 'master_data.*.view',
   '/expeditions': 'master_data.*.view',
   '/warehouses': 'master_data.*.view',
-  '/sales-types': 'master_data.*.view',
+  '/customer-types': 'master_data.*.view',
   '/service-types': 'master_data.*.view',
   '/sales': 'sales.*.view',
   '/pos': 'sales.*.view',

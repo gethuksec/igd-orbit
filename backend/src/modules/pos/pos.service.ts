@@ -87,7 +87,7 @@ export class PosService {
           paymentTermId: dto.paymentTermId || null,
           salesPersonId: dto.salesPersonId || null,
           warehouseId: warehouse.id,
-          salesTypeId: dto.salesTypeId || null,
+          customerTypeId: dto.customerTypeId || null,
           status,
           subtotal,
           discountAmount: discountValue,
@@ -276,8 +276,8 @@ export class PosService {
     });
   }
 
-  async listSalesTypes() {
-    return this.prisma.salesType.findMany({
+  async listCustomerTypes() {
+    return this.prisma.customerType.findMany({
       where: { isActive: true },
       select: { id: true, name: true, code: true },
       orderBy: { name: 'asc' },
