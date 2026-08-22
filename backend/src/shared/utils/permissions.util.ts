@@ -175,7 +175,6 @@ export const PERMISSION_CATALOG: string[] = [
   'master_data.service_type.edit',
   'master_data.service_type.delete',
   // Sidebar restructure (2026-08-22): new placeholder modules
-  'master_data.customer_type.view',
   'master_data.branch.view',
   'master_data.warehouse.view',
   'master_data.*.view',

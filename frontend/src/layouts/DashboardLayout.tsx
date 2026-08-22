@@ -254,7 +254,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           label: 'Customer',
           children: [
             { icon: Users, label: 'Pelanggan', path: '/customers', permission: 'master_data.customer.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CS'] },
-            { icon: Tag, label: 'Tipe Customer', path: '/master-data/customer-types', permission: 'master_data.customer_type.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
+            { icon: Tag, label: 'Tipe Penjualan', path: '/sales-types', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
             { icon: Award, label: 'Level', path: '/customer-tiers', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER'] },
             { icon: CreditCard, label: 'Termin', path: '/payment-terms', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
           ],
@@ -313,7 +313,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         { icon: ShoppingCart, label: 'POS', path: '/pos', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CS', 'CR', 'HS', 'SPV'] },
         { icon: Receipt, label: 'Riwayat Penjualan', path: '/sales/history', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CS', 'CR', 'HS', 'SPV'] },
         { icon: ArrowRightLeft, label: 'Retur Penjualan', path: '/sales/returns', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'HS', 'SPV'] },
-        { icon: Tag, label: 'Tipe Penjualan', path: '/sales-types', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
       ],
     },
     {
