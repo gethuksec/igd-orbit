@@ -34,7 +34,7 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
         label: 'Customer',
         children: [
           { label: 'Pelanggan', key: 'master_data.customer.view' },
-          { label: 'Tipe Penjualan', key: 'master_data.attribute.view' },
+          { label: 'Tipe Customer', key: 'master_data.attribute.view' },
           { label: 'Level', key: 'master_data.attribute.view' },
           { label: 'Termin', key: 'master_data.attribute.view' },
         ],

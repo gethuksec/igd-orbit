@@ -46,7 +46,7 @@ export default function SalesTypeForm() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sales-types"] });
-      toast.success(isEdit ? "Tipe penjualan berhasil diupdate" : "Tipe penjualan berhasil ditambahkan");
+      toast.success(isEdit ? "Tipe customer berhasil diupdate" : "Tipe customer berhasil ditambahkan");
       navigate("/sales-types");
     },
     onError: (error: any) => {
@@ -71,8 +71,8 @@ export default function SalesTypeForm() {
     <div className="w-full space-y-3">
       {/* Page Header */}
       <BreadcrumbHeader
-        title={isEdit ? 'Edit Tipe Penjualan' : 'Tambah Tipe Penjualan'}
-        subtitle={isEdit ? 'Ubah informasi tipe penjualan' : 'Tambahkan tipe penjualan baru'}
+        title={isEdit ? 'Edit Tipe Customer' : 'Tambah Tipe Customer'}
+        subtitle={isEdit ? 'Ubah informasi tipe customer' : 'Tambahkan tipe customer baru'}
       >
 
       </BreadcrumbHeader>
@@ -84,12 +84,12 @@ export default function SalesTypeForm() {
             <div className="p-2 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg">
               <Tag className="w-5 h-5 text-white" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900">Informasi Tipe Penjualan</h2>
+            <h2 className="text-xl font-bold text-gray-900">Informasi Tipe Customer</h2>
           </div>
           <div className="space-y-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nama Tipe Penjualan <span className="text-red-500">*</span>
+                Nama Tipe Customer <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -97,22 +97,22 @@ export default function SalesTypeForm() {
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                placeholder="Nama tipe penjualan"
+                placeholder="Nama tipe customer"
               />
             </div>
             {isEdit && salesType?.code && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Kode Tipe Penjualan
+                  Kode Tipe Customer
                 </label>
                 <input
                   type="text"
                   value={salesType.code}
                   disabled
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
-                  placeholder="Kode tipe penjualan (auto-generated)"
+                  placeholder="Kode tipe customer (auto-generated)"
                 />
-                <p className="text-xs text-gray-500 mt-1">Kode tipe penjualan dibuat otomatis dan tidak dapat diubah</p>
+                <p className="text-xs text-gray-500 mt-1">Kode tipe customer dibuat otomatis dan tidak dapat diubah</p>
               </div>
             )}
             <div>

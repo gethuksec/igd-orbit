@@ -321,7 +321,7 @@ export default function POSTransaksi() {
   const saveTransaction = async (status: 'completed' | 'held') => {
     if (!form.outletPenjual) { toast.error('Outlet Penjual wajib diisi'); return; }
     if (!form.sales) { toast.error('Sales wajib diisi'); return; }
-    if (!form.tipePenjualan) { toast.error('Tipe Penjualan wajib diisi'); return; }
+    if (!form.tipePenjualan) { toast.error('Tipe Customer wajib diisi'); return; }
     if (!form.pelangganId) { toast.error('Pelanggan wajib diisi'); return; }
     const items = rows.filter((r) => r.productId);
     if (items.length === 0) { toast.error('Minimal satu barang wajib diisi'); return; }
@@ -597,10 +597,10 @@ export default function POSTransaksi() {
                 </div>
               </div>
 
-              {/* Tipe Penjualan */}
+              {/* Tipe Customer */}
               <div>
                 <Label className="text-xs font-medium text-gray-700 mb-1 block">
-                  <span className="text-red-500">*</span> Tipe Penjualan
+                  <span className="text-red-500">*</span> Tipe Customer
                 </Label>
                 <select
                   value={form.tipePenjualan}
