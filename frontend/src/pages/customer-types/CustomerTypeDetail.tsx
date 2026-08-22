@@ -5,14 +5,14 @@ import { BreadcrumbHeader } from "@/components/shared";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { api } from "../../services/api";
 
-export default function SalesTypeDetail() {
+export default function CustomerTypeDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const { data: salesType, isLoading } = useQuery({
-    queryKey: ["sales-type", id],
+  const { data: customerType, isLoading } = useQuery({
+    queryKey: ["customer-type", id],
     queryFn: async () => {
-      const res = await api.get(`/sales-types/${id}`);
+      const res = await api.get(`/customer-types/${id}`);
       return res.data.data || res.data;
     },
   });
@@ -25,12 +25,12 @@ export default function SalesTypeDetail() {
     );
   }
 
-  if (!salesType) {
+  if (!customerType) {
     return (
       <div className="text-center py-12">
         <p className="text-gray-500">Tipe customer tidak ditemukan</p>
         <button
-          onClick={() => navigate("/sales-types")}
+          onClick={() => navigate("/customer-types")}
           className="mt-4 text-primary-600 hover:text-primary-700"
         >
           Kembali ke daftar tipe customer
@@ -44,15 +44,15 @@ export default function SalesTypeDetail() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <button
-          onClick={() => navigate("/sales-types")}
+          onClick={() => navigate("/customer-types")}
           className="flex-shrink-0 p-2 bg-gradient-to-r from-primary-600 to-primary-500 text-white rounded-lg shadow-lg hover:from-primary-500 hover:to-primary-400 transition-all"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex-1">
-          <BreadcrumbHeader title={salesType.name} subtitle="Detail Tipe Customer">
+          <BreadcrumbHeader title={customerType.name} subtitle="Detail Tipe Customer">
             <Link
-              to={`/sales-types/${id}/edit`}
+              to={`/customer-types/${id}/edit`}
               className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all"
             >
               <Edit className="w-4 h-4" />
@@ -73,13 +73,13 @@ export default function SalesTypeDetail() {
             <CardContent className="space-y-4">
               <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
                 <p className="text-xs text-gray-500 mb-1">Nama Tipe Customer</p>
-                <p className="text-sm font-semibold text-gray-900">{salesType.name}</p>
+                <p className="text-sm font-semibold text-gray-900">{customerType.name}</p>
               </div>
 
-              {salesType.code && (
+              {customerType.code && (
                 <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
                   <p className="text-xs text-gray-500 mb-1">Kode Tipe Customer</p>
-                  <p className="text-sm font-semibold text-gray-900 font-mono">{salesType.code}</p>
+                  <p className="text-sm font-semibold text-gray-900 font-mono">{customerType.code}</p>
                 </div>
               )}
 
@@ -87,12 +87,12 @@ export default function SalesTypeDetail() {
                 <p className="text-xs text-gray-500 mb-1">Status</p>
                 <span
                   className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-                    salesType.isActive
+                    customerType.isActive
                       ? "bg-green-100 text-green-800"
                       : "bg-gray-100 text-gray-800"
                   }`}
                 >
-                  {salesType.isActive ? "Aktif" : "Tidak Aktif"}
+                  {customerType.isActive ? "Aktif" : "Tidak Aktif"}
                 </span>
               </div>
             </CardContent>
@@ -110,7 +110,7 @@ export default function SalesTypeDetail() {
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Dibuat</span>
                 <span className="font-semibold text-gray-900">
-                  {new Date(salesType.createdAt).toLocaleDateString("id-ID", {
+                  {new Date(customerType.createdAt).toLocaleDateString("id-ID", {
                     year: "numeric",
                     month: "long",
                     day: "numeric",
@@ -122,7 +122,7 @@ export default function SalesTypeDetail() {
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Diupdate</span>
                 <span className="font-semibold text-gray-900">
-                  {new Date(salesType.updatedAt).toLocaleDateString("id-ID", {
+                  {new Date(customerType.updatedAt).toLocaleDateString("id-ID", {
                     year: "numeric",
                     month: "long",
                     day: "numeric",

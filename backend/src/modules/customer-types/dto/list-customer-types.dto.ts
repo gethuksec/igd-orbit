@@ -5,7 +5,7 @@ import { Type } from 'class-transformer';
  * List Sales Types DTO
  * Validates query parameters for sales type listing
  */
-export class ListSalesTypesDto {
+export class ListCustomerTypesDto {
   @Type(() => Number)
   @IsInt({ message: 'Page must be an integer' })
   @Min(1, { message: 'Page must be at least 1' })

@@ -1,6 +1,6 @@
 import { api, handleApiError } from "./api";
 
-export interface SalesType {
+export interface CustomerType {
   id: string;
   code: string;
   name: string;
@@ -9,8 +9,8 @@ export interface SalesType {
   updatedAt: string;
 }
 
-export interface SalesTypeListResponse {
-  data: SalesType[];
+export interface CustomerTypeListResponse {
+  data: CustomerType[];
   meta: {
     page: number;
     limit: number;
@@ -19,16 +19,16 @@ export interface SalesTypeListResponse {
   };
 }
 
-export const salesTypesService = {
+export const customerTypesService = {
   async getAll(params?: {
     page?: number;
     limit?: number;
     search?: string;
     includeInactive?: boolean;
     status?: string;
-  }): Promise<SalesTypeListResponse> {
+  }): Promise<CustomerTypeListResponse> {
     try {
-      const response = await api.get("/sales-types", { params });
+      const response = await api.get("/customer-types", { params });
       return response.data;
     } catch (error: any) {
       return handleApiError(error, {
@@ -43,27 +43,27 @@ export const salesTypesService = {
     }
   },
 
-  async getById(id: string): Promise<SalesType> {
+  async getById(id: string): Promise<CustomerType> {
     try {
-      const response = await api.get(`/sales-types/${id}`);
+      const response = await api.get(`/customer-types/${id}`);
       return response.data.data || response.data;
     } catch (error: any) {
       throw error;
     }
   },
 
-  async create(data: any): Promise<SalesType> {
+  async create(data: any): Promise<CustomerType> {
     try {
-      const response = await api.post("/sales-types", data);
+      const response = await api.post("/customer-types", data);
       return response.data.data || response.data;
     } catch (error: any) {
       throw error;
     }
   },
 
-  async update(id: string, data: any): Promise<SalesType> {
+  async update(id: string, data: any): Promise<CustomerType> {
     try {
-      const response = await api.put(`/sales-types/${id}`, data);
+      const response = await api.put(`/customer-types/${id}`, data);
       return response.data.data || response.data;
     } catch (error: any) {
       throw error;
@@ -72,7 +72,7 @@ export const salesTypesService = {
 
   async delete(id: string): Promise<void> {
     try {
-      await api.delete(`/sales-types/${id}`);
+      await api.delete(`/customer-types/${id}`);
     } catch (error: any) {
       throw error;
     }

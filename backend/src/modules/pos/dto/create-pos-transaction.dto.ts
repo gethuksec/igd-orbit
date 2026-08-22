@@ -89,7 +89,7 @@ export class CreatePosTransactionDto {
   // T21: sales type (Tipe Customer) + draft status
   @IsString()
   @IsOptional()
-  salesTypeId?: string;
+  customerTypeId?: string;
 
   @IsIn(['pending', 'held', 'completed'])
   @IsOptional()

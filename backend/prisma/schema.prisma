@@ -341,7 +341,7 @@ model Expedition {
   @@map("expeditions")
 }
 
-model SalesType {
+model CustomerType {
   id        String   @id @default(uuid())
   code      String   @unique
   name      String
@@ -352,7 +352,7 @@ model SalesType {
   // Relations
   @@index([code])
   @@index([isActive])
-  @@map("sales_types")
+  @@map("customer_types")
 }
 
 model PaymentTerm {
@@ -568,7 +568,7 @@ model SalesTransaction {
   paymentTermId      String?   @map("payment_term_id")
   salesPersonId      String?   @map("sales_person_id")
   warehouseId        String?   @map("warehouse_id")
-  salesTypeId        String?   @map("sales_type_id") // T21: plain ref to sales_types (no FK until Workstream D)
+  customerTypeId        String?   @map("customer_type_id") // T21: plain ref to customer_types (no FK until Workstream D)
   status             String    @default("pending") // 'pending', 'completed', 'cancelled', 'void', 'held'
   subtotal           Decimal   @db.Decimal(15, 2)
   discountAmount     Decimal   @default(0) @map("discount_amount") @db.Decimal(15, 2)
