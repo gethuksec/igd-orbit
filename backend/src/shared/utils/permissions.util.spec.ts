@@ -87,7 +87,6 @@ describe('computeEffectivePermissions', () => {
 describe('PERMISSION_CATALOG vocabulary', () => {
   it('contains the new sidebar-restructure placeholder keys', () => {
     for (const key of [
-      'master_data.customer_type.view',
       'master_data.branch.view',
       'master_data.warehouse.view',
       'purchasing.invoice.view',

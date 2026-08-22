@@ -1548,16 +1548,6 @@ function App() {
 
             {/* New-module placeholder pages (sidebar restructure 2026-08-22) */}
             <Route
-              path="/master-data/customer-types"
-              element={
-                <ProtectedRoute>
-                  <DashboardLayout>
-                    <PlaceholderPage title="Tipe Customer" description="Kelola tipe customer (mis. Retail, Grosir, Konsinyasi)" />
-                  </DashboardLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
               path="/purchasing/invoices"
               element={
                 <ProtectedRoute>
