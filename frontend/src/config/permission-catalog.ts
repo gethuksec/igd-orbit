@@ -3,6 +3,12 @@
 // Each leaf has a `key` that maps to a real permission string.
 // Items that share a key with other items are controlled by that shared key.
 // Future: add field-level layer (Level 4) under relevant actions.
+//
+// Restructured 2026-08-22 per client sidebar reference:
+//   Dashboard | Master Data | Expense | Quotation | Service | Inventory
+//   | Finance | Staff | Report | Administrator
+// New modules behind placeholder pages reuse existing module keys so they
+// are visible to roles that already hold the module wildcard.
 
 import type { PermissionNode } from '@/types/permission';
 
@@ -25,138 +31,98 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
     label: 'Master Data',
     children: [
       {
-        label: 'Pelanggan',
+        label: 'Customer',
         children: [
-          { label: 'Lihat', key: 'master_data.customer.view' },
-          { label: 'Tambah', key: 'master_data.customer.create' },
-          { label: 'Edit', key: 'master_data.customer.edit' },
-          { label: 'Hapus', key: 'master_data.customer.delete' },
+          { label: 'Pelanggan', key: 'master_data.customer.view' },
+          { label: 'Tipe Customer', key: 'master_data.customer_type.view' },
+          { label: 'Level', key: 'master_data.attribute.view' },
+          { label: 'Termin', key: 'master_data.attribute.view' },
         ],
       },
       {
-        label: 'Produk',
+        label: 'Product',
         children: [
-          { label: 'Lihat', key: 'master_data.product.view' },
-          { label: 'Tambah', key: 'master_data.product.create' },
-          { label: 'Edit', key: 'master_data.product.edit' },
-          { label: 'Hapus', key: 'master_data.product.delete' },
+          { label: 'Produk', key: 'master_data.product.view' },
+          { label: 'Kategori', key: 'master_data.category.view' },
+          { label: 'Merek', key: 'master_data.brand.view' },
+          { label: 'Warna', key: 'master_data.attribute.view' },
+          { label: 'Satuan', key: 'master_data.attribute.view' },
+          { label: 'Ukuran', key: 'master_data.attribute.view' },
         ],
       },
       {
-        label: 'Supplier',
+        label: 'Logistik',
         children: [
-          { label: 'Lihat', key: 'master_data.supplier.view' },
-          { label: 'Tambah', key: 'master_data.supplier.create' },
-          { label: 'Edit', key: 'master_data.supplier.edit' },
-          { label: 'Hapus', key: 'master_data.supplier.delete' },
+          { label: 'Supplier', key: 'master_data.supplier.view' },
+          { label: 'Ekspedisi', key: 'master_data.attribute.view' },
         ],
       },
       {
-        label: 'Kategori',
+        label: 'Outlet',
         children: [
-          { label: 'Lihat', key: 'master_data.category.view' },
-          { label: 'Tambah', key: 'master_data.category.create' },
-          { label: 'Edit', key: 'master_data.category.edit' },
-          { label: 'Hapus', key: 'master_data.category.delete' },
+          { label: 'Lihat Outlet', key: 'master_data.branch.view' },
         ],
       },
       {
-        label: 'Brand',
+        label: 'Gudang',
         children: [
-          { label: 'Lihat', key: 'master_data.brand.view' },
-          { label: 'Tambah', key: 'master_data.brand.create' },
-          { label: 'Edit', key: 'master_data.brand.edit' },
-          { label: 'Hapus', key: 'master_data.brand.delete' },
-        ],
-      },
-      // Each of these shares master_data.attribute.* permissions
-      {
-        label: 'Warna',
-        children: [
-          { label: 'Lihat', key: 'master_data.attribute.view' },
-          { label: 'Tambah', key: 'master_data.attribute.create' },
-          { label: 'Edit', key: 'master_data.attribute.edit' },
-          { label: 'Hapus', key: 'master_data.attribute.delete' },
+          { label: 'Lihat Gudang', key: 'master_data.warehouse.view' },
         ],
       },
       {
-        label: 'Satuan',
+        label: 'Servis',
         children: [
-          { label: 'Lihat', key: 'master_data.attribute.view' },
-          { label: 'Tambah', key: 'master_data.attribute.create' },
-          { label: 'Edit', key: 'master_data.attribute.edit' },
-          { label: 'Hapus', key: 'master_data.attribute.delete' },
-        ],
-      },
-      {
-        label: 'Ukuran',
-        children: [
-          { label: 'Lihat', key: 'master_data.attribute.view' },
-          { label: 'Tambah', key: 'master_data.attribute.create' },
-          { label: 'Edit', key: 'master_data.attribute.edit' },
-          { label: 'Hapus', key: 'master_data.attribute.delete' },
-        ],
-      },
-      {
-        label: 'Ekspedisi',
-        children: [
-          { label: 'Lihat', key: 'master_data.attribute.view' },
-          { label: 'Tambah', key: 'master_data.attribute.create' },
-          { label: 'Edit', key: 'master_data.attribute.edit' },
-          { label: 'Hapus', key: 'master_data.attribute.delete' },
-        ],
-      },
-      {
-        label: 'Tipe Penjualan',
-        children: [
-          { label: 'Lihat', key: 'master_data.attribute.view' },
-          { label: 'Tambah', key: 'master_data.attribute.create' },
-          { label: 'Edit', key: 'master_data.attribute.edit' },
-          { label: 'Hapus', key: 'master_data.attribute.delete' },
-        ],
-      },
-      {
-        label: 'Termin Pembayaran',
-        children: [
-          { label: 'Lihat', key: 'master_data.attribute.view' },
-          { label: 'Tambah', key: 'master_data.attribute.create' },
-          { label: 'Edit', key: 'master_data.attribute.edit' },
-          { label: 'Hapus', key: 'master_data.attribute.delete' },
-        ],
-      },
-      {
-        label: 'Customer Tiers',
-        children: [
-          { label: 'Lihat', key: 'master_data.attribute.view' },
-          { label: 'Tambah', key: 'master_data.attribute.create' },
-          { label: 'Edit', key: 'master_data.attribute.edit' },
-          { label: 'Hapus', key: 'master_data.attribute.delete' },
-        ],
-      },
-      {
-        label: 'Layanan',
-        children: [
-          { label: 'Lihat', key: 'master_data.service_type.view' },
-          { label: 'Tambah', key: 'master_data.service_type.create' },
-          { label: 'Edit', key: 'master_data.service_type.edit' },
-          { label: 'Hapus', key: 'master_data.service_type.delete' },
-        ],
-      },
-      {
-        label: 'Kelengkapan',
-        children: [
-          { label: 'Lihat', key: 'service.checkpoint.view' },
-          { label: 'Tambah', key: 'service.checkpoint.create' },
-          { label: 'Edit', key: 'service.checkpoint.edit' },
-          { label: 'Hapus', key: 'service.checkpoint.delete' },
+          { label: 'Layanan', key: 'master_data.service_type.view' },
+          { label: 'Kelengkapan', key: 'service.checkpoint.view' },
         ],
       },
     ],
   },
 
-  // ── Penjualan ──
+  // ── Expense (was Pembelian) ──
   {
-    label: 'Penjualan',
+    label: 'Expense',
+    children: [
+      {
+        label: 'Faktur',
+        children: [
+          { label: 'Kelola Faktur', key: 'purchasing.invoice.view' },
+        ],
+      },
+      {
+        label: 'Purchase Order',
+        children: [
+          { label: 'Buat PO', key: 'purchasing.po.create' },
+          { label: 'Setujui PO', key: 'purchasing.po.approve' },
+          { label: 'Terima Barang', key: 'purchasing.po.receive' },
+        ],
+      },
+      {
+        label: 'Goods Receipt',
+        children: [
+          { label: 'Terima Barang', key: 'purchasing.po.receive' },
+        ],
+      },
+      {
+        label: 'Retur',
+        children: [
+          { label: 'Buat Retur', key: 'purchasing.return.view' },
+        ],
+      },
+      {
+        label: 'Supplier',
+        children: [
+          { label: 'Lihat', key: 'purchasing.supplier.view' },
+          { label: 'Tambah', key: 'purchasing.supplier.create' },
+          { label: 'Edit', key: 'purchasing.supplier.edit' },
+        ],
+      },
+    ],
+  },
+
+  // ── Quotation (was Penjualan) ──
+  {
+    label: 'Quotation',
     children: [
       {
         label: 'POS',
@@ -178,13 +144,25 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
           { label: 'Edit Retur', key: 'sales.return.edit' },
         ],
       },
+      {
+        label: 'Tipe Penjualan',
+        children: [
+          { label: 'Lihat', key: 'master_data.attribute.view' },
+        ],
+      },
     ],
   },
 
-  // ── Servis ──
+  // ── Service (was Servis) ──
   {
-    label: 'Servis',
+    label: 'Service',
     children: [
+      {
+        label: 'Smart Repair',
+        children: [
+          { label: 'Buat Smart Repair', key: 'action.service.smart_repair.create' },
+        ],
+      },
       {
         label: 'Semua Service Order',
         children: [
@@ -204,12 +182,6 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
         ],
       },
       {
-        label: 'Smart Repair',
-        children: [
-          { label: 'Buat Smart Repair', key: 'action.service.smart_repair.create' },
-        ],
-      },
-      {
         label: 'Retur & Komplain',
         children: [
           { label: 'Buat Retur', key: 'service.return.create' },
@@ -219,9 +191,9 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
     ],
   },
 
-  // ── Gudang ──
+  // ── Inventory (was Gudang) ──
   {
-    label: 'Gudang',
+    label: 'Inventory',
     children: [
       {
         label: 'Stok',
@@ -231,13 +203,19 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
         ],
       },
       {
-        label: 'Stock In',
+        label: 'Request',
+        children: [
+          { label: 'Buat Request', key: 'inventory.request.view' },
+        ],
+      },
+      {
+        label: 'Stok Masuk',
         children: [
           { label: 'Buat Stok Masuk', key: 'inventory.stock_in.create' },
         ],
       },
       {
-        label: 'Stock Out',
+        label: 'Stok Keluar',
         children: [
           { label: 'Buat Stok Keluar', key: 'inventory.stock_out.create' },
         ],
@@ -250,7 +228,7 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
         ],
       },
       {
-        label: 'Stock Opname',
+        label: 'Opname',
         children: [
           { label: 'Buat Opname', key: 'inventory.opname.create' },
           { label: 'Setujui Opname', key: 'inventory.opname.approve' },
@@ -263,7 +241,7 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
         ],
       },
       {
-        label: 'Riwayat Perpindahan',
+        label: 'Aktivitas Produk',
         children: [
           { label: 'Lihat Riwayat', key: 'inventory.history.view' },
         ],
@@ -277,9 +255,9 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
     ],
   },
 
-  // ── Keuangan ──
+  // ── Finance (was Keuangan) ──
   {
-    label: 'Keuangan',
+    label: 'Finance',
     children: [
       {
         label: 'Chart of Accounts',
@@ -290,9 +268,33 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
         ],
       },
       {
-        label: 'Jurnal Umum',
+        label: 'Mutasi',
         children: [
           { label: 'Buat Jurnal', key: 'finance.journal.create' },
+        ],
+      },
+      {
+        label: 'Hutang',
+        children: [
+          { label: 'Kelola Hutang', key: 'finance.ap.view' },
+        ],
+      },
+      {
+        label: 'Piutang',
+        children: [
+          { label: 'Kelola Piutang', key: 'finance.ar.create' },
+        ],
+      },
+      {
+        label: 'Aset',
+        children: [
+          { label: 'Kelola Aset', key: 'finance.asset.view' },
+        ],
+      },
+      {
+        label: 'Prive',
+        children: [
+          { label: 'Kelola Prive', key: 'finance.prive.view' },
         ],
       },
       {
@@ -308,12 +310,6 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
         ],
       },
       {
-        label: 'Accounts Receivable',
-        children: [
-          { label: 'Kelola Piutang', key: 'finance.ar.create' },
-        ],
-      },
-      {
         label: 'Laporan Keuangan',
         children: [
           { label: 'Lihat Laporan', key: 'finance.report.view' },
@@ -322,38 +318,9 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
     ],
   },
 
-  // ── Pembelian ──
+  // ── Staff (was Karyawan) ──
   {
-    label: 'Pembelian',
-    children: [
-      {
-        label: 'Supplier',
-        children: [
-          { label: 'Lihat', key: 'purchasing.supplier.view' },
-          { label: 'Tambah', key: 'purchasing.supplier.create' },
-          { label: 'Edit', key: 'purchasing.supplier.edit' },
-        ],
-      },
-      {
-        label: 'Purchase Order',
-        children: [
-          { label: 'Buat PO', key: 'purchasing.po.create' },
-          { label: 'Setujui PO', key: 'purchasing.po.approve' },
-          { label: 'Terima Barang', key: 'purchasing.po.receive' },
-        ],
-      },
-      {
-        label: 'Goods Receipt',
-        children: [
-          { label: 'Terima Barang', key: 'purchasing.po.receive' },
-        ],
-      },
-    ],
-  },
-
-  // ── Karyawan ──
-  {
-    label: 'Karyawan',
+    label: 'Staff',
     children: [
       {
         label: 'Data Karyawan',
@@ -365,6 +332,18 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
         ],
       },
       {
+        label: 'Presensi',
+        children: [
+          { label: 'Lihat Absensi', key: 'hr.attendance.view' },
+        ],
+      },
+      {
+        label: 'Kasbon',
+        children: [
+          { label: 'Kelola Kasbon', key: 'hr.kasbon.view' },
+        ],
+      },
+      {
         label: 'Departemen',
         children: [
           { label: 'Lihat', key: 'hr.employee.view' },
@@ -373,9 +352,9 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
         ],
       },
       {
-        label: 'Absensi',
+        label: 'Divisi',
         children: [
-          { label: 'Lihat Absensi', key: 'hr.attendance.view' },
+          { label: 'Lihat Divisi', key: 'hr.division.view' },
         ],
       },
       {
@@ -385,31 +364,54 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
         ],
       },
       {
-        label: 'Payroll',
-        children: [
-          { label: 'Lihat Payroll', key: 'hr.payroll.view' },
-        ],
-      },
-      {
         label: 'KPI',
         children: [
           { label: 'Kelola KPI', key: 'hr.kpi.create' },
         ],
       },
+      {
+        label: 'Payroll',
+        children: [
+          { label: 'Lihat Payroll', key: 'hr.payroll.view' },
+        ],
+      },
     ],
   },
 
-  // ── Cabang (outlet) ──
+  // ── Report (new) ──
   {
-    label: 'Cabang',
+    label: 'Report',
     children: [
-      { label: 'Lihat Cabang', key: 'branch.view' },
+      {
+        label: 'Expense',
+        children: [{ label: 'Lihat Laporan', key: 'finance.report.view' }],
+      },
+      {
+        label: 'Quotation',
+        children: [{ label: 'Lihat Laporan', key: 'sales.history.view' }],
+      },
+      {
+        label: 'Service',
+        children: [{ label: 'Lihat Laporan', key: 'service.order.view' }],
+      },
+      {
+        label: 'Inventory',
+        children: [{ label: 'Lihat Laporan', key: 'inventory.stock.view' }],
+      },
+      {
+        label: 'Staff',
+        children: [{ label: 'Lihat Laporan', key: 'hr.employee.view' }],
+      },
+      {
+        label: 'Outlet',
+        children: [{ label: 'Lihat Laporan', key: 'master_data.branch.view' }],
+      },
     ],
   },
 
-  // ── User & Role ──
+  // ── Administrator (was User & Role) ──
   {
-    label: 'User & Role',
+    label: 'Administrator',
     children: [
       {
         label: 'Users',
@@ -427,6 +429,27 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
           { label: 'Tambah Role', key: 'roles.role.create' },
           { label: 'Edit Role', key: 'roles.role.edit' },
           { label: 'Hapus Role', key: 'roles.role.delete' },
+        ],
+      },
+      {
+        label: 'Approval',
+        children: [
+          { label: 'Kelola Approval', key: 'roles.role.view' },
+        ],
+      },
+      {
+        label: 'General',
+        children: [
+          { label: 'Kelola Pengaturan', key: 'users.user.view' },
+        ],
+      },
+      {
+        label: 'Sync',
+        children: [
+          { label: 'WhatsApp', key: 'users.user.view' },
+          { label: 'Marketplace', key: 'users.user.view' },
+          { label: 'Website', key: 'users.user.view' },
+          { label: 'Platform', key: 'users.user.view' },
         ],
       },
       {
