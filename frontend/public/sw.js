@@ -1,4 +1,4 @@
-const CACHE_NAME = 'igd-erp-v5';
+const CACHE_NAME = 'igd-erp-v6';
 const OFFLINE_URL = '/offline.html';
 
 const STATIC_CACHE = [
