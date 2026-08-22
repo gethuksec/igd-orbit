@@ -64,7 +64,7 @@ export interface MergeUserRole {
  * '*' consumes zero or more segments: 'dashboard.*.view' matches 'dashboard.view'
  * and 'dashboard.pos.view'; exact keys match themselves.
  */
-function patternMatchesKey(pattern: string, key: string): boolean {
+export function patternMatchesKey(pattern: string, key: string): boolean {
   const p = pattern.split('.');
   const k = key.split('.');
   const m = p.length;
@@ -174,6 +174,10 @@ export const PERMISSION_CATALOG: string[] = [
   'master_data.service_type.create',
   'master_data.service_type.edit',
   'master_data.service_type.delete',
+  // Sidebar restructure (2026-08-22): new placeholder modules
+  'master_data.customer_type.view',
+  'master_data.branch.view',
+  'master_data.warehouse.view',
   'master_data.*.view',
   // Sales / POS
   'sales.history.view',
@@ -205,6 +209,8 @@ export const PERMISSION_CATALOG: string[] = [
   'inventory.opname.approve',
   'inventory.history.view',
   'inventory.alert.view',
+  // Sidebar restructure (2026-08-22): new placeholder modules
+  'inventory.request.view',
   'inventory.*.view',
   // Finance
   'finance.coa.view',
@@ -215,6 +221,10 @@ export const PERMISSION_CATALOG: string[] = [
   'finance.petty_cash.create',
   'finance.ar.create',
   'finance.report.view',
+  // Sidebar restructure (2026-08-22): new placeholder modules
+  'finance.ap.view',
+  'finance.asset.view',
+  'finance.prive.view',
   'finance.*.view',
   // Purchasing
   'purchasing.supplier.view',
@@ -223,6 +233,9 @@ export const PERMISSION_CATALOG: string[] = [
   'purchasing.po.create',
   'purchasing.po.approve',
   'purchasing.po.receive',
+  // Sidebar restructure (2026-08-22): new placeholder modules
+  'purchasing.invoice.view',
+  'purchasing.return.view',
   'purchasing.*.view',
   // HR
   'hr.employee.view',
@@ -233,6 +246,9 @@ export const PERMISSION_CATALOG: string[] = [
   'hr.leave.approve',
   'hr.payroll.view',
   'hr.kpi.create',
+  // Sidebar restructure (2026-08-22): new placeholder modules
+  'hr.kasbon.view',
+  'hr.division.view',
   'hr.*.view',
   // Users / Roles / Branches
   'users.user.view',

@@ -94,6 +94,60 @@ interface MenuItem {
   children?: MenuItem[];
 }
 
+/**
+ * Wildcard-aware permission matching (mirrors backend patternMatchesKey in
+ * backend/src/shared/utils/permissions.util.ts).
+ * '*' consumes zero or more segments: 'master_data.*.view' matches
+ * 'master_data.customer.view' and 'master_data.customer_type.view'.
+ */
+function patternMatchesKey(pattern: string, key: string): boolean {
+  const p = pattern.split('.');
+  const k = key.split('.');
+  const m = p.length;
+  const n = k.length;
+  const dp: boolean[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(false));
+  dp[0][0] = true;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 0; j <= n; j++) {
+      if (p[i - 1] === '*') {
+        dp[i][j] = dp[i - 1][j] || (j > 0 && dp[i][j - 1]);
+      } else if (j > 0) {
+        dp[i][j] = dp[i - 1][j - 1] && p[i - 1] === k[j - 1];
+      }
+    }
+  }
+  return dp[m][n];
+}
+
+function collectLeafKeys(nodes: PermissionNode[]): string[] {
+  const keys: string[] = [];
+  const walk = (node: PermissionNode) => {
+    if (node.key) keys.push(node.key);
+    for (const c of node.children || []) walk(c);
+  };
+  for (const n of nodes) walk(n);
+  return keys;
+}
+
+const CATALOG_KEYS = collectLeafKeys(PERMISSION_CATALOG);
+
+/**
+ * Expand a user's raw permission patterns (e.g. 'purchasing.*.view') into the
+ * concrete catalog keys they cover, so sidebar visibility (exact-match
+ * isBranchVisible) honors wildcard role defaults — the D-PERM model.
+ */
+function expandPermissions(patterns: string[]): Set<string> {
+  const out = new Set<string>();
+  for (const p of patterns || []) {
+    out.add(p);
+    if (!p.includes('*')) continue;
+    for (const k of CATALOG_KEYS) {
+      if (patternMatchesKey(p, k)) out.add(k);
+    }
+  }
+  return out;
+}
+
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -178,7 +232,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Menu structure with submenus
+  // Menu structure with submenus — restructured 2026-08-22 per client reference:
+  // Master Data (Customer/Product/Logistik/Outlet/Gudang), Expense, Quotation,
+  // Service, Inventory, Finance, Staff, Report, Administrator.
   const allMenuItems: MenuItem[] = [
     {
       icon: LayoutDashboard,
@@ -195,19 +251,21 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       children: [
         {
           icon: Users,
-          label: 'Pelanggan',
+          label: 'Customer',
           children: [
             { icon: Users, label: 'Pelanggan', path: '/customers', permission: 'master_data.customer.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CS'] },
-            { icon: Target, label: 'Customer Tiers', path: '/customer-tiers', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER'] },
+            { icon: Tag, label: 'Tipe Customer', path: '/master-data/customer-types', permission: 'master_data.customer_type.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
+            { icon: Award, label: 'Level', path: '/customer-tiers', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER'] },
+            { icon: CreditCard, label: 'Termin', path: '/payment-terms', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
           ],
         },
         {
           icon: Package,
-          label: 'Produk',
+          label: 'Product',
           children: [
             { icon: Package, label: 'Produk', path: '/products', permission: 'master_data.product.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
             { icon: Tag, label: 'Kategori', path: '/categories', permission: 'master_data.category.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
-            { icon: Award, label: 'Brand', path: '/brands', permission: 'master_data.brand.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
+            { icon: Award, label: 'Merek', path: '/brands', permission: 'master_data.brand.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
             { icon: Palette, label: 'Warna', path: '/colors', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
             { icon: Ruler, label: 'Satuan', path: '/units', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
             { icon: Maximize, label: 'Ukuran', path: '/sizes', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
@@ -215,20 +273,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         },
         {
           icon: Truck,
-          label: 'Supplier & Logistik',
+          label: 'Logistik',
           children: [
             { icon: Building2, label: 'Supplier', path: '/suppliers', permission: 'master_data.supplier.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
             { icon: Truck, label: 'Ekspedisi', path: '/expeditions', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
           ],
         },
-        {
-          icon: CreditCard,
-          label: 'Penjualan',
-          children: [
-            { icon: Tag, label: 'Tipe Penjualan', path: '/sales-types', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
-            { icon: CreditCard, label: 'Termin Pembayaran', path: '/payment-terms', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
-          ],
-        },
+        { icon: Store, label: 'Outlet', path: '/branches', permission: 'master_data.branch.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
+        { icon: Warehouse, label: 'Gudang', path: '/warehouses', permission: 'master_data.warehouse.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA'] },
         {
           icon: Wrench,
           label: 'Servis',
@@ -237,26 +289,40 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             { icon: ClipboardList, label: 'Kelengkapan', path: '/service-checkpoints', permission: 'service.checkpoint.view', roles: ['SUPERADMIN', 'OWNER', 'MGR', 'CS', 'HS', 'SPV'] },
           ],
         },
-        { icon: Store, label: 'Cabang', path: '/branches', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
-        { icon: Warehouse, label: 'Gudang', path: '/warehouses', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA'] },
+      ],
+    },
+    {
+      icon: FileText,
+      label: 'Expense',
+      permission: 'purchasing.*.view',
+      roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'],
+      children: [
+        { icon: FileText, label: 'Faktur', path: '/purchasing/invoices', permission: 'purchasing.invoice.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
+        { icon: FileText, label: 'Purchase Order', path: '/purchasing/po', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
+        { icon: Truck, label: 'Goods Receipt', path: '/purchasing/goods-receipt', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
+        { icon: RotateCcw, label: 'Retur', path: '/purchasing/returns', permission: 'purchasing.return.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
+        { icon: Building2, label: 'Supplier', path: '/purchasing/suppliers', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
       ],
     },
     {
       icon: ShoppingCart,
-      label: 'Penjualan',
+      label: 'Quotation',
       permission: 'sales.*.view',
       roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CS', 'CR', 'HS', 'SPV'],
       children: [
+        { icon: ShoppingCart, label: 'POS', path: '/pos', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CS', 'CR', 'HS', 'SPV'] },
         { icon: Receipt, label: 'Riwayat Penjualan', path: '/sales/history', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CS', 'CR', 'HS', 'SPV'] },
         { icon: ArrowRightLeft, label: 'Retur Penjualan', path: '/sales/returns', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'HS', 'SPV'] },
+        { icon: Tag, label: 'Tipe Penjualan', path: '/sales-types', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
       ],
     },
     {
       icon: Wrench,
-      label: 'Servis',
+      label: 'Service',
       permission: 'service.*.view',
       roles: ['SUPERADMIN', 'OWNER', 'MGR', 'CS', 'TC', 'HS', 'SPV'],
       children: [
+        { icon: Zap, label: 'Smart Repair', path: '/services/smart-repair', roles: ['SUPERADMIN', 'OWNER', 'MGR', 'CS'] },
         { icon: Wrench, label: 'Semua Service Order', path: '/service-orders', roles: ['SUPERADMIN', 'OWNER', 'MGR', 'CS', 'HS', 'SPV'] },
         { icon: UserCog, label: 'Service Saya', path: '/service-orders/my', roles: ['SUPERADMIN', 'TC', 'HS', 'SPV'] },
         { icon: Plus, label: 'Tambah Service', path: '/service-orders/new', roles: ['SUPERADMIN', 'OWNER', 'MGR', 'CS'] },
@@ -270,70 +336,93 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'],
       children: [
         { icon: Boxes, label: 'Stok', path: '/inventory/stock', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
-        { icon: ArrowDownToLine, label: 'Stock In', path: '/inventory/stock-in', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
-        { icon: ArrowUpFromLine, label: 'Stock Out', path: '/inventory/stock-out', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
+        { icon: ClipboardList, label: 'Request', path: '/inventory/requests', permission: 'inventory.request.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
+        { icon: ArrowDownToLine, label: 'Stok Masuk', path: '/inventory/stock-in', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
+        { icon: ArrowUpFromLine, label: 'Stok Keluar', path: '/inventory/stock-out', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
         { icon: ArrowRightLeft, label: 'Transfer Stok', path: '/inventory/transfer', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
-        { icon: ClipboardCheck, label: 'Stock Opname', path: '/inventory/opname', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
+        { icon: ClipboardCheck, label: 'Opname', path: '/inventory/opname', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
         { icon: PackageSearch, label: 'Stock Adjustment', path: '/inventory/adjustment', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS'] },
-        { icon: TrendingUp, label: 'Riwayat Perpindahan', path: '/inventory/movements', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
+        { icon: TrendingUp, label: 'Aktivitas Produk', path: '/inventory/movements', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
         { icon: AlertTriangle, label: 'Peringatan Stok Rendah', path: '/inventory/alerts', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
       ],
     },
     {
       icon: DollarSign,
-      label: 'Keuangan',
+      label: 'Finance',
       permission: 'finance.*.view',
       roles: ['SUPERADMIN', 'OWNER', 'CFO'],
       children: [
         { icon: FileText, label: 'Chart of Accounts', path: '/finance/coa', roles: ['SUPERADMIN', 'OWNER', 'CFO'] },
-        { icon: ReceiptText, label: 'Jurnal Umum', path: '/finance/journal', roles: ['SUPERADMIN', 'OWNER', 'CFO'] },
+        { icon: ReceiptText, label: 'Mutasi', path: '/finance/journal', roles: ['SUPERADMIN', 'OWNER', 'CFO'] },
+        { icon: CreditCard, label: 'Hutang', path: '/finance/ap', permission: 'finance.ap.view', roles: ['SUPERADMIN', 'OWNER', 'CFO'] },
+        { icon: Receipt, label: 'Piutang', path: '/finance/ar', roles: ['SUPERADMIN', 'OWNER', 'CFO'] },
+        { icon: Banknote, label: 'Aset', path: '/finance/assets', permission: 'finance.asset.view', roles: ['SUPERADMIN', 'OWNER', 'CFO'] },
+        { icon: User, label: 'Prive', path: '/finance/prive', permission: 'finance.prive.view', roles: ['SUPERADMIN', 'OWNER', 'CFO'] },
         { icon: Wallet, label: 'Pengeluaran', path: '/finance/expenses', roles: ['SUPERADMIN', 'OWNER', 'CFO'] },
         { icon: CreditCard, label: 'Petty Cash', path: '/finance/petty-cash', roles: ['SUPERADMIN', 'OWNER', 'CFO'] },
-        { icon: Receipt, label: 'Accounts Receivable', path: '/finance/ar', roles: ['SUPERADMIN', 'OWNER', 'CFO'] },
         { icon: BarChart3, label: 'Laporan Keuangan', path: '/finance/reports', roles: ['SUPERADMIN', 'OWNER', 'CFO'] },
       ],
     },
     {
-      icon: FileText,
-      label: 'Pembelian',
-      permission: 'purchasing.*.view',
-      roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'],
-      children: [
-        { icon: Building2, label: 'Supplier', path: '/purchasing/suppliers', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
-        { icon: FileText, label: 'Purchase Order', path: '/purchasing/po', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
-        { icon: Truck, label: 'Goods Receipt', path: '/purchasing/goods-receipt', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
-      ],
-    },
-    {
       icon: UserCog,
-      label: 'Karyawan',
+      label: 'Staff',
       permission: 'hr.*.view',
       roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'],
       children: [
         { icon: Users, label: 'Data Karyawan', path: '/hr/employees', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+        { icon: Clock, label: 'Presensi', path: '/hr/attendance', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+        { icon: Wallet, label: 'Kasbon', path: '/hr/kasbon', permission: 'hr.kasbon.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: Building2, label: 'Departemen', path: '/hr/departments', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
-        { icon: Clock, label: 'Absensi', path: '/hr/attendance', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+        { icon: ClipboardList, label: 'Divisi', path: '/hr/divisions', permission: 'hr.division.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: CalendarDays, label: 'Cuti', path: '/hr/leave', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
-        { icon: Banknote, label: 'Payroll', path: '/hr/payroll', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: Target, label: 'KPI', path: '/hr/kpi', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+        { icon: Banknote, label: 'Payroll', path: '/hr/payroll', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+      ],
+    },
+    {
+      icon: BarChart3,
+      label: 'Report',
+      permission: 'finance.report.view',
+      roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'],
+      children: [
+        { icon: Wallet, label: 'Expense', path: '/reports/expense', permission: 'finance.report.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
+        { icon: Receipt, label: 'Quotation', path: '/reports/quotation', permission: 'sales.history.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CS'] },
+        { icon: Wrench, label: 'Service', path: '/reports/service', permission: 'service.order.view', roles: ['SUPERADMIN', 'OWNER', 'MGR', 'CS'] },
+        { icon: Boxes, label: 'Inventory', path: '/reports/inventory', permission: 'inventory.stock.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS'] },
+        { icon: Users, label: 'Staff', path: '/reports/staff', permission: 'hr.employee.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+        { icon: Store, label: 'Outlet', path: '/reports/outlet', permission: 'master_data.branch.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
       ],
     },
     {
       icon: Shield,
-      label: 'User & Role',
+      label: 'Administrator',
       permission: 'users.*.view',
       roles: ['SUPERADMIN', 'OWNER', 'CHR'],
       children: [
         { icon: Users, label: 'Users', path: '/users', permission: 'users.user.view', roles: ['SUPERADMIN', 'OWNER', 'CHR'] },
         { icon: Shield, label: 'Roles', path: '/roles', permission: 'roles.role.view', roles: ['SUPERADMIN', 'OWNER', 'CHR'] },
+        { icon: Shield, label: 'Approval', path: '/admin/approval', permission: 'roles.role.view', roles: ['SUPERADMIN', 'OWNER', 'CHR'] },
+        { icon: Settings, label: 'General', path: '/admin/general', permission: 'users.user.view', roles: ['SUPERADMIN', 'OWNER', 'CHR'] },
+        {
+          icon: ArrowRightLeft,
+          label: 'Sync',
+          children: [
+            { icon: ReceiptText, label: 'WhatsApp', path: '/admin/sync/whatsapp', permission: 'users.user.view', roles: ['SUPERADMIN', 'OWNER', 'CHR'] },
+            { icon: Store, label: 'Marketplace', path: '/admin/sync/marketplace', permission: 'users.user.view', roles: ['SUPERADMIN', 'OWNER', 'CHR'] },
+            { icon: Package, label: 'Website', path: '/admin/sync/website', permission: 'users.user.view', roles: ['SUPERADMIN', 'OWNER', 'CHR'] },
+            { icon: Boxes, label: 'Platform', path: '/admin/sync/platform', permission: 'users.user.view', roles: ['SUPERADMIN', 'OWNER', 'CHR'] },
+          ],
+        },
         { icon: Shield, label: 'Password Requests', path: '/password-requests', permission: 'users.*.view', roles: ['SUPERADMIN', 'OWNER', 'CHR'] },
       ],
     },
   ];
 
-  // Build a set of user's permissions for catalog visibility checks
+  // Build a set of user's permissions for catalog visibility checks.
+  // Wildcards in role defaults (e.g. 'purchasing.*.view') are expanded to the
+  // concrete catalog keys they cover (D-PERM model).
   const currentUserData = getUser();
-  const userPermSet = new Set<string>(currentUserData?.permissions || []);
+  const userPermSet = expandPermissions(currentUserData?.permissions || []);
 
   // Map catalog labels to their top-level nodes for quick lookup
   const catalogByLabel = new Map<string, PermissionNode>();

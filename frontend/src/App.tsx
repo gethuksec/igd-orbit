@@ -60,6 +60,7 @@ import LowStockAlerts from './pages/inventory/LowStockAlerts';
 import Unauthorized from './pages/Unauthorized';
 import Profile from './pages/profile/Profile';
 import Settings from './pages/settings/Settings';
+import PlaceholderPage from './pages/placeholder/PlaceholderPage';
 // Master Data - Suppliers, Categories, Brands
 import SupplierList from './pages/suppliers/SupplierList';
 import SupplierForm from './pages/suppliers/SupplierForm';
@@ -1540,6 +1541,230 @@ function App() {
                 <ProtectedRoute>
                   <DashboardLayout>
                     <RolePermissionPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* New-module placeholder pages (sidebar restructure 2026-08-22) */}
+            <Route
+              path="/master-data/customer-types"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PlaceholderPage title="Tipe Customer" description="Kelola tipe customer (mis. Retail, Grosir, Konsinyasi)" />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/purchasing/invoices"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PlaceholderPage title="Faktur Pembelian" description="Kelola faktur pembelian dari supplier" />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/purchasing/returns"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PlaceholderPage title="Retur Pembelian" description="Kelola retur pembelian ke supplier" />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/inventory/requests"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PlaceholderPage title="Request Stok" description="Ajukan dan kelola permintaan stok" />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/finance/ap"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PlaceholderPage title="Hutang" description="Kelola hutang (accounts payable)" />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/finance/assets"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PlaceholderPage title="Aset" description="Kelola aset tetap perusahaan" />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/finance/prive"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PlaceholderPage title="Prive" description="Kelola prive (pengambilan pemilik)" />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr/kasbon"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PlaceholderPage title="Kasbon" description="Kelola kasbon karyawan" />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr/divisions"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PlaceholderPage title="Divisi" description="Kelola divisi karyawan" />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            {/* Report section placeholders */}
+            <Route
+              path="/reports/expense"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PlaceholderPage title="Laporan Expense" description="Rekap laporan pengeluaran" />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/quotation"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PlaceholderPage title="Laporan Quotation" description="Rekap laporan penjualan" />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/service"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PlaceholderPage title="Laporan Service" description="Rekap laporan servis" />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/inventory"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PlaceholderPage title="Laporan Inventory" description="Rekap laporan persediaan" />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/staff"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PlaceholderPage title="Laporan Staff" description="Rekap laporan karyawan" />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/outlet"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PlaceholderPage title="Laporan Outlet" description="Rekap laporan outlet/cabang" />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            {/* Administrator placeholders */}
+            <Route
+              path="/admin/approval"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PlaceholderPage title="Approval" description="Atur alur persetujuan transaksi" />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/general"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PlaceholderPage title="General" description="Pengaturan umum aplikasi" />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/sync"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PlaceholderPage title="Sync" description="Pengaturan sinkronisasi integrasi" />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/sync/whatsapp"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PlaceholderPage title="Sync WhatsApp" description="Sinkronisasi dengan WhatsApp" />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/sync/marketplace"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PlaceholderPage title="Sync Marketplace" description="Sinkronisasi dengan marketplace" />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/sync/website"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PlaceholderPage title="Sync Website" description="Sinkronisasi dengan website" />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/sync/platform"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PlaceholderPage title="Sync Platform" description="Sinkronisasi dengan platform lain" />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
