@@ -71,7 +71,7 @@ export default function SalesTypeList() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sales-types"] });
-      toast.success(editingSalesType ? "Tipe Penjualan berhasil diupdate" : "Tipe Penjualan berhasil ditambahkan");
+      toast.success(editingSalesType ? "Tipe Customer berhasil diupdate" : "Tipe Customer berhasil ditambahkan");
       setFormModalOpen(false);
       setEditingSalesType(null);
       setFormData({ name: "", isActive: true });
@@ -106,18 +106,18 @@ export default function SalesTypeList() {
     mutationFn: (id: string) => api.delete(`/sales-types/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales-types'] });
-      toast.success('Tipe Penjualan berhasil dihapus');
+      toast.success('Tipe Customer berhasil dihapus');
       setDeleteModalOpen(false);
       setSalesTypeToDelete(null);
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Gagal menghapus tipe penjualan');
+      toast.error(error.response?.data?.message || 'Gagal menghapus tipe customer');
     },
   });
   const columns: Column<any>[] = [
     {
       key: "name",
-      header: "Tipe Penjualan",
+      header: "Tipe Customer",
       cell: (type) => (
         <div className="flex items-center gap-4">
           <div className="flex-shrink-0 h-14 w-14 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white shadow-md">
@@ -159,13 +159,13 @@ export default function SalesTypeList() {
 
   return (
     <div className="w-full space-y-3">
-      <BreadcrumbHeader title="Manajemen Tipe Penjualan" subtitle="Kelola tipe penjualan">
+      <BreadcrumbHeader title="Manajemen Tipe Customer" subtitle="Kelola tipe customer">
         <Button
           onClick={openCreateModal}
           className="flex items-center gap-2 bg-white text-primary-600 border border-gray-200 hover:bg-primary-50"
         >
           <Plus className="w-5 h-5" />
-          <span>Tambah Tipe Penjualan</span>
+          <span>Tambah Tipe Customer</span>
         </Button>
       </BreadcrumbHeader>
 
@@ -183,7 +183,7 @@ export default function SalesTypeList() {
           iconBg="from-primary-500 to-primary-600"
           label="Total Tipe"
           value={isLoading ? "-" : pagination.total}
-          subtitle="Semua tipe penjualan terdaftar"
+          subtitle="Semua tipe customer terdaftar"
         />
         <StatCard
           icon={<Tag className="w-6 h-6 text-white" />}
@@ -204,7 +204,7 @@ export default function SalesTypeList() {
       <SearchFilter
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
-        searchPlaceholder="Cari nama tipe penjualan..."
+        searchPlaceholder="Cari nama tipe customer..."
       />
 
       {/* Status Filter */}
@@ -232,7 +232,7 @@ export default function SalesTypeList() {
         data={salesTypes}
         keyExtractor={(t: any) => t.id}
         isLoading={isLoading}
-        emptyMessage="Tidak ada tipe penjualan ditemukan"
+        emptyMessage="Tidak ada tipe customer ditemukan"
         emptyIcon={<Tag className="w-16 h-16" />}
         actions={(type: any) => (
           <div className="flex items-center justify-end gap-1">
@@ -280,7 +280,7 @@ export default function SalesTypeList() {
               <span className="font-bold text-foreground">
                 {pagination.total}
               </span>{" "}
-              tipe penjualan
+              tipe customer
               <span className="ml-2 text-muted-foreground">
                 (Halaman {pagination.page} dari {pagination.totalPages})
               </span>
@@ -320,12 +320,12 @@ export default function SalesTypeList() {
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingSalesType ? "Edit Tipe Penjualan" : "Tambah Tipe Penjualan"}</DialogTitle>
+            <DialogTitle>{editingSalesType ? "Edit Tipe Customer" : "Tambah Tipe Customer"}</DialogTitle>
           </DialogHeader>
         <form onSubmit={handleFormSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nama Tipe Penjualan <span className="text-red-500">*</span>
+              Nama Tipe Customer <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -333,7 +333,7 @@ export default function SalesTypeList() {
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              placeholder="Nama tipe penjualan"
+              placeholder="Nama tipe customer"
             />
           </div>
           <div>
@@ -403,7 +403,7 @@ export default function SalesTypeList() {
               </div>
               <div className="flex-1">
                 <p className="text-sm text-gray-700 mb-2">
-                  Apakah Anda yakin ingin menghapus tipe penjualan <strong>{salesTypeToDelete?.name}</strong>?
+                  Apakah Anda yakin ingin menghapus tipe customer <strong>{salesTypeToDelete?.name}</strong>?
                 </p>
                 <p className="text-xs text-gray-500">
                   Tindakan ini akan melakukan soft delete. Data tidak akan muncul di daftar, tetapi masih tersimpan di database.

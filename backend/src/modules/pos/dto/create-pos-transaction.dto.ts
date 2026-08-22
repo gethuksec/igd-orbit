@@ -86,7 +86,7 @@ export class CreatePosTransactionDto {
   @IsOptional()
   taxPercentage?: number;
 
-  // T21: sales type (Tipe Penjualan) + draft status
+  // T21: sales type (Tipe Customer) + draft status
   @IsString()
   @IsOptional()
   salesTypeId?: string;

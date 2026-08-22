@@ -28,12 +28,12 @@ export default function SalesTypeDetail() {
   if (!salesType) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">Tipe penjualan tidak ditemukan</p>
+        <p className="text-gray-500">Tipe customer tidak ditemukan</p>
         <button
           onClick={() => navigate("/sales-types")}
           className="mt-4 text-primary-600 hover:text-primary-700"
         >
-          Kembali ke daftar tipe penjualan
+          Kembali ke daftar tipe customer
         </button>
       </div>
     );
@@ -50,7 +50,7 @@ export default function SalesTypeDetail() {
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex-1">
-          <BreadcrumbHeader title={salesType.name} subtitle="Detail Tipe Penjualan">
+          <BreadcrumbHeader title={salesType.name} subtitle="Detail Tipe Customer">
             <Link
               to={`/sales-types/${id}/edit`}
               className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all"
@@ -63,22 +63,22 @@ export default function SalesTypeDetail() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Left Column - Informasi Tipe Penjualan */}
+        {/* Left Column - Informasi Tipe Customer */}
         <div className="space-y-4">
           <Card>
             <CardHeader className="flex flex-row items-center gap-2">
               <Tag className="w-5 h-5 text-primary-600" />
-              <CardTitle>Informasi Tipe Penjualan</CardTitle>
+              <CardTitle>Informasi Tipe Customer</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <p className="text-xs text-gray-500 mb-1">Nama Tipe Penjualan</p>
+                <p className="text-xs text-gray-500 mb-1">Nama Tipe Customer</p>
                 <p className="text-sm font-semibold text-gray-900">{salesType.name}</p>
               </div>
 
               {salesType.code && (
                 <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-xs text-gray-500 mb-1">Kode Tipe Penjualan</p>
+                  <p className="text-xs text-gray-500 mb-1">Kode Tipe Customer</p>
                   <p className="text-sm font-semibold text-gray-900 font-mono">{salesType.code}</p>
                 </div>
               )}
