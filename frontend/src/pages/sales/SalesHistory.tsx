@@ -1,31 +1,30 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Eye, Receipt, DollarSign, ShoppingCart, Search } from 'lucide-react';
+import { Eye, Receipt, DollarSign, ShoppingCart } from 'lucide-react';
 import { salesService } from '../../services/sales.service';
-import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
-import { BreadcrumbHeader } from '@/components/shared';
-import { StatCard } from '@/components/shared';
-import { DataTable } from '@/components/shared';
+import { useBranchFilter } from '@/components/branch/BranchFilter';
+import { BreadcrumbHeader, FilterToolbar, StatCard, DataTable, RowsPerPageSelect } from '@/components/shared';
 import type { Column } from '@/components/shared';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '../../utils/format';
 
 export default function SalesHistory() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('');
   const [page, setPage] = useState(1);
-  const limit = 20;
+  const [limit, setLimit] = useState(20);
   const { branchId, setBranchId } = useBranchFilter();
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['sales-transactions', page, searchTerm, branchId],
+    queryKey: ['sales-transactions', page, limit, searchTerm, selectedStatus, branchId],
     queryFn: () =>
       salesService.getAll({
         page,
         limit,
         search: searchTerm || undefined,
         branchId: branchId || undefined,
+        status: selectedStatus || undefined,
       }),
   });
 
@@ -36,6 +35,11 @@ export default function SalesHistory() {
     }, 500);
     return () => clearTimeout(debounce);
   }, [searchTerm]);
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setPage(1);
+  };
 
   const transactions = data?.data || [];
   const pagination = data?.meta || { page: 1, limit: 20, total: 0, totalPages: 1 };
@@ -151,21 +155,38 @@ export default function SalesHistory() {
         />
       </div>
 
-      {/* Branch filter (D7) */}
-      <div className="flex justify-end">
-        <BranchFilterSelect value={branchId} onChange={setBranchId} />
-      </div>
-
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Cari nomor transaksi, pelanggan, atau produk..."
-          className="w-full pl-10 h-11 text-sm"
-        />
-      </div>
+      {/* Toolbar: search inline + branch inline + filter popup (IGDERP-110) */}
+      <FilterToolbar
+        searchValue={searchTerm}
+        onSearchChange={handleSearchChange}
+        searchPlaceholder="Cari nomor transaksi, pelanggan, atau produk..."
+        branchFilter={{ value: branchId, onChange: setBranchId, allowAll: true }}
+        fields={[
+          {
+            key: 'status',
+            label: 'Status',
+            type: 'select',
+            options: [
+              { value: 'completed', label: 'Selesai' },
+              { value: 'held', label: 'Ditahan' },
+              { value: 'void', label: 'Dibatalkan' },
+              { value: 'cancelled', label: 'Batal' },
+              { value: 'returned', label: 'Retur' },
+            ],
+          },
+        ]}
+        values={{ status: selectedStatus }}
+        onFieldChange={(key, value) => {
+          if (key === 'status') {
+            setSelectedStatus(value);
+            setPage(1);
+          }
+        }}
+        onReset={() => {
+          setSelectedStatus('');
+          setPage(1);
+        }}
+      />
 
       <DataTable
         columns={columns}
@@ -184,8 +205,15 @@ export default function SalesHistory() {
       />
 
       {/* Pagination */}
-      {!isLoading && transactions.length > 0 && pagination.totalPages > 1 && (
-        <div className="bg-white px-6 py-4 rounded-xl border border-gray-200 flex items-center justify-between">
+      {!isLoading && transactions.length > 0 && (
+        <div className="bg-white px-6 py-4 rounded-xl border border-gray-200 flex items-center justify-between gap-3">
+          <RowsPerPageSelect
+            value={limit}
+            onChange={(v) => {
+              setLimit(v);
+              setPage(1);
+            }}
+          />
           <div className="text-sm text-gray-700">
             Menampilkan {transactions.length} dari{' '}
             <span className="font-semibold">{pagination.total}</span> transaksi
