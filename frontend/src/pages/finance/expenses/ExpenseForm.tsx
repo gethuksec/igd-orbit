@@ -18,7 +18,7 @@ export default function ExpenseForm() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isEdit = !!id;
-  const { branchId } = useBranchFilter();
+  const { branchId } = useBranchFilter({ defaultAll: false });
 
   const [formData, setFormData] = useState({
     expense_category: '',

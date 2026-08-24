@@ -16,6 +16,7 @@ import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../shared/guards/roles.guard';
 import { Roles } from '../../shared/decorators/roles.decorator';
 import { Public } from '../../shared/decorators/public.decorator';
+import { resolveBranchFilter } from '../../common/branch-access.util';
 import { ServiceOrdersService } from './service-orders.service';
 import { CreateServiceOrderDto } from './dto/create-service-order.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
@@ -25,35 +26,6 @@ import { CustomerFeedbackDto } from './dto/customer-feedback.dto';
 import { AssignTechnicianDto } from './dto/assign-technician.dto';
 import { UploadPhotosDto } from './dto/upload-photos.dto';
 import { ProcessPaymentDto } from './dto/payment.dto';
-
-// Helper to enforce branch access and prevent IDOR
-const ensureBranchAccess = (req: ExpressRequest & { user: any }, branchId?: string) => {
-  const userBranchIds: string[] = (req.user as any)?.branchIds || [];
-  const userRoles: string[] = (req.user as any)?.roles || [];
-
-  const isGlobalRole =
-    userRoles.includes('OWNER') || userRoles.includes('CFO') || userRoles.includes('SUPERADMIN');
-
-  // Global roles can access any / all branches
-  if (isGlobalRole) {
-    return branchId;
-  }
-
-  if (!userBranchIds || userBranchIds.length === 0) {
-    throw new ForbiddenException('You do not have any branch access.');
-  }
-
-  // If specific branch requested, ensure it is allowed
-  if (branchId) {
-    if (!userBranchIds.includes(branchId)) {
-      throw new ForbiddenException('You do not have access to this branch.');
-    }
-    return branchId;
-  }
-
-  // No branch specified → default to first allowed branch
-  return userBranchIds[0];
-};
 
 @Controller('service-orders')
 export class ServiceOrdersController {
@@ -68,7 +40,7 @@ export class ServiceOrdersController {
   ) {
     // Determine and validate branch based on user access
     // T21: global roles (SUPERADMIN/OWNER/CFO) may pass branchId from the form (selected outlet)
-    const branchId = ensureBranchAccess(req, dto.branchId) as string;
+    const { branchId } = resolveBranchFilter(req, dto.branchId);
     if (!branchId) {
       throw new ForbiddenException('Branch ID is required');
     }
@@ -85,8 +57,8 @@ export class ServiceOrdersController {
     @Query('technicianId') technicianId?: string,
     @Query('search') search?: string,
   ) {
-    const effectiveBranchId = ensureBranchAccess(req, branchId);
-    return this.serviceOrdersService.findAll(effectiveBranchId, status, technicianId, search);
+    const branchFilter = resolveBranchFilter(req, branchId);
+    return this.serviceOrdersService.findAll(branchFilter, status, technicianId, search);
   }
 
   @Get(':id')

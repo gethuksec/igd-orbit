@@ -14,7 +14,7 @@ export default function GoodsReceiptForm() {
   const { poId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { branchId } = useBranchFilter();
+  const { branchId } = useBranchFilter({ defaultAll: false });
 
   const [isHibah, setIsHibah] = useState(false);
   const [formData, setFormData] = useState({

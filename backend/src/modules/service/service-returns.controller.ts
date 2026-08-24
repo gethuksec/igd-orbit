@@ -16,6 +16,7 @@ import { Request as ExpressRequest } from 'express';
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../shared/guards/roles.guard';
 import { Roles } from '../../shared/decorators/roles.decorator';
+import { resolveBranchFilter } from '../../common/branch-access.util';
 import { ServiceReturnsService } from './service-returns.service';
 import { CreateServiceReturnDto } from './dto/create-service-return.dto';
 import { UpdateServiceReturnDto } from './dto/update-service-return.dto';
@@ -40,7 +41,17 @@ export class ServiceReturnsController {
 
   @Get()
   @Roles('CS', 'CR', 'HS', 'SPV', 'CMO', 'CSO', 'OWNER', 'CFO', 'MANAGER')
-  async findAll(@Query() query: any) {
+  async findAll(
+    @Query() query: any,
+    @Request() req: ExpressRequest & { user: any },
+  ) {
+    // "Semua Cabang" default (22-Agu-2026): no branchId → restrict to user's branches
+    if (!query.branchId) {
+      const { branchIds } = resolveBranchFilter(req, undefined);
+      if (branchIds?.length) {
+        query.branchIds = branchIds;
+      }
+    }
     return this.serviceReturnsService.findAll(query);
   }
 

@@ -12,6 +12,7 @@ import {
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../shared/guards/roles.guard';
 import { Roles } from '../../shared/decorators/roles.decorator';
+import { resolveBranchFilter } from '../../common/branch-access.util';
 import { PurchaseOrdersService } from './services/purchase-orders.service';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
 import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto';
@@ -40,6 +41,7 @@ export class PurchaseOrdersController {
   @UseGuards(RolesGuard)
   @Roles('CSO', 'SPV', 'HS', 'ASA', 'SODO', 'CFO', 'OWNER', 'SUPERADMIN')
   async findAll(
+    @Request() req: ExpressRequest & { user: any },
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('search') search?: string,
@@ -49,6 +51,11 @@ export class PurchaseOrdersController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
+    // "Semua Cabang" default (22-Agu-2026): no branchId → restrict to user's branches
+    let branchIds: string[] | undefined;
+    if (!branchId) {
+      branchIds = resolveBranchFilter(req, undefined).branchIds;
+    }
     return this.purchaseOrdersService.findAll({
       page: page ? parseInt(page, 10) : undefined,
       limit: limit ? parseInt(limit, 10) : undefined,
@@ -56,6 +63,7 @@ export class PurchaseOrdersController {
       status,
       supplierId,
       branchId,
+      branchIds,
       startDate,
       endDate,
     });

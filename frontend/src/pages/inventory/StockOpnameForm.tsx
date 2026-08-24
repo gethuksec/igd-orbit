@@ -12,7 +12,7 @@ import { useQuery } from '@tanstack/react-query';
 export default function StockOpnameForm() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { branchId } = useBranchFilter();
+  const { branchId } = useBranchFilter({ defaultAll: false });
 
   const [formData, setFormData] = useState({
     // D7: default = first-in-list branch (hook)

@@ -19,7 +19,7 @@ import { api } from '@/services/api';
 export default function StockAdjustment() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { branchId } = useBranchFilter();
+  const { branchId } = useBranchFilter({ defaultAll: false });
 
   const [formData, setFormData] = useState({
     // D7: default = first-in-list branch (hook)

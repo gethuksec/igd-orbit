@@ -153,7 +153,7 @@ export default function SalesHistory() {
 
       {/* Branch filter (D7) */}
       <div className="flex justify-end">
-        <BranchFilterSelect value={branchId} onChange={setBranchId} />
+        <BranchFilterSelect value={branchId} onChange={setBranchId} allowAll />
       </div>
 
       {/* Search */}

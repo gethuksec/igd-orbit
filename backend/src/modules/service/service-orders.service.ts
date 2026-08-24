@@ -6,6 +6,7 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services/prisma.service';
+import { BranchFilter } from '../../common/branch-access.util';
 import { CreateServiceOrderDto } from './dto/create-service-order.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
 import { AddPartsDto } from './dto/add-parts.dto';
@@ -364,11 +365,13 @@ export class ServiceOrdersService {
     });
   }
 
-  async findAll(branchId?: string, status?: string, technicianId?: string, search?: string) {
+  async findAll(branchFilter?: BranchFilter, status?: string, technicianId?: string, search?: string) {
     const where: any = {};
 
-    if (branchId) {
-      where.branchId = branchId;
+    if (branchFilter?.branchId) {
+      where.branchId = branchFilter.branchId;
+    } else if (branchFilter?.branchIds?.length) {
+      where.branchId = { in: branchFilter.branchIds };
     }
 
     if (status) {

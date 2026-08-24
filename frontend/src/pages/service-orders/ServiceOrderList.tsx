@@ -157,7 +157,7 @@ export default function ServiceOrderList() {
       <div className="bg-white rounded-xl border border-gray-200 p-4">
         <div className="flex flex-col lg:flex-row gap-4">
           <div className="flex items-end">
-            <BranchFilterSelect value={branchId} onChange={setBranchId} />
+            <BranchFilterSelect value={branchId} onChange={setBranchId} allowAll />
           </div>
           <div className="flex-1">
             <label className="block text-sm font-medium text-gray-700 mb-2">Cari Service Order</label>

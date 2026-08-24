@@ -100,7 +100,7 @@ export default function AttendanceList() {
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
         <div className="flex flex-col lg:flex-row gap-4">
           <div className="flex items-end">
-            <BranchFilterSelect value={branchId} onChange={setBranchId} />
+            <BranchFilterSelect value={branchId} onChange={setBranchId} allowAll />
           </div>
           <div className="flex-1">
             <label className="block text-sm font-semibold text-gray-700 mb-2">Cari Absensi</label>

@@ -115,6 +115,7 @@ export class ExpensesService {
     endDate?: string;
     status?: string;
     branchId?: string;
+    branchIds?: string[];
     departmentId?: string;
     page?: number;
     limit?: number;
@@ -141,6 +142,9 @@ export class ExpensesService {
 
     if (query.branchId) {
       where.branchId = query.branchId;
+    } else if (query.branchIds?.length) {
+      // "Semua Cabang" → user's accessible branches only
+      where.branchId = { in: query.branchIds };
     }
 
     if (query.departmentId) {

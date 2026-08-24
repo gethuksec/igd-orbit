@@ -16,7 +16,7 @@ export default function PurchaseOrderForm() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isEdit = !!id;
-  const { branchId } = useBranchFilter();
+  const { branchId } = useBranchFilter({ defaultAll: false });
 
   const [formData, setFormData] = useState({
     // D7: default = first-in-list branch (hook)

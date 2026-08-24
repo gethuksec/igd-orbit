@@ -25,6 +25,9 @@ export class StockService {
       where.warehouseId = warehouseId;
     } else if (branchId) {
       where.branchId = branchId;
+    } else if (query.branchIds?.length) {
+      // "Semua Cabang" → user's accessible branches only
+      where.branchId = { in: query.branchIds };
     }
 
     if (categoryId) {
@@ -271,7 +274,7 @@ export class StockService {
     });
   }
 
-  async getLowStockAlerts(branchId?: string) {
+  async getLowStockAlerts(branchId?: string, branchIds?: string[]) {
     const where: any = {
       product: {
         isActive: true,
@@ -281,6 +284,9 @@ export class StockService {
 
     if (branchId) {
       where.branchId = branchId;
+    } else if (branchIds?.length) {
+      // "Semua Cabang" → user's accessible branches only
+      where.branchId = { in: branchIds };
     }
 
     // Get stocks with reorder point set
@@ -361,6 +367,9 @@ export class StockService {
       where.warehouseId = warehouseId;
     } else if (branchId) {
       where.branchId = branchId;
+    } else if (query.branchIds?.length) {
+      // "Semua Cabang" → user's accessible branches only
+      where.branchId = { in: query.branchIds };
     }
 
     if (movementType) {

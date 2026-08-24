@@ -11,6 +11,7 @@ import {
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../shared/guards/roles.guard';
 import { Roles } from '../../shared/decorators/roles.decorator';
+import { resolveBranchFilter } from '../../common/branch-access.util';
 import { PettyCashService } from './services/petty-cash.service';
 import { CreatePettyCashFundDto } from './dto/create-petty-cash-fund.dto';
 import { RecordPettyCashTransactionDto } from './dto/record-petty-cash-transaction.dto';
@@ -40,11 +41,18 @@ export class PettyCashController {
   @Get()
   @Roles('HS', 'CFO', 'SPV')
   async findAll(
+    @Request() req: any,
     @Query('branchId') branchId?: string,
     @Query('isActive') isActive?: boolean,
   ) {
+    // "Semua Cabang" default (22-Agu-2026): no branchId → restrict to user's branches
+    let branchIds: string[] | undefined;
+    if (!branchId) {
+      branchIds = resolveBranchFilter(req, undefined).branchIds;
+    }
     return this.pettyCashService.findAll({
       branchId,
+      branchIds,
       isActive: isActive === undefined ? undefined : isActive === true,
     });
   }

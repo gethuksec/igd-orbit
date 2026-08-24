@@ -18,6 +18,10 @@ export class ListStockDto {
   @IsOptional()
   branchId?: string;
 
+  @IsUUID(undefined, { each: true })
+  @IsOptional()
+  branchIds?: string[];
+
   @IsUUID()
   @IsOptional()
   categoryId?: string;

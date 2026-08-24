@@ -11,6 +11,7 @@ import {
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../shared/guards/roles.guard';
 import { Roles } from '../../shared/decorators/roles.decorator';
+import { resolveBranchFilter } from '../../common/branch-access.util';
 import { AttendanceService } from './services/attendance.service';
 import { ClockInDto } from './dto/clock-in.dto';
 import { ClockOutDto } from './dto/clock-out.dto';
@@ -66,7 +67,12 @@ export class AttendanceController {
     // Only filter by userId if user doesn't have high-level roles (for viewing all)
     const hasHighLevelRole = ['OWNER', 'CFO', 'CHR', 'HS', 'SPV'].some((role) => req.user.roles.includes(role));
     const userId = hasHighLevelRole ? undefined : req.user.id;
-    return this.attendanceService.findAll(userId, employeeId, start, end, search, status, branchId);
+    // "Semua Cabang" default (22-Agu-2026): no branchId → restrict to user's branches
+    let branchIds: string[] | undefined;
+    if (!branchId) {
+      branchIds = resolveBranchFilter(req, undefined).branchIds;
+    }
+    return this.attendanceService.findAll(userId, employeeId, start, end, search, status, branchId, branchIds);
   }
 
   /**
