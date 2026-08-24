@@ -182,6 +182,7 @@ export class ServiceReturnsService {
     status?: string;
     returnType?: string;
     branchId?: string;
+    branchIds?: string[];
     startDate?: string;
     endDate?: string;
   }) {
@@ -193,6 +194,7 @@ export class ServiceReturnsService {
         status,
         returnType,
         branchId,
+        branchIds,
         startDate,
         endDate,
       } = query || {};
@@ -210,17 +212,22 @@ export class ServiceReturnsService {
           { returnNumber: { contains: search, mode: 'insensitive' } },
         ];
 
-        // Add service order search conditions with branchId if provided
-        if (branchId) {
+        // Add service order search conditions with branch filter if provided
+        const branchScope = branchId
+          ? { branchId }
+          : branchIds?.length
+            ? { branchId: { in: branchIds } }
+            : null;
+        if (branchScope) {
           searchConditions.push({
             serviceOrder: {
-              branchId,
+              ...branchScope,
               serviceNumber: { contains: search, mode: 'insensitive' },
             },
           });
           searchConditions.push({
             serviceOrder: {
-              branchId,
+              ...branchScope,
               customerName: { contains: search, mode: 'insensitive' },
             },
           });
@@ -242,6 +249,11 @@ export class ServiceReturnsService {
         // No search, just branchId filter
         where.serviceOrder = {
           branchId,
+        };
+      } else if (branchIds?.length) {
+        // No search, "Semua Cabang" → restrict to user's accessible branches
+        where.serviceOrder = {
+          branchId: { in: branchIds },
         };
       }
 

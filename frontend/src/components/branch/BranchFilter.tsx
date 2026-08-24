@@ -1,17 +1,28 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useBranchStore } from '@/stores/branchStore';
 
+interface UseBranchFilterOptions {
+  /**
+   * When true (lists, default): multi-branch users default to "Semua Cabang" ('').
+   * When false (forms): default to the first-in-list branch so creates always
+   * carry an explicit branchId. Client decision (meeting 22 Agu 2026 §1):
+   * - 1 branch → auto-select it (both modes).
+   * - >1 branch → "Semua Cabang" is the default on lists; forms stay explicit.
+   */
+  defaultAll?: boolean;
+}
+
 /**
  * D7 (#62): page-local branch selection — no global context.
+ * IGDERP-107 (22-Agu-2026): "Semua Cabang" is the default for multi-branch
+ * users on list pages; a single-branch user auto-selects that branch.
  *
- * Defaults to the first-in-list branch once `availableBranches` loads
- * (decision #32: default = first-in-list; auto-select when only 1 branch).
- * Switching branch on one page never affects another page.
- *
- * The auto-default only applies until the user makes their own choice —
- * picking "Semua Cabang" (empty value) is respected, never overwritten.
+ * Switching branch on one page never affects another page. The auto-default
+ * only applies until the user makes their own choice — picking a specific
+ * branch (or "Semua Cabang") is respected, never overwritten.
  */
-export function useBranchFilter() {
+export function useBranchFilter(options?: UseBranchFilterOptions) {
+  const defaultAll = options?.defaultAll ?? true;
   const { availableBranches } = useBranchStore();
   const [branchId, setBranchId] = useState<string>('');
   const userTouched = useRef(false);
@@ -22,10 +33,18 @@ export function useBranchFilter() {
   }, []);
 
   useEffect(() => {
-    if (!userTouched.current && branchId === '' && availableBranches.length > 0) {
+    if (userTouched.current) return;
+    if (branchId !== '') return;
+
+    if (availableBranches.length === 1) {
+      // Single branch → auto-select it (client decision §1)
+      setBranchId(availableBranches[0].id);
+    } else if (!defaultAll && availableBranches.length > 0) {
+      // Forms: fall back to the first-in-list branch (decision #32)
       setBranchId(availableBranches[0].id);
     }
-  }, [availableBranches, branchId]);
+    // Multi-branch lists: stay on '' = "Semua Cabang"
+  }, [availableBranches, branchId, defaultAll]);
 
   return { branchId, setBranchId: handleSetBranchId, branches: availableBranches };
 }
@@ -40,7 +59,8 @@ interface BranchFilterSelectProps {
 
 /**
  * Compact per-page branch filter dropdown. `allowAll` adds a "Semua Cabang"
- * option (only used on aggregate views, e.g. ExecutiveDashboard).
+ * option (used on list pages per IGDERP-107; forms pass allowAll=false so an
+ * explicit branch is always chosen).
  */
 export function BranchFilterSelect({
   value,

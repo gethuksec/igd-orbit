@@ -23,6 +23,10 @@ export class ListMovementsDto {
   @IsOptional()
   branchId?: string;
 
+  @IsUUID(undefined, { each: true })
+  @IsOptional()
+  branchIds?: string[];
+
   @IsEnum(['IN', 'OUT', 'TRANSFER', 'ADJUSTMENT'])
   @IsOptional()
   movementType?: 'IN' | 'OUT' | 'TRANSFER' | 'ADJUSTMENT';

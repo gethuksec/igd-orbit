@@ -91,11 +91,14 @@ export class PettyCashService {
   /**
    * List petty cash funds
    */
-  async findAll(query: { branchId?: string; isActive?: boolean }) {
+  async findAll(query: { branchId?: string; branchIds?: string[]; isActive?: boolean }) {
     const where: any = {};
 
     if (query.branchId) {
       where.branchId = query.branchId;
+    } else if (query.branchIds?.length) {
+      // "Semua Cabang" → user's accessible branches only
+      where.branchId = { in: query.branchIds };
     }
 
     if (query.isActive !== undefined) {

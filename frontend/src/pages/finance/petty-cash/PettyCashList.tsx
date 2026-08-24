@@ -67,7 +67,7 @@ export default function PettyCashList() {
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <BranchFilterSelect value={branchId} onChange={setBranchId} />
+            <BranchFilterSelect value={branchId} onChange={setBranchId} allowAll />
           </div>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">

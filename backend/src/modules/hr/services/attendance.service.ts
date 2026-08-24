@@ -474,6 +474,7 @@ export class AttendanceService {
     search?: string,
     status?: string,
     branchId?: string,
+    branchIds?: string[],
   ) {
     const where: any = {};
 
@@ -504,6 +505,9 @@ export class AttendanceService {
 
     if (branchId) {
       where.branchId = branchId;
+    } else if (branchIds?.length) {
+      // "Semua Cabang" → user's accessible branches only
+      where.branchId = { in: branchIds };
     }
 
     if (search) {

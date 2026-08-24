@@ -13,7 +13,7 @@ export default function PettyCashFundForm() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { availableBranches } = useBranchStore();
-  const { branchId } = useBranchFilter();
+  const { branchId } = useBranchFilter({ defaultAll: false });
 
   const [formData, setFormData] = useState({
     fund_number: '',

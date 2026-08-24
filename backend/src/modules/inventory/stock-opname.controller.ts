@@ -11,6 +11,7 @@ import {
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../shared/guards/roles.guard';
 import { Roles } from '../../shared/decorators/roles.decorator';
+import { resolveBranchFilter } from '../../common/branch-access.util';
 import { StockOpnameService } from './stock-opname.service';
 import { StartOpnameDto } from './dto/start-opname.dto';
 import { RecordCountDto } from './dto/record-count.dto';
@@ -31,10 +32,16 @@ export class StockOpnameController {
   @UseGuards(RolesGuard)
   @Roles('CSO', 'SPV', 'HS', 'ASA', 'SODO', 'CS', 'CR', 'TC', 'AS', 'SMO', 'AR', 'CMO', 'CFO', 'CHR', 'OWNER', 'SUPERADMIN')
   async findAll(
+    @Request() req: any,
     @Query('branchId') branchId?: string,
     @Query('status') status?: string,
   ) {
-    return this.opnameService.findAll(branchId, status);
+    // "Semua Cabang" default (22-Agu-2026): no branchId → restrict to user's branches
+    let branchIds: string[] | undefined;
+    if (!branchId) {
+      branchIds = resolveBranchFilter(req, undefined).branchIds;
+    }
+    return this.opnameService.findAll(branchId, status, branchIds);
   }
 
   @Get(':id')

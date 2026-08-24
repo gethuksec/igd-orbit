@@ -12,6 +12,7 @@ import {
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../shared/guards/roles.guard';
 import { Roles } from '../../shared/decorators/roles.decorator';
+import { resolveBranchFilter } from '../../common/branch-access.util';
 import { ExpensesService } from './services/expenses.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { ApproveExpenseDto } from './dto/approve-expense.dto';
@@ -42,6 +43,7 @@ export class ExpensesController {
   @Get()
   @Roles('CFO', 'SPV', 'HS', 'CS', 'TC', 'SODO', 'ASA', 'AR', 'SMO', 'AS', 'CR', 'OWNER')
   async findAll(
+    @Request() req: any,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('status') status?: string,
@@ -50,11 +52,17 @@ export class ExpensesController {
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
+    // "Semua Cabang" default (22-Agu-2026): no branchId → restrict to user's branches
+    let branchIds: string[] | undefined;
+    if (!branchId) {
+      branchIds = resolveBranchFilter(req, undefined).branchIds;
+    }
     return this.expensesService.findAll({
       startDate,
       endDate,
       status,
       branchId,
+      branchIds,
       departmentId,
       page: page ? Number(page) : undefined,
       limit: limit ? Number(limit) : undefined,
