@@ -57,7 +57,7 @@ export default function SalesTransactionDetail() {
   const tx = transaction as any;
   const branch = tx.branch || {};
 
-  // Retur info for retur-status transactions (IGDERP-85)
+  // Retur info for retur-status transactions
   const { data: returInfo } = useQuery({
     queryKey: ['sales-return-by-transaction', id],
     queryFn: () => salesService.getReturnByTransaction(id!),
