@@ -75,9 +75,9 @@ export const customersService = {
         apiParams['filter[tier]'] = [params.tier];
       }
       
-      // Customer type filter (retail/wholesale/corporate) — array format
+      // Customer type filter (retail/wholesale/corporate) — single value (app-wide convention)
       if (params?.type) {
-        apiParams['filter[type]'] = [params.type];
+        apiParams['filter[type]'] = params.type;
       }
       
       // Status filter (active = not deleted, inactive = soft-deleted)

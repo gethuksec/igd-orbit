@@ -260,9 +260,9 @@ export class CustomersService {
       }
     }
 
-    // Type filter
-    if (filterType && filterType.length > 0) {
-      where.customerType = { in: filterType };
+    // Type filter (single value — app-wide convention, matches DTO)
+    if (filterType) {
+      where.customerType = filterType;
     }
 
     // Branch filter
