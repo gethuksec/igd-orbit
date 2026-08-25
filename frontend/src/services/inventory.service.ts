@@ -57,10 +57,11 @@ export interface TransferStockProduct {
 export interface StockOpname {
   id: string;
   opnameNumber: string;
+  warehouseId: string;
   branchId: string;
   branch?: { id: string; name: string; code: string };
   opnameDate: string;
-  status: 'draft' | 'counting' | 'completed' | 'approved';
+  status: 'draft' | 'counting' | 'completed' | 'approved' | 'cancelled';
   items: StockOpnameItem[];
   totalDiscrepancyValue?: number | null;
   startedBy: string;
@@ -68,6 +69,8 @@ export interface StockOpname {
   completedAt?: string | null;
   approvedBy?: string | null;
   approvedAt?: string | null;
+  cancelledBy?: string | null;
+  cancelledAt?: string | null;
   notes?: string;
   createdAt: string;
   updatedAt: string;
@@ -77,8 +80,10 @@ export interface StockOpnameItem {
   id: string;
   opnameId: string;
   productId: string;
-  product?: { id: string; name: string; sku: string; costPrice: any; category?: any; brand?: any };
+  product?: { id: string; name: string; sku: string; barcode?: string | null; costPrice: any; category?: any; brand?: any };
   systemQuantity: number;
+  systemQuantityAtCount?: number | null;
+  liveQuantity?: number | null;
   physicalQuantity?: number | null;
   discrepancy?: number | null;
   discrepancyValue?: number | null;
@@ -421,6 +426,36 @@ export const inventoryService = {
   async approveOpname(id: string): Promise<StockOpname> {
     try {
       const response = await api.post(`/inventory/opname/${id}/approve`);
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  /** Draft model: add a product to the ongoing opname. */
+  async addOpnameItem(opnameId: string, productId: string): Promise<StockOpname> {
+    try {
+      const response = await api.post(`/inventory/opname/${opnameId}/items/add`, { productId });
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  /** Draft model: remove a product from the ongoing opname. */
+  async removeOpnameItem(opnameId: string, productId: string): Promise<StockOpname> {
+    try {
+      const response = await api.delete(`/inventory/opname/${opnameId}/items/${productId}`);
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  /** Cancel/void the ongoing opname (frees the outlet for a new one). */
+  async cancelOpname(id: string): Promise<StockOpname> {
+    try {
+      const response = await api.post(`/inventory/opname/${id}/cancel`);
       return response.data;
     } catch (error: any) {
       throw error;

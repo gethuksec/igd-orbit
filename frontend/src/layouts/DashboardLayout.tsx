@@ -34,6 +34,8 @@ import {
   ClipboardCheck,
   ClipboardList,
   PackageSearch,
+  TrendingUp,
+  AlertTriangle,
   Truck,
   ReceiptText,
   Wallet,
@@ -44,8 +46,6 @@ import {
   Target,
   Plus,
   RotateCcw,
-  TrendingUp,
-  AlertTriangle,
   Zap,
 } from 'lucide-react';
 import type { Branch } from '@/services/public.service';
@@ -339,7 +339,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         { icon: ArrowDownToLine, label: 'Stok Masuk', path: '/inventory/stock-in', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
         { icon: ArrowUpFromLine, label: 'Stok Keluar', path: '/inventory/stock-out', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
         { icon: ArrowRightLeft, label: 'Transfer Stok', path: '/inventory/transfer', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
-        { icon: ClipboardCheck, label: 'Opname', path: '/inventory/opname', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
+        { icon: ClipboardCheck, label: 'Stock Opname', path: '/inventory/opname', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
         { icon: PackageSearch, label: 'Stock Adjustment', path: '/inventory/adjustment', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS'] },
         { icon: TrendingUp, label: 'Aktivitas Produk', path: '/inventory/movements', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
         { icon: AlertTriangle, label: 'Peringatan Stok Rendah', path: '/inventory/alerts', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },

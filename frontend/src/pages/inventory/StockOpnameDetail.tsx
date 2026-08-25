@@ -97,6 +97,8 @@ export default function StockOpnameDetail() {
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'approved':
         return 'bg-green-100 text-green-800 border-green-200';
+      case 'cancelled':
+        return 'bg-red-50 text-red-700 border-red-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -112,6 +114,8 @@ export default function StockOpnameDetail() {
         return 'Selesai - Menunggu Persetujuan';
       case 'approved':
         return 'Disetujui';
+      case 'cancelled':
+        return 'Dibatalkan';
       default:
         return status;
     }

@@ -8,6 +8,10 @@ import { StartOpnameDto } from './dto/start-opname.dto';
 import { RecordCountDto } from './dto/record-count.dto';
 import { Decimal } from '@prisma/client/runtime/library';
 
+const ACTIVE_STATUSES = ['draft', 'counting'] as const;
+
+type ActiveStatus = (typeof ACTIVE_STATUSES)[number];
+
 @Injectable()
 export class StockOpnameService {
   constructor(private prisma: PrismaService) {}
@@ -19,6 +23,36 @@ export class StockOpnameService {
       .toString()
       .padStart(6, '0');
     return `OP-${dateStr}-${random}`;
+  }
+
+  /** Fetch live product_stock for every item of an opname and attach as `liveQuantity`. */
+  private async attachLiveQuantities(opname: any) {
+    const productIds = (opname.items ?? []).map((i: any) => i.productId);
+    const stocks =
+      productIds.length > 0
+        ? await this.prisma.productStock.findMany({
+            where: {
+              warehouseId: opname.warehouseId,
+              productId: { in: productIds },
+            },
+          })
+        : [];
+    const byProduct = new Map(stocks.map((s) => [s.productId, s]));
+    return {
+      ...opname,
+      items: (opname.items ?? []).map((i: any) => ({
+        ...i,
+        liveQuantity: byProduct.get(i.productId)?.quantityAvailable ?? new Decimal(0),
+      })),
+    };
+  }
+
+  private assertActive(opname: { status: string; opnameNumber: string }, action: string) {
+    if (!ACTIVE_STATUSES.includes(opname.status as ActiveStatus)) {
+      throw new BadRequestException(
+        `Cannot ${action} for opname with status: ${opname.status}`,
+      );
+    }
   }
 
   async startOpname(dto: StartOpnameDto, userId: string) {
@@ -50,7 +84,7 @@ export class StockOpnameService {
 
     const effectiveBranchId = warehouse.outletId;
 
-    // Check if there's an active opname (draft or counting)
+    // One active opname (draft/counting) per warehouse/outlet
     const activeOpname = await this.prisma.stockOpname.findFirst({
       where: {
         warehouseId: warehouse.id,
@@ -62,11 +96,11 @@ export class StockOpnameService {
 
     if (activeOpname) {
       throw new BadRequestException(
-        `There is an active opname (${activeOpname.opnameNumber}) for this branch. Please complete or cancel it first.`,
+        `There is an active opname (${activeOpname.opnameNumber}) for this outlet. Please complete or cancel it first.`,
       );
     }
 
-    // Get all products with stock in this branch
+    // Get all products with stock in this warehouse
     const stocks = await this.prisma.productStock.findMany({
       where: {
         warehouseId: warehouse.id,
@@ -153,7 +187,7 @@ export class StockOpnameService {
       where.status = status;
     }
 
-    return this.prisma.stockOpname.findMany({
+    const opnames = await this.prisma.stockOpname.findMany({
       where,
       include: {
         items: {
@@ -170,6 +204,8 @@ export class StockOpnameService {
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    return Promise.all(opnames.map((o) => this.attachLiveQuantities(o)));
   }
 
   async findById(id: string) {
@@ -194,7 +230,110 @@ export class StockOpnameService {
       throw new NotFoundException('Opname not found');
     }
 
-    return opname;
+    return this.attachLiveQuantities(opname);
+  }
+
+  /** Draft model: add a product to an ongoing (draft/counting) opname. */
+  async addItem(opnameId: string, productId: string) {
+    const opname = await this.prisma.stockOpname.findUnique({
+      where: { id: opnameId },
+    });
+
+    if (!opname) {
+      throw new NotFoundException('Opname not found');
+    }
+    this.assertActive(opname, 'add items to');
+
+    const product = await this.prisma.product.findFirst({
+      where: { id: productId, isActive: true, deletedAt: null },
+    });
+    if (!product) {
+      throw new NotFoundException('Product not found or inactive');
+    }
+
+    const existing = await this.prisma.stockOpnameItem.findFirst({
+      where: { opnameId, productId },
+    });
+    if (existing) {
+      throw new BadRequestException('Product is already in this opname');
+    }
+
+    // System quantity = LIVE stock at add time (0 when no stock row exists yet)
+    const stock = await this.prisma.productStock.findUnique({
+      where: {
+        productId_warehouseId: { productId, warehouseId: opname.warehouseId },
+      },
+    });
+
+    await this.prisma.stockOpnameItem.create({
+      data: {
+        opnameId,
+        productId,
+        systemQuantity: stock ? stock.quantityAvailable : new Decimal(0),
+        physicalQuantity: null,
+        discrepancy: null,
+        discrepancyValue: null,
+      },
+    });
+
+    return this.findById(opnameId);
+  }
+
+  /** Draft model: remove a product from an ongoing (draft/counting) opname. */
+  async removeItem(opnameId: string, productId: string) {
+    const opname = await this.prisma.stockOpname.findUnique({
+      where: { id: opnameId },
+    });
+
+    if (!opname) {
+      throw new NotFoundException('Opname not found');
+    }
+    this.assertActive(opname, 'remove items from');
+
+    const item = await this.prisma.stockOpnameItem.findFirst({
+      where: { opnameId, productId },
+    });
+    if (!item) {
+      throw new NotFoundException('Product not found in opname items');
+    }
+
+    await this.prisma.stockOpnameItem.delete({ where: { id: item.id } });
+
+    return this.findById(opnameId);
+  }
+
+  /** Cancel/void an ongoing opname, freeing the outlet for a new one. */
+  async cancelOpname(opnameId: string, userId: string) {
+    const opname = await this.prisma.stockOpname.findUnique({
+      where: { id: opnameId },
+    });
+
+    if (!opname) {
+      throw new NotFoundException('Opname not found');
+    }
+    this.assertActive(opname, 'cancel');
+
+    return this.prisma.stockOpname.update({
+      where: { id: opnameId },
+      data: {
+        status: 'cancelled',
+        cancelledBy: userId,
+        cancelledAt: new Date(),
+      },
+      include: {
+        items: {
+          include: {
+            product: {
+              include: {
+                category: true,
+                brand: true,
+              },
+            },
+          },
+        },
+        branch: true,
+      },
+    });
   }
 
   async recordCount(opnameId: string, dto: RecordCountDto, userId: string) {
@@ -232,10 +371,25 @@ export class StockOpnameService {
         const costPrice = Number(opnameItem.product.costPrice);
         const discrepancyValue = discrepancy * costPrice;
 
+        // Capture LIVE system stock at the moment the count is recorded —
+        // used at approval time for sale-safe reconciliation (sales that
+        // happened during the opname are not overwritten).
+        const liveStock = await tx.productStock.findUnique({
+          where: {
+            productId_warehouseId: {
+              productId: item.productId,
+              warehouseId: opname.warehouseId,
+            },
+          },
+        });
+
         await tx.stockOpnameItem.update({
           where: { id: opnameItem.id },
           data: {
             physicalQuantity: new Decimal(physicalQuantity),
+            systemQuantityAtCount: liveStock
+              ? liveStock.quantityAvailable
+              : new Decimal(0),
             discrepancy: new Decimal(discrepancy),
             discrepancyValue: new Decimal(discrepancyValue),
             condition: item.condition,
@@ -294,19 +448,6 @@ export class StockOpnameService {
       return sum + Number(item.discrepancyValue || 0);
     }, 0);
 
-    // Check for large discrepancies (>5%)
-    const itemsWithLargeDiscrepancy = opname.items.filter((item) => {
-      const systemQty = Number(item.systemQuantity);
-      const discrepancy = Number(item.discrepancy || 0);
-      const percentage = systemQty > 0 ? Math.abs((discrepancy / systemQty) * 100) : 0;
-      return percentage > 5;
-    });
-
-    if (itemsWithLargeDiscrepancy.length > 0) {
-      // Log warning but allow completion
-      // In production, you might want to require additional approval
-    }
-
     return this.prisma.stockOpname.update({
       where: { id: opnameId },
       data: {
@@ -331,6 +472,22 @@ export class StockOpnameService {
     });
   }
 
+  /**
+   * Sale-safe approval.
+   *
+   * For each item the final stock is reconciled against the LIVE stock at
+   * approval time using the live quantity captured when the count was saved:
+   *
+   *   final = physical + liveNow - liveAtCount
+   *
+   * (counted 2, sold 1 → final 1; sales during the opname are preserved).
+   * Items counted before this field existed (systemQuantityAtCount null)
+   * fall back to final = physical (legacy behaviour).
+   *
+   * Damaged/expired lines are reclassified: the counted units move from
+   * quantity_available into quantity_damaged, even when the quantity
+   * discrepancy is zero.
+   */
   async approveOpname(opnameId: string, userId: string) {
     const opname = await this.prisma.stockOpname.findUnique({
       where: { id: opnameId },
@@ -353,56 +510,54 @@ export class StockOpnameService {
     }
 
     return await this.prisma.$transaction(async (tx) => {
-      // Create stock adjustments for discrepancies
       for (const item of opname.items) {
-        const discrepancy = Number(item.discrepancy || 0);
+        if (item.physicalQuantity === null) continue; // defensive; complete validates
 
-        if (discrepancy !== 0) {
-          // Get current stock
-          let stock = await tx.productStock.findUnique({
-            where: {
-              productId_warehouseId: {
-                productId: item.productId,
-                warehouseId: opname.warehouseId,
-              },
+        // Current live stock (create a zero row if none exists)
+        let stock = await tx.productStock.findUnique({
+          where: {
+            productId_warehouseId: {
+              productId: item.productId,
+              warehouseId: opname.warehouseId,
             },
-          });
+          },
+        });
 
-          if (!stock) {
-            stock = await tx.productStock.create({
-              data: {
-                productId: item.productId,
-                warehouseId: opname.warehouseId,
-                branchId: opname.branchId,
-                quantityAvailable: new Decimal(0),
-                quantityReserved: new Decimal(0),
-                quantityDamaged: new Decimal(0),
-              },
-            });
-          }
-
-          const quantityBefore = Number(stock.quantityAvailable);
-          const physicalQuantity = Number(item.physicalQuantity!);
-          const quantityAfter = physicalQuantity; // Set to physical count
-
-          // Update stock to match physical count
-          await tx.productStock.update({
-            where: {
-              productId_warehouseId: {
-                productId: item.productId,
-                warehouseId: opname.warehouseId,
-              },
-            },
+        if (!stock) {
+          stock = await tx.productStock.create({
             data: {
-              quantityAvailable: new Decimal(quantityAfter),
-              quantityDamaged:
-                item.condition === 'damaged'
-                  ? new Decimal(Number(stock.quantityDamaged) + (item.condition === 'damaged' ? Math.abs(discrepancy) : 0))
-                  : stock.quantityDamaged,
+              productId: item.productId,
+              warehouseId: opname.warehouseId,
+              branchId: opname.branchId,
+              quantityAvailable: new Decimal(0),
+              quantityReserved: new Decimal(0),
+              quantityDamaged: new Decimal(0),
             },
           });
+        }
 
-          // Create stock movement
+        const liveNow = Number(stock.quantityAvailable);
+        const physical = Number(item.physicalQuantity);
+        const liveAtCount =
+          item.systemQuantityAtCount !== null && item.systemQuantityAtCount !== undefined
+            ? Number(item.systemQuantityAtCount)
+            : null;
+
+        // Reconcile against live stock (sale-safe)
+        const finalTotal = liveAtCount !== null
+          ? Math.max(0, physical + liveNow - liveAtCount)
+          : physical;
+
+        const isDamaged = item.condition === 'damaged' || item.condition === 'expired';
+        const availableAfter = isDamaged ? Math.max(0, finalTotal - physical) : finalTotal;
+        const damagedAfter = isDamaged
+          ? Number(stock.quantityDamaged) + physical
+          : Number(stock.quantityDamaged);
+
+        const quantityChange = availableAfter - liveNow;
+
+        // Movement only when stock actually changes (incl. pure reclassification)
+        if (quantityChange !== 0 || (isDamaged && physical > 0)) {
           await tx.stockMovement.create({
             data: {
               productId: item.productId,
@@ -411,14 +566,27 @@ export class StockOpnameService {
               movementType: 'ADJUSTMENT',
               referenceType: 'OPNAME',
               referenceId: opnameId,
-              quantityChange: new Decimal(discrepancy),
-              quantityBefore: new Decimal(quantityBefore),
-              quantityAfter: new Decimal(quantityAfter),
-              notes: `Stock opname adjustment${item.notes ? ` - ${item.notes}` : ''}`,
+              quantityChange: new Decimal(quantityChange),
+              quantityBefore: new Decimal(liveNow),
+              quantityAfter: new Decimal(availableAfter),
+              notes: `Stock opname adjustment${item.condition ? ` (${item.condition})` : ''}${item.notes ? ` - ${item.notes}` : ''}`,
               createdBy: userId,
             },
           });
         }
+
+        await tx.productStock.update({
+          where: {
+            productId_warehouseId: {
+              productId: item.productId,
+              warehouseId: opname.warehouseId,
+            },
+          },
+          data: {
+            quantityAvailable: new Decimal(availableAfter),
+            quantityDamaged: new Decimal(damagedAfter),
+          },
+        });
       }
 
       // Update opname status
@@ -446,4 +614,3 @@ export class StockOpnameService {
     });
   }
 }
-
