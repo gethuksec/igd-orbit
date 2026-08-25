@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { SalesTransactionsController } from './sales-transactions.controller';
 import { SalesTransactionsService } from './sales-transactions.service';
+import { SalesReturnsController } from './sales-returns.controller';
+import { SalesReturnsService } from './sales-returns.service';
 import { CustomerDepositsController } from './customer-deposits.controller';
 import { CustomerDepositsService } from './customer-deposits.service';
 import { PrismaService } from '../../shared/services';
@@ -13,9 +15,18 @@ import { FinanceModule } from '../finance/finance.module';
  */
 @Module({
   imports: [CustomersModule, FinanceModule],
-  controllers: [SalesTransactionsController, CustomerDepositsController],
-  providers: [SalesTransactionsService, CustomerDepositsService, PrismaService],
-  exports: [SalesTransactionsService, CustomerDepositsService],
+  controllers: [
+    SalesTransactionsController,
+    SalesReturnsController,
+    CustomerDepositsController,
+  ],
+  providers: [
+    SalesTransactionsService,
+    SalesReturnsService,
+    CustomerDepositsService,
+    PrismaService,
+  ],
+  exports: [SalesTransactionsService, SalesReturnsService, CustomerDepositsService],
 })
 export class SalesModule {}
 

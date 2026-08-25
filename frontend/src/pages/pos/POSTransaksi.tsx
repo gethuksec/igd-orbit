@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { formatCurrency } from '@/utils/format';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { salesService } from '../../services/sales.service';
 import {
   Search,
   Plus,
@@ -126,6 +127,13 @@ export default function POSTransaksi() {
       return res.json();
     },
     enabled: customerSearch.length >= 2,
+  });
+
+  // IGDERP-102: show selected customer's deposit balance in POS
+  const { data: posDepositBalance } = useQuery({
+    queryKey: ['pos-deposit-balance', form.pelangganId],
+    queryFn: () => salesService.getDepositBalance(form.pelangganId.toString()),
+    enabled: !!form.pelangganId,
   });
 
   // Close customer dropdown on click outside
@@ -707,6 +715,11 @@ export default function POSTransaksi() {
                     />
                     Barang Dikirim
                   </label>
+                  {form.pelangganId && posDepositBalance !== undefined && (
+                    <span className="ml-auto text-xs font-semibold text-red-700 bg-red-50 border border-red-100 rounded-md px-2 py-0.5">
+                      Saldo Deposit: {formatCurrency(posDepositBalance)}
+                    </span>
+                  )}
                 </div>
               </div>
 

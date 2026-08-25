@@ -247,8 +247,8 @@ export const salesService = {
     return response.data.balance;
   },
 
-  async getDepositHistory(customerId: string): Promise<any[]> {
-    const response = await api.get(`/customer-deposits/history/${customerId}`);
+  async getDepositHistory(customerId: string, params?: { page?: number; limit?: number }): Promise<{ data: any[]; meta: any }> {
+    const response = await api.get(`/customer-deposits/history/${customerId}`, { params });
     return response.data;
   },
 
@@ -259,6 +259,28 @@ export const salesService = {
 
   async refundDeposit(customerId: string, amount: number, notes?: string): Promise<any> {
     const response = await api.post('/customer-deposits/refund', { customerId, amount, notes });
+    return response.data;
+  },
+
+  // === Sales Return (IGDERP-85) ===
+
+  async createReturn(data: {
+    transactionId: string;
+    reason: string;
+    settlementType: 'cash' | 'exchange';
+    coaId?: string;
+  }): Promise<any> {
+    const response = await api.post('/sales-returns', data);
+    return response.data;
+  },
+
+  async getReturns(params?: { page?: number; limit?: number; search?: string; transactionId?: string }): Promise<any> {
+    const response = await api.get('/sales-returns', { params });
+    return response.data;
+  },
+
+  async getReturnByTransaction(transactionId: string): Promise<any> {
+    const response = await api.get(`/sales-returns/by-transaction/${transactionId}`);
     return response.data;
   },
 };
