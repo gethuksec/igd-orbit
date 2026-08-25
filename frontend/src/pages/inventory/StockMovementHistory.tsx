@@ -2,20 +2,17 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Search,
-  Filter,
   Loader2,
   Package,
   ArrowUp,
   ArrowDown,
   ArrowRightLeft,
-  Calendar,
   TrendingUp,
   TrendingDown,
 } from 'lucide-react';
-import { BreadcrumbHeader } from '@/components/shared';
+import { BreadcrumbHeader, FilterToolbar } from '@/components/shared';
 import { inventoryService } from '../../services/inventory.service';
-import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
+import { useBranchFilter } from '@/components/branch/BranchFilter';
 
 export default function StockMovementHistory() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -141,81 +138,71 @@ export default function StockMovementHistory() {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <div>
-            <BranchFilterSelect value={branchId} onChange={setBranchId} allowAll />
-          </div>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Cari produk..."
-              className="block w-full pl-12 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-            />
-          </div>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Filter className="h-5 w-5 text-gray-400" />
-            </div>
-            <select
-              value={selectedMovementType}
-              onChange={(e) => setSelectedMovementType(e.target.value)}
-              className="block w-full pl-12 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white"
-            >
-              <option value="ALL">Semua Tipe</option>
-              <option value="IN">Masuk (IN)</option>
-              <option value="OUT">Keluar (OUT)</option>
-              <option value="TRANSFER">Transfer</option>
-              <option value="ADJUSTMENT">Penyesuaian</option>
-            </select>
-          </div>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Filter className="h-5 w-5 text-gray-400" />
-            </div>
-            <select
-              value={selectedReferenceType}
-              onChange={(e) => setSelectedReferenceType(e.target.value)}
-              className="block w-full pl-12 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white"
-            >
-              <option value="ALL">Semua Referensi</option>
-              <option value="SALE">Penjualan</option>
-              <option value="SERVICE">Service</option>
-              <option value="TRANSFER">Transfer</option>
-              <option value="OPNAME">Opname</option>
-              <option value="ADJUSTMENT">Penyesuaian</option>
-            </select>
-          </div>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Calendar className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="block w-full pl-12 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base"
-            />
-          </div>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Calendar className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="block w-full pl-12 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base"
-            />
-          </div>
-        </div>
-      </div>
+      {/* Toolbar: search inline + branch inline + filter popup (IGDERP-110) */}
+      <FilterToolbar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Cari produk..."
+        branchFilter={{ value: branchId, onChange: setBranchId, allowAll: true }}
+        fields={[
+          {
+            key: 'movementType',
+            label: 'Tipe',
+            type: 'select',
+            options: [
+              { value: 'IN', label: 'Masuk (IN)' },
+              { value: 'OUT', label: 'Keluar (OUT)' },
+              { value: 'TRANSFER', label: 'Transfer' },
+              { value: 'ADJUSTMENT', label: 'Penyesuaian' },
+            ],
+          },
+          {
+            key: 'referenceType',
+            label: 'Referensi',
+            type: 'select',
+            options: [
+              { value: 'SALE', label: 'Penjualan' },
+              { value: 'SERVICE', label: 'Service' },
+              { value: 'TRANSFER', label: 'Transfer' },
+              { value: 'OPNAME', label: 'Opname' },
+              { value: 'ADJUSTMENT', label: 'Penyesuaian' },
+            ],
+          },
+          {
+            key: 'date',
+            label: 'Tanggal',
+            type: 'date-range',
+          },
+        ]}
+        values={{
+          movementType: selectedMovementType === 'ALL' ? '' : selectedMovementType,
+          referenceType: selectedReferenceType === 'ALL' ? '' : selectedReferenceType,
+          dateFrom: startDate,
+          dateTo: endDate,
+        }}
+        onFieldChange={(key, v) => {
+          if (key === 'movementType') {
+            setSelectedMovementType(v || 'ALL');
+            setPage(1);
+          } else if (key === 'referenceType') {
+            setSelectedReferenceType(v || 'ALL');
+            setPage(1);
+          } else if (key === 'dateFrom') {
+            setStartDate(v);
+            setPage(1);
+          } else if (key === 'dateTo') {
+            setEndDate(v);
+            setPage(1);
+          }
+        }}
+        onReset={() => {
+          setSelectedMovementType('ALL');
+          setSelectedReferenceType('ALL');
+          setStartDate('');
+          setEndDate('');
+          setPage(1);
+        }}
+      />
 
       {/* Movements Table */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">

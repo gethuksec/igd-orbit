@@ -16,10 +16,7 @@ import {
 } from 'lucide-react';
 import { customersService } from '../../services/customers.service';
 import { toast } from 'sonner';
-import { BreadcrumbHeader } from '@/components/shared';
-import { StatCard } from '@/components/shared';
-import { SearchFilter } from '@/components/shared';
-import { DataTable } from '@/components/shared';
+import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable } from '@/components/shared';
 import type { Column } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -275,10 +272,14 @@ export default function CustomerList() {
         />
       </div>
 
-      <SearchFilter
+      <FilterToolbar
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
         searchPlaceholder="Cari nama, telepon, email, atau kode pelanggan..."
+        fields={[]}
+        values={{}}
+        onFieldChange={() => {}}
+        onReset={() => {}}
       />
 
       <div className="flex items-center justify-end gap-3 mb-1">

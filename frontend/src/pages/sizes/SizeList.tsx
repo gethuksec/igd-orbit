@@ -4,10 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {Plus, Eye, Edit, Trash2, Save, Loader2, Maximize2, AlertTriangle} from "lucide-react";
 import { sizesService } from "../../services/sizes.service";
 import { api } from "../../services/api";
-import { BreadcrumbHeader } from "@/components/shared";
-import { StatCard } from "@/components/shared";
-import { SearchFilter } from "@/components/shared";
-import { DataTable } from "@/components/shared";
+import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable } from "@/components/shared";
 import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -154,12 +151,6 @@ export default function SizeList() {
     },
   ];
 
-  const statusBtns: { key: StatusFilter; label: string }[] = [
-    { key: "all", label: "Semua" },
-    { key: "active", label: "Aktif" },
-    { key: "inactive", label: "Tidak Aktif" },
-  ];
-
   return (
     <div className="w-full space-y-3">
       <BreadcrumbHeader title="Manajemen Ukuran" subtitle="Kelola ukuran produk">
@@ -181,27 +172,33 @@ export default function SizeList() {
         <StatCard icon={<Maximize2 className="w-6 h-6 text-white" />} iconBg="from-green-500 to-green-600" label="Ukuran Aktif" value={isLoading ? "-" : activeCount} badge={{ text: "Active", className: "bg-green-100 text-green-800" }} />
       </div>
 
-      <SearchFilter searchValue={searchTerm} onSearchChange={setSearchTerm} searchPlaceholder="Cari nama ukuran..." />
-
-      {/* Status Filter */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-gray-600">Status:</span>
-        <div className="flex gap-1">
-          {statusBtns.map((btn) => (
-            <button
-              key={btn.key}
-              onClick={() => setStatusFilter(btn.key)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                statusFilter === btn.key
-                  ? "bg-primary-600 text-white shadow-sm"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              {btn.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <FilterToolbar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Cari nama ukuran..."
+        fields={[
+          {
+            key: "status",
+            label: "Status",
+            type: "select",
+            options: [
+              { value: "active", label: "Aktif" },
+              { value: "inactive", label: "Tidak Aktif" },
+            ],
+          },
+        ]}
+        values={{ status: statusFilter === "all" ? "" : statusFilter }}
+        onFieldChange={(key, v) => {
+          if (key === "status") {
+            setStatusFilter((v || "all") as StatusFilter);
+            setPage(1);
+          }
+        }}
+        onReset={() => {
+          setStatusFilter("all");
+          setPage(1);
+        }}
+      />
 
       <DataTable
         columns={columns}

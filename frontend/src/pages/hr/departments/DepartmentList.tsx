@@ -3,8 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
-import { BreadcrumbHeader } from "@/components/shared";
-import { Loader2, Plus, Pencil, Trash2, Search } from "lucide-react";
+import { BreadcrumbHeader, FilterToolbar } from "@/components/shared";
+import { Loader2, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface Department {
@@ -122,16 +122,19 @@ export default function DepartmentList() {
         </Button>
       </BreadcrumbHeader>
 
-      <div className="relative max-w-xs">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Cari departemen..."
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-        />
-      </div>
+      {/* Toolbar: search inline + filter popup (IGDERP-110) */}
+      <FilterToolbar
+        searchValue={search}
+        onSearchChange={(v) => {
+          setSearch(v);
+          setPage(1);
+        }}
+        searchPlaceholder="Cari departemen..."
+        fields={[]}
+        values={{}}
+        onFieldChange={() => {}}
+        onReset={() => {}}
+      />
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         {isLoading ? (

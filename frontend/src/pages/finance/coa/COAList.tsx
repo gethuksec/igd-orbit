@@ -1,11 +1,9 @@
 import { useState, useMemo } from 'react';
-import { BreadcrumbHeader } from '@/components/shared';
+import { BreadcrumbHeader, FilterToolbar } from '@/components/shared';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   FileText,
-  Search,
-  Filter,
   Loader2,
   ChevronDown,
   ChevronRight,
@@ -266,40 +264,37 @@ export default function COAList() {
         ))}
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Cari kode atau nama akun..."
-              className="block w-full pl-12 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-            />
-          </div>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Filter className="h-5 w-5 text-gray-400" />
-            </div>
-            <select
-              value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
-              className="block w-full pl-12 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white"
-            >
-              <option value="all">Semua Tipe</option>
-              <option value="ASSET">Asset</option>
-              <option value="LIABILITY">Liability</option>
-              <option value="EQUITY">Equity</option>
-              <option value="REVENUE">Revenue</option>
-              <option value="EXPENSE">Expense</option>
-            </select>
-          </div>
-        </div>
-      </div>
+      {/* Toolbar: search inline + filter popup (IGDERP-110) */}
+      <FilterToolbar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Cari kode atau nama akun..."
+        fields={[
+          {
+            key: 'type',
+            label: 'Tipe',
+            type: 'select',
+            options: [
+              { value: 'ASSET', label: 'Asset' },
+              { value: 'LIABILITY', label: 'Liability' },
+              { value: 'EQUITY', label: 'Equity' },
+              { value: 'REVENUE', label: 'Revenue' },
+              { value: 'EXPENSE', label: 'Expense' },
+            ],
+          },
+        ]}
+        values={{
+          type: selectedType === 'all' ? '' : selectedType,
+        }}
+        onFieldChange={(key, v) => {
+          if (key === 'type') {
+            setSelectedType(v || 'all');
+          }
+        }}
+        onReset={() => {
+          setSelectedType('all');
+        }}
+      />
 
       {/* Accounts Tree */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">

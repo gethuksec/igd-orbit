@@ -1,22 +1,19 @@
 import { useState, useEffect } from 'react';
-import { BreadcrumbHeader } from '@/components/shared';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Plus,
-  Search,
   Eye,
   Loader2,
-  Filter,
   Wallet,
   CheckCircle,
   XCircle,
   Clock,
-  Calendar,
   DollarSign,
 } from 'lucide-react';
 import { financeService, type Expense } from '../../../services/finance.service';
-import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
+import { useBranchFilter } from '@/components/branch/BranchFilter';
+import { BreadcrumbHeader, FilterToolbar } from '@/components/shared';
 
 export default function ExpensesList() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -109,65 +106,51 @@ export default function ExpensesList() {
       </BreadcrumbHeader>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <BranchFilterSelect value={branchId} onChange={setBranchId} allowAll />
-          </div>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Cari nomor atau deskripsi..."
-              className="block w-full pl-12 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-            />
-          </div>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Filter className="h-5 w-5 text-gray-400" />
-            </div>
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="block w-full pl-12 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white"
-            >
-              <option value="all">Semua Status</option>
-              <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
-              <option value="paid">Paid</option>
-            </select>
-          </div>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Calendar className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              placeholder="Dari Tanggal"
-              className="block w-full pl-12 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-            />
-          </div>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Calendar className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              placeholder="Sampai Tanggal"
-              className="block w-full pl-12 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-            />
-          </div>
-        </div>
-      </div>
+      <FilterToolbar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Cari nomor atau deskripsi..."
+        branchFilter={{ value: branchId, onChange: setBranchId, allowAll: true }}
+        fields={[
+          {
+            key: 'status',
+            label: 'Status',
+            type: 'select',
+            options: [
+              { value: 'pending', label: 'Pending' },
+              { value: 'approved', label: 'Approved' },
+              { value: 'rejected', label: 'Rejected' },
+              { value: 'paid', label: 'Paid' },
+            ],
+          },
+          { key: 'date', label: 'Tanggal', type: 'date-range' },
+        ]}
+        values={{
+          status: selectedStatus === 'all' ? '' : selectedStatus,
+          dateFrom: startDate,
+          dateTo: endDate,
+        }}
+        onFieldChange={(key, v) => {
+          if (key === 'status') {
+            setSelectedStatus((v || 'all') as any);
+            setPage(1);
+          }
+          if (key === 'dateFrom') {
+            setStartDate(v);
+            setPage(1);
+          }
+          if (key === 'dateTo') {
+            setEndDate(v);
+            setPage(1);
+          }
+        }}
+        onReset={() => {
+          setSelectedStatus('all');
+          setStartDate('');
+          setEndDate('');
+          setPage(1);
+        }}
+      />
 
       {/* Expenses Table */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">

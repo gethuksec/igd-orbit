@@ -3,19 +3,17 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Plus,
-  Search,
   Eye,
   Loader2,
-  Filter,
   ClipboardCheck,
   CheckCircle,
   Clock,
   AlertTriangle,
 } from 'lucide-react';
-import { BreadcrumbHeader } from '@/components/shared';
+import { BreadcrumbHeader, FilterToolbar } from '@/components/shared';
 import { inventoryService } from '../../services/inventory.service';
 import type { StockOpname } from '../../services/inventory.service';
-import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
+import { useBranchFilter } from '@/components/branch/BranchFilter';
 
 export default function StockOpnameList() {
   const navigate = useNavigate();
@@ -145,42 +143,37 @@ export default function StockOpnameList() {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <BranchFilterSelect value={branchId} onChange={setBranchId} allowAll />
-          </div>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Cari nomor opname, cabang..."
-              className="block w-full pl-12 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-            />
-          </div>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Filter className="h-5 w-5 text-gray-400" />
-            </div>
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="block w-full pl-12 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white"
-            >
-              <option value="ALL">Semua Status</option>
-              <option value="draft">Draft</option>
-              <option value="counting">Sedang Dihitung</option>
-              <option value="completed">Selesai</option>
-              <option value="approved">Disetujui</option>
-            </select>
-          </div>
-        </div>
-      </div>
+      {/* Toolbar: search inline + branch inline + filter popup (IGDERP-110) */}
+      <FilterToolbar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Cari nomor opname, cabang..."
+        branchFilter={{ value: branchId, onChange: setBranchId, allowAll: true }}
+        fields={[
+          {
+            key: 'status',
+            label: 'Status',
+            type: 'select',
+            options: [
+              { value: 'draft', label: 'Draft' },
+              { value: 'counting', label: 'Sedang Dihitung' },
+              { value: 'completed', label: 'Selesai' },
+              { value: 'approved', label: 'Disetujui' },
+            ],
+          },
+        ]}
+        values={{
+          status: selectedStatus === 'ALL' ? '' : selectedStatus,
+        }}
+        onFieldChange={(key, v) => {
+          if (key === 'status') {
+            setSelectedStatus(v || 'ALL');
+          }
+        }}
+        onReset={() => {
+          setSelectedStatus('ALL');
+        }}
+      />
 
       {/* Opnames Table */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">

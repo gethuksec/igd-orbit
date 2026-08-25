@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Edit, Trash2, Save, Loader2, ClipboardCheck, AlertTriangle, ListOrdered } from "lucide-react";
 import { serviceCheckpointsService } from "../../services/service-checkpoints.service";
-import { BreadcrumbHeader, StatCard, SearchFilter, DataTable } from "@/components/shared";
+import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable } from "@/components/shared";
 import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -152,12 +152,6 @@ export default function ServiceCheckpointList() {
     },
   ];
 
-  const statusBtns: { key: StatusFilter; label: string }[] = [
-    { key: "all", label: "Semua" },
-    { key: "active", label: "Aktif" },
-    { key: "inactive", label: "Tidak Aktif" },
-  ];
-
   return (
     <div className="w-full space-y-3">
       <BreadcrumbHeader title="Manajemen Kelengkapan" subtitle="Kelola checklist kelengkapan untuk form servis">
@@ -181,26 +175,33 @@ export default function ServiceCheckpointList() {
         <StatCard icon={<ClipboardCheck className="w-6 h-6 text-white" />} iconBg="from-gray-500 to-gray-600" label="Item Non-Aktif" value={isLoading ? "-" : inactiveCount} />
       </div>
 
-      <SearchFilter searchValue={searchTerm} onSearchChange={setSearchTerm} searchPlaceholder="Cari nama kelengkapan..." />
-
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-gray-600">Status:</span>
-        <div className="flex gap-1">
-          {statusBtns.map((btn) => (
-            <button
-              key={btn.key}
-              onClick={() => setStatusFilter(btn.key)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                statusFilter === btn.key
-                  ? "bg-primary-600 text-white shadow-sm"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              {btn.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <FilterToolbar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Cari nama kelengkapan..."
+        fields={[
+          {
+            key: "status",
+            label: "Status",
+            type: "select",
+            options: [
+              { value: "active", label: "Aktif" },
+              { value: "inactive", label: "Tidak Aktif" },
+            ],
+          },
+        ]}
+        values={{ status: statusFilter === "all" ? "" : statusFilter }}
+        onFieldChange={(key, v) => {
+          if (key === "status") {
+            setStatusFilter((v || "all") as StatusFilter);
+            setPage(1);
+          }
+        }}
+        onReset={() => {
+          setStatusFilter("all");
+          setPage(1);
+        }}
+      />
 
       <DataTable
         columns={columns}

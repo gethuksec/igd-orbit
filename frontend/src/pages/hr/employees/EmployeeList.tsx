@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { BreadcrumbHeader } from '@/components/shared';
+import { BreadcrumbHeader, FilterToolbar, RowsPerPageSelect } from '@/components/shared';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Users, Search, User, Building2, Briefcase, Calendar, CheckCircle, XCircle, AlertCircle, Eye, Edit, Save, Plus } from 'lucide-react';
+import { Users, User, Building2, Briefcase, Calendar, CheckCircle, XCircle, AlertCircle, Eye, Edit, Save, Plus } from 'lucide-react';
 import { formatDate, formatDateForInput } from '@/utils/format';
 import { useBranchStore } from '@/stores/branchStore';
 import { api } from '@/services/api';
@@ -183,72 +183,38 @@ export default function EmployeeList() {
           </button>
       </BreadcrumbHeader>
 
-      {/* Filters & Search */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
-        <div className="flex flex-col lg:flex-row gap-4">
-          <div className="flex-1">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Cari Karyawan</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Cari nama, email, atau employee code..."
-                className="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-              />
-            </div>
-          </div>
-          <div className="flex gap-3">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all bg-white min-w-[150px]"
-              >
-                <option value="all">Semua Status</option>
-                <option value="active">Aktif</option>
-                <option value="inactive">Tidak Aktif</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Cabang</label>
-              <select
-                value={selectedBranchId}
-                onChange={(e) => setSelectedBranchId(e.target.value)}
-                className="px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all bg-white min-w-[200px]"
-              >
-                <option value="">Semua Cabang</option>
-                {availableBranches.map((branch) => (
-                  <option key={branch.id} value={branch.id}>
-                    {branch.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Per Halaman</label>
-              <select
-                value={limit}
-                onChange={(e) => {
-                  const newLimit = parseInt(e.target.value) as 10 | 20 | 50 | 100;
-                  setLimit(newLimit);
-                  setPage(1);
-                }}
-                className="px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all bg-white min-w-[150px]"
-              >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Toolbar: search inline + filter popup (IGDERP-110) */}
+      <FilterToolbar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Cari nama, email, atau employee code..."
+        branchFilter={{ value: selectedBranchId, onChange: setSelectedBranchId, allowAll: true }}
+        fields={[
+          {
+            key: 'status',
+            label: 'Status',
+            type: 'select',
+            options: [
+              { value: 'active', label: 'Aktif' },
+              { value: 'inactive', label: 'Tidak Aktif' },
+            ],
+          },
+        ]}
+        values={{
+          status: statusFilter === 'all' ? '' : statusFilter,
+        }}
+        onFieldChange={(key, v) => {
+          if (key === 'status') {
+            setStatusFilter(v || 'all');
+            setPage(1);
+          }
+        }}
+        onReset={() => {
+          setStatusFilter('all');
+          setSelectedBranchId('');
+          setPage(1);
+        }}
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -402,17 +368,29 @@ export default function EmployeeList() {
               </table>
             </div>
 
-            {pagination.totalPages > 1 && (
+            {!isLoading && filteredEmployees.length > 0 && (
               <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-                <div className="text-sm text-gray-600">
-                  Menampilkan {(page - 1) * limit + 1} - {Math.min(page * limit, pagination.total)} dari {pagination.total}
+                <div className="flex items-center gap-4">
+                  <RowsPerPageSelect
+                    value={limit}
+                    options={[10, 20, 50, 100]}
+                    onChange={(v) => {
+                      setLimit(v as 10 | 20 | 50 | 100);
+                      setPage(1);
+                    }}
+                  />
+                  <div className="text-sm text-gray-600">
+                    Menampilkan {(page - 1) * limit + 1} - {Math.min(page * limit, pagination.total)} dari {pagination.total}
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
-                    className="px-4 py-2 border-2 border-gray-200 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 font-semibold transition-all">Previous</button>
-                  <button onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))} disabled={page === pagination.totalPages}
-                    className="px-4 py-2 border-2 border-gray-200 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 font-semibold transition-all">Next</button>
-                </div>
+                {pagination.totalPages > 1 && (
+                  <div className="flex gap-2">
+                    <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
+                      className="px-4 py-2 border-2 border-gray-200 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 font-semibold transition-all">Previous</button>
+                    <button onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))} disabled={page === pagination.totalPages}
+                      className="px-4 py-2 border-2 border-gray-200 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 font-semibold transition-all">Next</button>
+                  </div>
+                )}
               </div>
             )}
           </>

@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { BreadcrumbHeader } from '@/components/shared';
+import { BreadcrumbHeader, FilterToolbar } from '@/components/shared';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Target, Search, AlertCircle, TrendingUp, User, Eye } from 'lucide-react';
+import { Target, AlertCircle, TrendingUp, User, Eye } from 'lucide-react';
 import { hrService, type KPIRecord } from '@/services/hr.service';
 import { formatCurrency } from '@/utils/format';
 import { api } from '@/services/api';
@@ -111,54 +111,44 @@ export default function KPIRecordsList() {
           </Link>
       </BreadcrumbHeader>
 
-      {/* Filters & Search - Enhanced */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
-        <div className="flex flex-col lg:flex-row gap-4">
-          <div className="flex-1">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Cari KPI</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Cari nama karyawan atau employee code..."
-                className="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-base transition-all"
-              />
-            </div>
-          </div>
-          <div className="flex gap-3">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Bulan</label>
-              <select
-                value={periodMonth}
-                onChange={(e) => setPeriodMonth(parseInt(e.target.value))}
-                className="px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-base transition-all bg-white min-w-[150px]"
-              >
-                {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
-                  <option key={month} value={month}>
-                    {new Date(2000, month - 1).toLocaleString('id-ID', { month: 'long' })}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Tahun</label>
-              <input
-                type="number"
-                value={periodYear}
-                onChange={(e) => setPeriodYear(parseInt(e.target.value))}
-                placeholder="Tahun"
-                min="2020"
-                max="2100"
-                className="px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-base transition-all bg-white min-w-[120px]"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Toolbar: search inline + filter popup (IGDERP-110) */}
+      <FilterToolbar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Cari nama karyawan atau employee code..."
+        fields={[
+          {
+            key: 'month',
+            label: 'Bulan',
+            type: 'select',
+            options: Array.from({ length: 12 }, (_, i) => i + 1).map((month) => ({
+              value: String(month),
+              label: new Date(2000, month - 1).toLocaleString('id-ID', { month: 'long' }),
+            })),
+          },
+          {
+            key: 'year',
+            label: 'Tahun',
+            type: 'input',
+            placeholder: 'Tahun',
+          },
+        ]}
+        values={{
+          month: String(periodMonth),
+          year: String(periodYear),
+        }}
+        onFieldChange={(key, v) => {
+          if (key === 'month') {
+            setPeriodMonth(v ? parseInt(v, 10) : new Date().getMonth() + 1);
+          } else if (key === 'year') {
+            setPeriodYear(v ? parseInt(v, 10) : new Date().getFullYear());
+          }
+        }}
+        onReset={() => {
+          setPeriodMonth(new Date().getMonth() + 1);
+          setPeriodYear(new Date().getFullYear());
+        }}
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

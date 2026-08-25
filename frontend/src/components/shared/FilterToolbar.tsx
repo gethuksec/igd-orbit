@@ -159,16 +159,19 @@ export function FilterToolbar({
           />
         )}
 
-        {/* Filter button with active-count badge */}
-        <Button type="button" variant="outline" onClick={openPopup} className="gap-2">
-          <SlidersHorizontal className="h-4 w-4" />
-          Filter
-          {activeCount > 0 && (
-            <Badge className="h-5 min-w-5 px-1.5 text-[11px] bg-primary text-primary-foreground">
-              {activeCount}
-            </Badge>
-          )}
-        </Button>
+        {/* Filter button with active-count badge — hidden when the page
+            declares no filter fields (no empty popups, IGDERP-110 rollout) */}
+        {fields.length > 0 && (
+          <Button type="button" variant="outline" onClick={openPopup} className="gap-2">
+            <SlidersHorizontal className="h-4 w-4" />
+            Filter
+            {activeCount > 0 && (
+              <Badge className="h-5 min-w-5 px-1.5 text-[11px] bg-primary text-primary-foreground">
+                {activeCount}
+              </Badge>
+            )}
+          </Button>
+        )}
 
         {children}
       </div>

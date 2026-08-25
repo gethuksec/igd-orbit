@@ -1,19 +1,17 @@
 import { useState, useEffect } from 'react';
-import { BreadcrumbHeader } from '@/components/shared';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Plus,
-  Search,
   Eye,
   Loader2,
-  Filter,
   CreditCard,
   CheckCircle,
   XCircle,
 } from 'lucide-react';
 import { financeService, type PettyCashFund } from '../../../services/finance.service';
-import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
+import { useBranchFilter } from '@/components/branch/BranchFilter';
+import { BreadcrumbHeader, FilterToolbar } from '@/components/shared';
 
 export default function PettyCashList() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -64,39 +62,32 @@ export default function PettyCashList() {
       </BreadcrumbHeader>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <BranchFilterSelect value={branchId} onChange={setBranchId} allowAll />
-          </div>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Cari nomor fund atau cabang..."
-              className="block w-full pl-12 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-            />
-          </div>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Filter className="h-5 w-5 text-gray-400" />
-            </div>
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="block w-full pl-12 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base appearance-none bg-white"
-            >
-              <option value="all">Semua Status</option>
-              <option value="active">Aktif</option>
-              <option value="inactive">Tidak Aktif</option>
-            </select>
-          </div>
-        </div>
-      </div>
+      <FilterToolbar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Cari nomor fund atau cabang..."
+        branchFilter={{ value: branchId, onChange: setBranchId, allowAll: true }}
+        fields={[
+          {
+            key: 'status',
+            label: 'Status',
+            type: 'select',
+            options: [
+              { value: 'active', label: 'Aktif' },
+              { value: 'inactive', label: 'Tidak Aktif' },
+            ],
+          },
+        ]}
+        values={{ status: selectedStatus === 'all' ? '' : selectedStatus }}
+        onFieldChange={(key, v) => {
+          if (key === 'status') {
+            setSelectedStatus((v || 'all') as any);
+          }
+        }}
+        onReset={() => {
+          setSelectedStatus('all');
+        }}
+      />
 
       {/* Funds Table */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">

@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Eye, Edit, Trash2, Shield, CheckCircle, XCircle, Loader2, Network, AlertTriangle, KeyRound, Users } from 'lucide-react';
 import { rolesService, type Role } from '../../services/roles.service';
 import { toast } from 'sonner';
-import { BreadcrumbHeader, StatCard, SearchFilter, DataTable } from '@/components/shared';
+import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable } from '@/components/shared';
 import type { Column } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import {
@@ -226,10 +226,14 @@ export default function RoleList() {
       </div>
 
       {/* Search & Filter */}
-      <SearchFilter
+      <FilterToolbar
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
         searchPlaceholder="Cari nama atau kode role..."
+        fields={[]}
+        values={{}}
+        onFieldChange={() => {}}
+        onReset={() => {}}
       />
 
       {/* Role Table */}

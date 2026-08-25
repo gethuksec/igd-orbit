@@ -5,10 +5,7 @@ import { Plus, Medal, Eye, Edit, Trash2, AlertTriangle, Loader2 } from "lucide-r
 import { customerTiersService } from "../../../services/customer-tiers.service";
 import type { CustomerTier } from "../../../services/customer-tiers.service";
 import { toast } from "sonner";
-import { BreadcrumbHeader } from "@/components/shared";
-import { StatCard } from "@/components/shared";
-import { SearchFilter } from "@/components/shared";
-import { DataTable } from "@/components/shared";
+import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable } from "@/components/shared";
 import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -133,12 +130,6 @@ export default function CustomerTierList() {
     ? Math.round(tiers.reduce((sum: number, t: CustomerTier) => sum + t.discountPercentage, 0) / tiers.length)
     : 0;
 
-  const statusBtns: { key: StatusFilter; label: string }[] = [
-    { key: "all", label: "Semua" },
-    { key: "active", label: "Aktif" },
-    { key: "inactive", label: "Tidak Aktif" },
-  ];
-
   const columns: Column<CustomerTier>[] = [
     {
       key: "name",
@@ -234,31 +225,33 @@ export default function CustomerTierList() {
         />
       </div>
 
-      <SearchFilter
+      <FilterToolbar
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
         searchPlaceholder="Cari nama tier..."
+        fields={[
+          {
+            key: "status",
+            label: "Status",
+            type: "select",
+            options: [
+              { value: "active", label: "Aktif" },
+              { value: "inactive", label: "Tidak Aktif" },
+            ],
+          },
+        ]}
+        values={{ status: statusFilter === "all" ? "" : statusFilter }}
+        onFieldChange={(key, v) => {
+          if (key === "status") {
+            setStatusFilter((v || "all") as StatusFilter);
+            setPage(1);
+          }
+        }}
+        onReset={() => {
+          setStatusFilter("all");
+          setPage(1);
+        }}
       />
-
-      {/* Status Filter */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-gray-600">Status:</span>
-        <div className="flex gap-1">
-          {statusBtns.map((btn) => (
-            <button
-              key={btn.key}
-              onClick={() => setStatusFilter(btn.key)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                statusFilter === btn.key
-                  ? "bg-primary-600 text-white shadow-sm"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              {btn.label}
-            </button>
-          ))}
-        </div>
-      </div>
 
       <DataTable
         columns={columns}

@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRightLeft, Plus, Search } from 'lucide-react';
-import { BreadcrumbHeader } from '@/components/shared';
+import { ArrowRightLeft, Plus } from 'lucide-react';
+import { BreadcrumbHeader, FilterToolbar } from '@/components/shared';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { api } from '../../services/api';
 import { inventoryService } from '../../services/inventory.service';
 import type { StockTransfer } from '../../services/inventory.service';
@@ -79,20 +78,16 @@ export default function StockTransferList() {
         </Button>
       </BreadcrumbHeader>
 
-      {/* ── Filter bar ── */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
-        <div className="relative max-w-md">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-gray-400" />
-          </div>
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cari no. transfer, outlet, atau gudang..."
-            className="pl-10"
-          />
-        </div>
-      </div>
+      {/* ── Toolbar: search inline + filter popup (IGDERP-110) ── */}
+      <FilterToolbar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Cari no. transfer, outlet, atau gudang..."
+        fields={[]}
+        values={{}}
+        onFieldChange={() => {}}
+        onReset={() => {}}
+      />
 
       {/* ── Documents table ── */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">

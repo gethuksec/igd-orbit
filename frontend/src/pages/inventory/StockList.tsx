@@ -1,36 +1,32 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Search, Package, AlertTriangle, Warehouse, Filter } from 'lucide-react';
+import { Package, AlertTriangle, Warehouse } from 'lucide-react';
 import { api } from '../../services/api';
-import { useBranchStore } from '@/stores/branchStore';
-import { BreadcrumbHeader } from '@/components/shared';
-import { StatCard } from '@/components/shared';
-import { DataTable } from '@/components/shared';
+import { useBranchFilter } from '@/components/branch/BranchFilter';
+import { BreadcrumbHeader, StatCard, DataTable, FilterToolbar } from '@/components/shared';
 import type { Column } from '@/components/shared';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '../../utils/format';
 
 export default function StockList() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedBranchId, setSelectedBranchId] = useState<string>('');
   const [page, setPage] = useState(1);
   const limit = 20;
-  const { availableBranches } = useBranchStore();
+  const { branchId, setBranchId } = useBranchFilter();
 
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, selectedBranchId]);
+  }, [searchTerm, branchId]);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['product-stocks', page, searchTerm, selectedBranchId],
+    queryKey: ['product-stocks', page, searchTerm, branchId],
     queryFn: async () => {
       const response = await api.get('/inventory/stock', {
         params: {
           page,
           limit,
           search: searchTerm || undefined,
-          branchId: selectedBranchId || undefined,
+          branchId: branchId || undefined,
         },
       });
       return response.data;
@@ -135,33 +131,16 @@ export default function StockList() {
         />
       </div>
 
-      {/* Search & Filters */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Cari produk atau SKU..."
-              className="w-full pl-10"
-            />
-          </div>
-          <div className="relative">
-            <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <select
-              value={selectedBranchId}
-              onChange={(e) => setSelectedBranchId(e.target.value)}
-              className="w-full pl-10 h-10 rounded-lg border border-input bg-background px-3 py-1.5 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 appearance-none"
-            >
-              <option value="">Semua Cabang</option>
-              {availableBranches.map((branch) => (
-                <option key={branch.id} value={branch.id}>{branch.name}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
+      <FilterToolbar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Cari produk atau SKU..."
+        branchFilter={{ value: branchId, onChange: setBranchId, allowAll: true }}
+        fields={[]}
+        values={{}}
+        onFieldChange={() => {}}
+        onReset={() => {}}
+      />
 
       <DataTable
         columns={columns}

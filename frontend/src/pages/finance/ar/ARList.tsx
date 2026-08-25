@@ -1,12 +1,10 @@
 import { useState } from 'react';
-import { BreadcrumbHeader } from '@/components/shared';
+import { BreadcrumbHeader, FilterToolbar } from '@/components/shared';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Search,
   Eye,
   Loader2,
-  Calendar,
   Receipt,
   DollarSign,
   AlertTriangle,
@@ -99,34 +97,31 @@ export default function ARList() {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Cari customer..."
-              className="block w-full pl-12 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-            />
-          </div>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Calendar className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type="date"
-              value={asOfDate}
-              onChange={(e) => setAsOfDate(e.target.value)}
-              className="block w-full pl-12 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-            />
-          </div>
-        </div>
-      </div>
+      {/* Toolbar: search inline + filter popup (IGDERP-110) */}
+      <FilterToolbar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Cari customer..."
+        fields={[
+          {
+            key: 'date',
+            label: 'Tanggal',
+            type: 'date-range',
+          },
+        ]}
+        values={{
+          dateFrom: asOfDate,
+          dateTo: '',
+        }}
+        onFieldChange={(key, v) => {
+          if (key === 'dateFrom') {
+            setAsOfDate(v || new Date().toISOString().split('T')[0]);
+          }
+        }}
+        onReset={() => {
+          setAsOfDate(new Date().toISOString().split('T')[0]);
+        }}
+      />
 
       {/* Aging Report Table */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">

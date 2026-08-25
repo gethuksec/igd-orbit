@@ -16,7 +16,7 @@ import { serviceTypesService } from '../../services/service-types.service';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { BreadcrumbHeader, StatCard, SearchFilter, DataTable } from '@/components/shared';
+import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable } from '@/components/shared';
 import type { Column } from '@/components/shared';
 
 export default function ServiceTypeList() {
@@ -267,31 +267,31 @@ export default function ServiceTypeList() {
         />
       </div>
 
-      <SearchFilter
+      <FilterToolbar
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
         searchPlaceholder="Cari nama layanan, kode, atau deskripsi..."
+        fields={[
+          {
+            key: "status",
+            label: "Status",
+            type: "select",
+            options: [
+              { value: "active", label: "Aktif" },
+              { value: "inactive", label: "Tidak Aktif" },
+            ],
+          },
+        ]}
+        values={{ status: statusFilter === "all" ? "" : statusFilter }}
+        onFieldChange={(key, v) => {
+          if (key === "status") {
+            setStatusFilter((v || "all") as StatusFilter);
+          }
+        }}
+        onReset={() => {
+          setStatusFilter("all");
+        }}
       />
-
-      {/* Status Filter */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-gray-600">Status:</span>
-        <div className="flex gap-1">
-          {(['all', 'active', 'inactive'] as StatusFilter[]).map((filter) => (
-            <button
-              key={filter}
-              onClick={() => setStatusFilter(filter)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                statusFilter === filter
-                  ? 'bg-primary-600 text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {filter === 'all' ? 'Semua' : filter === 'active' ? 'Aktif' : 'Tidak Aktif'}
-            </button>
-          ))}
-        </div>
-      </div>
 
       <DataTable
         columns={columns}
