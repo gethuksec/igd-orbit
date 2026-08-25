@@ -247,8 +247,8 @@ export const salesService = {
     return response.data.balance;
   },
 
-  async getDepositHistory(customerId: string): Promise<any[]> {
-    const response = await api.get(`/customer-deposits/history/${customerId}`);
+  async getDepositHistory(customerId: string, params?: { page?: number; limit?: number }): Promise<{ data: any[]; meta: any }> {
+    const response = await api.get(`/customer-deposits/history/${customerId}`, { params });
     return response.data;
   },
 
