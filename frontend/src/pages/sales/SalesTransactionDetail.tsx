@@ -56,6 +56,13 @@ export default function SalesTransactionDetail() {
 
   const tx = transaction as any;
   const branch = tx.branch || {};
+
+  // Retur info for retur-status transactions (IGDERP-85)
+  const { data: returInfo } = useQuery({
+    queryKey: ['sales-return-by-transaction', id],
+    queryFn: () => salesService.getReturnByTransaction(id!),
+    enabled: !!id && transaction?.status === 'retur',
+  });
   const customer = tx.customer || {};
   const cashier = tx.cashier || {};
   const items = tx.items || [];
@@ -76,6 +83,7 @@ export default function SalesTransactionDetail() {
   const statusVariant = (status: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
     const s = status?.toUpperCase();
     if (s === 'COMPLETED') return 'default';
+    if (s === 'RETUR') return 'outline';
     if (s === 'PENDING') return 'secondary';
     if (s === 'CANCELLED' || s === 'VOID') return 'destructive';
     return 'secondary';
@@ -116,7 +124,7 @@ export default function SalesTransactionDetail() {
                   <h1 className="text-2xl font-bold text-foreground">{tx.transactionNumber}</h1>
                   <div className="flex items-center gap-3 mt-1">
                     <Badge variant={statusVariant(tx.status)}>
-                      {tx.status === 'completed' ? 'Selesai' : tx.status === 'pending' ? 'Pending' : tx.status === 'cancelled' || tx.status === 'void' ? 'Dibatalkan' : tx.status}
+                      {tx.status === 'completed' ? 'Selesai' : tx.status === 'pending' ? 'Pending' : tx.status === 'retur' ? 'Retur' : tx.status === 'cancelled' || tx.status === 'void' ? 'Dibatalkan' : tx.status}
                     </Badge>
                     {tx.paymentStatus && (
                       <Badge variant={paymentStatusVariant(tx.paymentStatus)}>
@@ -128,14 +136,6 @@ export default function SalesTransactionDetail() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {tx.status !== 'void' && tx.status !== 'cancelled' && (
-                <Link to={`/sales/returns/new?transactionId=${id}`}>
-                  <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50">
-                    <RotateCcw className="w-4 h-4 mr-1" />
-                    Retur
-                  </Button>
-                </Link>
-              )}
               <Link to={`/sales/transactions/${id}/print`} target="_blank">
                 <Button>
                   <Printer className="w-4 h-4 mr-1" />
@@ -146,6 +146,50 @@ export default function SalesTransactionDetail() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Retur info (only for retur-status transactions) */}
+      {tx.status === 'retur' && returInfo && (
+        <Card className="border-orange-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg text-orange-700">
+              <RotateCcw className="w-5 h-5" />
+              Informasi Retur
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
+                <p className="text-xs text-muted-foreground mb-1">No. Retur</p>
+                <p className="text-sm font-semibold">{returInfo.returnNumber}</p>
+              </div>
+              <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
+                <p className="text-xs text-muted-foreground mb-1">Tanggal Retur</p>
+                <p className="text-sm font-semibold">{formatDate(returInfo.createdAt)}</p>
+              </div>
+              <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
+                <p className="text-xs text-muted-foreground mb-1">Penyelesaian</p>
+                <p className="text-sm font-semibold">
+                  {returInfo.settlementType === 'cash'
+                    ? 'Tunai (kembalikan uang)'
+                    : returInfo.settlementType === 'exchange'
+                      ? 'Tukar Barang'
+                      : 'Deposit'}
+                </p>
+              </div>
+              <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
+                <p className="text-xs text-muted-foreground mb-1">Akun (COA)</p>
+                <p className="text-sm font-semibold">
+                  {returInfo.coa ? `${returInfo.coa.code} — ${returInfo.coa.name}` : '-'}
+                </p>
+              </div>
+              <div className="md:col-span-2 p-3 bg-orange-50 rounded-lg border border-orange-200">
+                <p className="text-xs text-muted-foreground mb-1">Alasan Retur</p>
+                <p className="text-sm">{returInfo.reason}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Left Column */}

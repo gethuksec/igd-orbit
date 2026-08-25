@@ -140,8 +140,8 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
       {
         label: 'Retur Penjualan',
         children: [
-          { label: 'Buat Retur', key: 'sales.return.create' },
-          { label: 'Edit Retur', key: 'sales.return.edit' },
+          { label: 'Lihat Daftar Retur', key: 'sales.retur.view' },
+          { label: 'Buat Retur', key: 'sales.retur.create' },
         ],
       },
     ],

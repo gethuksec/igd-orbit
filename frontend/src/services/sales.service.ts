@@ -261,4 +261,26 @@ export const salesService = {
     const response = await api.post('/customer-deposits/refund', { customerId, amount, notes });
     return response.data;
   },
+
+  // === Sales Return (IGDERP-85) ===
+
+  async createReturn(data: {
+    transactionId: string;
+    reason: string;
+    settlementType: 'cash' | 'exchange';
+    coaId?: string;
+  }): Promise<any> {
+    const response = await api.post('/sales-returns', data);
+    return response.data;
+  },
+
+  async getReturns(params?: { page?: number; limit?: number; search?: string; transactionId?: string }): Promise<any> {
+    const response = await api.get('/sales-returns', { params });
+    return response.data;
+  },
+
+  async getReturnByTransaction(transactionId: string): Promise<any> {
+    const response = await api.get(`/sales-returns/by-transaction/${transactionId}`);
+    return response.data;
+  },
 };

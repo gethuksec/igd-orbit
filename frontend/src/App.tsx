@@ -30,7 +30,6 @@ import CustomerDetail from './pages/customers/CustomerDetail';
 import SalesHistory from './pages/sales/SalesHistory';
 import SalesTransactionDetail from './pages/sales/SalesTransactionDetail';
 import ReturnsList from './pages/sales/ReturnsList';
-import ReturnForm from './pages/sales/ReturnForm';
 import SalesReceiptPrint from './pages/sales/SalesReceiptPrint';
 // Service Orders
 import ServiceOrderList from './pages/service-orders/ServiceOrderList';
@@ -645,17 +644,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/sales/returns/new"
-              element={
-                <ProtectedRoute>
-                  <DashboardLayout>
-                    <ReturnForm />
-                  </DashboardLayout>
-                </ProtectedRoute>
-              }
-            />
-            
+
             {/* Services Landing */}
             <Route
               path="/services"

@@ -1,329 +1,210 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import {
-  Eye,
-  RefreshCw,
-  DollarSign,
-  Package,
-  Plus,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  AlertTriangle,
-} from 'lucide-react';
-import type { SalesTransaction } from '../../services/sales.service';
-import { api } from '../../services/api';
-import { useBranchFilter } from '@/components/branch/BranchFilter';
-import { BreadcrumbHeader, FilterToolbar, StatCard, DataTable, RowsPerPageSelect } from '@/components/shared';
-import type { Column } from '@/components/shared';
-import { Button } from '@/components/ui/button';
-import { formatCurrency } from '../../utils/format';
+import { Search, Eye, Loader2, FileX2 } from 'lucide-react';
+import { salesService } from '../../services/sales.service';
+import { BreadcrumbHeader } from '@/components/shared';
 
-interface ReturnTransaction extends SalesTransaction {
-  returnNumber?: string;
-  returnDate?: string;
-  returnReason?: string;
-  returnStatus?: 'pending' | 'approved' | 'rejected' | 'refunded';
-  refundAmount?: number;
-  refundMethod?: string;
-}
+const SETTLEMENT_BADGE: Record<string, { label: string; cls: string }> = {
+  cash: { label: 'Tunai', cls: 'bg-green-100 text-green-800 border-green-200' },
+  exchange: { label: 'Tukar Barang', cls: 'bg-blue-100 text-blue-800 border-blue-200' },
+  deposit: { label: 'Deposit', cls: 'bg-amber-100 text-amber-800 border-amber-200' },
+};
 
+/**
+ * Retur Penjualan — read-only list (IGDERP-85).
+ * Retur dibuat dari Riwayat Penjualan (aksi Retur pada transaksi Selesai).
+ * Tidak ada tombol buat di halaman ini.
+ */
 export default function ReturnsList() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(20);
-  const { branchId, setBranchId } = useBranchFilter();
+  const limit = 20;
 
-  const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['sales-returns', page, limit, searchTerm, selectedStatus, branchId],
-    queryFn: async () => {
-      try {
-        const response = await api.get('/sales/transactions', {
-          params: {
-            page,
-            limit,
-            search: searchTerm || undefined,
-            branchId: branchId || undefined,
-            includeItems: 'true',
-          },
-        });
-        let transactions = response.data.data || [];
-        switch (selectedStatus) {
-          case 'all':
-            transactions = transactions.filter(
-              (t: SalesTransaction) => t.status === 'void' || t.status === 'cancelled' || t.paymentStatus === 'refunded',
-            );
-            break;
-          case 'void':
-            transactions = transactions.filter((t: SalesTransaction) => t.status === 'void');
-            break;
-          case 'cancelled':
-            transactions = transactions.filter((t: SalesTransaction) => t.status === 'cancelled');
-            break;
-          case 'refunded':
-            transactions = transactions.filter((t: SalesTransaction) => t.paymentStatus === 'refunded');
-            break;
-          default:
-            transactions = transactions.filter(
-              (t: SalesTransaction) => t.status === selectedStatus || t.paymentStatus === selectedStatus,
-            );
-        }
-        return {
-          data: transactions,
-          meta: response.data.meta || { page, limit, total: transactions.length, totalPages: 1 },
-        };
-      } catch {
-        return {
-          data: [],
-          meta: { page, limit, total: 0, totalPages: 0 },
-        };
-      }
-    },
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['sales-returns', page, searchTerm],
+    queryFn: () =>
+      salesService.getReturns({
+        page,
+        limit,
+        search: searchTerm || undefined,
+      }),
   });
 
   useEffect(() => {
     const debounce = setTimeout(() => {
       setPage(1);
-      refetch();
     }, 500);
     return () => clearTimeout(debounce);
-  }, [searchTerm, selectedStatus]);
+  }, [searchTerm]);
 
-  const returns = (data?.data || []) as ReturnTransaction[];
+  const returns = data?.data || [];
   const pagination = data?.meta || { page: 1, limit: 20, total: 0, totalPages: 1 };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('id-ID', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(amount || 0);
 
-  const getStatusBadge = (status: string) => {
-    const s = status?.toUpperCase();
-    let classes = 'bg-gray-100 text-gray-800 border-gray-200';
-    let icon = <AlertTriangle className="w-3 h-3" />;
-    if (s === 'PENDING') { classes = 'bg-yellow-100 text-yellow-800 border-yellow-200'; icon = <Clock className="w-3 h-3" />; }
-    else if (s === 'APPROVED') { classes = 'bg-blue-100 text-blue-800 border-blue-200'; icon = <CheckCircle2 className="w-3 h-3" />; }
-    else if (s === 'REFUNDED') { classes = 'bg-green-100 text-green-800 border-green-200'; icon = <CheckCircle2 className="w-3 h-3" />; }
-    else if (s === 'REJECTED') { classes = 'bg-red-100 text-red-800 border-red-200'; icon = <XCircle className="w-3 h-3" />; }
+  const badge = (type: string) => {
+    const s = SETTLEMENT_BADGE[type] || SETTLEMENT_BADGE.cash;
     return (
-      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border ${classes}`}>
-        {icon}
-        {s || 'PENDING'}
+      <span
+        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${s.cls}`}
+      >
+        {s.label}
       </span>
     );
   };
-
-  const totalReturns = returns.length;
-  const totalRefundAmount = returns.reduce((acc, r) => acc + (r.refundAmount || r.total || r.totalPrice || 0), 0);
-
-  const columns: Column<any>[] = [
-    {
-      key: 'transactionNumber',
-      header: 'No. Transaksi',
-      cell: (tx) => (
-        <Link
-          to={`/sales/transactions/${tx.id}`}
-          className="text-sm font-semibold text-primary-600 hover:text-primary-700 hover:underline transition-colors"
-        >
-          {tx.transactionNumber}
-        </Link>
-      ),
-    },
-    {
-      key: 'date',
-      header: 'Tanggal',
-      cell: (tx) => (
-        <div className="text-sm text-foreground">
-          {formatDate(tx.returnDate || tx.createdAt)}
-        </div>
-      ),
-    },
-    {
-      key: 'customer',
-      header: 'Pelanggan',
-      cell: (tx) =>
-        tx.customer?.id ? (
-          <Link
-            to={`/customers/${tx.customer.id}`}
-            className="text-sm text-primary-600 hover:text-primary-700 hover:underline transition-colors font-medium"
-          >
-            {tx.customer.name || 'Walk-in Customer'}
-          </Link>
-        ) : (
-          <div className="text-sm text-foreground">-</div>
-        ),
-    },
-    {
-      key: 'items',
-      header: 'Produk',
-      cell: (tx) => (
-        <div className="flex flex-wrap gap-1">
-          {tx.items?.length > 0 ? (
-            tx.items.slice(0, 3).map((item: any) => (
-              <span
-                key={item.id}
-                className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium text-primary-600 bg-primary-50 rounded-md border border-primary-200"
-              >
-                {item.productName || item.product?.name || 'N/A'}
-                <span className="text-primary-400">×{item.quantity}</span>
-              </span>
-            ))
-          ) : (
-            <span className="text-sm text-foreground">{tx.itemCount || 0} produk</span>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: 'total',
-      header: 'Total',
-      headerClassName: 'text-right',
-      className: 'text-right',
-      cell: (tx) => (
-        <div className="text-sm font-bold text-primary-600">
-          {formatCurrency(tx.total || tx.totalPrice || 0)}
-        </div>
-      ),
-    },
-    {
-      key: 'status',
-      header: 'Status',
-      cell: (tx) => getStatusBadge(tx.returnStatus || tx.status),
-    },
-  ];
 
   return (
     <div className="w-full space-y-3">
       <BreadcrumbHeader
         title="Retur Penjualan"
-        subtitle="Kelola retur dan refund penjualan"
-      >
-        <Link to="/sales/returns/new">
-          <Button className="flex items-center gap-2 bg-white text-primary-600 border border-gray-200 hover:bg-primary-50">
-            <Plus className="w-5 h-5" />
-            <span>Buat Retur</span>
-          </Button>
-        </Link>
-      </BreadcrumbHeader>
+        subtitle="Daftar retur penjualan"
+      />
+
+      <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-800 flex gap-2">
+        <span>ℹ️</span>
+        <span>
+          <b>Retur dibuat dari Riwayat Penjualan</b> — pilih aksi "Retur" pada transaksi
+          berstatus Selesai. Halaman ini hanya menampilkan daftar retur (tanpa tombol buat).
+        </span>
+      </div>
 
       {error && (
         <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
-          <p className="text-red-800 font-medium">{(error as Error).message || 'Terjadi kesalahan'}</p>
+          <p className="text-red-800 font-medium">
+            {(error as Error).message || 'Terjadi kesalahan'}
+          </p>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <StatCard
-          icon={<RefreshCw className="w-6 h-6 text-white" />}
-          iconBg="from-red-500 to-red-600"
-          label="Total Retur"
-          value={isLoading ? '-' : totalReturns}
-          subtitle="Semua transaksi retur"
-        />
-        <StatCard
-          icon={<DollarSign className="w-6 h-6 text-white" />}
-          iconBg="from-orange-500 to-orange-600"
-          label="Total Refund"
-          value={isLoading ? '-' : formatCurrency(totalRefundAmount)}
-          subtitle="Total nilai refund"
-        />
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <Search className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Cari nomor retur, nomor faktur, atau pelanggan..."
+            className="block w-full pl-12 pr-4 py-3 border border-input rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-all"
+          />
+        </div>
       </div>
 
-      {/* Toolbar: search inline + branch inline + filter popup (IGDERP-110) */}
-      <FilterToolbar
-        searchValue={searchTerm}
-        onSearchChange={(v) => {
-          setSearchTerm(v);
-          setPage(1);
-        }}
-        searchPlaceholder="Cari nomor transaksi, customer..."
-        branchFilter={{ value: branchId, onChange: setBranchId, allowAll: true }}
-        fields={[
-          {
-            key: 'status',
-            label: 'Status',
-            type: 'select',
-            options: [
-              { value: 'void', label: 'Void' },
-              { value: 'cancelled', label: 'Cancelled' },
-              { value: 'refunded', label: 'Refunded' },
-            ],
-          },
-        ]}
-        values={{ status: selectedStatus === 'all' ? '' : selectedStatus }}
-        onFieldChange={(key, value) => {
-          if (key === 'status') {
-            setSelectedStatus(value || 'all');
-            setPage(1);
-          }
-        }}
-        onReset={() => {
-          setSelectedStatus('all');
-          setPage(1);
-        }}
-      />
-
-      <DataTable
-        columns={columns}
-        data={returns}
-        keyExtractor={(tx: any) => tx.id}
-        isLoading={isLoading}
-        emptyMessage="Tidak ada data retur"
-        emptyIcon={<Package className="w-16 h-16" />}
-        actions={(tx: any) => (
-          <Link to={`/sales/transactions/${tx.id}`}>
-            <Button variant="ghost" size="sm" title="Lihat Detail">
-              <Eye className="w-4 h-4" />
-            </Button>
-          </Link>
-        )}
-      />
-
-      {/* Pagination */}
-      {!isLoading && returns.length > 0 && (
-        <div className="bg-white px-6 py-4 rounded-xl border border-gray-200 flex items-center justify-between gap-3">
-          <RowsPerPageSelect
-            value={limit}
-            onChange={(v) => {
-              setLimit(v);
-              setPage(1);
-            }}
-          />
-          <div className="text-sm text-gray-700">
-            Menampilkan {((pagination.page - 1) * pagination.limit + 1).toLocaleString('id-ID')} -{' '}
-            {Math.min(pagination.page * pagination.limit, pagination.total).toLocaleString('id-ID')} dari{' '}
-            {pagination.total.toLocaleString('id-ID')} retur
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-            >
-              Sebelumnya
-            </Button>
-            <span className="px-4 py-2 text-sm font-medium text-gray-700">
-              Halaman {pagination.page} dari {pagination.totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
-              disabled={page >= pagination.totalPages}
-            >
-              Selanjutnya
-            </Button>
-          </div>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">No. Retur</th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">No. Faktur</th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Tanggal</th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Pelanggan</th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Alasan</th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Penyelesaian</th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Akun</th>
+                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Total</th>
+                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-100">
+              {isLoading ? (
+                <tr>
+                  <td colSpan={9} className="px-4 py-16 text-center">
+                    <div className="flex flex-col items-center gap-4">
+                      <Loader2 className="w-12 h-12 text-primary-600 animate-spin" />
+                      <p className="text-gray-600 font-semibold">Memuat data retur...</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : returns.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="px-4 py-16 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="p-4 bg-gray-100 rounded-full">
+                        <FileX2 className="w-10 h-10 text-gray-400" />
+                      </div>
+                      <p className="text-gray-600 font-semibold">Belum ada retur</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                returns.map((r: any) => (
+                  <tr key={r.id} className="hover:bg-gray-50 transition-colors border-b border-gray-100">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-primary-600">
+                      {r.returnNumber}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900">
+                      {r.transaction?.transactionNumber || '-'}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                      {r.createdAt ? new Date(r.createdAt).toLocaleDateString('id-ID') : '-'}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                      {r.customer?.name || '-'}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900 max-w-[200px] truncate" title={r.reason}>
+                      {r.reason}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">{badge(r.settlementType)}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                      {r.coa ? `${r.coa.code} — ${r.coa.name}` : '-'}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-bold text-primary-600">
+                      {formatCurrency(r.refundAmount)}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-right">
+                      {r.transactionId && (
+                        <Link
+                          to={`/sales/transactions/${r.transactionId}`}
+                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 text-blue-600 hover:bg-blue-50"
+                          title="Lihat Detail Transaksi"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Link>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-      )}
+
+        {!isLoading && returns.length > 0 && (
+          <div className="bg-gray-50 px-4 py-3 border-t border-gray-200 flex items-center justify-between">
+            <div className="text-sm text-gray-600">
+              Menampilkan <span className="font-bold text-gray-900">{returns.length}</span> dari{' '}
+              <span className="font-bold text-gray-900">{pagination.total}</span> retur
+              <span className="ml-2 text-gray-500">
+                (Halaman {pagination.page} dari {pagination.totalPages})
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPage(page - 1)}
+                disabled={page === 1}
+                className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-white hover:border-primary-500 hover:text-primary-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+              >
+                Sebelumnya
+              </button>
+              <button
+                onClick={() => setPage(page + 1)}
+                disabled={page >= pagination.totalPages}
+                className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-white hover:border-primary-500 hover:text-primary-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+              >
+                Selanjutnya
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
