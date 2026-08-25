@@ -387,6 +387,9 @@ export default function WarehouseList() {
                 <p className="text-xs text-gray-500">
                   Tindakan ini akan melakukan soft delete. Data tidak akan muncul di daftar, tetapi masih tersimpan di database.
                 </p>
+                <p className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  Gudang yang memiliki stok, pergerakan stok, transfer, opname, atau transaksi tidak dapat dihapus — pesan error dari server akan ditampilkan apa adanya.
+                </p>
               </div>
             </div>
             <div className="flex gap-3 pt-2">

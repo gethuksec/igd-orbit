@@ -279,6 +279,12 @@ export class WarehousesService {
       );
     }
 
+    // D8 — deactivating a warehouse that is referenced by stock/movements/transactions
+    // is blocked with the same rule as delete (soft-deactivate must not hide a live warehouse)
+    if (dto.isActive === false && warehouse.isActive === true) {
+      await this.assertNoReferences(id);
+    }
+
     if (
       identity.type === 'BAD' &&
       identity.scope === 'SYSTEM' &&
@@ -364,30 +370,7 @@ export class WarehousesService {
       );
     }
 
-    const [txCount, soCount, stockCount, movementCount, transferFromCount, transferToCount, opnameCount] =
-      await Promise.all([
-        this.prisma.salesTransaction.count({ where: { warehouseId: id } }),
-        this.prisma.serviceOrder.count({ where: { warehouseId: id } }),
-        this.prisma.productStock.count({ where: { warehouseId: id } }),
-        this.prisma.stockMovement.count({ where: { warehouseId: id } }),
-        this.prisma.stockTransfer.count({ where: { fromWarehouseId: id } }),
-        this.prisma.stockTransfer.count({ where: { toWarehouseId: id } }),
-        this.prisma.stockOpname.count({ where: { warehouseId: id } }),
-      ]);
-
-    if (
-      txCount > 0 ||
-      soCount > 0 ||
-      stockCount > 0 ||
-      movementCount > 0 ||
-      transferFromCount > 0 ||
-      transferToCount > 0 ||
-      opnameCount > 0
-    ) {
-      throw new BadRequestException(
-        `Warehouse is referenced by transactions, service orders, stock, movements, transfers, or opname and cannot be deleted`,
-      );
-    }
+    await this.assertNoReferences(id);
 
     await this.prisma.warehouse.update({
       where: { id },
@@ -395,5 +378,52 @@ export class WarehousesService {
         isActive: false,
       },
     });
+  }
+
+  /**
+   * D8 — Warehouse ↔ stock delete guard.
+   * A warehouse referenced by stock, movements, transfers, opname, stock in/out,
+   * sales transactions, or service orders must NOT be deleted or deactivated.
+   * The error message lists every blocking reference so the UI can surface it verbatim.
+   */
+  private async assertNoReferences(id: string): Promise<void> {
+    const [
+      stockCount,
+      movementCount,
+      transferFromCount,
+      transferToCount,
+      opnameCount,
+      stockInCount,
+      stockOutCount,
+      txCount,
+      soCount,
+    ] = await Promise.all([
+      this.prisma.productStock.count({ where: { warehouseId: id } }),
+      this.prisma.stockMovement.count({ where: { warehouseId: id } }),
+      this.prisma.stockTransfer.count({ where: { fromWarehouseId: id } }),
+      this.prisma.stockTransfer.count({ where: { toWarehouseId: id } }),
+      this.prisma.stockOpname.count({ where: { warehouseId: id } }),
+      this.prisma.stockIn.count({ where: { warehouseId: id } }),
+      this.prisma.stockOut.count({ where: { warehouseId: id } }),
+      this.prisma.salesTransaction.count({ where: { warehouseId: id } }),
+      this.prisma.serviceOrder.count({ where: { warehouseId: id } }),
+    ]);
+
+    const blocking: string[] = [];
+    if (stockCount > 0) blocking.push(`${stockCount} stok produk`);
+    if (movementCount > 0) blocking.push(`${movementCount} pergerakan stok`);
+    if (transferFromCount + transferToCount > 0)
+      blocking.push(`${transferFromCount + transferToCount} transfer stok`);
+    if (opnameCount > 0) blocking.push(`${opnameCount} stock opname`);
+    if (stockInCount > 0) blocking.push(`${stockInCount} stok masuk`);
+    if (stockOutCount > 0) blocking.push(`${stockOutCount} stok keluar`);
+    if (txCount > 0) blocking.push(`${txCount} transaksi penjualan`);
+    if (soCount > 0) blocking.push(`${soCount} service order`);
+
+    if (blocking.length > 0) {
+      throw new BadRequestException(
+        `Gudang memiliki referensi dan tidak dapat dihapus: ${blocking.join(', ')}`,
+      );
+    }
   }
 }
