@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Search,
   Eye,
   RefreshCw,
   DollarSign,
@@ -15,12 +14,9 @@ import {
 } from 'lucide-react';
 import type { SalesTransaction } from '../../services/sales.service';
 import { api } from '../../services/api';
-import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
-import { BreadcrumbHeader } from '@/components/shared';
-import { StatCard } from '@/components/shared';
-import { DataTable } from '@/components/shared';
+import { useBranchFilter } from '@/components/branch/BranchFilter';
+import { BreadcrumbHeader, FilterToolbar, StatCard, DataTable, RowsPerPageSelect } from '@/components/shared';
 import type { Column } from '@/components/shared';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '../../utils/format';
 
@@ -37,11 +33,11 @@ export default function ReturnsList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [page, setPage] = useState(1);
-  const limit = 20;
+  const [limit, setLimit] = useState(20);
   const { branchId, setBranchId } = useBranchFilter();
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['sales-returns', page, searchTerm, selectedStatus, branchId],
+    queryKey: ['sales-returns', page, limit, searchTerm, selectedStatus, branchId],
     queryFn: async () => {
       try {
         const response = await api.get('/sales/transactions', {
@@ -240,39 +236,39 @@ export default function ReturnsList() {
         />
       </div>
 
-      {/* Search & Filters */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <div className="flex flex-col lg:flex-row gap-4">
-          <div className="flex items-end">
-            <BranchFilterSelect value={branchId} onChange={setBranchId} />
-          </div>
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Cari Nomor Transaksi</label>
-            <div className="relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Cari nomor transaksi, customer..."
-                className="w-full pl-10"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="h-10 rounded-lg border border-input bg-background px-3 py-1.5 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 min-w-[150px]"
-            >
-              <option value="all">Semua Status</option>
-              <option value="void">Void</option>
-              <option value="cancelled">Cancelled</option>
-              <option value="refunded">Refunded</option>
-            </select>
-          </div>
-        </div>
-      </div>
+      {/* Toolbar: search inline + branch inline + filter popup (IGDERP-110) */}
+      <FilterToolbar
+        searchValue={searchTerm}
+        onSearchChange={(v) => {
+          setSearchTerm(v);
+          setPage(1);
+        }}
+        searchPlaceholder="Cari nomor transaksi, customer..."
+        branchFilter={{ value: branchId, onChange: setBranchId, allowAll: true }}
+        fields={[
+          {
+            key: 'status',
+            label: 'Status',
+            type: 'select',
+            options: [
+              { value: 'void', label: 'Void' },
+              { value: 'cancelled', label: 'Cancelled' },
+              { value: 'refunded', label: 'Refunded' },
+            ],
+          },
+        ]}
+        values={{ status: selectedStatus === 'all' ? '' : selectedStatus }}
+        onFieldChange={(key, value) => {
+          if (key === 'status') {
+            setSelectedStatus(value || 'all');
+            setPage(1);
+          }
+        }}
+        onReset={() => {
+          setSelectedStatus('all');
+          setPage(1);
+        }}
+      />
 
       <DataTable
         columns={columns}
@@ -291,8 +287,15 @@ export default function ReturnsList() {
       />
 
       {/* Pagination */}
-      {!isLoading && returns.length > 0 && pagination.totalPages > 1 && (
-        <div className="bg-white px-6 py-4 rounded-xl border border-gray-200 flex items-center justify-between">
+      {!isLoading && returns.length > 0 && (
+        <div className="bg-white px-6 py-4 rounded-xl border border-gray-200 flex items-center justify-between gap-3">
+          <RowsPerPageSelect
+            value={limit}
+            onChange={(v) => {
+              setLimit(v);
+              setPage(1);
+            }}
+          />
           <div className="text-sm text-gray-700">
             Menampilkan {((pagination.page - 1) * pagination.limit + 1).toLocaleString('id-ID')} -{' '}
             {Math.min(pagination.page * pagination.limit, pagination.total).toLocaleString('id-ID')} dari{' '}

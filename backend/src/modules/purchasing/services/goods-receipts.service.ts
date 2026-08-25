@@ -137,6 +137,7 @@ export class GoodsReceiptsService {
     status?: string;
     purchaseOrderId?: string;
     branchId?: string;
+    branchIds?: string[];
     startDate?: string;
     endDate?: string;
   }) {
@@ -167,6 +168,9 @@ export class GoodsReceiptsService {
 
     if (params.branchId) {
       where.branchId = params.branchId;
+    } else if (params.branchIds?.length) {
+      // "Semua Cabang" → user's accessible branches only
+      where.branchId = { in: params.branchIds };
     }
 
     if (params.startDate || params.endDate) {

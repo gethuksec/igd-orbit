@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { BreadcrumbHeader } from '@/components/shared';
+import { BreadcrumbHeader, FilterToolbar } from '@/components/shared';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Banknote, Search, CheckCircle, XCircle, Clock, AlertCircle, DollarSign, Eye, CheckSquare } from 'lucide-react';
+import { Banknote, CheckCircle, XCircle, Clock, AlertCircle, DollarSign, Eye, CheckSquare } from 'lucide-react';
 import { hrService, type Payroll } from '@/services/hr.service';
 import { formatCurrency } from '@/utils/format';
 import { toast } from 'sonner';
@@ -236,69 +236,59 @@ export default function PayrollList() {
           </div>
       </BreadcrumbHeader>
 
-      {/* Filters & Search - Enhanced */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
-        <div className="flex flex-col lg:flex-row gap-4">
-          <div className="flex-1">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Cari Payroll</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Cari nama karyawan, employee code, atau nomor payroll..."
-                className="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-              />
-            </div>
-          </div>
-          <div className="flex gap-3">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all bg-white min-w-[150px]"
-              >
-                <option value="all">Semua Status</option>
-                <option value="draft">Draft</option>
-                <option value="approved">Approved</option>
-                <option value="paid">Paid</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Bulan</label>
-              <select
-                value={periodMonth || ''}
-                onChange={(e) => setPeriodMonth(e.target.value ? parseInt(e.target.value) : undefined)}
-                className="px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all bg-white min-w-[150px]"
-              >
-                <option value="">Semua Bulan</option>
-                {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
-                  <option key={month} value={month}>
-                    {new Date(2000, month - 1).toLocaleString('id-ID', { month: 'long' })}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Tahun</label>
-              <input
-                type="number"
-                value={periodYear || ''}
-                onChange={(e) => setPeriodYear(e.target.value ? parseInt(e.target.value) : undefined)}
-                placeholder="Semua Tahun"
-                min="2020"
-                max="2100"
-                className="px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all bg-white min-w-[120px]"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Toolbar: search inline + filter popup (IGDERP-110) */}
+      <FilterToolbar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Cari nama karyawan, employee code, atau nomor payroll..."
+        fields={[
+          {
+            key: 'status',
+            label: 'Status',
+            type: 'select',
+            options: [
+              { value: 'draft', label: 'Draft' },
+              { value: 'approved', label: 'Approved' },
+              { value: 'paid', label: 'Paid' },
+              { value: 'cancelled', label: 'Cancelled' },
+            ],
+          },
+          {
+            key: 'month',
+            label: 'Bulan',
+            type: 'select',
+            options: Array.from({ length: 12 }, (_, i) => i + 1).map((month) => ({
+              value: String(month),
+              label: new Date(2000, month - 1).toLocaleString('id-ID', { month: 'long' }),
+            })),
+          },
+          {
+            key: 'year',
+            label: 'Tahun',
+            type: 'input',
+            placeholder: 'Semua Tahun',
+          },
+        ]}
+        values={{
+          status: statusFilter === 'all' ? '' : statusFilter,
+          month: periodMonth ? String(periodMonth) : '',
+          year: periodYear ? String(periodYear) : '',
+        }}
+        onFieldChange={(key, v) => {
+          if (key === 'status') {
+            setStatusFilter(v || 'all');
+          } else if (key === 'month') {
+            setPeriodMonth(v ? parseInt(v, 10) : undefined);
+          } else if (key === 'year') {
+            setPeriodYear(v ? parseInt(v, 10) : undefined);
+          }
+        }}
+        onReset={() => {
+          setStatusFilter('all');
+          setPeriodMonth(undefined);
+          setPeriodYear(undefined);
+        }}
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

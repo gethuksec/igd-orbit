@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { BreadcrumbHeader } from '@/components/shared';
+import { BreadcrumbHeader, FilterToolbar } from '@/components/shared';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Calendar, Search, User, CheckCircle, XCircle, Clock, AlertCircle, Eye } from 'lucide-react';
+import { Calendar, User, CheckCircle, XCircle, Clock, AlertCircle, Eye } from 'lucide-react';
 import { hrService, type LeaveRequest } from '@/services/hr.service';
 import { formatDate } from '@/utils/format';
 
@@ -109,61 +109,49 @@ export default function LeaveList() {
           </Link>
       </BreadcrumbHeader>
 
-      {/* Filters & Search - Enhanced */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
-        <div className="flex flex-col lg:flex-row gap-4">
-          <div className="flex-1">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Cari Cuti</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Cari nama karyawan atau employee code..."
-                className="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 text-base transition-all"
-              />
-            </div>
-          </div>
-          <div className="flex gap-3">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 text-base transition-all bg-white min-w-[150px]"
-              >
-                <option value="all">Semua Status</option>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Dari Tanggal</label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 text-base transition-all bg-white"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Sampai Tanggal</label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                min={startDate}
-                className="px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 text-base transition-all bg-white"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Toolbar: search inline + filter popup (IGDERP-110) */}
+      <FilterToolbar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Cari nama karyawan atau employee code..."
+        fields={[
+          {
+            key: 'status',
+            label: 'Status',
+            type: 'select',
+            options: [
+              { value: 'pending', label: 'Pending' },
+              { value: 'approved', label: 'Approved' },
+              { value: 'rejected', label: 'Rejected' },
+              { value: 'cancelled', label: 'Cancelled' },
+            ],
+          },
+          {
+            key: 'date',
+            label: 'Tanggal',
+            type: 'date-range',
+          },
+        ]}
+        values={{
+          status: statusFilter === 'all' ? '' : statusFilter,
+          dateFrom: startDate,
+          dateTo: endDate,
+        }}
+        onFieldChange={(key, v) => {
+          if (key === 'status') {
+            setStatusFilter(v || 'all');
+          } else if (key === 'dateFrom') {
+            setStartDate(v);
+          } else if (key === 'dateTo') {
+            setEndDate(v);
+          }
+        }}
+        onReset={() => {
+          setStatusFilter('all');
+          setStartDate('');
+          setEndDate('');
+        }}
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

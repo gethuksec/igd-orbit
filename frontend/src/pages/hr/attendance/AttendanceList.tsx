@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { BreadcrumbHeader } from '@/components/shared';
+import { BreadcrumbHeader, FilterToolbar } from '@/components/shared';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Clock, Calendar, Search, User, CheckCircle, XCircle, AlertCircle, Eye } from 'lucide-react';
+import { Clock, Calendar, User, CheckCircle, XCircle, AlertCircle, Eye } from 'lucide-react';
 import { hrService, type Attendance } from '@/services/hr.service';
 import { formatDate, formatDateTime } from '@/utils/format';
-import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
+import { useBranchFilter } from '@/components/branch/BranchFilter';
 
 export default function AttendanceList() {
   const [page, setPage] = useState(1);
@@ -96,64 +96,54 @@ export default function AttendanceList() {
           </Link>
       </BreadcrumbHeader>
 
-      {/* Filters & Search - Enhanced */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
-        <div className="flex flex-col lg:flex-row gap-4">
-          <div className="flex items-end">
-            <BranchFilterSelect value={branchId} onChange={setBranchId} />
-          </div>
-          <div className="flex-1">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Cari Absensi</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Cari nama karyawan atau employee code..."
-                className="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base transition-all"
-              />
-            </div>
-          </div>
-          <div className="flex gap-3">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base transition-all bg-white min-w-[150px]"
-              >
-                <option value="all">Semua Status</option>
-                <option value="present">Present</option>
-                <option value="absent">Absent</option>
-                <option value="leave">Leave</option>
-                <option value="holiday">Holiday</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Dari Tanggal</label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base transition-all bg-white"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Sampai Tanggal</label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                min={startDate}
-                className="px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base transition-all bg-white"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Toolbar: search inline + branch inline + filter popup (IGDERP-110) */}
+      <FilterToolbar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Cari nama karyawan atau employee code..."
+        branchFilter={{ value: branchId, onChange: setBranchId, allowAll: true }}
+        fields={[
+          {
+            key: 'status',
+            label: 'Status',
+            type: 'select',
+            options: [
+              { value: 'present', label: 'Present' },
+              { value: 'absent', label: 'Absent' },
+              { value: 'leave', label: 'Leave' },
+              { value: 'holiday', label: 'Holiday' },
+            ],
+          },
+          {
+            key: 'date',
+            label: 'Tanggal',
+            type: 'date-range',
+          },
+        ]}
+        values={{
+          status: statusFilter === 'all' ? '' : statusFilter,
+          dateFrom: startDate,
+          dateTo: endDate,
+        }}
+        onFieldChange={(key, v) => {
+          if (key === 'status') {
+            setStatusFilter(v || 'all');
+            setPage(1);
+          } else if (key === 'dateFrom') {
+            setStartDate(v);
+            setPage(1);
+          } else if (key === 'dateTo') {
+            setEndDate(v);
+            setPage(1);
+          }
+        }}
+        onReset={() => {
+          setStatusFilter('all');
+          setStartDate('');
+          setEndDate('');
+          setPage(1);
+        }}
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

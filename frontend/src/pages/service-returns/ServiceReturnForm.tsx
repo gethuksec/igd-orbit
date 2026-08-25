@@ -13,7 +13,7 @@ export default function ServiceReturnForm() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { branchId, setBranchId } = useBranchFilter();
+  const { branchId, setBranchId } = useBranchFilter({ defaultAll: false });
   const serviceOrderIdFromUrl = searchParams.get('serviceOrderId');
 
   const [selectedServiceOrderId, setSelectedServiceOrderId] = useState<string>(

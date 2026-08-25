@@ -15,7 +15,7 @@ export default function ReturnForm() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const transactionId = searchParams.get('transactionId');
-  const { branchId, setBranchId } = useBranchFilter();
+  const { branchId, setBranchId } = useBranchFilter({ defaultAll: false });
   const queryClient = useQueryClient();
 
   const [transactionSearch, setTransactionSearch] = useState('');

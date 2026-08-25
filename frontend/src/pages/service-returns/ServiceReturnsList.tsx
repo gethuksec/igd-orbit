@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Search, Eye, Filter, Package } from 'lucide-react';
+import { Plus, Eye, Package } from 'lucide-react';
 import { serviceReturnsService } from '../../services/service-returns.service';
-import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
-import { BreadcrumbHeader } from '@/components/shared';
-import { DataTable } from '@/components/shared';
+import { useBranchFilter } from '@/components/branch/BranchFilter';
+import { BreadcrumbHeader, DataTable, FilterToolbar } from '@/components/shared';
 import type { Column } from '@/components/shared';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
 export default function ServiceReturnsList() {
@@ -176,61 +174,56 @@ export default function ServiceReturnsList() {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <div className="flex flex-col lg:flex-row gap-4">
-          <div className="flex items-end">
-            <BranchFilterSelect value={branchId} onChange={setBranchId} />
-          </div>
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Cari Retur</label>
-            <div className="relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Cari return number, service order, atau nama customer..."
-                className="w-full pl-10"
-              />
-            </div>
-          </div>
-          <div className="lg:w-48">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-            <div className="relative">
-              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="w-full pl-10 h-10 rounded-lg border border-input bg-background px-3 py-1.5 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 appearance-none"
-              >
-                <option value="ALL">Semua Status</option>
-                <option value="pending">Pending</option>
-                <option value="investigating">Investigating</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-                <option value="resolved">Resolved</option>
-              </select>
-            </div>
-          </div>
-          <div className="lg:w-48">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Tipe Retur</label>
-            <div className="relative">
-              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <select
-                value={selectedReturnType}
-                onChange={(e) => setSelectedReturnType(e.target.value)}
-                className="w-full pl-10 h-10 rounded-lg border border-input bg-background px-3 py-1.5 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 appearance-none"
-              >
-                <option value="ALL">Semua Tipe</option>
-                <option value="re-service">Re-Service</option>
-                <option value="complaint">Complaint</option>
-                <option value="warranty">Warranty</option>
-                <option value="combination">Combination</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
+      <FilterToolbar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Cari return number, service order, atau nama customer..."
+        branchFilter={{ value: branchId, onChange: setBranchId, allowAll: true }}
+        fields={[
+          {
+            key: 'status',
+            label: 'Status',
+            type: 'select',
+            options: [
+              { value: 'pending', label: 'Pending' },
+              { value: 'investigating', label: 'Investigating' },
+              { value: 'approved', label: 'Approved' },
+              { value: 'rejected', label: 'Rejected' },
+              { value: 'resolved', label: 'Resolved' },
+            ],
+          },
+          {
+            key: 'returnType',
+            label: 'Tipe Retur',
+            type: 'select',
+            options: [
+              { value: 're-service', label: 'Re-Service' },
+              { value: 'complaint', label: 'Complaint' },
+              { value: 'warranty', label: 'Warranty' },
+              { value: 'combination', label: 'Combination' },
+            ],
+          },
+        ]}
+        values={{
+          status: selectedStatus === 'ALL' ? '' : selectedStatus,
+          returnType: selectedReturnType === 'ALL' ? '' : selectedReturnType,
+        }}
+        onFieldChange={(key, v) => {
+          if (key === 'status') {
+            setSelectedStatus((v || 'ALL') as any);
+            setPage(1);
+          }
+          if (key === 'returnType') {
+            setSelectedReturnType((v || 'ALL') as any);
+            setPage(1);
+          }
+        }}
+        onReset={() => {
+          setSelectedStatus('ALL');
+          setSelectedReturnType('ALL');
+          setPage(1);
+        }}
+      />
 
       <DataTable
         columns={columns}

@@ -22,7 +22,7 @@ const getCurrentUser = () => {
 export default function ClockInOut() {
   const queryClient = useQueryClient();
   const { availableBranches } = useBranchStore();
-  const { branchId: selectedBranchId, setBranchId: setSelectedBranchId } = useBranchFilter();
+  const { branchId: selectedBranchId, setBranchId: setSelectedBranchId } = useBranchFilter({ defaultAll: false });
   const currentUser = getCurrentUser();
 
   const [clockMethod, setClockMethod] = useState<'fingerprint' | 'manual'>('manual');

@@ -1,0 +1,340 @@
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Save, Loader2, Warehouse as WarehouseIcon } from "lucide-react";
+import { warehousesService } from "../../services/warehouses.service";
+import type { WarehouseInput } from "../../services/warehouses.service";
+import { branchesService } from "../../services/branches.service";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+
+interface WarehouseFormData {
+  name: string;
+  code: string;
+  type: "GOOD" | "BAD";
+  scope: "OUTLET" | "SYSTEM";
+  outletId: string;
+  city: string;
+  address: string;
+  phone: string;
+  email: string;
+  contactPerson: string;
+  mobilePhone: string;
+  isActive: boolean;
+}
+
+const defaultForm: WarehouseFormData = {
+  name: "",
+  code: "",
+  type: "GOOD",
+  scope: "OUTLET",
+  outletId: "",
+  city: "",
+  address: "",
+  phone: "",
+  email: "",
+  contactPerson: "",
+  mobilePhone: "",
+  isActive: true,
+};
+
+interface WarehouseFormModalProps {
+  open: boolean;
+  onClose: () => void;
+  /** Warehouse id when editing; undefined = create mode */
+  warehouseId?: string;
+}
+
+export default function WarehouseFormModal({ open, onClose, warehouseId }: WarehouseFormModalProps) {
+  const queryClient = useQueryClient();
+  const isEdit = Boolean(warehouseId);
+
+  const [form, setForm] = useState<WarehouseFormData>({ ...defaultForm });
+  const [loaded, setLoaded] = useState(false);
+
+  const { data: warehouse, isLoading: loadingWarehouse } = useQuery({
+    queryKey: ["warehouse", warehouseId],
+    queryFn: () => warehousesService.getById(warehouseId!),
+    enabled: isEdit && open,
+  });
+
+  // Reset + hydrate whenever the modal opens
+  useEffect(() => {
+    if (open) {
+      setLoaded(false);
+      setForm({ ...defaultForm });
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (warehouse && !loaded) {
+      setForm({
+        name: warehouse.name || "",
+        code: warehouse.code || "",
+        type: warehouse.type || "GOOD",
+        scope: warehouse.scope || "OUTLET",
+        outletId: warehouse.outletId || "",
+        city: warehouse.city || "",
+        address: warehouse.address || "",
+        phone: warehouse.phone || "",
+        email: warehouse.email || "",
+        contactPerson: warehouse.contactPerson || "",
+        mobilePhone: warehouse.mobilePhone || "",
+        isActive: warehouse.isActive !== false,
+      });
+      setLoaded(true);
+    }
+  }, [warehouse, loaded]);
+
+  const { data: outletsData } = useQuery({
+    queryKey: ["branches-active"],
+    queryFn: () => branchesService.getActive(),
+  });
+  const outlets = outletsData || [];
+
+  const saveMutation = useMutation({
+    mutationFn: (data: WarehouseFormData) => {
+      const submitData: WarehouseInput = {
+        ...data,
+        outletId: data.scope === "SYSTEM" ? null : data.outletId || undefined,
+      };
+      if (isEdit) {
+        return warehousesService.update(warehouseId!, submitData);
+      }
+      return warehousesService.create(submitData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["warehouses"] });
+      queryClient.invalidateQueries({ queryKey: ["pos-warehouses"] });
+      toast.success(isEdit ? "Gudang berhasil diupdate" : "Gudang berhasil ditambahkan");
+      onClose();
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || "Terjadi kesalahan");
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveMutation.mutate(form);
+  };
+
+  const inputCls =
+    "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent";
+  const labelCls = "block text-sm font-medium text-gray-700 mb-1";
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
+    >
+      <DialogContent className="sm:max-w-2xl max-h-[min(640px,90vh)] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <WarehouseIcon className="w-5 h-5 text-primary-600" />
+            {isEdit ? "Edit Gudang" : "Tambah Gudang"}
+            {isEdit && warehouse?.code ? (
+              <span className="text-xs font-normal text-muted-foreground">Kode: {warehouse.code}</span>
+            ) : null}
+          </DialogTitle>
+        </DialogHeader>
+
+        {isEdit && loadingWarehouse ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className={labelCls}>
+                Nama Gudang <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                className={inputCls}
+                placeholder="Nama gudang"
+              />
+            </div>
+            <div>
+              <label className={labelCls}>Kode</label>
+              <input
+                type="text"
+                value={form.code}
+                onChange={(e) => setForm({ ...form, code: e.target.value })}
+                className={inputCls}
+                placeholder="Kosongkan untuk otomatis (WH-XXXXXXXX)"
+              />
+            </div>
+            <div>
+              <label className={labelCls}>
+                Jenis Gudang <span className="text-red-500">*</span>
+              </label>
+              <select
+                required
+                value={form.type}
+                onChange={(e) => {
+                  const type = e.target.value as "GOOD" | "BAD";
+                  setForm({
+                    ...form,
+                    type,
+                    scope: type === "BAD" ? "SYSTEM" : "OUTLET",
+                    outletId: type === "BAD" ? "" : form.outletId,
+                  });
+                }}
+                className={inputCls}
+              >
+                <option value="GOOD">GOOD — Stok normal</option>
+                <option value="BAD">BAD — Central Bad Stock</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Scope: {form.scope === "SYSTEM" ? "System-wide" : "Outlet"}
+              </p>
+            </div>
+            {form.scope === "OUTLET" ? (
+              <div>
+                <label className={labelCls}>
+                  Outlet <span className="text-red-500">*</span>
+                </label>
+                <select
+                  required
+                  value={form.outletId}
+                  onChange={(e) => setForm({ ...form, outletId: e.target.value })}
+                  className={inputCls}
+                >
+                  <option value="">Pilih outlet...</option>
+                  {outlets.map((b: any) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name} ({b.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                Central Bad Stock adalah satu gudang system-wide tanpa outlet pemilik.
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>Kota</label>
+                <input
+                  type="text"
+                  value={form.city}
+                  onChange={(e) => setForm({ ...form, city: e.target.value })}
+                  className={inputCls}
+                  placeholder="Kota"
+                />
+              </div>
+              <div>
+                <label className={labelCls}>Telepon</label>
+                <input
+                  type="text"
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  className={inputCls}
+                  placeholder="Telepon gudang"
+                />
+              </div>
+            </div>
+            <div>
+              <label className={labelCls}>Alamat</label>
+              <textarea
+                value={form.address}
+                onChange={(e) => setForm({ ...form, address: e.target.value })}
+                rows={2}
+                className={inputCls}
+                placeholder="Alamat gudang (opsional)"
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className={labelCls}>Email</label>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  className={inputCls}
+                  placeholder="Email (opsional)"
+                />
+              </div>
+              <div>
+                <label className={labelCls}>Contact Person</label>
+                <input
+                  type="text"
+                  value={form.contactPerson}
+                  onChange={(e) => setForm({ ...form, contactPerson: e.target.value })}
+                  className={inputCls}
+                  placeholder="Nama contact person"
+                />
+              </div>
+            </div>
+            <div>
+              <label className={labelCls}>No. HP</label>
+              <input
+                type="text"
+                value={form.mobilePhone}
+                onChange={(e) => setForm({ ...form, mobilePhone: e.target.value })}
+                className={inputCls}
+                placeholder="No. HP contact person"
+              />
+            </div>
+            <div>
+              <label className={labelCls}>Status</label>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setForm((prev) => ({ ...prev, isActive: !prev.isActive }))}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    form.isActive ? "bg-green-500" : "bg-gray-300"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      form.isActive ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+                <span className="text-sm text-gray-600">
+                  {form.isActive ? "Aktif" : "Tidak Aktif"}
+                </span>
+              </div>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={onClose}
+                disabled={saveMutation.isPending}
+              >
+                Batal
+              </Button>
+              <Button
+                type="submit"
+                className="flex-1"
+                disabled={saveMutation.isPending}
+              >
+                {saveMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Menyimpan...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    Simpan
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}

@@ -63,7 +63,9 @@ export class ColorsService {
     const limitNum = typeof limit === 'string' ? parseInt(limit, 10) : limit || 20;
 
     const skip = (pageNum - 1) * limitNum;
-    const where: Prisma.ColorWhereInput = {};
+    const where: Prisma.ColorWhereInput = {
+      deletedAt: null,
+    };
 
     // Apply status filter
     if (status === 'active') {
@@ -128,8 +130,8 @@ export class ColorsService {
    * @returns Color detail
    */
   async findById(id: string) {
-    const color = await this.prisma.color.findUnique({
-      where: { id },
+    const color = await this.prisma.color.findFirst({
+      where: { id, deletedAt: null },
       include: {
         _count: {
           select: {
@@ -179,7 +181,7 @@ export class ColorsService {
     const existingName = await this.prisma.color.findFirst({
       where: {
         name: createColorDto.name,
-        isActive: true,
+        deletedAt: null,
       },
     });
 
@@ -226,8 +228,8 @@ export class ColorsService {
    * @returns Updated color
    */
   async update(id: string, updateColorDto: UpdateColorDto) {
-    const color = await this.prisma.color.findUnique({
-      where: { id },
+    const color = await this.prisma.color.findFirst({
+      where: { id, deletedAt: null },
     });
 
     if (!color) {
@@ -239,7 +241,7 @@ export class ColorsService {
       const existingName = await this.prisma.color.findFirst({
         where: {
           name: updateColorDto.name,
-          isActive: true,
+          deletedAt: null,
           id: { not: id },
         },
       });
@@ -305,8 +307,8 @@ export class ColorsService {
    * @param id - Color ID
    */
   async delete(id: string): Promise<void> {
-    const color = await this.prisma.color.findUnique({
-      where: { id },
+    const color = await this.prisma.color.findFirst({
+      where: { id, deletedAt: null },
       include: {
         _count: {
           select: {
@@ -332,6 +334,7 @@ export class ColorsService {
       where: { id },
       data: {
         isActive: false,
+        deletedAt: new Date(),
       },
     });
   }

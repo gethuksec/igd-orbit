@@ -4,7 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Warehouse as WarehouseIcon, MapPin, Phone, Eye, Edit, Trash2, Loader2, AlertTriangle, Building2 } from "lucide-react";
 import { warehousesService } from "../../services/warehouses.service";
 import { branchesService } from "../../services/branches.service";
-import { BreadcrumbHeader, StatCard, SearchFilter, DataTable } from "@/components/shared";
+import WarehouseFormModal from "./WarehouseFormModal";
+import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable } from "@/components/shared";
 import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -22,7 +23,9 @@ export default function WarehouseList() {
   const [outletFilter, setOutletFilter] = useState<string>(searchParams.get("outletId") || "");
   const limit = 20;
 
-  // Modal state (delete only — create/edit now on dedicated pages)
+  // Modal state (create/edit + delete)
+  const [formModalOpen, setFormModalOpen] = useState(false);
+  const [editingWarehouseId, setEditingWarehouseId] = useState<string | undefined>(undefined);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [warehouseToDelete, setWarehouseToDelete] = useState<{ id: string; name: string } | null>(null);
 
@@ -173,17 +176,14 @@ export default function WarehouseList() {
   const activeCount = warehouses.filter((w: any) => w.isActive).length;
   const outletCount = new Set(warehouses.map((w: any) => w.outletId)).size;
 
-  const statusBtns: { key: StatusFilter; label: string }[] = [
-    { key: "all", label: "Semua" },
-    { key: "active", label: "Aktif" },
-    { key: "inactive", label: "Tidak Aktif" },
-  ];
-
   return (
     <div className="w-full space-y-3">
       <BreadcrumbHeader title="Manajemen Gudang" subtitle="Kelola gudang per outlet">
         <Button
-          onClick={() => navigate("/warehouses/new")}
+          onClick={() => {
+            setEditingWarehouseId(undefined);
+            setFormModalOpen(true);
+          }}
           className="flex items-center gap-2"
         >
           <Plus className="w-5 h-5" />
@@ -223,48 +223,50 @@ export default function WarehouseList() {
         />
       </div>
 
-      <SearchFilter
+      <FilterToolbar
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
         searchPlaceholder="Cari nama gudang, kode, kota..."
+        fields={[
+          {
+            key: "outlet",
+            label: "Outlet",
+            type: "select",
+            options: outlets.map((b: any) => ({
+              value: b.id,
+              label: `${b.name} (${b.code})`,
+            })),
+          },
+          {
+            key: "status",
+            label: "Status",
+            type: "select",
+            options: [
+              { value: "active", label: "Aktif" },
+              { value: "inactive", label: "Tidak Aktif" },
+            ],
+          },
+        ]}
+        values={{
+          outlet: outletFilter,
+          status: statusFilter === "all" ? "" : statusFilter,
+        }}
+        onFieldChange={(key, v) => {
+          if (key === "outlet") {
+            setOutletFilter(v || "");
+            setPage(1);
+          }
+          if (key === "status") {
+            setStatusFilter((v || "all") as StatusFilter);
+            setPage(1);
+          }
+        }}
+        onReset={() => {
+          setOutletFilter("");
+          setStatusFilter("all");
+          setPage(1);
+        }}
       />
-
-      {/* Filter row: Outlet + Status */}
-      <div className="flex flex-wrap items-center gap-4">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-600">Outlet:</span>
-          <select
-            value={outletFilter}
-            onChange={(e) => setOutletFilter(e.target.value)}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-300 bg-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-          >
-            <option value="">Semua Outlet</option>
-            {outlets.map((b: any) => (
-              <option key={b.id} value={b.id}>
-                {b.name} ({b.code})
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-600">Status:</span>
-          <div className="flex gap-1">
-            {statusBtns.map((btn) => (
-              <button
-                key={btn.key}
-                onClick={() => setStatusFilter(btn.key)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                  statusFilter === btn.key
-                    ? "bg-primary-600 text-white shadow-sm"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                {btn.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
 
       <DataTable
         columns={columns}
@@ -286,7 +288,10 @@ export default function WarehouseList() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate(`/warehouses/${wh.id}/edit`)}
+              onClick={() => {
+                setEditingWarehouseId(wh.id);
+                setFormModalOpen(true);
+              }}
               title="Edit"
             >
               <Edit className="w-4 h-4" />
@@ -345,6 +350,16 @@ export default function WarehouseList() {
           </div>
         </div>
       )}
+
+      {/* Create/Edit Modal */}
+      <WarehouseFormModal
+        open={formModalOpen}
+        onClose={() => {
+          setFormModalOpen(false);
+          setEditingWarehouseId(undefined);
+        }}
+        warehouseId={editingWarehouseId}
+      />
 
       {/* Delete Confirmation Dialog */}
       <Dialog

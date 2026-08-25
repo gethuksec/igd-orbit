@@ -1,5 +1,7 @@
 # Dependencies
 node_modules/
+# Bare pattern also matches node_modules SYMLINKS (worktree shortcut)
+node_modules
 .pnp
 .pnp.js
 

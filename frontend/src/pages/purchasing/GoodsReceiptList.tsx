@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Package, Search, Eye, Plus, AlertCircle, Loader2 } from 'lucide-react';
-import { BreadcrumbHeader } from '@/components/shared';
+import { Package, Eye, Plus, AlertCircle, Loader2 } from 'lucide-react';
+import { BreadcrumbHeader, FilterToolbar } from '@/components/shared';
 import { purchasingService, type GoodsReceipt } from '@/services/purchasing.service';
 import { formatDate } from '@/utils/format';
-import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
+import { useBranchFilter } from '@/components/branch/BranchFilter';
 
 export default function GoodsReceiptList() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -68,50 +68,44 @@ export default function GoodsReceiptList() {
         </Link>
       </BreadcrumbHeader>
 
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
-        <div className="flex flex-col lg:flex-row gap-4">
-          <div className="flex items-end">
-            <BranchFilterSelect value={branchId} onChange={setBranchId} />
-          </div>
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Cari Penerimaan Barang</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setPage(1);
-                }}
-                placeholder="Cari nomor GR, PO..."
-                className="block w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setPage(1);
-              }}
-              className="px-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all bg-white min-w-[150px]"
-            >
-              <option value="all">Semua Status</option>
-              <option value="draft">Draft</option>
-              <option value="received">Received</option>
-              <option value="inspected">Inspected</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-          </div>
-        </div>
-      </div>
+      {/* Toolbar: search inline + branch inline + filter popup (IGDERP-110) */}
+      <FilterToolbar
+        searchValue={searchTerm}
+        onSearchChange={(v) => {
+          setSearchTerm(v);
+          setPage(1);
+        }}
+        searchPlaceholder="Cari nomor GR, PO..."
+        branchFilter={{ value: branchId, onChange: setBranchId, allowAll: true }}
+        fields={[
+          {
+            key: 'status',
+            label: 'Status',
+            type: 'select',
+            options: [
+              { value: 'draft', label: 'Draft' },
+              { value: 'received', label: 'Received' },
+              { value: 'inspected', label: 'Inspected' },
+              { value: 'approved', label: 'Approved' },
+              { value: 'rejected', label: 'Rejected' },
+              { value: 'cancelled', label: 'Cancelled' },
+            ],
+          },
+        ]}
+        values={{
+          status: statusFilter === 'all' ? '' : statusFilter,
+        }}
+        onFieldChange={(key, v) => {
+          if (key === 'status') {
+            setStatusFilter(v || 'all');
+            setPage(1);
+          }
+        }}
+        onReset={() => {
+          setStatusFilter('all');
+          setPage(1);
+        }}
+      />
 
       <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
         {isLoading ? (

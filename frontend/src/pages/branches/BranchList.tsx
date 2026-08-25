@@ -12,10 +12,7 @@ import {
   MapPin,
 } from 'lucide-react';
 import { branchesService } from '../../services/branches.service';
-import { BreadcrumbHeader } from '@/components/shared';
-import { StatCard } from '@/components/shared';
-import { SearchFilter } from '@/components/shared';
-import { DataTable } from '@/components/shared';
+import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable } from '@/components/shared';
 import type { Column } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -275,31 +272,32 @@ export default function BranchList() {
         />
       </div>
 
-      <SearchFilter
+      <FilterToolbar
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
         searchPlaceholder="Cari nama cabang, kode, lokasi, atau kontak..."
+        fields={[
+          {
+            key: 'status',
+            label: 'Status',
+            type: 'select',
+            options: statusBtns
+              .filter((b) => b.key !== 'all')
+              .map((b) => ({ value: b.key, label: b.label })),
+          },
+        ]}
+        values={{ status: statusFilter === 'all' ? '' : statusFilter }}
+        onFieldChange={(key, v) => {
+          if (key === 'status') {
+            setStatusFilter((v || 'all') as StatusFilter);
+            setPage(1);
+          }
+        }}
+        onReset={() => {
+          setStatusFilter('all');
+          setPage(1);
+        }}
       />
-
-      {/* Status Filter */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-gray-600">Status:</span>
-        <div className="flex gap-1">
-          {statusBtns.map((btn) => (
-            <button
-              key={btn.key}
-              onClick={() => setStatusFilter(btn.key)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                statusFilter === btn.key
-                  ? 'bg-primary-600 text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {btn.label}
-            </button>
-          ))}
-        </div>
-      </div>
 
       <DataTable
         columns={columns}

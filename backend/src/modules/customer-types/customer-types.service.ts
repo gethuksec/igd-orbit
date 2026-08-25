@@ -63,7 +63,9 @@ export class CustomerTypesService {
     const limitNum = typeof limit === 'string' ? parseInt(limit, 10) : limit || 20;
 
     const skip = (pageNum - 1) * limitNum;
-    const where: Prisma.CustomerTypeWhereInput = {};
+    const where: Prisma.CustomerTypeWhereInput = {
+      deletedAt: null,
+    };
 
     // Apply status filter
     if (status === 'active') {
@@ -112,8 +114,8 @@ export class CustomerTypesService {
    * @returns Sales type detail
    */
   async findById(id: string) {
-    const customerType = await this.prisma.customerType.findUnique({
-      where: { id },
+    const customerType = await this.prisma.customerType.findFirst({
+      where: { id, deletedAt: null },
     });
 
     if (!customerType) {
@@ -147,7 +149,7 @@ export class CustomerTypesService {
     const existingName = await this.prisma.customerType.findFirst({
       where: {
         name: createCustomerTypeDto.name,
-        isActive: true,
+        deletedAt: null,
       },
     });
 
@@ -174,8 +176,8 @@ export class CustomerTypesService {
    * @returns Updated sales type
    */
   async update(id: string, updateCustomerTypeDto: UpdateCustomerTypeDto) {
-    const customerType = await this.prisma.customerType.findUnique({
-      where: { id },
+    const customerType = await this.prisma.customerType.findFirst({
+      where: { id, deletedAt: null },
     });
 
     if (!customerType) {
@@ -187,7 +189,7 @@ export class CustomerTypesService {
       const existingName = await this.prisma.customerType.findFirst({
         where: {
           name: updateCustomerTypeDto.name,
-          isActive: true,
+          deletedAt: null,
           id: { not: id },
         },
       });
@@ -234,8 +236,8 @@ export class CustomerTypesService {
    * @param id - Sales Type ID
    */
   async delete(id: string): Promise<void> {
-    const customerType = await this.prisma.customerType.findUnique({
-      where: { id },
+    const customerType = await this.prisma.customerType.findFirst({
+      where: { id, deletedAt: null },
     });
 
     if (!customerType) {
@@ -247,6 +249,7 @@ export class CustomerTypesService {
       where: { id },
       data: {
         isActive: false,
+        deletedAt: new Date(),
       },
     });
   }

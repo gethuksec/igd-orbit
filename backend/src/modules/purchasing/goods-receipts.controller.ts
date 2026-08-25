@@ -11,6 +11,7 @@ import {
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../shared/guards/roles.guard';
 import { Roles } from '../../shared/decorators/roles.decorator';
+import { resolveBranchFilter } from '../../common/branch-access.util';
 import { GoodsReceiptsService } from './services/goods-receipts.service';
 import { CreateGoodsReceiptDto } from './dto/create-goods-receipt.dto';
 import { ApproveGoodsReceiptDto } from './dto/approve-goods-receipt.dto';
@@ -38,6 +39,7 @@ export class GoodsReceiptsController {
   @UseGuards(RolesGuard)
   @Roles('CSO', 'SPV', 'HS', 'ASA', 'SODO', 'CFO', 'OWNER', 'SUPERADMIN')
   async findAll(
+    @Request() req: ExpressRequest & { user: any },
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('search') search?: string,
@@ -47,6 +49,11 @@ export class GoodsReceiptsController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
+    // "Semua Cabang" default (22-Agu-2026): no branchId → restrict to user's branches
+    let branchIds: string[] | undefined;
+    if (!branchId) {
+      branchIds = resolveBranchFilter(req, undefined).branchIds;
+    }
     return this.goodsReceiptsService.findAll({
       page: page ? parseInt(page, 10) : undefined,
       limit: limit ? parseInt(limit, 10) : undefined,
@@ -54,6 +61,7 @@ export class GoodsReceiptsController {
       status,
       purchaseOrderId,
       branchId,
+      branchIds,
       startDate,
       endDate,
     });

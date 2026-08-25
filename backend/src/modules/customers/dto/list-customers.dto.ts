@@ -27,14 +27,12 @@ export class ListCustomersDto {
   @IsOptional()
   'filter[tier]'?: string[]; // Tier IDs
 
-  @IsArray({ message: 'Filter type must be an array' })
-  @IsString({ each: true, message: 'Each type must be a string' })
+  @IsString({ message: 'Filter type must be a string' })
   @IsIn(['retail', 'wholesale', 'corporate'], {
-    each: true,
-    message: 'Each type must be one of: retail, wholesale, corporate',
+    message: 'Filter type must be one of: retail, wholesale, corporate',
   })
   @IsOptional()
-  'filter[type]'?: string[];
+  'filter[type]'?: string;
 
   @IsString({ message: 'Filter branch must be a string' })
   @IsOptional()

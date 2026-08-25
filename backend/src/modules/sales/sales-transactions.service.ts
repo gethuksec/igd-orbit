@@ -7,6 +7,7 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services';
+import { BranchFilter } from '../../common/branch-access.util';
 import { CreateSalesTransactionDto, VoidTransactionDto, HoldTransactionDto } from './dto';
 import { CustomersService } from '../customers/customers.service';
 import { CustomerDepositsService } from './customer-deposits.service';
@@ -841,15 +842,17 @@ export class SalesTransactionsService {
    * @param branchId - Branch ID (optional, filter by branch)
    * @returns List of held transactions
    */
-  async listHeldTransactions(branchId?: string) {
+  async listHeldTransactions(branchFilter?: BranchFilter) {
     const where: any = {
       expiresAt: {
         gt: new Date(), // Only non-expired
       },
     };
 
-    if (branchId) {
-      where.branchId = branchId;
+    if (branchFilter?.branchId) {
+      where.branchId = branchFilter.branchId;
+    } else if (branchFilter?.branchIds?.length) {
+      where.branchId = { in: branchFilter.branchIds };
     }
 
     const heldTransactions = await this.prisma.heldTransaction.findMany({
@@ -997,7 +1000,15 @@ export class SalesTransactionsService {
    * @returns Paginated list of transactions
    */
   async findAll(query: any) {
-    const { page = 1, limit = 20, branchId, customerId, status, transactionType } = query;
+    const {
+      page = 1,
+      limit = 20,
+      branchId,
+      customerId,
+      status,
+      transactionType,
+      branchFilter,
+    } = query;
     
     // Ensure page and limit are numbers (fallback if transform didn't work)
     const pageNum = typeof page === 'string' ? parseInt(page, 10) : page || 1;
@@ -1006,7 +1017,11 @@ export class SalesTransactionsService {
     const skip = (pageNum - 1) * limitNum;
 
     const where: any = {};
-    if (branchId) {
+    if (branchFilter?.branchId) {
+      where.branchId = branchFilter.branchId;
+    } else if (branchFilter?.branchIds?.length) {
+      where.branchId = { in: branchFilter.branchIds };
+    } else if (branchId) {
       where.branchId = branchId;
     }
     if (customerId) {

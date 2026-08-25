@@ -102,7 +102,6 @@ import BranchDetail from './pages/branches/BranchDetail';
 // Landing Pages
 import WarehouseLanding from './pages/warehouse/WarehouseLanding';
 import WarehouseList from './pages/warehouse/WarehouseList';
-import WarehouseForm from './pages/warehouse/WarehouseForm';
 import WarehouseDetail from './pages/warehouse/WarehouseDetail';
 import SalesLanding from './pages/sales/SalesLanding';
 import ServiceLanding from './pages/services/ServiceLanding';
@@ -796,26 +795,6 @@ function App() {
                 <ProtectedRoute>
                   <DashboardLayout>
                     <WarehouseList />
-                  </DashboardLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/warehouses/new"
-              element={
-                <ProtectedRoute>
-                  <DashboardLayout>
-                    <WarehouseForm />
-                  </DashboardLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/warehouses/:id/edit"
-              element={
-                <ProtectedRoute>
-                  <DashboardLayout>
-                    <WarehouseForm />
                   </DashboardLayout>
                 </ProtectedRoute>
               }

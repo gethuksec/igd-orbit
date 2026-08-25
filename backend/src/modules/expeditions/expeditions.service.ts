@@ -63,7 +63,9 @@ export class ExpeditionsService {
     const limitNum = typeof limit === 'string' ? parseInt(limit, 10) : limit || 20;
 
     const skip = (pageNum - 1) * limitNum;
-    const where: Prisma.ExpeditionWhereInput = {};
+    const where: Prisma.ExpeditionWhereInput = {
+      deletedAt: null,
+    };
 
     // Apply status filter
     if (status === 'active') {
@@ -112,8 +114,8 @@ export class ExpeditionsService {
    * @returns Expedition detail
    */
   async findById(id: string) {
-    const expedition = await this.prisma.expedition.findUnique({
-      where: { id },
+    const expedition = await this.prisma.expedition.findFirst({
+      where: { id, deletedAt: null },
     });
 
     if (!expedition) {
@@ -147,7 +149,7 @@ export class ExpeditionsService {
     const existingName = await this.prisma.expedition.findFirst({
       where: {
         name: createExpeditionDto.name,
-        isActive: true,
+        deletedAt: null,
       },
     });
 
@@ -174,8 +176,8 @@ export class ExpeditionsService {
    * @returns Updated expedition
    */
   async update(id: string, updateExpeditionDto: UpdateExpeditionDto) {
-    const expedition = await this.prisma.expedition.findUnique({
-      where: { id },
+    const expedition = await this.prisma.expedition.findFirst({
+      where: { id, deletedAt: null },
     });
 
     if (!expedition) {
@@ -187,7 +189,7 @@ export class ExpeditionsService {
       const existingName = await this.prisma.expedition.findFirst({
         where: {
           name: updateExpeditionDto.name,
-          isActive: true,
+          deletedAt: null,
           id: { not: id },
         },
       });
@@ -234,8 +236,8 @@ export class ExpeditionsService {
    * @param id - Expedition ID
    */
   async delete(id: string): Promise<void> {
-    const expedition = await this.prisma.expedition.findUnique({
-      where: { id },
+    const expedition = await this.prisma.expedition.findFirst({
+      where: { id, deletedAt: null },
     });
 
     if (!expedition) {
@@ -247,6 +249,7 @@ export class ExpeditionsService {
       where: { id },
       data: {
         isActive: false,
+        deletedAt: new Date(),
       },
     });
   }

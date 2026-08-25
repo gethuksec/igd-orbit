@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Search, Edit, Eye, Wrench, Filter, UserCircle } from 'lucide-react';
+import { Plus, Edit, Eye, Wrench } from 'lucide-react';
 import { serviceOrdersService } from '../../services/service-orders.service';
-import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
+import { useBranchFilter } from '@/components/branch/BranchFilter';
 import { api } from '@/services/api';
-import { BreadcrumbHeader } from '@/components/shared';
-import { DataTable } from '@/components/shared';
+import { BreadcrumbHeader, DataTable, FilterToolbar } from '@/components/shared';
 import type { Column } from '@/components/shared';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
 export default function ServiceOrderList() {
@@ -153,66 +151,58 @@ export default function ServiceOrderList() {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <div className="flex flex-col lg:flex-row gap-4">
-          <div className="flex items-end">
-            <BranchFilterSelect value={branchId} onChange={setBranchId} />
-          </div>
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Cari Service Order</label>
-            <div className="relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Cari nomor service atau nama pelanggan..."
-                className="w-full pl-10"
-              />
-            </div>
-          </div>
-
-          <div className="lg:w-56">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-            <div className="relative">
-              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="w-full pl-10 h-10 rounded-lg border border-input bg-background px-3 py-1.5 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 appearance-none"
-              >
-                <option value="ALL">Semua Status</option>
-                <option value="pending">Pending</option>
-                <option value="diagnosed">Diagnosed</option>
-                <option value="quoted">Quoted</option>
-                <option value="approved">Approved</option>
-                <option value="in-progress">In Progress</option>
-                <option value="qc">QC</option>
-                <option value="completed">Completed</option>
-                <option value="delivered">Delivered</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="lg:w-56">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Teknisi</label>
-            <div className="relative">
-              <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <select
-                value={selectedTechnician}
-                onChange={(e) => setSelectedTechnician(e.target.value)}
-                className="w-full pl-10 h-10 rounded-lg border border-input bg-background px-3 py-1.5 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 appearance-none"
-              >
-                <option value="ALL">Semua Teknisi</option>
-                {(technicians || []).map((tech: any) => (
-                  <option key={tech.id} value={tech.id}>{tech.fullName || tech.email}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
+      <FilterToolbar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Cari nomor service atau nama pelanggan..."
+        branchFilter={{ value: branchId, onChange: setBranchId, allowAll: true }}
+        fields={[
+          {
+            key: 'status',
+            label: 'Status',
+            type: 'select',
+            options: [
+              { value: 'pending', label: 'Pending' },
+              { value: 'diagnosed', label: 'Diagnosed' },
+              { value: 'quoted', label: 'Quoted' },
+              { value: 'approved', label: 'Approved' },
+              { value: 'in-progress', label: 'In Progress' },
+              { value: 'qc', label: 'QC' },
+              { value: 'completed', label: 'Completed' },
+              { value: 'delivered', label: 'Delivered' },
+              { value: 'cancelled', label: 'Cancelled' },
+            ],
+          },
+          {
+            key: 'technician',
+            label: 'Teknisi',
+            type: 'select',
+            options: (technicians || []).map((tech: any) => ({
+              value: tech.id,
+              label: tech.fullName || tech.email,
+            })),
+          },
+        ]}
+        values={{
+          status: selectedStatus === 'ALL' ? '' : selectedStatus,
+          technician: selectedTechnician === 'ALL' ? '' : selectedTechnician,
+        }}
+        onFieldChange={(key, v) => {
+          if (key === 'status') {
+            setSelectedStatus((v || 'ALL') as any);
+            setPage(1);
+          }
+          if (key === 'technician') {
+            setSelectedTechnician((v || 'ALL') as any);
+            setPage(1);
+          }
+        }}
+        onReset={() => {
+          setSelectedStatus('ALL');
+          setSelectedTechnician('ALL');
+          setPage(1);
+        }}
+      />
 
       <DataTable
         columns={columns}

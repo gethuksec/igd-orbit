@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Plus,
-  Search,
   Edit,
   Trash2,
   Eye,
@@ -23,10 +22,7 @@ import { productsService } from '../../services/products.service';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
-import { BreadcrumbHeader } from '@/components/shared';
-import { StatCard } from '@/components/shared';
-import { DataTable } from '@/components/shared';
+import { BreadcrumbHeader, StatCard, DataTable, FilterToolbar } from '@/components/shared';
 import type { Column } from '@/components/shared';
 
 export default function ProductList() {
@@ -385,72 +381,47 @@ export default function ProductList() {
         />
       </div>
 
-      {/* Search — full width */}
-      <div className="relative">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Cari nama produk, SKU, atau barcode..."
-          className="w-full pl-10 h-11 text-sm"
-        />
-      </div>
-
-      {/* Filter Row — category, per-page, status */}
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-        {/* Kategori dropdown */}
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-gray-600 whitespace-nowrap">Kategori:</label>
-          <select
-            value={selectedCategory}
-            onChange={(e) => { setSelectedCategory(e.target.value); setPage(1); }}
-            className="h-9 rounded-lg border border-input bg-background px-3 py-1.5 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          >
-            <option value="">Semua Kategori</option>
-            {categories.map((cat: any) => (
-              <option key={cat.id} value={cat.id}>{cat.name}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Per Halaman dropdown */}
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-gray-600 whitespace-nowrap">Per Hal:</label>
-          <select
-            value={limit}
-            onChange={(e) => {
-              setLimit(parseInt(e.target.value) as 10 | 20 | 50 | 100);
-              setPage(1);
-            }}
-            className="h-9 rounded-lg border border-input bg-background px-3 py-1.5 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          >
-            <option value={10}>10</option>
-            <option value={20}>20</option>
-            <option value={50}>50</option>
-            <option value={100}>100</option>
-          </select>
-        </div>
-
-        {/* Status buttons */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-600">Status:</span>
-          <div className="flex gap-1">
-            {(['all', 'active', 'inactive'] as const).map((key) => (
-              <button
-                key={key}
-                onClick={() => { setSelectedStatus(key); setPage(1); }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                  selectedStatus === key
-                    ? 'bg-primary-600 text-white shadow-sm'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {key === 'all' ? 'Semua' : key === 'active' ? 'Aktif' : 'Tidak Aktif'}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+      <FilterToolbar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Cari nama produk, SKU, atau barcode..."
+        fields={[
+          {
+            key: 'status',
+            label: 'Status',
+            type: 'select',
+            options: [
+              { value: 'active', label: 'Aktif' },
+              { value: 'inactive', label: 'Tidak Aktif' },
+            ],
+          },
+          {
+            key: 'category',
+            label: 'Kategori',
+            type: 'select',
+            options: categories.map((cat: any) => ({ value: cat.id, label: cat.name })),
+          },
+        ]}
+        values={{
+          status: selectedStatus === 'all' ? '' : selectedStatus,
+          category: selectedCategory,
+        }}
+        onFieldChange={(key, v) => {
+          if (key === 'status') {
+            setSelectedStatus((v || 'all') as any);
+            setPage(1);
+          }
+          if (key === 'category') {
+            setSelectedCategory(v || '');
+            setPage(1);
+          }
+        }}
+        onReset={() => {
+          setSelectedStatus('active');
+          setSelectedCategory('');
+          setPage(1);
+        }}
+      />
 
       <DataTable
         columns={columns}
@@ -497,7 +468,23 @@ export default function ProductList() {
               (Halaman {pagination.page} dari {pagination.totalPages})
             </span>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-600 whitespace-nowrap">Per Hal:</label>
+              <select
+                value={limit}
+                onChange={(e) => {
+                  setLimit(parseInt(e.target.value) as 10 | 20 | 50 | 100);
+                  setPage(1);
+                }}
+                className="h-9 rounded-lg border border-input bg-background px-3 py-1.5 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
             <button
               onClick={() => setPage(page - 1)}
               disabled={page === 1}

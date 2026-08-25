@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Search, Wrench, Filter } from 'lucide-react';
+import { Wrench } from 'lucide-react';
 import { serviceOrdersService } from '@/services/service-orders.service';
-import { useBranchFilter, BranchFilterSelect } from '@/components/branch/BranchFilter';
-import { BreadcrumbHeader } from '@/components/shared';
-import { DataTable } from '@/components/shared';
+import { useBranchFilter } from '@/components/branch/BranchFilter';
+import { BreadcrumbHeader, DataTable, FilterToolbar } from '@/components/shared';
 import type { Column } from '@/components/shared';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
 const getCurrentUser = () => {
@@ -130,46 +128,38 @@ export default function MyServiceOrders() {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <div className="flex flex-col lg:flex-row gap-4">
-          <div className="flex items-end">
-            <BranchFilterSelect value={branchId} onChange={setBranchId} />
-          </div>
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Cari Service Order</label>
-            <div className="relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Cari nomor service, pelanggan, atau perangkat..."
-                className="w-full pl-10"
-              />
-            </div>
-          </div>
-
-          <div className="lg:w-56">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-            <div className="relative">
-              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="w-full pl-10 h-10 rounded-lg border border-input bg-background px-3 py-1.5 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 appearance-none"
-              >
-                <option value="ALL">Semua Status</option>
-                <option value="PENDING">Pending</option>
-                <option value="DIAGNOSED">Diagnosed</option>
-                <option value="APPROVED">Approved</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="QC">QC</option>
-                <option value="COMPLETED">Completed</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
+      <FilterToolbar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Cari nomor service, pelanggan, atau perangkat..."
+        branchFilter={{ value: branchId, onChange: setBranchId, allowAll: true }}
+        fields={[
+          {
+            key: 'status',
+            label: 'Status',
+            type: 'select',
+            options: [
+              { value: 'PENDING', label: 'Pending' },
+              { value: 'DIAGNOSED', label: 'Diagnosed' },
+              { value: 'APPROVED', label: 'Approved' },
+              { value: 'IN_PROGRESS', label: 'In Progress' },
+              { value: 'QC', label: 'QC' },
+              { value: 'COMPLETED', label: 'Completed' },
+            ],
+          },
+        ]}
+        values={{ status: selectedStatus === 'ALL' ? '' : selectedStatus }}
+        onFieldChange={(key, v) => {
+          if (key === 'status') {
+            setSelectedStatus((v || 'ALL') as any);
+            setPage(1);
+          }
+        }}
+        onReset={() => {
+          setSelectedStatus('ALL');
+          setPage(1);
+        }}
+      />
 
       <DataTable
         columns={columns}

@@ -139,11 +139,14 @@ export class StockOpnameService {
     });
   }
 
-  async findAll(branchId?: string, status?: string) {
+  async findAll(branchId?: string, status?: string, branchIds?: string[]) {
     const where: any = {};
 
     if (branchId) {
       where.branchId = branchId;
+    } else if (branchIds?.length) {
+      // "Semua Cabang" → user's accessible branches only
+      where.branchId = { in: branchIds };
     }
 
     if (status) {
