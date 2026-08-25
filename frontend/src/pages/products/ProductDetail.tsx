@@ -63,16 +63,6 @@ export default function ProductDetail() {
     }).format(amount);
   };
 
-  // Relations (unit/size/color) come back as objects {id, name} from the API;
-  // render their name safely whether the backend sends a string or an object.
-  const relationName = (relation: { name?: string } | string | null | undefined) => {
-    if (typeof relation === 'string') return relation;
-    return relation?.name || '';
-  };
-  const unitName = relationName((product as any).unit) || 'pcs';
-  const sizeName = relationName((product as any).size);
-  const colorName = relationName((product as any).color);
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -94,6 +84,16 @@ export default function ProductDetail() {
       </div>
     );
   }
+
+  // Relations (unit/size/color) come back as objects {id, name} from the API;
+  // render their name safely whether the backend sends a string or an object.
+  const relationName = (relation: { name?: string } | string | null | undefined) => {
+    if (typeof relation === 'string') return relation;
+    return relation?.name || '';
+  };
+  const unitName = relationName((product as any).unit) || 'pcs';
+  const sizeName = relationName((product as any).size);
+  const colorName = relationName((product as any).color);
 
   const margin = product.sellingPrice - product.costPrice;
   const marginPercent = ((margin / product.costPrice) * 100).toFixed(1);
