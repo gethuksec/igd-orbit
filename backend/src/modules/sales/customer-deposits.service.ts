@@ -23,7 +23,7 @@ export class CustomerDepositsService {
    * transaction. Crediting a deposit is a ledger action only — the transaction
    * state change belongs to the refunder flow (IGDERP-85 uses status 'retur').
    */
-  async createReturnDeposit(dto: CreateCustomerDepositDto, userId?: string): Promise<any> {
+  async createReturnDeposit(dto: CreateCustomerDepositDto): Promise<any> {
     if (dto.type !== 'return_credit') {
       throw new BadRequestException('Type must be return_credit for this operation');
     }

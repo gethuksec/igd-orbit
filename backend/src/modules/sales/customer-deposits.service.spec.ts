@@ -84,7 +84,7 @@ describe('CustomerDepositsService', () => {
     });
 
     it('credits balance WITHOUT voiding the source transaction (IGDERP-102 hardening)', async () => {
-      const result = await service.createReturnDeposit(dto, 'user-1');
+      const result = await service.createReturnDeposit(dto);
 
       expect(result).toEqual({ id: 'dep-1', amount: new Decimal(450000) });
 
