@@ -180,8 +180,8 @@ export const PERMISSION_CATALOG: string[] = [
   'master_data.*.view',
   // Sales / POS
   'sales.history.view',
-  'sales.return.create',
-  'sales.return.edit',
+  'sales.retur.view',
+  'sales.retur.create',
   'sales.pos.view',
   'sales.pos.create',
   'sales.pos.edit',
