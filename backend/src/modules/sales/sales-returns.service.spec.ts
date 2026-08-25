@@ -71,6 +71,7 @@ describe('SalesReturnsService', () => {
   const txMock = () => ({
     salesReturn: {
       create: jest.fn().mockResolvedValue(createdRetur),
+      findUniqueOrThrow: jest.fn().mockResolvedValue(createdRetur),
     },
     salesTransaction: {
       update: jest.fn().mockResolvedValue({ id: 'trx-1' }),

@@ -145,7 +145,7 @@ export class SalesReturnsService {
         });
       }
 
-      return this.prisma.salesReturn.findUniqueOrThrow({
+      return tx.salesReturn.findUniqueOrThrow({
         where: { id: retur.id },
         include: { transaction: true, customer: true, coa: true },
       });
