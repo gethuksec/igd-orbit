@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -18,8 +19,12 @@ import {
   MessageCircle,
   TrendingUp,
   Package,
+  Wallet,
+  ArrowDownLeft,
+  ArrowUpRight,
 } from 'lucide-react';
 import { customersService } from '../../services/customers.service';
+import { salesService } from '../../services/sales.service';
 import { api } from '../../services/api';
 
 export default function CustomerDetail() {
@@ -45,6 +50,26 @@ export default function CustomerDetail() {
     },
     enabled: !!id,
   });
+
+  // IGDERP-102: deposit ledger + balance
+  const { data: depositHistory } = useQuery({
+    queryKey: ['customer-deposits', id],
+    queryFn: async () => {
+      try {
+        const res = await salesService.getDepositHistory(id!);
+        return res;
+      } catch {
+        return { data: [], meta: { total: 0, page: 1, limit: 20, totalPages: 0 } };
+      }
+    },
+    enabled: !!id,
+  });
+  const depositEntries = depositHistory?.data || [];
+  const [depositFilter, setDepositFilter] = useState<'all' | 'in' | 'out'>('all');
+  const filteredDeposits = depositEntries.filter((d: any) =>
+    depositFilter === 'all' ? true : d.amount > 0 ? depositFilter === 'in' : depositFilter === 'out',
+  );
+  const depositBalance = Number((customer as any)?.depositBalance || 0);
 
   const getTierColor = (tier: { code: string; name: string } | null | string) => {
     if (!tier) return 'bg-gray-100 text-gray-700 border-gray-300';
@@ -245,6 +270,110 @@ export default function CustomerDetail() {
                   return `Rp ${totalAmount.toLocaleString('id-ID')}`;
                 })()}
               </p>
+            </div>
+          </div>
+
+          {/* Deposit — Saldo & Riwayat (IGDERP-102) */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Wallet className="w-5 h-5 text-primary-600" />
+              Saldo Deposit
+              <span className="ml-auto text-xs font-medium text-gray-400">Pencatatan kredit customer — bukan wallet</span>
+            </h2>
+
+            <div className="border border-red-100 bg-gradient-to-br from-white to-red-50 rounded-xl p-4 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold text-red-700">Saldo tersedia</p>
+                <p className="text-3xl font-extrabold text-red-800 tracking-tight mt-1">
+                  {depositBalance.toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 })}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">Terakhir diperbarui: {depositEntries.length > 0 ? new Date(depositEntries[0].createdAt).toLocaleString('id-ID') : '-'}</p>
+              </div>
+              <div className="text-right">
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-green-800 bg-green-50 border border-green-200 rounded-full px-3 py-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500" /> Tersedia untuk POS
+                </span>
+                <p className="text-[11px] text-red-700 mt-1.5">Dicatat di sistem · uang riil tidak ditampung</p>
+              </div>
+            </div>
+
+            {/* Deposit ledger */}
+            <div className="mt-5">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-bold text-gray-900">Riwayat Deposit</p>
+                <div className="flex items-center gap-1.5">
+                  {(['all', 'in', 'out'] as const).map((f) => (
+                    <button
+                      key={f}
+                      onClick={() => setDepositFilter(f)}
+                      className={`px-2.5 py-1 rounded-md text-xs font-semibold border transition-colors ${
+                        depositFilter === f
+                          ? 'text-primary-600 bg-primary-50 border-red-200'
+                          : 'text-gray-500 border-gray-200 bg-white hover:bg-gray-50'
+                      }`}
+                    >
+                      {f === 'all' ? 'Semua' : f === 'in' ? 'Masuk' : 'Keluar'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {filteredDeposits.length === 0 ? (
+                <div className="text-center py-8 text-gray-400">
+                  <Wallet className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm font-medium">Belum ada riwayat deposit</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto -mx-5 px-5">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-200 text-left text-[11px] uppercase tracking-wider text-gray-500">
+                        <th className="py-2 pr-3 font-bold">Tanggal</th>
+                        <th className="py-2 pr-3 font-bold">Jenis</th>
+                        <th className="py-2 pr-3 font-bold">Referensi</th>
+                        <th className="py-2 pr-3 font-bold">Keterangan</th>
+                        <th className="py-2 pr-3 font-bold text-right">Jumlah</th>
+                        <th className="py-2 font-bold text-right">Saldo</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredDeposits.slice(0, 5).map((d: any) => (
+                        <tr key={d.id} className="border-b border-gray-100 last:border-0">
+                          <td className="py-2.5 pr-3 text-gray-500 whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1.5">
+                              {d.amount > 0 ? (
+                                <ArrowDownLeft className="w-3.5 h-3.5 text-green-600" />
+                              ) : (
+                                <ArrowUpRight className="w-3.5 h-3.5 text-orange-500" />
+                              )}
+                              {new Date(d.createdAt).toLocaleDateString('id-ID')}
+                            </span>
+                          </td>
+                          <td className="py-2.5 pr-3">
+                            <span className={`text-xs font-semibold ${d.amount > 0 ? 'text-green-700' : 'text-orange-700'}`}>
+                              {d.type === 'return_credit' ? 'Kredit retur' : d.type === 'payment_used' ? 'Dipakai' : d.type === 'refund' ? 'Refund' : d.type}
+                            </span>
+                          </td>
+                          <td className="py-2.5 pr-3 text-blue-600 font-mono text-xs whitespace-nowrap">{d.referenceId ? d.referenceId.slice(0, 8) : '-'}</td>
+                          <td className="py-2.5 pr-3 text-gray-600">{d.notes || '-'}</td>
+                          <td className={`py-2.5 pr-3 text-right font-bold whitespace-nowrap ${d.amount > 0 ? 'text-green-700' : 'text-orange-700'}`}>
+                            {d.amount > 0 ? '+' : '−'} {Math.abs(d.amount).toLocaleString('id-ID')}
+                          </td>
+                          <td className="py-2.5 text-right font-semibold whitespace-nowrap">
+                            {d.runningBalance?.toLocaleString('id-ID')}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div className="flex items-center justify-between pt-3 text-xs text-gray-500">
+                    <span>Saldo dihitung dari seluruh ledger, bukan hanya baris yang ditampilkan.</span>
+                    {(depositHistory?.meta?.total ?? 0) > 5 && (
+                      <span className="font-semibold text-primary-600">{(depositHistory?.meta?.total ?? 0)} entri · riwayat lengkap menyusul</span>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
