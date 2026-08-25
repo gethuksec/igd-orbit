@@ -23,9 +23,9 @@ interface ReturDialogProps {
 }
 
 /**
- * Retur Penjualan popup (IGDERP-85) — full-invoice return.
- * Fields: Alasan (required) · Penyelesaian (Tunai / Tukar Barang; Deposit menunggu IGDERP-102)
- * · Akun COA (manual pick untuk v1).
+ * Retur Penjualan popup — full-invoice return.
+ * Fields: Alasan (required) · Penyelesaian (Tunai / Tukar Barang; Deposit belum tersedia)
+ * · Akun COA (opsional).
  */
 export default function ReturDialog({
   open,
@@ -112,9 +112,6 @@ export default function ReturDialog({
               <span>Total faktur</span>
               <span className="font-bold text-primary-600">{formatCurrency(total)}</span>
             </div>
-            <div className="mt-2 rounded-md bg-green-50 border border-green-200 px-2 py-1.5 text-xs text-green-700">
-              Retur penuh — seluruh item pada faktur ini diretur (v1)
-            </div>
           </div>
 
           {/* Alasan */}
@@ -143,17 +140,12 @@ export default function ReturDialog({
                 <option value="cash">Tunai (kembalikan uang)</option>
                 <option value="exchange">Tukar Barang</option>
                 <option value="deposit" disabled>
-                  Deposit customer — segera (IGDERP-102)
+                  Deposit customer
                 </option>
               </Select>
-              {settlementType === 'exchange' && (
-                <p className="text-xs text-muted-foreground">
-                  Refund + catatan "buat transaksi baru, alasan = retur no. X"
-                </p>
-              )}
             </div>
 
-            {/* Akun COA (manual v1) */}
+            {/* Akun COA */}
             <div className="grid gap-2">
               <Label>Akun (COA)</Label>
               <Select value={coaId} onValueChange={setCoaId}>
@@ -168,9 +160,6 @@ export default function ReturDialog({
                     </option>
                   ))}
               </Select>
-              <p className="text-xs text-muted-foreground">
-                Manual untuk v1 · pengaturan akun retur di IGDERP-117
-              </p>
             </div>
           </div>
         </div>

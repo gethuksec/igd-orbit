@@ -129,7 +129,7 @@ export default function POSTransaksi() {
     enabled: customerSearch.length >= 2,
   });
 
-  // IGDERP-102: show selected customer's deposit balance in POS
+  // Show selected customer deposit balance in POS
   const { data: posDepositBalance } = useQuery({
     queryKey: ['pos-deposit-balance', form.pelangganId],
     queryFn: () => salesService.getDepositBalance(form.pelangganId.toString()),

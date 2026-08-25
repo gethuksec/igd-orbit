@@ -12,7 +12,7 @@ const SETTLEMENT_BADGE: Record<string, { label: string; cls: string }> = {
 };
 
 /**
- * Retur Penjualan — read-only list (IGDERP-85).
+ * Retur Penjualan — read-only list.
  * Retur dibuat dari Riwayat Penjualan (aksi Retur pada transaksi Selesai).
  * Tidak ada tombol buat di halaman ini.
  */

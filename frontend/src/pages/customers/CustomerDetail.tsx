@@ -51,7 +51,7 @@ export default function CustomerDetail() {
     enabled: !!id,
   });
 
-  // IGDERP-102: deposit ledger + balance
+  // Deposit ledger + balance
   const { data: depositHistory } = useQuery({
     queryKey: ['customer-deposits', id],
     queryFn: async () => {
@@ -273,7 +273,7 @@ export default function CustomerDetail() {
             </div>
           </div>
 
-          {/* Deposit — Saldo & Riwayat (IGDERP-102) */}
+          {/* Deposit — Saldo & Riwayat */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
             <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
               <Wallet className="w-5 h-5 text-primary-600" />
