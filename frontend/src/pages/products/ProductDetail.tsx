@@ -63,6 +63,16 @@ export default function ProductDetail() {
     }).format(amount);
   };
 
+  // Relations (unit/size/color) come back as objects {id, name} from the API;
+  // render their name safely whether the backend sends a string or an object.
+  const relationName = (relation: { name?: string } | string | null | undefined) => {
+    if (typeof relation === 'string') return relation;
+    return relation?.name || '';
+  };
+  const unitName = relationName((product as any).unit) || 'pcs';
+  const sizeName = relationName((product as any).size);
+  const colorName = relationName((product as any).color);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -170,7 +180,7 @@ export default function ProductDetail() {
                 )}
                 <div className="flex items-center justify-between py-2.5">
                   <span className="text-xs font-medium uppercase tracking-wider text-gray-400">Satuan</span>
-                  <span className="text-sm font-semibold text-gray-900">{(product as any).unit || 'pcs'}</span>
+                  <span className="text-sm font-semibold text-gray-900">{unitName}</span>
                 </div>
                 <div className="flex items-center justify-between py-2.5">
                   <span className="text-xs font-medium uppercase tracking-wider text-gray-400">Jasa</span>
@@ -201,20 +211,20 @@ export default function ProductDetail() {
               </div>
 
               {/* Physical Attributes */}
-              {((product as any).size || (product as any).color || (product as any).lengthCm || (product as any).weightGrams) && (
+              {(sizeName || colorName || (product as any).lengthCm || (product as any).widthCm || (product as any).heightCm || (product as any).weightGrams || (product as any).packageWeightGrams) && (
                 <div className="pt-3 border-t border-gray-200">
                   <p className="text-xs font-medium uppercase tracking-wider text-gray-400 mb-2">Atribut Fisik</p>
                   <div className="divide-y divide-gray-100">
-                    {(product as any).size && (
+                    {sizeName && (
                       <div className="flex items-center justify-between py-2.5 first:pt-0">
                         <span className="text-xs font-medium uppercase tracking-wider text-gray-400">Ukuran</span>
-                        <span className="text-sm font-semibold text-gray-900">{(product as any).size}</span>
+                        <span className="text-sm font-semibold text-gray-900">{sizeName}</span>
                       </div>
                     )}
-                    {(product as any).color && (
+                    {colorName && (
                       <div className="flex items-center justify-between py-2.5">
                         <span className="text-xs font-medium uppercase tracking-wider text-gray-400">Warna</span>
-                        <span className="text-sm font-semibold text-gray-900">{(product as any).color}</span>
+                        <span className="text-sm font-semibold text-gray-900">{colorName}</span>
                       </div>
                     )}
                     {((product as any).lengthCm || (product as any).widthCm || (product as any).heightCm) && (
