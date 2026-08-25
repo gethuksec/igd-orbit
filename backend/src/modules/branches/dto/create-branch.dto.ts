@@ -52,8 +52,8 @@ export class CreateBranchDto {
   mobilePhone?: string;
 
   @IsString({ message: 'Head of Service ID must be a string' })
-  @IsNotEmpty({ message: 'Head of Service is required' })
-  headOfServiceId!: string;
+  @IsOptional()
+  headOfServiceId?: string;
 
   @IsBoolean({ message: 'isActive must be a boolean' })
   @IsOptional()

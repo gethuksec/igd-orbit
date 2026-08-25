@@ -53,6 +53,8 @@ export const customersService = {
     limit?: number;
     search?: string;
     tier?: string;
+    type?: string;
+    status?: string;
     sort?: string;
     order?: 'asc' | 'desc';
   }): Promise<CustomerListResponse> {
@@ -71,6 +73,16 @@ export const customersService = {
       if (params?.tier && params.tier !== 'ALL') {
         // Use bracket notation for nested query params
         apiParams['filter[tier]'] = [params.tier];
+      }
+      
+      // Customer type filter (retail/wholesale/corporate) — array format
+      if (params?.type) {
+        apiParams['filter[type]'] = [params.type];
+      }
+      
+      // Status filter (active = not deleted, inactive = soft-deleted)
+      if (params?.status) {
+        apiParams['filter[status]'] = params.status;
       }
       
       const response = await api.get('/customers', { 

@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
@@ -29,6 +29,14 @@ async function bootstrap(): Promise<void> {
       },
       whitelist: true, // Strip properties that don't have decorators
       forbidNonWhitelisted: false, // Don't throw error for non-whitelisted properties
+      // Join multiple validation messages into one readable string instead of
+      // an array (React renders arrays concatenated — "requiredmust be a string")
+      exceptionFactory: (errors) => {
+        const messages = errors
+          .map((e) => Object.values(e.constraints || {}).join('; '))
+          .join(', ');
+        return new BadRequestException(messages || 'Validation failed');
+      },
     }),
   );
 

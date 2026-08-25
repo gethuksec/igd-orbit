@@ -63,7 +63,9 @@ export class SizesService {
     const limitNum = typeof limit === 'string' ? parseInt(limit, 10) : limit || 20;
 
     const skip = (pageNum - 1) * limitNum;
-    const where: Prisma.SizeWhereInput = {};
+    const where: Prisma.SizeWhereInput = {
+      deletedAt: null,
+    };
 
     // Apply status filter
     if (status === 'active') {
@@ -127,8 +129,8 @@ export class SizesService {
    * @returns Size detail
    */
   async findById(id: string) {
-    const size = await this.prisma.size.findUnique({
-      where: { id },
+    const size = await this.prisma.size.findFirst({
+      where: { id, deletedAt: null },
       include: {
         _count: {
           select: {
@@ -177,7 +179,7 @@ export class SizesService {
     const existingName = await this.prisma.size.findFirst({
       where: {
         name: createSizeDto.name,
-        isActive: true,
+        deletedAt: null,
       },
     });
 
@@ -222,8 +224,8 @@ export class SizesService {
    * @returns Updated size
    */
   async update(id: string, updateSizeDto: UpdateSizeDto) {
-    const size = await this.prisma.size.findUnique({
-      where: { id },
+    const size = await this.prisma.size.findFirst({
+      where: { id, deletedAt: null },
     });
 
     if (!size) {
@@ -235,7 +237,7 @@ export class SizesService {
       const existingName = await this.prisma.size.findFirst({
         where: {
           name: updateSizeDto.name,
-          isActive: true,
+          deletedAt: null,
           id: { not: id },
         },
       });
@@ -297,8 +299,8 @@ export class SizesService {
    * @param id - Size ID
    */
   async delete(id: string): Promise<void> {
-    const size = await this.prisma.size.findUnique({
-      where: { id },
+    const size = await this.prisma.size.findFirst({
+      where: { id, deletedAt: null },
       include: {
         _count: {
           select: {
@@ -324,6 +326,7 @@ export class SizesService {
       where: { id },
       data: {
         isActive: false,
+        deletedAt: new Date(),
       },
     });
   }

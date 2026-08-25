@@ -63,7 +63,9 @@ export class PaymentTermsService {
     const limitNum = typeof limit === 'string' ? parseInt(limit, 10) : limit || 20;
 
     const skip = (pageNum - 1) * limitNum;
-    const where: Prisma.PaymentTermWhereInput = {};
+    const where: Prisma.PaymentTermWhereInput = {
+      deletedAt: null,
+    };
 
     // Apply status filter
     if (status === 'active') {
@@ -112,8 +114,8 @@ export class PaymentTermsService {
    * @returns Payment term detail
    */
   async findById(id: string) {
-    const paymentTerm = await this.prisma.paymentTerm.findUnique({
-      where: { id },
+    const paymentTerm = await this.prisma.paymentTerm.findFirst({
+      where: { id, deletedAt: null },
     });
 
     if (!paymentTerm) {
@@ -147,7 +149,7 @@ export class PaymentTermsService {
     const existingName = await this.prisma.paymentTerm.findFirst({
       where: {
         name: createPaymentTermDto.name,
-        isActive: true,
+        deletedAt: null,
       },
     });
 
@@ -175,8 +177,8 @@ export class PaymentTermsService {
    * @returns Updated payment term
    */
   async update(id: string, updatePaymentTermDto: UpdatePaymentTermDto) {
-    const paymentTerm = await this.prisma.paymentTerm.findUnique({
-      where: { id },
+    const paymentTerm = await this.prisma.paymentTerm.findFirst({
+      where: { id, deletedAt: null },
     });
 
     if (!paymentTerm) {
@@ -188,7 +190,7 @@ export class PaymentTermsService {
       const existingName = await this.prisma.paymentTerm.findFirst({
         where: {
           name: updatePaymentTermDto.name,
-          isActive: true,
+          deletedAt: null,
           id: { not: id },
         },
       });
@@ -238,8 +240,8 @@ export class PaymentTermsService {
    * @param id - Payment Term ID
    */
   async delete(id: string): Promise<void> {
-    const paymentTerm = await this.prisma.paymentTerm.findUnique({
-      where: { id },
+    const paymentTerm = await this.prisma.paymentTerm.findFirst({
+      where: { id, deletedAt: null },
     });
 
     if (!paymentTerm) {
@@ -251,6 +253,7 @@ export class PaymentTermsService {
       where: { id },
       data: {
         isActive: false,
+        deletedAt: new Date(),
       },
     });
   }

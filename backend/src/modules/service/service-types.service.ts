@@ -126,7 +126,7 @@ export class ServiceTypesService {
   }
 
   async findAll({ includeInactive, status }: { includeInactive?: boolean, status?: 'all' | 'active' | 'inactive' } = {}) {
-    const where: any = {};
+    const where: any = { deletedAt: null };
 
     // Apply status filter
     if (status === 'active') {
@@ -170,8 +170,8 @@ export class ServiceTypesService {
   }
 
   async findById(id: string) {
-    const serviceType = await this.prisma.serviceType.findUnique({
-      where: { id },
+    const serviceType = await this.prisma.serviceType.findFirst({
+      where: { id, deletedAt: null },
       include: {
         _count: {
           select: {
@@ -218,6 +218,15 @@ export class ServiceTypesService {
       }
     }
 
+    // Check name uniqueness
+    const existingName = await this.prisma.serviceType.findFirst({
+      where: { name: createServiceTypeDto.name, deletedAt: null },
+    });
+
+    if (existingName) {
+      throw new ConflictException('Service type name must be unique');
+    }
+
     // Validate price range
     if (createServiceTypeDto.minPrice && createServiceTypeDto.maxPrice) {
       if (createServiceTypeDto.minPrice > createServiceTypeDto.maxPrice) {
@@ -262,8 +271,8 @@ export class ServiceTypesService {
   }
 
   async update(id: string, updateServiceTypeDto: UpdateServiceTypeDto) {
-    const serviceType = await this.prisma.serviceType.findUnique({
-      where: { id },
+    const serviceType = await this.prisma.serviceType.findFirst({
+      where: { id, deletedAt: null },
     });
 
     if (!serviceType) {
@@ -278,6 +287,21 @@ export class ServiceTypesService {
 
       if (existing) {
         throw new ConflictException('Service type code already exists');
+      }
+    }
+
+    // Check name uniqueness if updating
+    if (updateServiceTypeDto.name && updateServiceTypeDto.name !== serviceType.name) {
+      const existingName = await this.prisma.serviceType.findFirst({
+        where: {
+          name: updateServiceTypeDto.name,
+          deletedAt: null,
+          id: { not: id },
+        },
+      });
+
+      if (existingName) {
+        throw new ConflictException('Service type name must be unique');
       }
     }
 
@@ -352,8 +376,8 @@ export class ServiceTypesService {
   }
 
   async delete(id: string) {
-    const serviceType = await this.prisma.serviceType.findUnique({
-      where: { id },
+    const serviceType = await this.prisma.serviceType.findFirst({
+      where: { id, deletedAt: null },
       include: {
         _count: {
           select: {
@@ -377,7 +401,7 @@ export class ServiceTypesService {
     // Soft delete (set isActive to false)
     return this.prisma.serviceType.update({
       where: { id },
-      data: { isActive: false },
+      data: { isActive: false, deletedAt: new Date() },
     });
   }
 }

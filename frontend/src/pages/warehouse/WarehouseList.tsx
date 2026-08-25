@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Warehouse as WarehouseIcon, MapPin, Phone, Eye, Edit, Trash2, Loader2, AlertTriangle, Building2 } from "lucide-react";
 import { warehousesService } from "../../services/warehouses.service";
 import { branchesService } from "../../services/branches.service";
+import WarehouseFormModal from "./WarehouseFormModal";
 import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable } from "@/components/shared";
 import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
@@ -22,7 +23,9 @@ export default function WarehouseList() {
   const [outletFilter, setOutletFilter] = useState<string>(searchParams.get("outletId") || "");
   const limit = 20;
 
-  // Modal state (delete only — create/edit now on dedicated pages)
+  // Modal state (create/edit + delete)
+  const [formModalOpen, setFormModalOpen] = useState(false);
+  const [editingWarehouseId, setEditingWarehouseId] = useState<string | undefined>(undefined);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [warehouseToDelete, setWarehouseToDelete] = useState<{ id: string; name: string } | null>(null);
 
@@ -177,7 +180,10 @@ export default function WarehouseList() {
     <div className="w-full space-y-3">
       <BreadcrumbHeader title="Manajemen Gudang" subtitle="Kelola gudang per outlet">
         <Button
-          onClick={() => navigate("/warehouses/new")}
+          onClick={() => {
+            setEditingWarehouseId(undefined);
+            setFormModalOpen(true);
+          }}
           className="flex items-center gap-2"
         >
           <Plus className="w-5 h-5" />
@@ -282,7 +288,10 @@ export default function WarehouseList() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate(`/warehouses/${wh.id}/edit`)}
+              onClick={() => {
+                setEditingWarehouseId(wh.id);
+                setFormModalOpen(true);
+              }}
               title="Edit"
             >
               <Edit className="w-4 h-4" />
@@ -341,6 +350,16 @@ export default function WarehouseList() {
           </div>
         </div>
       )}
+
+      {/* Create/Edit Modal */}
+      <WarehouseFormModal
+        open={formModalOpen}
+        onClose={() => {
+          setFormModalOpen(false);
+          setEditingWarehouseId(undefined);
+        }}
+        warehouseId={editingWarehouseId}
+      />
 
       {/* Delete Confirmation Dialog */}
       <Dialog

@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { customersService } from '../../services/customers.service';
 import { toast } from 'sonner';
-import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable } from '@/components/shared';
+import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable, RowsPerPageSelect } from '@/components/shared';
 import type { Column } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -30,6 +30,8 @@ export default function CustomerList() {
   const [limit, setLimit] = useState<10 | 20 | 50 | 100>(20);
   const [sortBy, setSortBy] = useState<'createdAt' | 'name'>('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [filterType, setFilterType] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
   const [showImportModal, setShowImportModal] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -38,12 +40,14 @@ export default function CustomerList() {
   const [showFormModal, setShowFormModal] = useState(false);
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['customers', page, limit, searchTerm, sortBy, sortOrder],
+    queryKey: ['customers', page, limit, searchTerm, filterType, filterStatus, sortBy, sortOrder],
     queryFn: () =>
       customersService.getAll({
         page,
         limit,
         search: searchTerm || undefined,
+        type: filterType || undefined,
+        status: filterStatus || undefined,
         sort: sortBy,
         order: sortOrder,
       }),
@@ -142,6 +146,20 @@ export default function CustomerList() {
         </div>
       </div>
     );
+  };
+
+  const getPageNumbers = (current: number, totalPages: number): (number | '...')[] => {
+    if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1);
+    const pages = new Set<number>([1, current - 1, current, current + 1, totalPages]);
+    const sorted = [...pages].filter((p) => p >= 1 && p <= totalPages).sort((a, b) => a - b);
+    const result: (number | '...')[] = [];
+    let prev = 0;
+    for (const p of sorted) {
+      if (p - prev > 1) result.push('...');
+      result.push(p);
+      prev = p;
+    }
+    return result;
   };
 
   const columns: Column<any>[] = [
@@ -276,30 +294,44 @@ export default function CustomerList() {
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
         searchPlaceholder="Cari nama, telepon, email, atau kode pelanggan..."
-        fields={[]}
-        values={{}}
-        onFieldChange={() => {}}
-        onReset={() => {}}
+        fields={[
+          {
+            key: 'type',
+            label: 'Tipe Pelanggan',
+            type: 'select',
+            options: [
+              { value: 'retail', label: 'Retail' },
+              { value: 'wholesale', label: 'Wholesale' },
+              { value: 'corporate', label: 'Corporate' },
+            ],
+          },
+          {
+            key: 'status',
+            label: 'Status',
+            type: 'select',
+            options: [
+              { value: 'active', label: 'Aktif' },
+              { value: 'inactive', label: 'Terhapus' },
+            ],
+          },
+        ]}
+        values={{ type: filterType, status: filterStatus }}
+        onFieldChange={(key, v) => {
+          if (key === 'type') {
+            setFilterType(v);
+            setPage(1);
+          }
+          if (key === 'status') {
+            setFilterStatus(v);
+            setPage(1);
+          }
+        }}
+        onReset={() => {
+          setFilterType('');
+          setFilterStatus('');
+          setPage(1);
+        }}
       />
-
-      <div className="flex items-center justify-end gap-3 mb-1">
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500">Per Halaman:</span>
-          <select
-            value={limit}
-            onChange={(e) => {
-              setLimit(parseInt(e.target.value) as 10 | 20 | 50 | 100);
-              setPage(1);
-            }}
-            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 bg-white"
-          >
-            <option value={10}>10</option>
-            <option value={20}>20</option>
-            <option value={50}>50</option>
-            <option value={100}>100</option>
-          </select>
-        </div>
-      </div>
 
       <DataTable
         columns={columns}
@@ -349,8 +381,16 @@ export default function CustomerList() {
       />
 
       {/* Pagination */}
-      {!isLoading && customers.length > 0 && pagination.totalPages > 1 && (
-        <div className="bg-white px-6 py-4 rounded-xl border border-gray-200 flex items-center justify-between">
+      {!isLoading && customers.length > 0 && (
+        <div className="bg-white px-6 py-4 rounded-xl border border-gray-200 flex items-center justify-between gap-3">
+          <RowsPerPageSelect
+            value={limit}
+            options={[10, 20, 50, 100]}
+            onChange={(v) => {
+              setLimit(v as 10 | 20 | 50 | 100);
+              setPage(1);
+            }}
+          />
           <div className="text-sm text-gray-700">
             Menampilkan {customers.length} dari{' '}
             <span className="font-semibold">{pagination.total}</span> pelanggan
@@ -358,21 +398,40 @@ export default function CustomerList() {
               (Halaman {pagination.page} dari {pagination.totalPages})
             </span>
           </div>
-          <div className="flex gap-2">
-            <button
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setPage(page - 1)}
               disabled={page === 1}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Sebelumnya
-            </button>
-            <button
+            </Button>
+            {getPageNumbers(pagination.page, pagination.totalPages).map((n, i) =>
+              n === '...' ? (
+                <span key={`e${i}`} className="px-1 text-gray-400">
+                  …
+                </span>
+              ) : (
+                <Button
+                  key={n}
+                  variant={n === pagination.page ? 'default' : 'outline'}
+                  size="sm"
+                  className={n === pagination.page ? 'bg-primary text-white' : ''}
+                  onClick={() => setPage(n)}
+                >
+                  {n}
+                </Button>
+              ),
+            )}
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setPage(page + 1)}
               disabled={page >= pagination.totalPages}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Selanjutnya
-            </button>
+            </Button>
           </div>
         </div>
       )}
