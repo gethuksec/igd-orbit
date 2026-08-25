@@ -4,6 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services';
+import { Decimal } from '@prisma/client/runtime/library';
 import { CreateCustomerDepositDto } from './dto';
 
 /**
@@ -15,8 +16,12 @@ export class CustomerDepositsService {
   constructor(private prisma: PrismaService) {}
 
   /**
-   * Create a deposit entry (add to customer balance)
-   * Used when a return is credited as deposit instead of cash refund
+   * Create a deposit entry (add to customer balance).
+   * Used when a return/settlement is credited as deposit instead of cash refund.
+   *
+   * NOTE (IGDERP-102 hardening): this no longer voids the referenced sales
+   * transaction. Crediting a deposit is a ledger action only — the transaction
+   * state change belongs to the refunder flow (IGDERP-85 uses status 'retur').
    */
   async createReturnDeposit(dto: CreateCustomerDepositDto, userId?: string): Promise<any> {
     if (dto.type !== 'return_credit') {
@@ -30,7 +35,7 @@ export class CustomerDepositsService {
       throw new NotFoundException('Customer not found');
     }
 
-    // If referenceId is provided, also void the transaction
+    // Validate reference document exists (no status mutation — ledger action only)
     if (dto.referenceId) {
       const transaction = await this.prisma.salesTransaction.findUnique({
         where: { id: dto.referenceId },
@@ -38,25 +43,9 @@ export class CustomerDepositsService {
       if (!transaction) {
         throw new NotFoundException('Transaction not found');
       }
-      if (transaction.status === 'void' || transaction.status === 'cancelled') {
-        throw new BadRequestException('Transaction is already voided or cancelled');
-      }
     }
 
     return this.prisma.$transaction(async (tx) => {
-      // If referenceId is provided, void the transaction first
-      if (dto.referenceId) {
-        await tx.salesTransaction.update({
-          where: { id: dto.referenceId },
-          data: {
-            status: 'void',
-            voidReason: dto.notes || 'Return credited as deposit',
-            voidedAt: new Date(),
-            voidedBy: userId || null,
-          },
-        });
-      }
-
       // Create deposit record
       const deposit = await tx.customerDeposit.create({
         data: {
@@ -155,9 +144,16 @@ export class CustomerDepositsService {
   }
 
   /**
-   * Get deposit transaction history for a customer
+   * Get deposit transaction history for a customer (newest first) with
+   * running balance per row, paginated.
    */
-  async getDepositHistory(customerId: string): Promise<any[]> {
+  async getDepositHistory(
+    customerId: string,
+    query?: { page?: number; limit?: number },
+  ): Promise<{ data: any[]; meta: { page: number; limit: number; total: number; totalPages: number } }> {
+    const page = Math.max(1, query?.page || 1);
+    const limit = Math.min(100, Math.max(1, query?.limit || 20));
+
     const customer = await this.prisma.customer.findUnique({
       where: { id: customerId },
     });
@@ -165,20 +161,34 @@ export class CustomerDepositsService {
       throw new NotFoundException('Customer not found');
     }
 
-    const deposits = await this.prisma.customerDeposit.findMany({
+    const all = await this.prisma.customerDeposit.findMany({
       where: { customerId },
-      orderBy: { createdAt: 'desc' },
-      take: 50,
+      orderBy: { createdAt: 'asc' },
     });
 
-    return deposits.map((d) => ({
-      id: d.id,
-      amount: d.amount.toNumber(),
-      type: d.type,
-      referenceId: d.referenceId,
-      notes: d.notes,
-      createdAt: d.createdAt,
-    }));
+    // Running balance = cumulative sum from the oldest entry (ledger-derived).
+    let running = new Decimal(0);
+    const withRunning = all.map((d) => {
+      running = running.plus(d.amount);
+      return {
+        id: d.id,
+        amount: d.amount.toNumber(),
+        type: d.type,
+        referenceId: d.referenceId,
+        notes: d.notes,
+        createdAt: d.createdAt,
+        runningBalance: running.toNumber(),
+      };
+    });
+
+    const newestFirst = withRunning.reverse();
+    const total = newestFirst.length;
+    const data = newestFirst.slice((page - 1) * limit, page * limit);
+
+    return {
+      data,
+      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    };
   }
 
   /**

@@ -4,6 +4,7 @@ import {
   Post,
   Body,
   Param,
+  Query,
   Req,
   UseGuards,
   HttpCode,
@@ -73,11 +74,18 @@ export class CustomerDepositsController {
 
   /**
    * Get customer deposit history
-   * GET /api/v1/customer-deposits/history/:customerId
+   * GET /api/v1/customer-deposits/history/:customerId?page=1&limit=20
    */
   @Get('history/:customerId')
-  async getHistory(@Param('customerId') customerId: string) {
-    return this.customerDepositsService.getDepositHistory(customerId);
+  async getHistory(
+    @Param('customerId') customerId: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.customerDepositsService.getDepositHistory(customerId, {
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+    });
   }
 
   /**
