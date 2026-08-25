@@ -47,7 +47,7 @@ export class SuppliersController {
     // Force filter to only show wholesale customers (suppliers)
     const supplierQuery = {
       ...query,
-      'filter[type]': ['wholesale'],
+      'filter[type]': 'wholesale',
     };
     return this.customersService.findAll(supplierQuery as ListCustomersDto);
   }
