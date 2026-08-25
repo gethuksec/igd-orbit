@@ -44,6 +44,7 @@ model User {
   statusHistoryChanges   ServiceStatusHistory[]  @relation("ServiceStatusHistoryChangedBy")
   branchHeadOfService    Branch[]                @relation("BranchHeadOfService")
   passwordChangeRequests PasswordChangeRequest[]
+  processedReturns       SalesReturn[]           @relation("SalesReturnProcessedBy")
 
   @@index([email])
   @@index([username])
@@ -150,6 +151,7 @@ model Branch {
   productStocks      ProductStock[]
   preferredCustomers Customer[]
   salesTransactions  SalesTransaction[]
+  salesReturns       SalesReturn[]
   stockMovements     StockMovement[]
   heldTransactions   HeldTransaction[]
   stockTransfersFrom StockTransfer[]    @relation("StockTransferFrom")
@@ -542,6 +544,7 @@ model Customer {
   preferredBranch  Branch?            @relation(fields: [preferredBranchId], references: [id], onDelete: SetNull)
   paymentTerm      PaymentTerm?       @relation(fields: [paymentTermId], references: [id], onDelete: SetNull)
   transactions     SalesTransaction[]
+  salesReturns     SalesReturn[]
   serviceOrders    ServiceOrder[]
   arPayments       ARPayment[]
   writeOffs        WriteOff[]
@@ -599,6 +602,7 @@ model SalesTransaction {
   cashier        User                   @relation(fields: [cashierId], references: [id], onDelete: Restrict)
   items          SalesTransactionItem[]
   payments       Payment[]
+  returns        SalesReturn[]
   // NOTE: stockMovements relation removed — StockMovement.referenceId is now a
   // polymorphic plain reference (no FK); sales movements are linked by referenceId
   // at the service layer only.
@@ -637,6 +641,35 @@ model SalesTransactionItem {
   @@index([transactionId])
   @@index([productId])
   @@map("sales_transaction_items")
+}
+
+model SalesReturn {
+  id             String   @id @default(uuid())
+  returnNumber   String   @unique @map("return_number") // RET-YYYYMMDD-XXXXXX
+  transactionId  String   @map("transaction_id")
+  branchId       String   @map("branch_id") // outlet where the sale happened (denormalized)
+  customerId     String?  @map("customer_id")
+  processedBy    String   @map("processed_by") // User ID who created the retur
+  reason         String   @db.Text // mandatory return reason
+  settlementType String   @map("settlement_type") // 'cash', 'exchange' (deposit later via IGDERP-102)
+  coaId          String?  @map("coa_id") // manual COA pick, snapshot at creation (IGDERP-117 config later)
+  refundAmount   Decimal  @map("refund_amount") @db.Decimal(15, 2) // = original invoice total (immutable nominal)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  transaction      SalesTransaction @relation(fields: [transactionId], references: [id], onDelete: Restrict)
+  branch           Branch           @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  customer         Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  processedByUser  User             @relation("SalesReturnProcessedBy", fields: [processedBy], references: [id], onDelete: Restrict)
+  coa              ChartOfAccount?  @relation(fields: [coaId], references: [id], onDelete: SetNull)
+
+  @@index([transactionId])
+  @@index([branchId])
+  @@index([customerId])
+  @@index([processedBy])
+  @@index([createdAt])
+  @@map("sales_returns")
 }
 
 model Payment {
@@ -1268,6 +1301,7 @@ model ChartOfAccount {
   journalLines JournalEntryLine[]
   expenses     Expense[]
   arPayments   ARPayment[]
+  salesReturns SalesReturn[]
 
   @@index([code])
   @@index([accountType])
