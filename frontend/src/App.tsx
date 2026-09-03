@@ -34,7 +34,6 @@ import SalesReceiptPrint from './pages/sales/SalesReceiptPrint';
 // Service Orders
 import ServiceOrderList from './pages/service-orders/ServiceOrderList';
 import ServiceOrderForm from './pages/service-orders/ServiceOrderForm';
-import ServiceOrderDetail from './pages/service-orders/ServiceOrderDetail';
 import ServiceOrderPrint from './pages/service-orders/ServiceOrderPrint';
 import MyServiceOrders from './pages/service-orders/MyServiceOrders';
 // Service Returns
@@ -105,6 +104,7 @@ import WarehouseDetail from './pages/warehouse/WarehouseDetail';
 import SalesLanding from './pages/sales/SalesLanding';
 import ServiceLanding from './pages/services/ServiceLanding';
 import SmartRepairPage from './pages/services/SmartRepairPage';
+import SmartRepairDetailPage from './pages/services/SmartRepairDetailPage';
 import ServiceCheckpointList from './pages/service-checkpoints/ServiceCheckpointList';
 import FinanceLanding from './pages/finance/FinanceLanding';
 import COAList from './pages/finance/coa/COAList';
@@ -667,6 +667,17 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            {/* Smart Repair — Detail Service Order (IGDERP-133: lifecycle 6 + Cancel) */}
+            <Route
+              path="/service-orders/:id"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <SmartRepairDetailPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
             {/* Kelengkapan CRUD (E-FE) */}
             <Route
               path="/service-checkpoints"
@@ -705,16 +716,6 @@ function App() {
                 <ProtectedRoute>
                   <DashboardLayout>
                     <ServiceOrderForm />
-                  </DashboardLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/service-orders/:id"
-              element={
-                <ProtectedRoute>
-                  <DashboardLayout>
-                    <ServiceOrderDetail />
                   </DashboardLayout>
                 </ProtectedRoute>
               }

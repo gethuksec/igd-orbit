@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Edit, Eye, Wrench } from 'lucide-react';
+import { Edit, Eye, Wrench } from 'lucide-react';
 import { serviceOrdersService } from '../../services/service-orders.service';
 import { useBranchFilter } from '@/components/branch/BranchFilter';
 import { api } from '@/services/api';
@@ -136,14 +136,7 @@ export default function ServiceOrderList() {
       <BreadcrumbHeader
         title="Manajemen Service Order"
         subtitle="Kelola pesanan servis dan perbaikan"
-      >
-        <Link to="/service-orders/new">
-          <Button className="flex items-center gap-2 bg-white text-primary-600 border border-gray-200 hover:bg-primary-50">
-            <Plus className="w-5 h-5" />
-            <span>Tambah Service Order</span>
-          </Button>
-        </Link>
-      </BreadcrumbHeader>
+      />
 
       {error && (
         <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">

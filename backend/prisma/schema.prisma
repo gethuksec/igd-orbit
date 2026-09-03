@@ -1016,7 +1016,7 @@ model ServiceType {
   basePrice   Decimal  @map("base_price") @db.Decimal(15, 2)
   minPrice    Decimal? @map("min_price") @db.Decimal(15, 2)
   maxPrice    Decimal? @map("max_price") @db.Decimal(15, 2)
-  slaHours    Int      @map("sla_hours") // Base SLA in hours
+  slaHours    Decimal @map("sla_hours") @db.Decimal(5, 2) // Base SLA in hours (0.5 = 30m allowed, IGDERP-135)
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -1090,6 +1090,7 @@ model ServiceOrder {
   quotedAt     DateTime? @map("quoted_at")
   approvedAt   DateTime? @map("approved_at")
   startedAt    DateTime? @map("started_at")
+  readyAt      DateTime? @map("ready_at") // IGDERP-133: Ready (selesai, siap diambil)
   completedAt  DateTime? @map("completed_at")
   deliveredAt  DateTime? @map("delivered_at")
   cancelledAt  DateTime? @map("cancelled_at")
