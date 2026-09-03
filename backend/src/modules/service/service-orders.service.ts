@@ -167,6 +167,11 @@ export class ServiceOrdersService {
       otherCost,
     } = dto;
 
+    // LOCK §5.2 (#2): biaya wajib diisi saat create (Quote dihapus) — Smart Repair flow only
+    if (serviceSubType && !Number(estimatedCost) && !Number(dto.finalPrice)) {
+      throw new BadRequestException('Biaya service wajib diisi saat create (Quote dihapus)');
+    }
+
     // Validate or create customer
     let finalCustomerId = customerId;
     if (!customerId) {
@@ -193,7 +198,7 @@ export class ServiceOrdersService {
       }
 
       // Calculate SLA
-      const baseSlaHours = serviceType.slaHours;
+      const baseSlaHours = Number(serviceType.slaHours);
       const slaHours = priority === 'urgent' ? baseSlaHours * 0.5 : baseSlaHours;
       const receivedDate = new Date();
       slaDueDate = new Date(receivedDate.getTime() + slaHours * 60 * 60 * 1000);
@@ -672,15 +677,19 @@ export class ServiceOrdersService {
     }
 
     // Validate status transition
+    // Smart Repair lifecycle (27 Aug §5): pending(Receive) -> diagnosed -> in-progress -> ready -> done;
+    // cancel allowed from any non-final status. Legacy flow (quoted/approved/qc/completed/delivered) preserved.
     const validTransitions: Record<string, string[]> = {
       pending: ['diagnosed', 'cancelled'],
-      diagnosed: ['quoted', 'cancelled'],
+      diagnosed: ['quoted', 'in-progress', 'cancelled'],
       quoted: ['approved', 'cancelled'],
       approved: ['in-progress', 'cancelled'],
-      'in-progress': ['qc', 'cancelled'],
+      'in-progress': ['qc', 'ready', 'cancelled'],
       qc: ['completed', 'in-progress'], // Can return to in-progress if QC fails
       completed: ['delivered'],
       delivered: [],
+      ready: ['done', 'cancelled'],
+      done: [],
       cancelled: [],
     };
 
@@ -689,6 +698,11 @@ export class ServiceOrdersService {
       throw new BadRequestException(
         `Invalid status transition from ${serviceOrder.status} to ${dto.status}`,
       );
+    }
+
+    // LOCK §5.2: cancel requires a mandatory reason
+    if (dto.status === 'cancelled' && !dto.notes?.trim()) {
+      throw new BadRequestException('Alasan pembatalan wajib diisi');
     }
 
     // Check required fields for specific statuses
@@ -750,6 +764,10 @@ export class ServiceOrdersService {
         }
       } else if (dto.status === 'in-progress') {
         updateData.startedAt = new Date();
+      } else if (dto.status === 'ready') {
+        updateData.readyAt = new Date();
+      } else if (dto.status === 'done') {
+        updateData.completedAt = new Date();
       } else if (dto.status === 'completed') {
         updateData.completedAt = new Date();
       } else if (dto.status === 'delivered') {

@@ -105,6 +105,7 @@ import WarehouseDetail from './pages/warehouse/WarehouseDetail';
 import SalesLanding from './pages/sales/SalesLanding';
 import ServiceLanding from './pages/services/ServiceLanding';
 import SmartRepairPage from './pages/services/SmartRepairPage';
+import SmartRepairDetailPage from './pages/services/SmartRepairDetailPage';
 import ServiceCheckpointList from './pages/service-checkpoints/ServiceCheckpointList';
 import FinanceLanding from './pages/finance/FinanceLanding';
 import COAList from './pages/finance/coa/COAList';
@@ -663,6 +664,17 @@ function App() {
                 <ProtectedRoute>
                   <POSLayout>
                     <SmartRepairPage />
+                  </POSLayout>
+                </ProtectedRoute>
+              }
+            />
+            {/* Smart Repair — Detail Service Order (IGDERP-133: lifecycle 6 + Cancel) */}
+            <Route
+              path="/services/smart-repair/:id"
+              element={
+                <ProtectedRoute>
+                  <POSLayout>
+                    <SmartRepairDetailPage />
                   </POSLayout>
                 </ProtectedRoute>
               }

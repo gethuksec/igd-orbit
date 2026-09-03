@@ -283,8 +283,8 @@ export default function SmartRepairPage() {
     onSuccess: (res) => {
       toast.success('Service order berhasil disimpan');
       const id = res?.id;
-      if (id) navigate(`/service-orders/${id}`);
-      else navigate('/service-orders');
+      if (id) navigate(`/services/smart-repair/${id}`);
+      else navigate('/services/smart-repair');
     },
     onError: (err: any) => {
       toast.error(err.response?.data?.message || 'Gagal menyimpan service order');
