@@ -34,7 +34,6 @@ import SalesReceiptPrint from './pages/sales/SalesReceiptPrint';
 // Service Orders
 import ServiceOrderList from './pages/service-orders/ServiceOrderList';
 import ServiceOrderForm from './pages/service-orders/ServiceOrderForm';
-import ServiceOrderDetail from './pages/service-orders/ServiceOrderDetail';
 import ServiceOrderPrint from './pages/service-orders/ServiceOrderPrint';
 import MyServiceOrders from './pages/service-orders/MyServiceOrders';
 // Service Returns
@@ -670,12 +669,12 @@ function App() {
             />
             {/* Smart Repair — Detail Service Order (IGDERP-133: lifecycle 6 + Cancel) */}
             <Route
-              path="/services/smart-repair/:id"
+              path="/service-orders/:id"
               element={
                 <ProtectedRoute>
-                  <POSLayout>
+                  <DashboardLayout>
                     <SmartRepairDetailPage />
-                  </POSLayout>
+                  </DashboardLayout>
                 </ProtectedRoute>
               }
             />
@@ -717,16 +716,6 @@ function App() {
                 <ProtectedRoute>
                   <DashboardLayout>
                     <ServiceOrderForm />
-                  </DashboardLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/service-orders/:id"
-              element={
-                <ProtectedRoute>
-                  <DashboardLayout>
-                    <ServiceOrderDetail />
                   </DashboardLayout>
                 </ProtectedRoute>
               }

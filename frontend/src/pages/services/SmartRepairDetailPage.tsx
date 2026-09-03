@@ -105,12 +105,9 @@ export default function SmartRepairDetailPage() {
   });
 
   const { data: technicians = [] } = useQuery({
-    queryKey: ['sr-technicians', order?.branchId],
+    queryKey: ['sr-technicians'],
     queryFn: async () => {
-      const path = order?.branchId
-        ? `/users/technicians?branchId=${order.branchId}`
-        : '/users/technicians';
-      const res = await fetch(path, {
+      const res = await fetch('/users/technicians', {
         headers: { Authorization: 'Bearer ' + localStorage.getItem('access_token') },
       });
       const json = await res.json();
@@ -417,7 +414,7 @@ export default function SmartRepairDetailPage() {
                         <div className="text-xs text-gray-500 mt-1">
                           <span className="font-semibold">Oleh: </span>
                           {entry.changedByUser?.fullName || entry.changedByUser?.email || '—'}
-                          {s === 'in-progress' && (
+                          {s === 'in-progress' && status === 'in-progress' && (
                             <>
                               {' '}
                               <button
