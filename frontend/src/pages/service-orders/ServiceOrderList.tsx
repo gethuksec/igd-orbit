@@ -87,7 +87,7 @@ export default function ServiceOrderList() {
       header: 'Nomor Service',
       cell: (order) => (
         <Link
-          to={`/service-orders/${order.id}`}
+          to={`/services/smart-repair/${order.id}`}
           className="text-sm font-semibold text-primary-600 hover:text-primary-700 hover:underline transition-colors"
         >
           {order.serviceNumber}
@@ -213,7 +213,7 @@ export default function ServiceOrderList() {
         emptyIcon={<Wrench className="w-16 h-16" />}
         actions={(order: any) => (
           <div className="flex items-center gap-1">
-            <Link to={`/service-orders/${order.id}`}>
+            <Link to={`/services/smart-repair/${order.id}`}>
               <Button variant="ghost" size="sm" title="Lihat Detail">
                 <Eye className="w-4 h-4" />
               </Button>
