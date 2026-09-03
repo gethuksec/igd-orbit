@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -104,15 +104,26 @@ export default function SmartRepairDetailPage() {
     enabled: !!id,
   });
 
-  const { data: technicians = [] } = useQuery({
-    queryKey: ['sr-technicians'],
-    queryFn: async () => {
-      const res = await fetch('/users/technicians', {
-        headers: { Authorization: 'Bearer ' + localStorage.getItem('access_token') },
-      });
+  const authHeader = useCallback(
+    () => ({ Authorization: 'Bearer ' + localStorage.getItem('access_token') }),
+    [],
+  );
+  const fetchList = useCallback(
+    async (path: string) => {
+      const res = await fetch(path, { headers: authHeader() });
+      if (!res.ok) return [];
       const json = await res.json();
       return Array.isArray(json) ? json : json.data || [];
     },
+    [authHeader],
+  );
+
+  const { data: technicians = [] } = useQuery({
+    queryKey: ['sr-technicians', order?.branchId || 'all'],
+    queryFn: () =>
+      fetchList(
+        `/api/v1/users/technicians?branchId=${encodeURIComponent(order?.branchId || '')}`,
+      ),
     enabled: !!order,
   });
 
