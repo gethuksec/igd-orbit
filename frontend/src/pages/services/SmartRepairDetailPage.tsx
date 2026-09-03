@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { BreadcrumbHeader } from '@/components/shared';
 import { serviceOrdersService } from '@/services/service-orders.service';
@@ -97,6 +98,10 @@ export default function SmartRepairDetailPage() {
   const [cancelReason, setCancelReason] = useState('');
   const [openTeknisi, setOpenTeknisi] = useState(false);
   const [techId, setTechId] = useState('');
+  const [openWaktu, setOpenWaktu] = useState(false);
+  const [waktuLayanan, setWaktuLayanan] = useState('');
+  const [waktuAlasan, setWaktuAlasan] = useState('');
+  const [waktuEstimasi, setWaktuEstimasi] = useState('');
 
   const { data: order, isLoading } = useQuery({
     queryKey: ['service-order', id],
@@ -127,6 +132,12 @@ export default function SmartRepairDetailPage() {
     enabled: !!order,
   });
 
+  const { data: serviceTypes = [] } = useQuery({
+    queryKey: ['sr-service-types'],
+    queryFn: () => fetchList('/api/v1/service-types'),
+    enabled: openWaktu,
+  });
+
   const statusMutation = useMutation({
     mutationFn: (payload: { status: string; notes?: string }) =>
       serviceOrdersService.updateStatus(id!, payload),
@@ -148,6 +159,21 @@ export default function SmartRepairDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['service-order', id] });
     },
     onError: (err: any) => toast.error(err.response?.data?.message || 'Gagal mengubah teknisi'),
+  });
+
+  const addTimeMutation = useMutation({
+    mutationFn: (payload: {
+      serviceTypeId?: string;
+      notes: string;
+      newEstimatedAt: string;
+    }) => serviceOrdersService.addTime(id!, payload),
+    onSuccess: () => {
+      toast.success('Waktu berhasil ditambahkan');
+      setOpenWaktu(false);
+      setWaktuAlasan('');
+      queryClient.invalidateQueries({ queryKey: ['service-order', id] });
+    },
+    onError: (err: any) => toast.error(err.response?.data?.message || 'Gagal tambah waktu'),
   });
 
   if (isLoading) return <div className="p-10 text-center text-gray-500">Memuat…</div>;
@@ -371,12 +397,28 @@ export default function SmartRepairDetailPage() {
                   {SR_NEXT_LABEL[SR_FLOW[currentIndex + 1]]}
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem
-                disabled
-                onClick={() => toast.info('Fitur Tambah Waktu menyusul (IGDERP-134)')}
-              >
-                Tambah Waktu
-              </DropdownMenuItem>
+              {status === 'in-progress' && !isCancelled && (
+                <DropdownMenuItem
+                  className="font-semibold"
+                  onClick={() => {
+                    setWaktuEstimasi(
+                      order?.promisedDate
+                        ? new Date(order.promisedDate).toISOString().slice(0, 16)
+                        : '',
+                    );
+                    setWaktuAlasan('');
+                    setWaktuLayanan('');
+                    setOpenWaktu(true);
+                  }}
+                >
+                  Tambah Waktu
+                </DropdownMenuItem>
+              )}
+              {(!status || status !== 'in-progress') && (
+                <DropdownMenuItem disabled>
+                  Tambah Waktu
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem
                 disabled
                 onClick={() => toast.info('Fitur Tambah Barang menyusul (IGDERP-138)')}
@@ -527,12 +569,78 @@ export default function SmartRepairDetailPage() {
             </Select>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpenTeknisi(false)}>Batal</Button>
+            <Button variant="outline" onClick={() => setOpenTeknisi(false)}>Kembali</Button>
             <Button
               disabled={!techId || teknisiMutation.isPending}
               onClick={() => teknisiMutation.mutate(techId)}
             >
               Ubah Teknisi
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Tambah Waktu modal (IGDERP-134) ─── */}
+      <Dialog open={openWaktu} onOpenChange={setOpenWaktu}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Tambah Waktu</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-sm text-gray-600">Layanan</Label>
+              <Select
+                value={waktuLayanan}
+                onValueChange={setWaktuLayanan}
+                className="w-full"
+              >
+                <option value="">Pilih layanan</option>
+                {(serviceTypes as any[]).map((st) => (
+                  <option key={st.id} value={st.id}>
+                    {st.name} — {st.code || ''}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-sm text-gray-600">
+                Alasan <span className="text-red-500">*</span>
+              </Label>
+              <Textarea
+                value={waktuAlasan}
+                onChange={(e) => setWaktuAlasan(e.target.value)}
+                placeholder="Alasan perpanjangan waktu"
+                rows={3}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-sm text-gray-600">
+                Estimasi Baru <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                type="datetime-local"
+                value={waktuEstimasi}
+                onChange={(e) => setWaktuEstimasi(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenWaktu(false)}>Batal</Button>
+            <Button
+              disabled={
+                !waktuAlasan.trim() ||
+                !waktuEstimasi ||
+                addTimeMutation.isPending
+              }
+              onClick={() =>
+                addTimeMutation.mutate({
+                  serviceTypeId: waktuLayanan || undefined,
+                  notes: waktuAlasan.trim(),
+                  newEstimatedAt: new Date(waktuEstimasi).toISOString(),
+                })
+              }
+            >
+              Simpan
             </Button>
           </DialogFooter>
         </DialogContent>

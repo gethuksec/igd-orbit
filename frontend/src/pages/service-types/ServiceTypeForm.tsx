@@ -230,8 +230,9 @@ export default function ServiceTypeForm() {
                   <input
                     type="number"
                     required
+                    step="0.5"
                     min="0"
-                    max="23"
+                    max="23.5"
                     value={formData.slaHoursRemainder}
                     onChange={(e) => {
                       const hours = Number(e.target.value);
@@ -240,7 +241,7 @@ export default function ServiceTypeForm() {
                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
                     placeholder="0"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Jam (0-23)</p>
+                  <p className="text-xs text-gray-500 mt-1">Jam (0-23.5, step 0.5)</p>
                 </div>
               </div>
               <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-200">

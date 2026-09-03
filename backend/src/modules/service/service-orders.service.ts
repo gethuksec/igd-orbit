@@ -9,6 +9,7 @@ import { PrismaService } from '../../shared/services/prisma.service';
 import { BranchFilter } from '../../common/branch-access.util';
 import { CreateServiceOrderDto } from './dto/create-service-order.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
+import { AddServiceTimeDto } from './dto/add-service-time.dto';
 import { AddPartsDto } from './dto/add-parts.dto';
 import { QcCheckDto } from './dto/qc-check.dto';
 import { CustomerFeedbackDto } from './dto/customer-feedback.dto';
@@ -663,6 +664,48 @@ export class ServiceOrdersService {
         },
       });
 
+      return updated;
+    });
+  }
+
+  /** IGDERP-134: Tambah Waktu — extend estimasi (promised_date) + SLA due & log, In Progress only */
+  async addTime(serviceOrderId: string, dto: AddServiceTimeDto, userId: string) {
+    const serviceOrder = await this.prisma.serviceOrder.findUnique({
+      where: { id: serviceOrderId },
+    });
+    if (!serviceOrder) {
+      throw new NotFoundException('Service order tidak ditemukan');
+    }
+    if (serviceOrder.status !== 'in-progress') {
+      throw new BadRequestException('Tambah waktu hanya dapat dilakukan pada status In Progress');
+    }
+    const notes = dto.notes.trim();
+    if (!notes) {
+      throw new BadRequestException('Alasan wajib diisi');
+    }
+    const newEstimatedAt = new Date(dto.newEstimatedAt);
+    if (Number.isNaN(newEstimatedAt.getTime())) {
+      throw new BadRequestException('Estimasi baru tidak valid');
+    }
+    const layanan = dto.serviceTypeId
+      ? await this.prisma.serviceType.findUnique({ where: { id: dto.serviceTypeId } })
+      : null;
+
+    return this.prisma.$transaction(async (tx) => {
+      const data: any = { promisedDate: newEstimatedAt };
+      if (!serviceOrder.slaDueDate || serviceOrder.slaDueDate < newEstimatedAt) {
+        data.slaDueDate = newEstimatedAt;
+      }
+      const updated = await tx.serviceOrder.update({ where: { id: serviceOrderId }, data });
+      await tx.serviceStatusHistory.create({
+        data: {
+          serviceOrderId,
+          status: serviceOrder.status,
+          previousStatus: serviceOrder.status,
+          notes: `Tambah waktu${layanan ? ' (Layanan: ' + layanan.name + ')' : ''} · ${notes} · Estimasi baru: ${newEstimatedAt.toISOString()}`,
+          changedBy: userId,
+        },
+      });
       return updated;
     });
   }

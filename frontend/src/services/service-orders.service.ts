@@ -100,6 +100,11 @@ export const serviceOrdersService = {
     return response.data.data || response.data;
   },
 
+  async addTime(id: string, payload: { serviceTypeId?: string; notes: string; newEstimatedAt: string }) {
+    const response = await api.post(`/service-orders/${id}/add-time`, payload);
+    return response.data.data || response.data;
+  },
+
   async complete(id: string) {
     const response = await api.post(`/service-orders/${id}/complete`, {});
     return response.data.data || response.data;
