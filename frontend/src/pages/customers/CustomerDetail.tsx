@@ -446,7 +446,7 @@ export default function CustomerDetail() {
               <p className="text-xs font-semibold text-gray-700 mb-3 uppercase tracking-wide">Quick Actions</p>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => navigate(`/service-orders/new?customerId=${id}`)}
+                  onClick={() => navigate(`/services/smart-repair?customerId=${id}`)}
                   className="flex items-center gap-2 px-3 py-2 bg-green-50 text-green-700 rounded-lg font-medium hover:bg-green-100 transition-all border border-green-200 text-sm"
                   title="Buat Service Order dengan data customer ini"
                 >

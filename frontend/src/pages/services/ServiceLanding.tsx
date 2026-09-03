@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Wrench, Plus } from 'lucide-react';
+import { Wrench } from 'lucide-react';
 import { BreadcrumbHeader } from '@/components/shared';
 
 export default function ServiceLanding() {
@@ -10,13 +10,6 @@ export default function ServiceLanding() {
       description: 'Kelola pesanan servis dan perbaikan',
       path: '/service-orders',
       color: 'from-primary-500 to-primary-600',
-    },
-    {
-      icon: Plus,
-      title: 'Tambah Service',
-      description: 'Buat service order baru',
-      path: '/service-orders/new',
-      color: 'from-green-500 to-green-600',
     },
   ];
 

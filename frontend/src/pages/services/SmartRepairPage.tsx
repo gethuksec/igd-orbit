@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -92,6 +92,23 @@ export default function SmartRepairPage() {
   // ── Customer search ──
   const [customerSearch, setCustomerSearch] = useState('');
   const [showCustomerResults, setShowCustomerResults] = useState(false);
+
+  // Prefill from Customer Detail quick action (?customerId=)
+  const [searchParams] = useSearchParams();
+  const prefillCustomerId = searchParams.get('customerId');
+  useEffect(() => {
+    if (!prefillCustomerId) return;
+    fetchList(`/api/v1/customers/${prefillCustomerId}`).then((c: any) => {
+      if (c && c.id) {
+        setForm((f) => ({
+          ...f,
+          customerName: c.name || c.fullName || '',
+          customerPhone: c.phone || '',
+        }));
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefillCustomerId]);
 
   // ── Product search (Quick Service) ──
   const [quickSearch, setQuickSearch] = useState('');
