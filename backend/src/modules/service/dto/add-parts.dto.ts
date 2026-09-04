@@ -38,6 +38,11 @@ export class ServicePartDto {
   @IsOptional()
   notes?: string;
 
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  warrantyDays?: number; // Garansi in days (IGDERP-138; autofill from product, editable)
+
   @IsString()
   @IsOptional()
   purchaseType?: 'internal' | 'external'; // 'internal' = stok sendiri, 'external' = beli di luar

@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Optional,
   NotFoundException,
   BadRequestException,
   Inject,
@@ -11,6 +12,7 @@ import { CreateServiceOrderDto } from './dto/create-service-order.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
 import { AddServiceTimeDto } from './dto/add-service-time.dto';
 import { AddPartsDto } from './dto/add-parts.dto';
+import { SalesTransactionsService } from '../sales/sales-transactions.service';
 import { QcCheckDto } from './dto/qc-check.dto';
 import { CustomerFeedbackDto } from './dto/customer-feedback.dto';
 import { AssignTechnicianDto } from './dto/assign-technician.dto';
@@ -27,6 +29,8 @@ export class ServiceOrdersService {
     private prisma: PrismaService,
     @Inject(forwardRef(() => JournalEntriesService))
     private journalEntriesService?: JournalEntriesService,
+    @Optional()
+    private salesTransactionsService?: SalesTransactionsService,
   ) {}
 
   /**
@@ -713,6 +717,9 @@ export class ServiceOrdersService {
   async updateStatus(serviceOrderId: string, dto: UpdateStatusDto, userId: string) {
     const serviceOrder = await this.prisma.serviceOrder.findUnique({
       where: { id: serviceOrderId },
+      include: {
+        partsUsed: { include: { product: true } },
+      },
     });
 
     if (!serviceOrder) {
@@ -858,6 +865,41 @@ export class ServiceOrdersService {
       }
 
       return updated;
+    }).then(async (updated) => {
+      // IGDERP-138: when Done (serah terima), auto-generate POS No Service faktur from parts
+      if (dto.status === 'done') {
+        try {
+          await this.ensureNoServiceInvoice(serviceOrder, userId);
+        } catch (e: any) {
+          console.error('[IGDERP-138] No Service invoice generation failed:', e?.message, e);
+        }
+      }
+      return updated;
+    });
+  }
+
+  /**
+   * IGDERP-138: ensure a POS No Service faktur exists for the order's parts.
+   * Called at status -> done; idempotent (skips if the order already has one).
+   */
+  private async ensureNoServiceInvoice(serviceOrder: any, userId: string) {
+    if (!this.salesTransactionsService) return;
+    const parts = serviceOrder.partsUsed || [];
+    if (parts.length === 0) return;
+
+    const existing = await this.salesTransactionsService.findByServiceOrderId(
+      serviceOrder.id,
+    );
+    if (existing) return;
+
+    await this.salesTransactionsService.createNoServiceFromParts({
+      serviceOrderId: serviceOrder.id,
+      branchId: serviceOrder.branchId,
+      warehouseId: serviceOrder.warehouseId || null,
+      customerId: serviceOrder.customerId || null,
+      userId,
+      serviceNumber: serviceOrder.serviceNumber,
+      parts,
     });
   }
 
@@ -962,6 +1004,7 @@ export class ServiceOrdersService {
             totalPrice,
             batchNumber: part.batchNumber,
             serialNumber: part.serialNumber,
+            warrantyDays: part.warrantyDays ?? null,
             notes: part.notes,
           },
         });
@@ -1416,7 +1459,7 @@ export class ServiceOrdersService {
     return updated;
   }
 
-  async processPayment(serviceOrderId: string, dto: ProcessPaymentDto, _userId: string) {
+  async processPayment(serviceOrderId: string, dto: ProcessPaymentDto, userId: string) {
     const serviceOrder = await this.prisma.serviceOrder.findUnique({
       where: { id: serviceOrderId },
       include: {
@@ -1484,7 +1527,7 @@ export class ServiceOrdersService {
             serviceOrder.branchId,
             dto.amount,
             dto.paymentMethod,
-            _userId,
+            userId,
           );
         } catch (error) {
           // Don't fail payment if journal creation fails
@@ -1492,6 +1535,20 @@ export class ServiceOrdersService {
         }
       }
 
+      return updated;
+    }).then(async (updated) => {
+      // IGDERP-138: parts (POS No Service faktur) paid together at serah terima
+      if (updated.paymentStatus === 'paid' && this.salesTransactionsService) {
+        try {
+          await this.salesTransactionsService.markPaidForServiceOrder(
+            serviceOrderId,
+            dto.paymentMethod,
+            userId,
+          );
+        } catch (e: any) {
+          console.error('[IGDERP-138] Mark POS No Service faktur paid failed:', e?.message, e);
+        }
+      }
       return updated;
     });
   }

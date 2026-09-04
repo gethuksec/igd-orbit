@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../../shared/services/prisma.service';
 import { JournalEntriesService } from '../finance/services/journal-entries.service';
 import { ServiceOrdersService } from './service-orders.service';
+import { SalesTransactionsService } from '../sales/sales-transactions.service';
 
 describe('ServiceOrdersService.updateStatus — Smart Repair lifecycle (IGDERP-133)', () => {
   let service: ServiceOrdersService;
@@ -24,6 +25,11 @@ describe('ServiceOrdersService.updateStatus — Smart Repair lifecycle (IGDERP-1
     serviceStatusHistory: { create: jest.fn((args) => Promise.resolve(args)) },
   };
 
+  const salesMock = {
+    findByServiceOrderId: jest.fn(() => Promise.resolve(null)),
+    createNoServiceFromParts: jest.fn((a: any) => Promise.resolve({ id: 'tx-1', ...a })),
+  };
+
   beforeEach(async () => {
     prisma = {
       serviceOrder: { findUnique: jest.fn(), update: jest.fn() },
@@ -37,6 +43,10 @@ describe('ServiceOrdersService.updateStatus — Smart Repair lifecycle (IGDERP-1
         ServiceOrdersService,
         { provide: PrismaService, useValue: prisma },
         { provide: JournalEntriesService, useValue: {} },
+        {
+          provide: SalesTransactionsService,
+          useValue: salesMock,
+        },
       ],
     }).compile();
 
@@ -89,6 +99,54 @@ describe('ServiceOrdersService.updateStatus — Smart Repair lifecycle (IGDERP-1
         }),
       );
     });
+  describe('IGDERP-138: POS No Service faktur at Done', () => {
+    const sales = () => salesMock;
+
+    it('creates No Service POS faktur when order reaches done with parts', async () => {
+      const withParts = {
+        ...order('ready'),
+        serviceNumber: 'SRV-TEST-1',
+        partsUsed: [
+          {
+            productId: 'prod-1',
+            quantity: { toString: () => '2' },
+            unitPrice: { toString: () => '50000' },
+            serialNumber: null,
+            notes: null,
+            product: { name: 'Charger', sku: 'CHG-01' },
+          },
+        ],
+      };
+      prisma.serviceOrder.findUnique.mockResolvedValue(withParts);
+      await service.updateStatus('so-1', { status: 'done' }, 'user-1');
+      expect(sales().createNoServiceFromParts).toHaveBeenCalledWith(
+        expect.objectContaining({
+          serviceOrderId: 'so-1',
+          branchId: 'br-1',
+          serviceNumber: 'SRV-TEST-1',
+          parts: expect.arrayContaining([expect.objectContaining({ productId: 'prod-1' })]),
+        }),
+      );
+    });
+
+    it('does NOT create when order has no parts', async () => {
+      prisma.serviceOrder.findUnique.mockResolvedValue({ ...order('ready'), partsUsed: [] });
+      await service.updateStatus('so-1', { status: 'done' }, 'user-1');
+      expect(sales().createNoServiceFromParts).not.toHaveBeenCalled();
+    });
+
+    it('does NOT create duplicate when POS faktur already exists (idempotent)', async () => {
+      sales().findByServiceOrderId.mockResolvedValue({ id: 'tx-1' });
+      prisma.serviceOrder.findUnique.mockResolvedValue({
+        ...order('ready'),
+        partsUsed: [
+          { productId: 'prod-1', quantity: { toString: () => '1' }, unitPrice: { toString: () => '1000' }, product: { name: 'X' } },
+        ],
+      });
+      await service.updateStatus('so-1', { status: 'done' }, 'user-1');
+      expect(sales().createNoServiceFromParts).not.toHaveBeenCalled();
+    });
+  });
   });
 
   it('allows diagnosed -> in-progress (SR flow shortcut)', async () => {

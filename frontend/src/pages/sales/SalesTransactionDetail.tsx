@@ -131,6 +131,13 @@ export default function SalesTransactionDetail() {
                         {tx.paymentStatus === 'paid' ? 'Lunas' : tx.paymentStatus === 'partial' ? 'Cicilan' : tx.paymentStatus === 'pending' ? 'Belum Bayar' : tx.paymentStatus === 'refunded' ? 'Dikembalikan' : tx.paymentStatus}
                       </Badge>
                     )}
+                    {tx.serviceOrderId && (
+                      <Link to={`/service-orders/${tx.serviceOrderId}`}>
+                        <Badge variant="secondary" className="cursor-pointer hover:bg-gray-100">
+                          Dari Service Order ↗
+                        </Badge>
+                      </Link>
+                    )}
                   </div>
                 </div>
               </div>
