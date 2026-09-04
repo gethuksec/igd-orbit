@@ -55,6 +55,7 @@ export interface SmartRepairPayload {
   initialDiagnosis?: string;
   serviceSubType: 'quick' | 'inap';
   assignedTechnicianId?: string;
+  layananIds?: string[];
 
   estimatedCost?: number;
   quotedPrice?: number;

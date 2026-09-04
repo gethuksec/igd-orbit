@@ -146,6 +146,11 @@ export default function SmartRepairPage() {
     queryFn: () => fetchList('/api/v1/users/technicians?branchId=' + encodeURIComponent(form.outlet)),
   });
 
+  const { data: layananList = [] } = useQuery({
+    queryKey: ['smart-repair', 'layanan-master'],
+    queryFn: () => fetchList('/api/v1/service-types'),
+  });
+
   const { data: customerResults = [] } = useQuery({
     queryKey: ['smart-repair', 'customers', customerSearch],
     enabled: customerSearch.length >= 2,
@@ -286,13 +291,19 @@ export default function SmartRepairPage() {
 
   const addRow = () => setRows((prev) => [...prev, createEmptyRow()]);
 
+  const [selectedLayanan, setSelectedLayanan] = useState<string[]>([]);
+  const toggleLayanan = (id: string) =>
+    setSelectedLayanan((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
   // ── Computed totals ──
   const partsRows = rows.filter((r) => r.productId);
   const totalParts = partsRows.reduce((s, r) => s + (r.total || 0), 0);
   const laborCost = parseFloat(form.laborCost) || 0;
   const otherCost = parseFloat(form.otherCost) || 0;
   const quickTotal = totalParts + laborCost + otherCost;
-  const hargaJual = tab === 'inap' ? parseFloat(form.hargaJualServis) || 0 : quickTotal;
+  const layananPicked = (layananList as any[]).filter((l) => selectedLayanan.includes(l.id));
+  const layananTotal = layananPicked.reduce((s, l) => s + Number(l.basePrice || 0), 0);
+  const hargaJual = tab === 'inap' ? parseFloat(form.hargaJualServis) || 0 : quickTotal + layananTotal;
 
   // ── Submit ──
   const saveMutation = useMutation({
@@ -347,6 +358,7 @@ export default function SmartRepairPage() {
       complaint: form.complaint.trim(),
       serviceSubType: tab,
       assignedTechnicianId: form.technicianId || undefined,
+      layananIds: selectedLayanan.length > 0 ? selectedLayanan : undefined,
       finalPrice: hargaJual > 0 ? hargaJual : undefined,
       promisedDate: form.estimasiSelesai || undefined,
       taxPpn: tax.ppn,
@@ -449,6 +461,58 @@ export default function SmartRepairPage() {
               <div>
                 <Label className="text-xs font-medium text-gray-700 mb-1 block">Estimasi Selesai</Label>
                 <Input type="date" value={form.estimasiSelesai} onChange={(e) => setF({ estimasiSelesai: e.target.value })} className="h-9 text-sm" />
+              </div>
+
+              {/* Layanan (multi, POS-like) — IGDERP-136 */}
+              <div className="lg:col-span-3">
+                <Label className="text-xs font-medium text-gray-700 mb-1 block">Layanan</Label>
+                {layananList.length === 0 ? (
+                  <p className="text-xs text-gray-400">Belum ada layanan</p>
+                ) : (
+                  <div className="space-y-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
+                      {(layananList as any[]).filter((l) => l.isActive !== false).map((l) => {
+                        const checked = selectedLayanan.includes(l.id);
+                        return (
+                          <label
+                            key={l.id}
+                            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs cursor-pointer transition-colors ${
+                              checked
+                                ? 'border-primary-500 bg-primary-50 text-primary-700'
+                                : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                            }`}
+                          >
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={() => toggleLayanan(l.id)}
+                              className="h-3.5 w-3.5"
+                            />
+                            <span className="flex-1 font-medium">{l.name}</span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 whitespace-nowrap">
+                              SLA {Number(l.slaHours)} jam
+                            </span>
+                            <span className="text-[10px] text-gray-400 whitespace-nowrap">
+                              {formatCurrency(Number(l.basePrice || 0))}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    {layananPicked.length > 0 && (
+                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+                        <span className="text-gray-500">Dipilih:</span>
+                        {layananPicked.map((l) => (
+                          <span key={l.id} className="px-1.5 py-0.5 rounded bg-primary-50 text-primary-700 border border-primary-200">
+                            {l.name}
+                          </span>
+                        ))}
+                        <span className="ml-auto font-semibold text-gray-700">
+                          Total Layanan: {formatCurrency(layananTotal)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Tax flags */}
