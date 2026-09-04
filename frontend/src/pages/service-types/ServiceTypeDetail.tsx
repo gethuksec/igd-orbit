@@ -163,7 +163,7 @@ export default function ServiceTypeDetail() {
               <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border border-blue-200">
                 <p className="text-xs text-blue-600 mb-1">Waktu Pengerjaan</p>
                 <p className="text-2xl font-bold text-blue-900">{formatSLA(serviceType.slaHours)}</p>
-                <p className="text-xs text-blue-600 mt-1">({serviceType.slaHours} jam)</p>
+                <p className="text-xs text-blue-600 mt-1">({Number(serviceType.slaHours)} jam)</p>
               </div>
             </CardContent>
           </Card>

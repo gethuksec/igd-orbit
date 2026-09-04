@@ -13,6 +13,7 @@ import { CustomersService } from '../customers/customers.service';
 import { CustomerDepositsService } from './customer-deposits.service';
 import { JournalEntriesService } from '../finance/services/journal-entries.service';
 import { randomBytes } from 'crypto';
+import { Decimal } from '@prisma/client/runtime/library';
 
 /**
  * Transaction Calculation Result
@@ -520,6 +521,97 @@ export class SalesTransactionsService {
     });
   }
 
+  /** IGDERP-138: find the POS No Service faktur linked to a service order (if any) */
+  async findByServiceOrderId(serviceOrderId: string) {
+    return this.prisma.salesTransaction.findFirst({
+      where: { serviceOrderId },
+      include: { items: { include: { product: true } } },
+    });
+  }
+
+  /**
+   * IGDERP-138: create a POS No Service faktur from a service order's parts.
+   * Called when the order reaches Done; idempotent via findByServiceOrderId guard.
+   * transactionType 'service' + receiptNotes mark it as No Service; paymentStatus 'pending'
+   * until paid together at serah terima (service payment flow marks it paid).
+   */
+  async createNoServiceFromParts(args: {
+    serviceOrderId: string;
+    branchId: string;
+    warehouseId?: string | null;
+    customerId?: string | null;
+    userId: string;
+    serviceNumber?: string | null;
+    parts: any[];
+  }) {
+    const { serviceOrderId, branchId, warehouseId, customerId, userId, serviceNumber, parts } = args;
+    const transactionNumber = await this.generateTransactionNumber(userId);
+
+    const items = parts.map((p) => {
+      const quantity = new Decimal(p.quantity);
+      const unitPrice = new Decimal(p.unitPrice);
+      return {
+        productId: p.productId,
+        productName: p.product?.name || 'Produk',
+        productSku: (p.product?.sku || null) as string | null,
+        quantity,
+        unitPrice,
+        discountAmount: new Decimal(0),
+        subtotal: quantity.mul(unitPrice),
+        serialNumber: p.serialNumber || null,
+        notes: p.notes || null,
+      };
+    });
+
+    const subtotal = items.reduce((sum, i) => sum.add(i.subtotal), new Decimal(0));
+
+    return this.prisma.salesTransaction.create({
+      data: {
+        transactionNumber,
+        transactionType: 'service',
+        branchId,
+        customerId: customerId || null,
+        cashierId: userId,
+        warehouseId: warehouseId || null,
+        serviceOrderId,
+        status: 'pending',
+        subtotal,
+        discountAmount: new Decimal(0),
+        taxAmount: new Decimal(0),
+        taxPercentage: new Decimal(0),
+        total: subtotal,
+        paymentStatus: 'pending',
+        receiptNotes: `No Service — Smart Repair (${serviceNumber || serviceOrderId})`,
+        internalNotes: `Auto-generated from service order ${serviceNumber || serviceOrderId} at Done (IGDERP-138)`,
+        items: { create: items as any },
+      },
+      include: { items: true },
+    });
+  }
+
+  /** IGDERP-138: mark the linked POS No Service faktur paid (parts paid at serah terima) */
+  async markPaidForServiceOrder(serviceOrderId: string, paymentMethod: string, _userId: string) {
+    const tx = await this.findByServiceOrderId(serviceOrderId);
+    if (!tx) return null;
+    if (tx.paymentStatus === 'paid') return tx;
+
+    return this.prisma.$transaction(async (prismaTx) => {
+      await prismaTx.payment.create({
+        data: {
+          transactionId: tx.id,
+          paymentMethod,
+          amount: tx.total,
+          status: 'completed',
+          paidAt: new Date(),
+        },
+      });
+      return prismaTx.salesTransaction.update({
+        where: { id: tx.id },
+        data: { paymentStatus: 'paid' },
+      });
+    });
+  }
+
   /**
    * Generate receipt PDF
    * @param transactionId - Transaction ID
@@ -1007,6 +1099,7 @@ export class SalesTransactionsService {
       customerId,
       status,
       transactionType,
+      serviceOrderId,
       branchFilter,
     } = query;
     
@@ -1023,6 +1116,9 @@ export class SalesTransactionsService {
       where.branchId = { in: branchFilter.branchIds };
     } else if (branchId) {
       where.branchId = branchId;
+    }
+    if (serviceOrderId) {
+      where.serviceOrderId = serviceOrderId;
     }
     if (customerId) {
       where.customerId = customerId;

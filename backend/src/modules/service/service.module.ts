@@ -7,9 +7,10 @@ import { ServiceTypesController } from './service-types.controller';
 import { ServiceReturnsService } from './service-returns.service';
 import { ServiceReturnsController } from './service-returns.controller';
 import { FinanceModule } from '../finance/finance.module';
+import { SalesModule } from '../sales/sales.module';
 
 @Module({
-  imports: [FinanceModule],
+  imports: [FinanceModule, SalesModule],
   providers: [PrismaService, ServiceOrdersService, ServiceTypesService, ServiceReturnsService],
   controllers: [ServiceOrdersController, ServiceTypesController, ServiceReturnsController],
   exports: [ServiceOrdersService, ServiceTypesService, ServiceReturnsService],

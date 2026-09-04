@@ -577,6 +577,7 @@ model SalesTransaction {
   cashierId          String    @map("cashier_id") // User ID
   paymentTermId      String?   @map("payment_term_id")
   salesPersonId      String?   @map("sales_person_id")
+  serviceOrderId     String?   @map("service_order_id") // IGDERP-138: POS No Service faktur linked to Smart Repair order
   warehouseId        String?   @map("warehouse_id")
   customerTypeId        String?   @map("customer_type_id") // T21: plain ref to customer_types (no FK until Workstream D)
   status             String    @default("pending") // 'pending', 'completed', 'cancelled', 'void', 'held'
@@ -599,6 +600,7 @@ model SalesTransaction {
   // Relations
   branch         Branch?                @relation(fields: [branchId], references: [id], onDelete: Restrict)
   warehouse      Warehouse?             @relation(fields: [warehouseId], references: [id], onDelete: SetNull)
+  serviceOrder   ServiceOrder?          @relation("SalesTransactionServiceOrder", fields: [serviceOrderId], references: [id], onDelete: SetNull)
   customer       Customer?              @relation(fields: [customerId], references: [id], onDelete: SetNull)
   cashier        User                   @relation(fields: [cashierId], references: [id], onDelete: Restrict)
   items          SalesTransactionItem[]
@@ -614,6 +616,7 @@ model SalesTransaction {
   @@index([cashierId])
   @@index([status])
   @@index([transactionType])
+  @@index([serviceOrderId])
   @@index([createdAt])
   @@map("sales_transactions")
 }
@@ -1138,6 +1141,7 @@ model ServiceOrder {
   assignedTechnician User?                  @relation("ServiceTechnician", fields: [assignedTechnicianId], references: [id], onDelete: SetNull)
   statusHistory      ServiceStatusHistory[]
   partsUsed          ServicePartsUsed[]
+  posTransactions    SalesTransaction[] @relation("SalesTransactionServiceOrder")
   photos             ServicePhoto[]
   serviceReturns     ServiceReturn[]        @relation("ServiceReturnOriginal")
   reServiceOrders    ServiceReturn[]        @relation("ServiceReturnReService")
@@ -1204,6 +1208,7 @@ model ServicePartsUsed {
   totalPrice     Decimal  @map("total_price") @db.Decimal(15, 2)
   batchNumber    String?  @map("batch_number")
   serialNumber   String?  @map("serial_number")
+  warrantyDays   Int?     @map("warranty_days") // Garansi in days (IGDERP-138; autofill from product master, editable)
   notes          String?  @db.Text
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")

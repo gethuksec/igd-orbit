@@ -3,10 +3,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../../shared/services/prisma.service';
 import { JournalEntriesService } from '../finance/services/journal-entries.service';
 import { ServiceOrdersService } from './service-orders.service';
+import { SalesTransactionsService } from '../sales/sales-transactions.service';
 
 describe('ServiceOrdersService.updateStatus — Smart Repair lifecycle (IGDERP-133)', () => {
   let service: ServiceOrdersService;
-  let prisma: { serviceOrder: { findUnique: jest.Mock; update: jest.Mock }; serviceStatusHistory: { create: jest.Mock }; $transaction: jest.Mock };
+  let prisma: { serviceOrder: { findUnique: jest.Mock; update: jest.Mock }; serviceStatusHistory: { create: jest.Mock }; serviceType: { findUnique: jest.Mock }; $transaction: jest.Mock };
 
   const order = (status: string) => ({
     id: 'so-1',
@@ -24,10 +25,16 @@ describe('ServiceOrdersService.updateStatus — Smart Repair lifecycle (IGDERP-1
     serviceStatusHistory: { create: jest.fn((args) => Promise.resolve(args)) },
   };
 
+  const salesMock = {
+    findByServiceOrderId: jest.fn(() => Promise.resolve(null)),
+    createNoServiceFromParts: jest.fn((a: any) => Promise.resolve({ id: 'tx-1', ...a })),
+  };
+
   beforeEach(async () => {
     prisma = {
       serviceOrder: { findUnique: jest.fn(), update: jest.fn() },
       serviceStatusHistory: { create: jest.fn() },
+      serviceType: { findUnique: jest.fn() },
       $transaction: jest.fn((fn) => fn(tx)),
     } as any;
 
@@ -36,6 +43,10 @@ describe('ServiceOrdersService.updateStatus — Smart Repair lifecycle (IGDERP-1
         ServiceOrdersService,
         { provide: PrismaService, useValue: prisma },
         { provide: JournalEntriesService, useValue: {} },
+        {
+          provide: SalesTransactionsService,
+          useValue: salesMock,
+        },
       ],
     }).compile();
 
@@ -47,6 +58,96 @@ describe('ServiceOrdersService.updateStatus — Smart Repair lifecycle (IGDERP-1
     prisma.serviceOrder.findUnique.mockResolvedValue(order(fromStatus));
     return service.updateStatus('so-1', dto, userId);
   };
+
+  const runAddTime = async (fromStatus: string, dto: any, userId = 'user-1') => {
+    prisma.serviceOrder.findUnique.mockResolvedValue({ ...order(fromStatus), slaDueDate: null });
+    return service.addTime('so-1', dto, userId);
+  };
+
+  describe('addTime — IGDERP-134 (Tambah Waktu)', () => {
+    it('rejects when status is not In Progress', async () => {
+      await expect(runAddTime('ready', { notes: 'papan', newEstimatedAt: '2026-09-05T10:00:00Z' }))
+        .rejects.toThrow(BadRequestException);
+    });
+
+    it('rejects when notes empty', async () => {
+      await expect(runAddTime('in-progress', { notes: '   ', newEstimatedAt: '2026-09-05T10:00:00Z' }))
+        .rejects.toThrow(BadRequestException);
+    });
+
+    it('throws NotFound for missing order', async () => {
+      prisma.serviceOrder.findUnique.mockResolvedValue(null);
+      await expect(service.addTime('so-x', { notes: 'x', newEstimatedAt: '2026-09-05T10:00:00Z' }, 'u'))
+        .rejects.toThrow(NotFoundException);
+    });
+
+    it('extends promisedDate + slaDueDate and logs history', async () => {
+      const at = '2026-09-05T10:00:00.000Z';
+      prisma.serviceType.findUnique.mockResolvedValue({ id: 'st-1', name: 'Ganti LCD' });
+      await runAddTime('in-progress', { serviceTypeId: 'st-1', notes: 'nggak jadi balik', newEstimatedAt: at });
+      expect(tx.serviceOrder.update).toHaveBeenCalled();
+      const updateArgs = tx.serviceOrder.update.mock.calls[0][0];
+      expect(updateArgs.data.promisedDate).toEqual(new Date(at));
+      expect(updateArgs.data.slaDueDate).toEqual(new Date(at));
+      expect(tx.serviceStatusHistory.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: 'in-progress',
+            changedBy: 'user-1',
+            notes: expect.stringContaining('Tambah waktu (Layanan: Ganti LCD)'),
+          }),
+        }),
+      );
+    });
+  describe('IGDERP-138: POS No Service faktur at Done', () => {
+    const sales = () => salesMock;
+
+    it('creates No Service POS faktur when order reaches done with parts', async () => {
+      const withParts = {
+        ...order('ready'),
+        serviceNumber: 'SRV-TEST-1',
+        partsUsed: [
+          {
+            productId: 'prod-1',
+            quantity: { toString: () => '2' },
+            unitPrice: { toString: () => '50000' },
+            serialNumber: null,
+            notes: null,
+            product: { name: 'Charger', sku: 'CHG-01' },
+          },
+        ],
+      };
+      prisma.serviceOrder.findUnique.mockResolvedValue(withParts);
+      await service.updateStatus('so-1', { status: 'done' }, 'user-1');
+      expect(sales().createNoServiceFromParts).toHaveBeenCalledWith(
+        expect.objectContaining({
+          serviceOrderId: 'so-1',
+          branchId: 'br-1',
+          serviceNumber: 'SRV-TEST-1',
+          parts: expect.arrayContaining([expect.objectContaining({ productId: 'prod-1' })]),
+        }),
+      );
+    });
+
+    it('does NOT create when order has no parts', async () => {
+      prisma.serviceOrder.findUnique.mockResolvedValue({ ...order('ready'), partsUsed: [] });
+      await service.updateStatus('so-1', { status: 'done' }, 'user-1');
+      expect(sales().createNoServiceFromParts).not.toHaveBeenCalled();
+    });
+
+    it('does NOT create duplicate when POS faktur already exists (idempotent)', async () => {
+      sales().findByServiceOrderId.mockResolvedValue({ id: 'tx-1' });
+      prisma.serviceOrder.findUnique.mockResolvedValue({
+        ...order('ready'),
+        partsUsed: [
+          { productId: 'prod-1', quantity: { toString: () => '1' }, unitPrice: { toString: () => '1000' }, product: { name: 'X' } },
+        ],
+      });
+      await service.updateStatus('so-1', { status: 'done' }, 'user-1');
+      expect(sales().createNoServiceFromParts).not.toHaveBeenCalled();
+    });
+  });
+  });
 
   it('allows diagnosed -> in-progress (SR flow shortcut)', async () => {
     await run('diagnosed', { status: 'in-progress', notes: 'mulai kerjakan' });

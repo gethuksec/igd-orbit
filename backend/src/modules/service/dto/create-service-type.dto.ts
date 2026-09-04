@@ -36,7 +36,7 @@ export class CreateServiceTypeDto {
   maxPrice?: number;
 
   @IsNumber({}, { message: 'SLA hours must be a number' })
-  @Min(1, { message: 'SLA hours must be at least 1' })
+  @Min(0, { message: 'SLA hours must be at least 0' })
   @Max(720, { message: 'SLA hours cannot exceed 720 (30 days)' })
   slaHours!: number;
 

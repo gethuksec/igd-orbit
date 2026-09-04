@@ -20,6 +20,7 @@ import { resolveBranchFilter } from '../../common/branch-access.util';
 import { ServiceOrdersService } from './service-orders.service';
 import { CreateServiceOrderDto } from './dto/create-service-order.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
+import { AddServiceTimeDto } from './dto/add-service-time.dto';
 import { AddPartsDto } from './dto/add-parts.dto';
 import { QcCheckDto } from './dto/qc-check.dto';
 import { CustomerFeedbackDto } from './dto/customer-feedback.dto';
@@ -115,6 +116,18 @@ export class ServiceOrdersController {
     @Request() req: any,
   ) {
     return this.serviceOrdersService.updateStatus(id, dto, req.user.id);
+  }
+
+  /** IGDERP-134: Tambah Waktu — extend estimasi/SLA due & log (In Progress only) */
+  @Post(':id/add-time')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('TC', 'HS', 'SPV', 'SUPERADMIN')
+  async addServiceTime(
+    @Param('id') id: string,
+    @Body() dto: AddServiceTimeDto,
+    @Request() req: any,
+  ) {
+    return this.serviceOrdersService.addTime(id, dto, req.user.id);
   }
 
   @Post(':id/parts')

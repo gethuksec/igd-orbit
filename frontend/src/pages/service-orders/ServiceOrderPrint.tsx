@@ -15,6 +15,21 @@ const ServiceOrderPrint = () => {
     enabled: !!id,
   });
 
+  const posId = searchParams.get('pos');
+  const { data: posTxn = null } = useQuery({
+    queryKey: ['service-order-print-pos', posId, id],
+    queryFn: async () => {
+      if (!posId) return null;
+      const res = await fetch(`/api/v1/sales/transactions/${posId}`, {
+        headers: { Authorization: 'Bearer ' + localStorage.getItem('access_token') },
+      });
+      if (!res.ok) return null;
+      const json = await res.json();
+      return Array.isArray(json) ? json[0] || null : json.data || json;
+    },
+    enabled: !!posId,
+  });
+
   useEffect(() => {
     if (!isLoading && serviceOrder) {
       // Auto print when component loads
@@ -83,6 +98,7 @@ const ServiceOrderPrint = () => {
   };
 
   return (
+    <>
     <div className="print-container p-1 max-w-[14.8cm] mx-auto bg-white" style={{ width: '14.8cm', height: '20.4cm', maxHeight: '20.4cm', boxSizing: 'border-box' }}>
       {/* Print styles - A5 format (148mm x 210mm) */}
       <style>{`
@@ -567,6 +583,61 @@ const ServiceOrderPrint = () => {
         </button>
       </div>
     </div>
+
+    {/* ─── POS No Service faktur (IGDERP-138 · printed together) ─── */}
+    {posTxn && (
+      <div
+        className="print-container p-1 max-w-[14.8cm] mx-auto bg-white"
+        style={{ width: '14.8cm', height: '20.4cm', maxHeight: '20.4cm', boxSizing: 'border-box', pageBreakBefore: 'always', marginTop: '2cm' }}
+      >
+        <div style={{ fontSize: 10, fontWeight: 700, textAlign: 'center' }}>
+          FAKTUR POS — NO SERVICE
+        </div>
+        <div style={{ fontSize: 8, textAlign: 'center', marginBottom: 4 }}>
+          {branch.name || ''} — {branch.address || ''}
+        </div>
+        <div style={{ fontSize: 8, marginBottom: 6 }}>
+          <div>No: {posTxn.transactionNumber}</div>
+          <div>Tanggal: {formatDate(posTxn.createdAt)}</div>
+          <div>Pelanggan: {customer.name || order.customerName || 'Umum'}</div>
+          <div style={{ fontStyle: 'italic' }}>{posTxn.receiptNotes || 'No Service — Smart Repair'}</div>
+        </div>
+        <table style={{ width: '100%', fontSize: 8, borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid #999' }}>
+              <th style={{ textAlign: 'left', padding: 2 }}>Barang</th>
+              <th style={{ textAlign: 'center', padding: 2 }}>Qty</th>
+              <th style={{ textAlign: 'right', padding: 2 }}>Harga</th>
+              <th style={{ textAlign: 'right', padding: 2 }}>Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(posTxn.items || []).map((i: any, idx: number) => (
+              <tr key={idx} style={{ borderBottom: '1px solid #ddd' }}>
+                <td style={{ padding: 2 }}>{i.productName}</td>
+                <td style={{ textAlign: 'center', padding: 2 }}>{Number(i.quantity)}</td>
+                <td style={{ textAlign: 'right', padding: 2 }}>{formatCurrency(Number(i.unitPrice))}</td>
+                <td style={{ textAlign: 'right', padding: 2, fontWeight: 600 }}>{formatCurrency(Number(i.subtotal))}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr style={{ borderTop: '2px solid #999' }}>
+              <td colSpan={3} style={{ textAlign: 'right', padding: 2, fontWeight: 700 }}>Total:</td>
+              <td style={{ textAlign: 'right', padding: 2, fontWeight: 700 }}>{formatCurrency(Number(posTxn.total))}</td>
+            </tr>
+            <tr>
+              <td colSpan={2} style={{ padding: 2 }}>Status: {posTxn.paymentStatus}</td>
+              <td colSpan={2} style={{ textAlign: 'right', padding: 2 }}>Terlampir pada Service Order</td>
+            </tr>
+          </tfoot>
+        </table>
+        <div style={{ fontSize: 6, textAlign: 'center', marginTop: 8 }}>
+          Printed by: {order.createdBy || 'System'} / {formatDate(new Date())}
+        </div>
+      </div>
+    )}
+    </>
   );
 };
 
