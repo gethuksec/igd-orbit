@@ -125,6 +125,11 @@ export class CreateServiceOrderDto {
   @IsOptional()
   serviceTypeId?: string;
 
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  layananIds?: string[]; // IGDERP-136: multi-layanan POS-like rows
+
   @IsNumber()
   @IsOptional()
   @Min(0)

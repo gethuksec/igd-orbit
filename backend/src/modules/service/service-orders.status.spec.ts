@@ -23,6 +23,7 @@ describe('ServiceOrdersService.updateStatus — Smart Repair lifecycle (IGDERP-1
   const tx = {
     serviceOrder: { update: jest.fn((args) => Promise.resolve(args)) },
     serviceStatusHistory: { create: jest.fn((args) => Promise.resolve(args)) },
+    serviceOrderLayanan: { create: jest.fn((args) => Promise.resolve({ id: 'row-1', ...args.data })) },
   };
 
   const salesMock = {
@@ -220,5 +221,58 @@ describe('ServiceOrdersService.updateStatus — Smart Repair lifecycle (IGDERP-1
     await expect(service.updateStatus('nope', { status: 'ready' }, 'u')).rejects.toThrow(
       NotFoundException,
     );
+  });
+
+  describe('IGDERP-136: multi-layanan POS-like rows', () => {
+    const layananOrder = (status: string, rows: any[] = []) => ({
+      ...order(status),
+      priority: 'normal',
+      slaDueDate: null,
+      layanan: rows,
+    });
+
+    it('adds layanan row + history at In Progress', async () => {
+      prisma.serviceOrder.findUnique.mockResolvedValue(layananOrder('in-progress'));
+      prisma.serviceType.findUnique.mockResolvedValue({
+        id: 'st-1',
+        name: 'Flash',
+        slaHours: { toString: () => '4' },
+        basePrice: { toString: () => '50000' },
+      });
+      const row = await service.addLayanan('so-1', { serviceTypeId: 'st-1' }, 'u');
+      expect(tx.serviceOrderLayanan.create).toHaveBeenCalled();
+      expect(tx.serviceOrderLayanan.create.mock.calls[0][0].data).toMatchObject({
+        serviceOrderId: 'so-1',
+        serviceTypeId: 'st-1',
+        name: 'Flash',
+      });
+      expect(tx.serviceStatusHistory.create).toHaveBeenCalled();
+      expect(tx.serviceOrder.update).toHaveBeenCalled(); // sla_due_date push (prev null)
+      expect(row.id).toBe('row-1');
+    });
+
+    it('rejects add layanan at Ready (in-progress only)', async () => {
+      prisma.serviceOrder.findUnique.mockResolvedValue(layananOrder('ready'));
+      await expect(service.addLayanan('so-1', { serviceTypeId: 'st-1' }, 'u')).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('rejects duplicate layanan on same order', async () => {
+      prisma.serviceOrder.findUnique.mockResolvedValue(
+        layananOrder('in-progress', [{ id: 'r1', serviceTypeId: 'st-1' }]),
+      );
+      await expect(service.addLayanan('so-1', { serviceTypeId: 'st-1' }, 'u')).rejects.toThrow(
+        /sudah terpasang/,
+      );
+    });
+
+    it('rejects unknown layanan (NotFound)', async () => {
+      prisma.serviceOrder.findUnique.mockResolvedValue(layananOrder('in-progress'));
+      prisma.serviceType.findUnique.mockResolvedValue(null);
+      await expect(service.addLayanan('so-1', { serviceTypeId: 'st-x' }, 'u')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
   });
 });

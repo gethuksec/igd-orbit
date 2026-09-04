@@ -11,6 +11,7 @@ import { BranchFilter } from '../../common/branch-access.util';
 import { CreateServiceOrderDto } from './dto/create-service-order.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
 import { AddServiceTimeDto } from './dto/add-service-time.dto';
+import { AddLayananDto } from './dto/add-layanan.dto';
 import { AddPartsDto } from './dto/add-parts.dto';
 import { SalesTransactionsService } from '../sales/sales-transactions.service';
 import { QcCheckDto } from './dto/qc-check.dto';
@@ -161,7 +162,8 @@ export class ServiceOrdersService {
       accessoriesIncluded,
       complaint,
       initialDiagnosis,
-      serviceTypeId,
+      serviceTypeId: serviceTypeIdRaw,
+      layananIds,
       serviceSubType,
       estimatedCost,
       priority = 'normal',
@@ -171,6 +173,9 @@ export class ServiceOrdersService {
       laborCost,
       otherCost,
     } = dto;
+
+    let serviceTypeId = serviceTypeIdRaw || layananIds?.[0] || undefined;
+    void serviceTypeIdRaw;
 
     // LOCK §5.2 (#2): biaya wajib diisi saat create (Quote dihapus) — Smart Repair flow only
     if (serviceSubType && !Number(estimatedCost) && !Number(dto.finalPrice)) {
@@ -207,6 +212,38 @@ export class ServiceOrdersService {
       const slaHours = priority === 'urgent' ? baseSlaHours * 0.5 : baseSlaHours;
       const receivedDate = new Date();
       slaDueDate = new Date(receivedDate.getTime() + slaHours * 60 * 60 * 1000);
+    }
+
+    // IGDERP-136: multi-layanan rows (POS-like per row; supersedes single serviceTypeId)
+    let layananRows: Array<{
+      serviceTypeId: string;
+      name: string;
+      slaHours: any;
+      estimatedCost: any;
+    }> = [];
+    if (layananIds && layananIds.length > 0) {
+      const uniqueIds = [...new Set(layananIds)];
+      const types = await this.prisma.serviceType.findMany({
+        where: { id: { in: uniqueIds } },
+        select: { id: true, name: true, slaHours: true, basePrice: true },
+      });
+      const byId = new Map(types.map((t) => [t.id, t]));
+      for (const tid of uniqueIds) {
+        const t = byId.get(tid);
+        if (!t) {
+          throw new NotFoundException('Layanan tidak ditemukan: ' + tid);
+        }
+        layananRows.push({
+          serviceTypeId: t.id,
+          name: t.name,
+          slaHours: t.slaHours,
+          estimatedCost: t.basePrice,
+        });
+      }
+      const maxHours = Math.max(...layananRows.map((r) => Number(r.slaHours)));
+      const effHours = priority === 'urgent' ? maxHours * 0.5 : maxHours;
+      slaDueDate = new Date(Date.now() + effHours * 60 * 60 * 1000);
+      serviceTypeId = uniqueIds[0];
     }
 
     // Encrypt device password if provided
@@ -321,6 +358,7 @@ export class ServiceOrdersService {
           createdBy: userId,
           customerNotes,
           assignedTechnicianId,
+          layanan: layananRows.length > 0 ? { create: layananRows } : undefined,
           // Smart Repair extension (E-BE2)
           taxPpn: dto.taxPpn ?? false,
           taxIncPpn: dto.taxIncPpn ?? false,
@@ -441,6 +479,7 @@ export class ServiceOrdersService {
         branch: true,
         customer: true,
         serviceType: true,
+        layanan: true,
         assignedTechnician: {
           select: {
             id: true,
@@ -711,6 +750,61 @@ export class ServiceOrdersService {
         },
       });
       return updated;
+    });
+  }
+
+  /** IGDERP-136: add one layanan row (POS-like), only at In Progress (CS/teknisi) */
+  async addLayanan(serviceOrderId: string, dto: AddLayananDto, userId: string) {
+    const serviceOrder = await this.prisma.serviceOrder.findUnique({
+      where: { id: serviceOrderId },
+      include: { layanan: true },
+    });
+    if (!serviceOrder) {
+      throw new NotFoundException('Service order tidak ditemukan');
+    }
+    if (serviceOrder.status !== 'in-progress') {
+      throw new BadRequestException('Tambah layanan hanya dapat dilakukan pada status In Progress');
+    }
+    if (serviceOrder.layanan.some((r) => r.serviceTypeId === dto.serviceTypeId)) {
+      throw new BadRequestException('Layanan sudah terpasang pada service order ini');
+    }
+    const st = await this.prisma.serviceType.findUnique({ where: { id: dto.serviceTypeId } });
+    if (!st) {
+      throw new NotFoundException('Layanan tidak ditemukan');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const row = await tx.serviceOrderLayanan.create({
+        data: {
+          serviceOrderId,
+          serviceTypeId: st.id,
+          name: st.name,
+          slaHours: st.slaHours,
+          estimatedCost: st.basePrice,
+          notes: dto.notes,
+        },
+      });
+      const allHours = [...serviceOrder.layanan.map((r) => Number(r.slaHours)), Number(st.slaHours)];
+      const maxHours = Math.max(...allHours);
+      const effHours = serviceOrder.priority === 'urgent' ? maxHours * 0.5 : maxHours;
+      const newDue = new Date(Date.now() + effHours * 60 * 60 * 1000);
+      const data: any = {};
+      if (!serviceOrder.slaDueDate || serviceOrder.slaDueDate < newDue) {
+        data.slaDueDate = newDue;
+      }
+      if (Object.keys(data).length > 0) {
+        await tx.serviceOrder.update({ where: { id: serviceOrderId }, data });
+      }
+      await tx.serviceStatusHistory.create({
+        data: {
+          serviceOrderId,
+          status: serviceOrder.status,
+          previousStatus: serviceOrder.status,
+          notes: `Tambah Layanan: ${st.name} · Estimasi: Rp ${Number(st.basePrice).toLocaleString('id-ID')}`,
+          changedBy: userId,
+        },
+      });
+      return row;
     });
   }
 

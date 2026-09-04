@@ -1027,10 +1027,30 @@ model ServiceType {
 
   // Relations
   serviceOrders ServiceOrder[]
+  layanan       ServiceOrderLayanan[]
 
   @@index([code])
   @@index([isActive])
   @@map("service_types")
+}
+
+model ServiceOrderLayanan {
+  id             String   @id @default(uuid())
+  serviceOrderId String   @map("service_order_id")
+  serviceTypeId  String?  @map("service_type_id")
+  name           String
+  slaHours       Decimal  @map("sla_hours") @db.Decimal(5, 2) // snapshot at add time (IGDERP-136)
+  estimatedCost  Decimal? @map("estimated_cost") @db.Decimal(15, 2)
+  notes          String?  @db.Text
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  serviceOrder ServiceOrder? @relation(fields: [serviceOrderId], references: [id], onDelete: Cascade)
+  serviceType  ServiceType?  @relation(fields: [serviceTypeId], references: [id], onDelete: SetNull)
+
+  @@index([serviceOrderId])
+  @@index([serviceTypeId])
+  @@map("service_order_layanans")
 }
 
 model ServiceOrder {
@@ -1142,6 +1162,7 @@ model ServiceOrder {
   statusHistory      ServiceStatusHistory[]
   partsUsed          ServicePartsUsed[]
   posTransactions    SalesTransaction[] @relation("SalesTransactionServiceOrder")
+  layanan            ServiceOrderLayanan[]
   photos             ServicePhoto[]
   serviceReturns     ServiceReturn[]        @relation("ServiceReturnOriginal")
   reServiceOrders    ServiceReturn[]        @relation("ServiceReturnReService")

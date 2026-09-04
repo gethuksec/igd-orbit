@@ -22,6 +22,7 @@ import { CreateServiceOrderDto } from './dto/create-service-order.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
 import { AddServiceTimeDto } from './dto/add-service-time.dto';
 import { AddPartsDto } from './dto/add-parts.dto';
+import { AddLayananDto } from './dto/add-layanan.dto';
 import { QcCheckDto } from './dto/qc-check.dto';
 import { CustomerFeedbackDto } from './dto/customer-feedback.dto';
 import { AssignTechnicianDto } from './dto/assign-technician.dto';
@@ -128,6 +129,18 @@ export class ServiceOrdersController {
     @Request() req: any,
   ) {
     return this.serviceOrdersService.addTime(id, dto, req.user.id);
+  }
+
+  /** IGDERP-136: Tambah Layanan — one row at In Progress (CS/teknisi) */
+  @Post(':id/layanan')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('CS', 'HS', 'SPV', 'SUPERADMIN', 'TC')
+  async addLayanan(
+    @Param('id') id: string,
+    @Body() dto: AddLayananDto,
+    @Request() req: any,
+  ) {
+    return this.serviceOrdersService.addLayanan(id, dto, req.user.id);
   }
 
   @Post(':id/parts')
