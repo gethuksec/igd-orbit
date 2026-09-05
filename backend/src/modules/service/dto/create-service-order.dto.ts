@@ -53,6 +53,11 @@ export class ServicePartItemDto {
   @IsOptional()
   warrantyDays?: number;
 
+  // IGDERP-136 round 2: source gudang per part (cross-gudang cross-selling); omitted = order warehouse
+  @IsUUID()
+  @IsOptional()
+  warehouseId?: string;
+
   @IsString()
   @IsOptional()
   notes?: string;

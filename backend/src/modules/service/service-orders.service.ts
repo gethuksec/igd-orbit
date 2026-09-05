@@ -144,6 +144,31 @@ export class ServiceOrdersService {
     return `INV-SRV-${branch?.code || 'BR'}-${year}${month}-${String(nextNumber).padStart(6, '0')}`;
   }
 
+  /**
+   * IGDERP-136 round 2: resolve a part's source gudang (cross-gudang cross-selling).
+   * Omitted warehouseId falls back to the order/service warehouse; any explicit
+   * warehouse must be an active GOOD OUTLET warehouse of the same branch.
+   */
+  private async resolvePartWarehouse(
+    client: any,
+    warehouseId: string | undefined,
+    fallbackId: string,
+    branchId: string,
+  ): Promise<string> {
+    if (!warehouseId) return fallbackId;
+    if (warehouseId === fallbackId) return fallbackId;
+    const warehouse = await client.warehouse.findUnique({ where: { id: warehouseId } });
+    if (
+      !warehouse ||
+      !warehouse.isActive ||
+      warehouse.type !== 'GOOD' ||
+      warehouse.scope !== 'OUTLET' ||
+      warehouse.outletId !== branchId
+    ) {
+      throw new BadRequestException('Part warehouse must be an active GOOD warehouse of the same outlet');
+    }
+    return warehouse.id;
+  }
 
   async create(dto: CreateServiceOrderDto, userId: string, branchId: string) {
     const {
@@ -251,7 +276,7 @@ export class ServiceOrdersService {
 
     // Resolve parts: validate products exist, compute parts cost + auto finalPrice (E-FE)
     let partsCost: Decimal | null = null;
-    const resolvedParts: Array<{ productId: string; quantity: number; unitPrice: number; purchaseType?: string; notes?: string; warrantyDays?: number; costPrice: Decimal }> = [];
+    const resolvedParts: Array<{ productId: string; quantity: number; unitPrice: number; purchaseType?: string; notes?: string; warrantyDays?: number; warehouseId?: string; costPrice: Decimal }> = [];
     if (dto.parts && dto.parts.length > 0) {
       const productIds = [...new Set(dto.parts.map((p) => p.productId))];
       const products = await this.prisma.product.findMany({
@@ -274,6 +299,7 @@ export class ServiceOrdersService {
           purchaseType: p.purchaseType,
           notes: p.notes,
           warrantyDays: p.warrantyDays,
+          warehouseId: p.warehouseId,
           costPrice: costMap.get(p.productId) ?? unitPrice,
         });
       }
@@ -308,6 +334,11 @@ export class ServiceOrdersService {
       serviceWarehouse.outletId !== branchId
     ) {
       throw new BadRequestException('An active GOOD warehouse is required for this service order outlet');
+    }
+
+    // IGDERP-136 round 2: resolve each part's source gudang (default = service warehouse)
+    for (const part of resolvedParts) {
+      part.warehouseId = await this.resolvePartWarehouse(this.prisma, part.warehouseId, serviceWarehouse.id, branchId);
     }
 
     return await this.prisma.$transaction(async (tx) => {
@@ -409,6 +440,7 @@ export class ServiceOrdersService {
             totalCost: p.costPrice.mul(p.quantity),
             totalPrice: new Decimal(p.quantity).mul(p.unitPrice),
             warrantyDays: p.warrantyDays ?? null,
+            warehouseId: p.warehouseId ?? null,
             notes: p.notes,
           })),
         });
@@ -1057,12 +1089,15 @@ export class ServiceOrdersService {
           throw new NotFoundException(`Product ${part.productId} not found`);
         }
 
+        // IGDERP-136 round 2: part source gudang (default = order warehouse)
+        const partWarehouseId = await this.resolvePartWarehouse(tx, (part as any).warehouseId, warehouse.id, serviceOrder.branchId);
+
         // Check stock availability
         const stock = await tx.productStock.findUnique({
           where: {
             productId_warehouseId: {
               productId: part.productId,
-              warehouseId: warehouse.id,
+              warehouseId: partWarehouseId,
             },
           },
         });
@@ -1104,6 +1139,7 @@ export class ServiceOrdersService {
             batchNumber: part.batchNumber,
             serialNumber: part.serialNumber,
             warrantyDays: part.warrantyDays ?? null,
+            warehouseId: partWarehouseId,
             notes: part.notes,
           },
         });
@@ -1117,7 +1153,7 @@ export class ServiceOrdersService {
             where: {
               productId_warehouseId: {
                 productId: part.productId,
-                warehouseId: warehouse.id,
+                warehouseId: partWarehouseId,
               },
             },
             data: {
@@ -1129,7 +1165,7 @@ export class ServiceOrdersService {
           await tx.stockMovement.create({
             data: {
               productId: part.productId,
-              warehouseId: warehouse.id,
+              warehouseId: partWarehouseId,
               movementType: 'OUT',
               referenceType: 'SERVICE',
               referenceId: null, // Foreign key constraint only for SalesTransaction, so set null for SERVICE
@@ -1224,12 +1260,14 @@ export class ServiceOrdersService {
     }
 
     return await this.prisma.$transaction(async (tx) => {
+      // IGDERP-136 round 2: restore to the part's source gudang (fallback = order warehouse)
+      const restoreWarehouseId = (part as any).warehouseId || warehouse.id;
       // Get current stock
       const stock = await tx.productStock.findUnique({
         where: {
           productId_warehouseId: {
             productId: part.productId,
-            warehouseId: warehouse.id,
+            warehouseId: restoreWarehouseId,
           },
         },
       });
@@ -1246,7 +1284,7 @@ export class ServiceOrdersService {
         where: {
           productId_warehouseId: {
             productId: part.productId,
-            warehouseId: warehouse.id,
+            warehouseId: restoreWarehouseId,
           },
         },
         data: {
@@ -1258,7 +1296,7 @@ export class ServiceOrdersService {
       await tx.stockMovement.create({
         data: {
           productId: part.productId,
-          warehouseId: warehouse.id,
+          warehouseId: restoreWarehouseId,
           movementType: 'IN',
           referenceType: 'SERVICE',
           referenceId: null,

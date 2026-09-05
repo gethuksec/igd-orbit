@@ -235,6 +235,7 @@ export class PosService {
         name: true,
         phone: true,
         email: true,
+        subdistrict: true,
       },
       take: limit,
       orderBy: { name: 'asc' },

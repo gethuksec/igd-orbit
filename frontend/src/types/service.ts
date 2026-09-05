@@ -27,6 +27,7 @@ export interface ServicePartItem {
   unitPrice: number;
   purchaseType?: 'internal' | 'external';
   warrantyDays?: number;
+  warehouseId?: string;
   notes?: string;
 }
 
