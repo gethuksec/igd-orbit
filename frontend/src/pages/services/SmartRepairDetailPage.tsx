@@ -351,6 +351,28 @@ export default function SmartRepairDetailPage() {
         </div>
       </div>
 
+      {/* ─── Section A2b: Kelengkapan ─── */}
+      {Array.isArray((order as any).completenessItems) && (order as any).completenessItems.length > 0 && (
+        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg">
+              <CheckCircle2 className="w-5 h-5 text-white" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900">Kelengkapan</h2>
+            <span className="text-sm text-gray-500">({(order as any).completenessItems.filter((x: any) => x.checked).length}/{(order as any).completenessItems.length} ada)</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {(order as any).completenessItems.map((item: any, i: number) => (
+              <div key={`${item.name}-${i}`} className="flex items-center gap-2 text-sm">
+                {item.checked ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <Circle className="w-4 h-4 text-gray-300 shrink-0" />}
+                <span className={item.checked ? 'font-medium' : 'text-gray-400'}>{item.name}</span>
+                {item.checked && item.conditionNote && <span className="text-xs text-gray-500">· {item.conditionNote}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ─── Section A3: Layanan & Barang ─── */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
         <div className="flex items-center gap-3 mb-4">
