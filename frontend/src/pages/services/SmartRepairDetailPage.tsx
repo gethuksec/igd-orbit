@@ -392,7 +392,7 @@ export default function SmartRepairDetailPage() {
                       key={l.id}
                       className="flex items-center gap-2 px-2 py-2 border-b border-dashed border-gray-100 last:border-b-0"
                     >
-                      <span className="font-semibold text-sm flex-1">{l.name}</span>
+                      <span className="font-semibold text-sm flex-1">{l.name}{l.notes ? <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-normal text-amber-800">🏷 {l.notes}</span> : null}</span>
                       <span className="text-xs text-gray-600 font-mono whitespace-nowrap">
                         SLA {formatSLA(Number(l.slaHours))}
                       </span>

@@ -207,6 +207,14 @@ export class ServiceOrdersService {
       throw new BadRequestException('Biaya service wajib diisi saat create (Quote dihapus)');
     }
 
+    // IGDERP-136 round 4: mandatory intake fields for Smart Repair (quick/inap)
+    if ((serviceSubType === 'quick' || serviceSubType === 'inap') && !assignedTechnicianId) {
+      throw new BadRequestException('Teknisi wajib dipilih untuk Smart Repair');
+    }
+    if ((serviceSubType === 'quick' || serviceSubType === 'inap') && !dto.deviceUnit?.trim()) {
+      throw new BadRequestException('Nama Barang wajib diisi untuk Smart Repair');
+    }
+
     // Validate or create customer
     let finalCustomerId = customerId;
     if (!customerId) {
@@ -232,11 +240,11 @@ export class ServiceOrdersService {
         throw new NotFoundException('Service type not found');
       }
 
-      // Calculate SLA
+      // Calculate SLA — anchored at CS-set Tgl Terima (not server now)
       const baseSlaHours = Number(serviceType.slaHours);
       const slaHours = priority === 'urgent' ? baseSlaHours * 0.5 : baseSlaHours;
-      const receivedDate = new Date();
-      slaDueDate = new Date(receivedDate.getTime() + slaHours * 60 * 60 * 1000);
+      const receivedForSla = dto.receivedDate ? new Date(dto.receivedDate) : new Date();
+      slaDueDate = new Date(receivedForSla.getTime() + slaHours * 60 * 60 * 1000);
     }
 
     // IGDERP-136: multi-layanan rows (POS-like per row; supersedes single serviceTypeId)
@@ -245,6 +253,7 @@ export class ServiceOrdersService {
       name: string;
       slaHours: any;
       estimatedCost: any;
+      notes?: string;
     }> = [];
     if (layananIds && layananIds.length > 0) {
       const uniqueIds = [...new Set(layananIds)];
@@ -253,21 +262,26 @@ export class ServiceOrdersService {
         select: { id: true, name: true, slaHours: true, basePrice: true },
       });
       const byId = new Map(types.map((t) => [t.id, t]));
+      const itemById = new Map((dto.layananItems || []).map((i) => [i.serviceTypeId, i]));
       for (const tid of uniqueIds) {
         const t = byId.get(tid);
         if (!t) {
           throw new NotFoundException('Layanan tidak ditemukan: ' + tid);
         }
+        const item = itemById.get(tid);
         layananRows.push({
           serviceTypeId: t.id,
           name: t.name,
           slaHours: t.slaHours,
-          estimatedCost: t.basePrice,
+          estimatedCost: item?.estimatedCost ?? t.basePrice,
+          notes: item?.notes,
         });
       }
-      const maxHours = Math.max(...layananRows.map((r) => Number(r.slaHours)));
-      const effHours = priority === 'urgent' ? maxHours * 0.5 : maxHours;
-      slaDueDate = new Date(Date.now() + effHours * 60 * 60 * 1000);
+      // IGDERP-136 round 4: queue SLA (Σ, not max) anchored at Tgl Terima — matches FE queue
+      const totalHours = layananRows.reduce((sum, r) => sum + Number(r.slaHours), 0);
+      const effHours = priority === 'urgent' ? totalHours * 0.5 : totalHours;
+      const receivedForQueue = dto.receivedDate ? new Date(dto.receivedDate) : new Date();
+      slaDueDate = new Date(receivedForQueue.getTime() + effHours * 60 * 60 * 1000);
       serviceTypeId = uniqueIds[0];
     }
 

@@ -34,6 +34,7 @@ describe('ServiceOrdersService.create — Smart Repair v9 payload', () => {
       deviceCondition: 'Layar retak',
       complaint: 'Layar retak',
       serviceSubType: 'quick',
+      assignedTechnicianId: 'tech-1',
       layananIds: ['st-1'],
       finalPrice: 1100000,
       receivedDate,
@@ -90,6 +91,8 @@ describe('ServiceOrdersService.create — Smart Repair v9 payload', () => {
       deviceType: 'handphone',
       complaint: 'Layar retak',
       serviceSubType: 'quick',
+      assignedTechnicianId: 'tech-1',
+      deviceUnit: 'Xiaomi 17T',
       finalPrice: 1100000,
       warehouseId: 'wh-1',
       taxPpn: false,
@@ -106,5 +109,54 @@ describe('ServiceOrdersService.create — Smart Repair v9 payload', () => {
     await expect(
       service.create({ ...base, parts: [{ productId: 'prod-1', quantity: 1, unitPrice: 150000, warehouseId: 'wh-X' }] }, 'user-1', 'br-1'),
     ).rejects.toThrow('Part warehouse must be an active GOOD warehouse of the same outlet');
+  });
+
+  it('round 4: slaDue = received + queue SLA sum, mandatory tech/device, per-row cost+tag', async () => {
+    const created: any[] = [];
+    const tx = {
+      serviceOrder: { create: jest.fn((args: any) => { created.push(args); return Promise.resolve({ id: 'so-1', status: 'pending' }); }) },
+      serviceStatusHistory: { create: jest.fn().mockResolvedValue({}) },
+      servicePartsUsed: { createMany: jest.fn().mockResolvedValue({ count: 0 }) },
+    };
+    const prisma = {
+      customer: { findUnique: jest.fn() },
+      serviceType: {
+        findUnique: jest.fn().mockResolvedValue({ id: 'st-1', slaHours: 24 }),
+        findMany: jest.fn().mockResolvedValue([
+          { id: 'st-1', name: 'Interface', slaHours: 24, basePrice: 400000 },
+          { id: 'st-2', name: 'Software', slaHours: 6, basePrice: 200000 },
+        ]),
+      },
+      product: { findMany: jest.fn().mockResolvedValue([]) },
+      warehouse: { findUnique: jest.fn().mockResolvedValue({ id: 'wh-1', isActive: true, type: 'GOOD', scope: 'OUTLET', outletId: 'br-1' }) },
+      $transaction: jest.fn((callback: (client: typeof tx) => unknown) => callback(tx)),
+    };
+    const service = new ServiceOrdersService(prisma as any, {} as any, {} as any);
+    const receivedDate = '2026-09-05T23:09:00.000Z';
+    const dto: any = {
+      branchId: 'br-1', customerName: 'Budi', customerPhone: '081234567890',
+      deviceType: 'handphone', deviceUnit: 'Xiaomi 17T', complaint: 'bagus',
+      serviceSubType: 'quick', assignedTechnicianId: 'tech-1',
+      layananIds: ['st-1', 'st-2'],
+      layananItems: [
+        { serviceTypeId: 'st-1', estimatedCost: 100000, notes: 'LCD retak' },
+        { serviceTypeId: 'st-2', estimatedCost: 200000, notes: 'Bootloop' },
+      ],
+      finalPrice: 300000, receivedDate, warehouseId: 'wh-1',
+      taxPpn: false, taxIncPpn: false, taxPph22: false, taxPph23: false,
+    };
+    await service.create(dto, 'user-1', 'br-1');
+    // queue: received + (24+6)h
+    expect(created[0].data.slaDueDate).toEqual(new Date(new Date(receivedDate).getTime() + 30 * 3600 * 1000));
+    // per-row cost + tag persisted (master basePrice ditched)
+    expect(created[0].data.layanan.create).toEqual([
+      expect.objectContaining({ serviceTypeId: 'st-1', estimatedCost: 100000, notes: 'LCD retak' }),
+      expect.objectContaining({ serviceTypeId: 'st-2', estimatedCost: 200000, notes: 'Bootloop' }),
+    ]);
+
+    const { assignedTechnicianId, ...noTech } = dto;
+    await expect(service.create(noTech, 'user-1', 'br-1')).rejects.toThrow('Teknisi wajib dipilih');
+    const { deviceUnit, ...noUnit } = dto;
+    await expect(service.create(noUnit, 'user-1', 'br-1')).rejects.toThrow('Nama Barang wajib diisi');
   });
 });

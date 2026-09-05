@@ -10,6 +10,7 @@ import {
   IsDateString,
   IsInt,
   Matches,
+  MaxLength,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -60,6 +61,23 @@ export class ServicePartItemDto {
   warehouseId?: string;
 
   @IsString()
+  @IsOptional()
+  notes?: string;
+}
+
+export class ServiceLayananItemDto {
+  @IsUUID()
+  serviceTypeId!: string;
+
+  // Per-row Biaya from intake (master basePrice ditched); omitted = master basePrice fallback
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  estimatedCost?: number;
+
+  // Tagging — what damage/part this row maps to (persisted to service_order_layanans.notes)
+  @IsString()
+  @MaxLength(500)
   @IsOptional()
   notes?: string;
 }
@@ -147,6 +165,13 @@ export class CreateServiceOrderDto {
   @IsString({ each: true })
   @IsOptional()
   layananIds?: string[]; // IGDERP-136: multi-layanan POS-like rows
+
+  // IGDERP-136 round 4: per-row cost + tag (preferred over bare layananIds when present)
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => ServiceLayananItemDto)
+  layananItems?: ServiceLayananItemDto[];
 
   @IsNumber()
   @IsOptional()

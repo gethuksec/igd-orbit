@@ -50,6 +50,7 @@ export interface SmartRepairPayload {
   serviceSubType: 'quick' | 'inap';
   assignedTechnicianId?: string;
   layananIds?: string[];
+  layananItems?: Array<{ serviceTypeId: string; estimatedCost?: number; notes?: string }>;
 
   estimatedCost?: number;
   quotedPrice?: number;
