@@ -63,6 +63,13 @@ export class ServiceOrdersController {
     return this.serviceOrdersService.findAll(branchFilter, status, technicianId, search);
   }
 
+  @Get('tags/suggest')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('CS', 'TC', 'HS', 'SPV', 'CMO', 'CFO', 'CHR', 'OWNER', 'SUPERADMIN')
+  async suggestTags(@Query('q') q?: string, @Query('take') take?: string) {
+    return this.serviceOrdersService.suggestTags(q, take ? Number(take) : 5);
+  }
+
   @Get(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('CS', 'TC', 'HS', 'SPV', 'CMO', 'CFO', 'CHR', 'OWNER', 'SUPERADMIN')

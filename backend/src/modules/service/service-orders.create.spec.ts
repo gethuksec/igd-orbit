@@ -59,6 +59,29 @@ describe('ServiceOrdersService.create — Smart Repair v9 payload', () => {
     });
   });
 
+  it('round 5: normalizeTag/splitTags collapse casing; recordTagUsage upserts UpperFirst', async () => {
+    expect(ServiceOrdersService.normalizeTag('  LCD   retak ')).toBe('Lcd retak');
+    expect(ServiceOrdersService.splitTags('lcd, LCD , Layar,')).toEqual(['Lcd', 'Layar']);
+    const prisma = { serviceTag: { upsert: jest.fn().mockResolvedValue({}) } };
+    const service = new ServiceOrdersService(prisma as any, {} as any, {} as any);
+    await (service as any).recordTagUsage(['lcd', 'LCD', 'Layar retak']);
+    expect(prisma.serviceTag.upsert).toHaveBeenCalledTimes(2);
+    expect(prisma.serviceTag.upsert).toHaveBeenCalledWith(expect.objectContaining({ where: { name: 'Lcd' } }));
+    await expect((service as any).recordTagUsage(['x'.repeat(61)])).rejects.toThrow('Tag terlalu panjang');
+  });
+
+  it('round 5: suggestTags filters case-insensitively, usage-ranked, take clamped', async () => {
+    const prisma = { serviceTag: { findMany: jest.fn().mockResolvedValue([{ name: 'Lcd', usageCount: 3 }]) } };
+    const service = new ServiceOrdersService(prisma as any, {} as any, {} as any);
+    await service.suggestTags('lc', 5);
+    expect(prisma.serviceTag.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { name: { contains: 'lc', mode: 'insensitive' } },
+      take: 5,
+    }));
+    await service.suggestTags('', 99);
+    expect(prisma.serviceTag.findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 20 }));
+  });
+
   it('persists per-part warehouse and rejects a foreign-outlet warehouse', async () => {
     const tx = {
       serviceOrder: {
@@ -129,6 +152,7 @@ describe('ServiceOrdersService.create — Smart Repair v9 payload', () => {
       },
       product: { findMany: jest.fn().mockResolvedValue([]) },
       warehouse: { findUnique: jest.fn().mockResolvedValue({ id: 'wh-1', isActive: true, type: 'GOOD', scope: 'OUTLET', outletId: 'br-1' }) },
+      serviceTag: { upsert: jest.fn().mockResolvedValue({}) },
       $transaction: jest.fn((callback: (client: typeof tx) => unknown) => callback(tx)),
     };
     const service = new ServiceOrdersService(prisma as any, {} as any, {} as any);

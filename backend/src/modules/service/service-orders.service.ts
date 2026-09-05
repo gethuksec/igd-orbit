@@ -170,6 +170,46 @@ export class ServiceOrdersService {
     return warehouse.id;
   }
 
+  // IGDERP-136 round 5: tag dictionary helpers. Tags stored UpperFirst
+  // ("Lcd", "Layar retak") so "lcd"/"LCD"/"Lcd" collapse to one suggestion.
+  static normalizeTag(raw: string): string {
+    const t = raw.trim().replace(/\s+/g, ' ');
+    if (!t) return '';
+    return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
+  }
+
+  static splitTags(notes?: string | null): string[] {
+    if (!notes) return [];
+    const out: string[] = [];
+    for (const part of notes.split(',')) {
+      const n = ServiceOrdersService.normalizeTag(part);
+      if (n && !out.includes(n)) out.push(n);
+    }
+    return out;
+  }
+
+  private async recordTagUsage(names: string[], db: any = this.prisma) {
+    const unique = [...new Set(names.map((n) => ServiceOrdersService.normalizeTag(n)).filter(Boolean))];
+    for (const name of unique) {
+      if (name.length > 60) throw new BadRequestException('Tag terlalu panjang (maks 60 karakter): ' + name);
+      await db.serviceTag.upsert({
+        where: { name },
+        create: { name, usageCount: 1 },
+        update: { usageCount: { increment: 1 } },
+      });
+    }
+  }
+
+  async suggestTags(q?: string, take = 5) {
+    const clean = (q || '').trim();
+    return this.prisma.serviceTag.findMany({
+      where: clean ? { name: { contains: clean, mode: 'insensitive' } } : undefined,
+      orderBy: [{ usageCount: 'desc' }, { name: 'asc' }],
+      take: Math.min(Math.max(take || 5, 1), 20),
+      select: { name: true, usageCount: true },
+    });
+  }
+
   async create(dto: CreateServiceOrderDto, userId: string, branchId: string) {
     const {
       customerId,
@@ -461,6 +501,11 @@ export class ServiceOrdersService {
       }
 
       return serviceOrder;
+    }).then(async (order) => {
+      // IGDERP-136 round 5: feed tag dictionary from used layanan tags (non-fatal)
+      const tags = layananRows.flatMap((r) => ServiceOrdersService.splitTags(r.notes));
+      if (tags.length > 0) await this.recordTagUsage(tags);
+      return order;
     });
   }
 
@@ -835,6 +880,8 @@ export class ServiceOrdersService {
           notes: dto.notes,
         },
       });
+      // IGDERP-136 round 5: feed tag dictionary from the added row's tags
+      await this.recordTagUsage(ServiceOrdersService.splitTags(dto.notes), tx);
       const allHours = [...serviceOrder.layanan.map((r) => Number(r.slaHours)), Number(st.slaHours)];
       const maxHours = Math.max(...allHours);
       const effHours = serviceOrder.priority === 'urgent' ? maxHours * 0.5 : maxHours;

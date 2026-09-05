@@ -1035,6 +1035,20 @@ model ServiceType {
   @@map("service_types")
 }
 
+// IGDERP-136 round 5: tag dictionary for layanan damage-mapping autocomplete.
+// Order rows keep notes as joined string; this table is the deduped UpperFirst
+// suggestion source, ranked by usageCount (no join table — overkill at this scale).
+model ServiceTag {
+  id         String   @id @default(uuid())
+  name       String   @unique // stored UpperFirst-normalized ("Lcd", "Layar retak")
+  usageCount Int      @default(0) @map("usage_count")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([usageCount])
+  @@map("service_tags")
+}
+
 model ServiceOrderLayanan {
   id             String   @id @default(uuid())
   serviceOrderId String   @map("service_order_id")
