@@ -367,6 +367,8 @@ export class ServiceOrdersService {
           taxPph22: dto.taxPph22 ?? false,
           taxPph23: dto.taxPph23 ?? false,
           downPayment: dto.downPayment !== undefined ? new Decimal(dto.downPayment) : null,
+          // IGDERP-136 v9: order warranty days (Dalam Garansi); undefined → schema default 30
+          warrantyDays: dto.warrantyDays ?? undefined,
           laborCost: laborCost !== undefined ? new Decimal(laborCost) : null,
           partsCost: partsCost !== null ? partsCost : new Decimal(0),
           otherCost: otherCost !== undefined ? new Decimal(otherCost) : null,

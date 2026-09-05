@@ -63,6 +63,7 @@ export interface SmartRepairPayload {
   taxPph22: boolean;
   taxPph23: boolean;
   downPayment?: number;
+  warrantyDays?: number;
   laborCost?: number;
   otherCost?: number;
   parts?: ServicePartItem[];

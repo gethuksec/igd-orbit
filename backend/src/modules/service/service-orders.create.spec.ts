@@ -37,6 +37,7 @@ describe('ServiceOrdersService.create — Smart Repair v9 payload', () => {
       layananIds: ['st-1'],
       finalPrice: 1100000,
       receivedDate,
+      warrantyDays: 90,
       warehouseId: 'wh-1',
       taxPpn: false,
       taxIncPpn: false,
@@ -49,6 +50,7 @@ describe('ServiceOrdersService.create — Smart Repair v9 payload', () => {
       data: expect.objectContaining({
         receivedDate: new Date(receivedDate),
         deviceColor: 'Coklat',
+        warrantyDays: 90,
       }),
     }));
     expect(tx.servicePartsUsed.createMany).toHaveBeenCalledWith({
