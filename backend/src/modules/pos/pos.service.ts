@@ -181,10 +181,10 @@ export class PosService {
   // SUPPORTING LISTS
   // ════════════════════════════════════════════
 
-  async searchProducts(query: string, limit: number = 20) {
+  async searchProducts(query: string, limit: number = 20, warehouseId?: string) {
     if (!query || query.length < 1) return [];
 
-    return this.prisma.product.findMany({
+    const rows = await this.prisma.product.findMany({
       where: {
         OR: [
           { name: { contains: query, mode: 'insensitive' } },
@@ -199,10 +199,22 @@ export class PosService {
         barcode: true,
         sellingPrice: true,
         unitId: true,
+        productStocks: warehouseId
+          ? { where: { warehouseId }, select: { quantityAvailable: true } }
+          : false,
       },
       take: limit,
       orderBy: { name: 'asc' },
     });
+    // IGDERP-136 v9: warehouse-scoped stock signal for SR intake (CS has no /products/:id/stock role)
+    return rows.map((r: any) => ({
+      ...r,
+      available:
+        warehouseId && Array.isArray(r.productStocks) && r.productStocks.length > 0
+          ? Number(r.productStocks[0].quantityAvailable)
+          : null,
+      productStocks: undefined,
+    }));
   }
 
   async searchCustomers(query: string, limit: number = 20) {

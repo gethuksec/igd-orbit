@@ -1,6 +1,5 @@
 // ─── Service Module Types (E-FE Smart Repair) ───────────────────────────────
 
-/** Kelengkapan master data item (ServiceCheckpoint) */
 export interface ServiceCheckpoint {
   id: string;
   name: string;
@@ -12,15 +11,9 @@ export interface ServiceCheckpoint {
 
 export interface ServiceCheckpointListResponse {
   data: ServiceCheckpoint[];
-  meta: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
+  meta: { page: number; limit: number; total: number; totalPages: number };
 }
 
-/** One row of the kelengkapan checklist on a service order (JSONB snapshot) */
 export interface CompletenessItem {
   checkpointId?: string;
   name: string;
@@ -28,16 +21,15 @@ export interface CompletenessItem {
   conditionNote?: string;
 }
 
-/** Spare part line item on a service order (ServicePartsUsed) */
 export interface ServicePartItem {
   productId: string;
   quantity: number;
   unitPrice: number;
   purchaseType?: 'internal' | 'external';
+  warrantyDays?: number;
   notes?: string;
 }
 
-/** Smart Repair service order create payload (matches CreateServiceOrderDto) */
 export interface SmartRepairPayload {
   branchId?: string;
   customerId?: string;
@@ -48,6 +40,7 @@ export interface SmartRepairPayload {
 
   deviceType: 'handphone' | 'laptop' | 'tablet' | 'other';
   deviceUnit?: string;
+  deviceColor?: string;
   deviceSerial?: string;
   deviceCondition?: string;
 
@@ -61,6 +54,7 @@ export interface SmartRepairPayload {
   quotedPrice?: number;
   finalPrice?: number;
   priority?: 'normal' | 'urgent';
+  receivedDate?: string;
   promisedDate?: string;
 
   warehouseId?: string;

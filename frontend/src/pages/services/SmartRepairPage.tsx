@@ -1,999 +1,220 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Textarea } from '@/components/ui/textarea';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { formatCurrency } from '@/utils/format';
+import { useNavigate } from 'react-router-dom';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Search, Plus, Trash2, Calculator, Loader2, Save } from 'lucide-react';
+import { Camera, Plus, Search, Save, Trash2, Upload, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Separator } from '@/components/ui/separator';
+import { formatCurrency } from '@/utils/format';
 import { serviceOrdersService } from '@/services/service-orders.service';
-import type { CompletenessItem, SmartRepairPayload } from '@/types/service';
-import KelengkapanChecklist from '@/components/service/KelengkapanChecklist';
-
-// ─── Types ───────────────────────────────────────
+import type { CompletenessItem, ServicePartItem, SmartRepairPayload } from '@/types/service';
 
 interface ItemRow {
   id: string;
   productId: string;
   productSearch: string;
-  barcode: string;
   productName: string;
+  barcode: string;
   refCode: string;
   quantity: number;
   price: number;
-  discount: number;
+  warrantyDays: number;
   total: number;
+  available?: number | null;
 }
 
-type ServiceTab = 'inap' | 'quick';
-
-// ─── Constants ───────────────────────────────────
-
-const EMPTY_ROWS = 5;
 const PHONE_RE = /^(\+62|0)[0-9]{9,12}$/;
+const isoLocal = (date = new Date()) => {
+  const offset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+};
 
-function createEmptyRow(): ItemRow {
+function emptyRow(): ItemRow {
   return {
-    id: crypto.randomUUID(),
-    productId: '',
-    productSearch: '',
-    barcode: '',
-    productName: '',
-    refCode: '',
-    quantity: 1,
-    price: 0,
-    discount: 0,
-    total: 0,
+    id: crypto.randomUUID(), productId: '', productSearch: '', productName: '', barcode: '', refCode: '',
+    quantity: 1, price: 0, warrantyDays: 90, total: 0, available: null,
   };
 }
-
-function createInitialRows(): ItemRow[] {
-  return Array.from({ length: EMPTY_ROWS }, () => createEmptyRow());
-}
-
-// ─── Component ───────────────────────────────────
 
 export default function SmartRepairPage() {
   const navigate = useNavigate();
-  const today = new Date().toISOString().slice(0, 10);
-
-  const [tab, setTab] = useState<ServiceTab>('inap');
-
-  // ── Form state ──
   const [form, setForm] = useState({
-    outlet: '',
-    tanggalTerima: today,
-    estimasiSelesai: '',
-    customerName: '',
-    customerPhone: '',
+    outlet: '', warehouseId: '', receivedDate: isoLocal(), promisedDate: '',
+    customerId: '', customerName: '', customerPhone: '', customerSubdistrict: '',
     deviceType: 'handphone' as 'handphone' | 'laptop' | 'tablet' | 'other',
-    deviceUnit: '',
-    deviceSerial: '',
-    warrantyActive: false,
-    warrantyExpiry: '',
-    complaint: '',
-    technicianId: '',
-    hargaJualServis: '',
-    internalNotes: '',
-    downPayment: '',
-    warehouseId: '',
-    laborCost: '',
-    otherCost: '',
+    deviceUnit: '', deviceColor: '', deviceSerial: '', complaint: '',
+    technicianId: '', downPayment: '', internalNotes: '',
   });
-
-  const [tax, setTax] = useState({ ppn: false, incPpn: false, pph22: false, pph23: false });
-  const [checklist, setChecklist] = useState<CompletenessItem[]>([]);
-
-  // ── Customer search ──
   const [customerSearch, setCustomerSearch] = useState('');
-  const [showCustomerResults, setShowCustomerResults] = useState(false);
-
-  // Prefill from Customer Detail quick action (?customerId=)
-  const [searchParams] = useSearchParams();
-  const prefillCustomerId = searchParams.get('customerId');
-  useEffect(() => {
-    if (!prefillCustomerId) return;
-    fetchList(`/api/v1/customers/${prefillCustomerId}`).then((c: any) => {
-      if (c && c.id) {
-        setForm((f) => ({
-          ...f,
-          customerName: c.name || c.fullName || '',
-          customerPhone: c.phone || '',
-        }));
-      }
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prefillCustomerId]);
-
-  // ── Product search (Quick Service) ──
-  const [quickSearch, setQuickSearch] = useState('');
-  const [rows, setRows] = useState<ItemRow[]>(createInitialRows);
-  const [barcodeBuffer, setBarcodeBuffer] = useState('');
-  const barcodeTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const [rows, setRows] = useState<ItemRow[]>([]);
+  const [selectedLayanan, setSelectedLayanan] = useState<string[]>([]);
+  const [checklist, setChecklist] = useState<CompletenessItem[]>([]);
+  const [openCustomer, setOpenCustomer] = useState(false);
+  const [openKelengkapan, setOpenKelengkapan] = useState(false);
+  const [openLayanan, setOpenLayanan] = useState(false);
+  const [openBarang, setOpenBarang] = useState(false);
+  const [quickCustomer, setQuickCustomer] = useState({ name: '', phone: '', subdistrict: '' });
+  const [newCompleteness, setNewCompleteness] = useState({ name: '', conditionNote: '' });
+  const [newLayanan, setNewLayanan] = useState('');
+  const [productDraft, setProductDraft] = useState<any | null>(null);
+  const [productSearch, setProductSearch] = useState('');
+  const [productDraftQty, setProductDraftQty] = useState(1);
+  const [productDraftWarranty, setProductDraftWarranty] = useState(90);
 
   const authHeader = useCallback(() => ({ Authorization: 'Bearer ' + localStorage.getItem('access_token') }), []);
-  const fetchList = useCallback(
-    async (path: string) => {
-      const res = await fetch(path, { headers: authHeader() });
-      if (!res.ok) return [];
-      const json = await res.json();
-      return Array.isArray(json) ? json : json.data || [];
-    },
-    [authHeader],
-  );
+  const fetchList = useCallback(async (path: string) => {
+    const res = await fetch(path, { headers: authHeader() });
+    if (!res.ok) return [];
+    const json = await res.json();
+    return Array.isArray(json) ? json : json.data || [];
+  }, [authHeader]);
 
-  // ── Queries ──
-  const { data: branches = [] } = useQuery({
-    queryKey: ['smart-repair', 'branches'],
-    queryFn: () => fetchList('/api/v1/pos/branches'),
-  });
-
-  // D5: queries scoped to the selected outlet — decoupled from global branch store
+  const { data: branches = [] } = useQuery({ queryKey: ['smart-repair', 'branches'], queryFn: () => fetchList('/api/v1/pos/branches') });
   const { data: warehouses = [] } = useQuery({
-    queryKey: ['smart-repair', 'warehouses', form.outlet || 'all'],
-    enabled: Boolean(form.outlet),
+    queryKey: ['smart-repair', 'warehouses', form.outlet], enabled: Boolean(form.outlet),
     queryFn: () => fetchList('/api/v1/pos/warehouses?outletId=' + encodeURIComponent(form.outlet)),
   });
-
   const { data: technicians = [] } = useQuery({
-    queryKey: ['smart-repair', 'technicians', form.outlet || 'all'],
-    enabled: Boolean(form.outlet),
+    queryKey: ['smart-repair', 'technicians', form.outlet], enabled: Boolean(form.outlet),
     queryFn: () => fetchList('/api/v1/users/technicians?branchId=' + encodeURIComponent(form.outlet)),
   });
-
-  const { data: layananList = [] } = useQuery({
-    queryKey: ['smart-repair', 'layanan-master'],
-    queryFn: () => fetchList('/api/v1/service-types'),
-  });
-
+  const { data: layananList = [] } = useQuery({ queryKey: ['smart-repair', 'layanan-master'], queryFn: () => fetchList('/api/v1/service-types') });
   const { data: customerResults = [] } = useQuery({
-    queryKey: ['smart-repair', 'customers', customerSearch],
-    enabled: customerSearch.length >= 2,
+    queryKey: ['smart-repair', 'customers', customerSearch], enabled: customerSearch.length >= 2,
     queryFn: () => fetchList('/api/v1/pos/customers?q=' + encodeURIComponent(customerSearch) + '&limit=10'),
   });
-
   const { data: productResults = [] } = useQuery({
-    queryKey: ['smart-repair', 'products', quickSearch],
-    enabled: quickSearch.length >= 2,
-    queryFn: () => fetchList('/api/v1/pos/products?q=' + encodeURIComponent(quickSearch) + '&limit=10'),
+    queryKey: ['smart-repair', 'products', productSearch, form.warehouseId], enabled: openBarang && productSearch.length >= 2,
+    queryFn: () => fetchList('/api/v1/pos/products?q=' + encodeURIComponent(productSearch) + '&limit=10&warehouseId=' + encodeURIComponent(form.warehouseId)),
   });
 
-  // D5: auto-select outlet when only one branch exists (decision #32) — replaces the old
-  // global branchStore preselect (per-page explicit model, no global context)
   useEffect(() => {
-    if (branches.length === 1 && !form.outlet) {
-      setForm((prev) => ({ ...prev, outlet: branches[0].id }));
-    }
+    if (branches.length === 1 && !form.outlet) setForm((f) => ({ ...f, outlet: branches[0].id }));
   }, [branches, form.outlet]);
 
-  // D5: auto-select warehouse when the outlet has exactly one
-  useEffect(() => {
-    if (warehouses.length === 1 && !form.warehouseId) {
-      setForm((prev) => ({ ...prev, warehouseId: warehouses[0].id }));
-    }
-  }, [warehouses, form.warehouseId]);
-
-  // D5: outlet change resets outlet-scoped selections (warehouse + technician)
-  const handleOutletChange = (outletId: string) => {
-    setForm((prev) => ({ ...prev, outlet: outletId, warehouseId: '', technicianId: '' }));
-  };
-
-  // ── Barcode scanner buffer (captures rapid typing outside inputs) ──
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return;
-      const target = e.target as HTMLElement;
-      const isTyping =
-        target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable;
-      if (!isTyping) setBarcodeBuffer((b) => b + e.key);
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, []);
-
-  useEffect(() => {
-    if (barcodeBuffer.length > 0) {
-      if (barcodeTimeoutRef.current) clearTimeout(barcodeTimeoutRef.current);
-      barcodeTimeoutRef.current = setTimeout(async () => {
-        if (barcodeBuffer.length >= 3) {
-          try {
-            const res = await fetch('/api/v1/pos/products?q=' + barcodeBuffer + '&limit=1', { headers: authHeader() });
-            const products = await res.json();
-            const product = products[0];
-            if (product) {
-              handleQuickSearchSelect(product);
-            }
-          } catch {
-            // Not found
-          }
-        }
-        setBarcodeBuffer('');
-      }, 150);
-    }
-    return () => {
-      if (barcodeTimeoutRef.current) clearTimeout(barcodeTimeoutRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [barcodeBuffer, authHeader]);
-
-  // ── Row helpers ──
-  const addProductToRow = useCallback((rowIndex: number, product: any, qty: number) => {
-    setRows((prev) => {
-      const next = [...prev];
-      next[rowIndex] = {
-        ...next[rowIndex],
-        productId: product.id || '',
-        productName: product.name || product.productName || '',
-        barcode: product.barcode || '',
-        refCode: product.sku || product.productSku || '',
-        quantity: qty,
-        price: product.sellingPrice || product.price || 0,
-        discount: 0,
-        total: qty * (product.sellingPrice || product.price || 0),
-        productSearch: product.name || product.productName || '',
-      };
-      return next;
-    });
-  }, []);
-
-  const handleQuickSearchSelect = (product: any) => {
-    const emptyIdx = rows.findIndex((r) => !r.productId);
-    if (emptyIdx >= 0) {
-      addProductToRow(emptyIdx, product, 1);
-    } else {
-      setRows((prev) => [
-        ...prev,
-        {
-          ...createEmptyRow(),
-          productId: product.id || '',
-          productName: product.name || product.productName || '',
-          barcode: product.barcode || '',
-          refCode: product.sku || product.productSku || '',
-          quantity: 1,
-          price: product.sellingPrice || product.price || 0,
-          total: product.sellingPrice || product.price || 0,
-        },
-      ]);
-    }
-    setQuickSearch('');
-  };
-
-  const updateRow = (index: number, field: keyof ItemRow, value: any) => {
-    setRows((prev) => {
-      const next = [...prev];
-      const row = { ...next[index] };
-      (row as any)[field] = value;
-      if (field === 'quantity' || field === 'price' || field === 'discount') {
-        const qty = row.quantity || 0;
-        const price = row.price || 0;
-        const disc = row.discount || 0;
-        row.total = qty * price - disc;
-        if (row.total < 0) row.total = 0;
-      }
-      next[index] = row;
-      return next;
-    });
-  };
-
-  const removeRow = (index: number) => {
-    setRows((prev) => {
-      const next = [...prev];
-      next.splice(index, 1);
-      while (next.length < EMPTY_ROWS) next.push(createEmptyRow());
-      return next;
-    });
-  };
-
-  const addRow = () => setRows((prev) => [...prev, createEmptyRow()]);
-
-  const [selectedLayanan, setSelectedLayanan] = useState<string[]>([]);
-  const toggleLayanan = (id: string) =>
-    setSelectedLayanan((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-
-  // ── Computed totals ──
+  const setF = (patch: Partial<typeof form>) => setForm((prev) => ({ ...prev, ...patch }));
+  const layananPicked = useMemo(() => (layananList as any[]).filter((l) => selectedLayanan.includes(l.id)), [layananList, selectedLayanan]);
   const partsRows = rows.filter((r) => r.productId);
-  const totalParts = partsRows.reduce((s, r) => s + (r.total || 0), 0);
-  const laborCost = parseFloat(form.laborCost) || 0;
-  const otherCost = parseFloat(form.otherCost) || 0;
-  const quickTotal = totalParts + laborCost + otherCost;
-  const layananPicked = (layananList as any[]).filter((l) => selectedLayanan.includes(l.id));
-  const layananTotal = layananPicked.reduce((s, l) => s + Number(l.basePrice || 0), 0);
-  const hargaJual = tab === 'inap' ? parseFloat(form.hargaJualServis) || 0 : quickTotal + layananTotal;
+  const totalParts = partsRows.reduce((sum, r) => sum + r.total, 0);
+  const layananTotal = layananPicked.reduce((sum, l) => sum + Number(l.basePrice || 0), 0);
+  const estimatedTotal = layananTotal + totalParts;
+  const downPayment = Number(form.downPayment || 0);
+  const remaining = Math.max(estimatedTotal - downPayment, 0);
 
-  // ── Submit ──
   const saveMutation = useMutation({
     mutationFn: (payload: SmartRepairPayload) => serviceOrdersService.createSmartRepair(payload),
-    onSuccess: (res) => {
-      toast.success('Service order berhasil disimpan');
-      const id = res?.id;
-      if (id) navigate(`/service-orders/${id}`);
-      else navigate('/service-orders');
-    },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Gagal menyimpan service order');
-    },
+    onSuccess: (res) => { toast.success('Service order berhasil disimpan'); navigate(res?.id ? `/service-orders/${res.id}` : '/service-orders'); },
+    onError: (err: any) => toast.error(err.response?.data?.message || 'Gagal menyimpan service order'),
   });
 
+  const handleOutletChange = (outlet: string) => setF({ outlet, warehouseId: '', technicianId: '' });
   const handleSave = () => {
-    if (!form.customerName.trim()) {
-      toast.error('Pelanggan wajib diisi');
-      return;
-    }
-    if (!PHONE_RE.test(form.customerPhone.trim())) {
-      toast.error('No. HP pelanggan tidak valid (contoh: 081234567890 atau +6281234567890)');
-      return;
-    }
-    if (!form.complaint.trim()) {
-      toast.error('Deskripsi & Kondisi wajib diisi');
-      return;
-    }
-    if (tab === 'quick' && partsRows.length === 0) {
-      toast.error('Minimal satu barang spare part wajib diisi');
-      return;
-    }
-
-    const parts = partsRows.map((r) => {
-      const qty = r.quantity || 0;
-      const effectiveUnit = qty > 0 ? r.total / qty : r.price;
-      return {
-        productId: r.productId,
-        quantity: qty,
-        unitPrice: Math.round(effectiveUnit * 100) / 100,
-      };
+    if (!form.outlet) return toast.error('Outlet wajib dipilih');
+    if (!form.warehouseId) return toast.error('Gudang wajib dipilih');
+    if (!form.customerName.trim()) return toast.error('Pelanggan wajib diisi');
+    if (!PHONE_RE.test(form.customerPhone.trim())) return toast.error('No. HP pelanggan tidak valid');
+    if (!form.complaint.trim()) return toast.error('Deskripsi & Kondisi wajib diisi');
+    if (!selectedLayanan.length) return toast.error('Minimal satu layanan wajib dipilih');
+    if (!estimatedTotal) return toast.error('Estimasi biaya wajib diisi');
+    const parts: ServicePartItem[] = partsRows.map((r) => ({ productId: r.productId, quantity: r.quantity, unitPrice: r.price, purchaseType: 'internal', warrantyDays: r.warrantyDays }));
+    saveMutation.mutate({
+      branchId: form.outlet, warehouseId: form.warehouseId, customerId: form.customerId || undefined,
+      customerName: form.customerName.trim(), customerPhone: form.customerPhone.trim(), customerSubdistrict: form.customerSubdistrict || undefined,
+      deviceType: form.deviceType, deviceUnit: form.deviceUnit || undefined, deviceColor: form.deviceColor || undefined,
+      deviceSerial: form.deviceSerial || undefined, deviceCondition: form.complaint, complaint: form.complaint,
+      serviceSubType: 'quick', assignedTechnicianId: form.technicianId || undefined, layananIds: selectedLayanan,
+      receivedDate: new Date(form.receivedDate).toISOString(), promisedDate: form.promisedDate ? new Date(form.promisedDate).toISOString() : undefined,
+      estimatedCost: estimatedTotal, finalPrice: estimatedTotal, downPayment: downPayment || undefined,
+      taxPpn: false, taxIncPpn: false, taxPph22: false, taxPph23: false,
+      parts: parts.length ? parts : undefined, completenessItems: checklist, internalNotes: form.internalNotes || undefined,
     });
-
-    const payload: SmartRepairPayload = {
-      branchId: form.outlet || undefined,
-      customerName: form.customerName.trim(),
-      customerPhone: form.customerPhone.trim(),
-      deviceType: form.deviceType,
-      deviceUnit: form.deviceUnit.trim() || undefined,
-      deviceSerial: form.deviceSerial.trim() || undefined,
-      deviceCondition: form.complaint.trim(),
-      complaint: form.complaint.trim(),
-      serviceSubType: tab,
-      assignedTechnicianId: form.technicianId || undefined,
-      layananIds: selectedLayanan.length > 0 ? selectedLayanan : undefined,
-      finalPrice: hargaJual > 0 ? hargaJual : undefined,
-      promisedDate: form.estimasiSelesai || undefined,
-      taxPpn: tax.ppn,
-      taxIncPpn: tax.incPpn,
-      taxPph22: tax.pph22,
-      taxPph23: tax.pph23,
-      downPayment: tab === 'inap' && form.downPayment ? parseFloat(form.downPayment) : undefined,
-      internalNotes: form.internalNotes.trim() || undefined,
-    };
-
-    if (tab === 'inap') {
-      payload.completenessItems = checklist;
-    } else {
-      payload.warehouseId = form.warehouseId || undefined;
-      payload.laborCost = laborCost > 0 ? laborCost : undefined;
-      payload.otherCost = otherCost > 0 ? otherCost : undefined;
-      payload.parts = parts;
-    }
-
-    saveMutation.mutate(payload);
   };
 
-  // ── Keyboard shortcuts ──
-  useHotkeys('f2', (e) => {
-    e.preventDefault();
-    handleSave();
-  }, { enableOnFormTags: true });
+  useHotkeys('f2', (e) => { e.preventDefault(); handleSave(); }, { enableOnFormTags: true });
+  useHotkeys('f5', (e) => { e.preventDefault(); window.location.reload(); }, { enableOnFormTags: true });
 
-  useHotkeys('f3', (e) => {
-    e.preventDefault();
-    toast.info('Simpan Sementara (Draft) akan diimplementasikan di v2');
-  }, { enableOnFormTags: true });
-
-  useHotkeys('f5', (e) => {
-    e.preventDefault();
-    window.location.reload();
-  }, { enableOnFormTags: true });
-
-  const setF = (patch: Partial<typeof form>) => setForm((prev) => ({ ...prev, ...patch }));
+  const chooseCustomer = (customer: any) => {
+    setF({ customerId: customer.id, customerName: customer.name || customer.fullName || '', customerPhone: customer.phone || '', customerSubdistrict: customer.subdistrict || '' });
+    setCustomerSearch(customer.name || customer.fullName || '');
+  };
+  const createCustomer = async () => {
+    if (!quickCustomer.name.trim() || !PHONE_RE.test(quickCustomer.phone.trim())) return toast.error('Nama dan No. HP valid wajib diisi');
+    const res = await fetch('/api/v1/customers', { method: 'POST', headers: { ...authHeader(), 'Content-Type': 'application/json' }, body: JSON.stringify({ customerType: 'retail', name: quickCustomer.name.trim(), phone: quickCustomer.phone.trim(), subdistrict: quickCustomer.subdistrict || undefined }) });
+    if (!res.ok) return toast.error('Gagal membuat pelanggan');
+    const customer = await res.json();
+    chooseCustomer(customer); setQuickCustomer({ name: '', phone: '', subdistrict: '' }); setOpenCustomer(false); toast.success('Pelanggan dibuat dan dipilih');
+  };
+  const addCompleteness = () => {
+    if (!newCompleteness.name.trim()) return toast.error('Nama kelengkapan wajib diisi');
+    setChecklist((items) => [...items, { name: newCompleteness.name.trim(), checked: true, conditionNote: newCompleteness.conditionNote }]);
+    setNewCompleteness({ name: '', conditionNote: '' }); setOpenKelengkapan(false);
+  };
+  const addLayanan = () => {
+    if (!newLayanan || selectedLayanan.includes(newLayanan)) return toast.error('Pilih layanan yang belum ditambahkan');
+    setSelectedLayanan((items) => [...items, newLayanan]); setNewLayanan(''); setOpenLayanan(false);
+  };
+  const selectProduct = (product: any) => { setProductDraft(product); setProductSearch(product.name || ''); setProductDraftQty(1); setProductDraftWarranty(90); };
+  const addProduct = () => {
+    if (!productDraft) return toast.error('Pilih produk terlebih dahulu');
+    if (productDraft.available != null && productDraftQty > Number(productDraft.available)) return toast.error('Qty melebihi stok tersedia');
+    const price = Number(productDraft.sellingPrice || productDraft.price || 0);
+    setRows((items) => [...items, { ...emptyRow(), productId: productDraft.id, productName: productDraft.name, productSearch: productDraft.name, barcode: productDraft.barcode || '', refCode: productDraft.sku || '', quantity: productDraftQty, price, warrantyDays: productDraftWarranty, total: productDraftQty * price, available: productDraft.available }]);
+    setProductDraft(null); setProductSearch(''); setOpenBarang(false);
+  };
+  const updateRow = (index: number, patch: Partial<ItemRow>) => setRows((items) => items.map((row, i) => i === index ? { ...row, ...patch, total: (patch.quantity ?? row.quantity) * (patch.price ?? row.price) } : row));
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col bg-gray-50">
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
-        {/* ═══ Header (PoS-style, no gradient) ═══ */}
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Smart Repair</h1>
-            <p className="text-xs text-gray-600 mt-1">Pencatatan servis — Rawat Inap atau Quick Service</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-xs border-primary text-primary hover:bg-primary-50"
-              onClick={handleSave}
-              disabled={saveMutation.isPending}
-            >
-              {saveMutation.isPending ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-1" />}
-              Simpan
-            </Button>
-          </div>
-        </div>
-
-        {/* ═══ Service Type Tabs ═══ */}
-        <Tabs value={tab} onValueChange={(v) => setTab(v as ServiceTab)} className="mb-4">
-          <TabsList>
-            <TabsTrigger value="quick">Quick Servis</TabsTrigger>
-            <TabsTrigger value="inap">Rawat Inap</TabsTrigger>
-            <TabsTrigger value="garansi" disabled>Klaim Garansi (v2)</TabsTrigger>
-          </TabsList>
-
-        {/* ═══ Transaction Header ═══ */}
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-4">
-          <div className="p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-3">
-              {/* Outlet */}
-              <div>
-                <Label className="text-xs font-medium text-gray-700 mb-1 block">
-                  <span className="text-red-500">*</span> Outlet
-                </Label>
-                <select
-                  value={form.outlet}
-                  onChange={(e) => handleOutletChange(e.target.value)}
-                  className="w-full h-9 border border-gray-300 rounded-md px-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary bg-white"
-                >
-                  <option value="">Please select</option>
-                  {branches.map((b: any) => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Tanggal Terima */}
-              <div>
-                <Label className="text-xs font-medium text-gray-700 mb-1 block">Tgl Terima</Label>
-                <Input type="date" value={form.tanggalTerima} onChange={(e) => setF({ tanggalTerima: e.target.value })} className="h-9 text-sm" />
-              </div>
-
-              {/* Estimasi Selesai */}
-              <div>
-                <Label className="text-xs font-medium text-gray-700 mb-1 block">Estimasi Selesai</Label>
-                <Input type="date" value={form.estimasiSelesai} onChange={(e) => setF({ estimasiSelesai: e.target.value })} className="h-9 text-sm" />
-              </div>
-
-              {/* Layanan (multi, POS-like) — IGDERP-136 */}
-              <div className="lg:col-span-3">
-                <Label className="text-xs font-medium text-gray-700 mb-1 block">Layanan</Label>
-                {layananList.length === 0 ? (
-                  <p className="text-xs text-gray-400">Belum ada layanan</p>
-                ) : (
-                  <div className="space-y-1">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
-                      {(layananList as any[]).filter((l) => l.isActive !== false).map((l) => {
-                        const checked = selectedLayanan.includes(l.id);
-                        return (
-                          <label
-                            key={l.id}
-                            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs cursor-pointer transition-colors ${
-                              checked
-                                ? 'border-primary-500 bg-primary-50 text-primary-700'
-                                : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
-                            }`}
-                          >
-                            <Checkbox
-                              checked={checked}
-                              onCheckedChange={() => toggleLayanan(l.id)}
-                              className="h-3.5 w-3.5"
-                            />
-                            <span className="flex-1 font-medium">{l.name}</span>
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 whitespace-nowrap">
-                              SLA {Number(l.slaHours)} jam
-                            </span>
-                            <span className="text-[10px] text-gray-400 whitespace-nowrap">
-                              {formatCurrency(Number(l.basePrice || 0))}
-                            </span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                    {layananPicked.length > 0 && (
-                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
-                        <span className="text-gray-500">Dipilih:</span>
-                        {layananPicked.map((l) => (
-                          <span key={l.id} className="px-1.5 py-0.5 rounded bg-primary-50 text-primary-700 border border-primary-200">
-                            {l.name}
-                          </span>
-                        ))}
-                        <span className="ml-auto font-semibold text-gray-700">
-                          Total Layanan: {formatCurrency(layananTotal)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Tax flags */}
-              <div className="lg:col-span-3">
-                <Label className="text-xs font-medium text-gray-700 mb-1 block">Pajak</Label>
-                <div className="flex items-center gap-4 flex-wrap pt-1">
-                  <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
-                    <Checkbox checked={tax.ppn} onCheckedChange={(v) => setTax((prev) => ({ ...prev, ppn: Boolean(v) }))} /> PPN
-                  </label>
-                  <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
-                    <Checkbox checked={tax.incPpn} onCheckedChange={(v) => setTax((prev) => ({ ...prev, incPpn: Boolean(v) }))} /> IncPPN
-                  </label>
-                  <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
-                    <Checkbox checked={tax.pph22} onCheckedChange={(v) => setTax((prev) => ({ ...prev, pph22: Boolean(v) }))} /> PPH22
-                  </label>
-                  <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
-                    <Checkbox checked={tax.pph23} onCheckedChange={(v) => setTax((prev) => ({ ...prev, pph23: Boolean(v) }))} /> PPH23
-                  </label>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ═══ Tab Content ═══ */}
-        <TabsContent value="inap" className="mt-0">
-          {/* Customer + Device */}
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-4">
-            <div className="p-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                {/* Pelanggan */}
-                <div className="relative">
-                  <Label className="text-xs font-medium text-gray-700 mb-1 block">
-                    <span className="text-red-500">*</span> Pelanggan
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      value={customerSearch}
-                      onChange={(e) => {
-                        setCustomerSearch(e.target.value);
-                        setShowCustomerResults(true);
-                      }}
-                      onFocus={() => setShowCustomerResults(true)}
-                      placeholder="Cari pelanggan..."
-                      className="h-9 text-sm pr-8"
-                    />
-                    <Search className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  </div>
-                  {showCustomerResults && customerResults.length > 0 && (
-                    <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                      {customerResults.map((c: any) => (
-                        <button
-                          key={c.id}
-                          type="button"
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-primary-50 border-b border-gray-100 last:border-0"
-                          onClick={() => {
-                            setF({ customerName: c.name || c.fullName || '', customerPhone: c.phone || '' });
-                            setCustomerSearch(c.name || c.fullName || '');
-                            setShowCustomerResults(false);
-                          }}
-                        >
-                          <div className="font-medium">{c.name || c.fullName}</div>
-                          <div className="text-xs text-gray-500">{c.phone || c.email || ''}</div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* No. HP */}
-                <div>
-                  <Label className="text-xs font-medium text-gray-700 mb-1 block">
-                    <span className="text-red-500">*</span> No. HP
-                  </Label>
-                  <Input
-                    value={form.customerPhone}
-                    onChange={(e) => setF({ customerPhone: e.target.value })}
-                    placeholder="081234567890"
-                    className="h-9 text-sm"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-3">
-                {/* Device type */}
-                <div>
-                  <Label className="text-xs font-medium text-gray-700 mb-1 block">
-                    <span className="text-red-500">*</span> Jenis Perangkat
-                  </Label>
-                  <select
-                    value={form.deviceType}
-                    onChange={(e) => setF({ deviceType: e.target.value as any })}
-                    className="w-full h-9 border border-gray-300 rounded-md px-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary bg-white"
-                  >
-                    <option value="handphone">Handphone</option>
-                    <option value="laptop">Laptop</option>
-                    <option value="tablet">Tablet</option>
-                    <option value="other">Lainnya</option>
-                  </select>
-                </div>
-
-                {/* Serial Number */}
-                <div>
-                  <Label className="text-xs font-medium text-gray-700 mb-1 block">Serial Number</Label>
-                  <Input value={form.deviceSerial} onChange={(e) => setF({ deviceSerial: e.target.value })} placeholder="SN perangkat" className="h-9 text-sm" />
-                </div>
-
-                {/* Nama Barang */}
-                <div>
-                  <Label className="text-xs font-medium text-gray-700 mb-1 block">Nama Barang / Tipe</Label>
-                  <Input value={form.deviceUnit} onChange={(e) => setF({ deviceUnit: e.target.value })} placeholder="Samsung A54 / iPhone 13..." className="h-9 text-sm" />
-                </div>
-              </div>
-
-              {/* Warranty */}
-              <div className="flex items-center gap-4 mb-3">
-                <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
-                  <Checkbox checked={form.warrantyActive} onCheckedChange={(v) => setF({ warrantyActive: Boolean(v) })} />
-                  Dalam Garansi
-                </label>
-                {form.warrantyActive && (
-                  <Input
-                    type="date"
-                    value={form.warrantyExpiry}
-                    onChange={(e) => setF({ warrantyExpiry: e.target.value })}
-                    className="h-8 w-44 text-sm"
-                  />
-                )}
-              </div>
-
-              {/* Deskripsi & Kondisi */}
-              <div>
-                <Label className="text-xs font-medium text-gray-700 mb-1 block">
-                  <span className="text-red-500">*</span> Deskripsi &amp; Kondisi
-                </Label>
-                <Textarea
-                  value={form.complaint}
-                  onChange={(e) => setF({ complaint: e.target.value })}
-                  className="min-h-[80px] resize-y"
-                  placeholder="Deskripsikan kerusakan dan kondisi perangkat..."
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Kelengkapan */}
-          <div className="mb-4">
-            <KelengkapanChecklist items={checklist} onChange={setChecklist} />
-          </div>
-
-          {/* Technician + Pricing */}
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-4">
-            <div className="p-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                {/* Teknisi */}
-                <div>
-                  <Label className="text-xs font-medium text-gray-700 mb-1 block">Teknisi</Label>
-                  <select
-                    value={form.technicianId}
-                    onChange={(e) => setF({ technicianId: e.target.value })}
-                    className="w-full h-9 border border-gray-300 rounded-md px-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary bg-white"
-                  >
-                    <option value="">Pilih Teknisi</option>
-                    {technicians.map((t: any) => (
-                      <option key={t.id} value={t.id}>{t.fullName}{t.position ? ` — ${t.position}` : ''}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Harga Jual Servis */}
-                <div>
-                  <Label className="text-xs font-medium text-gray-700 mb-1 block">Harga Jual Servis</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    value={form.hargaJualServis}
-                    onChange={(e) => setF({ hargaJualServis: e.target.value })}
-                    placeholder="0"
-                    className="h-9 text-sm text-right"
-                  />
-                </div>
-
-                {/* Uang Muka */}
-                <div>
-                  <Label className="text-xs font-medium text-gray-700 mb-1 block">Uang Muka</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    value={form.downPayment}
-                    onChange={(e) => setF({ downPayment: e.target.value })}
-                    placeholder="0"
-                    className="h-9 text-sm text-right"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="quick" className="mt-0">
-          {/* Customer + Complaint */}
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-4">
-            <div className="p-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-                <div className="relative">
-                  <Label className="text-xs font-medium text-gray-700 mb-1 block">
-                    <span className="text-red-500">*</span> Pelanggan
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      value={customerSearch}
-                      onChange={(e) => {
-                        setCustomerSearch(e.target.value);
-                        setShowCustomerResults(true);
-                      }}
-                      onFocus={() => setShowCustomerResults(true)}
-                      placeholder="Cari pelanggan..."
-                      className="h-9 text-sm pr-8"
-                    />
-                    <Search className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  </div>
-                  {showCustomerResults && customerResults.length > 0 && (
-                    <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                      {customerResults.map((c: any) => (
-                        <button
-                          key={c.id}
-                          type="button"
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-primary-50 border-b border-gray-100 last:border-0"
-                          onClick={() => {
-                            setF({ customerName: c.name || c.fullName || '', customerPhone: c.phone || '' });
-                            setCustomerSearch(c.name || c.fullName || '');
-                            setShowCustomerResults(false);
-                          }}
-                        >
-                          <div className="font-medium">{c.name || c.fullName}</div>
-                          <div className="text-xs text-gray-500">{c.phone || c.email || ''}</div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <Label className="text-xs font-medium text-gray-700 mb-1 block">
-                    <span className="text-red-500">*</span> No. HP
-                  </Label>
-                  <Input
-                    value={form.customerPhone}
-                    onChange={(e) => setF({ customerPhone: e.target.value })}
-                    placeholder="081234567890"
-                    className="h-9 text-sm"
-                  />
-                </div>
-
-                {/* Gudang */}
-                <div>
-                  <Label className="text-xs font-medium text-gray-700 mb-1 block">
-                    <span className="text-red-500">*</span> Gudang
-                  </Label>
-                  <select
-                    value={form.warehouseId}
-                    onChange={(e) => setF({ warehouseId: e.target.value })}
-                    className="w-full h-9 border border-gray-300 rounded-md px-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary bg-white"
-                    disabled={!form.outlet}
-                  >
-                    <option value="">{form.outlet ? 'Pilih Gudang' : 'Tentukan Outlet'}</option>
-                    {warehouses.map((w: any) => (
-                      <option key={w.id} value={w.id}>{w.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-xs font-medium text-gray-700 mb-1 block">
-                  <span className="text-red-500">*</span> Deskripsi &amp; Kondisi
-                </Label>
-                <Textarea
-                  value={form.complaint}
-                  onChange={(e) => setF({ complaint: e.target.value })}
-                  className="min-h-[60px] resize-y"
-                  placeholder="Deskripsikan kerusakan dan kondisi perangkat..."
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Product search + table */}
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-4">
-            <div className="p-4 pb-0">
-              <div className="relative">
-                <Input
-                  value={quickSearch}
-                  onChange={(e) => setQuickSearch(e.target.value)}
-                  placeholder="Qty + spasi + Scan Barcode atau Ketik Nama Barang"
-                  className="h-10 text-sm pr-10 border-primary-200 focus:border-primary"
-                />
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
-              </div>
-              {quickSearch.length >= 2 && productResults.length > 0 && (
-                <div className="border border-gray-200 rounded-lg mt-1 max-h-48 overflow-y-auto shadow-lg">
-                  {productResults.map((p: any, i: number) => (
-                    <button
-                      key={p.id || i}
-                      type="button"
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-primary-50 border-b border-gray-100 last:border-0"
-                      onClick={() => handleQuickSearchSelect(p)}
-                    >
-                      <div className="font-medium">{p.name || p.productName}</div>
-                      <div className="text-xs text-gray-500">
-                        {p.barcode && `Barcode: ${p.barcode}`}
-                        {p.sku && ` | SKU: ${p.sku}`}
-                        {p.sellingPrice && ` | Rp ${formatCurrency(p.sellingPrice)}`}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-sm font-bold text-gray-800">Daftar Barang</h2>
-              </div>
-              <div className="overflow-x-auto border border-gray-200 rounded-lg">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-gray-50 border-b border-gray-200">
-                      <th className="w-10 px-2 py-2 text-center"></th>
-                      <th className="w-10 px-2 py-2 text-center text-xs font-semibold text-gray-600">No</th>
-                      <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600 min-w-[250px]">
-                        <span className="text-red-500">*</span> Barcode / Nama Produk / Kode Ref
-                      </th>
-                      <th className="w-20 px-2 py-2 text-center text-xs font-semibold text-gray-600">
-                        <span className="text-red-500">*</span> Jumlah
-                      </th>
-                      <th className="w-28 px-2 py-2 text-right text-xs font-semibold text-gray-600">@Harga</th>
-                      <th className="w-24 px-2 py-2 text-right text-xs font-semibold text-gray-600">@Diskon</th>
-                      <th className="w-28 px-2 py-2 text-right text-xs font-semibold text-gray-600">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row, i) => (
-                      <tr key={row.id} className="border-b border-gray-100 hover:bg-gray-50/50">
-                        <td className="px-2 py-1.5 text-center">
-                          {row.productId && (
-                            <button
-                              onClick={() => removeRow(i)}
-                              className="w-6 h-6 rounded-full bg-red-50 hover:bg-red-100 flex items-center justify-center"
-                            >
-                              <Trash2 className="w-3 h-3 text-red-500" />
-                            </button>
-                          )}
-                        </td>
-                        <td className="px-2 py-1.5 text-center text-xs text-gray-500">{i + 1}</td>
-                        <td className="px-2 py-1.5">
-                          <input
-                            type="text"
-                            value={row.productSearch}
-                            onChange={(e) => updateRow(i, 'productSearch', e.target.value)}
-                            placeholder="Cari produk..."
-                            className="w-full h-8 px-2 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-primary focus:border-primary"
-                          />
-                          {row.productId && (
-                            <div className="text-[11px] text-gray-400 mt-0.5">
-                              {row.barcode && `Barcode: ${row.barcode}`}
-                              {row.refCode && ` | ${row.refCode}`}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-2 py-1.5">
-                          <input
-                            type="number"
-                            min="0"
-                            value={row.quantity || ''}
-                            onChange={(e) => updateRow(i, 'quantity', parseInt(e.target.value) || 0)}
-                            className="w-full h-8 px-2 border border-gray-300 rounded text-xs text-center focus:ring-2 focus:ring-primary focus:border-primary"
-                          />
-                        </td>
-                        <td className="px-2 py-1.5">
-                          <input
-                            type="number"
-                            min="0"
-                            value={row.price || ''}
-                            onChange={(e) => updateRow(i, 'price', parseInt(e.target.value) || 0)}
-                            className="w-full h-8 px-2 border border-gray-300 rounded text-xs text-right focus:ring-2 focus:ring-primary focus:border-primary"
-                          />
-                        </td>
-                        <td className="px-2 py-1.5">
-                          <input
-                            type="number"
-                            min="0"
-                            value={row.discount || ''}
-                            onChange={(e) => updateRow(i, 'discount', parseInt(e.target.value) || 0)}
-                            className="w-full h-8 px-2 border border-gray-300 rounded text-xs text-right focus:ring-2 focus:ring-primary focus:border-primary"
-                          />
-                        </td>
-                        <td className="px-2 py-1.5 text-right text-xs font-medium text-gray-800">
-                          {formatCurrency(row.total)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="mt-2">
-                <Button onClick={addRow} size="sm" className="bg-primary text-primary-foreground hover:bg-primary-700 text-xs">
-                  <Plus className="w-3.5 h-3.5 mr-1" />
-                  Tambah Data
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Cost Summary */}
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-4">
-            <div className="p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Calculator className="w-4 h-4 text-primary" />
-                <h2 className="text-sm font-bold text-gray-800">Ringkasan Biaya</h2>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs font-medium text-gray-700 mb-1 block">Total Jasa</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    value={form.laborCost}
-                    onChange={(e) => setF({ laborCost: e.target.value })}
-                    placeholder="0"
-                    className="h-9 text-sm text-right"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs font-medium text-gray-700 mb-1 block">Total Spare Part (otomatis)</Label>
-                  <Input value={formatCurrency(totalParts)} readOnly className="h-9 text-sm text-right bg-gray-50" />
-                </div>
-                <div>
-                  <Label className="text-xs font-medium text-gray-700 mb-1 block">Ongkos Kirim</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    value={form.otherCost}
-                    onChange={(e) => setF({ otherCost: e.target.value })}
-                    placeholder="0"
-                    className="h-9 text-sm text-right"
-                  />
-                </div>
-                <div className="flex items-end">
-                  <div className="w-full rounded-lg bg-primary-50 border border-primary-100 px-3 py-2 flex justify-between items-center">
-                    <span className="text-xs font-semibold text-primary-800">Harga Pokok Servis</span>
-                    <span className="text-base font-bold text-primary">{formatCurrency(quickTotal)}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </TabsContent>
-        </Tabs>
-
-        {/* ═══ Notes (shared) ═══ */}
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-4">
-          <div className="p-4">
-            <Label className="text-xs font-medium text-gray-700 mb-2 block">Catatan Internal (tidak tampil pada nota)</Label>
-            <Textarea
-              value={form.internalNotes}
-              onChange={(e) => setF({ internalNotes: e.target.value })}
-              className="min-h-[60px] resize-y"
-              placeholder="Catatan untuk tim internal..."
-            />
-          </div>
+    <div className="flex min-h-0 flex-1 flex-col bg-gray-50">
+      <div className="sticky top-0 z-30 border-b bg-gray-50/95 px-4 py-3 backdrop-blur">
+        <div className="flex items-end justify-between">
+          <div><h1 className="text-xl font-bold text-gray-900">Smart Repair</h1><p className="mt-1 text-xs text-gray-600">Pencatatan servis — satu halaman, tanpa tab</p></div>
+          <Button variant="outline" size="sm" className="border-primary text-primary" onClick={handleSave} disabled={saveMutation.isPending}><Save className="h-4 w-4" /> Simpan <span className="text-muted-foreground">F2</span></Button>
         </div>
       </div>
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+        <Card className="mb-4"><CardContent className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div><Label><span className="text-red-500">*</span> Outlet</Label><Select value={form.outlet} onValueChange={handleOutletChange} className="mt-1"><option value="">Pilih Outlet</option>{branches.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}</Select></div>
+          <div><Label><span className="text-red-500">*</span> Gudang</Label><Select value={form.warehouseId} onValueChange={(warehouseId) => setF({ warehouseId })} disabled={!form.outlet} className="mt-1"><option value="">Pilih Gudang</option>{warehouses.map((w: any) => <option key={w.id} value={w.id}>{w.name}</option>)}</Select></div>
+          <div><Label>Tgl Terima</Label><Input type="datetime-local" value={form.receivedDate} onChange={(e) => setF({ receivedDate: e.target.value })} className="mt-1" /></div>
+          <div><Label>Estimasi Selesai <span className="text-muted-foreground">(auto)</span></Label><Input type="datetime-local" value={form.promisedDate} onChange={(e) => setF({ promisedDate: e.target.value })} className="mt-1" /></div>
+          <p className="text-xs text-muted-foreground lg:col-span-4">Estimasi selesai dihitung dari SLA tertinggi layanan — tetap bisa diubah manual.</p>
+        </CardContent></Card>
 
-      {/* ═══ Footer Status Bar ═══ */}
-      <div className="shrink-0 bg-primary text-primary-foreground text-xs py-2 px-4 flex items-center gap-6">
-        <span><strong>F2</strong> = Simpan</span>
-        <span><strong>F3</strong> = Simpan Sementara</span>
-        <span><strong>F5</strong> = Refresh</span>
-        <div className="ml-auto text-primary-200">IGD Ponsel - Smart Repair</div>
+        <Card className="mb-4"><CardContent className="p-4">
+          <div className="mb-3 flex items-end gap-2"><div className="min-w-0 flex-1"><Label><span className="text-red-500">*</span> Pelanggan</Label><div className="relative mt-1"><Input value={customerSearch || form.customerName} onChange={(e) => { setCustomerSearch(e.target.value); setF({ customerName: e.target.value }); }} placeholder="Cari pelanggan..." /><Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" /></div>{customerResults.length > 0 && <div className="mt-1 max-h-40 overflow-auto rounded-md border bg-white shadow">{customerResults.map((c: any) => <button key={c.id} type="button" className="block w-full border-b px-3 py-2 text-left text-sm hover:bg-muted" onClick={() => chooseCustomer(c)}>{c.name} · {c.phone}</button>)}</div>}</div><Button variant="outline" size="sm" className="border-primary text-primary" onClick={() => setOpenCustomer(true)}><Plus className="h-4 w-4" /> Tambah</Button></div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2"><div><Label><span className="text-red-500">*</span> No. HP</Label><Input value={form.customerPhone} onChange={(e) => setF({ customerPhone: e.target.value })} className="mt-1" /><p className="mt-1 text-xs text-muted-foreground">Format: 08… atau +62… — dicek saat simpan.</p></div><div><Label><span className="text-red-500">*</span> Kecamatan</Label><Input value={form.customerSubdistrict} onChange={(e) => setF({ customerSubdistrict: e.target.value })} className="mt-1" /></div></div>
+        </CardContent></Card>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <Card><CardContent className="p-4"><div className="grid grid-cols-1 gap-3 sm:grid-cols-2"><div><Label><span className="text-red-500">*</span> Jenis Perangkat</Label><Select value={form.deviceType} onValueChange={(deviceType) => setF({ deviceType: deviceType as typeof form.deviceType })} className="mt-1"><option value="handphone">Handphone</option><option value="laptop">Laptop</option><option value="tablet">Tablet</option><option value="other">Lainnya</option></Select></div><div><Label>Nama Barang / Tipe</Label><Input value={form.deviceUnit} onChange={(e) => setF({ deviceUnit: e.target.value })} className="mt-1" /></div><div><Label>Serial Number</Label><Input value={form.deviceSerial} onChange={(e) => setF({ deviceSerial: e.target.value })} className="mt-1" /></div><div><Label>Warna</Label><Input value={form.deviceColor} onChange={(e) => setF({ deviceColor: e.target.value })} className="mt-1" /></div></div><div className="mt-3"><Label><span className="text-red-500">*</span> Deskripsi &amp; Kondisi</Label><Textarea value={form.complaint} onChange={(e) => setF({ complaint: e.target.value })} className="mt-1 min-h-20" /></div><div className="mt-3 flex items-center gap-2"><span className="text-sm"><span className="mr-2 inline-block h-4 w-4 rounded border" />Dalam Garansi</span><Badge variant="outline" className="border-green-200 bg-green-50 text-green-700">✓ 142 hari</Badge></div></CardContent></Card>
+          <Card><CardHeader className="pb-3"><CardTitle className="text-sm">Dokumentasi (foto awal)</CardTitle><p className="text-xs text-muted-foreground">Wadah upload — kompres &lt;1MB + thumbnail</p></CardHeader><CardContent><div className="grid grid-cols-1 gap-3 sm:grid-cols-2"><Button variant="outline" className="h-20 border-dashed"><Camera className="mr-2 h-4 w-4" /> Foto langsung</Button><Button variant="outline" className="h-20 border-dashed"><Upload className="mr-2 h-4 w-4" /> Upload file</Button></div><p className="mt-3 text-xs font-medium">Preview</p><div className="mt-2 grid grid-cols-4 gap-2">{[1,2,3,4].map((i) => <div key={i} className="h-16 rounded-md border bg-muted" />)}</div><div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800">⚠ Belum ada foto — disarankan 2 (kondisi luar &amp; kerusakan). Bisa simpan dulu, tambah kemudian.</div></CardContent></Card>
+        </div>
+
+        <Card className="mt-4"><CardHeader className="flex-row items-center justify-between space-y-0 pb-3"><CardTitle className="text-sm">✓ Kelengkapan <span className="font-normal text-muted-foreground">({checklist.filter((x) => x.checked).length}/{checklist.length} tercentang)</span></CardTitle><Button variant="outline" size="sm" className="border-primary text-primary" onClick={() => setOpenKelengkapan(true)}><Plus className="h-4 w-4" /> Tambah</Button></CardHeader><CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2">{checklist.map((item, index) => <div key={`${item.name}-${index}`} className="flex min-h-7 items-center gap-2"><Checkbox checked={item.checked} onCheckedChange={(checked) => setChecklist((items) => items.map((x, i) => i === index ? { ...x, checked: Boolean(checked) } : x))} /><span className="w-20 shrink-0 truncate text-sm">{item.name}</span>{item.checked && <Input value={item.conditionNote || ''} onChange={(e) => setChecklist((items) => items.map((x, i) => i === index ? { ...x, conditionNote: e.target.value } : x))} placeholder="Kondisi..." className="h-7 text-xs" />} {!item.checkpointId && <button type="button" onClick={() => setChecklist((items) => items.filter((_, i) => i !== index))}><X className="h-4 w-4 text-red-500" /></button>}</div>)}</CardContent></Card>
+
+        <Card><CardHeader className="flex-row items-start justify-between space-y-0 pb-3"><div><CardTitle className="text-sm">Daftar Layanan</CardTitle><p className="text-xs text-muted-foreground">Baris pertama = layanan utama (masuk Kerusakan &amp; faktur service)</p></div><Button variant="outline" size="sm" className="border-primary text-primary" onClick={() => setOpenLayanan(true)}><Plus className="h-4 w-4" /> Tambah</Button></CardHeader><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead>Layanan</TableHead><TableHead className="w-28">SLA</TableHead><TableHead className="w-44">Estimasi</TableHead><TableHead className="w-20 text-right">Aksi</TableHead></TableRow></TableHeader><TableBody>{layananPicked.map((l: any, index) => <TableRow key={l.id}><TableCell><div className="flex items-center gap-2"><Select value={l.id} onValueChange={(id) => setSelectedLayanan((items) => items.map((x) => x === l.id ? id : x))} className="h-8 max-w-xs"><option value={l.id}>{l.name}</option>{(layananList as any[]).filter((x) => !selectedLayanan.includes(x.id)).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</Select>{index === 0 && <Badge variant="outline" className="border-red-200 bg-red-50 text-[10px] text-red-700">UTAMA</Badge>}</div></TableCell><TableCell><Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700">{Number(l.slaHours)}h</Badge></TableCell><TableCell className="font-mono text-xs">{form.promisedDate ? new Date(form.promisedDate).toLocaleString('id-ID') : 'Pilih estimasi'}</TableCell><TableCell className="text-right"><Button variant="ghost" size="sm" onClick={() => setSelectedLayanan((items) => items.filter((x) => x !== l.id))}><Trash2 className="h-4 w-4 text-red-500" /></Button></TableCell></TableRow>)}</TableBody></Table></CardContent></Card>
+
+        <Card><CardHeader className="flex-row items-start justify-between space-y-0 pb-3"><div><CardTitle className="text-sm">Daftar Barang</CardTitle><p className="text-xs text-muted-foreground">Cross-selling — opsional, faktur POS terpisah · stok dikunci saat Receive</p></div><Button variant="outline" size="sm" className="border-primary text-primary" onClick={() => setOpenBarang(true)}><Plus className="h-4 w-4" /> Tambah</Button></CardHeader><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead>Barang</TableHead><TableHead className="text-right">Harga</TableHead><TableHead className="text-center">Qty</TableHead><TableHead>Garansi (hari)</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader><TableBody>{partsRows.map((row) => <TableRow key={row.id}><TableCell><div>{row.productName}</div><div className="text-xs text-green-700">● Stok Gudang Service: {row.available ?? '—'} — tersedia</div></TableCell><TableCell className="text-right font-semibold">{formatCurrency(row.price)}</TableCell><TableCell className="text-center"><Input type="number" min={1} value={row.quantity} onChange={(e) => updateRow(rows.indexOf(row), { quantity: Math.max(1, Number(e.target.value)) })} className="mx-auto h-8 w-16 text-center" /></TableCell><TableCell><Input type="number" min={0} value={row.warrantyDays} onChange={(e) => updateRow(rows.indexOf(row), { warrantyDays: Math.max(0, Number(e.target.value)) })} className="h-8 w-20" /></TableCell><TableCell className="text-right"><Button variant="ghost" size="sm" onClick={() => setRows((items) => items.filter((x) => x.id !== row.id))}><Trash2 className="h-4 w-4 text-red-500" /></Button></TableCell></TableRow>)}</TableBody></Table></CardContent></Card>
+
+        <Card><CardHeader className="pb-3"><CardTitle className="text-sm">Ringkasan Biaya</CardTitle><p className="text-xs text-muted-foreground">Auto dari layanan &amp; barang — Estimasi tetap bisa diubah</p></CardHeader><CardContent><div><Label>Teknisi</Label><Select value={form.technicianId} onValueChange={(technicianId) => setF({ technicianId })} className="mt-1 max-w-md"><option value="">Pilih Teknisi</option>{technicians.map((t: any) => <option key={t.id} value={t.id}>{t.fullName || t.email}</option>)}</Select></div><Separator className="my-4" /><div className="grid grid-cols-1 gap-4 lg:grid-cols-2"><div className="space-y-2 text-sm">{layananPicked.map((l: any) => <div key={l.id} className="flex justify-between border-b border-dashed pb-2"><span>Layanan · {l.name}</span><span>{formatCurrency(Number(l.basePrice || 0))}</span></div>)}<div className="flex justify-between font-semibold"><span>Total Layanan</span><span>{formatCurrency(layananTotal)}</span></div>{partsRows.map((r) => <div key={r.id} className="flex justify-between border-b border-dashed pb-2"><span>Barang · {r.productName} ×{r.quantity}</span><span>{formatCurrency(r.total)}</span></div>)}</div><div className="space-y-3"><div><Label>Estimasi Biaya <span className="text-muted-foreground">(auto)</span></Label><Input value={formatCurrency(estimatedTotal)} readOnly className="mt-1 bg-red-50 text-right" /></div><div><Label>Uang Muka</Label><Input type="number" min={0} value={form.downPayment} onChange={(e) => setF({ downPayment: e.target.value })} className="mt-1 text-right" /></div><div className="flex justify-between border-t pt-3 text-base font-bold text-red-600"><span>Sisa (Estimasi − UM)</span><span>{formatCurrency(remaining)}</span></div></div></div></CardContent></Card>
+
+        <Card><CardContent className="p-4"><Label>Catatan Internal (tidak tampil pada nota)</Label><Textarea value={form.internalNotes} onChange={(e) => setF({ internalNotes: e.target.value })} placeholder="Catatan internal teknisi: ..." className="mt-2 min-h-14" /></CardContent></Card>
       </div>
+
+      <Dialog open={openCustomer} onOpenChange={setOpenCustomer}><DialogContent><DialogHeader><DialogTitle>Tambah Pelanggan</DialogTitle></DialogHeader><div className="space-y-3"><div><Label><span className="text-red-500">*</span> Nama</Label><Input value={quickCustomer.name} onChange={(e) => setQuickCustomer({ ...quickCustomer, name: e.target.value })} className="mt-1" /></div><div><Label><span className="text-red-500">*</span> No. HP</Label><Input value={quickCustomer.phone} onChange={(e) => setQuickCustomer({ ...quickCustomer, phone: e.target.value })} className="mt-1" /><p className="mt-1 text-xs text-muted-foreground">Format: 08… atau +62…</p></div><div><Label>Kecamatan</Label><Input value={quickCustomer.subdistrict} onChange={(e) => setQuickCustomer({ ...quickCustomer, subdistrict: e.target.value })} className="mt-1" /></div></div><DialogFooter><Button variant="outline" onClick={() => setOpenCustomer(false)}>Batal</Button><Button onClick={createCustomer}>Simpan &amp; Pilih</Button></DialogFooter></DialogContent></Dialog>
+      <Dialog open={openKelengkapan} onOpenChange={setOpenKelengkapan}><DialogContent><DialogHeader><DialogTitle>Tambah Kelengkapan</DialogTitle></DialogHeader><div className="space-y-3"><div><Label><span className="text-red-500">*</span> Nama kelengkapan</Label><Input value={newCompleteness.name} onChange={(e) => setNewCompleteness({ ...newCompleteness, name: e.target.value })} placeholder="Mis. Anti gores" className="mt-1" /></div><div><Label>Kondisi awal</Label><Input value={newCompleteness.conditionNote} onChange={(e) => setNewCompleteness({ ...newCompleteness, conditionNote: e.target.value })} className="mt-1" /></div></div><DialogFooter><Button variant="outline" onClick={() => setOpenKelengkapan(false)}>Batal</Button><Button onClick={addCompleteness}>Simpan</Button></DialogFooter></DialogContent></Dialog>
+      <Dialog open={openLayanan} onOpenChange={setOpenLayanan}><DialogContent><DialogHeader><DialogTitle>Tambah Layanan</DialogTitle></DialogHeader><div className="space-y-3"><div><Label><span className="text-red-500">*</span> Layanan</Label><Select value={newLayanan} onValueChange={setNewLayanan} className="mt-1"><option value="">Pilih layanan</option>{(layananList as any[]).filter((l) => !selectedLayanan.includes(l.id)).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</Select></div>{newLayanan && <div className="flex items-center gap-2 rounded-md border bg-muted p-2 text-xs"><Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700">{Number((layananList as any[]).find((l) => l.id === newLayanan)?.slaHours || 0)}h</Badge> Estimasi selesai mengikuti SLA tertinggi.</div>}</div><DialogFooter><Button variant="outline" onClick={() => setOpenLayanan(false)}>Batal</Button><Button onClick={addLayanan}>Tambah</Button></DialogFooter></DialogContent></Dialog>
+      <Dialog open={openBarang} onOpenChange={setOpenBarang}><DialogContent><DialogHeader><DialogTitle>Tambah Barang</DialogTitle></DialogHeader><div className="space-y-3"><div className="relative"><Label>Cari produk</Label><Input value={productSearch} onChange={(e) => { setProductSearch(e.target.value); setProductDraft(null); }} className="mt-1" /><Search className="absolute right-3 top-8 h-4 w-4 text-muted-foreground" />{productResults.length > 0 && !productDraft && <div className="absolute z-10 mt-1 max-h-40 w-full overflow-auto rounded-md border bg-white shadow">{productResults.map((p: any) => <button key={p.id} type="button" className="block w-full border-b px-3 py-2 text-left text-sm hover:bg-muted" onClick={() => selectProduct(p)}>{p.name} · {formatCurrency(Number(p.sellingPrice || 0))}</button>)}</div>}</div>{productDraft && <><div className="rounded-md border bg-muted p-2 text-sm">{productDraft.name}<span className="float-right text-green-700">Stok: {productDraft.available ?? '—'}</span></div><div className="grid grid-cols-3 gap-3"><div><Label>Harga</Label><Input value={String(productDraft.sellingPrice || 0)} readOnly className="mt-1" /></div><div><Label>Qty</Label><Input type="number" min={1} value={productDraftQty} onChange={(e) => setProductDraftQty(Math.max(1, Number(e.target.value)))} className="mt-1" /></div><div><Label>Garansi</Label><Input type="number" min={0} value={productDraftWarranty} onChange={(e) => setProductDraftWarranty(Math.max(0, Number(e.target.value)))} className="mt-1" /></div></div><div className="flex justify-end border-t pt-3 text-sm">Subtotal: <b className="ml-2">{formatCurrency(Number(productDraft.sellingPrice || 0) * productDraftQty)}</b></div></>}</div><DialogFooter><Button variant="outline" onClick={() => setOpenBarang(false)}>Batal</Button><Button onClick={addProduct} disabled={!productDraft}>Tambah</Button></DialogFooter></DialogContent></Dialog>
     </div>
   );
 }

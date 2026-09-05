@@ -101,7 +101,7 @@ export default function SmartRepairDetailPage() {
   const [openTeknisi, setOpenTeknisi] = useState(false);
   const [techId, setTechId] = useState('');
   const [openWaktu, setOpenWaktu] = useState(false);
-  const [openLayanan, setOpenLayanan] = useState(false);
+  const [inlineLayanan, setInlineLayanan] = useState(false);
   const [layananPick, setLayananPick] = useState('');
   const [waktuLayanan, setWaktuLayanan] = useState('');
   const [waktuAlasan, setWaktuAlasan] = useState('');
@@ -142,13 +142,7 @@ export default function SmartRepairDetailPage() {
   const { data: serviceTypes = [] } = useQuery({
     queryKey: ['sr-service-types'],
     queryFn: () => fetchList('/api/v1/service-types'),
-    enabled: openWaktu,
-  });
-
-  const { data: layananMaster = [] } = useQuery({
-    queryKey: ['sr-layanan-master'],
-    queryFn: () => fetchList('/api/v1/service-types'),
-    enabled: openLayanan,
+    enabled: openWaktu || inlineLayanan,
   });
 
   const { data: posFaktur = null } = useQuery({
@@ -222,7 +216,7 @@ export default function SmartRepairDetailPage() {
       serviceOrdersService.addLayanan(id!, payload),
     onSuccess: () => {
       toast.success('Layanan berhasil ditambahkan');
-      setOpenLayanan(false);
+      setInlineLayanan(false);
       setLayananPick('');
       queryClient.invalidateQueries({ queryKey: ['service-order', id] });
     },
@@ -377,7 +371,7 @@ export default function SmartRepairDetailPage() {
                       className="flex items-center gap-2 px-2 py-2 border-b border-dashed border-gray-100 last:border-b-0"
                     >
                       <span className="font-semibold text-sm flex-1">{l.name}</span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 whitespace-nowrap">
+                      <span className="text-xs text-gray-600 font-mono whitespace-nowrap">
                         SLA {formatSLA(Number(l.slaHours))}
                       </span>
                       <span className="text-xs text-gray-600 whitespace-nowrap">
@@ -393,6 +387,26 @@ export default function SmartRepairDetailPage() {
                       )}
                     </span>
                   </div>
+                  {status === 'in-progress' && !isCancelled && (
+                    <div className="mt-2 border-t border-dashed border-gray-200 pt-2">
+                      {!inlineLayanan ? (
+                        <Button variant="link" size="sm" className="px-2 text-primary-600" onClick={() => setInlineLayanan(true)}>
+                          Tambah Layanan
+                        </Button>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <Select value={layananPick} onValueChange={setLayananPick} className="h-9 flex-1">
+                            <option value="">Pilih layanan</option>
+                            {(serviceTypes as any[])
+                              .filter((st) => !(order.layanan as any[]).some((l) => l.serviceTypeId === st.id))
+                              .map((st) => <option key={st.id} value={st.id}>{st.name}</option>)}
+                          </Select>
+                          <Button size="sm" disabled={!layananPick || addLayananMutation.isPending} onClick={() => addLayananMutation.mutate({ serviceTypeId: layananPick })}>Tambah</Button>
+                          <Button variant="outline" size="sm" onClick={() => { setInlineLayanan(false); setLayananPick(''); }}>Batal</Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ) : order.serviceType ? (
                 <div className="flex items-center gap-2 px-2 py-2 border-b border-dashed border-gray-100">
@@ -525,22 +539,6 @@ export default function SmartRepairDetailPage() {
               {(!status || status !== 'in-progress') && (
                 <DropdownMenuItem disabled>
                   Tambah Waktu
-                </DropdownMenuItem>
-              )}
-              {status === 'in-progress' && !isCancelled && (
-                <DropdownMenuItem
-                  className="font-semibold"
-                  onClick={() => {
-                    setLayananPick('');
-                    setOpenLayanan(true);
-                  }}
-                >
-                  Tambah Layanan
-                </DropdownMenuItem>
-              )}
-              {(!status || status !== 'in-progress') && (
-                <DropdownMenuItem disabled>
-                  Tambah Layanan
                 </DropdownMenuItem>
               )}
               {(status === 'in-progress' || status === 'ready') && !isCancelled && (
@@ -781,50 +779,6 @@ export default function SmartRepairDetailPage() {
               }
             >
               Simpan
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* ─── Tambah Layanan modal (IGDERP-136, In Progress only) ─── */}
-      <Dialog open={openLayanan} onOpenChange={setOpenLayanan}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Tambah Layanan</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <Label className="text-sm text-gray-600">
-                Layanan <span className="text-red-500">*</span>
-              </Label>
-              <Select value={layananPick} onValueChange={setLayananPick} className="w-full">
-                <option value="">Pilih layanan</option>
-                {(layananMaster as any[])
-                  .filter((st) => st.isActive !== false)
-                  .map((st) => (
-                    <option key={st.id} value={st.id}>
-                      {st.name} — SLA {Number(st.slaHours)} jam · {formatCurrency(Number(st.basePrice || 0))}
-                    </option>
-                  ))}
-              </Select>
-              {layananPick && (() => {
-                const sel = (layananMaster as any[]).find((st) => st.id === layananPick);
-                return sel ? (
-                  <p className="text-xs text-gray-500">
-                    SLA {formatSLA(Number(sel.slaHours))} · Estimasi {formatCurrency(Number(sel.basePrice || 0))} ·
-                    akan diperhitungkan saat keluar (Done).
-                  </p>
-                ) : null;
-              })()}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpenLayanan(false)}>Batal</Button>
-            <Button
-              disabled={!layananPick || addLayananMutation.isPending}
-              onClick={() => addLayananMutation.mutate({ serviceTypeId: layananPick })}
-            >
-              Tambah
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -8,6 +8,7 @@ import {
   IsBoolean,
   IsArray,
   IsDateString,
+  IsInt,
   Matches,
   Min,
   ValidateNested,
@@ -46,6 +47,11 @@ export class ServicePartItemDto {
   @IsString()
   @IsOptional()
   purchaseType?: string; // 'internal' | 'external'
+
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  warrantyDays?: number;
 
   @IsString()
   @IsOptional()
@@ -153,6 +159,11 @@ export class CreateServiceOrderDto {
   @IsDateString()
   @IsOptional()
   promisedDate?: string;
+
+  // IGDERP-136 v9: Tgl Terima as datetime (CS-settable; defaults to now)
+  @IsDateString()
+  @IsOptional()
+  receivedDate?: string;
 
   @IsString()
   @IsOptional()

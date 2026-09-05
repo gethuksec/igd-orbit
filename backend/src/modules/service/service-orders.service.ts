@@ -251,7 +251,7 @@ export class ServiceOrdersService {
 
     // Resolve parts: validate products exist, compute parts cost + auto finalPrice (E-FE)
     let partsCost: Decimal | null = null;
-    const resolvedParts: Array<{ productId: string; quantity: number; unitPrice: number; purchaseType?: string; notes?: string; costPrice: Decimal }> = [];
+    const resolvedParts: Array<{ productId: string; quantity: number; unitPrice: number; purchaseType?: string; notes?: string; warrantyDays?: number; costPrice: Decimal }> = [];
     if (dto.parts && dto.parts.length > 0) {
       const productIds = [...new Set(dto.parts.map((p) => p.productId))];
       const products = await this.prisma.product.findMany({
@@ -273,6 +273,7 @@ export class ServiceOrdersService {
           unitPrice: p.unitPrice,
           purchaseType: p.purchaseType,
           notes: p.notes,
+          warrantyDays: p.warrantyDays,
           costPrice: costMap.get(p.productId) ?? unitPrice,
         });
       }
@@ -353,7 +354,8 @@ export class ServiceOrdersService {
           priority,
           promisedDate: promisedDate ? new Date(promisedDate) : null,
           slaDueDate,
-          receivedDate: new Date(),
+          // IGDERP-136 v9: CS-settable Tgl Terima (datetime); defaults to now
+          receivedDate: dto.receivedDate ? new Date(dto.receivedDate) : new Date(),
           status: 'pending',
           createdBy: userId,
           customerNotes,
@@ -404,6 +406,7 @@ export class ServiceOrdersService {
             unitPrice: new Decimal(p.unitPrice),
             totalCost: p.costPrice.mul(p.quantity),
             totalPrice: new Decimal(p.quantity).mul(p.unitPrice),
+            warrantyDays: p.warrantyDays ?? null,
             notes: p.notes,
           })),
         });
