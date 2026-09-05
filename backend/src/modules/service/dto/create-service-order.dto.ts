@@ -53,8 +53,9 @@ export class ServicePartItemDto {
   @IsOptional()
   warrantyDays?: number;
 
-  // IGDERP-136 round 2: source gudang per part (cross-gudang cross-selling); omitted = order warehouse
-  @IsUUID()
+  // IGDERP-136 round 2: source gudang per part (cross-gudang cross-selling); omitted = order warehouse.
+  // NOTE: @IsString (not @IsUUID) — warehouse ids are TEXT, not all RFC UUIDs (cf. service_orders.warehouseId).
+  @IsString()
   @IsOptional()
   warehouseId?: string;
 
