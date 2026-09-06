@@ -45,6 +45,7 @@ model User {
   branchHeadOfService    Branch[]                @relation("BranchHeadOfService")
   passwordChangeRequests PasswordChangeRequest[]
   processedReturns       SalesReturn[]           @relation("SalesReturnProcessedBy")
+  grEvents               GoodsReceiptEvent[]     @relation("GoodsReceiptEventActor")
 
   @@index([email])
   @@index([username])
@@ -1856,7 +1857,7 @@ model GoodsReceipt {
   purchaseOrderId    String?   @map("purchase_order_id") // Optional, can receive without PO
   branchId           String    @map("branch_id")
   receiptDate        DateTime  @map("receipt_date")
-  status             String    @default("draft") // 'draft', 'received', 'inspected', 'approved', 'rejected', 'cancelled'
+  status             String    @default("draft") // 'draft', 'received', 'inspected', 'revisit', 'approved', 'rejected', 'cancelled'
   inspectionStatus   String?   @map("inspection_status") // 'pending', 'passed', 'failed', 'partial'
   inspectionNotes    String?   @map("inspection_notes") @db.Text
   variancePercent    Decimal?  @map("variance_percent") @db.Decimal(5, 2) // Variance from PO (< 2% acceptable)
@@ -1870,6 +1871,9 @@ model GoodsReceipt {
   rejectedBy         String?   @map("rejected_by") // User ID
   rejectedAt         DateTime? @map("rejected_at")
   rejectionReason    String?   @map("rejection_reason") @db.Text
+  revisitBy          String?   @map("revisit_by") // User ID
+  revisitAt          DateTime? @map("revisit_at")
+  revisitReason      String?   @map("revisit_reason") @db.Text
   cancelledBy        String?   @map("cancelled_by") // User ID
   cancelledAt        DateTime? @map("cancelled_at")
   cancellationReason String?   @map("cancellation_reason") @db.Text
@@ -1880,6 +1884,7 @@ model GoodsReceipt {
   purchaseOrder PurchaseOrder?     @relation(fields: [purchaseOrderId], references: [id], onDelete: SetNull)
   branch        Branch             @relation("GoodsReceiptBranch", fields: [branchId], references: [id], onDelete: Restrict)
   items         GoodsReceiptItem[]
+  events        GoodsReceiptEvent[]
 
   @@index([grNumber])
   @@index([purchaseOrderId])
@@ -1917,4 +1922,53 @@ model GoodsReceiptItem {
   @@index([purchaseOrderItemId])
   @@index([productId])
   @@map("goods_receipt_items")
+}
+
+// IGDERP-80: append-only event trail for GoodsReceipt lifecycle
+// (created/received/inspected/revisit/approved/rejected/cancelled)
+model GoodsReceiptEvent {
+  id             String   @id @default(uuid())
+  goodsReceiptId String   @map("goods_receipt_id")
+  action         String // 'created' | 'received' | 'inspected' | 'revisit' | 'approved' | 'rejected' | 'cancelled'
+  actorId        String   @map("actor_id") // User ID
+  note           String?  @map("note") @db.Text
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  goodsReceipt GoodsReceipt @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
+  actor        User         @relation("GoodsReceiptEventActor", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([goodsReceiptId])
+  @@map("goods_receipt_events")
+}
+
+// IGDERP-81: supplier invoice / delivery-note documents on PurchaseOrder or GoodsReceipt.
+// Entity is polymorphic (entityType + entityId), files land in ./uploads/purchase-docs.
+model PurchaseAttachment {
+  id           String   @id @default(uuid())
+  entityType   String   @map("entity_type") // 'PURCHASE_ORDER' | 'GOODS_RECEIPT'
+  entityId     String   @map("entity_id")
+  documentType String   @map("document_type") // 'INVOICE' | 'DELIVERY_NOTE' | 'ORDER_CONFIRM' | 'OTHER'
+  fileName     String   @map("file_name")
+  filePath     String   @map("file_path") // e.g. /uploads/purchase-docs/xx.pdf
+  fileSize     Int      @map("file_size")
+  mimeType     String   @map("mime_type")
+  uploadedBy   String   @map("uploaded_by") // User ID
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([entityType, entityId])
+  @@map("purchase_attachments")
+}
+
+// IGDERP-80: approver configuration per document category.
+// Empty roles/userIds = default behavior (HS, SPV, CSO, OWNER).
+model ApprovalSetting {
+  id               String   @id @default(uuid())
+  category         String   @unique // 'PURCHASE_INVOICE' | 'GOODS_RECEIPT'
+  roles            String[] @default([])
+  userIds          String[] @default([]) @map("user_ids")
+  mandatoryInvoice Boolean  @default(false) @map("mandatory_invoice") // IGDERP-81: block approve without invoice
+  updatedBy        String   @map("updated_by") // User ID
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@map("approval_settings")
 }

@@ -7,6 +7,7 @@ import { purchasingService } from '@/services/purchasing.service';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { toast } from 'sonner';
 import { Modal } from '@/components/ui/modal';
+import AttachmentPanel from '@/components/purchasing/AttachmentPanel';
 
 export default function PurchaseOrderDetail() {
   const { id } = useParams<{ id: string }>();
@@ -416,6 +417,9 @@ export default function PurchaseOrderDetail() {
           </div>
         </div>
       </Modal>
+
+      {/* IGDERP-81: supplier invoice / order confirmation documents */}
+      {po && <AttachmentPanel entityType="PURCHASE_ORDER" entityId={po.id} title="Lampiran Invoice / Konfirmasi PO" />}
     </div>
   );
 }

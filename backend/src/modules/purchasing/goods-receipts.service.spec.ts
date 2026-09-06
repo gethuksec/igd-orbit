@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Decimal } from '@prisma/client/runtime/library';
 import { PrismaService } from '../../shared/services/prisma.service';
+import { ApprovalSettingsService } from '../approval-settings/approval-settings.service';
 import { GoodsReceiptsService } from './services/goods-receipts.service';
 import { ApproveGoodsReceiptDto } from './dto/approve-goods-receipt.dto';
 
@@ -10,6 +11,7 @@ describe('GoodsReceiptsService.approve — central-good landing (IGDERP-159)', (
   let prisma: {
     goodsReceipt: { findUnique: jest.Mock; update: jest.Mock };
     warehouse: { findFirst: jest.Mock };
+    purchaseAttachment: { count: jest.Mock };
     $transaction: jest.Mock;
   };
   let tx: {
@@ -18,6 +20,11 @@ describe('GoodsReceiptsService.approve — central-good landing (IGDERP-159)', (
     purchaseOrderItem: { findUnique: jest.Mock };
     purchaseOrder: { findUnique: jest.Mock };
     goodsReceipt: { update: jest.Mock };
+    goodsReceiptEvent: { create: jest.Mock };
+  };
+  const approval = {
+    assertApprover: jest.fn().mockResolvedValue({ kind: 'default' }),
+    getRow: jest.fn().mockResolvedValue(null),
   };
 
   const centralGood = {
@@ -44,7 +51,9 @@ describe('GoodsReceiptsService.approve — central-good landing (IGDERP-159)', (
         goodsReceiptId: 'gr-1',
         productId: 'prod-1',
         purchaseOrderItemId: null,
+        quantityReceived: new Decimal(4),
         quantityAccepted: new Decimal(4),
+        quantityRejected: new Decimal(0),
         batchNumber: null,
         serialNumber: null,
         product: { id: 'prod-1', name: 'iPhone 15' },
@@ -78,6 +87,7 @@ describe('GoodsReceiptsService.approve — central-good landing (IGDERP-159)', (
       stockMovement: { create: jest.fn().mockResolvedValue({ id: 'sm-1' }) },
       purchaseOrderItem: { findUnique: jest.fn() },
       purchaseOrder: { findUnique: jest.fn() },
+      goodsReceiptEvent: { create: jest.fn().mockResolvedValue({ id: 'ev-1' }) },
       goodsReceipt: {
         update: jest.fn().mockResolvedValue({
           id: 'gr-1',
@@ -99,11 +109,18 @@ describe('GoodsReceiptsService.approve — central-good landing (IGDERP-159)', (
     prisma = {
       goodsReceipt: { findUnique: jest.fn().mockResolvedValue(gr), update: jest.fn() },
       warehouse: { findFirst: jest.fn().mockResolvedValue(centralGood) },
+      purchaseAttachment: { count: jest.fn().mockResolvedValue(0) },
       $transaction: jest.fn(async (callback: any) => callback(tx)),
     };
+    approval.assertApprover.mockClear().mockResolvedValue({ kind: 'default' });
+    approval.getRow.mockClear().mockResolvedValue(null);
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [GoodsReceiptsService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        GoodsReceiptsService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: ApprovalSettingsService, useValue: approval },
+      ],
     }).compile();
 
     service = module.get<GoodsReceiptsService>(GoodsReceiptsService);
@@ -172,6 +189,9 @@ describe('GoodsReceiptsService.approve — central-good landing (IGDERP-159)', (
   });
 
   it('rejects a user without approval authority', async () => {
+    approval.assertApprover.mockRejectedValueOnce(
+      new ForbiddenException('You do not have authority to approve goods receipts'),
+    );
     await expect(
       service.approve('gr-1', dto, 'user-1', ['ASA']),
     ).rejects.toThrow(ForbiddenException);
