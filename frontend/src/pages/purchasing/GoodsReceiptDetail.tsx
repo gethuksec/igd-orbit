@@ -173,7 +173,7 @@ export default function GoodsReceiptDetail() {
 
   const canApprove = gr && ['draft', 'received', 'inspected'].includes(gr.status);
   const canReject = gr && gr.status !== 'approved' && gr.status !== 'rejected' && gr.status !== 'cancelled';
-  const canRevisit = gr && ['received', 'inspected'].includes(gr.status);
+  const canRevisit = gr && ['draft', 'received', 'inspected'].includes(gr.status);
   const canCancel = gr && gr.status !== 'approved' && gr.status !== 'cancelled';
 
   if (isLoading) {

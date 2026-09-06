@@ -772,7 +772,8 @@ export class GoodsReceiptsService {
   async revisit(id: string, dto: RevisitGoodsReceiptDto, userId: string, userRoles: string[]) {
     const gr = await this.prisma.goodsReceipt.findUnique({ where: { id } });
     if (!gr) throw new NotFoundException('Goods receipt not found');
-    if (gr.status !== 'received' && gr.status !== 'inspected') {
+    // Matches approve()'s allowed statuses — a draft can be returned to the processor too
+    if (gr.status !== 'draft' && gr.status !== 'received' && gr.status !== 'inspected') {
       throw new BadRequestException(`Cannot revisit goods receipt with status: ${gr.status}`);
     }
     await this.approval.assertApprover('GOODS_RECEIPT', userId, userRoles);

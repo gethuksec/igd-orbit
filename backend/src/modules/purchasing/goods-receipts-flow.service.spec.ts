@@ -140,6 +140,17 @@ describe('GoodsReceiptsService IGDERP-80 flows (revisit / receiving / rejected->
     expect(tx.goodsReceipt.update).not.toHaveBeenCalled();
   });
 
+  it('allows revisit from draft (same status set as approve)', async () => {
+    prisma.goodsReceipt.findUnique.mockResolvedValue({ ...gr, status: 'draft' });
+    tx.goodsReceipt.update.mockResolvedValue({ id: 'gr-1', status: 'revisit' });
+    const dto: RevisitGoodsReceiptDto = { reason: 'Dokumen belum lengkap' };
+    const result = await service.revisit('gr-1', dto, 'cso-1', ['CSO']);
+    expect(tx.goodsReceipt.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: 'revisit' }) }),
+    );
+    expect(result.status).toBe('revisit');
+  });
+
   it('requires approver authority for revisit (settings override: roles)', async () => {
     approval.assertApprover.mockRejectedValueOnce(new ForbiddenException('no'));
     const dto: RevisitGoodsReceiptDto = { reason: 'x' };
