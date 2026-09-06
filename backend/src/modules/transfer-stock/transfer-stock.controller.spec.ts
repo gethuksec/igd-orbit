@@ -9,7 +9,6 @@ describe('TransferStockController', () => {
     findAll: jest.Mock;
     findById: jest.Mock;
     findWarehouses: jest.Mock;
-    findCentralBad: jest.Mock;
     searchProducts: jest.Mock;
   };
 
@@ -19,7 +18,6 @@ describe('TransferStockController', () => {
       findAll: jest.fn().mockResolvedValue({ data: [], meta: {} }),
       findById: jest.fn().mockResolvedValue({ id: 'transfer-1' }),
       findWarehouses: jest.fn().mockResolvedValue([]),
-      findCentralBad: jest.fn().mockResolvedValue({ id: 'central-bad' }),
       searchProducts: jest.fn().mockResolvedValue([]),
     };
 
@@ -35,9 +33,7 @@ describe('TransferStockController', () => {
     const dto = {
       outletId: 'outlet-a',
       warehouseId: 'wh-a',
-      destinationMode: 'outlet',
-      toOutletId: 'outlet-b',
-      toWarehouseId: 'wh-b',
+      toWarehouseId: 'wh-a2',
       items: [{ productId: 'prod-1', quantity: 2 }],
     };
     await controller.create(dto as any, { user: { id: 'user-42' } });
@@ -45,23 +41,24 @@ describe('TransferStockController', () => {
   });
 
   it('forwards pagination/filter queries to findAll', async () => {
-    await controller.findAll({ page: '2', limit: '10', outletId: 'outlet-a' });
+    await controller.findAll({
+      page: '2',
+      limit: '10',
+      outletId: 'outlet-a',
+      transferType: 'mutasi',
+    });
     expect(service.findAll).toHaveBeenCalledWith({
       page: 2,
       limit: 10,
       outletId: 'outlet-a',
       warehouseId: undefined,
+      transferType: 'mutasi',
     });
   });
 
   it('forwards outletId to findWarehouses', async () => {
     await controller.warehouses('outlet-a');
     expect(service.findWarehouses).toHaveBeenCalledWith('outlet-a');
-  });
-
-  it('forwards no args to findCentralBad', async () => {
-    await controller.centralBad();
-    expect(service.findCentralBad).toHaveBeenCalledWith();
   });
 
   it('forwards q/limit/warehouseId to searchProducts', async () => {

@@ -38,9 +38,10 @@ export class TransferStockController {
   constructor(private readonly transferStockService: TransferStockService) {}
 
   /**
-   * Create a completed Transfer Stock document (source OUT + destination IN
-   * atomically). POST /api/v1/transfer-stock
-   * Stock operators (CSO/SPV/HS) plus managers/owners.
+   * Create a completed Transfer Stock (v2) document — INTRA-OUTLET only
+   * (same outlet, warehouse ↔ warehouse, e.g., Gudang Service ↔ Gudang
+   * Penjualan). POST /api/v1/transfer-stock
+   * Operated by ASA (outlet staff); permission key inventory.transfer.
    */
   @Post()
   @UseGuards(RolesGuard)
@@ -55,14 +56,6 @@ export class TransferStockController {
   @Roles(...INVENTORY_ROLES)
   async warehouses(@Query('outletId') outletId?: string) {
     return this.transferStockService.findWarehouses(outletId);
-  }
-
-  /** Supporting list: the single system-scoped Central Bad Stock warehouse. */
-  @Get('central-bad')
-  @UseGuards(RolesGuard)
-  @Roles(...INVENTORY_ROLES)
-  async centralBad() {
-    return this.transferStockService.findCentralBad();
   }
 
   /** Supporting list: product search with availability in a warehouse. */
@@ -91,6 +84,7 @@ export class TransferStockController {
       limit: query.limit ? parseInt(query.limit, 10) : undefined,
       outletId: query.outletId,
       warehouseId: query.warehouseId,
+      transferType: query.transferType,
     });
   }
 

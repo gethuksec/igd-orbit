@@ -5,12 +5,12 @@ import {
   Save,
   X,
   Loader2,
-  ArrowRightLeft,
+  ArrowRight,
   Search,
   Trash2,
-  ArrowRight,
   History,
   Package,
+  Warehouse,
 } from 'lucide-react';
 import { BreadcrumbHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { api } from '../../services/api';
 import { inventoryService } from '../../services/inventory.service';
 import type {
   StockTransfer,
@@ -36,79 +35,57 @@ interface LineItem {
   availableQuantity: number;
 }
 
+const warehouseLabel = (w: StockTransferWarehouse) => {
+  const context =
+    w.scope === 'SYSTEM'
+      ? 'Pusat'
+      : w.outlet
+        ? `${w.outlet.name}`
+        : 'Outlet';
+  return `${w.name} (${w.code}) — ${context}`;
+};
+
 /**
- * Transfer Stock v2 — INTRA-OUTLET (IGDERP-139).
- * Same outlet, warehouse ↔ warehouse (e.g., Gudang Service ↔ Gudang
- * Penjualan). Cross-outlet and централ moves live under Mutasi (IGDERP-140).
+ * Mutasi (IGDERP-140) — central (central-good / central-bad) ↔ outlet
+ * warehouse, plus outlet ↔ outlet. Executed by SODO; permission
+ * inventory.mutasi. Quantity-only, atomic OUT/IN.
  */
-export default function StockTransfer() {
+export default function Mutasi() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [outletId, setOutletId] = useState('');
-  const [warehouseId, setWarehouseId] = useState('');
+  const [fromWarehouseId, setFromWarehouseId] = useState('');
   const [toWarehouseId, setToWarehouseId] = useState('');
   const [notes, setNotes] = useState('');
 
   const [items, setItems] = useState<LineItem[]>([]);
   const [productSearch, setProductSearch] = useState('');
 
-  // ── Supporting lists ──
-  const { data: branches = [] } = useQuery({
-    queryKey: ['branches'],
-    queryFn: async () => {
-      const res = await api.get('/branches');
-      return res.data.data || res.data;
-    },
+  // All move-endpoint warehouses: system central (good/bad) + outlet GOOD
+  const { data: warehouses = [] } = useQuery({
+    queryKey: ['mutasi-warehouses'],
+    queryFn: () => inventoryService.getMutasiWarehouses(),
   });
-
-  // Source AND destination warehouses: GOOD OUTLET warehouses of the source outlet
-  const { data: sourceWarehouses = [] } = useQuery({
-    queryKey: ['transfer-warehouses', outletId],
-    queryFn: () => inventoryService.getTransferWarehouses(outletId || undefined),
-    enabled: !!outletId,
-  });
-
-  // Destination options: same outlet, excluding the selected source
-  const destWarehouses = useMemo(
-    () => sourceWarehouses.filter((w: StockTransferWarehouse) => w.id !== warehouseId),
-    [sourceWarehouses, warehouseId],
-  );
 
   const { data: productResults = [] } = useQuery({
-    queryKey: ['transfer-products', productSearch, warehouseId],
+    queryKey: ['mutasi-products', productSearch, fromWarehouseId],
     queryFn: () =>
       inventoryService.searchTransferProducts(
         productSearch.trim(),
         15,
-        warehouseId || undefined,
+        fromWarehouseId || undefined,
       ),
     enabled: productSearch.trim().length >= 2,
   });
 
   const { data: recentDocs = { data: [], meta: { total: 0 } } } = useQuery({
-    queryKey: ['transfer-docs'],
-    queryFn: () => inventoryService.getTransfers({ page: 1, limit: 10 }),
+    queryKey: ['mutasi-docs'],
+    queryFn: () => inventoryService.getMutasi({ page: 1, limit: 10 }),
   });
 
-  // Auto-select the first source warehouse when the source outlet changes
   useEffect(() => {
-    setWarehouseId('');
-    setToWarehouseId('');
     setItems([]);
-    if (outletId && sourceWarehouses.length > 0) {
-      setWarehouseId(sourceWarehouses[0].id);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [outletId, sourceWarehouses]);
-
-  // When the source changes, reset the destination to the first other warehouse
-  useEffect(() => {
-    if (destWarehouses.length > 0 && !destWarehouses.some((w) => w.id === toWarehouseId)) {
-      setToWarehouseId(destWarehouses[0].id);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [warehouseId, destWarehouses]);
+  }, [fromWarehouseId]);
 
   const addProductToLines = (product: TransferStockProduct, quantity = 1) => {
     setItems((prev) => {
@@ -135,7 +112,7 @@ export default function StockTransfer() {
 
   const handleSelectProduct = (product: TransferStockProduct) => {
     if (product.availableQuantity <= 0) {
-      toast.error(`Stok "${product.name}" tidak tersedia di gudang sumber`);
+      toast.error(`Stok "${product.name}" tidak tersedia di gudang asal`);
       return;
     }
     addProductToLines(product);
@@ -158,12 +135,12 @@ export default function StockTransfer() {
   );
 
   const mutation = useMutation({
-    mutationFn: (data: any) => inventoryService.createTransferStock(data),
+    mutationFn: (data: any) => inventoryService.createMutasi(data),
     onSuccess: (transfer: StockTransfer) => {
-      queryClient.invalidateQueries({ queryKey: ['transfer-docs'] });
+      queryClient.invalidateQueries({ queryKey: ['mutasi-docs'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-stock'] });
-      toast.success('Transfer stok berhasil disimpan');
-      navigate(`/inventory/transfer/${transfer.id}`);
+      toast.success('Mutasi stok berhasil disimpan');
+      navigate(`/inventory/mutasi/${transfer.id}`);
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Terjadi kesalahan saat menyimpan');
@@ -173,20 +150,16 @@ export default function StockTransfer() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!outletId) {
-      toast.error('Pilih outlet');
-      return;
-    }
-    if (!warehouseId) {
-      toast.error('Pilih gudang sumber');
+    if (!fromWarehouseId) {
+      toast.error('Pilih gudang asal');
       return;
     }
     if (!toWarehouseId) {
       toast.error('Pilih gudang tujuan');
       return;
     }
-    if (toWarehouseId === warehouseId) {
-      toast.error('Gudang tujuan harus berbeda dari gudang sumber');
+    if (toWarehouseId === fromWarehouseId) {
+      toast.error('Gudang tujuan harus berbeda dari gudang asal');
       return;
     }
     if (items.length === 0) {
@@ -207,8 +180,7 @@ export default function StockTransfer() {
     }
 
     mutation.mutate({
-      outletId,
-      warehouseId,
+      fromWarehouseId,
       toWarehouseId,
       notes: notes.trim() || undefined,
       items: items.map((l) => ({
@@ -218,62 +190,40 @@ export default function StockTransfer() {
     });
   };
 
-  const selectedSource = sourceWarehouses.find((w: StockTransferWarehouse) => w.id === warehouseId);
-  const selectedDest = destWarehouses.find((w: StockTransferWarehouse) => w.id === toWarehouseId);
+  const selectedFrom = warehouses.find((w: StockTransferWarehouse) => w.id === fromWarehouseId);
+  const selectedTo = warehouses.find((w: StockTransferWarehouse) => w.id === toWarehouseId);
 
   return (
     <div className="w-full space-y-4">
       <BreadcrumbHeader
-        title="Transfer Stok"
-        subtitle="Pindahkan barang antar gudang dalam satu outlet (kuantitas saja) — mis. Gudang Service ↔ Gudang Penjualan"
+        title="Mutasi Stok"
+        subtitle="Pindahkan barang antara gudang pusat (central-good / central-bad) dan gudang outlet, atau antar outlet (kuantitas saja)"
       />
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* ── Header: Informasi Transfer ── */}
+        {/* ── Header: Informasi Mutasi ── */}
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
           <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <ArrowRightLeft className="w-5 h-5 text-primary-600" />
-            Informasi Transfer
+            <Warehouse className="w-5 h-5 text-primary-600" />
+            Informasi Mutasi
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label className="block text-sm font-medium text-gray-700 mb-2">
-                Outlet <span className="text-red-500">*</span>
-              </Label>
-              <Select value={outletId} onChange={(e) => setOutletId(e.target.value)} required>
-                <option value="">Pilih Outlet</option>
-                {(branches as any[]).map((b: any) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name} ({b.code})
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <Label className="block text-sm font-medium text-gray-700 mb-2">
-                Gudang Sumber <span className="text-red-500">*</span>
+                Gudang Asal <span className="text-red-500">*</span>
               </Label>
               <Select
-                value={warehouseId}
-                onChange={(e) => {
-                  setWarehouseId(e.target.value);
-                  setItems([]);
-                }}
-                disabled={!outletId}
+                value={fromWarehouseId}
+                onChange={(e) => setFromWarehouseId(e.target.value)}
                 required
               >
-                <option value="">Pilih Gudang</option>
-                {sourceWarehouses.map((w: StockTransferWarehouse) => (
+                <option value="">Pilih Gudang Asal</option>
+                {warehouses.map((w: StockTransferWarehouse) => (
                   <option key={w.id} value={w.id}>
-                    {w.name} ({w.code})
+                    {warehouseLabel(w)}
                   </option>
                 ))}
               </Select>
-              {outletId && sourceWarehouses.length === 0 && (
-                <p className="text-xs text-red-500 mt-1">
-                  Outlet ini belum memiliki gudang aktif.
-                </p>
-              )}
             </div>
             <div>
               <Label className="block text-sm font-medium text-gray-700 mb-2">
@@ -282,22 +232,17 @@ export default function StockTransfer() {
               <Select
                 value={toWarehouseId}
                 onChange={(e) => setToWarehouseId(e.target.value)}
-                disabled={!warehouseId}
                 required
               >
-                <option value="">Pilih Gudang</option>
-                {destWarehouses.map((w: StockTransferWarehouse) => (
-                  <option key={w.id} value={w.id}>
-                    {w.name} ({w.code})
-                  </option>
-                ))}
+                <option value="">Pilih Gudang Tujuan</option>
+                {warehouses
+                  .filter((w: StockTransferWarehouse) => w.id !== fromWarehouseId)
+                  .map((w: StockTransferWarehouse) => (
+                    <option key={w.id} value={w.id}>
+                      {warehouseLabel(w)}
+                    </option>
+                  ))}
               </Select>
-              {warehouseId && destWarehouses.length === 0 && (
-                <p className="text-xs text-red-500 mt-1">
-                  Tidak ada gudang lain di outlet ini. Untuk pindah ke outlet lain
-                  atau gudang pusat, gunakan menu Mutasi.
-                </p>
-              )}
             </div>
           </div>
 
@@ -306,7 +251,7 @@ export default function StockTransfer() {
             <Input
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Catatan transfer (opsional)"
+              placeholder="Catatan mutasi (opsional)"
             />
           </div>
         </div>
@@ -324,11 +269,11 @@ export default function StockTransfer() {
             <Input
               value={productSearch}
               onChange={(e) => setProductSearch(e.target.value)}
-              disabled={!warehouseId}
+              disabled={!fromWarehouseId}
               placeholder={
-                warehouseId
+                fromWarehouseId
                   ? 'Cari produk (nama, SKU, atau barcode)...'
-                  : 'Pilih gudang sumber terlebih dahulu'
+                  : 'Pilih gudang asal terlebih dahulu'
               }
               className="pl-10"
             />
@@ -426,11 +371,11 @@ export default function StockTransfer() {
               <div className="text-sm text-gray-600">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-gray-800">
-                    {selectedSource?.name || '-'}
+                    {selectedFrom ? warehouseLabel(selectedFrom) : '-'}
                   </span>
                   <ArrowRight className="w-4 h-4 text-gray-400" />
                   <span className="font-semibold text-gray-800">
-                    {selectedDest?.name || '-'}
+                    {selectedTo ? warehouseLabel(selectedTo) : '-'}
                   </span>
                 </div>
                 <span className="text-xs text-gray-400">
@@ -438,11 +383,7 @@ export default function StockTransfer() {
                 </span>
               </div>
               <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => navigate('/inventory/transfer')}
-                >
+                <Button type="button" variant="outline" onClick={() => navigate('/inventory/mutasi')}>
                   <X className="w-4 h-4 mr-2" />
                   Batal
                 </Button>
@@ -455,7 +396,7 @@ export default function StockTransfer() {
                   ) : (
                     <Save className="w-4 h-4 mr-2" />
                   )}
-                  Simpan Transfer
+                  Simpan Mutasi
                 </Button>
               </div>
             </div>
@@ -469,12 +410,12 @@ export default function StockTransfer() {
               <History className="w-5 h-5 text-primary-600" />
               Riwayat Terbaru
             </h2>
-            <Button variant="link" onClick={() => navigate('/inventory/transfer')}>
+            <Button variant="link" onClick={() => navigate('/inventory/mutasi')}>
               Lihat Semua
             </Button>
           </div>
           {recentDocs.data.length === 0 ? (
-            <p className="text-sm text-gray-500">Belum ada dokumen transfer.</p>
+            <p className="text-sm text-gray-500">Belum ada dokumen mutasi.</p>
           ) : (
             <div className="divide-y divide-gray-100">
               {recentDocs.data.slice(0, 5).map((doc: StockTransfer) => (
@@ -482,7 +423,7 @@ export default function StockTransfer() {
                   key={doc.id}
                   type="button"
                   className="w-full py-3 text-left hover:bg-gray-50 transition-colors"
-                  onClick={() => navigate(`/inventory/transfer/${doc.id}`)}
+                  onClick={() => navigate(`/inventory/mutasi/${doc.id}`)}
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-primary-600">

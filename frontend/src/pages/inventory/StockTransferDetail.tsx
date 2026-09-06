@@ -27,7 +27,7 @@ const statusBadge = (status: string) => {
   );
 };
 
-export default function StockTransferDetail() {
+export default function StockTransferDetail({ backPath = '/inventory/transfer' }: { backPath?: string }) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -52,7 +52,7 @@ export default function StockTransferDetail() {
     return (
       <div className="w-full space-y-4">
         <BreadcrumbHeader title="Detail Transfer" subtitle="Dokumen tidak ditemukan">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/inventory/transfer')}>
+          <Button variant="ghost" size="sm" onClick={() => navigate(backPath)}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Kembali
           </Button>
@@ -64,13 +64,14 @@ export default function StockTransferDetail() {
     );
   }
 
-  const isCentralBadDest = !doc.toBranchId;
+  const isCentralDest = !doc.toBranchId;
   const totalQty = doc.items.reduce((sum, item) => sum + item.quantityRequested, 0);
+  const docTypeLabel = doc.transferType === 'mutasi' ? 'Mutasi' : 'Transfer Stok';
 
   return (
     <div className="w-full space-y-4">
       <BreadcrumbHeader title="Detail Transfer" subtitle={`Dokumen ${doc.transferNumber}`}>
-        <Button variant="ghost" size="sm" onClick={() => navigate('/inventory/transfer')}>
+        <Button variant="ghost" size="sm" onClick={() => navigate(backPath)}>
           <ArrowLeft className="w-4 h-4 mr-2" />
           Kembali
         </Button>
@@ -84,6 +85,9 @@ export default function StockTransferDetail() {
             {doc.transferNumber}
           </h2>
           {statusBadge(doc.status)}
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
+            {docTypeLabel}
+          </span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
           <div>
@@ -126,7 +130,7 @@ export default function StockTransferDetail() {
             <div className="text-xs text-emerald-600 uppercase font-semibold mb-1">Ke</div>
             <div className="font-semibold text-gray-900">{doc.toWarehouse?.name || '-'}</div>
             <div className="text-sm text-gray-500">
-              {isCentralBadDest ? 'Central Bad Stock (sistem)' : doc.toBranch?.name || '—'}
+              {isCentralDest ? 'Gudang pusat (sistem)' : doc.toBranch?.name || '—'}
             </div>
           </div>
         </div>

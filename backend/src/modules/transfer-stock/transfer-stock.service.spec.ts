@@ -5,7 +5,7 @@ import { PrismaService } from '../../shared/services/prisma.service';
 import { TransferStockService } from './transfer-stock.service';
 import { CreateTransferStockDto } from './dto/create-transfer-stock.dto';
 
-describe('TransferStockService', () => {
+describe('TransferStockService (v2 — intra-outlet, IGDERP-139)', () => {
   let service: TransferStockService;
   let prisma: {
     branch: { findUnique: jest.Mock };
@@ -36,6 +36,16 @@ describe('TransferStockService', () => {
     id: 'wh-a',
     code: 'KLS-GDG',
     name: 'Kalisat – Gudang',
+    type: 'GOOD',
+    scope: 'OUTLET',
+    outletId: 'outlet-a',
+    isActive: true,
+  };
+  // Second GOOD/OUTLET warehouse of the SAME outlet (e.g., Gudang Service)
+  const whA2 = {
+    id: 'wh-a2',
+    code: 'KLS-SRV',
+    name: 'Kalisat – Gudang Service',
     type: 'GOOD',
     scope: 'OUTLET',
     outletId: 'outlet-a',
@@ -78,9 +88,7 @@ describe('TransferStockService', () => {
   const baseDto: CreateTransferStockDto = {
     outletId: 'outlet-a',
     warehouseId: 'wh-a',
-    destinationMode: 'outlet',
-    toOutletId: 'outlet-b',
-    toWarehouseId: 'wh-b',
+    toWarehouseId: 'wh-a2',
     notes: 'Rutin',
     items: [{ productId: 'prod-1', quantity: 2 }],
   };
@@ -89,10 +97,10 @@ describe('TransferStockService', () => {
     id: 'transfer-1',
     transferNumber: 'TRF-20260821-123456',
     fromWarehouseId: 'wh-a',
-    toWarehouseId: 'wh-b',
+    toWarehouseId: 'wh-a2',
     fromBranchId: 'outlet-a',
-    toBranchId: 'outlet-b',
-    transferType: 'regular',
+    toBranchId: 'outlet-a',
+    transferType: 'transfer',
     status: 'completed',
     requestedBy: 'user-1',
     notes: 'Rutin',
@@ -114,9 +122,9 @@ describe('TransferStockService', () => {
       },
     ],
     fromWarehouse: whA,
-    toWarehouse: whB,
+    toWarehouse: whA2,
     fromBranch: outletA,
-    toBranch: outletB,
+    toBranch: outletA,
   };
 
   beforeEach(async () => {
@@ -148,7 +156,9 @@ describe('TransferStockService', () => {
       warehouse: {
         findUnique: jest.fn().mockImplementation(async ({ where }: any) => {
           if (where.id === 'wh-a') return whA;
+          if (where.id === 'wh-a2') return whA2;
           if (where.id === 'wh-b') return whB;
+          if (where.id === centralBad.id) return centralBad;
           return null;
         }),
         findFirst: jest.fn().mockResolvedValue(centralBad),
@@ -229,62 +239,31 @@ describe('TransferStockService', () => {
     });
   });
 
-  describe('create — destination validation (outlet mode)', () => {
-    it('rejects missing destination outlet/warehouse', async () => {
+  describe('create — destination validation (intra-outlet)', () => {
+    it('rejects a destination warehouse identical to the source', async () => {
       await expect(
-        service.create(
-          { ...baseDto, toOutletId: undefined, toWarehouseId: undefined },
-          'user-1',
-        ),
-      ).rejects.toThrow(
-        'Destination outlet and warehouse are required for outlet transfer',
-      );
-    });
-
-    it('rejects transferring to the same outlet', async () => {
-      await expect(
-        service.create({ ...baseDto, toOutletId: 'outlet-a' }, 'user-1'),
-      ).rejects.toThrow('Cannot transfer to the same outlet');
+        service.create({ ...baseDto, toWarehouseId: 'wh-a' }, 'user-1'),
+      ).rejects.toThrow('Destination warehouse must differ from the source warehouse');
       expect(prisma.$transaction).not.toHaveBeenCalled();
     });
 
-    it('rejects an unknown destination outlet', async () => {
-      prisma.branch.findUnique
-        .mockResolvedValueOnce(outletA)
-        .mockResolvedValueOnce(null);
-      await expect(service.create(baseDto, 'user-1')).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-
     it('rejects an unknown destination warehouse', async () => {
-      prisma.branch.findUnique
-        .mockResolvedValueOnce(outletA)
-        .mockResolvedValueOnce(outletB);
-      prisma.warehouse.findUnique
-        .mockResolvedValueOnce(whA)
-        .mockResolvedValueOnce(null);
+      prisma.warehouse.findUnique.mockResolvedValueOnce(whA).mockResolvedValueOnce(null);
       await expect(service.create(baseDto, 'user-1')).rejects.toThrow(
         NotFoundException,
       );
     });
 
     it('rejects an inactive destination warehouse', async () => {
-      prisma.branch.findUnique
-        .mockResolvedValueOnce(outletA)
-        .mockResolvedValueOnce(outletB);
       prisma.warehouse.findUnique
         .mockResolvedValueOnce(whA)
-        .mockResolvedValueOnce({ ...whB, isActive: false });
+        .mockResolvedValueOnce({ ...whA2, isActive: false });
       await expect(service.create(baseDto, 'user-1')).rejects.toThrow(
         'Cannot transfer to an inactive warehouse',
       );
     });
 
-    it('rejects a destination warehouse that is not GOOD/OUTLET', async () => {
-      prisma.branch.findUnique
-        .mockResolvedValueOnce(outletA)
-        .mockResolvedValueOnce(outletB);
+    it('rejects a destination warehouse that is not GOOD/OUTLET (Central Bad Stock)', async () => {
       prisma.warehouse.findUnique
         .mockResolvedValueOnce(whA)
         .mockResolvedValueOnce(centralBad);
@@ -293,69 +272,32 @@ describe('TransferStockService', () => {
       );
     });
 
-    it('rejects a destination warehouse that does not belong to the destination outlet', async () => {
-      prisma.branch.findUnique
-        .mockResolvedValueOnce(outletA)
-        .mockResolvedValueOnce(outletB);
+    it('rejects a cross-outlet destination (belongs to another outlet → Mutasi)', async () => {
       prisma.warehouse.findUnique
         .mockResolvedValueOnce(whA)
-        .mockResolvedValueOnce({ ...whB, outletId: 'outlet-x' });
+        .mockResolvedValueOnce(whB);
       await expect(service.create(baseDto, 'user-1')).rejects.toThrow(
-        'Destination warehouse must belong to the destination outlet',
+        /intra-outlet/,
       );
       expect(prisma.$transaction).not.toHaveBeenCalled();
     });
   });
 
-  describe('create — destination validation (central_bad mode)', () => {
-    it('rejects an outlet/warehouse with central_bad mode', async () => {
-      await expect(
-        service.create(
-          {
-            outletId: 'outlet-a',
-            warehouseId: 'wh-a',
-            destinationMode: 'central_bad',
-            toOutletId: 'outlet-b',
-            toWarehouseId: 'wh-b',
-            items: [{ productId: 'prod-1', quantity: 2 }],
-          },
-          'user-1',
-        ),
-      ).rejects.toThrow(
-        'Central Bad Stock destination does not require an outlet or warehouse',
-      );
-      expect(prisma.$transaction).not.toHaveBeenCalled();
-    });
-
-    it('rejects when the system Central Bad Stock warehouse is missing', async () => {
-      prisma.warehouse.findFirst.mockResolvedValue(null);
-      await expect(
-        service.create(
-          {
-            outletId: 'outlet-a',
-            warehouseId: 'wh-a',
-            destinationMode: 'central_bad',
-            items: [{ productId: 'prod-1', quantity: 2 }],
-          },
-          'user-1',
-        ),
-      ).rejects.toThrow(NotFoundException);
-      expect(prisma.$transaction).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('create — success outlet → outlet', () => {
+  describe('create — success intra-outlet (same outlet, different warehouse)', () => {
     it('creates one completed document with OUT + IN atomically', async () => {
+      tx.productStock.findUnique
+        .mockResolvedValueOnce(stockRow) // source wh-a row exists
+        .mockResolvedValueOnce(stockRow); // destination wh-a2 row exists
       const result = await service.create(baseDto, 'user-1');
 
       const createdData = tx.stockTransfer.create.mock.calls[0][0].data;
       expect(createdData.status).toBe('completed');
       expect(createdData.requestedBy).toBe('user-1');
-      expect(createdData.transferType).toBe('regular');
+      expect(createdData.transferType).toBe('transfer');
       expect(createdData.fromWarehouseId).toBe('wh-a');
-      expect(createdData.toWarehouseId).toBe('wh-b');
+      expect(createdData.toWarehouseId).toBe('wh-a2');
       expect(createdData.fromBranchId).toBe('outlet-a');
-      expect(createdData.toBranchId).toBe('outlet-b');
+      expect(createdData.toBranchId).toBe('outlet-a');
 
       const createdItems = createdData.items.create;
       expect(createdItems).toHaveLength(1);
@@ -380,8 +322,8 @@ describe('TransferStockService', () => {
       expect(outMovement.referenceId).toBe('transfer-1');
 
       expect(inMovement.movementType).toBe('IN');
-      expect(inMovement.warehouseId).toBe('wh-b');
-      expect(inMovement.branchId).toBe('outlet-b');
+      expect(inMovement.warehouseId).toBe('wh-a2');
+      expect(inMovement.branchId).toBe('outlet-a');
       expect(Number(inMovement.quantityChange)).toBe(2);
       expect(Number(inMovement.quantityBefore)).toBe(10);
       expect(Number(inMovement.quantityAfter)).toBe(12);
@@ -397,7 +339,23 @@ describe('TransferStockService', () => {
       expect(Number(result.items[0].quantityRequested)).toBe(2);
     });
 
+    it('creates the destination stock row when none exists (first movement to that warehouse)', async () => {
+      tx.productStock.findUnique
+        .mockResolvedValueOnce(stockRow) // source row exists
+        .mockResolvedValueOnce(null); // destination row missing
+
+      await service.create(baseDto, 'user-1');
+
+      const created = tx.productStock.create.mock.calls[0][0].data;
+      expect(created.productId).toBe('prod-1');
+      expect(created.warehouseId).toBe('wh-a2');
+      expect(created.branchId).toBe('outlet-a');
+      expect(Number(created.quantityAvailable)).toBe(2);
+    });
+
     it('merges duplicate product lines into a single line and single movement pair', async () => {
+      tx.productStock.findUnique
+        .mockResolvedValue(stockRow);
       await service.create(
         {
           ...baseDto,
@@ -417,55 +375,13 @@ describe('TransferStockService', () => {
       expect(Number(tx.stockMovement.create.mock.calls[0][0].data.quantityChange)).toBe(-7);
       expect(Number(tx.stockMovement.create.mock.calls[1][0].data.quantityChange)).toBe(7);
     });
-  });
 
-  describe('create — success outlet → Central Bad Stock', () => {
-    it('resolves the system BAD warehouse, no destination outlet', async () => {
-      prisma.warehouse.findFirst.mockResolvedValue(centralBad);
-
-      await service.create(
-        {
-          outletId: 'outlet-a',
-          warehouseId: 'wh-a',
-          destinationMode: 'central_bad',
-          notes: 'Rusak',
-          items: [{ productId: 'prod-1', quantity: 2 }],
-        },
-        'user-1',
-      );
-
+    it('never touches the central-bad warehouse (moves to it are Mutasi, IGDERP-140)', async () => {
+      tx.productStock.findUnique.mockResolvedValue(stockRow);
+      await service.create(baseDto, 'user-1');
+      expect(prisma.warehouse.findFirst).not.toHaveBeenCalled();
       const createdData = tx.stockTransfer.create.mock.calls[0][0].data;
-      expect(createdData.toWarehouseId).toBe(centralBad.id);
-      expect(createdData.toBranchId).toBeNull();
-
-      expect(tx.stockMovement.create).toHaveBeenCalledTimes(2);
-      const inMovement = tx.stockMovement.create.mock.calls[1][0].data;
-      expect(inMovement.movementType).toBe('IN');
-      expect(inMovement.warehouseId).toBe(centralBad.id);
-      expect(inMovement.branchId).toBeNull();
-    });
-
-    it('creates a destination stock row when none exists (first bad-stock movement)', async () => {
-      prisma.warehouse.findFirst.mockResolvedValue(centralBad);
-      tx.productStock.findUnique
-        .mockResolvedValueOnce(stockRow) // source row exists
-        .mockResolvedValueOnce(null); // destination row missing
-
-      await service.create(
-        {
-          outletId: 'outlet-a',
-          warehouseId: 'wh-a',
-          destinationMode: 'central_bad',
-          items: [{ productId: 'prod-1', quantity: 2 }],
-        },
-        'user-1',
-      );
-
-      const created = tx.productStock.create.mock.calls[0][0].data;
-      expect(created.productId).toBe('prod-1');
-      expect(created.warehouseId).toBe(centralBad.id);
-      expect(created.branchId).toBeNull();
-      expect(Number(created.quantityAvailable)).toBe(2);
+      expect(createdData.toWarehouseId).not.toBe(centralBad.id);
     });
   });
 
@@ -520,6 +436,13 @@ describe('TransferStockService', () => {
       );
     });
 
+    it('filters by transferType when provided', async () => {
+      await service.findAll({ transferType: 'mutasi' });
+      expect(prisma.stockTransfer.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { transferType: 'mutasi' } }),
+      );
+    });
+
     it('finds a document by id with pic name', async () => {
       prisma.stockTransfer.findUnique.mockResolvedValue(createdTransfer);
       prisma.user.findUnique.mockResolvedValue({ id: 'user-1', fullName: 'Budi' });
@@ -546,16 +469,6 @@ describe('TransferStockService', () => {
         }),
       );
       expect(result).toEqual([whA]);
-    });
-
-    it('findCentralBad returns the system BAD warehouse', async () => {
-      const result = await service.findCentralBad();
-      expect(result).toEqual(centralBad);
-    });
-
-    it('findCentralBad throws when the system warehouse is missing', async () => {
-      prisma.warehouse.findFirst.mockResolvedValue(null);
-      await expect(service.findCentralBad()).rejects.toThrow(NotFoundException);
     });
 
     it('searchProducts includes availableQuantity for the source warehouse', async () => {
