@@ -11,7 +11,17 @@
 
 BEGIN;
 
--- ---------- 1. Create central-good (stable ID reuses the central-bad scheme) ----------
+-- ---------- 1. Relax the scope/type CHECK first (allow SYSTEM/GOOD) ----------
+ALTER TABLE warehouses
+  DROP CONSTRAINT IF EXISTS warehouses_scope_type_check;
+ALTER TABLE warehouses
+  ADD CONSTRAINT warehouses_scope_type_check CHECK (
+    (scope = 'SYSTEM' AND type IN ('GOOD', 'BAD') AND outlet_id IS NULL)
+    OR
+    (scope = 'OUTLET' AND type = 'GOOD' AND outlet_id IS NOT NULL)
+  );
+
+-- ---------- 2. Create central-good (stable ID reuses the central-bad scheme) ----------
 INSERT INTO warehouses (id, code, name, is_active, type, scope, outlet_id, updated_at)
 SELECT
   '00000000-0000-4000-8000-000000000002'::uuid,
@@ -26,16 +36,6 @@ WHERE NOT EXISTS (
   SELECT 1 FROM warehouses WHERE type = 'GOOD' AND scope = 'SYSTEM' AND is_active = true
 )
 ON CONFLICT (code) DO NOTHING;
-
--- ---------- 2. Relax the scope/type CHECK for SYSTEM/GOOD ----------
-ALTER TABLE warehouses
-  DROP CONSTRAINT IF EXISTS warehouses_scope_type_check;
-ALTER TABLE warehouses
-  ADD CONSTRAINT warehouses_scope_type_check CHECK (
-    (scope = 'SYSTEM' AND type IN ('GOOD', 'BAD') AND outlet_id IS NULL)
-    OR
-    (scope = 'OUTLET' AND type = 'GOOD' AND outlet_id IS NOT NULL)
-  );
 
 -- ---------- 3. One active system warehouse per type (GOOD + BAD max) ----------
 DROP INDEX IF EXISTS warehouses_single_active_system_bad_key;
