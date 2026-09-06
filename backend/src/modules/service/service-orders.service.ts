@@ -19,6 +19,8 @@ import { CustomerFeedbackDto } from './dto/customer-feedback.dto';
 import { AssignTechnicianDto } from './dto/assign-technician.dto';
 import { UploadPhotosDto } from './dto/upload-photos.dto';
 import { encryptPassword, decryptPassword } from './utils/password-encryption.util';
+import { writeFileSync, mkdirSync, existsSync } from 'fs';
+import { join, extname } from 'path';
 import { Decimal } from '@prisma/client/runtime/library';
 import { ProcessPaymentDto } from './dto/payment.dto';
 import { JournalEntriesService } from '../finance/services/journal-entries.service';
@@ -234,6 +236,7 @@ export class ServiceOrdersService {
       priority = 'normal',
       promisedDate,
       customerNotes,
+      internalNotes,
       assignedTechnicianId,
       laborCost,
       otherCost,
@@ -444,6 +447,7 @@ export class ServiceOrdersService {
           status: 'pending',
           createdBy: userId,
           customerNotes,
+          internalNotes: internalNotes?.trim() || undefined,
           assignedTechnicianId,
           layanan: layananRows.length > 0 ? { create: layananRows } : undefined,
           // Smart Repair extension (E-BE2)
@@ -471,12 +475,12 @@ export class ServiceOrdersService {
         },
       });
 
-      // Create initial status history
+      // Create initial status history (catatan internal CS; default legacy)
       await tx.serviceStatusHistory.create({
         data: {
           serviceOrderId: serviceOrder.id,
           status: 'pending',
-          notes: 'Service order created',
+          notes: internalNotes?.trim() || 'Service order created',
           changedBy: userId,
         },
       });
@@ -573,6 +577,7 @@ export class ServiceOrdersService {
       where: { id },
       include: {
         branch: true,
+        warehouse: { select: { id: true, name: true } },
         customer: true,
         serviceType: true,
         layanan: true,
@@ -603,6 +608,7 @@ export class ServiceOrdersService {
                 brand: true,
               },
             },
+            warehouse: { select: { id: true, name: true } },
           },
         },
         photos: {
@@ -903,6 +909,44 @@ export class ServiceOrdersService {
         },
       });
       return row;
+    });
+  }
+
+  // IGDERP-136 detail round: hapus layanan row (edit capability; timeline append-only —
+  // deletion itself is logged, never rolled back). Frozen once done/delivered/cancelled.
+  async removeLayanan(serviceOrderId: string, rowId: string, userId: string) {
+    const serviceOrder = await this.prisma.serviceOrder.findUnique({
+      where: { id: serviceOrderId },
+      include: { layanan: true },
+    });
+    if (!serviceOrder) {
+      throw new NotFoundException('Service order tidak ditemukan');
+    }
+    if (['done', 'delivered', 'completed', 'cancelled'].includes(serviceOrder.status)) {
+      throw new BadRequestException(
+        `Cannot remove layanan from service order with status: ${serviceOrder.status}`,
+      );
+    }
+    const row = serviceOrder.layanan.find((r) => r.id === rowId);
+    if (!row) {
+      throw new NotFoundException('Layanan tidak ditemukan pada service order ini');
+    }
+    if (serviceOrder.layanan.length <= 1) {
+      throw new BadRequestException('Minimal satu layanan wajib ada pada service order');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.serviceOrderLayanan.delete({ where: { id: rowId } });
+      await tx.serviceStatusHistory.create({
+        data: {
+          serviceOrderId,
+          status: serviceOrder.status,
+          previousStatus: serviceOrder.status,
+          notes: `Hapus Layanan: ${row.name} · Estimasi: Rp ${Number(row.estimatedCost || 0).toLocaleString('id-ID')}`,
+          changedBy: userId,
+        },
+      });
+      return { id: rowId, name: row.name };
     });
   }
 
@@ -1376,6 +1420,17 @@ export class ServiceOrdersService {
         where: { id: partId },
       });
 
+      // IGDERP-136 detail round: audit log on timeline (stock IN movement above is the quantity trail)
+      await tx.serviceStatusHistory.create({
+        data: {
+          serviceOrderId,
+          status: serviceOrder.status,
+          previousStatus: serviceOrder.status,
+          notes: `Hapus Barang: ${part.product?.name || part.productId} ×${Number(part.quantity)} · stok ${restoreWarehouseId === warehouse.id ? warehouse.name : restoreWarehouseId} ${quantityBefore}→${quantityAfter}`,
+          changedBy: userId,
+        },
+      });
+
       // Recalculate total parts cost
       const remainingParts = await tx.servicePartsUsed.findMany({
         where: { serviceOrderId },
@@ -1431,6 +1486,68 @@ export class ServiceOrdersService {
         serviceOrderId,
         photos,
       };
+    });
+  }
+
+  // IGDERP-136 detail round: direct multipart upload for per-stage documentation.
+  // Files land in volume-backed ./uploads/service-photos and are served at /uploads/*.
+  async uploadPhotoFiles(
+    serviceOrderId: string,
+    files: Array<{ originalname: string; mimetype: string; size: number; buffer: Buffer }>,
+    photoType: string,
+    description: string | undefined,
+    userId: string,
+  ) {
+    const allowedType = ['intake', 'diagnosis', 'repair', 'completed'];
+    if (!allowedType.includes(photoType)) {
+      throw new BadRequestException('photoType wajib salah satu: ' + allowedType.join(', '));
+    }
+    const serviceOrder = await this.prisma.serviceOrder.findUnique({ where: { id: serviceOrderId } });
+    if (!serviceOrder) {
+      throw new NotFoundException('Service order not found');
+    }
+    if (['done', 'delivered', 'completed', 'cancelled'].includes(serviceOrder.status) && photoType !== 'completed') {
+      throw new BadRequestException('Dokumentasi tahap ini hanya dapat ditambah sebelum serah terima');
+    }
+    const dir = join(process.cwd(), 'uploads', 'service-photos');
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    const saved: Array<{ url: string }> = [];
+    for (const [i, f] of files.entries()) {
+      if (!f.mimetype || !f.mimetype.startsWith('image/')) {
+        throw new BadRequestException('File wajib gambar: ' + (f.originalname || `file-${i + 1}`));
+      }
+      if (f.size > 1024 * 1024) {
+        throw new BadRequestException('Maksimal 1MB per foto: ' + (f.originalname || `file-${i + 1}`));
+      }
+      const ext = (extname(f.originalname || '').toLowerCase() || '.jpg').replace(/[^a-z0-9.]/g, '') || '.jpg';
+      const name = `${serviceOrderId}-${Date.now()}-${i}${ext}`;
+      writeFileSync(join(dir, name), f.buffer);
+      saved.push({ url: `/uploads/service-photos/${name}` });
+    }
+    return this.prisma.$transaction(async (tx) => {
+      const photos = await Promise.all(
+        saved.map((s) =>
+          tx.servicePhoto.create({
+            data: {
+              serviceOrderId,
+              photoUrl: s.url,
+              photoType,
+              description,
+              uploadedBy: userId,
+            },
+          }),
+        ),
+      );
+      await tx.serviceStatusHistory.create({
+        data: {
+          serviceOrderId,
+          status: serviceOrder.status,
+          previousStatus: serviceOrder.status,
+          notes: `Tambah Foto: ${photoType} ×${photos.length}`,
+          changedBy: userId,
+        },
+      });
+      return { serviceOrderId, photos };
     });
   }
 
@@ -1678,8 +1795,13 @@ export class ServiceOrdersService {
       throw new BadRequestException('Payment amount must be greater than 0');
     }
 
-    if (dto.amount > totalPrice) {
-      throw new BadRequestException('Payment amount cannot exceed total price');
+    // IGDERP-136 detail round: pelunasan bertahap — DP intake dihitung (downPayment akumulatif)
+    const paidBefore = Number(serviceOrder.downPayment || 0);
+    const remaining = totalPrice - paidBefore;
+    if (dto.amount > remaining) {
+      throw new BadRequestException(
+        `Payment amount cannot exceed remaining balance ${remaining.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}`,
+      );
     }
 
     return await this.prisma.$transaction(async (tx) => {
@@ -1689,9 +1811,10 @@ export class ServiceOrdersService {
         invoiceNumber = await this.generateInvoiceNumber(serviceOrder.branchId);
       }
 
-      // Determine payment status
+      // Determine payment status from cumulative payment (DP + cicilan)
+      const cumulative = paidBefore + dto.amount;
       let paymentStatus: 'pending' | 'partial' | 'paid' = 'paid';
-      if (dto.amount < totalPrice) {
+      if (cumulative < totalPrice) {
         paymentStatus = 'partial';
       }
 
@@ -1699,6 +1822,7 @@ export class ServiceOrdersService {
         where: { id: serviceOrderId },
         data: {
           invoiceNumber,
+          downPayment: new Decimal(cumulative),
           paymentStatus,
           paymentMethod: dto.paymentMethod,
           paidAt: paymentStatus === 'paid' ? new Date() : serviceOrder.paidAt,

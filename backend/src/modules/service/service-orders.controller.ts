@@ -8,9 +8,13 @@ import {
   Param,
   Query,
   UseGuards,
+  UseInterceptors,
+  UploadedFiles,
+  BadRequestException,
   Request,
   ForbiddenException,
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { Request as ExpressRequest } from 'express';
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../shared/guards/roles.guard';
@@ -172,6 +176,17 @@ export class ServiceOrdersController {
     return this.serviceOrdersService.removePart(id, partId, req.user.id);
   }
 
+  @Delete(':id/layanan/:rowId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('CS', 'HS', 'SPV', 'SUPERADMIN', 'TC')
+  async removeLayanan(
+    @Param('id') id: string,
+    @Param('rowId') rowId: string,
+    @Request() req: any,
+  ) {
+    return this.serviceOrdersService.removeLayanan(id, rowId, req.user.id);
+  }
+
   @Post(':id/photos')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('CS', 'HS', 'SPV', 'SUPERADMIN')
@@ -181,6 +196,22 @@ export class ServiceOrdersController {
     @Request() req: any,
   ) {
     return this.serviceOrdersService.uploadPhotos(id, dto, req.user.id);
+  }
+
+  // IGDERP-136 detail round: direct file upload per documentation stage
+  // (multipart files[] + photoType; max 5 × 1MB images; volume-backed /uploads serve)
+  @Post(':id/photos/upload')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('CS', 'TC', 'HS', 'SPV', 'SUPERADMIN')
+  @UseInterceptors(FilesInterceptor('files', 5))
+  async uploadPhotoFiles(
+    @Param('id') id: string,
+    @UploadedFiles() files: Array<{ originalname: string; mimetype: string; size: number; buffer: Buffer }>,
+    @Body() body: { photoType?: string; description?: string },
+    @Request() req: any,
+  ) {
+    if (!files || files.length === 0) throw new BadRequestException('Minimal satu file foto wajib diunggah');
+    return this.serviceOrdersService.uploadPhotoFiles(id, files, body?.photoType || 'repair', body?.description, req.user.id);
   }
 
   @Post(':id/complete')

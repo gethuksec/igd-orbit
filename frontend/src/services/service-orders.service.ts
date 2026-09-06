@@ -145,6 +145,21 @@ export const serviceOrdersService = {
     return response.data.data || response.data;
   },
 
+  async removeLayanan(id: string, rowId: string) {
+    const response = await api.delete(`/service-orders/${id}/layanan/${rowId}`);
+    return response.data.data || response.data;
+  },
+
+  async uploadPhotoFiles(id: string, files: File[], photoType: string) {
+    const form = new FormData();
+    files.forEach((f) => form.append('files', f));
+    form.append('photoType', photoType);
+    const response = await api.post(`/service-orders/${id}/photos/upload`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data.data || response.data;
+  },
+
   async processPayment(id: string, payload: {
     paymentMethod: 'cash' | 'transfer' | 'e_wallet' | 'credit_card' | 'debit_card';
     amount: number;
