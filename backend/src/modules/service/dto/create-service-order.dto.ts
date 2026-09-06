@@ -206,6 +206,12 @@ export class CreateServiceOrderDto {
   @IsOptional()
   customerNotes?: string;
 
+  // IGDERP-136 detail round: catatan internal CS (timeline Receive; default 'Service order created')
+  @IsString()
+  @IsOptional()
+  @MaxLength(2000)
+  internalNotes?: string;
+
   @IsUUID()
   @IsOptional()
   assignedTechnicianId?: string;

@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   ArrowLeft,
+  Camera,
   CheckCircle2,
   Circle,
   Clock,
@@ -36,6 +37,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { BreadcrumbHeader } from '@/components/shared';
+import TagCombobox from '@/components/services/TagCombobox';
 import { serviceOrdersService } from '@/services/service-orders.service';
 import { formatCurrency } from '@/utils/format';
 
@@ -101,14 +103,19 @@ export default function SmartRepairDetailPage() {
   const [openTeknisi, setOpenTeknisi] = useState(false);
   const [techId, setTechId] = useState('');
   const [openWaktu, setOpenWaktu] = useState(false);
-  const [inlineLayanan, setInlineLayanan] = useState(false);
-  const [layananPick, setLayananPick] = useState('');
+  const [openTambahLayanan, setOpenTambahLayanan] = useState(false);
+  const [layananModalPick, setLayananModalPick] = useState('');
+  const [layananModalTags, setLayananModalTags] = useState<string[]>([]);
   const [waktuLayanan, setWaktuLayanan] = useState('');
   const [waktuAlasan, setWaktuAlasan] = useState('');
   const [waktuEstimasi, setWaktuEstimasi] = useState('');
   const [openBarang, setOpenBarang] = useState(false);
   const [barangSearch, setBarangSearch] = useState('');
   const [barangRows, setBarangRows] = useState<any[]>([]);
+  const [openBayar, setOpenBayar] = useState(false);
+  const [bayarAmount, setBayarAmount] = useState('');
+  const [bayarMethod, setBayarMethod] = useState('cash');
+  const [bayarRef, setBayarRef] = useState('');
 
   const { data: order, isLoading } = useQuery({
     queryKey: ['service-order', id],
@@ -142,8 +149,17 @@ export default function SmartRepairDetailPage() {
   const { data: serviceTypes = [] } = useQuery({
     queryKey: ['sr-service-types'],
     queryFn: () => fetchList('/api/v1/service-types'),
-    enabled: openWaktu || inlineLayanan,
+    enabled: openWaktu || openTambahLayanan,
   });
+
+  // IGDERP-136 fix round: saran tag server (UpperFirst, cap 5) untuk modal tambah layanan
+  const suggestTags = useCallback(
+    async (qq: string) => {
+      const rows = await fetchList('/api/v1/service-orders/tags/suggest?q=' + encodeURIComponent(qq) + '&take=5');
+      return (rows as any[]).map((r) => String(r.name || '')).filter(Boolean);
+    },
+    [fetchList],
+  );
 
   const { data: posFaktur = null } = useQuery({
     queryKey: ['sr-pos-faktur', id],
@@ -159,6 +175,13 @@ export default function SmartRepairDetailPage() {
     queryFn: () =>
       fetchList(`/api/v1/pos/products?q=${encodeURIComponent(barangSearch)}&limit=10`),
     enabled: openBarang && barangSearch.length >= 2,
+  });
+
+  // IGDERP-136 fix round: daftar gudang outlet utk pilihan gudang per-baris barang
+  const { data: detailWarehouses = [] } = useQuery({
+    queryKey: ['sr-detail-warehouses', order?.branchId || ''],
+    queryFn: () => fetchList(`/api/v1/pos/warehouses?outletId=${encodeURIComponent(order?.branchId || '')}`),
+    enabled: openBarang && Boolean(order?.branchId),
   });
 
   const statusMutation = useMutation({
@@ -216,11 +239,51 @@ export default function SmartRepairDetailPage() {
       serviceOrdersService.addLayanan(id!, payload),
     onSuccess: () => {
       toast.success('Layanan berhasil ditambahkan');
-      setInlineLayanan(false);
-      setLayananPick('');
+      setOpenTambahLayanan(false);
+      setLayananModalPick('');
+      setLayananModalTags([]);
       queryClient.invalidateQueries({ queryKey: ['service-order', id] });
     },
     onError: (err: any) => toast.error(err.response?.data?.message || 'Gagal tambah layanan'),
+  });
+
+  const removeLayananMutation = useMutation({
+    mutationFn: (rowId: string) => serviceOrdersService.removeLayanan(id!, rowId),
+    onSuccess: () => {
+      toast.success('Layanan dihapus — tercatat di timeline');
+      queryClient.invalidateQueries({ queryKey: ['service-order', id] });
+    },
+    onError: (err: any) => toast.error(err.response?.data?.message || 'Gagal hapus layanan'),
+  });
+
+  const removePartMutation = useMutation({
+    mutationFn: (partId: string) => serviceOrdersService.removePart(id!, partId),
+    onSuccess: () => {
+      toast.success('Barang dihapus — stok dikembalikan ke gudang sumber');
+      queryClient.invalidateQueries({ queryKey: ['service-order', id] });
+    },
+    onError: (err: any) => toast.error(err.response?.data?.message || 'Gagal hapus barang'),
+  });
+
+  const paymentMutation = useMutation({
+    mutationFn: (payload: { paymentMethod: 'cash' | 'transfer' | 'e_wallet' | 'credit_card' | 'debit_card'; amount: number; reference?: string }) =>
+      serviceOrdersService.processPayment(id!, payload),
+    onSuccess: () => {
+      toast.success('Pembayaran tercatat');
+      setOpenBayar(false); setBayarAmount(''); setBayarRef('');
+      queryClient.invalidateQueries({ queryKey: ['service-order', id] });
+    },
+    onError: (err: any) => toast.error(err.response?.data?.message || 'Gagal mencatat pembayaran'),
+  });
+
+  const uploadPhotoMutation = useMutation({
+    mutationFn: ({ files, photoType }: { files: File[]; photoType: string }) =>
+      serviceOrdersService.uploadPhotoFiles(id!, files, photoType),
+    onSuccess: (_res, vars) => {
+      toast.success(`Foto ${vars.photoType} terunggah`);
+      queryClient.invalidateQueries({ queryKey: ['service-order', id] });
+    },
+    onError: (err: any) => toast.error(err.response?.data?.message || 'Gagal mengunggah foto'),
   });
 
   if (isLoading) return <div className="p-10 text-center text-gray-500">Memuat…</div>;
@@ -228,13 +291,43 @@ export default function SmartRepairDetailPage() {
 
   const status = String(order.status || 'pending').toLowerCase();
   const history: any[] = Array.isArray(order.statusHistory) ? order.statusHistory : [];
-  const historyByStatus = new Map(history.map((h) => [String(h.status).toLowerCase(), h]));
+  // IGDERP-136 detail round: JANGAN collapse per status — semua entri tampil (Tambah Waktu ×2 dsb.)
+  const historyByStage = new Map<string, any[]>();
+  history.forEach((h) => {
+    const k = String(h.status).toLowerCase();
+    if (!historyByStage.has(k)) historyByStage.set(k, []);
+    historyByStage.get(k)!.push(h);
+  });
   const isCancelled = status === 'cancelled';
   const currentIndex = SR_FLOW.indexOf(status as any);
 
   const partRows: any[] = Array.isArray(order.partsUsed) ? order.partsUsed : [];
   const subtotalParts = partRows.reduce((sum, p) => sum + Number(p.totalPrice || 0), 0);
   const totalFee = Number(order.finalPrice ?? order.estimatedCost ?? 0) || 0;
+  const paidSoFar = Number(order.downPayment || 0);
+  const sisaBayar = Math.max(0, totalFee - paidSoFar);
+  const isPaid = String(order.paymentStatus || '').toLowerCase() === 'paid' || (totalFee > 0 && sisaBayar <= 0);
+  const frozen = ['done', 'delivered', 'completed', 'cancelled'].includes(status);
+  // IGDERP-136 detail round: estimasi antrian per baris (received + ΣSLA s.d. baris itu)
+  const receivedBase = order.receivedDate || order.createdAt;
+  const layananEta: string[] = (() => {
+    if (!receivedBase || !(order.layanan || []).length) return [];
+    let acc = new Date(receivedBase).getTime();
+    return (order.layanan as any[]).map((l) => {
+      acc += Number(l.slaHours || 0) * 3600 * 1000;
+      const d = new Date(acc);
+      return `${formatDateTime(d.toISOString())} ${formatTime(d.toISOString())}`;
+    });
+  })();
+  // Past-due = order-level, dari Estimasi Selesai yang sama dengan yang tampil (slaDue || promised)
+  const dueDate = order.slaDueDate || order.promisedDate;
+  const isOverdue = !frozen && !!dueDate && new Date(dueDate).getTime() < Date.now();
+  const waNumber = (() => {
+    const digits = String(order.customerPhone || '').replace(/\D/g, '');
+    if (digits.startsWith('0')) return '62' + digits.slice(1);
+    return digits;
+  })();
+  const waLink = waNumber ? `https://wa.me/${waNumber}?text=${encodeURIComponent(`Halo ${order.customerName || ''}, info service ${order.serviceNumber || ''} (${STATUS_LABELS[status] || status})`)}` : '';
 
   const handleCancel = () => {
     if (!cancelReason.trim()) {
@@ -282,7 +375,10 @@ export default function SmartRepairDetailPage() {
           <div>
             <Label className="text-sm text-gray-500">Estimasi Biaya</Label>
             <p className="font-bold text-lg">{formatCurrency(totalFee)}</p>
-            <p className="text-xs text-gray-500">{Number(order.downPayment) > 0 ? `Uang muka ${formatCurrency(Number(order.downPayment))}` : ''}</p>
+            <p className="text-xs text-gray-500">
+              {paidSoFar > 0 ? `Uang muka ${formatCurrency(paidSoFar)} · ` : ''}Sisa {formatCurrency(sisaBayar)}
+              {isPaid ? ' · Lunas' : ''}
+            </p>
           </div>
           <div>
             <Label className="text-sm text-gray-500">Tanggal Masuk</Label>
@@ -291,12 +387,23 @@ export default function SmartRepairDetailPage() {
           </div>
           <div>
             <Label className="text-sm text-gray-500">Estimasi Selesai</Label>
-            <p className="font-semibold">{order.slaDueDate ? formatDateTime(order.slaDueDate) : formatDateTime(order.promisedDate)}</p>
+            <p className={`font-semibold ${isOverdue ? 'text-red-600' : ''}`}>
+              {order.slaDueDate ? formatDateTime(order.slaDueDate) : formatDateTime(order.promisedDate)}
+              {isOverdue ? ' · Terlambat' : ''}
+            </p>
             <p className="text-xs text-gray-500">{order.slaDueDate ? formatTime(order.slaDueDate) : ''}</p>
           </div>
           <div>
             <Label className="text-sm text-gray-500">Teknisi</Label>
             <p className="font-semibold">{order.assignedTechnician?.fullName || 'Belum di-assign'}</p>
+          </div>
+          <div>
+            <Label className="text-sm text-gray-500">Outlet</Label>
+            <p className="font-semibold">{order.branch?.name || '—'}</p>
+          </div>
+          <div>
+            <Label className="text-sm text-gray-500">Gudang Service</Label>
+            <p className="font-semibold">{(order as any).warehouse?.name || '—'}</p>
           </div>
         </div>
       </div>
@@ -387,7 +494,7 @@ export default function SmartRepairDetailPage() {
             <div className="p-2">
               {(order.layanan || []).length > 0 ? (
                 <div>
-                  {(order.layanan as any[]).map((l) => (
+                  {(order.layanan as any[]).map((l, li) => (
                     <div
                       key={l.id}
                       className="flex items-center gap-2 px-2 py-2 border-b border-dashed border-gray-100 last:border-b-0"
@@ -396,9 +503,23 @@ export default function SmartRepairDetailPage() {
                       <span className="text-xs text-gray-600 font-mono whitespace-nowrap">
                         SLA {formatSLA(Number(l.slaHours))}
                       </span>
+                      {layananEta[li] && (
+                        <span className={`text-xs whitespace-nowrap ${isOverdue && !frozen ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
+                          ETA {layananEta[li]}
+                        </span>
+                      )}
                       <span className="text-xs text-gray-600 whitespace-nowrap">
                         {formatCurrency(Number(l.estimatedCost || 0))}
                       </span>
+                      {status === 'in-progress' && !isCancelled && (order.layanan as any[]).length > 1 && (
+                        <button
+                          type="button"
+                          title="Hapus layanan"
+                          onClick={() => { if (window.confirm(`Hapus layanan ${l.name}? Tercatat di timeline.`)) removeLayananMutation.mutate(l.id); }}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </button>
+                      )}
                     </div>
                   ))}
                   <div className="flex items-center justify-end gap-2 px-2 py-2 border-t border-gray-100 text-sm">
@@ -411,22 +532,7 @@ export default function SmartRepairDetailPage() {
                   </div>
                   {status === 'in-progress' && !isCancelled && (
                     <div className="mt-2 border-t border-dashed border-gray-200 pt-2">
-                      {!inlineLayanan ? (
-                        <Button variant="link" size="sm" className="px-2 text-primary-600" onClick={() => setInlineLayanan(true)}>
-                          Tambah Layanan
-                        </Button>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <Select value={layananPick} onValueChange={setLayananPick} className="h-9 flex-1">
-                            <option value="">Pilih layanan</option>
-                            {(serviceTypes as any[])
-                              .filter((st) => !(order.layanan as any[]).some((l) => l.serviceTypeId === st.id))
-                              .map((st) => <option key={st.id} value={st.id}>{st.name}</option>)}
-                          </Select>
-                          <Button size="sm" disabled={!layananPick || addLayananMutation.isPending} onClick={() => addLayananMutation.mutate({ serviceTypeId: layananPick })}>Tambah</Button>
-                          <Button variant="outline" size="sm" onClick={() => { setInlineLayanan(false); setLayananPick(''); }}>Batal</Button>
-                        </div>
-                      )}
+                      <p className="px-2 text-xs text-gray-400">Tambah layanan via menu Aksi Status.</p>
                     </div>
                   )}
                 </div>
@@ -448,10 +554,12 @@ export default function SmartRepairDetailPage() {
               <thead>
                 <tr className="text-xs uppercase text-gray-500 bg-gray-50 border-b border-gray-100">
                   <th className="text-left px-3 py-2 font-semibold">Barang</th>
+                  <th className="text-left px-2 py-2 font-semibold">Gudang</th>
                   <th className="text-center px-2 py-2 font-semibold w-12">Qty</th>
                   <th className="text-right px-2 py-2 font-semibold w-24">Harga</th>
                   <th className="text-center px-2 py-2 font-semibold w-20">Garansi</th>
                   <th className="text-right px-2 py-2 font-semibold w-24">Subtotal</th>
+                  {!frozen && <th className="w-10"></th>}
                 </tr>
               </thead>
               <tbody>
@@ -460,17 +568,31 @@ export default function SmartRepairDetailPage() {
                     <td className="px-3 py-2">
                       <p className="font-semibold">{p.product?.name || '—'}</p>
                     </td>
+                    <td className="px-2 py-2">
+                      <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[11px] text-blue-700 whitespace-nowrap">{p.warehouse?.name || '—'}</span>
+                    </td>
                     <td className="text-center py-2">{Number(p.quantity)}</td>
                     <td className="text-right py-2">{compact(p.unitPrice)}</td>
                     <td className="text-center py-2 text-gray-600">
                       {p.warrantyDays ? `${Number(p.warrantyDays)} hari` : '—'}
                     </td>
                     <td className="text-right py-2 font-semibold">{compact(p.totalPrice)}</td>
+                    {!frozen && (
+                      <td className="text-center py-2">
+                        <button
+                          type="button"
+                          title="Hapus barang (stok kembali ke gudang sumber)"
+                          onClick={() => { if (window.confirm(`Hapus ${p.product?.name || 'barang'}? Stok dikembalikan ke ${p.warehouse?.name || 'gudang sumber'} dan tercatat di timeline.`)) removePartMutation.mutate(p.id); }}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
                 {partRows.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-3 py-4 text-center text-gray-400">
+                    <td colSpan={!frozen ? 7 : 6} className="px-3 py-4 text-center text-gray-400">
                       Belum ada barang
                     </td>
                   </tr>
@@ -479,7 +601,7 @@ export default function SmartRepairDetailPage() {
               {partRows.length > 0 && (
                 <tfoot>
                   <tr className="bg-gray-50">
-                    <td colSpan={4} className="px-3 py-2 text-right font-bold">Subtotal:</td>
+                    <td colSpan={!frozen ? 6 : 5} className="px-3 py-2 text-right font-bold">Subtotal:</td>
                     <td className="px-3 py-2 text-right font-extrabold text-primary-600">
                       {formatCurrency(subtotalParts)}
                     </td>
@@ -517,6 +639,50 @@ export default function SmartRepairDetailPage() {
         </div>
       </div>
 
+      {/* ─── Section A4: Dokumentasi per tahap ─── */}
+      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg">
+            <Camera className="w-5 h-5 text-white" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900">Dokumentasi</h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {(['intake', 'diagnosis', 'repair', 'completed'] as const).map((stage) => {
+            const stagePhotos = ((order as any).photos || []).filter((ph: any) => ph.photoType === stage);
+            const canUpload = stage === 'completed' ? !isCancelled : !frozen;
+            return (
+              <div key={stage} className="border border-gray-100 rounded-xl overflow-hidden">
+                <div className="px-3 py-2 bg-gray-50 border-b border-gray-100 text-sm font-bold text-gray-700 capitalize flex items-center justify-between">
+                  {stage}
+                  {canUpload && (
+                    <label className="text-xs font-semibold text-primary-600 hover:underline cursor-pointer">
+                      + Foto
+                      <input
+                        type="file" accept="image/*" multiple className="hidden"
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files || []);
+                          e.target.value = '';
+                          if (files.length > 0) uploadPhotoMutation.mutate({ files, photoType: stage });
+                        }}
+                      />
+                    </label>
+                  )}
+                </div>
+                <div className="p-2 grid grid-cols-3 gap-2">
+                  {stagePhotos.length === 0 && <div className="col-span-3 p-2 text-xs text-gray-400">Belum ada foto</div>}
+                  {stagePhotos.map((ph: any) => (
+                    <a key={ph.id} href={ph.photoUrl} target="_blank" rel="noreferrer" title={ph.description || stage}>
+                      <img src={ph.photoUrl} alt={`${stage} photo`} className="h-16 w-full object-cover rounded-md border border-gray-100" loading="lazy" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="h-px bg-gray-100 my-1" />
 
       {/* ─── Section B: Aksi + Timeline ─── */}
@@ -526,6 +692,8 @@ export default function SmartRepairDetailPage() {
           <p className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-gray-400" /> Aksi Status
           </p>
+          {/* IGDERP-136 bugfix: order batal = semua aksi nonaktif (dropdown disembunyikan) */}
+          {!isCancelled && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="w-full justify-between border-red-200 text-red-700 bg-red-50 hover:bg-red-100">
@@ -563,6 +731,14 @@ export default function SmartRepairDetailPage() {
                   Tambah Waktu
                 </DropdownMenuItem>
               )}
+              {status === 'in-progress' && !isCancelled && (
+                <DropdownMenuItem
+                  className="font-semibold"
+                  onClick={() => { setLayananModalPick(''); setLayananModalTags([]); setOpenTambahLayanan(true); }}
+                >
+                  Tambah Layanan
+                </DropdownMenuItem>
+              )}
               {(status === 'in-progress' || status === 'ready') && !isCancelled && (
                 <DropdownMenuItem
                   className="font-semibold"
@@ -573,6 +749,14 @@ export default function SmartRepairDetailPage() {
                   }}
                 >
                   Tambah Barang
+                </DropdownMenuItem>
+              )}
+              {(status === 'ready' || status === 'done') && !isCancelled && !isPaid && (
+                <DropdownMenuItem
+                  className="font-semibold"
+                  onClick={() => { setBayarAmount(String(sisaBayar)); setBayarMethod('cash'); setBayarRef(''); setOpenBayar(true); }}
+                >
+                  Terima Pembayaran {sisaBayar > 0 ? `(${formatCurrency(sisaBayar)})` : ''}
                 </DropdownMenuItem>
               )}
               {(!status || (status !== 'in-progress' && status !== 'ready')) && (
@@ -589,8 +773,14 @@ export default function SmartRepairDetailPage() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          )}
           <p className="text-xs text-gray-500 mt-4 flex items-center gap-2">
-            <Phone className="w-3 h-3" /> {order.customerPhone}
+            <Phone className="w-3 h-3" />
+            {waLink ? (
+              <a href={waLink} target="_blank" rel="noreferrer" className="text-green-700 font-semibold hover:underline">
+                {order.customerPhone} (WA)
+              </a>
+            ) : order.customerPhone}
           </p>
         </div>
 
@@ -599,7 +789,8 @@ export default function SmartRepairDetailPage() {
           <h3 className="text-lg font-semibold mb-6">Service Status Timeline</h3>
           <div className="space-y-6">
             {SR_FLOW.map((s, idx) => {
-              const entry = historyByStatus.get(s);
+              const entries = historyByStage.get(s) || [];
+              const entry = entries[0];
               const done = currentIndex > idx;
               const current = currentIndex === idx && !isCancelled;
               const skipped = currentIndex === -1 && !isCancelled;
@@ -641,6 +832,16 @@ export default function SmartRepairDetailPage() {
                             {entry.notes}
                           </div>
                         )}
+                        {entries.slice(1).map((e: any) => e.notes && (
+                          <div key={e.id} className="text-xs text-gray-600 mt-2 p-2 bg-gray-50 rounded border border-gray-200">
+                            <span className="font-semibold">Catatan: </span>
+                            {e.notes}
+                            <div className="text-gray-400 mt-1">
+                              {formatDateTime(e.createdAt)}, {formatTime(e.createdAt)}
+                              {e.changedByUser ? ` · ${e.changedByUser.fullName || e.changedByUser.email}` : ''}
+                            </div>
+                          </div>
+                        ))}
                       </>
                     ) : (
                       !current && (
@@ -667,12 +868,12 @@ export default function SmartRepairDetailPage() {
                     {formatDateTime(order.cancelledAt)}, {formatTime(order.cancelledAt)}
                   </div>
                   <div className="text-xs text-gray-500 mt-1">
-                    <span className="font-semibold">Oleh: </span>{historyByStatus.get('cancelled')?.changedByUser?.fullName || '—'}
+                    <span className="font-semibold">Oleh: </span>{historyByStage.get('cancelled')?.[0]?.changedByUser?.fullName || '—'}
                   </div>
-                  {historyByStatus.get('cancelled')?.notes && (
+                  {historyByStage.get('cancelled')?.[0]?.notes && (
                     <div className="text-xs text-gray-600 mt-2 p-2 bg-gray-50 rounded border border-gray-200">
                       <span className="font-semibold">Catatan: </span>
-                      {historyByStatus.get('cancelled')?.notes}
+                      {historyByStage.get('cancelled')?.[0]?.notes}
                     </div>
                   )}
                 </div>
@@ -832,9 +1033,10 @@ export default function SmartRepairDetailPage() {
                           {
                             productId: p.id,
                             name: p.name || 'Produk',
-                            quantity: 1,
-                            price: p.sellingPrice || p.price || 0,
-                            warrantyDays: p.warrantyDays ?? 90,
+                            quantity: '1',
+                            price: String(p.sellingPrice || p.price || 0),
+                            warrantyDays: String(p.warrantyDays ?? 90),
+                            warehouseId: (order as any)?.warehouseId || '',
                           },
                         ]);
                         setBarangSearch('');
@@ -854,6 +1056,7 @@ export default function SmartRepairDetailPage() {
                   <thead>
                     <tr className="text-xs uppercase text-gray-500 bg-gray-50 border-b border-gray-100">
                       <th className="text-left px-3 py-2 font-semibold">Barang</th>
+                      <th className="text-left px-2 py-2 font-semibold">Gudang</th>
                       <th className="text-center px-2 py-2 font-semibold w-16">Qty</th>
                       <th className="text-right px-2 py-2 font-semibold w-28">Harga</th>
                       <th className="text-center px-2 py-2 font-semibold w-24">Garansi (hari)</th>
@@ -865,47 +1068,63 @@ export default function SmartRepairDetailPage() {
                     {barangRows.map((r, idx) => (
                       <tr key={idx} className="border-b border-gray-50">
                         <td className="px-3 py-2 font-medium">{r.name}</td>
+                        <td className="px-2 py-2">
+                          <Select
+                            value={r.warehouseId || ''}
+                            onChange={(e) =>
+                              setBarangRows((rows) =>
+                                rows.map((x, i) => (i === idx ? { ...x, warehouseId: e.target.value } : x)),
+                              )
+                            }
+                            className="h-8 text-xs"
+                          >
+                            <option value="">Pilih Gudang</option>
+                            {(detailWarehouses as any[]).map((w: any) => (
+                              <option key={w.id} value={w.id}>{w.name}</option>
+                            ))}
+                          </Select>
+                        </td>
                         <td className="text-center py-2">
                           <Input
-                            type="number"
-                            min={1}
+                            inputMode="numeric"
                             className="w-16 text-center"
+                            placeholder="1"
                             value={r.quantity}
                             onChange={(e) =>
                               setBarangRows((rows) =>
-                                rows.map((x, i) => (i === idx ? { ...x, quantity: Number(e.target.value) } : x)),
+                                rows.map((x, i) => (i === idx ? { ...x, quantity: e.target.value.replace(/\D/g, '') } : x)),
                               )
                             }
                           />
                         </td>
                         <td className="text-right py-2">
                           <Input
-                            type="number"
-                            min={0}
+                            inputMode="numeric"
                             className="w-28 text-right"
-                            value={r.price}
+                            placeholder="0"
+                            value={r.price ? Number(r.price).toLocaleString('id-ID') : ''}
                             onChange={(e) =>
                               setBarangRows((rows) =>
-                                rows.map((x, i) => (i === idx ? { ...x, price: Number(e.target.value) } : x)),
+                                rows.map((x, i) => (i === idx ? { ...x, price: e.target.value.replace(/\D/g, '') } : x)),
                               )
                             }
                           />
                         </td>
                         <td className="text-center py-2">
                           <Input
-                            type="number"
-                            min={0}
+                            inputMode="numeric"
                             className="w-20 text-center"
+                            placeholder="90"
                             value={r.warrantyDays}
                             onChange={(e) =>
                               setBarangRows((rows) =>
-                                rows.map((x, i) => (i === idx ? { ...x, warrantyDays: Number(e.target.value) } : x)),
+                                rows.map((x, i) => (i === idx ? { ...x, warrantyDays: e.target.value.replace(/\D/g, '') } : x)),
                               )
                             }
                           />
                         </td>
                         <td className="text-right py-2 font-semibold">
-                          {formatCurrency((r.quantity || 0) * (r.price || 0))}
+                          {formatCurrency((Number(r.quantity) || 0) * (Number(r.price) || 0))}
                         </td>
                         <td className="text-center">
                           <button
@@ -924,7 +1143,7 @@ export default function SmartRepairDetailPage() {
                       <td colSpan={4} className="px-3 py-2 text-right font-bold">Subtotal:</td>
                       <td className="px-3 py-2 text-right font-extrabold text-primary-600">
                         {formatCurrency(
-                          barangRows.reduce((s, r) => s + (r.quantity || 0) * (r.price || 0), 0),
+                          barangRows.reduce((s, r) => s + (Number(r.quantity) || 0) * (Number(r.price) || 0), 0),
                         )}
                       </td>
                       <td />
@@ -942,15 +1161,83 @@ export default function SmartRepairDetailPage() {
                 addPartsMutation.mutate({
                   parts: barangRows.map((r) => ({
                     productId: r.productId,
-                    quantity: r.quantity,
-                    unitCost: r.price,
-                    unitPrice: r.price,
-                    warrantyDays: r.warrantyDays,
+                    quantity: Math.max(1, Number(r.quantity) || 1),
+                    unitCost: Number(r.price) || 0,
+                    unitPrice: Number(r.price) || 0,
+                    warrantyDays: Math.max(0, Number(r.warrantyDays) || 0),
+                    warehouseId: r.warehouseId || undefined,
                   })),
                 })
               }
             >
               Tambah
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={openTambahLayanan} onOpenChange={setOpenTambahLayanan}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Tambah Layanan</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label><span className="text-red-500">*</span> Layanan</Label>
+              <Select value={layananModalPick} onValueChange={setLayananModalPick} className="mt-1">
+                <option value="">Pilih layanan</option>
+                {(serviceTypes as any[])
+                  .filter((st) => !(order.layanan as any[]).some((l) => l.serviceTypeId === st.id))
+                  .map((st) => <option key={st.id} value={st.id}>{st.name} · SLA {formatSLA(Number(st.slaHours))}</option>)}
+              </Select>
+            </div>
+            <div>
+              <Label>Tag / mapping kerusakan</Label>
+              <div className="mt-1">
+                <TagCombobox value={layananModalTags} onChange={setLayananModalTags} localSuggestions={[]} suggestRemote={suggestTags} placeholder="Mis. Lcd, Bootloop..." />
+              </div>
+            </div>
+            {layananModalPick && (
+              <div className="rounded-md border bg-muted p-2 text-xs">
+                Estimasi selesai mengikuti total antrian SLA (dihitung dari Tgl Terima).
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenTambahLayanan(false)}>Batal</Button>
+            <Button
+              disabled={!layananModalPick || addLayananMutation.isPending}
+              onClick={() => addLayananMutation.mutate({
+                serviceTypeId: layananModalPick,
+                notes: layananModalTags.join(', ') || undefined,
+              })}
+            >
+              Tambah
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={openBayar} onOpenChange={setOpenBayar}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Terima Pembayaran</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-md border bg-muted p-2 text-sm">
+              Total {formatCurrency(totalFee)} · Sudah masuk {formatCurrency(paidSoFar)} · <b>Sisa {formatCurrency(sisaBayar)}</b>
+            </div>
+            <div><Label>Nominal (Rp)</Label><Input inputMode="numeric" value={bayarAmount ? Number(bayarAmount).toLocaleString('id-ID') : ''} onChange={(e) => setBayarAmount(e.target.value.replace(/\D/g, ''))} className="mt-1" /></div>
+            <div><Label>Metode</Label><Select value={bayarMethod} onValueChange={setBayarMethod} className="mt-1"><option value="cash">Tunai</option><option value="transfer">Transfer</option><option value="e_wallet">E-Wallet</option><option value="credit_card">Kartu Kredit</option><option value="debit_card">Kartu Debit</option></Select></div>
+            <div><Label>Referensi (opsional)</Label><Input value={bayarRef} onChange={(e) => setBayarRef(e.target.value)} placeholder="No. referensi transfer…" className="mt-1" /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenBayar(false)}>Batal</Button>
+            <Button
+              disabled={!Number(bayarAmount) || Number(bayarAmount) <= 0 || paymentMutation.isPending}
+              onClick={() => {
+                const amount = Number(bayarAmount);
+                if (amount > sisaBayar) { toast.error(`Maksimal sisa pembayaran ${formatCurrency(sisaBayar)}`); return; }
+                paymentMutation.mutate({ paymentMethod: bayarMethod as any, amount, reference: bayarRef.trim() || undefined });
+              }}
+            >
+              Simpan Pembayaran
             </Button>
           </DialogFooter>
         </DialogContent>

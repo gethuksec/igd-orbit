@@ -134,6 +134,8 @@ export const serviceOrdersService = {
       batchNumber?: string;
       serialNumber?: string;
       notes?: string;
+      warehouseId?: string;
+      warrantyDays?: number;
     }>;
   }) {
     const response = await api.post(`/service-orders/${id}/parts`, payload);
@@ -142,6 +144,21 @@ export const serviceOrdersService = {
 
   async removePart(id: string, partId: string) {
     const response = await api.delete(`/service-orders/${id}/parts/${partId}`);
+    return response.data.data || response.data;
+  },
+
+  async removeLayanan(id: string, rowId: string) {
+    const response = await api.delete(`/service-orders/${id}/layanan/${rowId}`);
+    return response.data.data || response.data;
+  },
+
+  async uploadPhotoFiles(id: string, files: File[], photoType: string) {
+    const form = new FormData();
+    files.forEach((f) => form.append('files', f));
+    form.append('photoType', photoType);
+    const response = await api.post(`/service-orders/${id}/photos/upload`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return response.data.data || response.data;
   },
 
