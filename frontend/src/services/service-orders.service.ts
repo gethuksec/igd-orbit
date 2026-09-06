@@ -134,6 +134,8 @@ export const serviceOrdersService = {
       batchNumber?: string;
       serialNumber?: string;
       notes?: string;
+      warehouseId?: string;
+      warrantyDays?: number;
     }>;
   }) {
     const response = await api.post(`/service-orders/${id}/parts`, payload);

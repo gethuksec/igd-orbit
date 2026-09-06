@@ -26,6 +26,13 @@ import { ProcessPaymentDto } from './dto/payment.dto';
 import { JournalEntriesService } from '../finance/services/journal-entries.service';
 import { buildPerWordSearch } from '../../shared/services/search.utils';
 
+// IGDERP-136 fix round: DD MMM YYYY HH:mm (ID) untuk catatan timeline (ganti ISO)
+const ID_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+function formatIdDateTime(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${p(d.getDate())} ${ID_MONTHS[d.getMonth()]} ${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 @Injectable()
 export class ServiceOrdersService {
   constructor(
@@ -847,7 +854,7 @@ export class ServiceOrdersService {
           serviceOrderId,
           status: serviceOrder.status,
           previousStatus: serviceOrder.status,
-          notes: `Tambah waktu${layanan ? ' (Layanan: ' + layanan.name + ')' : ''} · ${notes} · Estimasi baru: ${newEstimatedAt.toISOString()}`,
+          notes: `Tambah waktu${layanan ? ' (Layanan: ' + layanan.name + ')' : ''} · ${notes} · Estimasi baru: ${formatIdDateTime(newEstimatedAt)}`,
           changedBy: userId,
         },
       });

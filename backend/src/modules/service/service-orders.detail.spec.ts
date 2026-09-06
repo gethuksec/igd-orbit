@@ -123,6 +123,24 @@ describe('ServiceOrdersService detail round — internalNotes, removeLayanan', (
     ).rejects.toThrow('Maksimal 1MB');
   });
 
+  it('addTime note uses DD MMM YYYY HH:mm (no ISO)', async () => {
+    const created: any[] = [];
+    const tx = {
+      serviceOrder: { update: jest.fn().mockResolvedValue({ id: 'so-1' }) },
+      serviceStatusHistory: { create: jest.fn((args: any) => { created.push(args.data); return Promise.resolve(args.data); }) },
+    };
+    const prisma = {
+      serviceOrder: { findUnique: jest.fn().mockResolvedValue({ id: 'so-1', status: 'in-progress', slaDueDate: null }) },
+      serviceType: { findUnique: jest.fn().mockResolvedValue(null) },
+      $transaction: jest.fn((callback: (client: typeof tx) => unknown) => callback(tx)),
+    };
+    const service = new ServiceOrdersService(prisma as any, {} as any, {} as any);
+    await service.addTime('so-1', { newEstimatedAt: '2026-09-07T16:38:00.000Z', notes: 'tunggu part' } as any, 'u');
+    const note = created[0]?.notes || '';
+    expect(note).not.toContain('T16:38');
+    expect(note).toMatch(/Estimasi baru: \d{2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}/);
+  });
+
   it('processPayment accumulates DP: sisa lunas → paid + downPayment updated', async () => {
     const tx = {
       serviceOrder: { update: jest.fn().mockResolvedValue({ id: 'so-1', paymentStatus: 'paid' }) },

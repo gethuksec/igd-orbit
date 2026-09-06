@@ -47,31 +47,8 @@ const isoLocal = (date = new Date()) => {
 function MoneyInput({ value, onChange, className }: { value: number; onChange: (n: number) => void; className?: string }) {
   return <Input inputMode="numeric" value={value ? value.toLocaleString('id-ID') : ''} onChange={(e) => onChange(Number(e.target.value.replace(/\D/g, '') || 0))} className={className} />;
 }
-const upperFirstTag = (s: string) => { const t = s.trim().replace(/\s+/g, ' '); return t ? t.charAt(0).toUpperCase() + t.slice(1).toLowerCase() : ''; };
-function TagCombobox({ value, onChange, localSuggestions, suggestRemote, placeholder }: { value: string[]; onChange: (tags: string[]) => void; localSuggestions: string[]; suggestRemote?: (q: string) => Promise<string[]>; placeholder?: string }) {
-  const [open, setOpen] = useState(false);
-  const [input, setInput] = useState('');
-  const [remote, setRemote] = useState<string[]>([]);
-  const q = input.trim();
-  useEffect(() => {
-    if (!suggestRemote) return;
-    const t = setTimeout(async () => { try { setRemote(await suggestRemote(q)); } catch { setRemote([]); } }, 200);
-    return () => clearTimeout(t);
-  }, [q, suggestRemote]);
-  const merged = [...remote, ...localSuggestions.filter((s) => !remote.some((r) => r.toLowerCase() === s.toLowerCase()))].filter((s) => !value.some((v) => v.toLowerCase() === s.toLowerCase()) && (!q || s.toLowerCase().includes(q.toLowerCase()))).slice(0, 5);
-  const newTag = upperFirstTag(q);
-  const canAdd = newTag.length > 0 && ![...value, ...merged].some((v) => v.toLowerCase() === newTag.toLowerCase());
-  const commit = (tag: string) => { const t = upperFirstTag(tag); if (!t) return; if (!value.some((v) => v.toLowerCase() === t.toLowerCase())) onChange([...value, t]); setInput(''); setOpen(false); };
-  return (
-    <div className="relative">
-      <div className="flex min-h-7 flex-wrap items-center gap-1 rounded-md border border-input bg-background px-2 py-1" onClick={() => setOpen(true)}>
-        {value.map((t) => <span key={t} className="flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[11px] text-amber-800">{t}<button type="button" onClick={(e) => { e.stopPropagation(); onChange(value.filter((x) => x !== t)); }}><X className="h-3 w-3" /></button></span>)}
-        <input value={input} onChange={(e) => { setInput(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 120)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (merged.length) commit(merged[0]); else if (canAdd) commit(newTag); } if (e.key === 'Escape') setOpen(false); }} placeholder={value.length ? '' : (placeholder || 'Pilih / ketik tag...')} className="min-w-20 flex-1 bg-transparent text-xs outline-none" />
-      </div>
-      {open && (merged.length > 0 || canAdd) && <div className="absolute left-0 right-0 top-full z-30 mt-1 max-h-40 overflow-auto rounded-md border bg-white shadow">{merged.map((s) => <button key={s} type="button" onMouseDown={(e) => { e.preventDefault(); commit(s); }} className="block w-full px-3 py-2 text-left text-xs hover:bg-muted">{s}</button>)}{canAdd && <button type="button" onMouseDown={(e) => { e.preventDefault(); commit(newTag); }} className="block w-full border-t px-3 py-2 text-left text-xs font-medium text-primary hover:bg-muted">+ Tambah "{newTag}"</button>}</div>}
-    </div>
-  );
-}
+// Tag combobox pindah ke komponen shared (dipakai intake + detail tambah layanan)
+import TagCombobox from '@/components/services/TagCombobox';
 function emptyRow(): ItemRow {
   return {
     id: crypto.randomUUID(), productId: '', productSearch: '', productName: '', barcode: '', refCode: '',
@@ -196,7 +173,21 @@ export default function SmartRepairPage() {
 
   const saveMutation = useMutation({
     mutationFn: (payload: SmartRepairPayload) => serviceOrdersService.createSmartRepair(payload),
-    onSuccess: (res) => { toast.success('Service order berhasil disimpan'); navigate(res?.id ? `/service-orders/${res.id}` : '/service-orders'); },
+    onSuccess: async (res) => {
+      // IGDERP-136 fix round: dokumentasi intake ikut tersimpan (sebelumnya preview lokal saja)
+      const orderId = res?.id;
+      if (orderId && docFiles.length > 0) {
+        try {
+          await serviceOrdersService.uploadPhotoFiles(orderId, docFiles, 'intake');
+          toast.success(`Dokumentasi (${docFiles.length} foto) tersimpan di tahap Intake`);
+        } catch {
+          toast.warning('Order tersimpan, tapi dokumentasi gagal diupload — tambah manual di detail');
+        }
+        setDocFiles([]);
+      }
+      toast.success('Service order berhasil disimpan');
+      navigate(orderId ? `/service-orders/${orderId}` : '/service-orders');
+    },
     onError: (err: any) => toast.error(err.response?.data?.message || 'Gagal menyimpan service order'),
   });
 
@@ -262,6 +253,7 @@ export default function SmartRepairPage() {
   const addProduct = () => {
     if (!productDraft) return toast.error('Pilih produk terlebih dahulu');
     if (!barangWarehouseId) return toast.error('Pilih Gudang barang terlebih dahulu');
+    if (!productDraftQty || productDraftQty < 1) return toast.error('Qty minimal 1');
     if (productDraft.available != null && productDraftQty > Number(productDraft.available)) return toast.error('Qty melebihi stok tersedia');
     const price = Number(productDraft.sellingPrice || productDraft.price || 0);
     setRows((items) => [...items, { ...emptyRow(), productId: productDraft.id, productName: productDraft.name, productSearch: productDraft.name, barcode: productDraft.barcode || '', refCode: productDraft.sku || '', quantity: productDraftQty, price, warrantyDays: productDraftWarranty, total: productDraftQty * price, available: productDraft.available, warehouseId: barangWarehouseId, warehouseName: (warehouses as any[]).find((w: any) => w.id === barangWarehouseId)?.name || 'Gudang' }]);
@@ -312,7 +304,7 @@ export default function SmartRepairPage() {
       <Dialog open={openCustomer} onOpenChange={setOpenCustomer}><DialogContent><DialogHeader><DialogTitle>Tambah Pelanggan</DialogTitle></DialogHeader><div className="space-y-3"><div><Label><span className="text-red-500">*</span> Nama</Label><Input value={quickCustomer.name} onChange={(e) => setQuickCustomer({ ...quickCustomer, name: e.target.value })} className="mt-1" /></div><div><Label><span className="text-red-500">*</span> No. HP</Label><Input value={quickCustomer.phone} onChange={(e) => setQuickCustomer({ ...quickCustomer, phone: e.target.value })} className="mt-1" /><p className="mt-1 text-xs text-muted-foreground">Format: 08… atau +62…</p></div><div><Label>Kecamatan</Label><Select value={quickCustomer.subdistrict} onValueChange={(subdistrict) => setQuickCustomer({ ...quickCustomer, subdistrict })} className="mt-1"><option value="">Pilih Kecamatan</option>{quickCustomer.subdistrict && !(kecamatanJember as string[]).includes(quickCustomer.subdistrict) && <option value={quickCustomer.subdistrict}>{quickCustomer.subdistrict}</option>}{(kecamatanJember as string[]).map((kec) => <option key={kec} value={kec}>{kec}</option>)}</Select></div></div><DialogFooter><Button variant="outline" onClick={() => setOpenCustomer(false)}>Batal</Button><Button onClick={createCustomer}>Simpan &amp; Pilih</Button></DialogFooter></DialogContent></Dialog>
       <Dialog open={openKelengkapan} onOpenChange={setOpenKelengkapan}><DialogContent><DialogHeader><DialogTitle>Tambah Kelengkapan</DialogTitle></DialogHeader><div className="space-y-3"><div><Label><span className="text-red-500">*</span> Nama kelengkapan</Label><Input value={newCompleteness.name} onChange={(e) => setNewCompleteness({ ...newCompleteness, name: e.target.value })} placeholder="Mis. Anti gores" className="mt-1" /></div><div><Label>Kondisi awal</Label><Input value={newCompleteness.conditionNote} onChange={(e) => setNewCompleteness({ ...newCompleteness, conditionNote: e.target.value })} className="mt-1" /></div></div><DialogFooter><Button variant="outline" onClick={() => setOpenKelengkapan(false)}>Batal</Button><Button onClick={addCompleteness}>Simpan</Button></DialogFooter></DialogContent></Dialog>
       <Dialog open={openLayanan} onOpenChange={setOpenLayanan}><DialogContent><DialogHeader><DialogTitle>Tambah Layanan</DialogTitle></DialogHeader><div className="space-y-3"><div><Label><span className="text-red-500">*</span> Layanan</Label><Select value={newLayanan} onValueChange={setNewLayanan} className="mt-1"><option value="">Pilih layanan</option>{(layananList as any[]).filter((l) => !selectedLayanan.includes(l.id)).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</Select></div><div><Label><span className="text-red-500">*</span> Biaya (Rp)</Label><MoneyInput value={Number(newLayananCost || 0)} onChange={(n) => setNewLayananCost(n ? String(n) : '')} className="mt-1" /></div><div><Label>Tag / mapping kerusakan</Label><div className="mt-1"><TagCombobox value={newLayananTags} onChange={setNewLayananTags} localSuggestions={allTags.filter((t) => !newLayananTags.includes(t))} suggestRemote={suggestTags} placeholder="Mis. Lcd, Bootloop..." /></div></div>{newLayanan && <div className="flex items-center gap-2 rounded-md border bg-muted p-2 text-xs"><Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700">{Number((layananList as any[]).find((l) => l.id === newLayanan)?.slaHours || 0)}h</Badge> Estimasi selesai mengikuti total antrian SLA.</div>}</div><DialogFooter><Button variant="outline" onClick={() => setOpenLayanan(false)}>Batal</Button><Button onClick={addLayanan}>Tambah</Button></DialogFooter></DialogContent></Dialog>
-      <Dialog open={openBarang} onOpenChange={setOpenBarang}><DialogContent><DialogHeader><DialogTitle>Tambah Barang</DialogTitle></DialogHeader><div className="space-y-3"><div><Label><span className="text-red-500">*</span> Gudang sumber</Label><Select value={barangWarehouseId} onValueChange={(id) => { setBarangWarehouseId(id); setProductDraft(null); setProductSearch(''); }} disabled={!form.outlet} className="mt-1"><option value="">{form.outlet ? 'Pilih Gudang' : 'Pilih Outlet dulu di form utama'}</option>{(warehouses as any[]).map((w: any) => <option key={w.id} value={w.id}>{w.name}</option>)}</Select></div><div className="relative"><Label>Cari produk</Label><Input value={productSearch} onChange={(e) => { setProductSearch(e.target.value); setProductDraft(null); }} className="mt-1" /><Search className="absolute right-3 top-8 h-4 w-4 text-muted-foreground" />{productResults.length > 0 && !productDraft && <div className="absolute z-10 mt-1 max-h-40 w-full overflow-auto rounded-md border bg-white shadow">{productResults.map((p: any) => <button key={p.id} type="button" className="block w-full border-b px-3 py-2 text-left text-sm hover:bg-muted" onClick={() => selectProduct(p)}>{p.name} · {formatCurrency(Number(p.sellingPrice || 0))}</button>)}</div>}</div>{productDraft && <><div className="rounded-md border bg-muted p-2 text-sm">{productDraft.name}<span className="float-right text-green-700">Stok: {productDraft.available ?? '—'}</span></div><div className="grid grid-cols-3 gap-3"><div><Label>Harga</Label><Input value={formatCurrency(Number(productDraft.sellingPrice || 0))} readOnly className="mt-1" /></div><div><Label>Qty</Label><Input type="number" min={1} value={productDraftQty} onChange={(e) => setProductDraftQty(Math.max(1, Number(e.target.value)))} className="mt-1" /></div><div><Label>Garansi</Label><Input type="number" min={0} value={productDraftWarranty || ''} onChange={(e) => setProductDraftWarranty(Math.max(0, Number(e.target.value)))} className="mt-1" /></div></div><div className="flex justify-end border-t pt-3 text-sm">Subtotal: <b className="ml-2">{formatCurrency(Number(productDraft.sellingPrice || 0) * productDraftQty)}</b></div></>}</div><DialogFooter><Button variant="outline" onClick={() => setOpenBarang(false)}>Batal</Button><Button onClick={addProduct} disabled={!productDraft}>Tambah</Button></DialogFooter></DialogContent></Dialog>
+      <Dialog open={openBarang} onOpenChange={setOpenBarang}><DialogContent><DialogHeader><DialogTitle>Tambah Barang</DialogTitle></DialogHeader><div className="space-y-3"><div><Label><span className="text-red-500">*</span> Gudang sumber</Label><Select value={barangWarehouseId} onValueChange={(id) => { setBarangWarehouseId(id); setProductDraft(null); setProductSearch(''); }} disabled={!form.outlet} className="mt-1"><option value="">{form.outlet ? 'Pilih Gudang' : 'Pilih Outlet dulu di form utama'}</option>{(warehouses as any[]).map((w: any) => <option key={w.id} value={w.id}>{w.name}</option>)}</Select></div><div className="relative"><Label>Cari produk</Label><Input value={productSearch} onChange={(e) => { setProductSearch(e.target.value); setProductDraft(null); }} className="mt-1" /><Search className="absolute right-3 top-8 h-4 w-4 text-muted-foreground" />{productResults.length > 0 && !productDraft && <div className="absolute z-10 mt-1 max-h-40 w-full overflow-auto rounded-md border bg-white shadow">{productResults.map((p: any) => <button key={p.id} type="button" className="block w-full border-b px-3 py-2 text-left text-sm hover:bg-muted" onClick={() => selectProduct(p)}>{p.name} · {formatCurrency(Number(p.sellingPrice || 0))}</button>)}</div>}</div>{productDraft && <><div className="rounded-md border bg-muted p-2 text-sm">{productDraft.name}<span className="float-right text-green-700">Stok: {productDraft.available ?? '—'}</span></div><div className="grid grid-cols-3 gap-3"><div><Label>Harga</Label><Input value={formatCurrency(Number(productDraft.sellingPrice || 0))} readOnly className="mt-1" /></div><div><Label>Qty</Label><Input inputMode="numeric" value={productDraftQty || ''} placeholder="1" onChange={(e) => setProductDraftQty(Number(e.target.value.replace(/\D/g, '')) || 0)} className="mt-1" /></div><div><Label>Garansi</Label><Input inputMode="numeric" value={productDraftWarranty || ''} placeholder="0" onChange={(e) => setProductDraftWarranty(Number(e.target.value.replace(/\D/g, '')) || 0)} className="mt-1" /></div></div><div className="flex justify-end border-t pt-3 text-sm">Subtotal: <b className="ml-2">{formatCurrency(Number(productDraft.sellingPrice || 0) * productDraftQty)}</b></div></>}</div><DialogFooter><Button variant="outline" onClick={() => setOpenBarang(false)}>Batal</Button><Button onClick={addProduct} disabled={!productDraft}>Tambah</Button></DialogFooter></DialogContent></Dialog>
     </div>
   );
 }

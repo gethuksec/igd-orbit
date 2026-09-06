@@ -37,6 +37,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { BreadcrumbHeader } from '@/components/shared';
+import TagCombobox from '@/components/services/TagCombobox';
 import { serviceOrdersService } from '@/services/service-orders.service';
 import { formatCurrency } from '@/utils/format';
 
@@ -102,8 +103,9 @@ export default function SmartRepairDetailPage() {
   const [openTeknisi, setOpenTeknisi] = useState(false);
   const [techId, setTechId] = useState('');
   const [openWaktu, setOpenWaktu] = useState(false);
-  const [inlineLayanan, setInlineLayanan] = useState(false);
-  const [layananPick, setLayananPick] = useState('');
+  const [openTambahLayanan, setOpenTambahLayanan] = useState(false);
+  const [layananModalPick, setLayananModalPick] = useState('');
+  const [layananModalTags, setLayananModalTags] = useState<string[]>([]);
   const [waktuLayanan, setWaktuLayanan] = useState('');
   const [waktuAlasan, setWaktuAlasan] = useState('');
   const [waktuEstimasi, setWaktuEstimasi] = useState('');
@@ -147,8 +149,17 @@ export default function SmartRepairDetailPage() {
   const { data: serviceTypes = [] } = useQuery({
     queryKey: ['sr-service-types'],
     queryFn: () => fetchList('/api/v1/service-types'),
-    enabled: openWaktu || inlineLayanan,
+    enabled: openWaktu || openTambahLayanan,
   });
+
+  // IGDERP-136 fix round: saran tag server (UpperFirst, cap 5) untuk modal tambah layanan
+  const suggestTags = useCallback(
+    async (qq: string) => {
+      const rows = await fetchList('/api/v1/service-orders/tags/suggest?q=' + encodeURIComponent(qq) + '&take=5');
+      return (rows as any[]).map((r) => String(r.name || '')).filter(Boolean);
+    },
+    [fetchList],
+  );
 
   const { data: posFaktur = null } = useQuery({
     queryKey: ['sr-pos-faktur', id],
@@ -164,6 +175,13 @@ export default function SmartRepairDetailPage() {
     queryFn: () =>
       fetchList(`/api/v1/pos/products?q=${encodeURIComponent(barangSearch)}&limit=10`),
     enabled: openBarang && barangSearch.length >= 2,
+  });
+
+  // IGDERP-136 fix round: daftar gudang outlet utk pilihan gudang per-baris barang
+  const { data: detailWarehouses = [] } = useQuery({
+    queryKey: ['sr-detail-warehouses', order?.branchId || ''],
+    queryFn: () => fetchList(`/api/v1/pos/warehouses?outletId=${encodeURIComponent(order?.branchId || '')}`),
+    enabled: openBarang && Boolean(order?.branchId),
   });
 
   const statusMutation = useMutation({
@@ -221,8 +239,9 @@ export default function SmartRepairDetailPage() {
       serviceOrdersService.addLayanan(id!, payload),
     onSuccess: () => {
       toast.success('Layanan berhasil ditambahkan');
-      setInlineLayanan(false);
-      setLayananPick('');
+      setOpenTambahLayanan(false);
+      setLayananModalPick('');
+      setLayananModalTags([]);
       queryClient.invalidateQueries({ queryKey: ['service-order', id] });
     },
     onError: (err: any) => toast.error(err.response?.data?.message || 'Gagal tambah layanan'),
@@ -513,22 +532,7 @@ export default function SmartRepairDetailPage() {
                   </div>
                   {status === 'in-progress' && !isCancelled && (
                     <div className="mt-2 border-t border-dashed border-gray-200 pt-2">
-                      {!inlineLayanan ? (
-                        <Button variant="link" size="sm" className="px-2 text-primary-600" onClick={() => setInlineLayanan(true)}>
-                          Tambah Layanan
-                        </Button>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <Select value={layananPick} onValueChange={setLayananPick} className="h-9 flex-1">
-                            <option value="">Pilih layanan</option>
-                            {(serviceTypes as any[])
-                              .filter((st) => !(order.layanan as any[]).some((l) => l.serviceTypeId === st.id))
-                              .map((st) => <option key={st.id} value={st.id}>{st.name}</option>)}
-                          </Select>
-                          <Button size="sm" disabled={!layananPick || addLayananMutation.isPending} onClick={() => addLayananMutation.mutate({ serviceTypeId: layananPick })}>Tambah</Button>
-                          <Button variant="outline" size="sm" onClick={() => { setInlineLayanan(false); setLayananPick(''); }}>Batal</Button>
-                        </div>
-                      )}
+                      <p className="px-2 text-xs text-gray-400">Tambah layanan via menu Aksi Status.</p>
                     </div>
                   )}
                 </div>
@@ -723,6 +727,14 @@ export default function SmartRepairDetailPage() {
               {(!status || status !== 'in-progress') && (
                 <DropdownMenuItem disabled>
                   Tambah Waktu
+                </DropdownMenuItem>
+              )}
+              {status === 'in-progress' && !isCancelled && (
+                <DropdownMenuItem
+                  className="font-semibold"
+                  onClick={() => { setLayananModalPick(''); setLayananModalTags([]); setOpenTambahLayanan(true); }}
+                >
+                  Tambah Layanan
                 </DropdownMenuItem>
               )}
               {(status === 'in-progress' || status === 'ready') && !isCancelled && (
@@ -1018,9 +1030,10 @@ export default function SmartRepairDetailPage() {
                           {
                             productId: p.id,
                             name: p.name || 'Produk',
-                            quantity: 1,
-                            price: p.sellingPrice || p.price || 0,
-                            warrantyDays: p.warrantyDays ?? 90,
+                            quantity: '1',
+                            price: String(p.sellingPrice || p.price || 0),
+                            warrantyDays: String(p.warrantyDays ?? 90),
+                            warehouseId: (order as any)?.warehouseId || '',
                           },
                         ]);
                         setBarangSearch('');
@@ -1040,6 +1053,7 @@ export default function SmartRepairDetailPage() {
                   <thead>
                     <tr className="text-xs uppercase text-gray-500 bg-gray-50 border-b border-gray-100">
                       <th className="text-left px-3 py-2 font-semibold">Barang</th>
+                      <th className="text-left px-2 py-2 font-semibold">Gudang</th>
                       <th className="text-center px-2 py-2 font-semibold w-16">Qty</th>
                       <th className="text-right px-2 py-2 font-semibold w-28">Harga</th>
                       <th className="text-center px-2 py-2 font-semibold w-24">Garansi (hari)</th>
@@ -1051,47 +1065,63 @@ export default function SmartRepairDetailPage() {
                     {barangRows.map((r, idx) => (
                       <tr key={idx} className="border-b border-gray-50">
                         <td className="px-3 py-2 font-medium">{r.name}</td>
+                        <td className="px-2 py-2">
+                          <Select
+                            value={r.warehouseId || ''}
+                            onChange={(e) =>
+                              setBarangRows((rows) =>
+                                rows.map((x, i) => (i === idx ? { ...x, warehouseId: e.target.value } : x)),
+                              )
+                            }
+                            className="h-8 text-xs"
+                          >
+                            <option value="">Pilih Gudang</option>
+                            {(detailWarehouses as any[]).map((w: any) => (
+                              <option key={w.id} value={w.id}>{w.name}</option>
+                            ))}
+                          </Select>
+                        </td>
                         <td className="text-center py-2">
                           <Input
-                            type="number"
-                            min={1}
+                            inputMode="numeric"
                             className="w-16 text-center"
+                            placeholder="1"
                             value={r.quantity}
                             onChange={(e) =>
                               setBarangRows((rows) =>
-                                rows.map((x, i) => (i === idx ? { ...x, quantity: Number(e.target.value) } : x)),
+                                rows.map((x, i) => (i === idx ? { ...x, quantity: e.target.value.replace(/\D/g, '') } : x)),
                               )
                             }
                           />
                         </td>
                         <td className="text-right py-2">
                           <Input
-                            type="number"
-                            min={0}
+                            inputMode="numeric"
                             className="w-28 text-right"
-                            value={r.price}
+                            placeholder="0"
+                            value={r.price ? Number(r.price).toLocaleString('id-ID') : ''}
                             onChange={(e) =>
                               setBarangRows((rows) =>
-                                rows.map((x, i) => (i === idx ? { ...x, price: Number(e.target.value) } : x)),
+                                rows.map((x, i) => (i === idx ? { ...x, price: e.target.value.replace(/\D/g, '') } : x)),
                               )
                             }
                           />
                         </td>
                         <td className="text-center py-2">
                           <Input
-                            type="number"
-                            min={0}
+                            inputMode="numeric"
                             className="w-20 text-center"
+                            placeholder="90"
                             value={r.warrantyDays}
                             onChange={(e) =>
                               setBarangRows((rows) =>
-                                rows.map((x, i) => (i === idx ? { ...x, warrantyDays: Number(e.target.value) } : x)),
+                                rows.map((x, i) => (i === idx ? { ...x, warrantyDays: e.target.value.replace(/\D/g, '') } : x)),
                               )
                             }
                           />
                         </td>
                         <td className="text-right py-2 font-semibold">
-                          {formatCurrency((r.quantity || 0) * (r.price || 0))}
+                          {formatCurrency((Number(r.quantity) || 0) * (Number(r.price) || 0))}
                         </td>
                         <td className="text-center">
                           <button
@@ -1110,7 +1140,7 @@ export default function SmartRepairDetailPage() {
                       <td colSpan={4} className="px-3 py-2 text-right font-bold">Subtotal:</td>
                       <td className="px-3 py-2 text-right font-extrabold text-primary-600">
                         {formatCurrency(
-                          barangRows.reduce((s, r) => s + (r.quantity || 0) * (r.price || 0), 0),
+                          barangRows.reduce((s, r) => s + (Number(r.quantity) || 0) * (Number(r.price) || 0), 0),
                         )}
                       </td>
                       <td />
@@ -1128,13 +1158,54 @@ export default function SmartRepairDetailPage() {
                 addPartsMutation.mutate({
                   parts: barangRows.map((r) => ({
                     productId: r.productId,
-                    quantity: r.quantity,
-                    unitCost: r.price,
-                    unitPrice: r.price,
-                    warrantyDays: r.warrantyDays,
+                    quantity: Math.max(1, Number(r.quantity) || 1),
+                    unitCost: Number(r.price) || 0,
+                    unitPrice: Number(r.price) || 0,
+                    warrantyDays: Math.max(0, Number(r.warrantyDays) || 0),
+                    warehouseId: r.warehouseId || undefined,
                   })),
                 })
               }
+            >
+              Tambah
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={openTambahLayanan} onOpenChange={setOpenTambahLayanan}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Tambah Layanan</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label><span className="text-red-500">*</span> Layanan</Label>
+              <Select value={layananModalPick} onValueChange={setLayananModalPick} className="mt-1">
+                <option value="">Pilih layanan</option>
+                {(serviceTypes as any[])
+                  .filter((st) => !(order.layanan as any[]).some((l) => l.serviceTypeId === st.id))
+                  .map((st) => <option key={st.id} value={st.id}>{st.name} · SLA {formatSLA(Number(st.slaHours))}</option>)}
+              </Select>
+            </div>
+            <div>
+              <Label>Tag / mapping kerusakan</Label>
+              <div className="mt-1">
+                <TagCombobox value={layananModalTags} onChange={setLayananModalTags} localSuggestions={[]} suggestRemote={suggestTags} placeholder="Mis. Lcd, Bootloop..." />
+              </div>
+            </div>
+            {layananModalPick && (
+              <div className="rounded-md border bg-muted p-2 text-xs">
+                Estimasi selesai mengikuti total antrian SLA (dihitung dari Tgl Terima).
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenTambahLayanan(false)}>Batal</Button>
+            <Button
+              disabled={!layananModalPick || addLayananMutation.isPending}
+              onClick={() => addLayananMutation.mutate({
+                serviceTypeId: layananModalPick,
+                notes: layananModalTags.join(', ') || undefined,
+              })}
             >
               Tambah
             </Button>
