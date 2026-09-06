@@ -692,6 +692,8 @@ export default function SmartRepairDetailPage() {
           <p className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-gray-400" /> Aksi Status
           </p>
+          {/* IGDERP-136 bugfix: order batal = semua aksi nonaktif (dropdown disembunyikan) */}
+          {!isCancelled && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="w-full justify-between border-red-200 text-red-700 bg-red-50 hover:bg-red-100">
@@ -771,6 +773,7 @@ export default function SmartRepairDetailPage() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          )}
           <p className="text-xs text-gray-500 mt-4 flex items-center gap-2">
             <Phone className="w-3 h-3" />
             {waLink ? (

@@ -26,11 +26,12 @@ import { ProcessPaymentDto } from './dto/payment.dto';
 import { JournalEntriesService } from '../finance/services/journal-entries.service';
 import { buildPerWordSearch } from '../../shared/services/search.utils';
 
-// IGDERP-136 fix round: DD MMM YYYY HH:mm (ID) untuk catatan timeline (ganti ISO)
+// IGDERP-136 fix round: DD MMM YYYY HH:mm WIB (server UTC → +7 eksplisit)
 const ID_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 function formatIdDateTime(d: Date): string {
+  const wib = new Date(d.getTime() + 7 * 3600 * 1000);
   const p = (n: number) => String(n).padStart(2, '0');
-  return `${p(d.getDate())} ${ID_MONTHS[d.getMonth()]} ${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  return `${p(wib.getUTCDate())} ${ID_MONTHS[wib.getUTCMonth()]} ${wib.getUTCFullYear()} ${p(wib.getUTCHours())}:${p(wib.getUTCMinutes())}`;
 }
 
 @Injectable()
@@ -1090,6 +1091,58 @@ export class ServiceOrdersService {
           changedBy: userId,
         },
       });
+
+      // IGDERP-136 bugfix: cancel mengembalikan stok tiap barang ke gudang sumber + log
+      if (dto.status === 'cancelled') {
+        const cancelReason = dto.notes?.trim() || 'tanpa alasan';
+        const restored: string[] = [];
+        for (const part of serviceOrder.partsUsed || []) {
+          const restoreWarehouseId = (part as any).warehouseId || (serviceOrder as any).warehouseId;
+          if (!restoreWarehouseId) continue;
+          const stock = await tx.productStock.findUnique({
+            where: {
+              productId_warehouseId: { productId: part.productId, warehouseId: restoreWarehouseId },
+            },
+          });
+          if (!stock) continue;
+          const before = Number(stock.quantityAvailable);
+          const after = before + Number(part.quantity);
+          await tx.productStock.update({
+            where: {
+              productId_warehouseId: { productId: part.productId, warehouseId: restoreWarehouseId },
+            },
+            data: { quantityAvailable: new Decimal(after) },
+          });
+          await tx.stockMovement.create({
+            data: {
+              productId: part.productId,
+              warehouseId: restoreWarehouseId,
+              movementType: 'IN',
+              referenceType: 'SERVICE',
+              referenceId: null,
+              quantityChange: new Decimal(Number(part.quantity)),
+              quantityBefore: new Decimal(before),
+              quantityAfter: new Decimal(after),
+              batchNumber: (part as any).batchNumber,
+              serialNumber: (part as any).serialNumber,
+              notes: `Stock returned — service ${(serviceOrder as any).serviceNumber} cancelled (${cancelReason})`,
+              createdBy: userId,
+            },
+          });
+          restored.push(`${(part as any).product?.name || part.productId} ×${Number(part.quantity)}`);
+        }
+        if (restored.length > 0) {
+          await tx.serviceStatusHistory.create({
+            data: {
+              serviceOrderId,
+              status: 'cancelled',
+              previousStatus: serviceOrder.status,
+              notes: `Stok kembali ke gudang (batal: ${cancelReason}): ${restored.join('; ')}`,
+              changedBy: userId,
+            },
+          });
+        }
+      }
 
       // Upload photos if provided
       if (dto.photos && dto.photos.length > 0) {

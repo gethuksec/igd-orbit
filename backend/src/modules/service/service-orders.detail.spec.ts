@@ -123,7 +123,7 @@ describe('ServiceOrdersService detail round — internalNotes, removeLayanan', (
     ).rejects.toThrow('Maksimal 1MB');
   });
 
-  it('addTime note uses DD MMM YYYY HH:mm (no ISO)', async () => {
+  it('addTime note uses DD MMM YYYY HH:mm WIB (UTC+7 eksplisit)', async () => {
     const created: any[] = [];
     const tx = {
       serviceOrder: { update: jest.fn().mockResolvedValue({ id: 'so-1' }) },
@@ -139,6 +139,40 @@ describe('ServiceOrdersService detail round — internalNotes, removeLayanan', (
     const note = created[0]?.notes || '';
     expect(note).not.toContain('T16:38');
     expect(note).toMatch(/Estimasi baru: \d{2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}/);
+    // 16:38 UTC = 23:38 WIB di hari yang sama
+    expect(note).toContain('07 Sep 2026 23:38');
+  });
+
+  it('cancel restores part stock to source gudang + logs reason', async () => {
+    const created: any[] = [];
+    const movements: any[] = [];
+    let stockQty = 10;
+    const tx = {
+      serviceOrder: { update: jest.fn().mockResolvedValue({ id: 'so-1' }) },
+      serviceStatusHistory: { create: jest.fn((args: any) => { created.push(args.data); return Promise.resolve(args.data); }) },
+      productStock: {
+        findUnique: jest.fn().mockResolvedValue({ quantityAvailable: new (require('@prisma/client/runtime/library').Decimal)(10) }),
+        update: jest.fn((args: any) => { stockQty = Number(args.data.quantityAvailable); return Promise.resolve({}); }),
+      },
+      stockMovement: { create: jest.fn((args: any) => { movements.push(args.data); return Promise.resolve(args.data); }) },
+    };
+    const prisma = {
+      serviceOrder: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'so-1', status: 'in-progress', serviceNumber: 'SVC-1', warehouseId: 'wh-0',
+          partsUsed: [
+            { productId: 'p-1', quantity: new (require('@prisma/client/runtime/library').Decimal)(2), warehouseId: 'wh-1', batchNumber: null, serialNumber: null, product: { name: 'LCD' } },
+          ],
+        }),
+      },
+      $transaction: jest.fn((callback: (client: typeof tx) => unknown) => callback(tx)),
+    };
+    const service = new ServiceOrdersService(prisma as any, {} as any, {} as any);
+    await service.updateStatus('so-1', { status: 'cancelled', notes: 'pelanggan batal' } as any, 'u');
+    expect(stockQty).toBe(12);
+    expect(movements[0]).toEqual(expect.objectContaining({ movementType: 'IN', warehouseId: 'wh-1' }));
+    expect(movements[0].notes).toContain('pelanggan batal');
+    expect(created.some((h) => String(h.notes).includes('Stok kembali ke gudang') && String(h.notes).includes('LCD ×2'))).toBe(true);
   });
 
   it('processPayment accumulates DP: sisa lunas → paid + downPayment updated', async () => {
