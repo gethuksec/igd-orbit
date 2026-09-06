@@ -32,7 +32,7 @@ export class BrandsController {
    */
   @Get()
   @UseGuards(RolesGuard)
-  @Roles('OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA')
+  @Roles('SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA', 'CS', 'TC')
   async findAll(@Query() query: ListBrandsDto) {
     try {
       return await this.brandsService.findAll(query);
@@ -49,7 +49,7 @@ export class BrandsController {
    */
   @Get(':id')
   @UseGuards(RolesGuard)
-  @Roles('OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA')
+  @Roles('SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA', 'CS', 'TC')
   async findById(@Param('id') id: string) {
     return this.brandsService.findById(id);
   }

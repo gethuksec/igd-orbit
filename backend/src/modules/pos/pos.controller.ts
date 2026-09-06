@@ -37,8 +37,9 @@ export class PosController {
   async searchProducts(
     @Query('q') query: string,
     @Query('limit') limit?: string,
+    @Query('warehouseId') warehouseId?: string,
   ) {
-    return this.posService.searchProducts(query, limit ? parseInt(limit) : 20);
+    return this.posService.searchProducts(query, limit ? parseInt(limit) : 20, warehouseId);
   }
 
   @Get('customers')

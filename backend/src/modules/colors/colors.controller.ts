@@ -32,7 +32,7 @@ export class ColorsController {
    */
   @Get()
   @UseGuards(RolesGuard)
-  @Roles('OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA')
+  @Roles('SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA', 'CS', 'TC')
   async findAll(@Query() query: ListColorsDto) {
     try {
       return await this.colorsService.findAll(query);
@@ -49,7 +49,7 @@ export class ColorsController {
    */
   @Get(':id')
   @UseGuards(RolesGuard)
-  @Roles('OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA')
+  @Roles('SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA', 'CS', 'TC')
   async findById(@Param('id') id: string) {
     return this.colorsService.findById(id);
   }

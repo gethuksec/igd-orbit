@@ -32,9 +32,18 @@ async function bootstrap(): Promise<void> {
       // Join multiple validation messages into one readable string instead of
       // an array (React renders arrays concatenated — "requiredmust be a string")
       exceptionFactory: (errors) => {
-        const messages = errors
-          .map((e) => Object.values(e.constraints || {}).join('; '))
-          .join(', ');
+        // Flatten nested (children) errors too — otherwise failures inside
+        // parts[]/completenessItems[] surface as a bare "Validation failed".
+        const flat: string[] = [];
+        const walk = (list: any[], prefix: string) => {
+          for (const e of list) {
+            const path = prefix ? `${prefix}.${e.property}` : String(e.property);
+            for (const msg of Object.values(e.constraints || {})) flat.push(`${path}: ${msg}`);
+            if (e.children?.length) walk(e.children, path);
+          }
+        };
+        walk(errors as any[], '');
+        const messages = flat.join(', ');
         return new BadRequestException(messages || 'Validation failed');
       },
     }),

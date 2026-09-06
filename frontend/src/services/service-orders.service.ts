@@ -105,6 +105,11 @@ export const serviceOrdersService = {
     return response.data.data || response.data;
   },
 
+  async addLayanan(id: string, payload: { serviceTypeId: string; notes?: string }) {
+    const response = await api.post(`/service-orders/${id}/layanan`, payload);
+    return response.data.data || response.data;
+  },
+
   async complete(id: string) {
     const response = await api.post(`/service-orders/${id}/complete`, {});
     return response.data.data || response.data;

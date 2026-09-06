@@ -101,6 +101,8 @@ export default function SmartRepairDetailPage() {
   const [openTeknisi, setOpenTeknisi] = useState(false);
   const [techId, setTechId] = useState('');
   const [openWaktu, setOpenWaktu] = useState(false);
+  const [inlineLayanan, setInlineLayanan] = useState(false);
+  const [layananPick, setLayananPick] = useState('');
   const [waktuLayanan, setWaktuLayanan] = useState('');
   const [waktuAlasan, setWaktuAlasan] = useState('');
   const [waktuEstimasi, setWaktuEstimasi] = useState('');
@@ -140,7 +142,7 @@ export default function SmartRepairDetailPage() {
   const { data: serviceTypes = [] } = useQuery({
     queryKey: ['sr-service-types'],
     queryFn: () => fetchList('/api/v1/service-types'),
-    enabled: openWaktu,
+    enabled: openWaktu || inlineLayanan,
   });
 
   const { data: posFaktur = null } = useQuery({
@@ -207,6 +209,18 @@ export default function SmartRepairDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['service-order', id] });
     },
     onError: (err: any) => toast.error(err.response?.data?.message || 'Gagal tambah barang'),
+  });
+
+  const addLayananMutation = useMutation({
+    mutationFn: (payload: { serviceTypeId: string; notes?: string }) =>
+      serviceOrdersService.addLayanan(id!, payload),
+    onSuccess: () => {
+      toast.success('Layanan berhasil ditambahkan');
+      setInlineLayanan(false);
+      setLayananPick('');
+      queryClient.invalidateQueries({ queryKey: ['service-order', id] });
+    },
+    onError: (err: any) => toast.error(err.response?.data?.message || 'Gagal tambah layanan'),
   });
 
   if (isLoading) return <div className="p-10 text-center text-gray-500">Memuat…</div>;
@@ -337,6 +351,28 @@ export default function SmartRepairDetailPage() {
         </div>
       </div>
 
+      {/* ─── Section A2b: Kelengkapan ─── */}
+      {Array.isArray((order as any).completenessItems) && (order as any).completenessItems.length > 0 && (
+        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg">
+              <CheckCircle2 className="w-5 h-5 text-white" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900">Kelengkapan</h2>
+            <span className="text-sm text-gray-500">({(order as any).completenessItems.filter((x: any) => x.checked).length}/{(order as any).completenessItems.length} ada)</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {(order as any).completenessItems.map((item: any, i: number) => (
+              <div key={`${item.name}-${i}`} className="flex items-center gap-2 text-sm">
+                {item.checked ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <Circle className="w-4 h-4 text-gray-300 shrink-0" />}
+                <span className={item.checked ? 'font-medium' : 'text-gray-400'}>{item.name}</span>
+                {item.checked && item.conditionNote && <span className="text-xs text-gray-500">· {item.conditionNote}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ─── Section A3: Layanan & Barang ─── */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
         <div className="flex items-center gap-3 mb-4">
@@ -349,7 +385,52 @@ export default function SmartRepairDetailPage() {
           <div className="border border-gray-100 rounded-xl overflow-hidden">
             <div className="px-3 py-2 bg-gray-50 border-b border-gray-100 text-sm font-bold text-gray-700">Layanan</div>
             <div className="p-2">
-              {order.serviceType ? (
+              {(order.layanan || []).length > 0 ? (
+                <div>
+                  {(order.layanan as any[]).map((l) => (
+                    <div
+                      key={l.id}
+                      className="flex items-center gap-2 px-2 py-2 border-b border-dashed border-gray-100 last:border-b-0"
+                    >
+                      <span className="font-semibold text-sm flex-1">{l.name}{(l.notes ? String(l.notes).split(',').map((t) => t.trim()).filter(Boolean) : []).map((t) => <span key={t} className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-normal text-amber-800">🏷 {t}</span>)}</span>
+                      <span className="text-xs text-gray-600 font-mono whitespace-nowrap">
+                        SLA {formatSLA(Number(l.slaHours))}
+                      </span>
+                      <span className="text-xs text-gray-600 whitespace-nowrap">
+                        {formatCurrency(Number(l.estimatedCost || 0))}
+                      </span>
+                    </div>
+                  ))}
+                  <div className="flex items-center justify-end gap-2 px-2 py-2 border-t border-gray-100 text-sm">
+                    <span className="text-gray-500 font-semibold">Total Layanan:</span>
+                    <span className="font-extrabold text-primary-600">
+                      {formatCurrency(
+                        (order.layanan as any[]).reduce((s, l) => s + Number(l.estimatedCost || 0), 0),
+                      )}
+                    </span>
+                  </div>
+                  {status === 'in-progress' && !isCancelled && (
+                    <div className="mt-2 border-t border-dashed border-gray-200 pt-2">
+                      {!inlineLayanan ? (
+                        <Button variant="link" size="sm" className="px-2 text-primary-600" onClick={() => setInlineLayanan(true)}>
+                          Tambah Layanan
+                        </Button>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <Select value={layananPick} onValueChange={setLayananPick} className="h-9 flex-1">
+                            <option value="">Pilih layanan</option>
+                            {(serviceTypes as any[])
+                              .filter((st) => !(order.layanan as any[]).some((l) => l.serviceTypeId === st.id))
+                              .map((st) => <option key={st.id} value={st.id}>{st.name}</option>)}
+                          </Select>
+                          <Button size="sm" disabled={!layananPick || addLayananMutation.isPending} onClick={() => addLayananMutation.mutate({ serviceTypeId: layananPick })}>Tambah</Button>
+                          <Button variant="outline" size="sm" onClick={() => { setInlineLayanan(false); setLayananPick(''); }}>Batal</Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : order.serviceType ? (
                 <div className="flex items-center gap-2 px-2 py-2 border-b border-dashed border-gray-100">
                   <span className="font-semibold text-sm flex-1">{order.serviceType.name}</span>
                   <span className="text-xs text-gray-600 font-mono">SLA {formatSLA(Number(order.serviceType.slaHours))}</span>
@@ -669,9 +750,14 @@ export default function SmartRepairDetailPage() {
                 className="w-full"
               >
                 <option value="">Pilih layanan</option>
-                {(serviceTypes as any[]).map((st) => (
+                {((order?.layanan?.length
+                  ? (order.layanan as any[]).map((l) => ({
+                      id: l.serviceTypeId,
+                      name: l.name,
+                    }))
+                  : (serviceTypes as any[]))).map((st: any) => (
                   <option key={st.id} value={st.id}>
-                    {st.name} — {st.code || ''}
+                    {st.name}
                   </option>
                 ))}
               </Select>

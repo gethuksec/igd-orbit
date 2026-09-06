@@ -11,6 +11,7 @@ import { BranchFilter } from '../../common/branch-access.util';
 import { CreateServiceOrderDto } from './dto/create-service-order.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
 import { AddServiceTimeDto } from './dto/add-service-time.dto';
+import { AddLayananDto } from './dto/add-layanan.dto';
 import { AddPartsDto } from './dto/add-parts.dto';
 import { SalesTransactionsService } from '../sales/sales-transactions.service';
 import { QcCheckDto } from './dto/qc-check.dto';
@@ -143,6 +144,71 @@ export class ServiceOrdersService {
     return `INV-SRV-${branch?.code || 'BR'}-${year}${month}-${String(nextNumber).padStart(6, '0')}`;
   }
 
+  /**
+   * IGDERP-136 round 2: resolve a part's source gudang (cross-gudang cross-selling).
+   * Omitted warehouseId falls back to the order/service warehouse; any explicit
+   * warehouse must be an active GOOD OUTLET warehouse of the same branch.
+   */
+  private async resolvePartWarehouse(
+    client: any,
+    warehouseId: string | undefined,
+    fallbackId: string,
+    branchId: string,
+  ): Promise<string> {
+    if (!warehouseId) return fallbackId;
+    if (warehouseId === fallbackId) return fallbackId;
+    const warehouse = await client.warehouse.findUnique({ where: { id: warehouseId } });
+    if (
+      !warehouse ||
+      !warehouse.isActive ||
+      warehouse.type !== 'GOOD' ||
+      warehouse.scope !== 'OUTLET' ||
+      warehouse.outletId !== branchId
+    ) {
+      throw new BadRequestException('Part warehouse must be an active GOOD warehouse of the same outlet');
+    }
+    return warehouse.id;
+  }
+
+  // IGDERP-136 round 5: tag dictionary helpers. Tags stored UpperFirst
+  // ("Lcd", "Layar retak") so "lcd"/"LCD"/"Lcd" collapse to one suggestion.
+  static normalizeTag(raw: string): string {
+    const t = raw.trim().replace(/\s+/g, ' ');
+    if (!t) return '';
+    return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
+  }
+
+  static splitTags(notes?: string | null): string[] {
+    if (!notes) return [];
+    const out: string[] = [];
+    for (const part of notes.split(',')) {
+      const n = ServiceOrdersService.normalizeTag(part);
+      if (n && !out.includes(n)) out.push(n);
+    }
+    return out;
+  }
+
+  private async recordTagUsage(names: string[], db: any = this.prisma) {
+    const unique = [...new Set(names.map((n) => ServiceOrdersService.normalizeTag(n)).filter(Boolean))];
+    for (const name of unique) {
+      if (name.length > 60) throw new BadRequestException('Tag terlalu panjang (maks 60 karakter): ' + name);
+      await db.serviceTag.upsert({
+        where: { name },
+        create: { name, usageCount: 1 },
+        update: { usageCount: { increment: 1 } },
+      });
+    }
+  }
+
+  async suggestTags(q?: string, take = 5) {
+    const clean = (q || '').trim();
+    return this.prisma.serviceTag.findMany({
+      where: clean ? { name: { contains: clean, mode: 'insensitive' } } : undefined,
+      orderBy: [{ usageCount: 'desc' }, { name: 'asc' }],
+      take: Math.min(Math.max(take || 5, 1), 20),
+      select: { name: true, usageCount: true },
+    });
+  }
 
   async create(dto: CreateServiceOrderDto, userId: string, branchId: string) {
     const {
@@ -161,7 +227,8 @@ export class ServiceOrdersService {
       accessoriesIncluded,
       complaint,
       initialDiagnosis,
-      serviceTypeId,
+      serviceTypeId: serviceTypeIdRaw,
+      layananIds,
       serviceSubType,
       estimatedCost,
       priority = 'normal',
@@ -172,9 +239,20 @@ export class ServiceOrdersService {
       otherCost,
     } = dto;
 
+    let serviceTypeId = serviceTypeIdRaw || layananIds?.[0] || undefined;
+    void serviceTypeIdRaw;
+
     // LOCK §5.2 (#2): biaya wajib diisi saat create (Quote dihapus) — Smart Repair flow only
     if (serviceSubType && !Number(estimatedCost) && !Number(dto.finalPrice)) {
       throw new BadRequestException('Biaya service wajib diisi saat create (Quote dihapus)');
+    }
+
+    // IGDERP-136 round 4: mandatory intake fields for Smart Repair (quick/inap)
+    if ((serviceSubType === 'quick' || serviceSubType === 'inap') && !assignedTechnicianId) {
+      throw new BadRequestException('Teknisi wajib dipilih untuk Smart Repair');
+    }
+    if ((serviceSubType === 'quick' || serviceSubType === 'inap') && !dto.deviceUnit?.trim()) {
+      throw new BadRequestException('Nama Barang wajib diisi untuk Smart Repair');
     }
 
     // Validate or create customer
@@ -202,11 +280,49 @@ export class ServiceOrdersService {
         throw new NotFoundException('Service type not found');
       }
 
-      // Calculate SLA
+      // Calculate SLA — anchored at CS-set Tgl Terima (not server now)
       const baseSlaHours = Number(serviceType.slaHours);
       const slaHours = priority === 'urgent' ? baseSlaHours * 0.5 : baseSlaHours;
-      const receivedDate = new Date();
-      slaDueDate = new Date(receivedDate.getTime() + slaHours * 60 * 60 * 1000);
+      const receivedForSla = dto.receivedDate ? new Date(dto.receivedDate) : new Date();
+      slaDueDate = new Date(receivedForSla.getTime() + slaHours * 60 * 60 * 1000);
+    }
+
+    // IGDERP-136: multi-layanan rows (POS-like per row; supersedes single serviceTypeId)
+    let layananRows: Array<{
+      serviceTypeId: string;
+      name: string;
+      slaHours: any;
+      estimatedCost: any;
+      notes?: string;
+    }> = [];
+    if (layananIds && layananIds.length > 0) {
+      const uniqueIds = [...new Set(layananIds)];
+      const types = await this.prisma.serviceType.findMany({
+        where: { id: { in: uniqueIds } },
+        select: { id: true, name: true, slaHours: true, basePrice: true },
+      });
+      const byId = new Map(types.map((t) => [t.id, t]));
+      const itemById = new Map((dto.layananItems || []).map((i) => [i.serviceTypeId, i]));
+      for (const tid of uniqueIds) {
+        const t = byId.get(tid);
+        if (!t) {
+          throw new NotFoundException('Layanan tidak ditemukan: ' + tid);
+        }
+        const item = itemById.get(tid);
+        layananRows.push({
+          serviceTypeId: t.id,
+          name: t.name,
+          slaHours: t.slaHours,
+          estimatedCost: item?.estimatedCost ?? t.basePrice,
+          notes: item?.notes,
+        });
+      }
+      // IGDERP-136 round 4: queue SLA (Σ, not max) anchored at Tgl Terima — matches FE queue
+      const totalHours = layananRows.reduce((sum, r) => sum + Number(r.slaHours), 0);
+      const effHours = priority === 'urgent' ? totalHours * 0.5 : totalHours;
+      const receivedForQueue = dto.receivedDate ? new Date(dto.receivedDate) : new Date();
+      slaDueDate = new Date(receivedForQueue.getTime() + effHours * 60 * 60 * 1000);
+      serviceTypeId = uniqueIds[0];
     }
 
     // Encrypt device password if provided
@@ -214,7 +330,7 @@ export class ServiceOrdersService {
 
     // Resolve parts: validate products exist, compute parts cost + auto finalPrice (E-FE)
     let partsCost: Decimal | null = null;
-    const resolvedParts: Array<{ productId: string; quantity: number; unitPrice: number; purchaseType?: string; notes?: string; costPrice: Decimal }> = [];
+    const resolvedParts: Array<{ productId: string; quantity: number; unitPrice: number; purchaseType?: string; notes?: string; warrantyDays?: number; warehouseId?: string; costPrice: Decimal }> = [];
     if (dto.parts && dto.parts.length > 0) {
       const productIds = [...new Set(dto.parts.map((p) => p.productId))];
       const products = await this.prisma.product.findMany({
@@ -236,6 +352,8 @@ export class ServiceOrdersService {
           unitPrice: p.unitPrice,
           purchaseType: p.purchaseType,
           notes: p.notes,
+          warrantyDays: p.warrantyDays,
+          warehouseId: p.warehouseId,
           costPrice: costMap.get(p.productId) ?? unitPrice,
         });
       }
@@ -270,6 +388,11 @@ export class ServiceOrdersService {
       serviceWarehouse.outletId !== branchId
     ) {
       throw new BadRequestException('An active GOOD warehouse is required for this service order outlet');
+    }
+
+    // IGDERP-136 round 2: resolve each part's source gudang (default = service warehouse)
+    for (const part of resolvedParts) {
+      part.warehouseId = await this.resolvePartWarehouse(this.prisma, part.warehouseId, serviceWarehouse.id, branchId);
     }
 
     return await this.prisma.$transaction(async (tx) => {
@@ -316,17 +439,21 @@ export class ServiceOrdersService {
           priority,
           promisedDate: promisedDate ? new Date(promisedDate) : null,
           slaDueDate,
-          receivedDate: new Date(),
+          // IGDERP-136 v9: CS-settable Tgl Terima (datetime); defaults to now
+          receivedDate: dto.receivedDate ? new Date(dto.receivedDate) : new Date(),
           status: 'pending',
           createdBy: userId,
           customerNotes,
           assignedTechnicianId,
+          layanan: layananRows.length > 0 ? { create: layananRows } : undefined,
           // Smart Repair extension (E-BE2)
           taxPpn: dto.taxPpn ?? false,
           taxIncPpn: dto.taxIncPpn ?? false,
           taxPph22: dto.taxPph22 ?? false,
           taxPph23: dto.taxPph23 ?? false,
           downPayment: dto.downPayment !== undefined ? new Decimal(dto.downPayment) : null,
+          // IGDERP-136 v9: order warranty days (Dalam Garansi); undefined → schema default 30
+          warrantyDays: dto.warrantyDays ?? undefined,
           laborCost: laborCost !== undefined ? new Decimal(laborCost) : null,
           partsCost: partsCost !== null ? partsCost : new Decimal(0),
           otherCost: otherCost !== undefined ? new Decimal(otherCost) : null,
@@ -366,12 +493,19 @@ export class ServiceOrdersService {
             unitPrice: new Decimal(p.unitPrice),
             totalCost: p.costPrice.mul(p.quantity),
             totalPrice: new Decimal(p.quantity).mul(p.unitPrice),
+            warrantyDays: p.warrantyDays ?? null,
+            warehouseId: p.warehouseId ?? null,
             notes: p.notes,
           })),
         });
       }
 
       return serviceOrder;
+    }).then(async (order) => {
+      // IGDERP-136 round 5: feed tag dictionary from used layanan tags (non-fatal)
+      const tags = layananRows.flatMap((r) => ServiceOrdersService.splitTags(r.notes));
+      if (tags.length > 0) await this.recordTagUsage(tags);
+      return order;
     });
   }
 
@@ -441,6 +575,7 @@ export class ServiceOrdersService {
         branch: true,
         customer: true,
         serviceType: true,
+        layanan: true,
         assignedTechnician: {
           select: {
             id: true,
@@ -714,6 +849,63 @@ export class ServiceOrdersService {
     });
   }
 
+  /** IGDERP-136: add one layanan row (POS-like), only at In Progress (CS/teknisi) */
+  async addLayanan(serviceOrderId: string, dto: AddLayananDto, userId: string) {
+    const serviceOrder = await this.prisma.serviceOrder.findUnique({
+      where: { id: serviceOrderId },
+      include: { layanan: true },
+    });
+    if (!serviceOrder) {
+      throw new NotFoundException('Service order tidak ditemukan');
+    }
+    if (serviceOrder.status !== 'in-progress') {
+      throw new BadRequestException('Tambah layanan hanya dapat dilakukan pada status In Progress');
+    }
+    if (serviceOrder.layanan.some((r) => r.serviceTypeId === dto.serviceTypeId)) {
+      throw new BadRequestException('Layanan sudah terpasang pada service order ini');
+    }
+    const st = await this.prisma.serviceType.findUnique({ where: { id: dto.serviceTypeId } });
+    if (!st) {
+      throw new NotFoundException('Layanan tidak ditemukan');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const row = await tx.serviceOrderLayanan.create({
+        data: {
+          serviceOrderId,
+          serviceTypeId: st.id,
+          name: st.name,
+          slaHours: st.slaHours,
+          estimatedCost: st.basePrice,
+          notes: dto.notes,
+        },
+      });
+      // IGDERP-136 round 5: feed tag dictionary from the added row's tags
+      await this.recordTagUsage(ServiceOrdersService.splitTags(dto.notes), tx);
+      const allHours = [...serviceOrder.layanan.map((r) => Number(r.slaHours)), Number(st.slaHours)];
+      const maxHours = Math.max(...allHours);
+      const effHours = serviceOrder.priority === 'urgent' ? maxHours * 0.5 : maxHours;
+      const newDue = new Date(Date.now() + effHours * 60 * 60 * 1000);
+      const data: any = {};
+      if (!serviceOrder.slaDueDate || serviceOrder.slaDueDate < newDue) {
+        data.slaDueDate = newDue;
+      }
+      if (Object.keys(data).length > 0) {
+        await tx.serviceOrder.update({ where: { id: serviceOrderId }, data });
+      }
+      await tx.serviceStatusHistory.create({
+        data: {
+          serviceOrderId,
+          status: serviceOrder.status,
+          previousStatus: serviceOrder.status,
+          notes: `Tambah Layanan: ${st.name} · Estimasi: Rp ${Number(st.basePrice).toLocaleString('id-ID')}`,
+          changedBy: userId,
+        },
+      });
+      return row;
+    });
+  }
+
   async updateStatus(serviceOrderId: string, dto: UpdateStatusDto, userId: string) {
     const serviceOrder = await this.prisma.serviceOrder.findUnique({
       where: { id: serviceOrderId },
@@ -958,12 +1150,15 @@ export class ServiceOrdersService {
           throw new NotFoundException(`Product ${part.productId} not found`);
         }
 
+        // IGDERP-136 round 2: part source gudang (default = order warehouse)
+        const partWarehouseId = await this.resolvePartWarehouse(tx, (part as any).warehouseId, warehouse.id, serviceOrder.branchId);
+
         // Check stock availability
         const stock = await tx.productStock.findUnique({
           where: {
             productId_warehouseId: {
               productId: part.productId,
-              warehouseId: warehouse.id,
+              warehouseId: partWarehouseId,
             },
           },
         });
@@ -1005,6 +1200,7 @@ export class ServiceOrdersService {
             batchNumber: part.batchNumber,
             serialNumber: part.serialNumber,
             warrantyDays: part.warrantyDays ?? null,
+            warehouseId: partWarehouseId,
             notes: part.notes,
           },
         });
@@ -1018,7 +1214,7 @@ export class ServiceOrdersService {
             where: {
               productId_warehouseId: {
                 productId: part.productId,
-                warehouseId: warehouse.id,
+                warehouseId: partWarehouseId,
               },
             },
             data: {
@@ -1030,7 +1226,7 @@ export class ServiceOrdersService {
           await tx.stockMovement.create({
             data: {
               productId: part.productId,
-              warehouseId: warehouse.id,
+              warehouseId: partWarehouseId,
               movementType: 'OUT',
               referenceType: 'SERVICE',
               referenceId: null, // Foreign key constraint only for SalesTransaction, so set null for SERVICE
@@ -1125,12 +1321,14 @@ export class ServiceOrdersService {
     }
 
     return await this.prisma.$transaction(async (tx) => {
+      // IGDERP-136 round 2: restore to the part's source gudang (fallback = order warehouse)
+      const restoreWarehouseId = (part as any).warehouseId || warehouse.id;
       // Get current stock
       const stock = await tx.productStock.findUnique({
         where: {
           productId_warehouseId: {
             productId: part.productId,
-            warehouseId: warehouse.id,
+            warehouseId: restoreWarehouseId,
           },
         },
       });
@@ -1147,7 +1345,7 @@ export class ServiceOrdersService {
         where: {
           productId_warehouseId: {
             productId: part.productId,
-            warehouseId: warehouse.id,
+            warehouseId: restoreWarehouseId,
           },
         },
         data: {
@@ -1159,7 +1357,7 @@ export class ServiceOrdersService {
       await tx.stockMovement.create({
         data: {
           productId: part.productId,
-          warehouseId: warehouse.id,
+          warehouseId: restoreWarehouseId,
           movementType: 'IN',
           referenceType: 'SERVICE',
           referenceId: null,

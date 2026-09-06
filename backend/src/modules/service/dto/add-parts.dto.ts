@@ -43,6 +43,12 @@ export class ServicePartDto {
   @IsOptional()
   warrantyDays?: number; // Garansi in days (IGDERP-138; autofill from product, editable)
 
+  // IGDERP-136 round 2: source gudang per part (cross-gudang cross-selling); omitted = order warehouse.
+  // NOTE: @IsString (not @IsUUID) — warehouse ids are TEXT, not all RFC UUIDs.
+  @IsString()
+  @IsOptional()
+  warehouseId?: string;
+
   @IsString()
   @IsOptional()
   purchaseType?: 'internal' | 'external'; // 'internal' = stok sendiri, 'external' = beli di luar

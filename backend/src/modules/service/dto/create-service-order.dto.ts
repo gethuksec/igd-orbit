@@ -8,7 +8,9 @@ import {
   IsBoolean,
   IsArray,
   IsDateString,
+  IsInt,
   Matches,
+  MaxLength,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -47,7 +49,35 @@ export class ServicePartItemDto {
   @IsOptional()
   purchaseType?: string; // 'internal' | 'external'
 
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  warrantyDays?: number;
+
+  // IGDERP-136 round 2: source gudang per part (cross-gudang cross-selling); omitted = order warehouse.
+  // NOTE: @IsString (not @IsUUID) — warehouse ids are TEXT, not all RFC UUIDs (cf. service_orders.warehouseId).
   @IsString()
+  @IsOptional()
+  warehouseId?: string;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
+
+export class ServiceLayananItemDto {
+  @IsUUID()
+  serviceTypeId!: string;
+
+  // Per-row Biaya from intake (master basePrice ditched); omitted = master basePrice fallback
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  estimatedCost?: number;
+
+  // Tagging — what damage/part this row maps to (persisted to service_order_layanans.notes)
+  @IsString()
+  @MaxLength(500)
   @IsOptional()
   notes?: string;
 }
@@ -121,9 +151,27 @@ export class CreateServiceOrderDto {
   @IsOptional()
   initialDiagnosis?: string;
 
+  // IGDERP-136 v9: order warranty (Dalam Garansi checkbox + days input; schema default 30 applies when omitted)
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  warrantyDays?: number;
+
   @IsUUID()
   @IsOptional()
   serviceTypeId?: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  layananIds?: string[]; // IGDERP-136: multi-layanan POS-like rows
+
+  // IGDERP-136 round 4: per-row cost + tag (preferred over bare layananIds when present)
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => ServiceLayananItemDto)
+  layananItems?: ServiceLayananItemDto[];
 
   @IsNumber()
   @IsOptional()
@@ -148,6 +196,11 @@ export class CreateServiceOrderDto {
   @IsDateString()
   @IsOptional()
   promisedDate?: string;
+
+  // IGDERP-136 v9: Tgl Terima as datetime (CS-settable; defaults to now)
+  @IsDateString()
+  @IsOptional()
+  receivedDate?: string;
 
   @IsString()
   @IsOptional()
