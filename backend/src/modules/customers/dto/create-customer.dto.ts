@@ -31,6 +31,10 @@ export class CreateCustomerDto {
   @IsOptional()
   tierId?: string;
 
+  @IsString({ message: 'Tier code must be a string' })
+  @IsOptional()
+  tierCode?: string; // Alternative to tierId — resolved to tier.id by code (e.g. GOLD)
+
   @IsString({ message: 'Name must be a string' })
   @IsNotEmpty({ message: 'Customer name is required' })
   name!: string;

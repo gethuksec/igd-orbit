@@ -62,6 +62,18 @@ export default function ProductForm() {
   const [userTypedName, setUserTypedName] = useState('');
   const autoFormatLocked = useRef(false);
   const formInitialized = useRef(false);
+  // IGDERP-65: snapshot of the values loaded from the API in edit mode.
+  // The auto-format effect skips runs while the inputs still match this
+  // snapshot, so opening an edit form never re-formats the already-formatted
+  // name (double/triple Kategori-Brand prefix). Any user change (typing the
+  // name, or changing kategori/warna/brand) breaks equality and re-enables
+  // auto-format — edit-time auto-format keeps working (c7da427 intent).
+  const loadedSnapshot = useRef<{
+    name: string;
+    categoryId: string;
+    color: string;
+    brandId: string;
+  } | null>(null);
 
   const formatProductName = (catId: string, title: string, clr: string, brdId: string) => {
     const catName = Array.isArray(categories)
@@ -79,6 +91,18 @@ export default function ProductForm() {
   useEffect(() => {
     if (!formInitialized.current || autoFormatLocked.current) return;
     if (!formData.categoryId && !formData.color && !formData.brandId) return;
+    // IGDERP-65: on edit-load the name is already formatted — skip until the
+    // user actually changes something (see loadedSnapshot).
+    const snap = loadedSnapshot.current;
+    if (
+      snap &&
+      userTypedName === snap.name &&
+      formData.categoryId === snap.categoryId &&
+      formData.color === snap.color &&
+      formData.brandId === snap.brandId
+    ) {
+      return;
+    }
 
     if (autoFormatTimer.current) clearTimeout(autoFormatTimer.current);
     autoFormatTimer.current = setTimeout(() => {
@@ -140,7 +164,7 @@ export default function ProductForm() {
     queryFn: async () => {
       try {
         const res = await api.get('/customers', {
-          params: { 'filter[customerType]': 'wholesale', limit: 1000 },
+          params: { 'filter[type]': 'wholesale', limit: 100 },
         });
         return res.data.data || res.data || [];
       } catch (error) {
@@ -185,6 +209,14 @@ export default function ProductForm() {
         expiryReturnLimitDays: (product as any).expiryReturnLimitDays || 0,
         memberPricing: (product as any).memberPricing || {},
       });
+      // IGDERP-65: remember exactly what was loaded so the auto-format
+      // effect can tell "untouched after load" apart from "user edited".
+      loadedSnapshot.current = {
+        name: product.name || '',
+        categoryId: product.categoryId || '',
+        color: typeof (product as any).color === 'object' ? (product as any).color?.name || '' : (product as any).color || '',
+        brandId: product.brandId || '',
+      };
       formInitialized.current = true;
     }
   }, [product]);
