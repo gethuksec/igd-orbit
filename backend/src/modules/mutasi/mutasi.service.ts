@@ -4,10 +4,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services/prisma.service';
+import { CreateMutasiDto } from './dto/create-mutasi.dto';
 import {
-  CreateTransferStockDto,
   TransferStockItemDto,
-} from './dto/create-transfer-stock.dto';
+} from '../transfer-stock/dto/create-transfer-stock.dto';
 import { Decimal } from '@prisma/client/runtime/library';
 
 interface MergedLine {
@@ -15,8 +15,31 @@ interface MergedLine {
   quantity: number;
 }
 
+type WarehouseRow = {
+  id: string;
+  code: string;
+  name: string;
+  type: string;
+  scope: string;
+  outletId: string | null;
+  isActive: boolean;
+};
+
+/**
+ * Mutasi (IGDERP-140) — CENTRAL ↔ OUTLET + OUTLET ↔ OUTLET movement.
+ *
+ * Executed by SODO (purchasing team) under permission key `inventory.mutasi`.
+ * Same contract as Transfer Stock v1 (IGDERP-78): quantity-only, atomic
+ * OUT/IN, StockMovement rows, no GL/cash/sales/purchase transaction.
+ *
+ * Valid combinations:
+ *  - SYSTEM (GOOD|BAD — central-good / central-bad) ↔ OUTLET/GOOD — either direction
+ *  - OUTLET/GOOD ↔ OUTLET/GOOD — only when the outlets differ
+ * Rejected: same warehouse, SYSTEM ↔ SYSTEM, OUTLET ↔ OUTLET of one outlet
+ * (intra-outlet same-outlet moves are Transfer Stock, IGDERP-139).
+ */
 @Injectable()
-export class TransferStockService {
+export class MutasiService {
   constructor(private prisma: PrismaService) {}
 
   private generateDocumentNumber(): string {
@@ -24,7 +47,7 @@ export class TransferStockService {
     const random = Math.floor(Math.random() * 1000000)
       .toString()
       .padStart(6, '0');
-    return `TRF-${dateStr}-${random}`;
+    return `MUT-${dateStr}-${random}`;
   }
 
   /**
@@ -46,83 +69,72 @@ export class TransferStockService {
     return Array.from(merged.values());
   }
 
+  private isValidMoveWarehouse(w: WarehouseRow): boolean {
+    // Outlet GOOD warehouses and system-scoped central warehouses are both
+    // valid move endpoints; outlet BAD warehouses are not part of the model.
+    if (!w.isActive) return false;
+    if (w.scope === 'SYSTEM') return w.type === 'GOOD' || w.type === 'BAD';
+    return w.type === 'GOOD' && !!w.outletId;
+  }
+
   /**
-   * Create a completed Transfer Stock (v2) document atomically — INTRA-OUTLET:
-   * - StockTransfer + StockTransferItem rows (status 'completed', transferType 'transfer')
+   * Validate the pair (from/to) against the Mutasi rules.
+   */
+  private validatePair(from: WarehouseRow, to: WarehouseRow) {
+    if (from.id === to.id) {
+      throw new BadRequestException(
+        'Source and destination warehouse must differ',
+      );
+    }
+    if (from.scope === 'SYSTEM' && to.scope === 'SYSTEM') {
+      throw new BadRequestException(
+        'Central-to-central moves are not allowed; use central ↔ outlet only',
+      );
+    }
+    if (from.scope === 'OUTLET' && to.scope === 'OUTLET') {
+      if (from.outletId === to.outletId) {
+        throw new BadRequestException(
+          'Same-outlet moves are Transfer Stock (IGDERP-139), not Mutasi',
+        );
+      }
+    }
+  }
+
+  private async resolveWarehouse(id: string, label: string): Promise<WarehouseRow> {
+    const wh = await this.prisma.warehouse.findUnique({ where: { id } });
+    if (!wh) {
+      throw new NotFoundException(`${label} warehouse not found`);
+    }
+    if (!this.isValidMoveWarehouse(wh)) {
+      throw new BadRequestException(
+        `${label} warehouse is not a valid move endpoint (outlet GOOD or system central warehouse)`,
+      );
+    }
+    return wh;
+  }
+
+  /**
+   * Create a completed Mutasi document atomically:
+   * - StockTransfer + StockTransferItem rows (status 'completed',
+   *   transferType 'mutasi')
    * - Source ProductStock decrement (must exist with enough quantity)
    * - Destination ProductStock increment (row created when missing)
-   * - StockMovement OUT row at source + IN row at destination
-   *   (referenceType TRANSFER, referenceId = transfer id)
-   * Source and destination are GOOD/OUTLET warehouses of the SAME outlet and
-   * must differ. No GL / cash / sales / purchase / finance transaction is
-   * created — the movement is quantity-only.
-   * Central/outlet + outlet↔outlet moves belong to Mutasi (IGDERP-140).
+   * - StockMovement OUT at source + IN at destination (referenceType TRANSFER)
+   * No GL / cash / sales / purchase / finance transaction is created.
    */
-  async create(dto: CreateTransferStockDto, userId: string) {
+  async create(dto: CreateMutasiDto, userId: string) {
     if (!dto.items || dto.items.length === 0) {
       throw new BadRequestException('At least one product line is required');
     }
 
+    const fromWarehouse = await this.resolveWarehouse(
+      dto.fromWarehouseId,
+      'Source',
+    );
+    const toWarehouse = await this.resolveWarehouse(dto.toWarehouseId, 'Destination');
+    this.validatePair(fromWarehouse, toWarehouse);
+
     const lines = this.mergeItems(dto.items);
-
-    // ── Source: outlet + outlet-owned GOOD warehouse ──
-    const outlet = await this.prisma.branch.findUnique({
-      where: { id: dto.outletId },
-    });
-    if (!outlet) {
-      throw new NotFoundException('Source outlet not found');
-    }
-
-    const fromWarehouse = await this.prisma.warehouse.findUnique({
-      where: { id: dto.warehouseId },
-    });
-    if (!fromWarehouse) {
-      throw new NotFoundException('Source warehouse not found');
-    }
-    if (!fromWarehouse.isActive) {
-      throw new BadRequestException('Cannot transfer from an inactive warehouse');
-    }
-    if (fromWarehouse.type !== 'GOOD' || fromWarehouse.scope !== 'OUTLET') {
-      throw new BadRequestException(
-        'Source must be an outlet GOOD warehouse',
-      );
-    }
-    if (fromWarehouse.outletId !== dto.outletId) {
-      throw new BadRequestException(
-        'Source warehouse must belong to the selected source outlet',
-      );
-    }
-
-    // ── Destination: GOOD/OUTLET warehouse of the SAME outlet, different from source ──
-    if (!dto.toWarehouseId) {
-      throw new BadRequestException('Destination warehouse is required');
-    }
-    if (dto.toWarehouseId === dto.warehouseId) {
-      throw new BadRequestException(
-        'Destination warehouse must differ from the source warehouse',
-      );
-    }
-    const dest = await this.prisma.warehouse.findUnique({
-      where: { id: dto.toWarehouseId },
-    });
-    if (!dest) {
-      throw new NotFoundException('Destination warehouse not found');
-    }
-    if (!dest.isActive) {
-      throw new BadRequestException('Cannot transfer to an inactive warehouse');
-    }
-    if (dest.type !== 'GOOD' || dest.scope !== 'OUTLET') {
-      throw new BadRequestException(
-        'Destination must be an outlet GOOD warehouse',
-      );
-    }
-    if (dest.outletId !== dto.outletId) {
-      throw new BadRequestException(
-        'Transfer Stock v2 is intra-outlet: destination warehouse must belong to the source outlet (cross-outlet moves are Mutasi, IGDERP-140)',
-      );
-    }
-    const toWarehouse = dest;
-    const toOutletId = dest.outletId;
 
     // ── Products + snapshots ──
     const productIds = lines.map((l) => l.productId);
@@ -152,9 +164,9 @@ export class TransferStockService {
           transferNumber: documentNumber,
           fromWarehouseId: fromWarehouse.id,
           toWarehouseId: toWarehouse.id,
-          fromBranchId: outlet.id,
-          toBranchId: toOutletId,
-          transferType: 'transfer',
+          fromBranchId: fromWarehouse.outletId,
+          toBranchId: toWarehouse.outletId,
+          transferType: 'mutasi',
           status: 'completed',
           requestedBy: userId,
           notes: dto.notes,
@@ -205,14 +217,14 @@ export class TransferStockService {
           data: {
             productId: line.productId,
             warehouseId: fromWarehouse.id,
-            branchId: outlet.id,
+            branchId: fromWarehouse.outletId,
             movementType: 'OUT',
             referenceType: 'TRANSFER',
             referenceId: transfer.id,
             quantityChange: new Decimal(-line.quantity),
             quantityBefore: new Decimal(srcBefore),
             quantityAfter: new Decimal(srcAfter),
-            notes: `Transfer: ${documentNumber} - ${fromWarehouse.name} → ${toWarehouse.name}`,
+            notes: `Mutasi: ${documentNumber} - ${fromWarehouse.name} → ${toWarehouse.name}`,
             createdBy: userId,
           },
         });
@@ -245,7 +257,7 @@ export class TransferStockService {
             data: {
               productId: line.productId,
               warehouseId: toWarehouse.id,
-              branchId: toOutletId,
+              branchId: toWarehouse.outletId,
               quantityAvailable: new Decimal(dstAfter),
               quantityReserved: new Decimal(0),
               quantityDamaged: new Decimal(0),
@@ -256,14 +268,14 @@ export class TransferStockService {
           data: {
             productId: line.productId,
             warehouseId: toWarehouse.id,
-            branchId: toOutletId,
+            branchId: toWarehouse.outletId,
             movementType: 'IN',
             referenceType: 'TRANSFER',
             referenceId: transfer.id,
             quantityChange: new Decimal(line.quantity),
             quantityBefore: new Decimal(dstBefore),
             quantityAfter: new Decimal(dstAfter),
-            notes: `Transfer: ${documentNumber} - ${fromWarehouse.name} → ${toWarehouse.name}`,
+            notes: `Mutasi: ${documentNumber} - ${fromWarehouse.name} → ${toWarehouse.name}`,
             createdBy: userId,
           },
         });
@@ -288,21 +300,18 @@ export class TransferStockService {
     limit?: number;
     outletId?: string;
     warehouseId?: string;
-    transferType?: string;
   }) {
     const page = query.page && query.page > 0 ? query.page : 1;
     const limit = query.limit && query.limit > 0 ? Math.min(query.limit, 100) : 20;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
-    if (query.transferType) {
-      where.transferType = query.transferType;
-    }
+    const where: any = { transferType: 'mutasi' };
     if (query.outletId) {
       where.OR = [{ fromBranchId: query.outletId }, { toBranchId: query.outletId }];
     }
     if (query.warehouseId) {
       where.OR = [
+        ...(where.OR || []),
         { fromWarehouseId: query.warehouseId },
         { toWarehouseId: query.warehouseId },
       ];
@@ -361,8 +370,8 @@ export class TransferStockService {
         toBranch: true,
       },
     });
-    if (!doc) {
-      throw new NotFoundException('Transfer document not found');
+    if (!doc || doc.transferType !== 'mutasi') {
+      throw new NotFoundException('Mutasi document not found');
     }
 
     let picName: string | null = null;
@@ -390,32 +399,38 @@ export class TransferStockService {
     };
   }
 
-  // ── Supporting lists for the Transfer Stock form ──
+  // ── Supporting lists for the Mutasi form ──
 
   /**
-   * Active GOOD OUTLET warehouses — optionally scoped to an outlet.
-   * Used for both the source warehouse and the destination warehouse
-   * (outlet mode).
+   * All active move-endpoint warehouses: system central warehouses
+   * (central-good / central-bad) + outlet GOOD warehouses, each carrying its
+   * outlet info so the UI can group/sort them (central first, then per outlet).
    */
-  async findWarehouses(outletId?: string) {
-    const where: any = {
-      type: 'GOOD',
-      scope: 'OUTLET',
-      isActive: true,
-    };
-    if (outletId) where.outletId = outletId;
-
+  async findWarehouses() {
     return this.prisma.warehouse.findMany({
-      where,
-      select: { id: true, code: true, name: true, type: true, scope: true, outletId: true },
-      orderBy: { name: 'asc' },
+      where: {
+        isActive: true,
+        OR: [
+          { scope: 'SYSTEM' },
+          { type: 'GOOD', scope: 'OUTLET' },
+        ],
+      },
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        type: true,
+        scope: true,
+        outletId: true,
+        outlet: { select: { id: true, name: true, code: true } },
+      },
+      orderBy: [{ scope: 'asc' }, { type: 'asc' }, { name: 'asc' }],
     });
   }
 
   /**
-   * Product search for the line picker. When warehouseId (the source
-   * warehouse) is provided, each result carries the available quantity in
-   * that warehouse so the picker can show remaining stock.
+   * Product search for the line picker, with available quantity in the
+   * selected source warehouse.
    */
   async searchProducts(q?: string, limit = 15, warehouseId?: string) {
     const where: any = {

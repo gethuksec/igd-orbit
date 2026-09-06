@@ -21,8 +21,9 @@ export interface NormalizedWarehouseIdentity {
 /**
  * Apply the inventory warehouse invariants at the application boundary.
  *
- * GOOD warehouses are outlet-owned. BAD is reserved for the single,
- * system-scoped Central Bad Stock warehouse.
+ * GOOD warehouses are outlet-owned except the single system-scoped
+ * central-good warehouse. BAD is reserved for the single system-scoped
+ * Central Bad Stock warehouse. System warehouses never carry an outlet.
  */
 export function normalizeWarehouseIdentity(
   input: WarehouseIdentityInput,
@@ -42,9 +43,9 @@ export function normalizeWarehouseIdentity(
   }
 
   if (scope === 'SYSTEM') {
-    if (type !== 'BAD' || outletId !== null) {
+    if (outletId !== null) {
       throw new BadRequestException(
-        'System warehouses must be the centralized BAD warehouse without an outlet',
+        'System warehouses must not have an outlet (central-good / central-bad)',
       );
     }
   } else if (type !== 'GOOD' || !outletId) {

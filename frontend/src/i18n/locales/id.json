@@ -123,6 +123,7 @@
     "stockSummary": "Ringkasan Stok",
     "stockMovement": "Pergerakan Stok",
     "stockTransfer": "Transfer Stok",
+    "mutasiStock": "Mutasi Stok",
     "stockOpname": "Stok Opname",
     "lowStock": "Stok Menipis",
     "outOfStock": "Habis",

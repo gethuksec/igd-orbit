@@ -32,7 +32,7 @@ const statusBadge = (status: string) => {
   );
 };
 
-export default function StockTransferList() {
+export default function MutasiList() {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -47,8 +47,8 @@ export default function StockTransferList() {
 
   const { data: result = { data: [], meta: { total: 0, page: 1, totalPages: 0 } } } =
     useQuery({
-      queryKey: ['transfer-docs', page],
-      queryFn: () => inventoryService.getTransfers({ page, limit: PAGE_SIZE }),
+      queryKey: ['mutasi-docs', page],
+      queryFn: () => inventoryService.getMutasi({ page, limit: PAGE_SIZE }),
     });
 
   const docs = result.data.filter((d) => {
@@ -69,12 +69,12 @@ export default function StockTransferList() {
   return (
     <div className="w-full space-y-4">
       <BreadcrumbHeader
-        title="Transfer Stok"
-        subtitle="Riwayat pemindahan barang antar gudang dalam satu outlet"
+        title="Mutasi Stok"
+        subtitle="Riwayat pemindahan barang antara gudang pusat dan outlet"
       >
-        <Button onClick={() => navigate('/inventory/transfer/new')}>
+        <Button onClick={() => navigate('/inventory/mutasi/new')}>
           <Plus className="w-4 h-4 mr-2" />
-          Buat Transfer
+          Buat Mutasi
         </Button>
       </BreadcrumbHeader>
 
@@ -82,7 +82,7 @@ export default function StockTransferList() {
       <FilterToolbar
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Cari no. transfer, outlet, atau gudang..."
+        searchPlaceholder="Cari no. mutasi, outlet, atau gudang..."
         fields={[]}
         values={{}}
         onFieldChange={() => {}}
@@ -94,7 +94,7 @@ export default function StockTransferList() {
         {docs.length === 0 ? (
           <p className="text-sm text-gray-500">
             {result.meta.total === 0
-              ? 'Belum ada dokumen transfer.'
+              ? 'Belum ada dokumen mutasi.'
               : 'Tidak ada dokumen yang cocok dengan pencarian.'}
           </p>
         ) : (
@@ -102,7 +102,7 @@ export default function StockTransferList() {
             <table className="w-full">
               <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">No. Transfer</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">No. Mutasi</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Tanggal</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Dari</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Ke</th>
@@ -116,7 +116,7 @@ export default function StockTransferList() {
                   <tr
                     key={doc.id}
                     className="hover:bg-gray-50 cursor-pointer"
-                    onClick={() => navigate(`/inventory/transfer/${doc.id}`)}
+                    onClick={() => navigate(`/inventory/mutasi/${doc.id}`)}
                   >
                     <td className="px-4 py-3 text-sm font-medium text-primary-600">
                       {doc.transferNumber}
@@ -129,7 +129,7 @@ export default function StockTransferList() {
                         {doc.fromWarehouse?.name || '-'}
                       </div>
                       <div className="text-xs text-gray-400">
-                        {branchName(doc.fromBranchId) || '—'}
+                        {branchName(doc.fromBranchId) || 'Gudang pusat'}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">
@@ -137,7 +137,7 @@ export default function StockTransferList() {
                         {doc.toWarehouse?.name || '-'}
                       </div>
                       <div className="text-xs text-gray-400">
-                        {branchName(doc.toBranchId) || 'Central Bad Stock'}
+                        {branchName(doc.toBranchId) || 'Gudang pusat'}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-center">

@@ -1,6 +1,5 @@
 import {
   IsArray,
-  IsIn,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -31,14 +30,19 @@ export class TransferStockItemDto {
 }
 
 /**
- * Create Transfer Stock document DTO.
+ * Create Transfer Stock (v2) document DTO — INTRA-OUTLET movement only.
  *
- * Source is always an outlet-owned GOOD warehouse (outletId + warehouseId).
- * Destination has two modes:
- *  - 'outlet': requires toOutletId + toWarehouseId, and the destination
- *    outlet must differ from the source outlet.
- *  - 'central_bad': no destination outlet/warehouse — the single
- *    system-scoped Central Bad Stock warehouse is resolved server-side.
+ * Per 27 Aug §9 decision (menu split, IGDERP-139):
+ * Transfer Stock = warehouse ↔ warehouse WITHIN the same outlet
+ * (e.g., Gudang Service ↔ Gudang Penjualan), operated by ASA
+ * (permission key inventory.transfer).
+ *
+ * Moves that cross the central warehouse (central-good/central-bad ↔ outlet)
+ * or go outlet ↔ outlet are NOT transfer — they are Mutasi (IGDERP-140).
+ *
+ * Source and destination are both GOOD/OUTLET warehouses of the SAME outlet;
+ * destination must differ from the source. Quantity-only, atomic OUT/IN,
+ * no GL.
  */
 export class CreateTransferStockDto {
   @Matches(ANY_UUID, { message: 'Source outlet ID must be a valid UUID' })
@@ -49,18 +53,9 @@ export class CreateTransferStockDto {
   @IsNotEmpty({ message: 'Source warehouse is required' })
   warehouseId!: string;
 
-  @IsIn(['outlet', 'central_bad'], {
-    message: 'Destination mode must be "outlet" or "central_bad"',
-  })
-  destinationMode!: 'outlet' | 'central_bad';
-
-  @Matches(ANY_UUID, { message: 'Destination outlet ID must be a valid UUID' })
-  @IsOptional()
-  toOutletId?: string;
-
   @Matches(ANY_UUID, { message: 'Destination warehouse ID must be a valid UUID' })
-  @IsOptional()
-  toWarehouseId?: string;
+  @IsNotEmpty({ message: 'Destination warehouse is required' })
+  toWarehouseId!: string;
 
   @IsString({ message: 'Notes must be a string' })
   @IsOptional()

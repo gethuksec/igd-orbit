@@ -34,6 +34,7 @@ import { PosModule } from './modules/pos/pos.module';
 import { StockInModule } from './modules/stock-in/stock-in.module';
 import { StockOutModule } from './modules/stock-out/stock-out.module';
 import { TransferStockModule } from './modules/transfer-stock/transfer-stock.module';
+import { MutasiModule } from './modules/mutasi/mutasi.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -72,6 +73,7 @@ import { TransferStockModule } from './modules/transfer-stock/transfer-stock.mod
     StockInModule,
     StockOutModule,
     TransferStockModule,
+    MutasiModule,
   ],
   controllers: [AppController],
   providers: [AppService],

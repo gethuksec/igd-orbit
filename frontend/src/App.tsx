@@ -45,6 +45,8 @@ import StockList from './pages/inventory/StockList';
 import StockTransfer from './pages/inventory/StockTransfer';
 import StockTransferList from './pages/inventory/StockTransferList';
 import StockTransferDetail from './pages/inventory/StockTransferDetail';
+import Mutasi from './pages/inventory/Mutasi';
+import MutasiList from './pages/inventory/MutasiList';
 import StockOpnameList from './pages/inventory/StockOpnameList';
 import StockOpnameDetail from './pages/inventory/StockOpnameDetail';
 import StockOpnameCount from './pages/inventory/StockOpnameCount';
@@ -856,6 +858,36 @@ function App() {
                 <ProtectedRoute>
                   <DashboardLayout>
                     <StockTransferDetail />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/inventory/mutasi"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <MutasiList />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/inventory/mutasi/new"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <Mutasi />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/inventory/mutasi/:id"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <StockTransferDetail backPath="/inventory/mutasi" />
                   </DashboardLayout>
                 </ProtectedRoute>
               }

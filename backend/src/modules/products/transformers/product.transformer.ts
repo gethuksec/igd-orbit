@@ -184,7 +184,7 @@ export class ProductTransformer {
           warehouseId: stock.warehouseId,
           branchId: stock.branchId ?? stock.warehouseId,
           branchName:
-            (stock as any).warehouse?.name || (stock as any).branch?.name || 'Central Bad Stock',
+            (stock as any).warehouse?.name || (stock as any).branch?.name || 'Gudang Pusat',
           available: this.toNumber(stock.quantityAvailable),
           reserved: this.toNumber(stock.quantityReserved),
           damaged: this.toNumber(stock.quantityDamaged),

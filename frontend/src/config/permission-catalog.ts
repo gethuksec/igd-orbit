@@ -222,6 +222,12 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
         ],
       },
       {
+        label: 'Mutasi Stok',
+        children: [
+          { label: 'Buat Mutasi', key: 'inventory.mutasi.create' },
+        ],
+      },
+      {
         label: 'Opname',
         children: [
           { label: 'Buat Opname', key: 'inventory.opname.create' },

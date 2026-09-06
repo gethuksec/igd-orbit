@@ -41,6 +41,7 @@ export interface StockTransferWarehouse {
   type: string;
   scope: string;
   outletId?: string | null;
+  outlet?: { id: string; name: string; code: string } | null;
 }
 
 export interface TransferStockProduct {
@@ -282,13 +283,11 @@ export const inventoryService = {
     }
   },
 
-  // ── Transfer Stock (Pemindahan Barang) ──
+  // ── Transfer Stock v2 (Pemindahan Barang — intra-outlet, IGDERP-139) ──
   async createTransferStock(data: {
     outletId: string;
     warehouseId: string;
-    destinationMode: 'outlet' | 'central_bad';
-    toOutletId?: string;
-    toWarehouseId?: string;
+    toWarehouseId: string;
     notes?: string;
     items: Array<{ productId: string; quantity: number }>;
   }): Promise<StockTransfer> {
@@ -338,12 +337,54 @@ export const inventoryService = {
     }
   },
 
-  async getCentralBadWarehouse(): Promise<StockTransferWarehouse | null> {
+  // ── Mutasi (central ↔ outlet movement, IGDERP-140) ──
+  async createMutasi(data: {
+    fromWarehouseId: string;
+    toWarehouseId: string;
+    notes?: string;
+    items: Array<{ productId: string; quantity: number }>;
+  }): Promise<StockTransfer> {
     try {
-      const response = await api.get('/transfer-stock/central-bad');
+      const response = await api.post('/mutasi', data);
       return response.data;
     } catch (error: any) {
-      return handleApiError(error, null);
+      throw error;
+    }
+  },
+
+  async getMutasi(params?: {
+    page?: number;
+    limit?: number;
+    outletId?: string;
+    warehouseId?: string;
+  }): Promise<{ data: StockTransfer[]; meta: any }> {
+    try {
+      const response = await api.get('/mutasi', { params });
+      return response.data;
+    } catch (error: any) {
+      return handleApiError(error, {
+        data: [],
+        meta: { page: 1, limit: 20, total: 0, totalPages: 0 },
+      });
+    }
+  },
+
+  async getMutasiById(id: string): Promise<StockTransfer> {
+    try {
+      const response = await api.get(`/mutasi/${id}`);
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  /** All move-endpoint warehouses: system central (good/bad) + outlet GOOD. */
+  async getMutasiWarehouses(): Promise<StockTransferWarehouse[]> {
+    try {
+      const response = await api.get('/mutasi/warehouses');
+      return Array.isArray(response.data) ? response.data : [];
+    } catch (error: any) {
+      return handleApiError(error, []);
     }
   },
 
