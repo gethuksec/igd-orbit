@@ -12,7 +12,7 @@
 BEGIN;
 
 -- ---------- 1. Create central-good (stable ID reuses the central-bad scheme) ----------
-INSERT INTO warehouses (id, code, name, is_active, type, scope, outlet_id)
+INSERT INTO warehouses (id, code, name, is_active, type, scope, outlet_id, updated_at)
 SELECT
   '00000000-0000-4000-8000-000000000002'::uuid,
   'CENTRAL-GOOD',
@@ -20,7 +20,8 @@ SELECT
   true,
   'GOOD',
   'SYSTEM',
-  NULL
+  NULL,
+  NOW()
 WHERE NOT EXISTS (
   SELECT 1 FROM warehouses WHERE type = 'GOOD' AND scope = 'SYSTEM' AND is_active = true
 )
