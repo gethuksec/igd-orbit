@@ -378,7 +378,7 @@ export class CategoriesService {
       name: createCategoryDto.name,
       description: createCategoryDto.description || null,
       parentCategoryId: createCategoryDto.parentCategoryId || null,
-      isActive: true,
+      isActive: createCategoryDto.isActive ?? true,
     };
 
     // TODO: Add sortOrder when field is added to schema
@@ -517,6 +517,9 @@ export class CategoriesService {
     // }
     if (updateCategoryDto.tierMargins !== undefined) {
       updateData.tierMargins = updateCategoryDto.tierMargins;
+    }
+    if (updateCategoryDto.isActive !== undefined) {
+      updateData.isActive = updateCategoryDto.isActive;
     }
     if (updateCategoryDto.code !== undefined) {
       // Check code uniqueness if updating

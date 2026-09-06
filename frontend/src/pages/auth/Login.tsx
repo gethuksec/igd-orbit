@@ -205,7 +205,7 @@ export default function Login() {
           <div className="space-y-4">
             {/* Tier 0 - Super Admin */}
             <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-300">
-              <p className="text-xs font-bold text-purple-900 uppercase mb-3 flex items-center gap-2">
+              <p className="text-xs font-bold text-purple-900 mb-3 flex items-center gap-2">
                 <span className="w-2 h-2 bg-purple-600 rounded-full animate-pulse"></span>
                 🟣 TIER 0 - SUPER ADMIN (Password: SuperAdmin@1234)
               </p>
@@ -226,7 +226,7 @@ export default function Login() {
 
             {/* Tier 1 - Executive */}
             <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-4 border border-red-200">
-              <p className="text-xs font-bold text-red-800 uppercase mb-3 flex items-center gap-2">
+              <p className="text-xs font-bold text-red-800 mb-3 flex items-center gap-2">
                 <span className="w-2 h-2 bg-red-500 rounded-full"></span>
                 🔴 TIER 1 - EXECUTIVE (Password: Owner@1234)
               </p>
@@ -247,7 +247,7 @@ export default function Login() {
 
             {/* Tier 2 - Management */}
             <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4 border border-orange-200">
-              <p className="text-xs font-bold text-orange-800 uppercase mb-3 flex items-center gap-2">
+              <p className="text-xs font-bold text-orange-800 mb-3 flex items-center gap-2">
                 <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
                 🟠 TIER 2 - MANAGEMENT (Password: Manager@1234)
               </p>
@@ -323,7 +323,7 @@ export default function Login() {
 
             {/* Tier 3 - Supervisor */}
             <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg p-4 border border-yellow-200">
-              <p className="text-xs font-bold text-yellow-800 uppercase mb-3 flex items-center gap-2">
+              <p className="text-xs font-bold text-yellow-800 mb-3 flex items-center gap-2">
                 <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
                 🟡 TIER 3 - SUPERVISOR (Password: Supervisor@1234)
               </p>
@@ -366,7 +366,7 @@ export default function Login() {
 
             {/* Tier 4 - Staff */}
             <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
-              <p className="text-xs font-bold text-green-800 uppercase mb-3 flex items-center gap-2">
+              <p className="text-xs font-bold text-green-800 mb-3 flex items-center gap-2">
                 <span className="w-2 h-2 bg-green-500 rounded-full"></span>
                 🟢 TIER 4 - STAFF (Password: Staff@1234)
               </p>

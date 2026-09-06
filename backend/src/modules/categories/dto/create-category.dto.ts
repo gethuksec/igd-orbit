@@ -6,6 +6,7 @@ import {
   IsNumber,
   IsObject,
   IsUrl,
+  IsBoolean,
 } from 'class-validator';
 
 /**
@@ -40,5 +41,9 @@ export class CreateCategoryDto {
   @IsObject({ message: 'Tier margins must be an object' })
   @IsOptional()
   tierMargins?: Record<string, number>;
+
+  @IsBoolean({ message: 'Status must be a boolean' })
+  @IsOptional()
+  isActive?: boolean;
 }
 

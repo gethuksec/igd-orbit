@@ -508,10 +508,10 @@ export class CustomersService {
         throw new NotFoundException('Customer tier not found');
       }
       tierId = createCustomerDto.tierId;
-    } else if ((createCustomerDto as any).tierCode) {
+    } else if (createCustomerDto.tierCode) {
       // Support tier code lookup
       const tier = await this.prisma.customerTier.findUnique({
-        where: { code: (createCustomerDto as any).tierCode.toUpperCase() },
+        where: { code: createCustomerDto.tierCode.toUpperCase() },
       });
       if (tier) {
         tierId = tier.id;
@@ -699,9 +699,9 @@ export class CustomersService {
       } else {
         tierId = null;
       }
-    } else if ((updateCustomerDto as any).tierCode !== undefined) {
+    } else if (updateCustomerDto.tierCode !== undefined) {
       // Support tier code lookup
-      const tierCode = (updateCustomerDto as any).tierCode;
+      const tierCode = updateCustomerDto.tierCode;
       if (tierCode) {
         const tier = await this.prisma.customerTier.findUnique({
           where: { code: tierCode.toUpperCase() },
