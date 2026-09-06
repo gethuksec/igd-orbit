@@ -31,7 +31,8 @@ describe('ApprovalSettingsService (IGDERP-80)', () => {
     expect(all.every((r) => r.roles.length === 0 && r.mandatoryInvoice === false && r.configured === false)).toBe(true);
   });
 
-  it('assertApprover: default roles accept HS/SPV/CSO/OWNER', async () => {
+  it('assertApprover: default roles accept SUPERADMIN/HS/SPV/CSO/OWNER', async () => {
+    await expect(service.assertApprover('GOODS_RECEIPT', 'u1', ['SUPERADMIN'])).resolves.toBeTruthy();
     await expect(service.assertApprover('GOODS_RECEIPT', 'u1', ['HS'])).resolves.toBeTruthy();
     await expect(service.assertApprover('GOODS_RECEIPT', 'u1', ['OWNER'])).resolves.toBeTruthy();
     await expect(service.assertApprover('GOODS_RECEIPT', 'u1', ['ASA'])).rejects.toThrow(ForbiddenException);
