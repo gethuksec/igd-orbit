@@ -20,10 +20,20 @@ describe('normalizeWarehouseIdentity', () => {
     ).toEqual({ type: 'BAD', scope: 'SYSTEM', outletId: null });
   });
 
+  it('allows the centralized GOOD warehouse without an outlet (IGDERP-159)', () => {
+    expect(
+      normalizeWarehouseIdentity({
+        type: 'GOOD',
+        scope: 'SYSTEM',
+        outletId: null,
+      }),
+    ).toEqual({ type: 'GOOD', scope: 'SYSTEM', outletId: null });
+  });
+
   it.each([
     [{ type: 'BAD', scope: 'OUTLET', outletId: 'outlet-1' }],
-    [{ type: 'GOOD', scope: 'SYSTEM', outletId: null }],
     [{ type: 'BAD', scope: 'SYSTEM', outletId: 'outlet-1' }],
+    [{ type: 'GOOD', scope: 'SYSTEM', outletId: 'outlet-1' }],
     [{ type: 'GOOD', scope: 'OUTLET', outletId: null }],
   ])('rejects invalid warehouse identity %#', (input) => {
     expect(() => normalizeWarehouseIdentity(input)).toThrow(BadRequestException);

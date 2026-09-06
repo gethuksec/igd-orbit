@@ -368,18 +368,22 @@ export class GoodsReceiptsService {
       // Log warning but allow approval (business rule: variance < 2% acceptable, but can be approved with notes)
     }
 
+    // ── Receiving lands in central-good (SYSTEM/GOOD) — 27 Aug §9 decision ──
+    // All PO stock enters the system-wide central-good warehouse; distribution
+    // to outlet warehouses happens via Mutasi (IGDERP-140) / Transfer (IGDERP-139).
     const warehouse = await this.prisma.warehouse.findFirst({
       where: {
-        outletId: gr.branchId,
         type: 'GOOD',
-        scope: 'OUTLET',
+        scope: 'SYSTEM',
         isActive: true,
       },
       orderBy: { createdAt: 'asc' },
     });
 
     if (!warehouse) {
-      throw new BadRequestException(`No active GOOD warehouse found for outlet ${gr.branchId}`);
+      throw new BadRequestException(
+        'Central Good Stock warehouse not found — apply prisma/inventory-central-good.sql',
+      );
     }
 
     // Update stock and create movements
@@ -405,7 +409,7 @@ export class GoodsReceiptsService {
             data: {
               productId: item.productId,
               warehouseId: warehouse.id,
-              branchId: gr.branchId,
+              branchId: null,
               quantityAvailable: new Decimal(0),
               quantityReserved: new Decimal(0),
               quantityDamaged: new Decimal(0),
@@ -429,12 +433,12 @@ export class GoodsReceiptsService {
           },
         });
 
-        // Create stock movement (PURCHASE, IN)
+        // Create stock movement (PURCHASE, IN) at central-good
         await tx.stockMovement.create({
           data: {
             productId: item.productId,
             warehouseId: warehouse.id,
-            branchId: gr.branchId,
+            branchId: null,
             movementType: 'IN',
             referenceType: 'PURCHASE',
             referenceId: gr.id,

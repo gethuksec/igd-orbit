@@ -95,6 +95,75 @@ describe('WarehousesService warehouse identity invariants', () => {
     expect(prisma.warehouse.create).not.toHaveBeenCalled();
   });
 
+  it('allows creating a system GOOD warehouse (central-good, IGDERP-159)', async () => {
+    prisma.warehouse.findFirst.mockResolvedValue(null);
+    prisma.warehouse.create.mockResolvedValue({
+      id: 'central-good',
+      type: 'GOOD',
+      scope: 'SYSTEM',
+      outletId: null,
+      isActive: true,
+    });
+
+    await service.create({
+      name: 'Central Good Stock',
+      code: 'CENTRAL-GOOD',
+      type: 'GOOD',
+      scope: 'SYSTEM',
+      outletId: null,
+    } as any);
+
+    expect(prisma.warehouse.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          code: 'CENTRAL-GOOD',
+          type: 'GOOD',
+          scope: 'SYSTEM',
+          outletId: null,
+        }),
+      }),
+    );
+  });
+
+  it('rejects creating a second active system GOOD warehouse', async () => {
+    prisma.warehouse.findFirst.mockResolvedValue({
+      id: 'central-good-existing',
+      type: 'GOOD',
+      scope: 'SYSTEM',
+      outletId: null,
+      isActive: true,
+    });
+
+    await expect(
+      service.create({
+        name: 'Another Central Good',
+        type: 'GOOD',
+        scope: 'SYSTEM',
+        outletId: null,
+      } as any),
+    ).rejects.toThrow(ConflictException);
+
+    expect(prisma.warehouse.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects deactivating the active Central Good Stock warehouse', async () => {
+    prisma.warehouse.findUnique.mockResolvedValue({
+      id: 'central-good',
+      type: 'GOOD',
+      scope: 'SYSTEM',
+      outletId: null,
+      isActive: true,
+      name: 'Central Good Stock',
+      code: 'CENTRAL-GOOD',
+    });
+
+    await expect(
+      service.update('central-good', { isActive: false } as any),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(prisma.warehouse.update).not.toHaveBeenCalled();
+  });
+
   it('rejects deactivating the active Central Bad Stock warehouse', async () => {
     prisma.warehouse.findUnique.mockResolvedValue({
       id: 'central-bad',

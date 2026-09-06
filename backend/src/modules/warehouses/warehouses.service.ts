@@ -186,12 +186,16 @@ export class WarehousesService {
       }
     }
 
-    if (identity.type === 'BAD') {
-      const existingBad = await this.prisma.warehouse.findFirst({
-        where: { type: 'BAD', scope: 'SYSTEM', isActive: true },
+    if (identity.scope === 'SYSTEM') {
+      const existingSystem = await this.prisma.warehouse.findFirst({
+        where: { type: identity.type, scope: 'SYSTEM', isActive: true },
       });
-      if (existingBad) {
-        throw new ConflictException('The active Central Bad Stock warehouse already exists');
+      if (existingSystem) {
+        throw new ConflictException(
+          identity.type === 'BAD'
+            ? 'The active Central Bad Stock warehouse already exists'
+            : 'The active Central Good Stock warehouse already exists',
+        );
       }
     }
 
@@ -269,13 +273,14 @@ export class WarehousesService {
     }
 
     if (
-      warehouse.type === 'BAD' &&
       warehouse.scope === 'SYSTEM' &&
       warehouse.isActive &&
       dto.isActive === false
     ) {
       throw new BadRequestException(
-        'Central Bad Stock cannot be deactivated while it is the active system BAD warehouse',
+        warehouse.type === 'BAD'
+          ? 'Central Bad Stock cannot be deactivated while it is the active system BAD warehouse'
+          : 'Central Good Stock cannot be deactivated while it is the active system GOOD warehouse',
       );
     }
 
@@ -286,20 +291,23 @@ export class WarehousesService {
     }
 
     if (
-      identity.type === 'BAD' &&
       identity.scope === 'SYSTEM' &&
       warehouse.isActive
     ) {
-      const existingBad = await this.prisma.warehouse.findFirst({
+      const existingSystem = await this.prisma.warehouse.findFirst({
         where: {
-          type: 'BAD',
+          type: identity.type,
           scope: 'SYSTEM',
           isActive: true,
           id: { not: id },
         },
       });
-      if (existingBad) {
-        throw new ConflictException('The active Central Bad Stock warehouse already exists');
+      if (existingSystem) {
+        throw new ConflictException(
+          identity.type === 'BAD'
+            ? 'The active Central Bad Stock warehouse already exists'
+            : 'The active Central Good Stock warehouse already exists',
+        );
       }
     }
 

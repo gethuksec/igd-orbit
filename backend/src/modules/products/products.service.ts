@@ -148,7 +148,7 @@ export class ProductsService {
         warehouseId: stock.warehouseId,
         branchId: stock.branchId,
         branchCode: stock.branch?.code || 'SYSTEM',
-        branchName: stock.branch?.name || 'Central Bad Stock',
+        branchName: stock.branch?.name || (stock as any).warehouse?.name || 'Gudang Pusat',
         available: stock.quantityAvailable.toNumber(),
         reserved: stock.quantityReserved.toNumber(),
         damaged: stock.quantityDamaged.toNumber(),
@@ -1278,7 +1278,7 @@ export class ProductsService {
       // Get stock per branch
       const branchStocks: Record<string, number> = {};
       product.productStocks.forEach((stock) => {
-        const branchName = stock.branch?.name || 'Central Bad Stock';
+        const branchName = stock.branch?.name || stock.warehouse?.name || 'Gudang Pusat';
         branchStocks[branchName] = stock.quantityAvailable.toNumber() - stock.quantityReserved.toNumber();
       });
 

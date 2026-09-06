@@ -185,8 +185,8 @@ model Warehouse {
   contactPerson String?  @map("contact_person")
   mobilePhone   String?  @map("mobile_phone")
   isActive      Boolean  @default(true) @map("is_active")
-  type          String   @default("GOOD") // GOOD or BAD; BAD is the centralized damaged-stock warehouse
-  scope         String   @default("OUTLET") // OUTLET or SYSTEM
+  type          String   @default("GOOD") // GOOD or BAD; BAD = centralized damaged-stock, GOOD = central storage (PO stock) — both SYSTEM scope
+  scope         String   @default("OUTLET") // OUTLET or SYSTEM; SYSTEM warehouses are the two central warehouses (central-good / central-bad)
   outletId      String?  @map("outlet_id") // null only for the system-scoped Central Bad Stock warehouse
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
