@@ -387,6 +387,16 @@ export default function PurchaseOrderForm() {
                 />
               </div>
             </div>
+
+            <div>
+              <Label className="block mb-2">Notes</Label>
+              <Textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                rows={3}
+                placeholder="Catatan PO (opsional)"
+              />
+            </div>
           </CardContent>
         </Card>
 
@@ -527,26 +537,10 @@ export default function PurchaseOrderForm() {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>PO Notes</CardTitle>
-            </CardHeader>
-   ...[truncated]
-            <CardContent>
-              <Textarea
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                rows={5}
-                placeholder="Catatan PO (opsional)"
-              />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Summary</CardTitle>
-            </CardHeader>
+        <Card>
+          <CardHeader>
+            <CardTitle>Summary</CardTitle>
+          </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 <div className="flex justify-between items-center text-sm">
@@ -602,7 +596,6 @@ export default function PurchaseOrderForm() {
               </div>
             </CardContent>
           </Card>
-        </div>
 
         <div className="flex justify-end gap-4">
           <Button
