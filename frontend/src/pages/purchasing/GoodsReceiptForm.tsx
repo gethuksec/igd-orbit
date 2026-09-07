@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Table,
   TableBody,
@@ -34,7 +35,7 @@ export default function GoodsReceiptForm() {
   const { branchId } = useBranchFilter({ defaultAll: false });
 
   const presetPoId = searchParams.get('po') || '';
-  const isPoLocked = searchParams.has('po');
+  const isPoLocked = searchParams.has('po') || !!poId;
 
   const [isHibah, setIsHibah] = useState(false);
   const [formData, setFormData] = useState(() => ({
@@ -47,7 +48,7 @@ export default function GoodsReceiptForm() {
   const [items, setItems] = useState<Array<{
     purchase_order_item_id?: string;
     product_id: string;
-    quantity_received: number;
+    quantity_received: string;
     unit_price: number;
     remaining?: number;
     batch_number?: string;
@@ -59,8 +60,13 @@ export default function GoodsReceiptForm() {
 
   const [productSearch, setProductSearch] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState('1');
   const [unitPrice, setUnitPrice] = useState(0);
+
+  const formatThousand = (n: number) =>
+    n ? n.toLocaleString('id-ID') : '';
+  const canAddProduct = !!formData.branch_id;
+  const addQty = parseFloat(quantity) || 0;
 
   // Fetch PO if provided
   const { data: po } = useQuery({
@@ -104,6 +110,13 @@ export default function GoodsReceiptForm() {
     enabled: productSearch.length > 2,
   });
 
+  // PO from detail → auto-select branch from the PO (locked mode)
+  useEffect(() => {
+    if (isPoLocked && po?.branchId) {
+      setFormData((f) => ({ ...f, branch_id: po.branchId }));
+    }
+  }, [po, isPoLocked]);
+
   // Load PO items if PO is selected
   useEffect(() => {
     if (po && po.items && !isHibah) {
@@ -114,7 +127,7 @@ export default function GoodsReceiptForm() {
             remaining: item.quantityOrdered - item.quantityReceived,
             purchase_order_item_id: item.id,
             product_id: item.productId,
-            quantity_received: item.quantityOrdered - item.quantityReceived,
+            quantity_received: String(item.quantityOrdered - item.quantityReceived),
             unit_price: item.unitPrice,
             product: item.product,
           })),
@@ -139,8 +152,13 @@ export default function GoodsReceiptForm() {
   });
 
   const handleAddItem = () => {
-    if (!selectedProduct || quantity <= 0 || unitPrice <= 0) {
+    const qty = parseFloat(quantity) || 0;
+    if (!selectedProduct || qty <= 0 || unitPrice <= 0) {
       toast.error('Lengkapi data produk');
+      return;
+    }
+    if (!canAddProduct) {
+      toast.error('Pilih cabang terlebih dahulu');
       return;
     }
 
@@ -149,7 +167,7 @@ export default function GoodsReceiptForm() {
       const updated = [...items];
       updated[existingIndex] = {
         ...updated[existingIndex],
-        quantity_received: updated[existingIndex].quantity_received + quantity,
+        quantity_received: String((Number(updated[existingIndex].quantity_received) || 0) + qty),
       };
       setItems(updated);
     } else {
@@ -157,7 +175,7 @@ export default function GoodsReceiptForm() {
         ...items,
         {
           product_id: selectedProduct.id,
-          quantity_received: quantity,
+          quantity_received: String(qty),
           unit_price: unitPrice,
           product: selectedProduct,
         },
@@ -165,7 +183,7 @@ export default function GoodsReceiptForm() {
     }
 
     setSelectedProduct(null);
-    setQuantity(1);
+    setQuantity('1');
     setUnitPrice(0);
     setProductSearch('');
   };
@@ -192,20 +210,28 @@ export default function GoodsReceiptForm() {
       return;
     }
 
-    const data = {
-      ...formData,
-      purchase_order_id: isHibah ? undefined : (formData.purchase_order_id || undefined),
-      notes: isHibah ? (formData.notes || 'Hibah/Pemberian') : formData.notes,
-      items: items.map((item) => ({
+    const payloadItems = items.map((item) => {
+      let qty = Number(item.quantity_received) || 0;
+      if (item.remaining !== undefined) {
+        qty = Math.min(qty, item.remaining);
+      }
+      return {
         purchase_order_item_id: isHibah ? undefined : item.purchase_order_item_id,
         product_id: item.product_id,
-        quantity_received: item.quantity_received,
+        quantity_received: qty,
         unit_price: item.unit_price,
         batch_number: item.batch_number,
         serial_number: item.serial_number,
         expiry_date: item.expiry_date,
         notes: item.notes,
-      })),
+      };
+    });
+
+    const data = {
+      ...formData,
+      purchase_order_id: isHibah ? undefined : (formData.purchase_order_id || undefined),
+      notes: isHibah ? (formData.notes || 'Hibah/Pemberian') : formData.notes,
+      items: payloadItems,
     };
 
     createMutation.mutate(data);
@@ -299,6 +325,16 @@ export default function GoodsReceiptForm() {
                   required
                 />
               </div>
+
+              <div className="md:col-span-2">
+                <Label className="block mb-2">Catatan (opsional)</Label>
+                <Textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  placeholder="Catatan tambahan untuk penerimaan barang..."
+                  rows={3}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -315,7 +351,7 @@ export default function GoodsReceiptForm() {
                   setItems(
                     items.map((item) =>
                       item.remaining !== undefined
-                        ? { ...item, quantity_received: item.remaining }
+                        ? { ...item, quantity_received: String(item.remaining) }
                         : item
                     )
                   );
@@ -346,6 +382,7 @@ export default function GoodsReceiptForm() {
                       }
                     }}
                     placeholder="Cari produk..."
+                    disabled={!canAddProduct}
                   />
                   {productSearch.length > 2 && productsData?.data && productsData.data.length > 0 && !selectedProduct && (
                     <div className="absolute z-10 mt-1 w-full bg-background border rounded-lg max-h-60 overflow-y-auto shadow-lg">
@@ -381,30 +418,38 @@ export default function GoodsReceiptForm() {
                   )}
                 </div>
                 <Input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                   value={quantity}
-                  onChange={(e) => setQuantity(parseFloat(e.target.value) || 1)}
+                  onChange={(e) => setQuantity(e.target.value.replace(/[^\d.]/g, ''))}
                   placeholder="Qty"
-                  min="1"
                   className="w-24"
                 />
                 <Input
-                  type="number"
-                  value={unitPrice}
-                  onChange={(e) => setUnitPrice(parseFloat(e.target.value) || 0)}
+                  type="text"
+                  inputMode="numeric"
+                  value={formatThousand(unitPrice)}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/[^\d]/g, '');
+                    setUnitPrice(digits ? parseInt(digits, 10) : 0);
+                  }}
                   placeholder="Harga"
-                  min="0"
                   className="w-32"
                 />
                 <Button
                   type="button"
                   onClick={handleAddItem}
-                  disabled={!selectedProduct || quantity <= 0 || unitPrice <= 0}
+                  disabled={!selectedProduct || addQty <= 0 || unitPrice <= 0 || !canAddProduct}
                 >
                   <Plus />
                   Tambah
                 </Button>
               </div>
+            )}
+            {!canAddProduct && (
+              <p className="text-sm text-destructive mb-4">
+                Pilih cabang terlebih dahulu sebelum menambahkan produk
+              </p>
             )}
 
             <div className="overflow-x-auto">
@@ -415,11 +460,16 @@ export default function GoodsReceiptForm() {
                     <TableHead>Sisa</TableHead>
                     <TableHead>Qty Received</TableHead>
                     <TableHead>Unit Price</TableHead>
+                    <TableHead>Nominal</TableHead>
                     <TableHead className="w-16">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {items.map((item, index) => (
+                  {items.map((item, index) => {
+                    const qtyNum = Number(item.quantity_received) || 0;
+                    const overRemaining =
+                      item.remaining !== undefined && qtyNum > item.remaining;
+                    return (
                     <TableRow key={index}>
                       <TableCell>
                         <div className="font-semibold">{item.product?.name || 'N/A'}</div>
@@ -429,7 +479,7 @@ export default function GoodsReceiptForm() {
                         {item.remaining !== undefined ? (
                           <span
                             className={
-                              item.quantity_received > item.remaining
+                              overRemaining
                                 ? 'text-red-600 font-semibold'
                                 : ''
                             }
@@ -442,26 +492,34 @@ export default function GoodsReceiptForm() {
                       </TableCell>
                       <TableCell>
                         <Input
-                          type="number"
+                          type="text"
+                          inputMode="numeric"
                           value={item.quantity_received}
                           onChange={(e) => {
                             const updated = [...items];
-                            const parsed = parseFloat(e.target.value) || 0;
-                            updated[index].quantity_received =
-                              item.remaining !== undefined
-                                ? Math.min(parsed, item.remaining)
-                                : parsed;
+                            updated[index].quantity_received = e.target.value.replace(
+                              /[^\d.]/g,
+                              ''
+                            );
                             setItems(updated);
                           }}
-                          min="0"
-                          max={item.remaining}
+                          onBlur={() => {
+                            const updated = [...items];
+                            let parsed = Number(updated[index].quantity_received || 0);
+                            if (item.remaining !== undefined && parsed > item.remaining) {
+                              parsed = item.remaining;
+                            }
+                            updated[index].quantity_received = parsed === 0 ? '' : String(parsed);
+                            setItems(updated);
+                          }}
                           className="w-24"
                         />
-                        {item.remaining !== undefined && item.quantity_received > item.remaining && (
+                        {overRemaining && (
                           <p className="text-xs text-red-600 mt-1">Melebihi sisa PO</p>
                         )}
                       </TableCell>
                       <TableCell>{formatCurrency(item.unit_price)}</TableCell>
+                      <TableCell>{formatCurrency(item.unit_price * qtyNum)}</TableCell>
                       <TableCell>
                         <Button
                           type="button"
@@ -474,8 +532,28 @@ export default function GoodsReceiptForm() {
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
+                {items.length > 0 && (
+                  <tfoot>
+                    <tr>
+                      <td colSpan={4} className="px-4 py-3 text-sm font-semibold text-right">
+                        Total
+                      </td>
+                      <td className="px-4 py-3 text-sm font-semibold">
+                        {formatCurrency(
+                          items.reduce(
+                            (sum, item) =>
+                              sum + item.unit_price * (Number(item.quantity_received) || 0),
+                            0
+                          )
+                        )}
+                      </td>
+                      <td />
+                    </tr>
+                  </tfoot>
+                )}
               </Table>
             </div>
           </CardContent>
