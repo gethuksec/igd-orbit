@@ -482,7 +482,9 @@ export class PurchaseOrdersService {
 
     const totalAmount = po.totalAmount.toNumber();
     const requiredApprovers = this.getRequiredApprovers(totalAmount);
-    const hasAuthority = requiredApprovers.some((role) => userRoles.includes(role));
+    const hasAuthority =
+      requiredApprovers.some((role) => userRoles.includes(role)) ||
+      userRoles.includes('SUPERADMIN');
 
     if (!hasAuthority) {
       throw new ForbiddenException('You do not have authority to approve this purchase order');
@@ -492,8 +494,34 @@ export class PurchaseOrdersService {
     const isCSO = userRoles.includes('CSO');
     const isCFO = userRoles.includes('CFO');
 
-    // First approval (CSO)
-    if (!po.approvedBy && isCSO) {
+    // First approval (CSO) — SUPERADMIN bypasses tiers (single-step full approval)
+    const isSuper = userRoles.includes('SUPERADMIN');
+    if (!po.approvedBy && (isCSO || isSuper)) {
+      if (isSuper) {
+        return await this.prisma.purchaseOrder.update({
+          where: { id },
+          data: {
+            status: 'approved',
+            approvedBy: userId,
+            approvedAt: new Date(),
+            notes: dto.notes ? `${po.notes || ''}\n[Admin Approval] ${dto.notes}`.trim() : po.notes,
+          },
+          include: {
+            supplier: true,
+            branch: true,
+            items: {
+              include: {
+                product: {
+                  include: {
+                    category: true,
+                    brand: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+      }
       if (totalAmount >= 5000000 && totalAmount <= 50000000) {
         // Needs CFO approval too
         return await this.prisma.purchaseOrder.update({

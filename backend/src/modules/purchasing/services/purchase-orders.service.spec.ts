@@ -148,6 +148,16 @@ describe('PurchaseOrdersService IGDERP-82 flows (create->pending, reject, update
     expect(result.status).toBe('rejected');
   });
 
+  it('allows SUPERADMIN to approve (admin bypass)', async () => {
+    prisma.purchaseOrder.findUnique.mockResolvedValue({
+      ...poBase,
+      totalAmount: new Decimal(3_000_000),
+    });
+    prisma.purchaseOrder.update.mockResolvedValue({ id: 'po-1', status: 'approved', approvedBy: 'root' });
+    const result = await service.approve('po-1', {}, 'root', ['SUPERADMIN']);
+    expect(result.status).toBe('approved');
+  });
+
   it('reject on missing PO throws NotFound', async () => {
     prisma.purchaseOrder.findUnique.mockResolvedValue(null);
     await expect(service.reject('po-x', {}, 'cso-1', ['CSO'])).rejects.toThrow(NotFoundException);
