@@ -70,8 +70,6 @@ export default function GoodsReceiptDetail() {
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [revisitModalOpen, setRevisitModalOpen] = useState(false);
   const [approveData, setApproveData] = useState({
-    inspection_status: 'passed' as 'passed' | 'failed' | 'partial',
-    inspection_notes: '',
     notes: '',
   });
   const [cancelReason, setCancelReason] = useState('');
@@ -100,7 +98,7 @@ export default function GoodsReceiptDetail() {
       toast.success('Goods receipt disetujui');
       queryClient.invalidateQueries({ queryKey: ['goods-receipt', id] });
       setApproveModalOpen(false);
-      setApproveData({ inspection_status: 'passed', inspection_notes: '', notes: '' });
+      setApproveData({ notes: '' });
     },
   });
 
@@ -187,9 +185,19 @@ export default function GoodsReceiptDetail() {
   };
 
   const canApprove = gr && ['draft', 'received', 'inspected'].includes(gr.status);
-  const canReject = gr && gr.status !== 'approved' && gr.status !== 'rejected' && gr.status !== 'cancelled';
+  const canReject =
+    gr &&
+    gr.status !== 'approved' &&
+    gr.status !== 'rejected' &&
+    gr.status !== 'cancelled' &&
+    gr.status !== 'revisit';
   const canRevisit = gr && ['draft', 'received', 'inspected'].includes(gr.status);
-  const canCancel = gr && gr.status !== 'approved' && gr.status !== 'cancelled';
+  const canCancel =
+    gr &&
+    gr.status !== 'approved' &&
+    gr.status !== 'rejected' &&
+    gr.status !== 'cancelled' &&
+    gr.status !== 'revisit';
 
   if (isLoading) {
     return (
@@ -455,33 +463,7 @@ export default function GoodsReceiptDetail() {
         <h2 className="text-xl font-bold mb-4">Approve Goods Receipt</h2>
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-semibold">Hasil Inspeksi</label>
-            <div className="flex gap-4 mt-1">
-              {(['passed', 'failed', 'partial'] as const).map((s) => (
-                <label key={s} className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input
-                    type="radio"
-                    name="inspection_status"
-                    checked={approveData.inspection_status === s}
-                    onChange={() => setApproveData({ ...approveData, inspection_status: s })}
-                    className="accent-primary"
-                  />
-                  {s}
-                </label>
-              ))}
-            </div>
-          </div>
-          <div>
-            <label className="text-sm font-semibold">Catatan Inspeksi</label>
-            <Textarea
-              value={approveData.inspection_notes}
-              onChange={(e) => setApproveData({ ...approveData, inspection_notes: e.target.value })}
-              placeholder="Contoh: 2 busi pecah saat pengiriman…"
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-semibold">Catatan Umum</label>
+            <label className="text-sm font-semibold">Catatan</label>
             <Textarea
               value={approveData.notes}
               onChange={(e) => setApproveData({ ...approveData, notes: e.target.value })}
@@ -497,7 +479,12 @@ export default function GoodsReceiptDetail() {
           <Button variant="outline" onClick={() => setApproveModalOpen(false)}>
             Batal
           </Button>
-          <Button onClick={() => approveMutation.mutate(approveData)} disabled={approveMutation.isPending}>
+          <Button
+            onClick={() =>
+              approveMutation.mutate({ notes: approveData.notes, inspection_status: 'passed' })
+            }
+            disabled={approveMutation.isPending}
+          >
             Setujui &amp; Masukkan Stok
           </Button>
         </div>

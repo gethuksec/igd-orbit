@@ -247,20 +247,22 @@ export default function GoodsReceiptForm() {
             <CardTitle>Informasi Umum</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="mb-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={isHibah}
-                  onCheckedChange={(v) => {
-                    setIsHibah(v === true);
-                    if (v) {
-                      setFormData({ ...formData, purchase_order_id: '' });
-                    }
-                  }}
-                />
-                <span className="text-sm font-semibold">Hibah/Pemberian (tanpa Purchase Order)</span>
-              </label>
-            </div>
+            {!isPoLocked && (
+              <div className="mb-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={isHibah}
+                    onCheckedChange={(v) => {
+                      setIsHibah(v === true);
+                      if (v) {
+                        setFormData({ ...formData, purchase_order_id: '' });
+                      }
+                    }}
+                  />
+                  <span className="text-sm font-semibold">Hibah/Pemberian (tanpa Purchase Order)</span>
+                </label>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -305,6 +307,7 @@ export default function GoodsReceiptForm() {
                   value={formData.branch_id}
                   onChange={(e) => setFormData({ ...formData, branch_id: e.target.value })}
                   required
+                  disabled={isPoLocked}
                   className={SELECT_CLS}
                 >
                   <option value="">Pilih Cabang</option>
@@ -453,14 +456,14 @@ export default function GoodsReceiptForm() {
             )}
 
             <div className="overflow-x-auto">
-              <Table>
+              <Table className="table-fixed">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Product</TableHead>
-                    <TableHead>Sisa</TableHead>
-                    <TableHead>Qty Received</TableHead>
-                    <TableHead>Unit Price</TableHead>
-                    <TableHead>Nominal</TableHead>
+                    <TableHead className="w-20">Sisa</TableHead>
+                    <TableHead className="w-28">Qty Received</TableHead>
+                    <TableHead className="w-28">Unit Price</TableHead>
+                    <TableHead className="w-32">Nominal</TableHead>
                     <TableHead className="w-16">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -512,14 +515,16 @@ export default function GoodsReceiptForm() {
                             updated[index].quantity_received = parsed === 0 ? '' : String(parsed);
                             setItems(updated);
                           }}
-                          className="w-24"
+                          className="w-full"
                         />
-                        {overRemaining && (
-                          <p className="text-xs text-red-600 mt-1">Melebihi sisa PO</p>
-                        )}
+                        <div className="h-4">
+                          {overRemaining && (
+                            <p className="text-xs text-red-600">Melebihi sisa PO</p>
+                          )}
+                        </div>
                       </TableCell>
-                      <TableCell>{formatCurrency(item.unit_price)}</TableCell>
-                      <TableCell>{formatCurrency(item.unit_price * qtyNum)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{formatCurrency(item.unit_price)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{formatCurrency(item.unit_price * qtyNum)}</TableCell>
                       <TableCell>
                         <Button
                           type="button"
