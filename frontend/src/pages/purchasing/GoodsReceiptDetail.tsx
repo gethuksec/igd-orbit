@@ -84,7 +84,7 @@ export default function GoodsReceiptDetail() {
   });
 
   // Receiving rows state (editable in draft/received/revisit)
-  const [receiving, setReceiving] = useState<Record<string, { received: number; rejected: number }>>({});
+  const [receiving, setReceiving] = useState<Record<string, { received: string; rejected: string }>>({});
   const [checkAll, setCheckAll] = useState(false);
   const isEditingStatus = gr && ['draft', 'received', 'revisit'].includes(gr.status);
   const canEditReceiving =
@@ -151,8 +151,8 @@ export default function GoodsReceiptDetail() {
 
   const rowValue = (item: any) => {
     const over = receiving[item.id];
-    const received = over ? over.received : Number(item.quantityReceived);
-    const rejected = over ? over.rejected : Number(item.quantityRejected);
+    const received = over ? Number(over.received || 0) : Number(item.quantityReceived);
+    const rejected = over ? Number(over.rejected || 0) : Number(item.quantityRejected);
     const accepted = received - rejected;
     const ordered = orderedFor(item);
     const isMismatch = ordered !== null && received !== ordered;
@@ -167,8 +167,8 @@ export default function GoodsReceiptDetail() {
     (gr.items ?? []).forEach((item: any) => {
       const ordered = orderedFor(item);
       next[item.id] = {
-        received: ordered ?? Number(item.quantityReceived),
-        rejected: 0,
+        received: String(ordered ?? Number(item.quantityReceived)),
+        rejected: '0',
       };
     });
     setReceiving(next);
@@ -351,19 +351,20 @@ export default function GoodsReceiptDetail() {
                     <TableCell>
                       {canEditReceiving ? (
                         <Input
-                          type="number"
-                          min={0}
-                          value={v.received}
-                          onChange={(e) =>
+                          type="text"
+                          inputMode="numeric"
+                          value={receiving[item.id]?.received ?? String(v.received)}
+                          onChange={(e) => {
+                            const raw = e.target.value.replace(/[^\d.]/g, '');
                             setReceiving((prev) => ({
                               ...prev,
                               [item.id]: {
-                                received: Math.max(0, Number(e.target.value)),
-                                rejected: (prev[item.id]?.rejected ?? Number(item.quantityRejected)),
+                                received: raw,
+                                rejected: prev[item.id]?.rejected ?? String(v.rejected),
                               },
-                            }))
-                          }
-                          className="w-24"
+                            }));
+                          }}
+                          className="w-full"
                         />
                       ) : (
                         <span>{v.received}</span>
@@ -372,20 +373,20 @@ export default function GoodsReceiptDetail() {
                     <TableCell>
                       {canEditReceiving ? (
                         <Input
-                          type="number"
-                          min={0}
-                          max={v.received}
-                          value={v.rejected}
-                          onChange={(e) =>
+                          type="text"
+                          inputMode="numeric"
+                          value={receiving[item.id]?.rejected ?? String(v.rejected)}
+                          onChange={(e) => {
+                            const raw = e.target.value.replace(/[^\d.]/g, '');
                             setReceiving((prev) => ({
                               ...prev,
                               [item.id]: {
-                                received: prev[item.id]?.received ?? Number(item.quantityReceived),
-                                rejected: Math.max(0, Math.min(Number(e.target.value), (prev[item.id]?.received ?? Number(item.quantityReceived)))),
+                                received: prev[item.id]?.received ?? String(v.received),
+                                rejected: raw,
                               },
-                            }))
-                          }
-                          className="w-24"
+                            }));
+                          }}
+                          className="w-full"
                         />
                       ) : (
                         <span className="text-destructive font-semibold">{v.rejected}</span>
@@ -510,17 +511,19 @@ export default function GoodsReceiptDetail() {
               {r}
             </label>
           ))}
-          <div>
-            <label className="text-sm font-semibold">
-              Catatan {revisitReason === 'Lainnya' ? '(wajib)' : '(opsional)'}
-            </label>
-            <Textarea
-              value={revisitNote}
-              onChange={(e) => setRevisitNote(e.target.value)}
-              placeholder="Detail alasan…"
-              className="mt-1"
-            />
-          </div>
+          {revisitReason === 'Lainnya' && (
+            <div>
+              <label className="text-sm font-semibold">
+                Catatan <span className="text-red-600">*</span>
+              </label>
+              <Textarea
+                value={revisitNote}
+                onChange={(e) => setRevisitNote(e.target.value)}
+                placeholder="Detail alasan…"
+                className="mt-1"
+              />
+            </div>
+          )}
           <p className="text-sm text-muted-foreground">
             GR kembali ke status <b>Received</b> dan dapat diedit oleh SODO. Record inspeksi tetap tersimpan.
           </p>

@@ -527,22 +527,26 @@ export default function PurchaseOrderForm() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Label className="block mb-2">Notes</Label>
-                <Textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  rows={5}
-                  placeholder="Catatan PO (opsional)"
-                />
-              </div>
-              <div className="bg-muted/50 border rounded-xl p-4 space-y-3 h-fit">
+          <Card>
+            <CardHeader>
+              <CardTitle>PO Notes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                rows={5}
+                placeholder="Catatan PO (opsional)"
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-muted-foreground">Subtotal</span>
                   <span className="font-semibold">{formatCurrency(totals.subtotal)}</span>
@@ -594,9 +598,8 @@ export default function PurchaseOrderForm() {
                   <span className="text-2xl font-bold text-primary">{formatCurrency(totals.total)}</span>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
         <div className="flex justify-end gap-4">
           <Button

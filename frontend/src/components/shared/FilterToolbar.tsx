@@ -269,7 +269,8 @@ export function FilterToolbar({
                     value={draft[field.key] ?? ''}
                     onChange={(v) => setDraft((d) => ({ ...d, [field.key]: v }))}
                     allowAll
-                    className="h-9 w-full"
+                    label=""
+                    className="h-9 w-full text-sm"
                   />
                 )}
               </div>
