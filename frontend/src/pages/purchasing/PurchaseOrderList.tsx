@@ -2,6 +2,17 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { FileText, Eye, Plus, CheckCircle, XCircle, Clock, Package, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { purchasingService, type PurchaseOrder } from '@/services/purchasing.service';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { useBranchFilter } from '@/components/branch/BranchFilter';
@@ -45,52 +56,52 @@ export default function PurchaseOrderList() {
     switch (status) {
       case 'draft':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800">
+          <Badge variant="secondary">
             <FileText className="w-3 h-3" />
             Draft
-          </span>
+          </Badge>
         );
       case 'pending':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
+          <Badge variant="outline">
             <Clock className="w-3 h-3" />
             Pending
-          </span>
+          </Badge>
         );
       case 'approved':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+          <Badge>
             <CheckCircle className="w-3 h-3" />
             Approved
-          </span>
+          </Badge>
         );
       case 'ordered':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">
+          <Badge variant="outline">
             <Package className="w-3 h-3" />
             Ordered
-          </span>
+          </Badge>
         );
       case 'partially_received':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">
+          <Badge variant="outline">
             <Package className="w-3 h-3" />
-            Partially Received
-          </span>
+            Partial
+          </Badge>
         );
       case 'received':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+          <Badge>
             <CheckCircle className="w-3 h-3" />
             Received
-          </span>
+          </Badge>
         );
       case 'cancelled':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">
+          <Badge variant="destructive">
             <XCircle className="w-3 h-3" />
             Cancelled
-          </span>
+          </Badge>
         );
       default:
         return null;
@@ -106,17 +117,23 @@ export default function PurchaseOrderList() {
     cancelled: filteredOrders.filter((o: PurchaseOrder) => o.status === 'cancelled').length,
   };
 
+  const statCards = [
+    { label: 'Total PO', value: total, icon: FileText, color: 'text-foreground' },
+    { label: 'Pending', value: statusCounts.pending, icon: Clock, color: 'text-yellow-600' },
+    { label: 'Approved', value: statusCounts.approved, icon: CheckCircle, color: 'text-blue-600' },
+    { label: 'Received', value: statusCounts.received, icon: Package, color: 'text-green-600' },
+  ];
+
   return (
     <div className="w-full space-y-6">
       {/* Header */}
       <BreadcrumbHeader title="Purchase Order" subtitle="Kelola purchase order dan pembelian">
-        <Link
-            to="/purchasing/po/new"
-            className="px-6 py-3 bg-white text-primary-600 rounded-lg font-semibold hover:bg-primary-50 transition-colors flex items-center gap-2"
-          >
-            <Plus className="w-5 h-5" />
+        <Button asChild>
+          <Link to="/purchasing/po/new">
+            <Plus />
             PO Baru
           </Link>
+        </Button>
       </BreadcrumbHeader>
 
       {/* Toolbar: search inline + branch inline + filter popup (IGDERP-110) */}
@@ -161,177 +178,124 @@ export default function PurchaseOrderList() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Total PO</p>
-              <p className="text-2xl font-bold text-gray-900">{total}</p>
-            </div>
-            <div className="p-3 bg-primary-100 rounded-lg">
-              <FileText className="w-6 h-6 text-primary-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Pending</p>
-              <p className="text-2xl font-bold text-yellow-600">{statusCounts.pending}</p>
-            </div>
-            <div className="p-3 bg-primary-100 rounded-lg">
-              <Clock className="w-6 h-6 text-primary-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Approved</p>
-              <p className="text-2xl font-bold text-blue-600">{statusCounts.approved}</p>
-            </div>
-            <div className="p-3 bg-primary-100 rounded-lg">
-              <CheckCircle className="w-6 h-6 text-primary-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Received</p>
-              <p className="text-2xl font-bold text-green-600">{statusCounts.received}</p>
-            </div>
-            <div className="p-3 bg-primary-100 rounded-lg">
-              <Package className="w-6 h-6 text-primary-600" />
-            </div>
-          </div>
-        </div>
+        {statCards.map((c) => (
+          <Card key={c.label}>
+            <CardContent className="flex items-center justify-between p-6">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">{c.label}</p>
+                <p className={`text-2xl font-bold ${c.color}`}>{c.value}</p>
+              </div>
+              <div className="p-3 bg-primary/10 rounded-lg">
+                <c.icon className="w-6 h-6 text-primary" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-        {isLoading ? (
-          <div className="p-12 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-            <p className="mt-4 text-gray-600">Memuat data...</p>
-          </div>
-        ) : error ? (
-          <div className="p-12 text-center">
-            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <p className="text-red-600">Gagal memuat data purchase order</p>
-          </div>
-        ) : filteredOrders.length === 0 ? (
-          <div className="p-12 text-center">
-            <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">Tidak ada data purchase order</p>
-            <Link
-              to="/purchasing/po/new"
-              className="mt-4 text-primary-600 hover:underline inline-block"
-            >
-              Buat PO baru
-            </Link>
-          </div>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      Nomor PO
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      Supplier
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      Tanggal
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      Total
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+      <Card>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="p-12 text-center">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <p className="mt-4 text-muted-foreground">Memuat data...</p>
+            </div>
+          ) : error ? (
+            <div className="p-12 text-center">
+              <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+              <p className="text-destructive">Gagal memuat data purchase order</p>
+            </div>
+          ) : filteredOrders.length === 0 ? (
+            <div className="p-12 text-center">
+              <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">Tidak ada data purchase order</p>
+              <Link to="/purchasing/po/new" className="mt-4 text-primary hover:underline inline-block">
+                Buat PO baru
+              </Link>
+            </div>
+          ) : (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nomor PO</TableHead>
+                    <TableHead>Supplier</TableHead>
+                    <TableHead>Tanggal</TableHead>
+                    <TableHead>Total</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-16">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {filteredOrders.map((order: PurchaseOrder) => (
-                    <tr key={order.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
+                    <TableRow key={order.id}>
+                      <TableCell>
                         <Link
                           to={`/purchasing/po/${order.id}`}
-                          className="text-sm font-mono font-semibold text-primary-600 hover:text-primary-800 hover:underline"
+                          className="font-mono font-semibold text-primary hover:underline"
                         >
                           {order.poNumber}
                         </Link>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-semibold text-gray-900">
-                          {order.supplier?.name || 'N/A'}
-                        </div>
-                        <div className="text-xs text-gray-500">{order.supplier?.customerCode}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{formatDate(order.orderDate)}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-semibold text-sm">{order.supplier?.name || 'N/A'}</div>
+                        <div className="text-xs text-muted-foreground">{order.supplier?.customerCode}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">{formatDate(order.orderDate)}</div>
                         {order.expectedDeliveryDate && (
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-muted-foreground">
                             ETA: {formatDate(order.expectedDeliveryDate)}
                           </div>
                         )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-semibold text-gray-900">
-                          {formatCurrency(order.totalAmount)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(order.status)}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Link
-                          to={`/purchasing/po/${order.id}`}
-                          className="text-primary-600 hover:text-primary-800 font-semibold text-sm"
-                        >
-                          <Eye className="w-5 h-5" />
-                        </Link>
-                      </td>
-                    </tr>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm font-semibold">{formatCurrency(order.totalAmount)}</div>
+                      </TableCell>
+                      <TableCell>{getStatusBadge(order.status)}</TableCell>
+                      <TableCell>
+                        <Button asChild variant="ghost" size="icon">
+                          <Link to={`/purchasing/po/${order.id}`}>
+                            <Eye />
+                          </Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </TableBody>
+              </Table>
 
-            {/* Pagination */}
-            {data && data.totalPages > 1 && (
-              <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-                <div className="text-sm text-gray-600">
-                  Menampilkan {((page - 1) * limit) + 1} - {Math.min(page * limit, total)} dari {total}
+              {/* Pagination */}
+              {data && data.totalPages > 1 && (
+                <div className="px-6 py-4 border-t flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">
+                    Menampilkan {((page - 1) * limit) + 1} - {Math.min(page * limit, total)} dari {total}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                    >
+                      Sebelumnya
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))}
+                      disabled={page >= data.totalPages}
+                    >
+                      Selanjutnya
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Sebelumnya
-                  </button>
-                  <button
-                    onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))}
-                    disabled={page >= data.totalPages}
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Selanjutnya
-                  </button>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
-

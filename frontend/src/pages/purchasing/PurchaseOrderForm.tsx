@@ -3,6 +3,19 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Save, Plus, Trash2, Loader2, X } from 'lucide-react';
 import { BreadcrumbHeader } from '@/components/shared';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { purchasingService } from '@/services/purchasing.service';
 import { productsService } from '@/services/products.service';
 import { suppliersService } from '@/services/suppliers.service';
@@ -10,6 +23,9 @@ import { api } from '@/services/api';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/utils/format';
 import { useBranchFilter } from '@/components/branch/BranchFilter';
+
+const SELECT_CLS =
+  'h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
 
 export default function PurchaseOrderForm() {
   const { id } = useParams();
@@ -54,7 +70,7 @@ export default function PurchaseOrderForm() {
         // Fetch first page with max limit (100)
         const firstPage = await suppliersService.getAll({ limit: 100, page: 1 });
         const allSuppliers = [...(firstPage.data || [])];
-        
+
         // If there are more pages, fetch them
         if (firstPage.meta && firstPage.meta.totalPages > 1) {
           const remainingPages = [];
@@ -68,7 +84,7 @@ export default function PurchaseOrderForm() {
             allSuppliers.push(...(result.data || []));
           });
         }
-        
+
         return {
           data: allSuppliers,
           meta: firstPage.meta || { total: allSuppliers.length, page: 1, limit: 100, totalPages: 1 },
@@ -254,271 +270,294 @@ export default function PurchaseOrderForm() {
       <BreadcrumbHeader title={isEdit ? 'Edit Purchase Order' : 'Buat Purchase Order'} />
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-4">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Informasi Umum</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Supplier *</label>
-              <select
-                value={formData.supplier_id}
-                onChange={(e) => setFormData({ ...formData, supplier_id: e.target.value })}
-                required
-                disabled={loadingSuppliers}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <option value="">
-                  {loadingSuppliers ? 'Memuat supplier...' : 'Pilih Supplier'}
-                </option>
-                {suppliers?.map((s: any) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} ({s.customerCode || s.code || s.id.slice(0, 8)})
-                  </option>
-                ))}
-              </select>
-              {!loadingSuppliers && suppliers.length === 0 && (
-                <p className="text-sm text-gray-500 mt-1">Tidak ada supplier. <Link to="/purchasing/suppliers/new" className="text-primary-600 hover:underline">Buat supplier baru</Link></p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Cabang *</label>
-              <select
-                value={formData.branch_id}
-                onChange={(e) => setFormData({ ...formData, branch_id: e.target.value })}
-                required
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="">Pilih Cabang</option>
-                {branches?.map((b: any) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Tanggal Order *</label>
-              <input
-                type="date"
-                value={formData.order_date}
-                onChange={(e) => setFormData({ ...formData, order_date: e.target.value })}
-                required
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Expected Delivery Date *</label>
-              <input
-                type="date"
-                value={formData.expected_delivery_date}
-                onChange={(e) => setFormData({ ...formData, expected_delivery_date: e.target.value })}
-                required
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-4">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Items</h2>
-
-          <div className="flex gap-2 mb-4">
-            <div className="flex-1 relative">
-              <input
-                type="text"
-                value={selectedProduct ? `${selectedProduct.name} (${selectedProduct.sku})` : productSearch}
-                onChange={(e) => {
-                  if (!selectedProduct) {
-                    setProductSearch(e.target.value);
-                  }
-                }}
-                onFocus={() => {
-                  if (selectedProduct) {
-                    setSelectedProduct(null);
-                    setProductSearch('');
-                  }
-                }}
-                placeholder="Cari produk..."
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              />
-              {productSearch.length > 2 && productsData?.data && productsData.data.length > 0 && !selectedProduct && (
-                <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg max-h-60 overflow-y-auto shadow-lg">
-                  {productsData.data.map((product: any) => (
-                    <div
-                      key={product.id}
-                      onClick={() => {
-                        setSelectedProduct(product);
-                        setUnitPrice(product.costPrice || 0);
-                        setProductSearch('');
-                      }}
-                      className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0"
-                    >
-                      <div className="font-semibold">{product.name}</div>
-                      <div className="text-sm text-gray-500">{product.sku}</div>
-                      <div className="text-xs text-gray-400">Harga: {formatCurrency(product.costPrice || 0)}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {selectedProduct && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedProduct(null);
-                    setProductSearch('');
-                    setUnitPrice(0);
-                  }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+        <Card>
+          <CardHeader>
+            <CardTitle>Informasi Umum</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="block mb-2">Supplier *</Label>
+                <select
+                  value={formData.supplier_id}
+                  onChange={(e) => setFormData({ ...formData, supplier_id: e.target.value })}
+                  required
+                  disabled={loadingSuppliers}
+                  className={SELECT_CLS}
                 >
-                  <X className="w-5 h-5" />
-                </button>
-              )}
-            </div>
-            <input
-              type="number"
-              value={quantity}
-              onChange={(e) => setQuantity(parseFloat(e.target.value) || 1)}
-              placeholder="Qty"
-              min="1"
-              className="w-24 px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            />
-            <input
-              type="number"
-              value={unitPrice}
-              onChange={(e) => setUnitPrice(parseFloat(e.target.value) || 0)}
-              placeholder="Harga"
-              min="0"
-              className="w-32 px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            />
-            <button
-              type="button"
-              onClick={handleAddItem}
-              disabled={!selectedProduct || quantity <= 0 || unitPrice <= 0}
-              className="px-6 py-3 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Plus className="w-5 h-5" />
-              Tambah
-            </button>
-          </div>
+                  <option value="">
+                    {loadingSuppliers ? 'Memuat supplier...' : 'Pilih Supplier'}
+                  </option>
+                  {suppliers?.map((s: any) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} ({s.customerCode || s.code || s.id.slice(0, 8)})
+                    </option>
+                  ))}
+                </select>
+                {!loadingSuppliers && suppliers.length === 0 && (
+                  <p className="text-sm text-muted-foreground mt-1">Tidak ada supplier. <Link to="/purchasing/suppliers/new" className="text-primary hover:underline">Buat supplier baru</Link></p>
+                )}
+              </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Product</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Qty</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Unit Price</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Subtotal</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {items.map((item, index) => {
-                  const itemSubtotal = item.quantity_ordered * item.unit_price;
-                  return (
-                    <tr key={index}>
-                      <td className="px-4 py-3">
-                        <div className="font-semibold">{item.product?.name || 'N/A'}</div>
-                        <div className="text-sm text-gray-500">{item.product?.sku}</div>
-                      </td>
-                      <td className="px-4 py-3">{item.quantity_ordered}</td>
-                      <td className="px-4 py-3">{formatCurrency(item.unit_price)}</td>
-                      <td className="px-4 py-3 font-semibold">{formatCurrency(itemSubtotal)}</td>
-                      <td className="px-4 py-3">
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveItem(index)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+              <div>
+                <Label className="block mb-2">Cabang *</Label>
+                <select
+                  value={formData.branch_id}
+                  onChange={(e) => setFormData({ ...formData, branch_id: e.target.value })}
+                  required
+                  className={SELECT_CLS}
+                >
+                  <option value="">Pilih Cabang</option>
+                  {branches?.map((b: any) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-4">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Summary</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Discount Amount</label>
-              <input
-                type="number"
-                value={formData.discount_amount}
-                onChange={(e) => setFormData({ ...formData, discount_amount: e.target.value })}
-                min="0"
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Tax Amount</label>
-              <input
-                type="number"
-                value={formData.tax_amount}
-                onChange={(e) => setFormData({ ...formData, tax_amount: e.target.value })}
-                min="0"
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Shipping Cost</label>
-              <input
-                type="number"
-                value={formData.shipping_cost}
-                onChange={(e) => setFormData({ ...formData, shipping_cost: e.target.value })}
-                min="0"
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Total</label>
-              <div className="px-4 py-3 bg-gray-50 rounded-xl text-2xl font-bold text-primary-600">
-                {formatCurrency(totals.total)}
+              <div>
+                <Label className="block mb-2">Tanggal Order *</Label>
+                <Input
+                  type="date"
+                  value={formData.order_date}
+                  onChange={(e) => setFormData({ ...formData, order_date: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div>
+                <Label className="block mb-2">Expected Delivery Date *</Label>
+                <Input
+                  type="date"
+                  value={formData.expected_delivery_date}
+                  onChange={(e) => setFormData({ ...formData, expected_delivery_date: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div>
+                <Label className="block mb-2">Payment Terms</Label>
+                <select
+                  value={formData.payment_terms}
+                  onChange={(e) => setFormData({ ...formData, payment_terms: e.target.value })}
+                  className={SELECT_CLS}
+                >
+                  <option value="">Pilih Payment Terms</option>
+                  <option value="CASH">CASH</option>
+                  <option value="COD">COD</option>
+                  <option value="CREDIT">CREDIT</option>
+                </select>
+              </div>
+
+              <div>
+                <Label className="block mb-2">Payment Term Days</Label>
+                <Input
+                  type="number"
+                  value={formData.payment_term_days}
+                  onChange={(e) => setFormData({ ...formData, payment_term_days: e.target.value })}
+                  min="0"
+                  placeholder="Contoh: 30"
+                />
               </div>
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Notes</label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              rows={3}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            />
-          </div>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Items</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2 mb-4">
+              <div className="flex-1 relative">
+                <Input
+                  type="text"
+                  value={selectedProduct ? `${selectedProduct.name} (${selectedProduct.sku})` : productSearch}
+                  onChange={(e) => {
+                    if (!selectedProduct) {
+                      setProductSearch(e.target.value);
+                    }
+                  }}
+                  onFocus={() => {
+                    if (selectedProduct) {
+                      setSelectedProduct(null);
+                      setProductSearch('');
+                    }
+                  }}
+                  placeholder="Cari produk..."
+                />
+                {productSearch.length > 2 && productsData?.data && productsData.data.length > 0 && !selectedProduct && (
+                  <div className="absolute z-10 mt-1 w-full bg-background border rounded-lg max-h-60 overflow-y-auto shadow-lg">
+                    {productsData.data.map((product: any) => (
+                      <div
+                        key={product.id}
+                        onClick={() => {
+                          setSelectedProduct(product);
+                          setUnitPrice(product.costPrice || 0);
+                          setProductSearch('');
+                        }}
+                        className="p-3 hover:bg-muted cursor-pointer border-b last:border-0"
+                      >
+                        <div className="font-semibold">{product.name}</div>
+                        <div className="text-sm text-muted-foreground">{product.sku}</div>
+                        <div className="text-xs text-muted-foreground">Harga: {formatCurrency(product.costPrice || 0)}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {selectedProduct && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedProduct(null);
+                      setProductSearch('');
+                      setUnitPrice(0);
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+              <Input
+                type="number"
+                value={quantity}
+                onChange={(e) => setQuantity(parseFloat(e.target.value) || 1)}
+                placeholder="Qty"
+                min="1"
+                className="w-24"
+              />
+              <Input
+                type="number"
+                value={unitPrice}
+                onChange={(e) => setUnitPrice(parseFloat(e.target.value) || 0)}
+                placeholder="Harga"
+                min="0"
+                className="w-32"
+              />
+              <Button
+                type="button"
+                onClick={handleAddItem}
+                disabled={!selectedProduct || quantity <= 0 || unitPrice <= 0}
+              >
+                <Plus />
+                Tambah
+              </Button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Product</TableHead>
+                    <TableHead>Qty</TableHead>
+                    <TableHead>Unit Price</TableHead>
+                    <TableHead>Subtotal</TableHead>
+                    <TableHead className="w-16">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {items.map((item, index) => {
+                    const itemSubtotal = item.quantity_ordered * item.unit_price;
+                    return (
+                      <TableRow key={index}>
+                        <TableCell>
+                          <div className="font-semibold">{item.product?.name || 'N/A'}</div>
+                          <div className="text-sm text-muted-foreground">{item.product?.sku}</div>
+                        </TableCell>
+                        <TableCell>{item.quantity_ordered}</TableCell>
+                        <TableCell>{formatCurrency(item.unit_price)}</TableCell>
+                        <TableCell className="font-semibold">{formatCurrency(itemSubtotal)}</TableCell>
+                        <TableCell>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRemoveItem(index)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Summary</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="block mb-2">Discount Amount</Label>
+                <Input
+                  type="number"
+                  value={formData.discount_amount}
+                  onChange={(e) => setFormData({ ...formData, discount_amount: e.target.value })}
+                  min="0"
+                />
+              </div>
+              <div>
+                <Label className="block mb-2">Tax Amount</Label>
+                <Input
+                  type="number"
+                  value={formData.tax_amount}
+                  onChange={(e) => setFormData({ ...formData, tax_amount: e.target.value })}
+                  min="0"
+                />
+              </div>
+              <div>
+                <Label className="block mb-2">Shipping Cost</Label>
+                <Input
+                  type="number"
+                  value={formData.shipping_cost}
+                  onChange={(e) => setFormData({ ...formData, shipping_cost: e.target.value })}
+                  min="0"
+                />
+              </div>
+              <div>
+                <Label className="block mb-2">Total</Label>
+                <div className="px-4 py-3 bg-muted rounded-xl text-2xl font-bold text-primary">
+                  {formatCurrency(totals.total)}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <Label className="block mb-2">Notes</Label>
+              <Textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                rows={3}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="flex justify-end gap-4">
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={() => navigate('/purchasing/po')}
-            className="px-6 py-3 border-2 border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50"
           >
             Batal
-          </button>
-          <button
-            type="submit"
-            disabled={createMutation.isPending || updateMutation.isPending}
-            className="px-6 py-3 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 flex items-center gap-2 disabled:opacity-50"
-          >
+          </Button>
+          <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
             {(createMutation.isPending || updateMutation.isPending) && (
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <Loader2 className="animate-spin" />
             )}
-            <Save className="w-5 h-5" />
+            <Save />
             {isEdit ? 'Update' : 'Simpan'}
-          </button>
+          </Button>
         </div>
       </form>
     </div>
   );
 }
-

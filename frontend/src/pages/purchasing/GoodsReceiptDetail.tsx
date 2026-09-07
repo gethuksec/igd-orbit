@@ -4,35 +4,50 @@ import { useState } from 'react';
 import {
   CheckCircle,
   XCircle,
+  RotateCcw,
+  CheckCheck,
   AlertCircle,
   Loader2,
-  RotateCcw,
   History,
-  CheckCheck,
 } from 'lucide-react';
 import { BreadcrumbHeader } from '@/components/shared';
-import { purchasingService } from '@/services/purchasing.service';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { formatDate } from '@/utils/format';
 import { toast } from 'sonner';
 import { Modal } from '@/components/ui/modal';
+import { purchasingService } from '@/services/purchasing.service';
 import AttachmentPanel from '@/components/purchasing/AttachmentPanel';
 
-const PROCESSOR_ROLES = ['SODO', 'HS', 'SPV', 'SUPERADMIN', 'OWNER', 'CFO', 'MGR'];
+const REVISIT_REASONS = [
+  'Kuantitas tidak sesuai',
+  'Data item atau harga salah',
+  'Dokumen invoice belum lengkap',
+  'Lainnya',
+];
+
 const ACTION_LABEL: Record<string, string> = {
   created: 'Dibuat',
   received: 'Diterima',
-  inspected: 'Inspeksi',
   revisit: 'Revisit',
   approved: 'Disetujui',
   rejected: 'Ditolak',
   cancelled: 'Dibatalkan',
 };
-const REVISIT_REASONS = [
-  'Kuantitas tidak sesuai — tunggu konfirmasi supplier',
-  'Data item / harga salah',
-  'Dokumen invoice belum lengkap',
-  'Lainnya (tulis di catatan)',
-];
+
+const PROCESSOR_ROLES = ['SODO', 'HS', 'SPV', 'SUPERADMIN', 'OWNER'];
 
 export default function GoodsReceiptDetail() {
   const { id } = useParams<{ id: string }>();
@@ -179,7 +194,7 @@ export default function GoodsReceiptDetail() {
   if (isLoading) {
     return (
       <div className="w-full flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-16 h-16 text-primary-600 animate-spin" />
+        <Loader2 className="w-16 h-16 text-primary animate-spin" />
       </div>
     );
   }
@@ -188,8 +203,8 @@ export default function GoodsReceiptDetail() {
     return (
       <div className="w-full flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <p className="text-red-600">Gagal memuat goods receipt</p>
+          <AlertCircle className="w-16 h-16 text-destructive mx-auto mb-4" />
+          <p className="text-destructive">Gagal memuat goods receipt</p>
         </div>
       </div>
     );
@@ -203,7 +218,7 @@ export default function GoodsReceiptDetail() {
           gr.status === 'draft' ? 'Draft'
             : gr.status === 'received' ? 'Received'
             : gr.status === 'inspected' ? 'Inspected'
-            : gr.status === 'revisit' ? 'Revisited — menunggu SODO'
+            : gr.status === 'revisit' ? <Badge variant="outline">Revisited — menunggu SODO</Badge>
             : gr.status === 'approved' ? 'Approved'
             : gr.status === 'rejected' ? 'Rejected'
             : gr.status === 'cancelled' ? 'Cancelled'
@@ -212,44 +227,28 @@ export default function GoodsReceiptDetail() {
       >
         <div className="flex gap-2 flex-wrap">
           {canRevisit && (
-            <button
-              onClick={() => setRevisitModalOpen(true)}
-              disabled={revisitMutation.isPending}
-              className="px-4 py-2 bg-white text-orange-600 border border-orange-300 rounded-lg font-semibold hover:bg-orange-50 transition-colors disabled:opacity-50"
-            >
-              <RotateCcw className="w-5 h-5 inline mr-2" />
+            <Button variant="outline" onClick={() => setRevisitModalOpen(true)} disabled={revisitMutation.isPending}>
+              <RotateCcw />
               Revisit
-            </button>
+            </Button>
           )}
           {canApprove && (
-            <button
-              onClick={() => setApproveModalOpen(true)}
-              disabled={approveMutation.isPending}
-              className="px-4 py-2 bg-white text-primary-600 border border-gray-200 rounded-lg font-semibold hover:bg-primary-50 transition-colors disabled:opacity-50"
-            >
-              <CheckCircle className="w-5 h-5 inline mr-2" />
+            <Button variant="outline" onClick={() => setApproveModalOpen(true)} disabled={approveMutation.isPending}>
+              <CheckCircle />
               Approve
-            </button>
+            </Button>
           )}
           {canReject && (
-            <button
-              onClick={() => setRejectModalOpen(true)}
-              disabled={rejectMutation.isPending}
-              className="px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50"
-            >
-              <XCircle className="w-5 h-5 inline mr-2" />
+            <Button variant="secondary" onClick={() => setRejectModalOpen(true)} disabled={rejectMutation.isPending}>
+              <XCircle />
               Reject
-            </button>
+            </Button>
           )}
           {canCancel && (
-            <button
-              onClick={() => setCancelModalOpen(true)}
-              disabled={cancelMutation.isPending}
-              className="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition-colors disabled:opacity-50"
-            >
-              <XCircle className="w-5 h-5 inline mr-2" />
+            <Button variant="destructive" onClick={() => setCancelModalOpen(true)} disabled={cancelMutation.isPending}>
+              <XCircle />
               Cancel
-            </button>
+            </Button>
           )}
         </div>
       </BreadcrumbHeader>
@@ -263,83 +262,87 @@ export default function GoodsReceiptDetail() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h3 className="text-sm font-semibold text-gray-600 mb-2">Purchase Order</h3>
-          {gr.purchaseOrder ? (
-            <Link
-              to={`/purchasing/po/${gr.purchaseOrderId}`}
-              className="text-lg font-bold text-primary-600 hover:underline"
-            >
-              {gr.purchaseOrder.poNumber}
-            </Link>
-          ) : (
-            <p className="text-lg font-bold text-gray-500">-</p>
-          )}
-        </div>
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h3 className="text-sm font-semibold text-gray-600 mb-2">Tanggal Receipt</h3>
-          <p className="text-lg font-bold text-gray-900">{formatDate(gr.receiptDate)}</p>
-        </div>
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h3 className="text-sm font-semibold text-gray-600 mb-2">Variance</h3>
-          <p className="text-lg font-bold text-gray-900">
-            {gr.variancePercent !== null && gr.variancePercent !== undefined
-              ? `${gr.variancePercent.toFixed(2)}%`
-              : '-'}
-          </p>
-        </div>
+        <Card>
+          <CardContent className="p-6">
+            <h3 className="text-sm font-semibold text-muted-foreground mb-2">Purchase Order</h3>
+            {gr.purchaseOrder ? (
+              <Link
+                to={`/purchasing/po/${gr.purchaseOrderId}`}
+                className="text-lg font-bold text-primary hover:underline"
+              >
+                {gr.purchaseOrder.poNumber}
+              </Link>
+            ) : (
+              <p className="text-lg font-bold text-muted-foreground">-</p>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <h3 className="text-sm font-semibold text-muted-foreground mb-2">Tanggal Receipt</h3>
+            <p className="text-lg font-bold">{formatDate(gr.receiptDate)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <h3 className="text-sm font-semibold text-muted-foreground mb-2">Variance</h3>
+            <p className="text-lg font-bold">
+              {gr.variancePercent !== null && gr.variancePercent !== undefined
+                ? `${gr.variancePercent.toFixed(2)}%`
+                : '-'}
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between flex-wrap gap-2">
-          <h2 className="text-xl font-bold text-gray-900">Items</h2>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
+          <CardTitle>Items</CardTitle>
           {canEditReceiving && (
             <div className="flex items-center gap-3">
-              <label className="flex items-center gap-2 text-sm font-semibold text-gray-600 cursor-pointer">
-                <input
-                  type="checkbox"
+              <label className="flex items-center gap-2 text-sm font-semibold text-muted-foreground cursor-pointer">
+                <Checkbox
                   checked={checkAll}
-                  onChange={(e) => handleCheckAll(e.target.checked)}
-                  className="w-4 h-4 accent-red-600"
+                  onCheckedChange={(v) => handleCheckAll(v === true)}
                 />
                 Check All (qty = yang dipesan)
               </label>
-              <button
+              <Button
+                variant="outline"
                 onClick={handleSaveReceiving}
                 disabled={receivingMutation.isPending}
-                className="px-4 py-2 bg-white text-primary-600 border border-gray-200 rounded-lg font-semibold hover:bg-primary-50 transition-colors disabled:opacity-50"
               >
-                <CheckCheck className="w-4 h-4 inline mr-1" />
+                <CheckCheck />
                 {receivingMutation.isPending ? 'Menyimpan…' : 'Simpan Penerimaan'}
-              </button>
+              </Button>
             </div>
           )}
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Product</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Qty Dipesan</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Qty Diterima</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Qty Ditolak</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Qty Accepted</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Product</TableHead>
+                <TableHead>Qty Dipesan</TableHead>
+                <TableHead>Qty Diterima</TableHead>
+                <TableHead>Qty Ditolak</TableHead>
+                <TableHead>Qty Accepted</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {gr.items?.map((item: any) => {
                 const v = rowValue(item);
                 return (
-                  <tr key={item.id} className={v.isMismatch ? 'bg-amber-50/50' : ''}>
-                    <td className="px-6 py-4">
-                      <div className="font-semibold text-gray-900">{item.product?.name || 'N/A'}</div>
-                      <div className="text-sm text-gray-500">{item.product?.sku}</div>
-                    </td>
-                    <td className="px-6 py-4 text-gray-900">{v.ordered ?? '-'}</td>
-                    <td className="px-6 py-4">
+                  <TableRow key={item.id} className={v.isMismatch ? 'bg-amber-50/50' : ''}>
+                    <TableCell>
+                      <div className="font-semibold">{item.product?.name || 'N/A'}</div>
+                      <div className="text-sm text-muted-foreground">{item.product?.sku}</div>
+                    </TableCell>
+                    <TableCell>{v.ordered ?? '-'}</TableCell>
+                    <TableCell>
                       {canEditReceiving ? (
-                        <input
+                        <Input
                           type="number"
                           min={0}
                           value={v.received}
@@ -352,15 +355,15 @@ export default function GoodsReceiptDetail() {
                               },
                             }))
                           }
-                          className="w-24 px-2 py-1 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                          className="w-24"
                         />
                       ) : (
-                        <span className="text-gray-900">{v.received}</span>
+                        <span>{v.received}</span>
                       )}
-                    </td>
-                    <td className="px-6 py-4">
+                    </TableCell>
+                    <TableCell>
                       {canEditReceiving ? (
-                        <input
+                        <Input
                           type="number"
                           min={0}
                           max={v.received}
@@ -374,88 +377,94 @@ export default function GoodsReceiptDetail() {
                               },
                             }))
                           }
-                          className="w-24 px-2 py-1 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                          className="w-24"
                         />
                       ) : (
-                        <span className="text-red-600 font-semibold">{v.rejected}</span>
+                        <span className="text-destructive font-semibold">{v.rejected}</span>
                       )}
-                    </td>
-                    <td className="px-6 py-4 text-green-600 font-semibold">{v.accepted}</td>
-                    <td className="px-6 py-4">
+                    </TableCell>
+                    <TableCell><span className="text-green-600 font-semibold">{v.accepted}</span></TableCell>
+                    <TableCell>
                       {v.ordered === null ? (
-                        <span className="text-sm text-gray-500">-</span>
+                        <span className="text-sm text-muted-foreground">-</span>
                       ) : v.isMismatch ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+                        <Badge variant="outline">
                           {v.variancePct > 0 ? '+' : ''}
                           {v.variancePct}% · selisih
-                        </span>
+                        </Badge>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
-                          Sesuai (0%)
-                        </span>
+                        <Badge>Sesuai (0%)</Badge>
                       )}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       {gr.notes && (
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-2">Notes</h3>
-          <p className="text-gray-700 whitespace-pre-wrap">{gr.notes}</p>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Notes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="whitespace-pre-wrap text-muted-foreground">{gr.notes}</p>
+          </CardContent>
+        </Card>
       )}
 
       {/* IGDERP-81: documents (invoice supplier / surat jalan) on GR */}
       <AttachmentPanel entityType="GOODS_RECEIPT" entityId={gr.id} title="Lampiran Dokumen Penerimaan" />
 
       {/* IGDERP-80: audit trail (append-only) */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <History className="w-5 h-5 text-gray-600" />
-          <h3 className="text-lg font-bold text-gray-900">Riwayat</h3>
-        </div>
-        {gr.events && gr.events.length > 0 ? (
-          <ul className="space-y-3">
-            {gr.events.map((ev: any) => (
-              <li key={ev.id} className="flex gap-3">
-                <div className="flex-none w-2 h-2 rounded-full bg-primary-600 mt-2" />
-                <div>
-                  <div className="text-sm font-semibold text-gray-900">
-                    {ACTION_LABEL[ev.action] || ev.action} · {ev.actor?.fullName || ev.actor?.email || '-'}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <History className="w-5 h-5 text-muted-foreground" />
+            <CardTitle>Riwayat</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {gr.events && gr.events.length > 0 ? (
+            <ul className="space-y-3">
+              {gr.events.map((ev: any) => (
+                <li key={ev.id} className="flex gap-3">
+                  <div className="flex-none w-2 h-2 rounded-full bg-primary mt-2" />
+                  <div>
+                    <div className="text-sm font-semibold">
+                      {ACTION_LABEL[ev.action] || ev.action} · {ev.actor?.fullName || ev.actor?.email || '-'}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {new Date(ev.createdAt).toLocaleString('id-ID')}
+                    </div>
+                    {ev.note && <div className="text-sm text-muted-foreground mt-0.5">{ev.note}</div>}
                   </div>
-                  <div className="text-xs text-gray-500">
-                    {new Date(ev.createdAt).toLocaleString('id-ID')}
-                  </div>
-                  {ev.note && <div className="text-sm text-gray-600 mt-0.5">{ev.note}</div>}
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-gray-500">Belum ada riwayat.</p>
-        )}
-      </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">Belum ada riwayat.</p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Approve modal */}
       <Modal open={approveModalOpen} onClose={() => setApproveModalOpen(false)}>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Approve Goods Receipt</h2>
+        <h2 className="text-xl font-bold mb-4">Approve Goods Receipt</h2>
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-semibold text-gray-700">Hasil Inspeksi</label>
+            <label className="text-sm font-semibold">Hasil Inspeksi</label>
             <div className="flex gap-4 mt-1">
               {(['passed', 'failed', 'partial'] as const).map((s) => (
-                <label key={s} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                <label key={s} className="flex items-center gap-2 text-sm cursor-pointer">
                   <input
                     type="radio"
                     name="inspection_status"
                     checked={approveData.inspection_status === s}
                     onChange={() => setApproveData({ ...approveData, inspection_status: s })}
-                    className="accent-red-600"
+                    className="accent-primary"
                   />
                   {s}
                 </label>
@@ -463,53 +472,46 @@ export default function GoodsReceiptDetail() {
             </div>
           </div>
           <div>
-            <label className="text-sm font-semibold text-gray-700">Catatan Inspeksi</label>
-            <textarea
+            <label className="text-sm font-semibold">Catatan Inspeksi</label>
+            <Textarea
               value={approveData.inspection_notes}
               onChange={(e) => setApproveData({ ...approveData, inspection_notes: e.target.value })}
               placeholder="Contoh: 2 busi pecah saat pengiriman…"
-              className="mt-1 w-full border border-gray-200 rounded-lg p-2 text-sm"
+              className="mt-1"
             />
           </div>
           <div>
-            <label className="text-sm font-semibold text-gray-700">Catatan Umum</label>
-            <textarea
+            <label className="text-sm font-semibold">Catatan Umum</label>
+            <Textarea
               value={approveData.notes}
               onChange={(e) => setApproveData({ ...approveData, notes: e.target.value })}
               placeholder="Catatan tambahan (opsional)"
-              className="mt-1 w-full border border-gray-200 rounded-lg p-2 text-sm"
+              className="mt-1"
             />
           </div>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Stok masuk ke <b>central-good</b>; qty ditolak otomatis ke <b>central-bad</b> (Gudang Pusat).
           </p>
         </div>
         <div className="flex justify-end gap-2 mt-4">
-          <button
-            onClick={() => setApproveModalOpen(false)}
-            className="px-4 py-2 border border-gray-200 rounded-lg text-gray-600"
-          >
+          <Button variant="outline" onClick={() => setApproveModalOpen(false)}>
             Batal
-          </button>
-          <button
-            onClick={() => approveMutation.mutate(approveData)}
-            disabled={approveMutation.isPending}
-            className="px-4 py-2 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 disabled:opacity-50"
-          >
+          </Button>
+          <Button onClick={() => approveMutation.mutate(approveData)} disabled={approveMutation.isPending}>
             Setujui &amp; Masukkan Stok
-          </button>
+          </Button>
         </div>
       </Modal>
 
       {/* Revisit modal */}
       <Modal open={revisitModalOpen} onClose={() => setRevisitModalOpen(false)}>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Revisit — Kembalikan ke SODO</h2>
+        <h2 className="text-xl font-bold mb-4">Revisit — Kembalikan ke SODO</h2>
         <div className="space-y-3">
-          <label className="text-sm font-semibold text-gray-700">Alasan</label>
+          <label className="text-sm font-semibold">Alasan</label>
           {REVISIT_REASONS.map((r) => (
             <label
               key={r}
-              className="flex items-start gap-2 text-sm text-gray-700 border border-gray-200 rounded-lg p-2 cursor-pointer"
+              className="flex items-start gap-2 text-sm border rounded-lg p-2 cursor-pointer"
             >
               <input
                 type="radio"
@@ -522,91 +524,82 @@ export default function GoodsReceiptDetail() {
             </label>
           ))}
           <div>
-            <label className="text-sm font-semibold text-gray-700">Catatan (wajib)</label>
-            <textarea
+            <label className="text-sm font-semibold">Catatan (wajib)</label>
+            <Textarea
               value={revisitNote}
               onChange={(e) => setRevisitNote(e.target.value)}
               placeholder="Detail alasan…"
-              className="mt-1 w-full border border-gray-200 rounded-lg p-2 text-sm"
+              className="mt-1"
             />
           </div>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             GR kembali ke status <b>Received</b> dan dapat diedit oleh SODO. Record inspeksi tetap tersimpan.
           </p>
         </div>
         <div className="flex justify-end gap-2 mt-4">
-          <button
-            onClick={() => setRevisitModalOpen(false)}
-            className="px-4 py-2 border border-gray-200 rounded-lg text-gray-600"
-          >
+          <Button variant="outline" onClick={() => setRevisitModalOpen(false)}>
             Batal
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="secondary"
             onClick={() => revisitMutation.mutate(revisitNote || revisitReason)}
             disabled={revisitMutation.isPending || !revisitNote.trim()}
-            className="px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 disabled:opacity-50"
           >
             Kembalikan ke SODO
-          </button>
+          </Button>
         </div>
       </Modal>
 
       {/* Reject modal */}
       <Modal open={rejectModalOpen} onClose={() => setRejectModalOpen(false)}>
-        <h2 className="text-xl font-bold text-red-600 mb-4">Reject Goods Receipt</h2>
+        <h2 className="text-xl font-bold text-destructive mb-4">Reject Goods Receipt</h2>
         <div>
-          <label className="text-sm font-semibold text-gray-700">Alasan penolakan (wajib)</label>
-          <textarea
+          <label className="text-sm font-semibold">Alasan penolakan (wajib)</label>
+          <Textarea
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
             placeholder="Alasan…"
-            className="mt-1 w-full border border-gray-200 rounded-lg p-2 text-sm"
+            className="mt-1"
           />
         </div>
-        <p className="text-sm text-gray-500 mt-3">GR ditolak final — stok TIDAK akan masuk.</p>
+        <p className="text-sm text-muted-foreground mt-3">GR ditolak final — stok TIDAK akan masuk.</p>
         <div className="flex justify-end gap-2 mt-4">
-          <button
-            onClick={() => setRejectModalOpen(false)}
-            className="px-4 py-2 border border-gray-200 rounded-lg text-gray-600"
-          >
+          <Button variant="outline" onClick={() => setRejectModalOpen(false)}>
             Batal
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="secondary"
             onClick={() => rejectMutation.mutate(rejectReason)}
             disabled={rejectMutation.isPending || !rejectReason.trim()}
-            className="px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 disabled:opacity-50"
           >
             Reject
-          </button>
+          </Button>
         </div>
       </Modal>
 
       {/* Cancel modal */}
       <Modal open={cancelModalOpen} onClose={() => setCancelModalOpen(false)}>
-        <h2 className="text-xl font-bold text-red-600 mb-4">Cancel Goods Receipt</h2>
+        <h2 className="text-xl font-bold text-destructive mb-4">Cancel Goods Receipt</h2>
         <div>
-          <label className="text-sm font-semibold text-gray-700">Alasan (opsional)</label>
-          <textarea
+          <label className="text-sm font-semibold">Alasan (opsional)</label>
+          <Textarea
             value={cancelReason}
             onChange={(e) => setCancelReason(e.target.value)}
             placeholder="Alasan pembatalan…"
-            className="mt-1 w-full border border-gray-200 rounded-lg p-2 text-sm"
+            className="mt-1"
           />
         </div>
         <div className="flex justify-end gap-2 mt-4">
-          <button
-            onClick={() => setCancelModalOpen(false)}
-            className="px-4 py-2 border border-gray-200 rounded-lg text-gray-600"
-          >
+          <Button variant="outline" onClick={() => setCancelModalOpen(false)}>
             Batal
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="destructive"
             onClick={() => cancelMutation.mutate(cancelReason)}
             disabled={cancelMutation.isPending}
-            className="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 disabled:opacity-50"
           >
             Cancel
-          </button>
+          </Button>
         </div>
       </Modal>
     </div>

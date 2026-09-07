@@ -11,13 +11,13 @@ export class ApprovalSettingsController {
   constructor(private readonly approvalSettingsService: ApprovalSettingsService) {}
 
   @Get()
-  @Roles('SUPERADMIN', 'OWNER', 'CHR')
+  @Roles('SUPERADMIN', 'OWNER', 'CHR', 'CFO', 'MGR')
   findAll() {
     return this.approvalSettingsService.findAll();
   }
 
   @Put(':category')
-  @Roles('SUPERADMIN', 'OWNER', 'CHR')
+  @Roles('SUPERADMIN', 'OWNER', 'CHR', 'CFO', 'MGR')
   upsert(
     @Param('category') category: string,
     @Body() dto: UpsertApprovalSettingDto,

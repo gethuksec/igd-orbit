@@ -1,17 +1,57 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ShieldCheck, Save, Loader2 } from 'lucide-react';
+import { ShieldCheck, Save, Loader2, UserRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { BreadcrumbHeader } from '@/components/shared';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { purchasingService } from '@/services/purchasing.service';
+import { usersService } from '@/services/users.service';
 
-// {'PURCHASE_INVOICE': 'Purchase Invoice', 'GOODS_RECEIPT': 'Goods Receipt'}
+const ROLE_LABELS: Record<string, string> = {
+  SUPERADMIN: 'Super Admin',
+  OWNER: 'Owner',
+  MGR: 'Manajer',
+  CFO: 'CFO',
+  CMO: 'CMO',
+  CSO: 'CSO',
+  SPV: 'Supervisor',
+  HS: 'Head Store',
+  SODO: 'SODO',
+  ASA: 'Asisten',
+};
+
+/** Roles eligible as approvers (shown as quick-pick chips). */
+const APPROVER_ROLES = ['SUPERADMIN', 'OWNER', 'MGR', 'CFO', 'CSO', 'SPV', 'HS', 'CHR'];
+/** Roles shown in the per-user picker. */
+const PICKER_ROLE_CODES = ['HS', 'SPV', 'CSO', 'OWNER', 'CFO', 'MGR', 'CHR'];
+
+const CATEGORY_LABEL: Record<string, string> = {
+  PURCHASE_INVOICE: 'Purchase Invoice',
+  GOODS_RECEIPT: 'Goods Receipt',
+};
+
 export default function ApprovalSettingsPage() {
   const queryClient = useQueryClient();
   const { data: approvalSettings = [] } = useQuery({
     queryKey: ['approval-settings'],
     queryFn: () => purchasingService.getApprovalSettings(),
   });
+  const { data: usersResp } = useQuery({
+    queryKey: ['users', 'approval-picker'],
+    queryFn: () => usersService.getAll({ limit: 100, sort: 'name', order: 'asc' }),
+  });
+
+  const approverUsers = useMemo(() => {
+    const items: any[] = (usersResp as any)?.data || [];
+    return items.filter((u: any) =>
+      (u.roles || []).some((r: any) => PICKER_ROLE_CODES.includes(r.code)),
+    );
+  }, [usersResp]);
 
   const [draft, setDraft] = useState<Record<string, any>>({});
 
@@ -19,35 +59,30 @@ export default function ApprovalSettingsPage() {
     if (approvalSettings.length && Object.keys(draft).length === 0) {
       setDraft(
         Object.fromEntries(
-          approvalSettings.map((s: any) => [s.category, { ...s }]),
+          approvalSettings.map((s: any) => [
+            s.category,
+            { roles: s.roles || [], userIds: s.userIds || [], mandatoryInvoice: !!s.mandatoryInvoice },
+          ]),
         ),
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [approvalSettings]);
 
-  const roles = ['SUPERADMIN', 'OWNER', 'MGR', 'CFO', 'CMO', 'CSO', 'SPV', 'HS', 'SODO', 'ASA'];
-  const labels: Record<string, string> = {
-    PURCHASE_INVOICE: 'Purchase Invoice',
-    GOODS_RECEIPT: 'Goods Receipt',
-    SUPERADMIN: 'Super Admin',
-    OWNER: 'Owner',
-    MGR: 'Manajer',
-    CFO: 'CFO',
-    CMO: 'CMO',
-    CSO: 'CSO',
-    SPV: 'Supervisor',
-    HS: 'Head Store',
-    SODO: 'SODO',
-    ASA: 'Asisten',
+  const toggleIn = (category: string, key: 'roles' | 'userIds', value: string) => {
+    setDraft((d: any) => {
+      const base = d[category] || { roles: [], userIds: [], mandatoryInvoice: false };
+      const cur: string[] = base[key] || [];
+      const next = cur.includes(value) ? cur.filter((v) => v !== value) : [...cur, value];
+      return { ...d, [category]: { ...base, [key]: next } };
+    });
   };
-  const toggleRole = (s: any, role: string) => {
-    const cur = (draft[s.category]?.roles ?? []) as string[];
-    const next = cur.includes(role) ? cur.filter((r) => r !== role) : [...cur, role];
-    setDraft((d: any) => ({ ...d, [s.category]: { ...d[s.category], roles: next } }));
-  };
-  const toggleMandatoryInvoice = (s: any) => {
-    setDraft((d: any) => ({ ...d, [s.category]: { ...d[s.category], mandatoryInvoice: !d[s.category]?.mandatoryInvoice } }));
+
+  const toggleMandatoryInvoice = (category: string) => {
+    setDraft((d: any) => ({
+      ...d,
+      [category]: { ...(d[category] || { roles: [], userIds: [] }), mandatoryInvoice: !d[category]?.mandatoryInvoice },
+    }));
   };
 
   const saveMutation = useMutation({
@@ -64,10 +99,14 @@ export default function ApprovalSettingsPage() {
       .filter((c) => draft[c])
       .map((c) => ({
         category: c,
-        roles: draft[c].roles,
-        userIds: draft[c].userIds,
-        mandatoryInvoice: false,
+        roles: draft[c].roles || [],
+        userIds: draft[c].userIds || [],
+        mandatoryInvoice: !!draft[c].mandatoryInvoice,
       }));
+    if (!payloads.length) {
+      toast.error('Tidak ada pengaturan untuk disimpan');
+      return;
+    }
     Promise.all(payloads.map((p) => saveMutation.mutateAsync(p)))
       .then(() => {
         queryClient.invalidateQueries({ queryKey: ['approval-settings'] });
@@ -79,64 +118,100 @@ export default function ApprovalSettingsPage() {
   return (
     <div className="space-y-6">
       <BreadcrumbHeader title="Persetujuan Pembelian" />
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <ShieldCheck className="w-5 h-5 text-red-600" />
-          <h2 className="text-lg font-semibold text-gray-900">Persetujuan Pembelian</h2>
-        </div>
-        <p className="text-sm text-gray-500 mb-6">
-          Atur siapa yang menyetujui dokumen pembelian. Kosongkan semua peran untuk kembali ke
-          perilaku default (HS / SPV / CSO / Owner + Super Admin).
-        </p>
-        {(['PURCHASE_INVOICE', 'GOODS_RECEIPT'] as const).map((cat) => {
-          const s = draft[cat] || { roles: [], userIds: [], mandatoryInvoice: false };
-          return (
-            <div key={cat} className="border border-gray-200 rounded-xl p-4 mb-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-gray-900">{labels[cat]}</h3>
-                <span className="text-xs text-gray-400">
-                  {s.roles.length === 0 && s.userIds.length === 0 ? 'Default' : 'Kustom'}
-                </span>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-primary" />
+            <CardTitle>Persetujuan Pembelian</CardTitle>
+          </div>
+          <CardDescription>
+            Atur siapa yang menyetujui dokumen pembelian. Kosongkan semua peran & pengguna untuk
+            kembali ke perilaku default (HS / SPV / CSO / Owner + Super Admin).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {(['PURCHASE_INVOICE', 'GOODS_RECEIPT'] as const).map((cat) => {
+            const s = draft[cat] || { roles: [], userIds: [], mandatoryInvoice: false };
+            const isCustom = (s.roles?.length ?? 0) > 0 || (s.userIds?.length ?? 0) > 0;
+            return (
+              <div key={cat} className="rounded-xl border bg-card p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold">{CATEGORY_LABEL[cat]}</h3>
+                  <Badge variant={isCustom ? 'default' : 'secondary'}>
+                    {isCustom ? 'Kustom' : 'Default'}
+                  </Badge>
+                </div>
+
+                <Label className="mb-2 block text-muted-foreground">Peran approver</Label>
+                <div className="flex flex-wrap gap-2">
+                  {APPROVER_ROLES.map((role) => {
+                    const on = (s.roles || []).includes(role);
+                    return (
+                      <Button
+                        key={role}
+                        type="button"
+                        size="sm"
+                        variant={on ? 'default' : 'outline'}
+                        onClick={() => toggleIn(cat, 'roles', role)}
+                      >
+                        {ROLE_LABELS[role] || role}
+                      </Button>
+                    );
+                  })}
+                </div>
+
+                <Separator className="my-4" />
+                <Label className="mb-2 block text-muted-foreground">Pengguna tertentu (opsional)</Label>
+                {approverUsers.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Tidak ada pengguna dengan peran approver.</p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {approverUsers.map((u: any) => {
+                      const on = (s.userIds || []).includes(u.id);
+                      const role = (u.roles || []).find((r: any) => PICKER_ROLE_CODES.includes(r.code))?.code || '';
+                      return (
+                        <Button
+                          key={u.id}
+                          type="button"
+                          size="sm"
+                          variant={on ? 'default' : 'outline'}
+                          onClick={() => toggleIn(cat, 'userIds', u.id)}
+                          title={u.email}
+                        >
+                          <UserRound className="w-3.5 h-3.5" />
+                          {u.fullName || u.name || u.email?.split('@')[0]}
+                          {role && <span className="text-[10px] opacity-80">· {role}</span>}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {cat === 'GOODS_RECEIPT' && (
+                  <div className="mt-5 flex items-center justify-between rounded-lg border bg-muted/40 px-4 py-3">
+                    <div>
+                      <Label>Invoice wajib sebelum approve</Label>
+                      <p className="text-xs text-muted-foreground">
+                        #81 — opsional secara default; aktifkan bila klien meminta.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={!!s.mandatoryInvoice}
+                      onCheckedChange={() => toggleMandatoryInvoice(cat)}
+                    />
+                  </div>
+                )}
               </div>
-              <div className="flex flex-wrap gap-2">
-                {roles.map((role) => (
-                  <button
-                    key={role}
-                    type="button"
-                    onClick={() => toggleRole(cat, role)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
-                      s.roles.includes(role)
-                        ? 'bg-red-600 text-white border-red-600'
-                        : 'bg-white text-gray-600 border-gray-300 hover:border-red-400'
-                    }`}
-                  >
-                    {labels[role] || role}
-                  </button>
-                ))}
-              </div>
-              {cat === 'GOODS_RECEIPT' && (
-                <label className="flex items-center gap-2 mt-4 text-sm text-gray-700 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={!!s.mandatoryInvoice}
-                    onChange={() => toggleMandatoryInvoice(cat)}
-                    className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
-                  />
-                  Invoice wajib diunggah sebelum approve
-                </label>
-              )}
-            </div>
-          );
-        })}
-        <button
-          onClick={handleSave}
-          disabled={saveMutation.isPending}
-          className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50"
-        >
-          {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          Simpan Pengaturan
-        </button>
-      </div>
+            );
+          })}
+          <div className="flex justify-end">
+            <Button onClick={handleSave} disabled={saveMutation.isPending}>
+              {saveMutation.isPending ? <Loader2 className="animate-spin" /> : <Save />}
+              Simpan Pengaturan
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
