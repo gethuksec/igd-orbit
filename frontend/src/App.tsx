@@ -7,6 +7,8 @@ import POSTransaksi from './pages/pos/POSTransaksi';
 import POSLayout from './layouts/POSLayout';
 import LandingPage from './pages/public/LandingPage';
 import ServiceTracking from './pages/public/ServiceTracking';
+import RequestIntakePage from './pages/request-intake/RequestIntakePage';
+import StockRequestList from './pages/inventory/StockRequestList';
 import Login from './pages/auth/Login';
 import DashboardLayout from './layouts/DashboardLayout';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -194,6 +196,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/track" element={<ServiceTracking />} />
             <Route path="/track/:serviceNumber" element={<ServiceTracking />} />
+            <Route path="/r/:token" element={<RequestIntakePage />} />
             
             {/* Protected Routes with DashboardLayout */}
             <Route
@@ -1584,7 +1587,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <PlaceholderPage title="Request Stok" description="Ajukan dan kelola permintaan stok" />
+                    <StockRequestList />
                   </DashboardLayout>
                 </ProtectedRoute>
               }

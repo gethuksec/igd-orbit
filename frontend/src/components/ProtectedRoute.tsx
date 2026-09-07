@@ -41,6 +41,7 @@ const routeToModulePermission: Record<string, string> = {
   '/service-returns': 'service.*.view',
   '/inventory': 'inventory.*.view',
   '/inventory/stock': 'inventory.*.view',
+  '/inventory/requests': 'inventory.request.view',
   '/inventory/transfer': 'inventory.*.view',
   '/inventory/opname': 'inventory.*.view',
   '/inventory/adjustment': 'inventory.*.view',
