@@ -62,6 +62,14 @@ export default function PurchaseOrderForm() {
   const [quantity, setQuantity] = useState(1);
   const [unitPrice, setUnitPrice] = useState(0);
 
+  const formatThousandStr = (v: string) => {
+    const n = parseFloat(v) || 0;
+    return n ? n.toLocaleString('id-ID') : '';
+  };
+  const handleAmountChange = (key: 'discount_amount' | 'tax_amount' | 'shipping_cost', raw: string) => {
+    setFormData((f) => ({ ...f, [key]: raw.replace(/[^\d]/g, '') }));
+  };
+
   // Fetch suppliers - fetch all pages if needed
   const { data: suppliersData, isLoading: loadingSuppliers } = useQuery({
     queryKey: ['suppliers', 'all'],
@@ -493,50 +501,69 @@ export default function PurchaseOrderForm() {
           <CardHeader>
             <CardTitle>Summary</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <Label className="block mb-2">Discount Amount</Label>
-                <Input
-                  type="number"
-                  value={formData.discount_amount}
-                  onChange={(e) => setFormData({ ...formData, discount_amount: e.target.value })}
-                  min="0"
+                <Label className="block mb-2">Notes</Label>
+                <Textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  rows={5}
+                  placeholder="Catatan PO (opsional)"
                 />
               </div>
-              <div>
-                <Label className="block mb-2">Tax Amount</Label>
-                <Input
-                  type="number"
-                  value={formData.tax_amount}
-                  onChange={(e) => setFormData({ ...formData, tax_amount: e.target.value })}
-                  min="0"
-                />
-              </div>
-              <div>
-                <Label className="block mb-2">Shipping Cost</Label>
-                <Input
-                  type="number"
-                  value={formData.shipping_cost}
-                  onChange={(e) => setFormData({ ...formData, shipping_cost: e.target.value })}
-                  min="0"
-                />
-              </div>
-              <div>
-                <Label className="block mb-2">Total</Label>
-                <div className="px-4 py-3 bg-muted rounded-xl text-2xl font-bold text-primary">
-                  {formatCurrency(totals.total)}
+              <div className="bg-muted/50 border rounded-xl p-4 space-y-3 h-fit">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="font-semibold">{formatCurrency(totals.subtotal)}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">Discount</span>
+                  <span className="flex items-center gap-2">
+                    <span className="text-red-600 font-semibold">−</span>
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      value={formatThousandStr(formData.discount_amount)}
+                      onChange={(e) => handleAmountChange('discount_amount', e.target.value)}
+                      placeholder="0"
+                      className="h-8 w-28 text-right"
+                    />
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">Tax</span>
+                  <span className="flex items-center gap-2">
+                    <span className="font-semibold">+</span>
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      value={formatThousandStr(formData.tax_amount)}
+                      onChange={(e) => handleAmountChange('tax_amount', e.target.value)}
+                      placeholder="0"
+                      className="h-8 w-28 text-right"
+                    />
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">Shipping</span>
+                  <span className="flex items-center gap-2">
+                    <span className="font-semibold">+</span>
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      value={formatThousandStr(formData.shipping_cost)}
+                      onChange={(e) => handleAmountChange('shipping_cost', e.target.value)}
+                      placeholder="0"
+                      className="h-8 w-28 text-right"
+                    />
+                  </span>
+                </div>
+                <div className="flex justify-between items-center border-t-2 border-foreground pt-3 mt-2">
+                  <span className="font-bold text-base">Total</span>
+                  <span className="text-2xl font-bold text-primary">{formatCurrency(totals.total)}</span>
                 </div>
               </div>
-            </div>
-
-            <div>
-              <Label className="block mb-2">Notes</Label>
-              <Textarea
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                rows={3}
-              />
             </div>
           </CardContent>
         </Card>
