@@ -126,6 +126,7 @@ const TRAILS: Record<string, Crumb[]> = {
   // ── Pembelian ────────────────────────────────────────────────
   '/purchasing': [{ label: 'Pembelian' }],
   '/purchasing/suppliers': [{ label: 'Pembelian' }, { label: 'Supplier' }],
+  '/purchasing/approval': [{ label: 'Pembelian' }, { label: 'Persetujuan' }],
   '/purchasing/suppliers/new': [{ label: 'Pembelian' }, { label: 'Supplier', href: '/purchasing/suppliers' }],
   '/purchasing/suppliers/:id': [{ label: 'Pembelian' }, { label: 'Supplier', href: '/purchasing/suppliers' }],
   '/purchasing/suppliers/:id/edit': [{ label: 'Pembelian' }, { label: 'Supplier', href: '/purchasing/suppliers' }],

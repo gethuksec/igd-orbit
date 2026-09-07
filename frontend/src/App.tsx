@@ -130,6 +130,7 @@ import PurchaseOrderForm from './pages/purchasing/PurchaseOrderForm';
 import GoodsReceiptList from './pages/purchasing/GoodsReceiptList';
 import GoodsReceiptDetail from './pages/purchasing/GoodsReceiptDetail';
 import GoodsReceiptForm from './pages/purchasing/GoodsReceiptForm';
+import ApprovalSettingsPage from './pages/purchasing/ApprovalSettings';
 import EmployeeLanding from './pages/employees/EmployeeLanding';
 // HR
 import AttendanceList from './pages/hr/attendance/AttendanceList';
@@ -1564,6 +1565,16 @@ function App() {
                 <ProtectedRoute>
                   <DashboardLayout>
                     <PlaceholderPage title="Retur Pembelian" description="Kelola retur pembelian ke supplier" />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/purchasing/approval"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <ApprovalSettingsPage />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
