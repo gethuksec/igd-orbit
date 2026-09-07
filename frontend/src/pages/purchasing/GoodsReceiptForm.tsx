@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Save, Plus, Trash2, Loader2, X } from 'lucide-react';
+import { Save, Plus, Trash2, Loader2, X, CheckCircle2 } from 'lucide-react';
 import { BreadcrumbHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,23 +28,28 @@ const SELECT_CLS =
 
 export default function GoodsReceiptForm() {
   const { poId } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { branchId } = useBranchFilter({ defaultAll: false });
 
+  const presetPoId = searchParams.get('po') || '';
+  const isPoLocked = searchParams.has('po');
+
   const [isHibah, setIsHibah] = useState(false);
-  const [formData, setFormData] = useState({
-    purchase_order_id: poId || '',
+  const [formData, setFormData] = useState(() => ({
+    purchase_order_id: presetPoId || poId || '',
     branch_id: branchId || '',
     receipt_date: new Date().toISOString().split('T')[0],
     notes: '',
-  });
+  }));
 
   const [items, setItems] = useState<Array<{
     purchase_order_item_id?: string;
     product_id: string;
     quantity_received: number;
     unit_price: number;
+    remaining?: number;
     batch_number?: string;
     serial_number?: string;
     expiry_date?: string;
@@ -106,6 +111,7 @@ export default function GoodsReceiptForm() {
         po.items
           .filter((item) => item.quantityOrdered > item.quantityReceived) // Only items that haven't been fully received
           .map((item) => ({
+            remaining: item.quantityOrdered - item.quantityReceived,
             purchase_order_item_id: item.id,
             product_id: item.productId,
             quantity_received: item.quantityOrdered - item.quantityReceived,
@@ -239,17 +245,27 @@ export default function GoodsReceiptForm() {
                   value={formData.purchase_order_id}
                   onChange={(e) => setFormData({ ...formData, purchase_order_id: e.target.value })}
                   required={!isHibah}
-                  disabled={isHibah}
+                  disabled={isHibah || isPoLocked}
                   className={SELECT_CLS}
                 >
                   <option value="">Pilih Purchase Order</option>
+                  {isPoLocked && po && !orderedPOs?.some((p) => p.id === po.id) && (
+                    <option key={po.id} value={po.id}>
+                      {po.poNumber}
+                    </option>
+                  )}
                   {orderedPOs?.map((po: any) => (
                     <option key={po.id} value={po.id}>
                       {po.poNumber} - {po.supplier?.name} ({formatCurrency(po.totalAmount)})
                     </option>
                   ))}
                 </select>
-                {!isHibah && !formData.purchase_order_id && (
+                {isPoLocked && po && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    PO diambil dari PO: {po.poNumber}
+                  </p>
+                )}
+                {!isHibah && !isPoLocked && !formData.purchase_order_id && (
                   <p className="text-sm text-destructive mt-1">Purchase Order harus dipilih</p>
                 )}
                 {isHibah && (
@@ -289,7 +305,27 @@ export default function GoodsReceiptForm() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Items</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Items</CardTitle>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setItems(
+                    items.map((item) =>
+                      item.remaining !== undefined
+                        ? { ...item, quantity_received: item.remaining }
+                        : item
+                    )
+                  );
+                }}
+                disabled={!items.some((item) => item.remaining !== undefined)}
+              >
+                <CheckCircle2 />
+                Terima Semua
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {!po && (
@@ -376,6 +412,7 @@ export default function GoodsReceiptForm() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Product</TableHead>
+                    <TableHead>Sisa</TableHead>
                     <TableHead>Qty Received</TableHead>
                     <TableHead>Unit Price</TableHead>
                     <TableHead className="w-16">Actions</TableHead>
@@ -389,17 +426,40 @@ export default function GoodsReceiptForm() {
                         <div className="text-sm text-muted-foreground">{item.product?.sku}</div>
                       </TableCell>
                       <TableCell>
+                        {item.remaining !== undefined ? (
+                          <span
+                            className={
+                              item.quantity_received > item.remaining
+                                ? 'text-red-600 font-semibold'
+                                : ''
+                            }
+                          >
+                            {item.remaining}
+                          </span>
+                        ) : (
+                          '-'
+                        )}
+                      </TableCell>
+                      <TableCell>
                         <Input
                           type="number"
                           value={item.quantity_received}
                           onChange={(e) => {
                             const updated = [...items];
-                            updated[index].quantity_received = parseFloat(e.target.value) || 0;
+                            const parsed = parseFloat(e.target.value) || 0;
+                            updated[index].quantity_received =
+                              item.remaining !== undefined
+                                ? Math.min(parsed, item.remaining)
+                                : parsed;
                             setItems(updated);
                           }}
                           min="0"
+                          max={item.remaining}
                           className="w-24"
                         />
+                        {item.remaining !== undefined && item.quantity_received > item.remaining && (
+                          <p className="text-xs text-red-600 mt-1">Melebihi sisa PO</p>
+                        )}
                       </TableCell>
                       <TableCell>{formatCurrency(item.unit_price)}</TableCell>
                       <TableCell>

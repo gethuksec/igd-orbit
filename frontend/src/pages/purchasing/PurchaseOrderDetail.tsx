@@ -1,7 +1,7 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
-import { CheckCircle, XCircle, Package, AlertCircle, Loader2, Eye } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { CheckCircle, XCircle, Package, AlertCircle, Loader2, Eye, ChevronDown, ChevronUp } from 'lucide-react';
 import { BreadcrumbHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -39,8 +39,23 @@ export default function PurchaseOrderDetail() {
   const userRoles: string[] = currentUser?.roles || (currentUser?.role?.code ? [currentUser.role.code] : []);
   const [approveModalOpen, setApproveModalOpen] = useState(false);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [orderModalOpen, setOrderModalOpen] = useState(false);
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [approveNotes, setApproveNotes] = useState('');
   const [cancelReason, setCancelReason] = useState('');
+  const [rejectReason, setRejectReason] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const actionBarRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (actionBarRef.current && !actionBarRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
 
   const { data: po, isLoading, error } = useQuery({
     queryKey: ['purchase-order', id],
@@ -65,12 +80,27 @@ export default function PurchaseOrderDetail() {
   const orderMutation = useMutation({
     mutationFn: () => purchasingService.orderPurchaseOrder(id!),
     onSuccess: () => {
-      toast.success('Purchase order berhasil ditandai sebagai ordered');
+      toast.success('Purchase order berhasil dikirim ke supplier');
+      setOrderModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['purchase-order', id] });
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Gagal menandai purchase order');
+    },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (reason?: string) => purchasingService.rejectPurchaseOrder(id!, reason),
+    onSuccess: () => {
+      toast.success('Purchase order berhasil ditolak');
+      setRejectModalOpen(false);
+      setRejectReason('');
+      queryClient.invalidateQueries({ queryKey: ['purchase-order', id] });
+      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Gagal menolak purchase order');
     },
   });
 
@@ -103,6 +133,8 @@ export default function PurchaseOrderDetail() {
         return <Badge variant="outline">Partially Received</Badge>;
       case 'received':
         return <Badge>Received</Badge>;
+      case 'rejected':
+        return <Badge variant="destructive">Rejected</Badge>;
       case 'cancelled':
         return <Badge variant="destructive">Cancelled</Badge>;
       default:
@@ -110,10 +142,52 @@ export default function PurchaseOrderDetail() {
     }
   };
 
-  const canApprove = (userRoles.includes('CSO') || userRoles.includes('CFO') || userRoles.includes('OWNER')) &&
+  const canApprove =
+    (userRoles.includes('CSO') || userRoles.includes('CFO') || userRoles.includes('OWNER') || userRoles.includes('SUPERADMIN')) &&
     (po?.status === 'draft' || po?.status === 'pending');
-  const canOrder = po?.status === 'approved' && (userRoles.includes('CSO') || userRoles.includes('SPV') || userRoles.includes('HS'));
-  const canCancel = po?.status !== 'received' && po?.status !== 'cancelled';
+  const canOrder =
+    po?.status === 'approved' &&
+    (userRoles.includes('CSO') || userRoles.includes('SPV') || userRoles.includes('HS') || userRoles.includes('ASA') || userRoles.includes('SODO') || userRoles.includes('SUPERADMIN'));
+  const canCancel =
+    po?.status !== 'received' && po?.status !== 'cancelled' && po?.status !== 'rejected';
+  const canBuatGR = po?.status === 'ordered' || po?.status === 'partially_received';
+
+  const primaryAction: string | null =
+    po?.status === 'draft' || po?.status === 'pending'
+      ? canApprove
+        ? 'approve'
+        : null
+      : po?.status === 'approved'
+        ? canOrder
+          ? 'send order'
+          : null
+        : canBuatGR
+          ? 'buat GR'
+          : null;
+
+  const dropdownItems: { label: string; destructive: boolean; onSelect: () => void }[] = [];
+  if (canApprove) {
+    dropdownItems.push({ label: 'approve', destructive: false, onSelect: () => setApproveModalOpen(true) });
+    dropdownItems.push({ label: 'reject', destructive: true, onSelect: () => setRejectModalOpen(true) });
+  }
+  if (canOrder) {
+    dropdownItems.push({ label: 'send order', destructive: false, onSelect: () => setOrderModalOpen(true) });
+  }
+  if (canCancel) {
+    dropdownItems.push({ label: 'cancel', destructive: true, onSelect: () => setCancelModalOpen(true) });
+  }
+  if (po?.status === 'approved') {
+    dropdownItems.push({ label: 'buat GR', destructive: false, onSelect: () => navigate(`/purchasing/goods-receipt/new/${id}`) });
+  }
+
+  const primaryDisabled =
+    primaryAction === 'approve'
+      ? approveMutation.isPending
+      : primaryAction === 'send order'
+        ? orderMutation.isPending
+        : false;
+
+  const hasActions = primaryAction !== null || dropdownItems.length > 0;
 
   if (isLoading) {
     return (
@@ -138,27 +212,65 @@ export default function PurchaseOrderDetail() {
     <div className="w-full space-y-6">
       {/* Header */}
       <BreadcrumbHeader title={po.poNumber} subtitle={getStatusBadge(po.status)}>
-        <div className="flex gap-2">
-          {canApprove && (
-            <Button variant="outline" onClick={() => setApproveModalOpen(true)} disabled={approveMutation.isPending}>
-              <CheckCircle />
-              Approve
-            </Button>
-          )}
-          {canOrder && (
-            <Button variant="outline" onClick={() => orderMutation.mutate()} disabled={orderMutation.isPending}>
-              <Package />
-              Mark as Ordered
-            </Button>
-          )}
-          {canCancel && (
-            <Button variant="destructive" onClick={() => setCancelModalOpen(true)} disabled={cancelMutation.isPending}>
-              <XCircle />
-              Cancel
-            </Button>
-          )}
-        </div>
+        {hasActions && (
+          <div className="relative" ref={actionBarRef}>
+            <div className="flex">
+              {primaryAction && (
+                <Button
+                  className="rounded-r-none"
+                  onClick={() => {
+                    if (primaryAction === 'approve') {
+                      setApproveModalOpen(true);
+                    } else if (primaryAction === 'send order') {
+                      setOrderModalOpen(true);
+                    } else if (primaryAction === 'buat GR') {
+                      navigate(`/purchasing/goods-receipt/new/${id}`);
+                    }
+                  }}
+                  disabled={primaryDisabled}
+                >
+                  {primaryAction}
+                </Button>
+              )}
+              <Button
+                variant={primaryAction ? 'default' : 'outline'}
+                className={primaryAction ? 'rounded-l-none' : ''}
+                onClick={() => setMenuOpen((open) => !open)}
+                aria-label="More actions"
+              >
+                {menuOpen ? <ChevronUp /> : <ChevronDown />}
+              </Button>
+            </div>
+            {menuOpen && (
+              <div className="absolute right-0 z-50 mt-1 min-w-40 overflow-hidden rounded-lg border bg-white py-1 shadow">
+                {dropdownItems.map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    className={`block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-muted ${
+                      item.destructive ? 'font-semibold text-red-600' : 'text-gray-700'
+                    }`}
+                    onClick={() => {
+                      setMenuOpen(false);
+                      item.onSelect();
+                    }}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </BreadcrumbHeader>
+
+      {/* Rejection reason */}
+      {po.status === 'rejected' && po.rejectionReason && (
+        <div className="flex items-start gap-2 text-sm text-destructive">
+          <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          <span>Alasan penolakan: {po.rejectionReason}</span>
+        </div>
+      )}
 
       {/* Info Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -348,6 +460,109 @@ export default function PurchaseOrderDetail() {
               disabled={approveMutation.isPending}
             >
               {approveMutation.isPending ? 'Menyetujui...' : 'Ya, Setujui'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Reject Modal */}
+      <Modal
+        open={rejectModalOpen}
+        onClose={() => {
+          setRejectModalOpen(false);
+          setRejectReason('');
+        }}
+        title="Tolak Purchase Order"
+        size="md"
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
+              <XCircle className="w-5 h-5 text-red-600" />
+            </div>
+            <div className="flex-1">
+              <p>
+                Apakah Anda yakin ingin menolak Purchase Order <strong>{po.poNumber}</strong>?
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">Tindakan ini tidak dapat dibatalkan.</p>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold mb-2">
+              Alasan Penolakan *
+            </label>
+            <Textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="Alasan penolakan (wajib)..."
+              rows={3}
+              required
+            />
+          </div>
+          <div className="flex gap-3 pt-4">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => {
+                setRejectModalOpen(false);
+                setRejectReason('');
+              }}
+            >
+              Batal
+            </Button>
+            <Button
+              variant="destructive"
+              className="flex-1"
+              onClick={() => {
+                if (!rejectReason.trim()) {
+                  toast.error('Alasan penolakan harus diisi');
+                  return;
+                }
+                rejectMutation.mutate(rejectReason);
+              }}
+              disabled={rejectMutation.isPending || !rejectReason.trim()}
+            >
+              {rejectMutation.isPending ? 'Menolak...' : 'Ya, Tolak'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Send Order Modal */}
+      <Modal
+        open={orderModalOpen}
+        onClose={() => setOrderModalOpen(false)}
+        title="Kirim Purchase Order ke Supplier"
+        size="md"
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 p-2 bg-blue-100 rounded-full">
+              <Package className="w-5 h-5 text-blue-600" />
+            </div>
+            <div className="flex-1">
+              <p>
+                Apakah Anda yakin ingin mengirim Purchase Order <strong>{po.poNumber}</strong> ke supplier?
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Tindakan ini menandai PO sebagai terkirim ke supplier.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-3 pt-4">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setOrderModalOpen(false)}
+            >
+              Batal
+            </Button>
+            <Button
+              className="flex-1"
+              onClick={() => orderMutation.mutate()}
+              disabled={orderMutation.isPending}
+            >
+              {orderMutation.isPending ? 'Mengirim...' : 'Ya, Kirim'}
             </Button>
           </div>
         </div>

@@ -9,7 +9,7 @@ export interface PurchaseOrder {
   poNumber: string;
   supplierId: string;
   branchId: string;
-  status: 'draft' | 'pending' | 'approved' | 'ordered' | 'partially_received' | 'received' | 'cancelled';
+  status: 'draft' | 'pending' | 'approved' | 'ordered' | 'partially_received' | 'received' | 'rejected' | 'cancelled';
   orderDate: string;
   expectedDeliveryDate?: string;
   paymentTerms?: string;
@@ -31,6 +31,9 @@ export interface PurchaseOrder {
   cancelledBy?: string;
   cancelledAt?: string;
   cancellationReason?: string;
+  rejectedBy?: string;
+  rejectedAt?: string;
+  rejectionReason?: string;
   createdAt: string;
   updatedAt: string;
   supplier?: {
@@ -272,6 +275,12 @@ export const purchasingService = {
    */
   async cancelPurchaseOrder(id: string, reason?: string) {
     const response = await api.post(`/purchasing/purchase-orders/${id}/cancel`, { reason });
+    return response.data.data || response.data;
+  },
+
+  /** IGDERP-82: reject purchase order (approver denies a pending PO) */
+  async rejectPurchaseOrder(id: string, reason?: string) {
+    const response = await api.post(`/purchasing/purchase-orders/${id}/reject`, { reason });
     return response.data.data || response.data;
   },
 

@@ -96,6 +96,32 @@ export class GoodsReceiptsService {
       }
     }
 
+    // IGDERP-80/82: cap PO-linked quantities at remaining (ordered - already received)
+    if (purchaseOrder) {
+      const requestedByPoItem = new Map<string, Decimal>();
+      for (const item of dto.items) {
+        if (!item.purchase_order_item_id) continue;
+        requestedByPoItem.set(
+          item.purchase_order_item_id,
+          (requestedByPoItem.get(item.purchase_order_item_id) ?? new Decimal(0)).plus(
+            new Decimal(item.quantity_received),
+          ),
+        );
+      }
+      for (const [poItemId, requested] of requestedByPoItem) {
+        const poItem = purchaseOrder.items.find((i) => i.id === poItemId);
+        if (!poItem) continue;
+        const remaining = new Decimal(poItem.quantityOrdered).minus(
+          poItem.quantityReceived ?? new Decimal(0),
+        );
+        if (requested.greaterThan(remaining)) {
+          throw new BadRequestException(
+            `Quantitas melebihi sisa PO (sisa ${remaining.toString()})`,
+          );
+        }
+      }
+    }
+
     // Create GR
     const gr = await this.prisma.goodsReceipt.create({
       data: {
@@ -832,6 +858,22 @@ export class GoodsReceiptsService {
       const rejected = item.quantity_rejected ?? grItem.quantityRejected.toNumber();
       if (rejected > item.quantity_received) {
         throw new BadRequestException(`Rejected quantity cannot exceed received quantity: ${item.id}`);
+      }
+      // IGDERP-80/82: cap at PO remaining (ordered - already approved-received)
+      if (grItem.purchaseOrderItemId && gr.purchaseOrder) {
+        const poItem = gr.purchaseOrder.items.find(
+          (i) => i.id === grItem.purchaseOrderItemId,
+        );
+        if (poItem) {
+          const remaining = new Decimal(poItem.quantityOrdered).minus(
+            poItem.quantityReceived ?? new Decimal(0),
+          );
+          if (new Decimal(item.quantity_received).greaterThan(remaining)) {
+            throw new BadRequestException(
+              `Quantitas melebihi sisa PO (sisa ${remaining.toString()})`,
+            );
+          }
+        }
       }
     }
 

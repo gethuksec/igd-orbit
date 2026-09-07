@@ -103,6 +103,13 @@ export default function PurchaseOrderList() {
             Cancelled
           </Badge>
         );
+      case 'rejected':
+        return (
+          <Badge variant="destructive" className="bg-red-900">
+            <XCircle className="w-3 h-3" />
+            Rejected
+          </Badge>
+        );
       default:
         return null;
     }
@@ -157,6 +164,7 @@ export default function PurchaseOrderList() {
               { value: 'ordered', label: 'Ordered' },
               { value: 'partially_received', label: 'Partially Received' },
               { value: 'received', label: 'Received' },
+              { value: 'rejected', label: 'Rejected' },
               { value: 'cancelled', label: 'Cancelled' },
             ],
           },

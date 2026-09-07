@@ -17,6 +17,7 @@ import { PurchaseOrdersService } from './services/purchase-orders.service';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
 import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto';
 import { ApprovePurchaseOrderDto } from './dto/approve-purchase-order.dto';
+import { RejectPurchaseOrderDto } from './dto/reject-purchase-order.dto';
 
 interface ExpressRequest extends Request {
   user: {
@@ -103,6 +104,17 @@ export class PurchaseOrdersController {
   @Roles('CSO', 'SPV', 'HS', 'ASA', 'SODO')
   async order(@Param('id') id: string, @Request() req: ExpressRequest) {
     return this.purchaseOrdersService.order(id, req.user.id);
+  }
+
+  @Post(':id/reject')
+  @UseGuards(RolesGuard)
+  @Roles('CSO', 'CFO', 'OWNER', 'SUPERADMIN')
+  async reject(
+    @Param('id') id: string,
+    @Body() dto: RejectPurchaseOrderDto,
+    @Request() req: ExpressRequest,
+  ) {
+    return this.purchaseOrdersService.reject(id, dto, req.user.id, req.user.roles);
   }
 
   @Post(':id/cancel')

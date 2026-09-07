@@ -259,4 +259,77 @@ describe('GoodsReceiptsService IGDERP-80 flows (revisit / receiving / rejected->
     expect(badMoves[0].quantityChange.toNumber()).toBe(2);
     expect(badMoves[0].notes).toContain('rejected at receiving');
   });
+
+  // ---------- IGDERP-82: PO remaining cap ----------
+  it('create() rejects quantities exceeding PO remaining', async () => {
+    prisma.branch = { findUnique: jest.fn().mockResolvedValue({ id: 'branch-1' }) };
+    prisma.product = { findUnique: jest.fn().mockResolvedValue({ id: 'prod-1' }) };
+    prisma.purchaseOrder = {
+      findUnique: jest.fn().mockResolvedValue({
+        id: 'po-1',
+        status: 'ordered',
+        items: [
+          {
+            id: 'poi-1',
+            quantityOrdered: new Decimal(100),
+            quantityReceived: new Decimal(92),
+          },
+        ],
+      }),
+    };
+    prisma.goodsReceipt = { create: jest.fn().mockResolvedValue({ id: 'gr-new' }) };
+    prisma.goodsReceiptEvent = { create: jest.fn().mockResolvedValue({ id: 'ev-1' }) };
+
+    await expect(
+      service.create(
+        {
+          branch_id: 'branch-1',
+          purchase_order_id: 'po-1',
+          receipt_date: '2026-09-07',
+          items: [
+            {
+              purchase_order_item_id: 'poi-1',
+              product_id: 'prod-1',
+              quantity_received: 9,
+              unit_price: 1000,
+            },
+          ],
+        } as any,
+        'sodo-1',
+      ),
+    ).rejects.toThrow('Quantitas melebihi sisa PO');
+
+    expect(prisma.goodsReceipt.create).not.toHaveBeenCalled();
+  });
+
+  it('updateReceiving() caps at PO remaining (poi-1 ordered 10, already received 0 → 11 rejected)', async () => {
+    prisma.goodsReceipt.findUnique.mockResolvedValue({
+      ...gr,
+      status: 'received',
+      purchaseOrder: {
+        id: 'po-1',
+        items: [{ id: 'poi-1', quantityOrdered: new Decimal(10), quantityReceived: new Decimal(0) }],
+      },
+      items: [
+        {
+          ...gr.items[0],
+          purchaseOrderItemId: 'poi-1',
+          quantityReceived: new Decimal(0),
+        },
+      ],
+    });
+
+    const dto: UpdateReceivingDto = {
+      items: [
+        {
+          id: 'gri-1',
+          quantity_received: 11,
+          quantity_rejected: 0,
+        },
+      ],
+    };
+    await expect(
+      service.updateReceiving('gr-1', dto, 'sodo-1', ['SODO']),
+    ).rejects.toThrow('Quantitas melebihi sisa PO');
+  });
 });

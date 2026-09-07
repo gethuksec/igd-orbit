@@ -1785,7 +1785,7 @@ model PurchaseOrder {
   poNumber             String    @unique @map("po_number") // e.g., "PO-2025-001"
   supplierId           String    @map("supplier_id") // Customer with customerType='wholesale'
   branchId             String    @map("branch_id")
-  status               String    @default("draft") // 'draft', 'pending', 'approved', 'ordered', 'partially_received', 'received', 'cancelled'
+  status               String    @default("draft") // 'draft', 'pending', 'approved', 'ordered', 'partially_received', 'received', 'rejected', 'cancelled'
   orderDate            DateTime  @map("order_date")
   expectedDeliveryDate DateTime? @map("expected_delivery_date")
   paymentTerms         String?   @map("payment_terms") // e.g., "Net 30", "COD"
@@ -1802,6 +1802,9 @@ model PurchaseOrder {
   approvedBy           String?   @map("approved_by") // User ID (CSO)
   approvedBy2          String?   @map("approved_by_2") // User ID (CFO, for > Rp 5M)
   approvedAt           DateTime? @map("approved_at")
+  rejectedBy           String?   @map("rejected_by") // User ID
+  rejectedAt           DateTime? @map("rejected_at")
+  rejectionReason      String?   @map("rejection_reason") @db.Text
   orderedBy            String?   @map("ordered_by") // User ID
   orderedAt            DateTime? @map("ordered_at")
   cancelledBy          String?   @map("cancelled_by") // User ID
