@@ -32,6 +32,13 @@ export interface IntakeMember {
   customerCode: string;
 }
 
+export interface IntakeLink {
+  branchId: string;
+  branchCode: string;
+  branchName: string;
+  intakeToken: string | null;
+}
+
 export interface IntakeItemPayload {
   barcode: string;
   listing: 'EXIST' | 'NEW';
@@ -117,6 +124,9 @@ export const stockRequestsService = {
   },
   createIntake(token: string, payload: CreateIntakePayload): Promise<StockRequest> {
     return api.post(`/stock-requests/intake/${token}`, payload).then(unwrap);
+  },
+  intakeLinks(): Promise<IntakeLink[]> {
+    return api.get('/stock-requests/intake-links').then(unwrap);
   },
 
   // ─── SODO review ───

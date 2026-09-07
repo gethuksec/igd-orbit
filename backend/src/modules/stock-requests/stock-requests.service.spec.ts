@@ -268,6 +268,23 @@ describe('StockRequestsService', () => {
     });
   });
 
+  describe('listIntakeLinks', () => {
+    it('returns only active outlets with their tokens', async () => {
+      prisma.branch.findMany.mockResolvedValue([
+        { id: 'b1', code: 'BR-001', name: 'Jember Pusat', intakeToken: 'tok1' },
+        { id: 'b2', code: 'BR-002', name: 'Kalisat', intakeToken: null },
+      ]);
+      const res = await service.listIntakeLinks();
+      expect(prisma.branch.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { isActive: true } }),
+      );
+      expect(res).toEqual([
+        { branchId: 'b1', branchCode: 'BR-001', branchName: 'Jember Pusat', intakeToken: 'tok1' },
+        { branchId: 'b2', branchCode: 'BR-002', branchName: 'Kalisat', intakeToken: null },
+      ]);
+    });
+  });
+
   describe('verifyIntakeMember', () => {
     it('404 on unknown member code', async () => {
       mockBranchOk();

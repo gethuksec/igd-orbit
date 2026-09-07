@@ -111,6 +111,13 @@ export class StockRequestsController {
     });
   }
 
+  @Get('intake-links')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(...APPROVE_ROLES)
+  async listIntakeLinks() {
+    return this.stockRequestsService.listIntakeLinks();
+  }
+
   @Get(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(...VIEW_ROLES)

@@ -440,4 +440,19 @@ export class StockRequestsService {
     });
     return { branchId: branch.id, branchCode: branch.code, branchName: branch.name, intakeToken };
   }
+
+  /** Active outlet intake links for the SODO review page (tokens stay server-side until here). */
+  async listIntakeLinks() {
+    const branches = await this.prisma.branch.findMany({
+      where: { isActive: true },
+      select: { id: true, code: true, name: true, intakeToken: true },
+      orderBy: { code: 'asc' },
+    });
+    return branches.map((b) => ({
+      branchId: b.id,
+      branchCode: b.code,
+      branchName: b.name,
+      intakeToken: b.intakeToken,
+    }));
+  }
 }

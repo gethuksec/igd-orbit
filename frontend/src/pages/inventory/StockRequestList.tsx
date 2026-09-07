@@ -28,6 +28,7 @@ import {
   stockRequestsService,
   SR_NEXT,
   SR_STATUS_LABEL,
+  type IntakeLink,
   type StockRequest,
 } from '@/services/stock-requests.service';
 
@@ -68,6 +69,72 @@ const fmtDate = (iso: string) =>
     hour: '2-digit',
     minute: '2-digit',
   });
+
+function IntakeLinksCard() {
+  const links = useQuery({
+    queryKey: ['stock-request-intake-links'],
+    queryFn: () => stockRequestsService.intakeLinks(),
+  });
+
+  const copy = async (url: string, name: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success(`Link ${name} disalin.`);
+    } catch {
+      toast.error('Gagal menyalin otomatis — salin manual dari kolom.');
+    }
+  };
+
+  if (links.isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-4">
+          <p className="text-sm text-gray-500">Memuat link outlet…</p>
+        </CardContent>
+      </Card>
+    );
+  }
+  if (links.isError || !links.data || links.data.length === 0) return null;
+
+  return (
+    <Card className="border-red-100">
+      <CardContent className="p-4 space-y-2.5">
+        <div>
+          <div className="text-sm font-bold">Link Form Permintaan per Outlet</div>
+          <p className="text-xs text-gray-500">
+            Bagikan ke ASA/CS masing-masing outlet — form terbuka tanpa login.
+          </p>
+        </div>
+        {(links.data as IntakeLink[]).map((l) => {
+          const url = l.intakeToken ? `${window.location.origin}/r/${l.intakeToken}` : '';
+          return (
+            <div key={l.branchId} className="flex flex-col sm:flex-row sm:items-center gap-2 rounded-lg border border-gray-100 p-2.5">
+              <div className="sm:w-44 shrink-0">
+                <div className="text-sm font-semibold">{l.branchName}</div>
+                <div className="text-xs text-gray-500">{l.branchCode}</div>
+              </div>
+              {url ? (
+                <>
+                  <Input readOnly value={url} className="flex-1 min-h-[38px] text-xs" onFocus={(e) => e.target.select()} />
+                  <div className="flex gap-2 shrink-0">
+                    <Button variant="outline" size="sm" onClick={() => copy(url, l.branchName)}>
+                      Salin
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => window.open(url, '_blank', 'noopener')}>
+                      Buka
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <p className="text-xs text-amber-700">Belum ada token — hubungi admin.</p>
+              )}
+            </div>
+          );
+        })}
+      </CardContent>
+    </Card>
+  );
+}
 
 function DetailDrawer({ id, onClose }: { id: string | null; onClose: () => void }) {
   const queryClient = useQueryClient();
@@ -311,6 +378,8 @@ export default function StockRequestList() {
   const [status, setStatus] = useState('');
   const [branchId, setBranchId] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
+  const { hasPermission } = usePermissions();
+  const canApprove = hasPermission('inventory.request.approve');
 
   const stats = useQuery({
     queryKey: ['stock-request-stats'],
@@ -367,6 +436,8 @@ export default function StockRequestList() {
           </CardContent>
         </Card>
       </div>
+
+      {canApprove && <IntakeLinksCard />}
 
       <div className="flex gap-2.5">
         <Input
