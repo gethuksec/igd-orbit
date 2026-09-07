@@ -72,13 +72,13 @@ export function BranchFilterSelect({
   const { availableBranches } = useBranchStore();
 
   return (
-    <div className="flex items-center gap-2 text-xs">
+    <div className="flex items-center gap-2 text-sm">
       {label && <span className="text-muted-foreground whitespace-nowrap">{label}:</span>}
       <select
         value={value || ''}
         onChange={(e) => onChange(e.target.value)}
         className={
-          'border border-input rounded-lg px-2 py-1.5 text-xs bg-background focus:ring-2 focus:ring-primary-500 ' +
+          'h-9 border border-input rounded-lg px-3 text-sm bg-background focus:ring-2 focus:ring-primary-500 ' +
           className
         }
       >

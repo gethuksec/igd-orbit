@@ -1,14 +1,13 @@
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
-  CheckCircle,
-  XCircle,
-  RotateCcw,
   CheckCheck,
   AlertCircle,
   Loader2,
   History,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { BreadcrumbHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
@@ -199,6 +198,19 @@ export default function GoodsReceiptDetail() {
     gr.status !== 'cancelled' &&
     gr.status !== 'revisit';
 
+  // Split action bar (same pattern as PO detail)
+  const [menuOpen, setMenuOpen] = useState(false);
+  const actionBarRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (actionBarRef.current && !actionBarRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
   if (isLoading) {
     return (
       <div className="w-full flex items-center justify-center min-h-[400px]">
@@ -233,32 +245,66 @@ export default function GoodsReceiptDetail() {
             : ''
         }
       >
-        <div className="flex gap-2 flex-wrap">
-          {canRevisit && (
-            <Button variant="outline" onClick={() => setRevisitModalOpen(true)} disabled={revisitMutation.isPending}>
-              <RotateCcw />
-              Revisit
-            </Button>
-          )}
-          {canApprove && (
-            <Button variant="outline" onClick={() => setApproveModalOpen(true)} disabled={approveMutation.isPending}>
-              <CheckCircle />
-              Approve
-            </Button>
-          )}
-          {canReject && (
-            <Button variant="secondary" onClick={() => setRejectModalOpen(true)} disabled={rejectMutation.isPending}>
-              <XCircle />
-              Reject
-            </Button>
-          )}
-          {canCancel && (
-            <Button variant="destructive" onClick={() => setCancelModalOpen(true)} disabled={cancelMutation.isPending}>
-              <XCircle />
-              Cancel
-            </Button>
-          )}
-        </div>
+      <div className="flex gap-2 flex-wrap">
+        {(() => {
+          const primary = canApprove
+            ? { label: 'Approve', disabled: approveMutation.isPending, handler: () => setApproveModalOpen(true) }
+            : canReject
+              ? { label: 'Reject', disabled: rejectMutation.isPending, handler: () => setRejectModalOpen(true) }
+              : canRevisit
+                ? { label: 'Revisit', disabled: revisitMutation.isPending, handler: () => setRevisitModalOpen(true) }
+                : canCancel
+                  ? { label: 'Cancel', disabled: cancelMutation.isPending, handler: () => setCancelModalOpen(true) }
+                  : null;
+          const items = [
+            canApprove && primary?.label !== 'Approve' && { label: 'Approve', handler: () => setApproveModalOpen(true) },
+            canReject && primary?.label !== 'Reject' && { label: 'Reject', destructive: true, handler: () => setRejectModalOpen(true) },
+            canRevisit && primary?.label !== 'Revisit' && { label: 'Revisit', handler: () => setRevisitModalOpen(true) },
+            canCancel && primary?.label !== 'Cancel' && { label: 'Cancel', destructive: true, handler: () => setCancelModalOpen(true) },
+          ].filter(Boolean) as { label: string; destructive?: boolean; handler: () => void }[];
+          if (!primary && items.length === 0) return null;
+          return (
+            <div className="relative" ref={actionBarRef}>
+              <div className="flex">
+                {primary && (
+                  <Button className="rounded-r-none" onClick={primary.handler} disabled={primary.disabled}>
+                    {primary.label}
+                  </Button>
+                )}
+                {items.length > 0 && (
+                  <Button
+                    variant={primary ? 'default' : 'outline'}
+                    className={primary ? 'rounded-l-none' : ''}
+                    onClick={() => setMenuOpen((o) => !o)}
+                    aria-label="More actions"
+                  >
+                    {menuOpen ? <ChevronUp /> : <ChevronDown />}
+                  </Button>
+                )}
+              </div>
+              {menuOpen && (
+                <div className="absolute right-0 z-50 mt-1 min-w-40 overflow-hidden rounded-lg border bg-white py-1 shadow">
+                  {items.map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      className={`block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-muted ${
+                        item.destructive ? 'font-semibold text-red-600' : 'text-gray-700'
+                      }`}
+                      onClick={() => {
+                        setMenuOpen(false);
+                        item.handler();
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
+      </div>
       </BreadcrumbHeader>
 
       {gr.status === 'revisit' && (

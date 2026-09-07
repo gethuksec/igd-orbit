@@ -527,10 +527,12 @@ export default function PurchaseOrderForm() {
           </CardContent>
         </Card>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card>
             <CardHeader>
               <CardTitle>PO Notes</CardTitle>
             </CardHeader>
+   ...[truncated]
             <CardContent>
               <Textarea
                 value={formData.notes}
@@ -600,6 +602,7 @@ export default function PurchaseOrderForm() {
               </div>
             </CardContent>
           </Card>
+        </div>
 
         <div className="flex justify-end gap-4">
           <Button
