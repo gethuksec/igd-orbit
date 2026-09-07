@@ -8,6 +8,7 @@ import { PrismaService } from '../../../shared/services/prisma.service';
 import { CreatePurchaseOrderDto } from '../dto/create-purchase-order.dto';
 import { UpdatePurchaseOrderDto } from '../dto/update-purchase-order.dto';
 import { ApprovePurchaseOrderDto } from '../dto/approve-purchase-order.dto';
+import { RejectPurchaseOrderDto } from '../dto/reject-purchase-order.dto';
 import { Decimal } from '@prisma/client/runtime/library';
 
 @Injectable()
@@ -40,7 +41,7 @@ export class PurchaseOrdersService {
   }
 
   /**
-   * Create purchase order (draft)
+   * Create purchase order (submitted = pending; no draft anymore)
    */
   async create(dto: CreatePurchaseOrderDto, userId: string) {
     // Validate supplier
@@ -116,7 +117,7 @@ export class PurchaseOrdersService {
         poNumber: this.generatePONumber(),
         supplierId: dto.supplier_id,
         branchId: dto.branch_id,
-        status: 'draft',
+        status: 'pending',
         orderDate: new Date(dto.order_date),
         expectedDeliveryDate: dto.expected_delivery_date
           ? new Date(dto.expected_delivery_date)
@@ -341,8 +342,8 @@ export class PurchaseOrdersService {
       throw new NotFoundException('Purchase order not found');
     }
 
-    if (po.status !== 'draft') {
-      throw new BadRequestException('Can only update draft purchase orders');
+    if (po.status !== 'draft' && po.status !== 'pending') {
+      throw new BadRequestException('Can only update draft or pending purchase orders');
     }
 
     // If items are provided, recalculate totals
@@ -481,7 +482,9 @@ export class PurchaseOrdersService {
 
     const totalAmount = po.totalAmount.toNumber();
     const requiredApprovers = this.getRequiredApprovers(totalAmount);
-    const hasAuthority = requiredApprovers.some((role) => userRoles.includes(role));
+    const hasAuthority =
+      requiredApprovers.some((role) => userRoles.includes(role)) ||
+      userRoles.includes('SUPERADMIN');
 
     if (!hasAuthority) {
       throw new ForbiddenException('You do not have authority to approve this purchase order');
@@ -491,8 +494,34 @@ export class PurchaseOrdersService {
     const isCSO = userRoles.includes('CSO');
     const isCFO = userRoles.includes('CFO');
 
-    // First approval (CSO)
-    if (!po.approvedBy && isCSO) {
+    // First approval (CSO) — SUPERADMIN bypasses tiers (single-step full approval)
+    const isSuper = userRoles.includes('SUPERADMIN');
+    if (!po.approvedBy && (isCSO || isSuper)) {
+      if (isSuper) {
+        return await this.prisma.purchaseOrder.update({
+          where: { id },
+          data: {
+            status: 'approved',
+            approvedBy: userId,
+            approvedAt: new Date(),
+            notes: dto.notes ? `${po.notes || ''}\n[Admin Approval] ${dto.notes}`.trim() : po.notes,
+          },
+          include: {
+            supplier: true,
+            branch: true,
+            items: {
+              include: {
+                product: {
+                  include: {
+                    category: true,
+                    brand: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+      }
       if (totalAmount >= 5000000 && totalAmount <= 50000000) {
         // Needs CFO approval too
         return await this.prisma.purchaseOrder.update({
@@ -607,6 +636,62 @@ export class PurchaseOrdersService {
     }
 
     throw new BadRequestException('Purchase order is already fully approved or cannot be approved');
+  }
+
+  /**
+   * Reject purchase order (approver denies a pending PO)
+   */
+  async reject(
+    id: string,
+    dto: RejectPurchaseOrderDto,
+    userId: string,
+    userRoles: string[],
+  ) {
+    const po = await this.prisma.purchaseOrder.findUnique({
+      where: { id },
+    });
+
+    if (!po) {
+      throw new NotFoundException('Purchase order not found');
+    }
+
+    if (po.status !== 'pending') {
+      throw new BadRequestException(`Cannot reject purchase order with status: ${po.status}`);
+    }
+
+    const totalAmount = po.totalAmount.toNumber();
+    const requiredApprovers = this.getRequiredApprovers(totalAmount);
+    const hasAuthority =
+      requiredApprovers.some((role) => userRoles.includes(role)) ||
+      userRoles.includes('SUPERADMIN');
+
+    if (!hasAuthority) {
+      throw new ForbiddenException('You do not have authority to reject this purchase order');
+    }
+
+    return await this.prisma.purchaseOrder.update({
+      where: { id },
+      data: {
+        status: 'rejected',
+        rejectedBy: userId,
+        rejectedAt: new Date(),
+        rejectionReason: dto.reason,
+      },
+      include: {
+        supplier: true,
+        branch: true,
+        items: {
+          include: {
+            product: {
+              include: {
+                category: true,
+                brand: true,
+              },
+            },
+          },
+        },
+      },
+    });
   }
 
   /**

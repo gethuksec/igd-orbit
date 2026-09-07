@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
   Param,
   Query,
@@ -15,6 +16,7 @@ import { resolveBranchFilter } from '../../common/branch-access.util';
 import { GoodsReceiptsService } from './services/goods-receipts.service';
 import { CreateGoodsReceiptDto } from './dto/create-goods-receipt.dto';
 import { ApproveGoodsReceiptDto } from './dto/approve-goods-receipt.dto';
+import { RevisitGoodsReceiptDto, UpdateReceivingDto } from './dto/receiving.dto';
 
 interface ExpressRequest extends Request {
   user: {
@@ -76,7 +78,7 @@ export class GoodsReceiptsController {
 
   @Post(':id/approve')
   @UseGuards(RolesGuard)
-  @Roles('HS', 'SPV', 'CSO', 'OWNER')
+  @Roles('SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'SODO')
   async approve(
     @Param('id') id: string,
     @Body() dto: ApproveGoodsReceiptDto,
@@ -87,13 +89,35 @@ export class GoodsReceiptsController {
 
   @Post(':id/reject')
   @UseGuards(RolesGuard)
-  @Roles('HS', 'SPV', 'CSO', 'OWNER')
+  @Roles('SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'SODO')
   async reject(
     @Param('id') id: string,
     @Body() body: { reason: string },
     @Request() req: ExpressRequest,
   ) {
     return this.goodsReceiptsService.reject(id, req.user.id, body.reason, req.user.roles);
+  }
+
+  @Post(':id/revisit')
+  @UseGuards(RolesGuard)
+  @Roles('SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'SODO')
+  async revisit(
+    @Param('id') id: string,
+    @Body() dto: RevisitGoodsReceiptDto,
+    @Request() req: ExpressRequest,
+  ) {
+    return this.goodsReceiptsService.revisit(id, dto, req.user.id, req.user.roles);
+  }
+
+  @Patch(':id/receiving')
+  @UseGuards(RolesGuard)
+  @Roles('SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'SODO')
+  async updateReceiving(
+    @Param('id') id: string,
+    @Body() dto: UpdateReceivingDto,
+    @Request() req: ExpressRequest,
+  ) {
+    return this.goodsReceiptsService.updateReceiving(id, dto, req.user.id, req.user.roles);
   }
 
   @Post(':id/cancel')

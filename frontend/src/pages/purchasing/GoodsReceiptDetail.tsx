@@ -1,17 +1,57 @@
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
-import { CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import {
+  CheckCheck,
+  AlertCircle,
+  Loader2,
+  History,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react';
 import { BreadcrumbHeader } from '@/components/shared';
-import { purchasingService } from '@/services/purchasing.service';
-import { formatDate, formatCurrency } from '@/utils/format';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { formatDate } from '@/utils/format';
 import { toast } from 'sonner';
 import { Modal } from '@/components/ui/modal';
+import { purchasingService } from '@/services/purchasing.service';
+import AttachmentPanel from '@/components/purchasing/AttachmentPanel';
+
+const REVISIT_REASONS = [
+  'Kuantitas tidak sesuai',
+  'Data item atau harga salah',
+  'Dokumen invoice belum lengkap',
+  'Lainnya',
+];
+
+const ACTION_LABEL: Record<string, string> = {
+  created: 'Dibuat',
+  received: 'Diterima',
+  revisit: 'Revisit',
+  approved: 'Disetujui',
+  rejected: 'Ditolak',
+  cancelled: 'Dibatalkan',
+};
+
+const PROCESSOR_ROLES = ['SODO', 'HS', 'SPV', 'SUPERADMIN', 'OWNER'];
 
 export default function GoodsReceiptDetail() {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
-  
+
   const getCurrentUser = () => {
     try {
       const raw = localStorage.getItem('user');
@@ -20,19 +60,21 @@ export default function GoodsReceiptDetail() {
       return null;
     }
   };
-  
+
   const currentUser = getCurrentUser();
   const userRoles: string[] = currentUser?.roles || (currentUser?.role?.code ? [currentUser.role.code] : []);
+  const userId = currentUser?.id || '';
   const [approveModalOpen, setApproveModalOpen] = useState(false);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [revisitModalOpen, setRevisitModalOpen] = useState(false);
   const [approveData, setApproveData] = useState({
-    inspection_status: 'passed' as 'passed' | 'failed' | 'partial',
-    inspection_notes: '',
     notes: '',
   });
   const [cancelReason, setCancelReason] = useState('');
   const [rejectReason, setRejectReason] = useState('');
+  const [revisitReason, setRevisitReason] = useState(REVISIT_REASONS[0]);
+  const [revisitNote, setRevisitNote] = useState('');
 
   const { data: gr, isLoading, error } = useQuery({
     queryKey: ['goods-receipt', id],
@@ -40,59 +82,139 @@ export default function GoodsReceiptDetail() {
     enabled: !!id,
   });
 
+  // Receiving rows state (editable in draft/received/revisit)
+  const [receiving, setReceiving] = useState<Record<string, { received: string; rejected: string }>>({});
+  const [checkAll, setCheckAll] = useState(false);
+  const isEditingStatus = gr && ['draft', 'received', 'revisit'].includes(gr.status);
+  const canEditReceiving =
+    !!gr &&
+    isEditingStatus &&
+    (gr.receivedBy === userId || PROCESSOR_ROLES.some((r) => userRoles.includes(r)));
+
   const approveMutation = useMutation({
     mutationFn: (data?: any) => purchasingService.approveGoodsReceipt(id!, data),
     onSuccess: () => {
-      toast.success('Goods receipt berhasil disetujui');
-      setApproveModalOpen(false);
-      setApproveData({ inspection_status: 'passed', inspection_notes: '', notes: '' });
+      toast.success('Goods receipt disetujui');
       queryClient.invalidateQueries({ queryKey: ['goods-receipt', id] });
-      queryClient.invalidateQueries({ queryKey: ['goods-receipts'] });
-      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Gagal menyetujui goods receipt');
+      setApproveModalOpen(false);
+      setApproveData({ notes: '' });
     },
   });
 
   const rejectMutation = useMutation({
     mutationFn: (reason: string) => purchasingService.rejectGoodsReceipt(id!, reason),
     onSuccess: () => {
-      toast.success('Goods receipt berhasil ditolak');
+      toast.success('Goods receipt ditolak');
+      queryClient.invalidateQueries({ queryKey: ['goods-receipt', id] });
       setRejectModalOpen(false);
       setRejectReason('');
-      queryClient.invalidateQueries({ queryKey: ['goods-receipt', id] });
-      queryClient.invalidateQueries({ queryKey: ['goods-receipts'] });
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Gagal menolak goods receipt');
+  });
+
+  const revisitMutation = useMutation({
+    mutationFn: (reason: string) => purchasingService.revisitGoodsReceipt(id!, reason),
+    onSuccess: () => {
+      toast.success('GR dikembalikan ke SODO');
+      queryClient.invalidateQueries({ queryKey: ['goods-receipt', id] });
+      setRevisitModalOpen(false);
+      setRevisitNote('');
     },
   });
 
   const cancelMutation = useMutation({
     mutationFn: (reason?: string) => purchasingService.cancelGoodsReceipt(id!, reason),
     onSuccess: () => {
-      toast.success('Goods receipt berhasil dibatalkan');
+      toast.success('Goods receipt dibatalkan');
+      queryClient.invalidateQueries({ queryKey: ['goods-receipt', id] });
       setCancelModalOpen(false);
       setCancelReason('');
-      queryClient.invalidateQueries({ queryKey: ['goods-receipt', id] });
-      queryClient.invalidateQueries({ queryKey: ['goods-receipts'] });
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Gagal membatalkan goods receipt');
     },
   });
 
-  const canApprove = ['HS', 'SPV', 'CSO', 'OWNER'].some((r) => userRoles.includes(r)) &&
-    (gr?.status === 'draft' || gr?.status === 'received' || gr?.status === 'inspected');
-  const canReject = ['HS', 'SPV', 'CSO', 'OWNER'].some((r) => userRoles.includes(r)) &&
-    gr?.status !== 'approved' && gr?.status !== 'rejected' && gr?.status !== 'cancelled';
-  const canCancel = gr?.status !== 'approved' && gr?.status !== 'cancelled';
+  const receivingMutation = useMutation({
+    mutationFn: (items: Array<{ id: string; quantity_received: number; quantity_rejected: number }>) =>
+      purchasingService.updateGoodsReceiptReceiving(id!, items),
+    onSuccess: () => {
+      toast.success('Penerimaan tersimpan');
+      queryClient.invalidateQueries({ queryKey: ['goods-receipt', id] });
+      setCheckAll(false);
+      setReceiving({});
+    },
+  });
+
+  const orderedFor = (item: any): number | null => {
+    if (!gr?.purchaseOrder?.items || !item.purchaseOrderItemId) return null;
+    const poItem = gr.purchaseOrder.items.find((i: any) => i.id === item.purchaseOrderItemId);
+    return poItem ? Number(poItem.quantityOrdered) : null;
+  };
+
+  const rowValue = (item: any) => {
+    const over = receiving[item.id];
+    const received = over ? Number(over.received || 0) : Number(item.quantityReceived);
+    const rejected = over ? Number(over.rejected || 0) : Number(item.quantityRejected);
+    const accepted = received - rejected;
+    const ordered = orderedFor(item);
+    const isMismatch = ordered !== null && received !== ordered;
+    const variancePct = ordered && ordered > 0 ? Math.round(((received - ordered) / ordered) * 100) : 0;
+    return { received, rejected, accepted, ordered, isMismatch, variancePct };
+  };
+
+  const handleCheckAll = (checked: boolean) => {
+    setCheckAll(checked);
+    if (!gr) return;
+    const next: typeof receiving = {};
+    (gr.items ?? []).forEach((item: any) => {
+      const ordered = orderedFor(item);
+      next[item.id] = {
+        received: String(ordered ?? Number(item.quantityReceived)),
+        rejected: '0',
+      };
+    });
+    setReceiving(next);
+  };
+
+  const handleSaveReceiving = () => {
+    if (!gr) return;
+    const items = (gr.items ?? []).map((item: any) => ({
+      id: item.id,
+      quantity_received: rowValue(item).received,
+      quantity_rejected: rowValue(item).rejected,
+    }));
+    receivingMutation.mutate(items);
+  };
+
+  const canApprove = gr && ['draft', 'received', 'inspected'].includes(gr.status);
+  const canReject =
+    gr &&
+    gr.status !== 'approved' &&
+    gr.status !== 'rejected' &&
+    gr.status !== 'cancelled' &&
+    gr.status !== 'revisit';
+  const canRevisit = gr && ['draft', 'received', 'inspected'].includes(gr.status);
+  const canCancel =
+    gr &&
+    gr.status !== 'approved' &&
+    gr.status !== 'rejected' &&
+    gr.status !== 'cancelled' &&
+    gr.status !== 'revisit';
+
+  // Split action bar (same pattern as PO detail)
+  const [menuOpen, setMenuOpen] = useState(false);
+  const actionBarRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (actionBarRef.current && !actionBarRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   if (isLoading) {
     return (
       <div className="w-full flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-16 h-16 text-primary-600 animate-spin" />
+        <Loader2 className="w-16 h-16 text-primary animate-spin" />
       </div>
     );
   }
@@ -101,8 +223,8 @@ export default function GoodsReceiptDetail() {
     return (
       <div className="w-full flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <p className="text-red-600">Gagal memuat goods receipt</p>
+          <AlertCircle className="w-16 h-16 text-destructive mx-auto mb-4" />
+          <p className="text-destructive">Gagal memuat goods receipt</p>
         </div>
       </div>
     );
@@ -116,321 +238,408 @@ export default function GoodsReceiptDetail() {
           gr.status === 'draft' ? 'Draft'
             : gr.status === 'received' ? 'Received'
             : gr.status === 'inspected' ? 'Inspected'
+            : gr.status === 'revisit' ? <Badge variant="outline">Revisited — menunggu SODO</Badge>
             : gr.status === 'approved' ? 'Approved'
             : gr.status === 'rejected' ? 'Rejected'
             : gr.status === 'cancelled' ? 'Cancelled'
             : ''
         }
       >
-        <div className="flex gap-2">
-          
-            {canApprove && (
-              <button
-                onClick={() => setApproveModalOpen(true)}
-                disabled={approveMutation.isPending}
-                className="px-4 py-2 bg-white text-primary-600 border border-gray-200 rounded-lg font-semibold hover:bg-primary-50 transition-colors disabled:opacity-50"
-              >
-                <CheckCircle className="w-5 h-5 inline mr-2" />
-                Approve
-              </button>
-            )}
-            {canReject && (
-              <button
-                onClick={() => setRejectModalOpen(true)}
-                disabled={rejectMutation.isPending}
-                className="px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50"
-              >
-                <XCircle className="w-5 h-5 inline mr-2" />
-                Reject
-              </button>
-            )}
-            {canCancel && (
-              <button
-                onClick={() => setCancelModalOpen(true)}
-                disabled={cancelMutation.isPending}
-                className="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition-colors disabled:opacity-50"
-              >
-                <XCircle className="w-5 h-5 inline mr-2" />
-                Cancel
-              </button>
-            )}
-          
-        </div>
+      <div className="flex gap-2 flex-wrap">
+        {(() => {
+          const primary = canApprove
+            ? { label: 'Approve', disabled: approveMutation.isPending, handler: () => setApproveModalOpen(true) }
+            : canReject
+              ? { label: 'Reject', disabled: rejectMutation.isPending, handler: () => setRejectModalOpen(true) }
+              : canRevisit
+                ? { label: 'Revisit', disabled: revisitMutation.isPending, handler: () => setRevisitModalOpen(true) }
+                : canCancel
+                  ? { label: 'Cancel', disabled: cancelMutation.isPending, handler: () => setCancelModalOpen(true) }
+                  : null;
+          const items = [
+            canApprove && primary?.label !== 'Approve' && { label: 'Approve', handler: () => setApproveModalOpen(true) },
+            canReject && primary?.label !== 'Reject' && { label: 'Reject', destructive: true, handler: () => setRejectModalOpen(true) },
+            canRevisit && primary?.label !== 'Revisit' && { label: 'Revisit', handler: () => setRevisitModalOpen(true) },
+            canCancel && primary?.label !== 'Cancel' && { label: 'Cancel', destructive: true, handler: () => setCancelModalOpen(true) },
+          ].filter(Boolean) as { label: string; destructive?: boolean; handler: () => void }[];
+          if (!primary && items.length === 0) return null;
+          return (
+            <div className="relative" ref={actionBarRef}>
+              <div className="flex">
+                {primary && (
+                  <Button className="rounded-r-none" onClick={primary.handler} disabled={primary.disabled}>
+                    {primary.label}
+                  </Button>
+                )}
+                {items.length > 0 && (
+                  <Button
+                    variant={primary ? 'default' : 'outline'}
+                    className={primary ? 'rounded-l-none' : ''}
+                    onClick={() => setMenuOpen((o) => !o)}
+                    aria-label="More actions"
+                  >
+                    {menuOpen ? <ChevronUp /> : <ChevronDown />}
+                  </Button>
+                )}
+              </div>
+              {menuOpen && (
+                <div className="absolute right-0 z-50 mt-1 min-w-40 overflow-hidden rounded-lg border bg-white py-1 shadow">
+                  {items.map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      className={`block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-muted ${
+                        item.destructive ? 'font-semibold text-red-600' : 'text-gray-700'
+                      }`}
+                      onClick={() => {
+                        setMenuOpen(false);
+                        item.handler();
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
+      </div>
       </BreadcrumbHeader>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h3 className="text-sm font-semibold text-gray-600 mb-2">Purchase Order</h3>
-          {gr.purchaseOrder ? (
-            <Link
-              to={`/purchasing/po/${gr.purchaseOrderId}`}
-              className="text-lg font-bold text-primary-600 hover:underline"
-            >
-              {gr.purchaseOrder.poNumber}
-            </Link>
-          ) : (
-            <p className="text-lg font-bold text-gray-500">-</p>
-          )}
-        </div>
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h3 className="text-sm font-semibold text-gray-600 mb-2">Tanggal Receipt</h3>
-          <p className="text-lg font-bold text-gray-900">{formatDate(gr.receiptDate)}</p>
-        </div>
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h3 className="text-sm font-semibold text-gray-600 mb-2">Variance</h3>
-          <p className="text-lg font-bold text-gray-900">
-            {gr.variancePercent !== null && gr.variancePercent !== undefined
-              ? `${gr.variancePercent.toFixed(2)}%`
-              : '-'}
-          </p>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900">Items</h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Product</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Qty Received</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Qty Accepted</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Qty Rejected</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Unit Price</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {gr.items?.map((item) => (
-                <tr key={item.id}>
-                  <td className="px-6 py-4">
-                    <div className="font-semibold text-gray-900">{item.product?.name || 'N/A'}</div>
-                    <div className="text-sm text-gray-500">{item.product?.sku}</div>
-                  </td>
-                  <td className="px-6 py-4 text-gray-900">{item.quantityReceived}</td>
-                  <td className="px-6 py-4 text-green-600 font-semibold">{item.quantityAccepted}</td>
-                  <td className="px-6 py-4 text-red-600 font-semibold">{item.quantityRejected}</td>
-                  <td className="px-6 py-4 text-gray-900">{formatCurrency(item.unitPrice)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {gr.notes && (
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-2">Notes</h3>
-          <p className="text-gray-700 whitespace-pre-wrap">{gr.notes}</p>
+      {gr.status === 'revisit' && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+          <b>Revisit:</b> GR dikembalikan ke tim penerimaan (SODO). Periksa &amp; simpan ulang
+          kuantitas penerimaan, lalu GR kembali ke status <b>Received</b> untuk approval.
+          {gr.revisitReason && <div className="mt-1 text-amber-700">Alasan: “{gr.revisitReason}”</div>}
         </div>
       )}
 
-      {/* Approve Modal */}
-      <Modal
-        open={approveModalOpen}
-        onClose={() => {
-          setApproveModalOpen(false);
-          setApproveData({ inspection_status: 'passed', inspection_notes: '', notes: '' });
-        }}
-        title="Setujui Goods Receipt"
-        size="md"
-      >
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <CardContent className="p-6">
+            <h3 className="text-sm font-semibold text-muted-foreground mb-2">Purchase Order</h3>
+            {gr.purchaseOrder ? (
+              <Link
+                to={`/purchasing/po/${gr.purchaseOrderId}`}
+                className="text-lg font-bold text-primary hover:underline"
+              >
+                {gr.purchaseOrder.poNumber}
+              </Link>
+            ) : (
+              <p className="text-lg font-bold text-muted-foreground">-</p>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <h3 className="text-sm font-semibold text-muted-foreground mb-2">Tanggal Receipt</h3>
+            <p className="text-lg font-bold">{formatDate(gr.receiptDate)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <h3 className="text-sm font-semibold text-muted-foreground mb-2">Variance</h3>
+            <p className="text-lg font-bold">
+              {gr.variancePercent !== null && gr.variancePercent !== undefined
+                ? `${gr.variancePercent.toFixed(2)}%`
+                : '-'}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
+          <CardTitle>Items</CardTitle>
+          {canEditReceiving && (
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 text-sm font-semibold text-muted-foreground cursor-pointer">
+                <Checkbox
+                  checked={checkAll}
+                  onCheckedChange={(v) => handleCheckAll(v === true)}
+                />
+                Check All (qty = yang dipesan)
+              </label>
+              <Button
+                variant="outline"
+                onClick={handleSaveReceiving}
+                disabled={receivingMutation.isPending}
+              >
+                <CheckCheck />
+                {receivingMutation.isPending ? 'Menyimpan…' : 'Simpan Penerimaan'}
+              </Button>
+            </div>
+          )}
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table className="table-fixed">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Product</TableHead>
+                <TableHead className="w-24">Qty Dipesan</TableHead>
+                <TableHead className="w-28">Qty Diterima</TableHead>
+                <TableHead className="w-28">Qty Ditolak</TableHead>
+                <TableHead className="w-28">Qty Accepted</TableHead>
+                <TableHead className="w-36">Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {gr.items?.map((item: any) => {
+                const v = rowValue(item);
+                return (
+                  <TableRow key={item.id} className={v.isMismatch ? 'bg-amber-50/50' : ''}>
+                    <TableCell>
+                      <div className="font-semibold">{item.product?.name || 'N/A'}</div>
+                      <div className="text-sm text-muted-foreground">{item.product?.sku}</div>
+                    </TableCell>
+                    <TableCell>{v.ordered ?? '-'}</TableCell>
+                    <TableCell>
+                      {canEditReceiving ? (
+                        <Input
+                          type="text"
+                          inputMode="numeric"
+                          value={receiving[item.id]?.received ?? String(v.received)}
+                          onChange={(e) => {
+                            const raw = e.target.value.replace(/[^\d.]/g, '');
+                            setReceiving((prev) => ({
+                              ...prev,
+                              [item.id]: {
+                                received: raw,
+                                rejected: prev[item.id]?.rejected ?? String(v.rejected),
+                              },
+                            }));
+                          }}
+                          className="w-full"
+                        />
+                      ) : (
+                        <span>{v.received}</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {canEditReceiving ? (
+                        <Input
+                          type="text"
+                          inputMode="numeric"
+                          value={receiving[item.id]?.rejected ?? String(v.rejected)}
+                          onChange={(e) => {
+                            const raw = e.target.value.replace(/[^\d.]/g, '');
+                            setReceiving((prev) => ({
+                              ...prev,
+                              [item.id]: {
+                                received: prev[item.id]?.received ?? String(v.received),
+                                rejected: raw,
+                              },
+                            }));
+                          }}
+                          className="w-full"
+                        />
+                      ) : (
+                        <span className="text-destructive font-semibold">{v.rejected}</span>
+                      )}
+                    </TableCell>
+                    <TableCell><span className="text-green-600 font-semibold">{v.accepted}</span></TableCell>
+                    <TableCell>
+                      {v.ordered === null ? (
+                        <span className="text-sm text-muted-foreground">-</span>
+                      ) : v.isMismatch ? (
+                        <Badge variant="outline">
+                          {v.variancePct > 0 ? '+' : ''}
+                          {v.variancePct}% · selisih
+                        </Badge>
+                      ) : (
+                        <Badge>Sesuai (0%)</Badge>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {gr.notes && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Notes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="whitespace-pre-wrap text-muted-foreground">{gr.notes}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* IGDERP-81: documents (invoice supplier / surat jalan) on GR */}
+      <AttachmentPanel entityType="GOODS_RECEIPT" entityId={gr.id} title="Lampiran Dokumen Penerimaan" />
+
+      {/* IGDERP-80: audit trail (append-only) */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <History className="w-5 h-5 text-muted-foreground" />
+            <CardTitle>Riwayat</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {gr.events && gr.events.length > 0 ? (
+            <ul className="space-y-3">
+              {gr.events.map((ev: any) => (
+                <li key={ev.id} className="flex gap-3">
+                  <div className="flex-none w-2 h-2 rounded-full bg-primary mt-2" />
+                  <div>
+                    <div className="text-sm font-semibold">
+                      {ACTION_LABEL[ev.action] || ev.action} · {ev.actor?.fullName || ev.actor?.email || '-'}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {new Date(ev.createdAt).toLocaleString('id-ID')}
+                    </div>
+                    {ev.note && <div className="text-sm text-muted-foreground mt-0.5">{ev.note}</div>}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">Belum ada riwayat.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Approve modal */}
+      <Modal open={approveModalOpen} onClose={() => setApproveModalOpen(false)}>
+        <h2 className="text-xl font-bold mb-4">Approve Goods Receipt</h2>
         <div className="space-y-4">
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 p-2 bg-blue-100 rounded-full">
-              <CheckCircle className="w-5 h-5 text-blue-600" />
-            </div>
-            <div className="flex-1">
-              <p className="text-gray-700">
-                Apakah Anda yakin ingin menyetujui Goods Receipt <strong>{gr.grNumber}</strong>?
-              </p>
-            </div>
-          </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Status Inspeksi *
-            </label>
-            <select
-              value={approveData.inspection_status}
-              onChange={(e) => setApproveData({ ...approveData, inspection_status: e.target.value as any })}
-              className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            >
-              <option value="passed">Passed</option>
-              <option value="partial">Partial</option>
-              <option value="failed">Failed</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Catatan Inspeksi
-            </label>
-            <textarea
-              value={approveData.inspection_notes}
-              onChange={(e) => setApproveData({ ...approveData, inspection_notes: e.target.value })}
-              placeholder="Tambahkan catatan inspeksi..."
-              rows={3}
-              className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Catatan (Opsional)
-            </label>
-            <textarea
+            <label className="text-sm font-semibold">Catatan</label>
+            <Textarea
               value={approveData.notes}
               onChange={(e) => setApproveData({ ...approveData, notes: e.target.value })}
-              placeholder="Tambahkan catatan jika diperlukan..."
-              rows={2}
-              className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              placeholder="Catatan tambahan (opsional)"
+              className="mt-1"
             />
           </div>
-          <div className="flex gap-3 pt-4">
-            <button
-              onClick={() => {
-                setApproveModalOpen(false);
-                setApproveData({ inspection_status: 'passed', inspection_notes: '', notes: '' });
-              }}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              Batal
-            </button>
-            <button
-              onClick={() => {
-                approveMutation.mutate(approveData);
-              }}
-              disabled={approveMutation.isPending}
-              className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
-            >
-              {approveMutation.isPending ? 'Menyetujui...' : 'Ya, Setujui'}
-            </button>
-          </div>
+          <p className="text-sm text-muted-foreground">
+            Stok masuk ke <b>central-good</b>; qty ditolak otomatis ke <b>central-bad</b> (Gudang Pusat).
+          </p>
+        </div>
+        <div className="flex justify-end gap-2 mt-4">
+          <Button variant="outline" onClick={() => setApproveModalOpen(false)}>
+            Batal
+          </Button>
+          <Button
+            onClick={() =>
+              approveMutation.mutate({ notes: approveData.notes, inspection_status: 'passed' })
+            }
+            disabled={approveMutation.isPending}
+          >
+            Setujui &amp; Masukkan Stok
+          </Button>
         </div>
       </Modal>
 
-      {/* Reject Modal */}
-      <Modal
-        open={rejectModalOpen}
-        onClose={() => {
-          setRejectModalOpen(false);
-          setRejectReason('');
-        }}
-        title="Tolak Goods Receipt"
-        size="md"
-      >
-        <div className="space-y-4">
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 p-2 bg-orange-100 rounded-full">
-              <AlertCircle className="w-5 h-5 text-orange-600" />
-            </div>
-            <div className="flex-1">
-              <p className="text-gray-700">
-                Apakah Anda yakin ingin menolak Goods Receipt <strong>{gr.grNumber}</strong>?
-              </p>
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Alasan Penolakan *
+      {/* Revisit modal */}
+      <Modal open={revisitModalOpen} onClose={() => setRevisitModalOpen(false)}>
+        <h2 className="text-xl font-bold mb-4">Revisit — Kembalikan ke SODO</h2>
+        <div className="space-y-3">
+          <label className="text-sm font-semibold">Alasan</label>
+          {REVISIT_REASONS.map((r) => (
+            <label
+              key={r}
+              className="flex items-start gap-2 text-sm border rounded-lg p-2 cursor-pointer"
+            >
+              <input
+                type="radio"
+                name="revisit_reason"
+                checked={revisitReason === r}
+                onChange={() => setRevisitReason(r)}
+                className="mt-0.5 accent-orange-500"
+              />
+              {r}
             </label>
-            <textarea
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              placeholder="Masukkan alasan penolakan..."
-              rows={3}
-              required
-              className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            />
-          </div>
-          <div className="flex gap-3 pt-4">
-            <button
-              onClick={() => {
-                setRejectModalOpen(false);
-                setRejectReason('');
-              }}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              Batal
-            </button>
-            <button
-              onClick={() => {
-                if (!rejectReason.trim()) {
-                  toast.error('Alasan penolakan harus diisi');
-                  return;
-                }
-                rejectMutation.mutate(rejectReason);
-              }}
-              disabled={rejectMutation.isPending || !rejectReason.trim()}
-              className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50"
-            >
-              {rejectMutation.isPending ? 'Menolak...' : 'Ya, Tolak'}
-            </button>
-          </div>
+          ))}
+          {revisitReason === 'Lainnya' && (
+            <div>
+              <label className="text-sm font-semibold">
+                Catatan <span className="text-red-600">*</span>
+              </label>
+              <Textarea
+                value={revisitNote}
+                onChange={(e) => setRevisitNote(e.target.value)}
+                placeholder="Detail alasan…"
+                className="mt-1"
+              />
+            </div>
+          )}
+          <p className="text-sm text-muted-foreground">
+            GR kembali ke status <b>Received</b> dan dapat diedit oleh SODO. Record inspeksi tetap tersimpan.
+          </p>
+        </div>
+        <div className="flex justify-end gap-2 mt-4">
+          <Button variant="outline" onClick={() => setRevisitModalOpen(false)}>
+            Batal
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => revisitMutation.mutate(revisitNote || revisitReason)}
+            disabled={revisitMutation.isPending || (revisitReason === 'Lainnya' && !revisitNote.trim())}
+          >
+            Kembalikan ke SODO
+          </Button>
         </div>
       </Modal>
 
-      {/* Cancel Modal */}
-      <Modal
-        open={cancelModalOpen}
-        onClose={() => {
-          setCancelModalOpen(false);
-          setCancelReason('');
-        }}
-        title="Batalkan Goods Receipt"
-        size="md"
-      >
-        <div className="space-y-4">
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
-              <AlertCircle className="w-5 h-5 text-red-600" />
-            </div>
-            <div className="flex-1">
-              <p className="text-gray-700">
-                Apakah Anda yakin ingin membatalkan Goods Receipt <strong>{gr.grNumber}</strong>?
-              </p>
-              <p className="text-sm text-gray-500 mt-1">Tindakan ini tidak dapat dibatalkan.</p>
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Alasan Pembatalan *
-            </label>
-            <textarea
-              value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
-              placeholder="Masukkan alasan pembatalan..."
-              rows={3}
-              required
-              className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            />
-          </div>
-          <div className="flex gap-3 pt-4">
-            <button
-              onClick={() => {
-                setCancelModalOpen(false);
-                setCancelReason('');
-              }}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              Batal
-            </button>
-            <button
-              onClick={() => {
-                if (!cancelReason.trim()) {
-                  toast.error('Alasan pembatalan harus diisi');
-                  return;
-                }
-                cancelMutation.mutate(cancelReason);
-              }}
-              disabled={cancelMutation.isPending || !cancelReason.trim()}
-              className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-            >
-              {cancelMutation.isPending ? 'Membatalkan...' : 'Ya, Batalkan'}
-            </button>
-          </div>
+      {/* Reject modal */}
+      <Modal open={rejectModalOpen} onClose={() => setRejectModalOpen(false)}>
+        <h2 className="text-xl font-bold text-destructive mb-4">Reject Goods Receipt</h2>
+        <div>
+          <label className="text-sm font-semibold">Alasan penolakan (wajib)</label>
+          <Textarea
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            placeholder="Alasan…"
+            className="mt-1"
+          />
+        </div>
+        <p className="text-sm text-muted-foreground mt-3">GR ditolak final — stok TIDAK akan masuk.</p>
+        <div className="flex justify-end gap-2 mt-4">
+          <Button variant="outline" onClick={() => setRejectModalOpen(false)}>
+            Batal
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => rejectMutation.mutate(rejectReason)}
+            disabled={rejectMutation.isPending || !rejectReason.trim()}
+          >
+            Reject
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Cancel modal */}
+      <Modal open={cancelModalOpen} onClose={() => setCancelModalOpen(false)}>
+        <h2 className="text-xl font-bold text-destructive mb-4">Cancel Goods Receipt</h2>
+        <div>
+          <label className="text-sm font-semibold">Alasan (opsional)</label>
+          <Textarea
+            value={cancelReason}
+            onChange={(e) => setCancelReason(e.target.value)}
+            placeholder="Alasan pembatalan…"
+            className="mt-1"
+          />
+        </div>
+        <div className="flex justify-end gap-2 mt-4">
+          <Button variant="outline" onClick={() => setCancelModalOpen(false)}>
+            Batal
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={() => cancelMutation.mutate(cancelReason)}
+            disabled={cancelMutation.isPending}
+          >
+            Cancel
+          </Button>
         </div>
       </Modal>
     </div>
   );
 }
-

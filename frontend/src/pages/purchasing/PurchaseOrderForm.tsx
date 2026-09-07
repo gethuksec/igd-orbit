@@ -1,8 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Save, Plus, Trash2, Loader2, X } from 'lucide-react';
+import { Save, Trash2, Loader2, X, Pencil, Check } from 'lucide-react';
 import { BreadcrumbHeader } from '@/components/shared';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { purchasingService } from '@/services/purchasing.service';
 import { productsService } from '@/services/products.service';
 import { suppliersService } from '@/services/suppliers.service';
@@ -10,6 +23,9 @@ import { api } from '@/services/api';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/utils/format';
 import { useBranchFilter } from '@/components/branch/BranchFilter';
+
+const SELECT_CLS =
+  'h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
 
 export default function PurchaseOrderForm() {
   const { id } = useParams();
@@ -34,7 +50,7 @@ export default function PurchaseOrderForm() {
 
   const [items, setItems] = useState<Array<{
     product_id: string;
-    quantity_ordered: number;
+    quantity_ordered: string;
     unit_price: number;
     discount_percent: number;
     notes?: string;
@@ -42,9 +58,17 @@ export default function PurchaseOrderForm() {
   }>>([]);
 
   const [productSearch, setProductSearch] = useState('');
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [quantity, setQuantity] = useState(1);
-  const [unitPrice, setUnitPrice] = useState(0);
+  const [editingIndex, setEditingIndex] = useState(-1);
+  const [editQty, setEditQty] = useState('1');
+  const [editPrice, setEditPrice] = useState(0);
+
+  const formatThousandStr = (v: string) => {
+    const n = parseFloat(v) || 0;
+    return n ? n.toLocaleString('id-ID') : '';
+  };
+  const handleAmountChange = (key: 'discount_amount' | 'tax_amount' | 'shipping_cost', raw: string) => {
+    setFormData((f) => ({ ...f, [key]: raw.replace(/[^\d]/g, '') }));
+  };
 
   // Fetch suppliers - fetch all pages if needed
   const { data: suppliersData, isLoading: loadingSuppliers } = useQuery({
@@ -54,7 +78,7 @@ export default function PurchaseOrderForm() {
         // Fetch first page with max limit (100)
         const firstPage = await suppliersService.getAll({ limit: 100, page: 1 });
         const allSuppliers = [...(firstPage.data || [])];
-        
+
         // If there are more pages, fetch them
         if (firstPage.meta && firstPage.meta.totalPages > 1) {
           const remainingPages = [];
@@ -68,7 +92,7 @@ export default function PurchaseOrderForm() {
             allSuppliers.push(...(result.data || []));
           });
         }
-        
+
         return {
           data: allSuppliers,
           meta: firstPage.meta || { total: allSuppliers.length, page: 1, limit: 100, totalPages: 1 },
@@ -127,7 +151,7 @@ export default function PurchaseOrderForm() {
       setItems(
         existingPO.items?.map((item) => ({
           product_id: item.productId,
-          quantity_ordered: item.quantityOrdered,
+          quantity_ordered: String(item.quantityOrdered),
           unit_price: item.unitPrice,
           discount_percent: item.discountPercent,
           notes: item.notes,
@@ -161,37 +185,54 @@ export default function PurchaseOrderForm() {
     },
   });
 
-  const handleAddItem = () => {
-    if (!selectedProduct || quantity <= 0 || unitPrice <= 0) {
-      toast.error('Lengkapi data produk');
-      return;
-    }
-
-    const existingIndex = items.findIndex((item) => item.product_id === selectedProduct.id);
+  // Click a product in the dropdown → auto-add row (qty 1, harga costPrice)
+  const addProduct = (product: any) => {
+    const price = product.costPrice || 0;
+    const existingIndex = items.findIndex((item) => item.product_id === product.id);
     if (existingIndex >= 0) {
       const updated = [...items];
       updated[existingIndex] = {
         ...updated[existingIndex],
-        quantity_ordered: updated[existingIndex].quantity_ordered + quantity,
+        quantity_ordered: String((Number(updated[existingIndex].quantity_ordered) || 0) + 1),
       };
       setItems(updated);
     } else {
       setItems([
         ...items,
         {
-          product_id: selectedProduct.id,
-          quantity_ordered: quantity,
-          unit_price: unitPrice,
+          product_id: product.id,
+          quantity_ordered: '1',
+          unit_price: price,
           discount_percent: 0,
-          product: selectedProduct,
+          product,
         },
       ]);
     }
-
-    setSelectedProduct(null);
-    setQuantity(1);
-    setUnitPrice(0);
     setProductSearch('');
+  };
+
+  const startEdit = (index: number) => {
+    setEditingIndex(index);
+    setEditQty(items[index].quantity_ordered || '1');
+    setEditPrice(items[index].unit_price);
+  };
+
+  const saveEdit = (index: number) => {
+    const qty = parseFloat(editQty);
+    if (!qty || qty <= 0) {
+      toast.error('Qty harus lebih dari 0');
+      return;
+    }
+    if (!(editPrice > 0)) {
+      toast.error('Harga harus lebih dari 0');
+      return;
+    }
+    setItems(
+      items.map((it, i) =>
+        i === index ? { ...it, quantity_ordered: String(qty), unit_price: editPrice } : it,
+      ),
+    );
+    setEditingIndex(-1);
   };
 
   const handleRemoveItem = (index: number) => {
@@ -201,7 +242,8 @@ export default function PurchaseOrderForm() {
   const calculateTotals = () => {
     let subtotal = 0;
     items.forEach((item) => {
-      const itemSubtotal = item.quantity_ordered * item.unit_price;
+      const qty = Number(item.quantity_ordered) || 0;
+      const itemSubtotal = qty * item.unit_price;
       const discount = itemSubtotal * (item.discount_percent / 100);
       subtotal += itemSubtotal - discount;
     });
@@ -233,7 +275,7 @@ export default function PurchaseOrderForm() {
       shipping_cost: parseFloat(formData.shipping_cost) || 0,
       items: items.map((item) => ({
         product_id: item.product_id,
-        quantity_ordered: item.quantity_ordered,
+        quantity_ordered: Number(item.quantity_ordered) || 0,
         unit_price: item.unit_price,
         discount_percent: item.discount_percent,
         notes: item.notes,
@@ -254,271 +296,324 @@ export default function PurchaseOrderForm() {
       <BreadcrumbHeader title={isEdit ? 'Edit Purchase Order' : 'Buat Purchase Order'} />
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-4">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Informasi Umum</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Supplier *</label>
-              <select
-                value={formData.supplier_id}
-                onChange={(e) => setFormData({ ...formData, supplier_id: e.target.value })}
-                required
-                disabled={loadingSuppliers}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <option value="">
-                  {loadingSuppliers ? 'Memuat supplier...' : 'Pilih Supplier'}
-                </option>
-                {suppliers?.map((s: any) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} ({s.customerCode || s.code || s.id.slice(0, 8)})
-                  </option>
-                ))}
-              </select>
-              {!loadingSuppliers && suppliers.length === 0 && (
-                <p className="text-sm text-gray-500 mt-1">Tidak ada supplier. <Link to="/purchasing/suppliers/new" className="text-primary-600 hover:underline">Buat supplier baru</Link></p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Cabang *</label>
-              <select
-                value={formData.branch_id}
-                onChange={(e) => setFormData({ ...formData, branch_id: e.target.value })}
-                required
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="">Pilih Cabang</option>
-                {branches?.map((b: any) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Tanggal Order *</label>
-              <input
-                type="date"
-                value={formData.order_date}
-                onChange={(e) => setFormData({ ...formData, order_date: e.target.value })}
-                required
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Expected Delivery Date *</label>
-              <input
-                type="date"
-                value={formData.expected_delivery_date}
-                onChange={(e) => setFormData({ ...formData, expected_delivery_date: e.target.value })}
-                required
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-4">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Items</h2>
-
-          <div className="flex gap-2 mb-4">
-            <div className="flex-1 relative">
-              <input
-                type="text"
-                value={selectedProduct ? `${selectedProduct.name} (${selectedProduct.sku})` : productSearch}
-                onChange={(e) => {
-                  if (!selectedProduct) {
-                    setProductSearch(e.target.value);
-                  }
-                }}
-                onFocus={() => {
-                  if (selectedProduct) {
-                    setSelectedProduct(null);
-                    setProductSearch('');
-                  }
-                }}
-                placeholder="Cari produk..."
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              />
-              {productSearch.length > 2 && productsData?.data && productsData.data.length > 0 && !selectedProduct && (
-                <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg max-h-60 overflow-y-auto shadow-lg">
-                  {productsData.data.map((product: any) => (
-                    <div
-                      key={product.id}
-                      onClick={() => {
-                        setSelectedProduct(product);
-                        setUnitPrice(product.costPrice || 0);
-                        setProductSearch('');
-                      }}
-                      className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0"
-                    >
-                      <div className="font-semibold">{product.name}</div>
-                      <div className="text-sm text-gray-500">{product.sku}</div>
-                      <div className="text-xs text-gray-400">Harga: {formatCurrency(product.costPrice || 0)}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {selectedProduct && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedProduct(null);
-                    setProductSearch('');
-                    setUnitPrice(0);
-                  }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+        <Card>
+          <CardHeader>
+            <CardTitle>Informasi Umum</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="block mb-2">Supplier *</Label>
+                <select
+                  value={formData.supplier_id}
+                  onChange={(e) => setFormData({ ...formData, supplier_id: e.target.value })}
+                  required
+                  disabled={loadingSuppliers}
+                  className={SELECT_CLS}
                 >
-                  <X className="w-5 h-5" />
-                </button>
-              )}
-            </div>
-            <input
-              type="number"
-              value={quantity}
-              onChange={(e) => setQuantity(parseFloat(e.target.value) || 1)}
-              placeholder="Qty"
-              min="1"
-              className="w-24 px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            />
-            <input
-              type="number"
-              value={unitPrice}
-              onChange={(e) => setUnitPrice(parseFloat(e.target.value) || 0)}
-              placeholder="Harga"
-              min="0"
-              className="w-32 px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            />
-            <button
-              type="button"
-              onClick={handleAddItem}
-              disabled={!selectedProduct || quantity <= 0 || unitPrice <= 0}
-              className="px-6 py-3 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Plus className="w-5 h-5" />
-              Tambah
-            </button>
-          </div>
+                  <option value="">
+                    {loadingSuppliers ? 'Memuat supplier...' : 'Pilih Supplier'}
+                  </option>
+                  {suppliers?.map((s: any) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} ({s.customerCode || s.code || s.id.slice(0, 8)})
+                    </option>
+                  ))}
+                </select>
+                {!loadingSuppliers && suppliers.length === 0 && (
+                  <p className="text-sm text-muted-foreground mt-1">Tidak ada supplier. <Link to="/purchasing/suppliers/new" className="text-primary hover:underline">Buat supplier baru</Link></p>
+                )}
+              </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Product</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Qty</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Unit Price</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Subtotal</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {items.map((item, index) => {
-                  const itemSubtotal = item.quantity_ordered * item.unit_price;
-                  return (
-                    <tr key={index}>
-                      <td className="px-4 py-3">
-                        <div className="font-semibold">{item.product?.name || 'N/A'}</div>
-                        <div className="text-sm text-gray-500">{item.product?.sku}</div>
-                      </td>
-                      <td className="px-4 py-3">{item.quantity_ordered}</td>
-                      <td className="px-4 py-3">{formatCurrency(item.unit_price)}</td>
-                      <td className="px-4 py-3 font-semibold">{formatCurrency(itemSubtotal)}</td>
-                      <td className="px-4 py-3">
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveItem(index)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+              <div>
+                <Label className="block mb-2">Cabang *</Label>
+                <select
+                  value={formData.branch_id}
+                  onChange={(e) => setFormData({ ...formData, branch_id: e.target.value })}
+                  required
+                  className={SELECT_CLS}
+                >
+                  <option value="">Pilih Cabang</option>
+                  {branches?.map((b: any) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-4">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Summary</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Discount Amount</label>
-              <input
-                type="number"
-                value={formData.discount_amount}
-                onChange={(e) => setFormData({ ...formData, discount_amount: e.target.value })}
-                min="0"
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Tax Amount</label>
-              <input
-                type="number"
-                value={formData.tax_amount}
-                onChange={(e) => setFormData({ ...formData, tax_amount: e.target.value })}
-                min="0"
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Shipping Cost</label>
-              <input
-                type="number"
-                value={formData.shipping_cost}
-                onChange={(e) => setFormData({ ...formData, shipping_cost: e.target.value })}
-                min="0"
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Total</label>
-              <div className="px-4 py-3 bg-gray-50 rounded-xl text-2xl font-bold text-primary-600">
-                {formatCurrency(totals.total)}
+              <div>
+                <Label className="block mb-2">Tanggal Order *</Label>
+                <Input
+                  type="date"
+                  value={formData.order_date}
+                  onChange={(e) => setFormData({ ...formData, order_date: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div>
+                <Label className="block mb-2">Expected Delivery Date *</Label>
+                <Input
+                  type="date"
+                  value={formData.expected_delivery_date}
+                  onChange={(e) => setFormData({ ...formData, expected_delivery_date: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div>
+                <Label className="block mb-2">Payment Terms</Label>
+                <select
+                  value={formData.payment_terms}
+                  onChange={(e) => setFormData({ ...formData, payment_terms: e.target.value })}
+                  className={SELECT_CLS}
+                >
+                  <option value="">Pilih Payment Terms</option>
+                  <option value="CASH">CASH</option>
+                  <option value="COD">COD</option>
+                  <option value="CREDIT">CREDIT</option>
+                </select>
+              </div>
+
+              <div>
+                <Label className="block mb-2">Payment Term Days</Label>
+                <Input
+                  type="number"
+                  value={formData.payment_term_days}
+                  onChange={(e) => setFormData({ ...formData, payment_term_days: e.target.value })}
+                  min="0"
+                  placeholder="Contoh: 30"
+                />
               </div>
             </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Notes</label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              rows={3}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            />
-          </div>
-        </div>
+            <div>
+              <Label className="block mb-2">Notes</Label>
+              <Textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                rows={3}
+                placeholder="Catatan PO (opsional)"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Items</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2 mb-4">
+              <div className="flex-1 relative">
+                <Input
+                  type="text"
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                  placeholder="Cari produk... klik hasil untuk menambah (qty default 1)"
+                />
+                {productSearch.length > 2 && productsData?.data && productsData.data.length > 0 && (
+                  <div className="absolute z-10 mt-1 w-full bg-background border rounded-lg max-h-60 overflow-y-auto shadow-lg">
+                    {productsData.data.map((product: any) => (
+                      <div
+                        key={product.id}
+                        onClick={() => addProduct(product)}
+                        className="p-3 hover:bg-muted cursor-pointer border-b last:border-0"
+                      >
+                        <div className="font-semibold">{product.name}</div>
+                        <div className="text-sm text-muted-foreground">{product.sku}</div>
+                        <div className="text-xs text-muted-foreground">Harga: {formatCurrency(product.costPrice || 0)}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Product</TableHead>
+                    <TableHead>Qty</TableHead>
+                    <TableHead>Unit Price</TableHead>
+                    <TableHead>Subtotal</TableHead>
+                    <TableHead className="w-16">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {items.map((item, index) => {
+                    const itemSubtotal = (Number(item.quantity_ordered) || 0) * item.unit_price;
+                    const isEditing = editingIndex === index;
+                    return (
+                      <TableRow key={index}>
+                        <TableCell>
+                          <div className="font-semibold">{item.product?.name || 'N/A'}</div>
+                          <div className="text-sm text-muted-foreground">{item.product?.sku}</div>
+                        </TableCell>
+                        <TableCell>
+                          {isEditing ? (
+                            <Input
+                              type="text"
+                              inputMode="numeric"
+                              value={editQty}
+                              onChange={(e) => setEditQty(e.target.value.replace(/[^\d.]/g, ''))}
+                              className="h-8 w-24"
+                              autoFocus
+                            />
+                          ) : (
+                            <span>{item.quantity_ordered}</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isEditing ? (
+                            <Input
+                              type="text"
+                              inputMode="numeric"
+                              value={formatThousandStr(String(editPrice))}
+                              onChange={(e) => {
+                                const digits = e.target.value.replace(/[^\d]/g, '');
+                                setEditPrice(digits ? parseInt(digits, 10) : 0);
+                              }}
+                              className="h-8 w-32"
+                            />
+                          ) : (
+                            <span className="whitespace-nowrap">{formatCurrency(item.unit_price)}</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-semibold whitespace-nowrap">{formatCurrency(itemSubtotal)}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-1 justify-end">
+                            {isEditing ? (
+                              <>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-green-600 hover:text-green-700"
+                                  onClick={() => saveEdit(index)}
+                                >
+                                  <Check />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setEditingIndex(-1)}
+                                >
+                                  <X />
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => startEdit(index)}
+                                >
+                                  <Pencil />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleRemoveItem(index)}
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Summary</CardTitle>
+          </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="font-semibold">{formatCurrency(totals.subtotal)}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">Discount</span>
+                  <span className="flex items-center gap-2">
+                    <span className="text-red-600 font-semibold">−</span>
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      value={formatThousandStr(formData.discount_amount)}
+                      onChange={(e) => handleAmountChange('discount_amount', e.target.value)}
+                      placeholder="0"
+                      className="h-8 w-28 text-right"
+                    />
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">Tax</span>
+                  <span className="flex items-center gap-2">
+                    <span className="font-semibold">+</span>
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      value={formatThousandStr(formData.tax_amount)}
+                      onChange={(e) => handleAmountChange('tax_amount', e.target.value)}
+                      placeholder="0"
+                      className="h-8 w-28 text-right"
+                    />
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">Shipping</span>
+                  <span className="flex items-center gap-2">
+                    <span className="font-semibold">+</span>
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      value={formatThousandStr(formData.shipping_cost)}
+                      onChange={(e) => handleAmountChange('shipping_cost', e.target.value)}
+                      placeholder="0"
+                      className="h-8 w-28 text-right"
+                    />
+                  </span>
+                </div>
+                <div className="flex justify-between items-center border-t-2 border-foreground pt-3 mt-2">
+                  <span className="font-bold text-base">Total</span>
+                  <span className="text-2xl font-bold text-primary">{formatCurrency(totals.total)}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
         <div className="flex justify-end gap-4">
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={() => navigate('/purchasing/po')}
-            className="px-6 py-3 border-2 border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50"
           >
             Batal
-          </button>
-          <button
-            type="submit"
-            disabled={createMutation.isPending || updateMutation.isPending}
-            className="px-6 py-3 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 flex items-center gap-2 disabled:opacity-50"
-          >
+          </Button>
+          <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
             {(createMutation.isPending || updateMutation.isPending) && (
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <Loader2 className="animate-spin" />
             )}
-            <Save className="w-5 h-5" />
+            <Save />
             {isEdit ? 'Update' : 'Simpan'}
-          </button>
+          </Button>
         </div>
       </form>
     </div>
   );
 }
-

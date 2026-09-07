@@ -9,7 +9,7 @@ export interface PurchaseOrder {
   poNumber: string;
   supplierId: string;
   branchId: string;
-  status: 'draft' | 'pending' | 'approved' | 'ordered' | 'partially_received' | 'received' | 'cancelled';
+  status: 'draft' | 'pending' | 'approved' | 'ordered' | 'partially_received' | 'received' | 'rejected' | 'cancelled';
   orderDate: string;
   expectedDeliveryDate?: string;
   paymentTerms?: string;
@@ -31,6 +31,9 @@ export interface PurchaseOrder {
   cancelledBy?: string;
   cancelledAt?: string;
   cancellationReason?: string;
+  rejectedBy?: string;
+  rejectedAt?: string;
+  rejectionReason?: string;
   createdAt: string;
   updatedAt: string;
   supplier?: {
@@ -81,7 +84,7 @@ export interface GoodsReceipt {
   purchaseOrderId?: string;
   branchId: string;
   receiptDate: string;
-  status: 'draft' | 'received' | 'inspected' | 'approved' | 'rejected' | 'cancelled';
+  status: 'draft' | 'received' | 'inspected' | 'revisit' | 'approved' | 'rejected' | 'cancelled';
   inspectionStatus?: 'pending' | 'passed' | 'failed' | 'partial';
   inspectionNotes?: string;
   variancePercent?: number;
@@ -94,6 +97,9 @@ export interface GoodsReceipt {
   rejectedBy?: string;
   rejectedAt?: string;
   rejectionReason?: string;
+  revisitBy?: string;
+  revisitAt?: string;
+  revisitReason?: string;
   cancelledBy?: string;
   cancelledAt?: string;
   cancellationReason?: string;
@@ -106,6 +112,21 @@ export interface GoodsReceipt {
     name: string;
   };
   items?: GoodsReceiptItem[];
+  events?: GoodsReceiptEvent[];
+}
+
+export interface GoodsReceiptEvent {
+  id: string;
+  goodsReceiptId: string;
+  action: string;
+  actorId: string;
+  note?: string;
+  createdAt: string;
+  actor?: {
+    id: string;
+    fullName?: string | null;
+    email: string;
+  };
 }
 
 export interface GoodsReceiptItem {
@@ -257,6 +278,12 @@ export const purchasingService = {
     return response.data.data || response.data;
   },
 
+  /** IGDERP-82: reject purchase order (approver denies a pending PO) */
+  async rejectPurchaseOrder(id: string, reason?: string) {
+    const response = await api.post(`/purchasing/purchase-orders/${id}/reject`, { reason });
+    return response.data.data || response.data;
+  },
+
   /**
    * Create goods receipt
    */
@@ -346,6 +373,73 @@ export const purchasingService = {
    */
   async cancelGoodsReceipt(id: string, reason?: string) {
     const response = await api.post(`/purchasing/goods-receipts/${id}/cancel`, { reason });
+    return response.data.data || response.data;
+  },
+
+  /** IGDERP-80: revisiting — approver returns GR to processor (SODO) */
+  async revisitGoodsReceipt(id: string, reason: string) {
+    const response = await api.post(`/purchasing/goods-receipts/${id}/revisit`, { reason });
+    return response.data.data || response.data;
+  },
+
+  /** IGDERP-80: processor (SODO) updates per-item receiving quantities */
+  async updateGoodsReceiptReceiving(
+    id: string,
+    items: Array<{
+      id: string;
+      quantity_received: number;
+      quantity_rejected?: number;
+      batch_number?: string;
+      serial_number?: string;
+      expiry_date?: string;
+      notes?: string;
+    }>,
+  ) {
+    const response = await api.patch(`/purchasing/goods-receipts/${id}/receiving`, { items });
+    return response.data.data || response.data;
+  },
+
+  /** IGDERP-80: approval settings */
+  async getApprovalSettings() {
+    const response = await api.get('/approval-settings');
+    return response.data.data || response.data;
+  },
+
+  async updateApprovalSetting(
+    category: string,
+    data: { roles?: string[]; userIds?: string[]; mandatoryInvoice?: boolean },
+  ) {
+    const response = await api.put(`/approval-settings/${category}`, data);
+    return response.data.data || response.data;
+  },
+
+  /** IGDERP-81: supplier invoice / delivery-note attachments (PO + GR) */
+  async uploadAttachments(
+    entityType: 'PURCHASE_ORDER' | 'GOODS_RECEIPT',
+    entityId: string,
+    documentType: string,
+    files: File[],
+  ) {
+    const form = new FormData();
+    form.append('entityType', entityType);
+    form.append('entityId', entityId);
+    form.append('documentType', documentType);
+    files.forEach((f) => form.append('files', f));
+    const response = await api.post('/purchasing/attachments', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data.data || response.data;
+  },
+
+  async getAttachments(entityType: 'PURCHASE_ORDER' | 'GOODS_RECEIPT', entityId: string) {
+    const response = await api.get('/purchasing/attachments', {
+      params: { entityType, entityId },
+    });
+    return response.data.data || response.data;
+  },
+
+  async deleteAttachment(id: string) {
+    const response = await api.delete(`/purchasing/attachments/${id}`);
     return response.data.data || response.data;
   },
 };

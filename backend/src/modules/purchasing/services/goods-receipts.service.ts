@@ -5,13 +5,31 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../shared/services/prisma.service';
+import { ApprovalSettingsService } from '../../approval-settings/approval-settings.service';
 import { CreateGoodsReceiptDto } from '../dto/create-goods-receipt.dto';
 import { ApproveGoodsReceiptDto } from '../dto/approve-goods-receipt.dto';
+import { RevisitGoodsReceiptDto, UpdateReceivingDto } from '../dto/receiving.dto';
 import { Decimal } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class GoodsReceiptsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private approval: ApprovalSettingsService,
+  ) {}
+
+  /** Append-only lifecycle event row (IGDERP-80 audit trail). */
+  private async grEvent(
+    tx: { goodsReceiptEvent: any },
+    goodsReceiptId: string,
+    action: string,
+    actorId: string,
+    note?: string | null,
+  ) {
+    return tx.goodsReceiptEvent.create({
+      data: { goodsReceiptId, action, actorId, note: note ?? undefined },
+    });
+  }
 
   /**
    * Generate GR number: GR-YYYYMMDD-XXXXXX
@@ -78,8 +96,34 @@ export class GoodsReceiptsService {
       }
     }
 
+    // IGDERP-80/82: cap PO-linked quantities at remaining (ordered - already received)
+    if (purchaseOrder) {
+      const requestedByPoItem = new Map<string, Decimal>();
+      for (const item of dto.items) {
+        if (!item.purchase_order_item_id) continue;
+        requestedByPoItem.set(
+          item.purchase_order_item_id,
+          (requestedByPoItem.get(item.purchase_order_item_id) ?? new Decimal(0)).plus(
+            new Decimal(item.quantity_received),
+          ),
+        );
+      }
+      for (const [poItemId, requested] of requestedByPoItem) {
+        const poItem = purchaseOrder.items.find((i) => i.id === poItemId);
+        if (!poItem) continue;
+        const remaining = new Decimal(poItem.quantityOrdered).minus(
+          poItem.quantityReceived ?? new Decimal(0),
+        );
+        if (requested.greaterThan(remaining)) {
+          throw new BadRequestException(
+            `Quantitas melebihi sisa PO (sisa ${remaining.toString()})`,
+          );
+        }
+      }
+    }
+
     // Create GR
-    return await this.prisma.goodsReceipt.create({
+    const gr = await this.prisma.goodsReceipt.create({
       data: {
         grNumber: this.generateGRNumber(),
         purchaseOrderId: dto.purchase_order_id,
@@ -125,6 +169,12 @@ export class GoodsReceiptsService {
         },
       },
     });
+
+    // IGDERP-80: audit trail event
+    await this.prisma.goodsReceiptEvent.create({
+      data: { goodsReceiptId: gr.id, action: 'created', actorId: userId, note: 'GR dibuat' },
+    });
+    return gr;
   }
 
   /**
@@ -257,6 +307,12 @@ export class GoodsReceiptsService {
           },
         },
         branch: true,
+        events: {
+          orderBy: { createdAt: 'asc' },
+          include: {
+            actor: { select: { id: true, fullName: true, email: true } },
+          },
+        },
         items: {
           include: {
             product: {
@@ -331,13 +387,20 @@ export class GoodsReceiptsService {
       throw new BadRequestException(`Cannot approve goods receipt with status: ${gr.status}`);
     }
 
-    // Check if user has approval authority (HS, SPV, CSO)
-    const hasAuthority = ['HS', 'SPV', 'CSO', 'OWNER'].some((role) =>
-      userRoles.includes(role),
-    );
+    // Check if user has approval authority (default HS/SPV/CSO/OWNER, configurable via approval-settings)
+    await this.approval.assertApprover('GOODS_RECEIPT', userId, userRoles);
 
-    if (!hasAuthority) {
-      throw new ForbiddenException('You do not have authority to approve goods receipts');
+    // IGDERP-81: mandatory-invoice gate when enabled in approval settings
+    const grSetting = await this.approval.getRow('GOODS_RECEIPT');
+    if (grSetting?.mandatoryInvoice) {
+      const invoiceCount = await this.prisma.purchaseAttachment.count({
+        where: { entityType: 'GOODS_RECEIPT', entityId: id, documentType: 'INVOICE' },
+      });
+      if (invoiceCount === 0) {
+        throw new BadRequestException(
+          'Invoice wajib diunggah sebelum approve (sesuai pengaturan persetujuan)',
+        );
+      }
     }
 
     // Calculate variance if linked to PO
@@ -385,6 +448,12 @@ export class GoodsReceiptsService {
         'Central Good Stock warehouse not found — apply prisma/inventory-central-good.sql',
       );
     }
+
+    // Rejected-at-receiving lands in central-bad (SYSTEM/BAD) — both warehouses coexist
+    const badWarehouse = await this.prisma.warehouse.findFirst({
+      where: { type: 'BAD', scope: 'SYSTEM', isActive: true },
+      orderBy: { createdAt: 'asc' },
+    });
 
     // Update stock and create movements
     return await this.prisma.$transaction(async (tx) => {
@@ -498,7 +567,72 @@ export class GoodsReceiptsService {
             }
           }
         }
+        if (item.quantityRejected.greaterThan(0)) {
+          if (!badWarehouse) {
+            throw new BadRequestException(
+              'Central Bad Stock warehouse not found — apply prisma/inventory-warehouse-stock.sql',
+            );
+          }
+          // Rejected at receiving goes STRAIGHT to central-bad (never enters central-good)
+          let badStock = await tx.productStock.findUnique({
+            where: {
+              productId_warehouseId: {
+                productId: item.productId,
+                warehouseId: badWarehouse.id,
+              },
+            },
+          });
+          if (!badStock) {
+            badStock = await tx.productStock.create({
+              data: {
+                productId: item.productId,
+                warehouseId: badWarehouse.id,
+                branchId: null,
+                quantityAvailable: new Decimal(0),
+                quantityReserved: new Decimal(0),
+                quantityDamaged: new Decimal(0),
+              },
+            });
+          }
+          const badBefore = Number(badStock.quantityAvailable);
+          const badAfter = badBefore + item.quantityRejected.toNumber();
+          await tx.productStock.update({
+            where: {
+              productId_warehouseId: {
+                productId: item.productId,
+                warehouseId: badWarehouse.id,
+              },
+            },
+            data: { quantityAvailable: new Decimal(badAfter) },
+          });
+          await tx.stockMovement.create({
+            data: {
+              productId: item.productId,
+              warehouseId: badWarehouse.id,
+              branchId: null,
+              movementType: 'IN',
+              referenceType: 'PURCHASE',
+              referenceId: gr.id,
+              quantityChange: item.quantityRejected,
+              quantityBefore: new Decimal(badBefore),
+              quantityAfter: new Decimal(badAfter),
+              batchNumber: item.batchNumber,
+              serialNumber: item.serialNumber,
+              notes: `Goods receipt ${gr.grNumber} - rejected at receiving (${item.quantityRejected.toNumber()} unit)`,
+              createdBy: userId,
+            },
+          });
+        }
       }
+
+      // IGDERP-80: audit trail event
+      await this.grEvent(
+        tx,
+        id,
+        'approved',
+        userId,
+        dto.notes ? `Approval notes: ${dto.notes}` : dto.inspection_notes || null,
+      );
 
       // Update GR status
       const updated = await tx.goodsReceipt.update({
@@ -568,43 +702,41 @@ export class GoodsReceiptsService {
       throw new BadRequestException(`Cannot reject goods receipt with status: ${gr.status}`);
     }
 
-    // Check authority
-    const hasAuthority = ['HS', 'SPV', 'CSO', 'OWNER'].some((role) =>
-      userRoles.includes(role),
-    );
+    // Check authority (default HS/SPV/CSO/OWNER, configurable via approval-settings)
+    await this.approval.assertApprover('GOODS_RECEIPT', userId, userRoles);
 
-    if (!hasAuthority) {
-      throw new ForbiddenException('You do not have authority to reject goods receipts');
-    }
-
-    return await this.prisma.goodsReceipt.update({
-      where: { id },
-      data: {
-        status: 'rejected',
-        rejectedBy: userId,
-        rejectedAt: new Date(),
-        rejectionReason: reason,
-      },
-      include: {
-        purchaseOrder: {
-          include: {
-            supplier: true,
-            items: true,
-          },
+    return await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.goodsReceipt.update({
+        where: { id },
+        data: {
+          status: 'rejected',
+          rejectedBy: userId,
+          rejectedAt: new Date(),
+          rejectionReason: reason,
         },
-        branch: true,
-        items: {
-          include: {
-            product: {
-              include: {
-                category: true,
-                brand: true,
-              },
+        include: {
+          purchaseOrder: {
+            include: {
+              supplier: true,
+              items: true,
             },
-            purchaseOrderItem: true,
+          },
+          branch: true,
+          items: {
+            include: {
+              product: {
+                include: {
+                  category: true,
+                  brand: true,
+                },
+              },
+              purchaseOrderItem: true,
+            },
           },
         },
-      },
+      });
+      await this.grEvent(tx, id, 'rejected', userId, reason);
+      return updated;
     });
   }
 
@@ -624,34 +756,186 @@ export class GoodsReceiptsService {
       throw new BadRequestException(`Cannot cancel goods receipt with status: ${gr.status}`);
     }
 
-    return await this.prisma.goodsReceipt.update({
-      where: { id },
-      data: {
-        status: 'cancelled',
-        cancelledBy: userId,
-        cancelledAt: new Date(),
-        cancellationReason: reason,
-      },
-      include: {
-        purchaseOrder: {
-          include: {
-            supplier: true,
-            items: true,
-          },
+    return await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.goodsReceipt.update({
+        where: { id },
+        data: {
+          status: 'cancelled',
+          cancelledBy: userId,
+          cancelledAt: new Date(),
+          cancellationReason: reason,
         },
-        branch: true,
-        items: {
-          include: {
-            product: {
-              include: {
-                category: true,
-                brand: true,
-              },
+        include: {
+          purchaseOrder: {
+            include: {
+              supplier: true,
+              items: true,
             },
-            purchaseOrderItem: true,
+          },
+          branch: true,
+          items: {
+            include: {
+              product: {
+                include: {
+                  category: true,
+                  brand: true,
+                },
+              },
+              purchaseOrderItem: true,
+            },
           },
         },
-      },
+      });
+      await this.grEvent(tx, id, 'cancelled', userId, reason);
+      return updated;
+    });
+  }
+
+  /**
+   * IGDERP-80: approver returns the GR to the processor (SODO) for edits.
+   * Audit-trailed, append-only; inspection records are preserved.
+   */
+  async revisit(id: string, dto: RevisitGoodsReceiptDto, userId: string, userRoles: string[]) {
+    const gr = await this.prisma.goodsReceipt.findUnique({ where: { id } });
+    if (!gr) throw new NotFoundException('Goods receipt not found');
+    // Matches approve()'s allowed statuses — a draft can be returned to the processor too
+    if (gr.status !== 'draft' && gr.status !== 'received' && gr.status !== 'inspected') {
+      throw new BadRequestException(`Cannot revisit goods receipt with status: ${gr.status}`);
+    }
+    await this.approval.assertApprover('GOODS_RECEIPT', userId, userRoles);
+
+    return await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.goodsReceipt.update({
+        where: { id },
+        data: {
+          status: 'revisit',
+          revisitBy: userId,
+          revisitAt: new Date(),
+          revisitReason: dto.reason,
+        },
+        include: {
+          purchaseOrder: { include: { supplier: true, items: true } },
+          branch: true,
+          items: { include: { product: true, purchaseOrderItem: true } },
+        },
+      });
+      await this.grEvent(tx, id, 'revisit', userId, dto.reason);
+      return updated;
+    });
+  }
+
+  /**
+   * IGDERP-80: processor (SODO) edits per-item receiving quantities while the GR is
+   * draft/received/revisit. Accepted = received - rejected, variance recomputed.
+   * Re-submission from 'revisit' flips status back to 'received' (admission to approval).
+   */
+  async updateReceiving(id: string, dto: UpdateReceivingDto, userId: string, userRoles: string[]) {
+    const gr = await this.prisma.goodsReceipt.findUnique({
+      where: { id },
+      include: { items: true, purchaseOrder: { include: { items: true } } },
+    });
+    if (!gr) throw new NotFoundException('Goods receipt not found');
+    if (!['draft', 'received', 'revisit'].includes(gr.status)) {
+      throw new BadRequestException(`Cannot update receiving with status: ${gr.status}`);
+    }
+
+    // Processor: the SODO/purchasing team who created/received it (or management override)
+    const isProcessor =
+      gr.receivedBy === userId ||
+      ['SODO', 'HS', 'SPV', 'SUPERADMIN', 'OWNER', 'CFO', 'MGR'].some((r) => userRoles.includes(r));
+    if (!isProcessor) {
+      throw new ForbiddenException('Only the receiving team (SODO) can update receiving quantities');
+    }
+
+    for (const item of dto.items) {
+      const grItem = gr.items.find((i) => i.id === item.id);
+      if (!grItem) {
+        throw new BadRequestException(`Goods receipt item ${item.id} not found`);
+      }
+      if (item.quantity_received < 0) {
+        throw new BadRequestException('quantity_received must be >= 0');
+      }
+      const rejected = item.quantity_rejected ?? grItem.quantityRejected.toNumber();
+      if (rejected > item.quantity_received) {
+        throw new BadRequestException(`Rejected quantity cannot exceed received quantity: ${item.id}`);
+      }
+      // IGDERP-80/82: cap at PO remaining (ordered - already approved-received)
+      if (grItem.purchaseOrderItemId && gr.purchaseOrder) {
+        const poItem = gr.purchaseOrder.items.find(
+          (i) => i.id === grItem.purchaseOrderItemId,
+        );
+        if (poItem) {
+          const remaining = new Decimal(poItem.quantityOrdered).minus(
+            poItem.quantityReceived ?? new Decimal(0),
+          );
+          if (new Decimal(item.quantity_received).greaterThan(remaining)) {
+            throw new BadRequestException(
+              `Quantitas melebihi sisa PO (sisa ${remaining.toString()})`,
+            );
+          }
+        }
+      }
+    }
+
+    // Recompute variance vs PO (same contract as approve)
+    let variancePercent: Decimal | null = null;
+    if (gr.purchaseOrder) {
+      let totalOrdered = new Decimal(0);
+      let totalAccepted = new Decimal(0);
+      for (const it of dto.items) {
+        const grItem = gr.items.find((i) => i.id === it.id);
+        if (grItem?.purchaseOrderItemId) {
+          const poItem = gr.purchaseOrder.items.find((i) => i.id === grItem.purchaseOrderItemId);
+          if (poItem) {
+            totalOrdered = totalOrdered.plus(poItem.quantityOrdered);
+            totalAccepted = totalAccepted.plus(new Decimal(it.quantity_received - (it.quantity_rejected ?? 0)));
+          }
+        }
+      }
+      if (totalOrdered.greaterThan(0)) {
+        variancePercent = totalAccepted.minus(totalOrdered).dividedBy(totalOrdered).times(100);
+      }
+    }
+
+    const wasRevisit = gr.status === 'revisit';
+    return await this.prisma.$transaction(async (tx) => {
+      for (const item of dto.items) {
+        const grItem = gr.items.find((i) => i.id === item.id)!;
+        const rejected = item.quantity_rejected ?? grItem.quantityRejected.toNumber();
+        const accepted = item.quantity_received - rejected;
+        await tx.goodsReceiptItem.update({
+          where: { id: item.id },
+          data: {
+            quantityReceived: new Decimal(item.quantity_received),
+            quantityAccepted: new Decimal(accepted),
+            quantityRejected: new Decimal(rejected),
+            batchNumber: item.batch_number ?? grItem.batchNumber,
+            serialNumber: item.serial_number ?? grItem.serialNumber,
+            expiryDate: item.expiry_date ? new Date(item.expiry_date) : grItem.expiryDate,
+            notes: item.notes ?? grItem.notes,
+          },
+        });
+      }
+      const updated = await tx.goodsReceipt.update({
+        where: { id },
+        data: {
+          variancePercent,
+          status: wasRevisit ? 'received' : gr.status,
+        },
+        include: {
+          purchaseOrder: { include: { supplier: true, items: true } },
+          branch: true,
+          items: { include: { product: true, purchaseOrderItem: true } },
+        },
+      });
+      await this.grEvent(
+        tx,
+        id,
+        wasRevisit ? 'received' : 'received',
+        userId,
+        wasRevisit ? 'Re-submitted after revisit — receiving quantities confirmed' : 'Receiving quantities updated',
+      );
+      return updated;
     });
   }
 }
