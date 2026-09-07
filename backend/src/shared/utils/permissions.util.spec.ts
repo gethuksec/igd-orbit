@@ -92,6 +92,7 @@ describe('PERMISSION_CATALOG vocabulary', () => {
       'purchasing.invoice.view',
       'purchasing.return.view',
       'inventory.request.view',
+      'inventory.request.approve',
       'finance.ap.view',
       'finance.asset.view',
       'finance.prive.view',

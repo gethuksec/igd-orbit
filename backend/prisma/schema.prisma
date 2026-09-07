@@ -140,6 +140,7 @@ model Branch {
   mobilePhone     String?  @map("mobile_phone")
   headOfServiceId String?  @map("head_of_service_id") // HS (Head of Store) responsible for this branch
   isActive        Boolean  @default(true) @map("is_active")
+  intakeToken     String?  @unique @map("intake_token") // unguessable public intake token (GForm-style link gate)
   operatingHours  Json?    @map("operating_hours") // JSONB: {"monday": {"open": "08:00", "close": "22:00"}, ...}
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
@@ -1974,4 +1975,44 @@ model ApprovalSetting {
   updatedAt        DateTime @updatedAt @map("updated_at")
 
   @@map("approval_settings")
+model StockRequest {
+  id            String   @id @default(uuid())
+  requestNumber String   @unique @map("request_number") // REQ-YYYYMMDD-XXXXXX
+  branchId      String   @map("branch_id") // outlet, plain ref (no FK)
+  staffName     String   @map("staff_name") // ASA/CS display name as selected on intake
+  staffUserId   String?  @map("staff_user_id") // resolved users.id (best effort, nullable)
+  customerType  String   @map("customer_type") // USER | MEMBER
+  memberId      String?  @map("member_id") // resolved customers.id on exact code match
+  memberRef     String?  @map("member_ref") // free text typed on intake
+  status        String   @default("SUBMITTED") // SUBMITTED→APPROVED→WAITING_FOR_PO→CHECKOUT→KEEP_RESERVED→IN_TRANSIT→RECEIVED, or REJECTED/CANCELLED
+  poNumber      String?  @map("po_number") // manual link to purchasing PO
+  cancelReason  String?  @map("cancel_reason") @db.Text // reject/cancel notes (required)
+  decidedBy     String?  @map("decided_by") // last SODO actor (users.id)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  items StockRequestItem[]
+
+  @@index([branchId, status])
+  @@index([status])
+  @@map("stock_requests")
+}
+
+model StockRequestItem {
+  id           String  @id @default(uuid())
+  requestId    String  @map("request_id")
+  barcode      String?
+  listing      String // EXIST | NEW
+  productId    String? @map("product_id") // plain ref to products.id (EXIST only)
+  productName  String  @map("product_name") // master snapshot / free text (NEW)
+  categoryId   String? @map("category_id") // plain ref to categories.id when matched
+  categoryName String  @map("category_name") // master snapshot / free text (new category)
+  quantity     Int
+  sortOrder    Int     @default(0) @map("sort_order")
+
+  request StockRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+  @@index([productId])
+  @@map("stock_request_items")
 }

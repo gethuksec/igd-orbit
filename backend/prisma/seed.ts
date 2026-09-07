@@ -484,6 +484,27 @@ async function main() {
   }
   console.log('✅ Module wildcard keys applied to roles');
 
+  // Stock Request approvals (2026-09-07): granular key for SODO flow owners.
+  console.log('📝 Applying stock-request approval keys to roles...');
+  const requestApproveByRole: Record<string, string[]> = {
+    SUPERADMIN: ['inventory.request.approve'],
+    OWNER: ['inventory.request.approve'],
+    MGR: ['inventory.request.approve'],
+    SODO: ['inventory.request.approve'],
+  };
+  for (const [roleCode, keys] of Object.entries(requestApproveByRole)) {
+    const role = await prisma.role.findUnique({ where: { code: roleCode } });
+    if (!role) continue;
+    const merged = [...new Set([...role.defaultPermissions, ...keys])];
+    if (merged.length !== role.defaultPermissions.length) {
+      await prisma.role.update({
+        where: { id: role.id },
+        data: { defaultPermissions: merged },
+      });
+    }
+  }
+  console.log('✅ Stock-request approval keys applied to roles');
+
 
   const cfo = await prisma.user.upsert({
     where: { email: 'cfo@igdgroup.com' },

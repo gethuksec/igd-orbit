@@ -200,6 +200,7 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
         label: 'Request',
         children: [
           { label: 'Buat Request', key: 'inventory.request.view' },
+          { label: 'Setujui Request', key: 'inventory.request.approve' },
         ],
       },
       {
