@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Save, Plus, Trash2, Loader2, X } from 'lucide-react';
+import { Save, Trash2, Loader2, X, Pencil, Check } from 'lucide-react';
 import { BreadcrumbHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -50,7 +50,7 @@ export default function PurchaseOrderForm() {
 
   const [items, setItems] = useState<Array<{
     product_id: string;
-    quantity_ordered: number;
+    quantity_ordered: string;
     unit_price: number;
     discount_percent: number;
     notes?: string;
@@ -58,9 +58,9 @@ export default function PurchaseOrderForm() {
   }>>([]);
 
   const [productSearch, setProductSearch] = useState('');
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [quantity, setQuantity] = useState(1);
-  const [unitPrice, setUnitPrice] = useState(0);
+  const [editingIndex, setEditingIndex] = useState(-1);
+  const [editQty, setEditQty] = useState('1');
+  const [editPrice, setEditPrice] = useState(0);
 
   const formatThousandStr = (v: string) => {
     const n = parseFloat(v) || 0;
@@ -151,7 +151,7 @@ export default function PurchaseOrderForm() {
       setItems(
         existingPO.items?.map((item) => ({
           product_id: item.productId,
-          quantity_ordered: item.quantityOrdered,
+          quantity_ordered: String(item.quantityOrdered),
           unit_price: item.unitPrice,
           discount_percent: item.discountPercent,
           notes: item.notes,
@@ -185,37 +185,54 @@ export default function PurchaseOrderForm() {
     },
   });
 
-  const handleAddItem = () => {
-    if (!selectedProduct || quantity <= 0 || unitPrice <= 0) {
-      toast.error('Lengkapi data produk');
-      return;
-    }
-
-    const existingIndex = items.findIndex((item) => item.product_id === selectedProduct.id);
+  // Click a product in the dropdown → auto-add row (qty 1, harga costPrice)
+  const addProduct = (product: any) => {
+    const price = product.costPrice || 0;
+    const existingIndex = items.findIndex((item) => item.product_id === product.id);
     if (existingIndex >= 0) {
       const updated = [...items];
       updated[existingIndex] = {
         ...updated[existingIndex],
-        quantity_ordered: updated[existingIndex].quantity_ordered + quantity,
+        quantity_ordered: String((Number(updated[existingIndex].quantity_ordered) || 0) + 1),
       };
       setItems(updated);
     } else {
       setItems([
         ...items,
         {
-          product_id: selectedProduct.id,
-          quantity_ordered: quantity,
-          unit_price: unitPrice,
+          product_id: product.id,
+          quantity_ordered: '1',
+          unit_price: price,
           discount_percent: 0,
-          product: selectedProduct,
+          product,
         },
       ]);
     }
-
-    setSelectedProduct(null);
-    setQuantity(1);
-    setUnitPrice(0);
     setProductSearch('');
+  };
+
+  const startEdit = (index: number) => {
+    setEditingIndex(index);
+    setEditQty(items[index].quantity_ordered || '1');
+    setEditPrice(items[index].unit_price);
+  };
+
+  const saveEdit = (index: number) => {
+    const qty = parseFloat(editQty);
+    if (!qty || qty <= 0) {
+      toast.error('Qty harus lebih dari 0');
+      return;
+    }
+    if (!(editPrice > 0)) {
+      toast.error('Harga harus lebih dari 0');
+      return;
+    }
+    setItems(
+      items.map((it, i) =>
+        i === index ? { ...it, quantity_ordered: String(qty), unit_price: editPrice } : it,
+      ),
+    );
+    setEditingIndex(-1);
   };
 
   const handleRemoveItem = (index: number) => {
@@ -225,7 +242,8 @@ export default function PurchaseOrderForm() {
   const calculateTotals = () => {
     let subtotal = 0;
     items.forEach((item) => {
-      const itemSubtotal = item.quantity_ordered * item.unit_price;
+      const qty = Number(item.quantity_ordered) || 0;
+      const itemSubtotal = qty * item.unit_price;
       const discount = itemSubtotal * (item.discount_percent / 100);
       subtotal += itemSubtotal - discount;
     });
@@ -257,7 +275,7 @@ export default function PurchaseOrderForm() {
       shipping_cost: parseFloat(formData.shipping_cost) || 0,
       items: items.map((item) => ({
         product_id: item.product_id,
-        quantity_ordered: item.quantity_ordered,
+        quantity_ordered: Number(item.quantity_ordered) || 0,
         unit_price: item.unit_price,
         discount_percent: item.discount_percent,
         notes: item.notes,
@@ -381,30 +399,16 @@ export default function PurchaseOrderForm() {
               <div className="flex-1 relative">
                 <Input
                   type="text"
-                  value={selectedProduct ? `${selectedProduct.name} (${selectedProduct.sku})` : productSearch}
-                  onChange={(e) => {
-                    if (!selectedProduct) {
-                      setProductSearch(e.target.value);
-                    }
-                  }}
-                  onFocus={() => {
-                    if (selectedProduct) {
-                      setSelectedProduct(null);
-                      setProductSearch('');
-                    }
-                  }}
-                  placeholder="Cari produk..."
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                  placeholder="Cari produk... klik hasil untuk menambah (qty default 1)"
                 />
-                {productSearch.length > 2 && productsData?.data && productsData.data.length > 0 && !selectedProduct && (
+                {productSearch.length > 2 && productsData?.data && productsData.data.length > 0 && (
                   <div className="absolute z-10 mt-1 w-full bg-background border rounded-lg max-h-60 overflow-y-auto shadow-lg">
                     {productsData.data.map((product: any) => (
                       <div
                         key={product.id}
-                        onClick={() => {
-                          setSelectedProduct(product);
-                          setUnitPrice(product.costPrice || 0);
-                          setProductSearch('');
-                        }}
+                        onClick={() => addProduct(product)}
                         className="p-3 hover:bg-muted cursor-pointer border-b last:border-0"
                       >
                         <div className="font-semibold">{product.name}</div>
@@ -414,44 +418,7 @@ export default function PurchaseOrderForm() {
                     ))}
                   </div>
                 )}
-                {selectedProduct && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedProduct(null);
-                      setProductSearch('');
-                      setUnitPrice(0);
-                    }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                )}
               </div>
-              <Input
-                type="number"
-                value={quantity}
-                onChange={(e) => setQuantity(parseFloat(e.target.value) || 1)}
-                placeholder="Qty"
-                min="1"
-                className="w-24"
-              />
-              <Input
-                type="number"
-                value={unitPrice}
-                onChange={(e) => setUnitPrice(parseFloat(e.target.value) || 0)}
-                placeholder="Harga"
-                min="0"
-                className="w-32"
-              />
-              <Button
-                type="button"
-                onClick={handleAddItem}
-                disabled={!selectedProduct || quantity <= 0 || unitPrice <= 0}
-              >
-                <Plus />
-                Tambah
-              </Button>
             </div>
 
             <div className="overflow-x-auto">
@@ -467,26 +434,89 @@ export default function PurchaseOrderForm() {
                 </TableHeader>
                 <TableBody>
                   {items.map((item, index) => {
-                    const itemSubtotal = item.quantity_ordered * item.unit_price;
+                    const itemSubtotal = (Number(item.quantity_ordered) || 0) * item.unit_price;
+                    const isEditing = editingIndex === index;
                     return (
                       <TableRow key={index}>
                         <TableCell>
                           <div className="font-semibold">{item.product?.name || 'N/A'}</div>
                           <div className="text-sm text-muted-foreground">{item.product?.sku}</div>
                         </TableCell>
-                        <TableCell>{item.quantity_ordered}</TableCell>
-                        <TableCell>{formatCurrency(item.unit_price)}</TableCell>
-                        <TableCell className="font-semibold">{formatCurrency(itemSubtotal)}</TableCell>
                         <TableCell>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleRemoveItem(index)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 />
-                          </Button>
+                          {isEditing ? (
+                            <Input
+                              type="text"
+                              inputMode="numeric"
+                              value={editQty}
+                              onChange={(e) => setEditQty(e.target.value.replace(/[^\d.]/g, ''))}
+                              className="h-8 w-24"
+                              autoFocus
+                            />
+                          ) : (
+                            <span>{item.quantity_ordered}</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isEditing ? (
+                            <Input
+                              type="text"
+                              inputMode="numeric"
+                              value={formatThousandStr(String(editPrice))}
+                              onChange={(e) => {
+                                const digits = e.target.value.replace(/[^\d]/g, '');
+                                setEditPrice(digits ? parseInt(digits, 10) : 0);
+                              }}
+                              className="h-8 w-32"
+                            />
+                          ) : (
+                            <span className="whitespace-nowrap">{formatCurrency(item.unit_price)}</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-semibold whitespace-nowrap">{formatCurrency(itemSubtotal)}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-1 justify-end">
+                            {isEditing ? (
+                              <>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-green-600 hover:text-green-700"
+                                  onClick={() => saveEdit(index)}
+                                >
+                                  <Check />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setEditingIndex(-1)}
+                                >
+                                  <X />
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => startEdit(index)}
+                                >
+                                  <Pencil />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleRemoveItem(index)}
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 />
+                                </Button>
+                              </>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     );

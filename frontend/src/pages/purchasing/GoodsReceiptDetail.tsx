@@ -327,15 +327,15 @@ export default function GoodsReceiptDetail() {
           )}
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
+          <Table className="table-fixed">
             <TableHeader>
               <TableRow>
                 <TableHead>Product</TableHead>
-                <TableHead>Qty Dipesan</TableHead>
-                <TableHead>Qty Diterima</TableHead>
-                <TableHead>Qty Ditolak</TableHead>
-                <TableHead>Qty Accepted</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead className="w-24">Qty Dipesan</TableHead>
+                <TableHead className="w-28">Qty Diterima</TableHead>
+                <TableHead className="w-28">Qty Ditolak</TableHead>
+                <TableHead className="w-28">Qty Accepted</TableHead>
+                <TableHead className="w-36">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -511,7 +511,9 @@ export default function GoodsReceiptDetail() {
             </label>
           ))}
           <div>
-            <label className="text-sm font-semibold">Catatan (wajib)</label>
+            <label className="text-sm font-semibold">
+              Catatan {revisitReason === 'Lainnya' ? '(wajib)' : '(opsional)'}
+            </label>
             <Textarea
               value={revisitNote}
               onChange={(e) => setRevisitNote(e.target.value)}
@@ -530,7 +532,7 @@ export default function GoodsReceiptDetail() {
           <Button
             variant="secondary"
             onClick={() => revisitMutation.mutate(revisitNote || revisitReason)}
-            disabled={revisitMutation.isPending || !revisitNote.trim()}
+            disabled={revisitMutation.isPending || (revisitReason === 'Lainnya' && !revisitNote.trim())}
           >
             Kembalikan ke SODO
           </Button>

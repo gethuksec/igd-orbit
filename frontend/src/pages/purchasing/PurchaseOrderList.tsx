@@ -121,6 +121,7 @@ export default function PurchaseOrderList() {
     approved: filteredOrders.filter((o: PurchaseOrder) => o.status === 'approved').length,
     ordered: filteredOrders.filter((o: PurchaseOrder) => o.status === 'ordered').length,
     received: filteredOrders.filter((o: PurchaseOrder) => o.status === 'received' || o.status === 'partially_received').length,
+    rejected: filteredOrders.filter((o: PurchaseOrder) => o.status === 'rejected').length,
     cancelled: filteredOrders.filter((o: PurchaseOrder) => o.status === 'cancelled').length,
   };
 
@@ -129,6 +130,7 @@ export default function PurchaseOrderList() {
     { label: 'Pending', value: statusCounts.pending, icon: Clock, color: 'text-yellow-600' },
     { label: 'Approved', value: statusCounts.approved, icon: CheckCircle, color: 'text-blue-600' },
     { label: 'Received', value: statusCounts.received, icon: Package, color: 'text-green-600' },
+    { label: 'Rejected', value: statusCounts.rejected, icon: XCircle, color: 'text-red-600' },
   ];
 
   return (
@@ -151,8 +153,12 @@ export default function PurchaseOrderList() {
           setPage(1);
         }}
         searchPlaceholder="Cari nomor PO, supplier..."
-        branchFilter={{ value: branchId, onChange: setBranchId, allowAll: true }}
         fields={[
+          {
+            key: 'branch',
+            label: 'Cabang',
+            type: 'branch',
+          },
           {
             key: 'status',
             label: 'Status',
@@ -170,22 +176,27 @@ export default function PurchaseOrderList() {
           },
         ]}
         values={{
+          branch: branchId || '',
           status: statusFilter === 'all' ? '' : statusFilter,
         }}
         onFieldChange={(key, v) => {
           if (key === 'status') {
             setStatusFilter(v || 'all');
             setPage(1);
+          } else if (key === 'branch') {
+            setBranchId(v || '');
+            setPage(1);
           }
         }}
         onReset={() => {
           setStatusFilter('all');
+          setBranchId('');
           setPage(1);
         }}
       />
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {statCards.map((c) => (
           <Card key={c.label}>
             <CardContent className="flex items-center justify-between p-6">

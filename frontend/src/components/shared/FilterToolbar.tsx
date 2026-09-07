@@ -43,6 +43,11 @@ export type FilterField =
       label: string;
       type: 'input';
       placeholder?: string;
+    }
+  | {
+      key: string;
+      label: string;
+      type: 'branch';
     };
 
 interface FilterToolbarProps {
@@ -257,6 +262,14 @@ export function FilterToolbar({
                     onChange={(e) => setDraft((d) => ({ ...d, [field.key]: e.target.value }))}
                     placeholder={field.placeholder}
                     className="h-9"
+                  />
+                )}
+                {field.type === 'branch' && (
+                  <BranchFilterSelect
+                    value={draft[field.key] ?? ''}
+                    onChange={(v) => setDraft((d) => ({ ...d, [field.key]: v }))}
+                    allowAll
+                    className="h-9 w-full"
                   />
                 )}
               </div>
