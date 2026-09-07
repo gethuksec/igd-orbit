@@ -1975,6 +1975,8 @@ model ApprovalSetting {
   updatedAt        DateTime @updatedAt @map("updated_at")
 
   @@map("approval_settings")
+}
+
 model StockRequest {
   id            String   @id @default(uuid())
   requestNumber String   @unique @map("request_number") // REQ-YYYYMMDD-XXXXXX
