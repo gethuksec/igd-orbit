@@ -7,6 +7,7 @@ import { PurchaseOrdersService, isPurchaseOrderOverdue } from './purchase-orders
 describe('PurchaseOrdersService IGDERP-82 flows (create->pending, reject, update-from-pending)', () => {
   let service: PurchaseOrdersService;
   let prisma: any;
+  let tx: any;
 
   const poBase = {
     id: 'po-1',
@@ -52,6 +53,7 @@ describe('PurchaseOrdersService IGDERP-82 flows (create->pending, reject, update
       branch: { findUnique: jest.fn(), findFirst: jest.fn() },
       product: { findUnique: jest.fn() },
       userBranch: { findFirst: jest.fn() },
+      user: { findUnique: jest.fn() },
       approvalSetting: { findUnique: jest.fn() },
       purchaseAttachment: { count: jest.fn() },
     };
@@ -60,22 +62,23 @@ describe('PurchaseOrdersService IGDERP-82 flows (create->pending, reject, update
     prisma.approvalSetting.findUnique.mockResolvedValue(null);
     prisma.purchaseAttachment.count.mockResolvedValue(1);
 
-    prisma.$transaction = jest.fn(async (callback: any) =>
-      callback({
-        purchaseOrderItem: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
-        purchaseOrder: {
-          update: jest.fn().mockResolvedValue({
-            id: 'po-1',
-            subtotal: new Decimal(0),
-            discountAmount: new Decimal(0),
-            taxAmount: new Decimal(0),
-            shippingCost: new Decimal(0),
-            totalAmount: new Decimal(0),
-            items: [],
-          }),
-        },
-      }),
-    );
+    tx = {
+      purchaseOrderItem: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
+      purchaseOrder: {
+        update: jest.fn().mockResolvedValue({
+          id: 'po-1',
+          status: 'pending',
+          subtotal: new Decimal(0),
+          discountAmount: new Decimal(0),
+          taxAmount: new Decimal(0),
+          shippingCost: new Decimal(0),
+          totalAmount: new Decimal(0),
+          items: [],
+        }),
+      },
+      purchaseOrderEditLog: { create: jest.fn().mockResolvedValue({ id: 'log-1' }) },
+    };
+    prisma.$transaction = jest.fn(async (callback: any) => callback(tx));
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -124,6 +127,87 @@ describe('PurchaseOrdersService IGDERP-82 flows (create->pending, reject, update
       'cso-1',
     );
     expect(prisma.$transaction).toHaveBeenCalled();
+  });
+
+  it('S3: rejected PO edit resubmits as pending (revisi path)', async () => {
+    prisma.purchaseOrder.findUnique.mockResolvedValue({
+      ...poBase,
+      status: 'rejected',
+      rejectionReason: 'Harga tidak sesuai',
+      items: [],
+    });
+
+    await service.update('po-1', { notes: 'diperbaiki' } as any, 'cso-1');
+
+    expect(tx.purchaseOrder.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: 'pending' }) }),
+    );
+    expect(tx.purchaseOrderEditLog.create).not.toHaveBeenCalled();
+  });
+
+  it('S3: approved PO edit requires a reason', async () => {
+    prisma.purchaseOrder.findUnique.mockResolvedValue({ ...poBase, status: 'approved', items: [] });
+    await expect(service.update('po-1', { notes: 'x' } as any, 'cso-1')).rejects.toThrow(
+      'Alasan revisi wajib diisi untuk PO yang sudah di-approve',
+    );
+  });
+
+  it('S3: approved PO edit without permission is forbidden', async () => {
+    prisma.purchaseOrder.findUnique.mockResolvedValue({ ...poBase, status: 'approved', items: [] });
+    prisma.user.findUnique.mockResolvedValue({ userBranches: [] });
+    await expect(
+      service.update('po-1', { notes: 'x', reason: 'koreksi harga' } as any, 'cso-1'),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('S3: approved PO edit with permission + reason writes the audit snapshot', async () => {
+    prisma.purchaseOrder.findUnique.mockResolvedValue({ ...poBase, status: 'approved', items: [] });
+    prisma.user.findUnique.mockResolvedValue({
+      userBranches: [
+        { deniedPermissions: [], role: { code: 'CSO', defaultPermissions: ['purchasing.edit_after_approval'] } },
+      ],
+    });
+
+    await service.update('po-1', { notes: 'koreksi', reason: 'salah input harga' } as any, 'cso-1');
+
+    expect(tx.purchaseOrderEditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ poId: 'po-1', actorId: 'cso-1', reason: 'salah input harga' }),
+      }),
+    );
+    const updateCall = tx.purchaseOrder.update.mock.calls[0][0];
+    expect(updateCall.data.status).toBeUndefined();
+  });
+
+  it('S3: deny-list revokes edit-after-approval', async () => {
+    prisma.purchaseOrder.findUnique.mockResolvedValue({ ...poBase, status: 'approved', items: [] });
+    prisma.user.findUnique.mockResolvedValue({
+      userBranches: [
+        {
+          deniedPermissions: ['purchasing.edit_after_approval'],
+          role: { code: 'CSO', defaultPermissions: ['purchasing.edit_after_approval'] },
+        },
+      ],
+    });
+    await expect(
+      service.update('po-1', { notes: 'x', reason: 'x' } as any, 'cso-1'),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('S3: SUPERADMIN bypasses the edit-after-approval gate', async () => {
+    prisma.purchaseOrder.findUnique.mockResolvedValue({ ...poBase, status: 'approved', items: [] });
+    prisma.user.findUnique.mockResolvedValue({
+      userBranches: [{ deniedPermissions: [], role: { code: 'SUPERADMIN', defaultPermissions: [] } }],
+    });
+    await service.update('po-1', { notes: 'x', reason: 'perbaikan admin' } as any, 'root');
+    expect(tx.purchaseOrderEditLog.create).toHaveBeenCalled();
+  });
+
+  it('S3: received POs stay locked', async () => {
+    prisma.purchaseOrder.findUnique.mockResolvedValue({ ...poBase, status: 'received', items: [] });
+    await expect(service.update('po-1', { notes: 'x' } as any, 'cso-1')).rejects.toThrow(
+      'Cannot update purchase order with status: received',
+    );
   });
 
   it('rejects a pending PO (authority via tier)', async () => {

@@ -145,6 +145,8 @@ export const PERMISSION_CATALOG: string[] = [
   // Dashboard
   'dashboard.view',
   'dashboard.*.view',
+  // Purchasing (IGDERP-82)
+  'purchasing.edit_after_approval',
   // Master data
   'master_data.customer.view',
   'master_data.customer.create',
