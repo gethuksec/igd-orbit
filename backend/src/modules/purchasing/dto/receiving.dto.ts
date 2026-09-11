@@ -43,6 +43,11 @@ export class ReceivingItemDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  // IGDERP-83: "buat retur" checkbox on discrepancy lines → auto purchase return.
+  @IsOptional()
+  @Type(() => Boolean)
+  create_return?: boolean;
 }
 
 /** IGDERP-80: processor (SODO) updates per-item receiving quantities before/after approval. */
