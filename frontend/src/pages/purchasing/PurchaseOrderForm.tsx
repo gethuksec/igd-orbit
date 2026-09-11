@@ -152,19 +152,19 @@ export default function PurchaseOrderForm() {
   // Quick-add reference data
   const { data: categoriesResp } = useQuery({
     queryKey: ['categories', 'all'],
-    queryFn: () => categoriesService.getAll({ limit: 200 }),
+    queryFn: () => categoriesService.getAll({ limit: 100 }),
   });
   const categories: any[] = (categoriesResp as any)?.data || [];
   const { data: unitsResp } = useQuery({
     queryKey: ['units', 'all'],
-    queryFn: () => unitsService.getAll({ limit: 200 }),
+    queryFn: () => unitsService.getAll({ limit: 100 }),
   });
   const units: any[] = (unitsResp as any)?.data || [];
 
   // Shared termin master (same one POS/customers use) — termin options only.
   const { data: paymentTermsResp } = useQuery({
     queryKey: ['payment-terms', 'active'],
-    queryFn: () => paymentTermsService.getAll({ limit: 200 }),
+    queryFn: () => paymentTermsService.getAll({ limit: 100 }),
   });
   const termOptions: any[] = ((paymentTermsResp as any)?.data || []).filter(
     (pt: any) => pt.days > 0 && pt.isActive !== false,
