@@ -28,11 +28,11 @@ export class PaymentTermsController {
   /**
    * List all payment terms
    * GET /api/v1/payment-terms
-   * Permissions: OWNER, CFO, MGR, CSO, CMO, SPV, HS, ASA
+   * Permissions: OWNER, CFO, MGR, CSO, CMO, SPV, HS, ASA, SODO
    */
   @Get()
   @UseGuards(RolesGuard)
-  @Roles('OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA')
+  @Roles('OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA', 'SODO')
   async findAll(@Query() query: ListPaymentTermsDto) {
     try {
       return await this.paymentTermsService.findAll(query);
@@ -45,11 +45,11 @@ export class PaymentTermsController {
   /**
    * Get payment term detail
    * GET /api/v1/payment-terms/:id
-   * Permissions: OWNER, CFO, MGR, CSO, CMO, SPV, HS, ASA
+   * Permissions: OWNER, CFO, MGR, CSO, CMO, SPV, HS, ASA, SODO
    */
   @Get(':id')
   @UseGuards(RolesGuard)
-  @Roles('OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA')
+  @Roles('OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA', 'SODO')
   async findById(@Param('id') id: string) {
     return this.paymentTermsService.findById(id);
   }

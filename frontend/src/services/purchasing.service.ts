@@ -177,7 +177,7 @@ export const purchasingService = {
     invoice_number: string;
     invoice_date: string;
     order_date: string;
-    expected_delivery_date?: string;
+    expected_delivery_date: string;
     payment_terms?: string;
     payment_term_days?: number;
     discount_amount?: number;
