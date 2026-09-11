@@ -10,6 +10,7 @@ import {
   IsString,
   IsInt,
   MaxLength,
+  ValidateIf,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -56,8 +57,9 @@ export class CreatePurchaseOrderDto {
   @IsDateString()
   order_date!: string;
 
-  @IsDateString()
   @IsOptional()
+  @ValidateIf((o) => o.expected_delivery_date !== '' && o.expected_delivery_date !== null)
+  @IsDateString()
   expected_delivery_date?: string;
 
   @IsString()

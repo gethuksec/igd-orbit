@@ -36,6 +36,13 @@ import { formatCurrency } from '@/utils/format';
 const SELECT_CLS =
   'h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
 
+/** Local (WIB-safe) today as YYYY-MM-DD — toISOString() would shift before 07:00. */
+const todayLocal = () => {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
 export default function PurchaseOrderForm() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -48,7 +55,7 @@ export default function PurchaseOrderForm() {
     // invoice number + date are mandatory at creation.
     invoice_number: '',
     invoice_date: '',
-    order_date: new Date().toISOString().split('T')[0],
+    order_date: todayLocal(),
     expected_delivery_date: '',
     payment_terms: '',
     payment_term_days: '',
@@ -388,6 +395,7 @@ export default function PurchaseOrderForm() {
   const doSubmit = () => {
     const data = {
       ...formData,
+      expected_delivery_date: formData.expected_delivery_date || undefined,
       payment_term_days: formData.payment_term_days ? parseInt(formData.payment_term_days) : undefined,
       discount_amount: parseFloat(formData.discount_amount) || 0,
       tax_amount: parseFloat(formData.tax_amount) || 0,
@@ -453,9 +461,6 @@ export default function PurchaseOrderForm() {
                   placeholder="Sesuai dokumen invoice supplier"
                   required
                 />
-                <p className="text-xs text-muted-foreground mt-1">
-                  PO diinput setelah invoice/DO supplier diterima (8 Sep).
-                </p>
               </div>
 
               <div>
@@ -529,8 +534,8 @@ export default function PurchaseOrderForm() {
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   {isEdit
-                    ? 'Kosongkan bila tidak ingin mengganti dokumen. Upload invoice wajib sebelum PO di-approve.'
-                    : 'Wajib. Upload dilakukan setelah PO disimpan; approval diblokir sampai dokumen ada.'}
+                    ? 'Kosongkan bila tidak ingin mengganti dokumen.'
+                    : 'Wajib diunggah — PDF / JPG / PNG.'}
                 </p>
               </div>
             </div>

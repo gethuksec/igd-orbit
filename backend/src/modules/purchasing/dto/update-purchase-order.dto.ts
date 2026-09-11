@@ -8,13 +8,15 @@ import {
   IsArray,
   ValidateNested,
   MaxLength,
+  ValidateIf,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CreatePurchaseOrderItemDto } from './create-purchase-order.dto';
 
 export class UpdatePurchaseOrderDto {
-  @IsDateString()
   @IsOptional()
+  @ValidateIf((o) => o.expected_delivery_date !== '' && o.expected_delivery_date !== null)
+  @IsDateString()
   expected_delivery_date?: string;
 
   @IsString()
