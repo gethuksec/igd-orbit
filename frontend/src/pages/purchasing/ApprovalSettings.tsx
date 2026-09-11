@@ -278,7 +278,7 @@ export default function ApprovalSettingsPage() {
 
   const toggleIn = (category: string, key: 'roles' | 'userIds', value: string) => {
     setDraft((d: any) => {
-      const base = d[category] || { roles: [], userIds: [], mandatoryInvoice: false };
+      const base = d[category] || { roles: [], userIds: [], mandatoryInvoice: category === 'PURCHASE_INVOICE' };
       const cur: string[] = base[key] || [];
       const next = cur.includes(value) ? cur.filter((v) => v !== value) : [...cur, value];
       return { ...d, [category]: { ...base, [key]: next } };
@@ -677,7 +677,7 @@ export default function ApprovalSettingsPage() {
       >
         <div className="space-y-6">
           {(['PURCHASE_INVOICE', 'GOODS_RECEIPT'] as const).map((cat) => {
-            const s = draft[cat] || { roles: [], userIds: [], mandatoryInvoice: false };
+            const s = draft[cat] || { roles: [], userIds: [], mandatoryInvoice: cat === 'PURCHASE_INVOICE' };
             const isCustom = (s.roles?.length ?? 0) > 0 || (s.userIds?.length ?? 0) > 0;
             return (
               <div key={cat} className="rounded-xl border bg-card p-5">
@@ -734,20 +734,20 @@ export default function ApprovalSettingsPage() {
                   </div>
                 )}
 
-                {cat === 'GOODS_RECEIPT' && (
-                  <div className="mt-5 flex items-center justify-between rounded-lg border bg-muted/40 px-4 py-3">
-                    <div>
-                      <Label>Invoice wajib sebelum approve</Label>
-                      <p className="text-xs text-muted-foreground">
-                        #81 — opsional secara default; aktifkan bila klien meminta.
-                      </p>
-                    </div>
-                    <Switch
-                      checked={!!s.mandatoryInvoice}
-                      onCheckedChange={() => toggleMandatoryInvoice(cat)}
-                    />
+                <div className="mt-5 flex items-center justify-between rounded-lg border bg-muted/40 px-4 py-3">
+                  <div>
+                    <Label>Invoice wajib sebelum approve</Label>
+                    <p className="text-xs text-muted-foreground">
+                      {cat === 'PURCHASE_INVOICE'
+                        ? 'Wajib secara default (8 Sep) — upload invoice supplier dilakukan saat PO dibuat.'
+                        : '#81 — opsional secara default; aktifkan bila klien meminta.'}
+                    </p>
                   </div>
-                )}
+                  <Switch
+                    checked={!!s.mandatoryInvoice}
+                    onCheckedChange={() => toggleMandatoryInvoice(cat)}
+                  />
+                </div>
               </div>
             );
           })}

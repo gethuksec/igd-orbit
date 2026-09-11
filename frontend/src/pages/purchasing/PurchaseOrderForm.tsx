@@ -1,13 +1,22 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Save, Trash2, Loader2, X, Pencil, Check } from 'lucide-react';
+import { Save, Trash2, Loader2, X, Pencil, Check, Plus } from 'lucide-react';
 import { BreadcrumbHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Modal } from '@/components/ui/modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Table,
   TableBody,
@@ -19,10 +28,10 @@ import {
 import { purchasingService } from '@/services/purchasing.service';
 import { productsService } from '@/services/products.service';
 import { suppliersService } from '@/services/suppliers.service';
-import { api } from '@/services/api';
+import { categoriesService } from '@/services/categories.service';
+import { unitsService } from '@/services/units.service';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/utils/format';
-import { useBranchFilter } from '@/components/branch/BranchFilter';
 
 const SELECT_CLS =
   'h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
@@ -32,12 +41,13 @@ export default function PurchaseOrderForm() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isEdit = !!id;
-  const { branchId } = useBranchFilter({ defaultAll: false });
 
   const [formData, setFormData] = useState({
-    // D7: default = first-in-list branch (hook)
-    branch_id: branchId || '',
     supplier_id: '',
+    // IGDERP-79 (8 Sep): PO is recorded after the supplier invoice exists —
+    // invoice number + date are mandatory at creation.
+    invoice_number: '',
+    invoice_date: '',
     order_date: new Date().toISOString().split('T')[0],
     expected_delivery_date: '',
     payment_terms: '',
@@ -47,6 +57,10 @@ export default function PurchaseOrderForm() {
     shipping_cost: '',
     notes: '',
   });
+
+  const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmChecked, setConfirmChecked] = useState(false);
 
   const [items, setItems] = useState<Array<{
     product_id: string;
@@ -61,6 +75,16 @@ export default function PurchaseOrderForm() {
   const [editingIndex, setEditingIndex] = useState(-1);
   const [editQty, setEditQty] = useState('1');
   const [editPrice, setEditPrice] = useState(0);
+
+  // Quick add product (shortcut, 8 Sep §5)
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [qaForm, setQaForm] = useState({
+    name: '',
+    categoryId: '',
+    sellingPrice: '',
+    barcode: '',
+    unitId: '',
+  });
 
   const formatThousandStr = (v: string) => {
     const n = parseFloat(v) || 0;
@@ -106,15 +130,6 @@ export default function PurchaseOrderForm() {
 
   const suppliers = suppliersData?.data || [];
 
-  // Fetch branches
-  const { data: branches } = useQuery({
-    queryKey: ['branches'],
-    queryFn: async () => {
-      const res = await api.get('/branches');
-      return res.data.data || res.data;
-    },
-  });
-
   // Fetch products for search
   const { data: productsData } = useQuery({
     queryKey: ['products', 'search', productSearch],
@@ -127,6 +142,18 @@ export default function PurchaseOrderForm() {
     enabled: productSearch.length > 2,
   });
 
+  // Quick-add reference data
+  const { data: categoriesResp } = useQuery({
+    queryKey: ['categories', 'all'],
+    queryFn: () => categoriesService.getAll({ limit: 200 }),
+  });
+  const categories: any[] = (categoriesResp as any)?.data || [];
+  const { data: unitsResp } = useQuery({
+    queryKey: ['units', 'all'],
+    queryFn: () => unitsService.getAll({ limit: 200 }),
+  });
+  const units: any[] = (unitsResp as any)?.data || [];
+
   // Fetch existing PO if editing
   const { data: existingPO } = useQuery({
     queryKey: ['purchase-order', id],
@@ -138,7 +165,8 @@ export default function PurchaseOrderForm() {
     if (existingPO) {
       setFormData({
         supplier_id: existingPO.supplierId,
-        branch_id: existingPO.branchId,
+        invoice_number: existingPO.invoiceNumber || '',
+        invoice_date: existingPO.invoiceDate?.split('T')[0] || '',
         order_date: existingPO.orderDate.split('T')[0],
         expected_delivery_date: existingPO.expectedDeliveryDate?.split('T')[0] || '',
         payment_terms: existingPO.paymentTerms || '',
@@ -161,9 +189,19 @@ export default function PurchaseOrderForm() {
     }
   }, [existingPO]);
 
+  const uploadInvoiceIfAny = async (poId: string) => {
+    if (!invoiceFile) return;
+    try {
+      await purchasingService.uploadAttachments('PURCHASE_ORDER', poId, 'INVOICE', [invoiceFile]);
+    } catch {
+      toast.error('PO tersimpan, tetapi upload invoice gagal — unggah manual di halaman detail.');
+    }
+  };
+
   const createMutation = useMutation({
     mutationFn: (data: any) => purchasingService.createPurchaseOrder(data),
-    onSuccess: (po) => {
+    onSuccess: async (po) => {
+      await uploadInvoiceIfAny(po.id);
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
       toast.success('Purchase order berhasil dibuat');
       navigate(`/purchasing/po/${po.id}`);
@@ -175,7 +213,8 @@ export default function PurchaseOrderForm() {
 
   const updateMutation = useMutation({
     mutationFn: (data: any) => purchasingService.updatePurchaseOrder(id!, data),
-    onSuccess: (po) => {
+    onSuccess: async (po) => {
+      await uploadInvoiceIfAny(po.id);
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
       toast.success('Purchase order berhasil diupdate');
       navigate(`/purchasing/po/${po.id}`);
@@ -184,6 +223,53 @@ export default function PurchaseOrderForm() {
       toast.error(error.response?.data?.message || 'Gagal mengupdate purchase order');
     },
   });
+
+  const quickAddMutation = useMutation({
+    mutationFn: (payload: any) => productsService.create(payload),
+    onSuccess: (product: any) => {
+      toast.success(`Produk "${product.name}" dibuat — isi harga beli di baris item.`);
+      setItems((prev) => [
+        ...prev,
+        {
+          product_id: product.id,
+          quantity_ordered: '1',
+          unit_price: 0,
+          discount_percent: 0,
+          product,
+        },
+      ]);
+      setQuickAddOpen(false);
+      setQaForm({ name: '', categoryId: '', sellingPrice: '', barcode: '', unitId: '' });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Gagal membuat produk');
+    },
+  });
+
+  const handleQuickAddSubmit = () => {
+    if (!qaForm.name.trim()) {
+      toast.error('Nama produk wajib diisi');
+      return;
+    }
+    if (!qaForm.categoryId) {
+      toast.error('Kategori produk wajib diisi');
+      return;
+    }
+    if (!qaForm.sellingPrice || parseFloat(qaForm.sellingPrice) <= 0) {
+      toast.error('Harga jual wajib diisi');
+      return;
+    }
+    quickAddMutation.mutate({
+      name: qaForm.name.trim(),
+      categoryId: qaForm.categoryId,
+      sellingPrice: parseFloat(qaForm.sellingPrice),
+      costPrice: 0,
+      barcode: qaForm.barcode.trim() || undefined,
+      unitId: qaForm.unitId || undefined,
+      isActive: true,
+    });
+  };
 
   // Click a product in the dropdown → auto-add row (qty 1, harga costPrice)
   const addProduct = (product: any) => {
@@ -254,19 +340,52 @@ export default function PurchaseOrderForm() {
     return { subtotal, discountAmount, taxAmount, shippingCost, total };
   };
 
+  /** Per-row margin reference (D2: display only — no writes to product master) */
+  const marginOf = (item: { unit_price: number; product?: any }): number | null => {
+    const selling = Number(item.product?.sellingPrice || 0);
+    const buy = Number(item.unit_price) || 0;
+    if (selling <= 0 || buy <= 0) return null;
+    return ((selling - buy) / selling) * 100;
+  };
+
+  const dueDateDisplay = (() => {
+    const days = parseInt(formData.payment_term_days || '', 10);
+    if (!formData.invoice_date || !days || days <= 0) return null;
+    const base = new Date(formData.invoice_date);
+    if (isNaN(base.getTime())) return null;
+    const due = new Date(base.getTime() + days * 24 * 60 * 60 * 1000);
+    return due.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+  })();
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.supplier_id || !formData.branch_id) {
-      toast.error('Pilih supplier dan cabang');
+    if (!formData.supplier_id) {
+      toast.error('Pilih supplier');
       return;
     }
-
+    if (!formData.invoice_number.trim()) {
+      toast.error('Nomor invoice supplier wajib diisi');
+      return;
+    }
+    if (!formData.invoice_date) {
+      toast.error('Tanggal invoice supplier wajib diisi');
+      return;
+    }
     if (items.length === 0) {
       toast.error('Tambahkan minimal satu item');
       return;
     }
+    if (!isEdit && !invoiceFile) {
+      toast.error('Dokumen invoice supplier wajib diunggah');
+      return;
+    }
 
+    setConfirmChecked(false);
+    setConfirmOpen(true);
+  };
+
+  const doSubmit = () => {
     const data = {
       ...formData,
       payment_term_days: formData.payment_term_days ? parseInt(formData.payment_term_days) : undefined,
@@ -287,6 +406,7 @@ export default function PurchaseOrderForm() {
     } else {
       createMutation.mutate(data);
     }
+    setConfirmOpen(false);
   };
 
   const totals = calculateTotals();
@@ -326,20 +446,26 @@ export default function PurchaseOrderForm() {
               </div>
 
               <div>
-                <Label className="block mb-2">Cabang *</Label>
-                <select
-                  value={formData.branch_id}
-                  onChange={(e) => setFormData({ ...formData, branch_id: e.target.value })}
+                <Label className="block mb-2">Nomor Invoice Supplier *</Label>
+                <Input
+                  value={formData.invoice_number}
+                  onChange={(e) => setFormData({ ...formData, invoice_number: e.target.value })}
+                  placeholder="Sesuai dokumen invoice supplier"
                   required
-                  className={SELECT_CLS}
-                >
-                  <option value="">Pilih Cabang</option>
-                  {branches?.map((b: any) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}
-                    </option>
-                  ))}
-                </select>
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  PO diinput setelah invoice/DO supplier diterima (8 Sep).
+                </p>
+              </div>
+
+              <div>
+                <Label className="block mb-2">Tanggal Invoice Supplier *</Label>
+                <Input
+                  type="date"
+                  value={formData.invoice_date}
+                  onChange={(e) => setFormData({ ...formData, invoice_date: e.target.value })}
+                  required
+                />
               </div>
 
               <div>
@@ -353,12 +479,11 @@ export default function PurchaseOrderForm() {
               </div>
 
               <div>
-                <Label className="block mb-2">Expected Delivery Date *</Label>
+                <Label className="block mb-2">Expected Delivery Date</Label>
                 <Input
                   type="date"
                   value={formData.expected_delivery_date}
                   onChange={(e) => setFormData({ ...formData, expected_delivery_date: e.target.value })}
-                  required
                 />
               </div>
 
@@ -385,6 +510,28 @@ export default function PurchaseOrderForm() {
                   min="0"
                   placeholder="Contoh: 30"
                 />
+                {dueDateDisplay && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Jatuh tempo: <span className="font-medium text-foreground">{dueDateDisplay}</span>
+                  </p>
+                )}
+              </div>
+
+              <div className="md:col-span-2">
+                <Label className="block mb-2">
+                  Dokumen Invoice Supplier {!isEdit && '*'}
+                </Label>
+                <input
+                  type="file"
+                  accept=".pdf,image/*"
+                  onChange={(e) => setInvoiceFile(e.target.files?.[0] || null)}
+                  className="block w-full text-sm text-muted-foreground file:mr-4 file:rounded-md file:border-0 file:bg-primary/10 file:px-4 file:py-2 file:text-sm file:font-medium file:text-primary hover:file:bg-primary/20"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {isEdit
+                    ? 'Kosongkan bila tidak ingin mengganti dokumen. Upload invoice wajib sebelum PO di-approve.'
+                    : 'Wajib. Upload dilakukan setelah PO disimpan; approval diblokir sampai dokumen ada.'}
+                </p>
               </div>
             </div>
 
@@ -423,12 +570,17 @@ export default function PurchaseOrderForm() {
                       >
                         <div className="font-semibold">{product.name}</div>
                         <div className="text-sm text-muted-foreground">{product.sku}</div>
-                        <div className="text-xs text-muted-foreground">Harga: {formatCurrency(product.costPrice || 0)}</div>
+                        <div className="text-xs text-muted-foreground">
+                          Beli: {formatCurrency(product.costPrice || 0)} · Jual: {formatCurrency(product.sellingPrice || 0)}
+                        </div>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
+              <Button type="button" variant="outline" onClick={() => setQuickAddOpen(true)}>
+                <Plus /> Produk Baru
+              </Button>
             </div>
 
             <div className="overflow-x-auto">
@@ -438,6 +590,7 @@ export default function PurchaseOrderForm() {
                     <TableHead>Product</TableHead>
                     <TableHead>Qty</TableHead>
                     <TableHead>Unit Price</TableHead>
+                    <TableHead>Margin</TableHead>
                     <TableHead>Subtotal</TableHead>
                     <TableHead className="w-16">Actions</TableHead>
                   </TableRow>
@@ -446,6 +599,7 @@ export default function PurchaseOrderForm() {
                   {items.map((item, index) => {
                     const itemSubtotal = (Number(item.quantity_ordered) || 0) * item.unit_price;
                     const isEditing = editingIndex === index;
+                    const margin = marginOf(item);
                     return (
                       <TableRow key={index}>
                         <TableCell>
@@ -480,6 +634,23 @@ export default function PurchaseOrderForm() {
                             />
                           ) : (
                             <span className="whitespace-nowrap">{formatCurrency(item.unit_price)}</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {margin === null ? (
+                            <span className="text-muted-foreground">—</span>
+                          ) : (
+                            <span
+                              className={
+                                margin < 0
+                                  ? 'font-semibold text-destructive'
+                                  : margin < 10
+                                    ? 'font-semibold text-amber-600'
+                                    : 'font-semibold text-green-600'
+                              }
+                            >
+                              {margin.toFixed(1)}%
+                            </span>
                           )}
                         </TableCell>
                         <TableCell className="font-semibold whitespace-nowrap">{formatCurrency(itemSubtotal)}</TableCell>
@@ -614,6 +785,144 @@ export default function PurchaseOrderForm() {
           </Button>
         </div>
       </form>
+
+      {/* D1 (8 Sep): invoice-total confirmation modal — no value input, a human
+          confirmation against the uploaded supplier invoice. */}
+      <Modal
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        title="Konfirmasi Total Invoice"
+        size="md"
+      >
+        <div className="space-y-4">
+          <div className="rounded-lg border bg-muted/30 p-4 text-center">
+            <p className="text-sm text-muted-foreground mb-1">Total PO</p>
+            <p className="text-2xl font-bold text-primary">{formatCurrency(totals.total)}</p>
+          </div>
+          <label className="flex items-start gap-3 cursor-pointer">
+            <Checkbox
+              checked={confirmChecked}
+              onCheckedChange={(checked) => setConfirmChecked(checked)}
+              className="mt-0.5"
+            />
+            <span className="text-sm">
+              Saya sudah memeriksa dan <strong>total PO ini sesuai dengan invoice supplier</strong>
+              {formData.invoice_number ? ` (No. ${formData.invoice_number})` : ''}. Bila ada selisih,
+              jelaskan di kolom Catatan PO.
+            </span>
+          </label>
+          <div className="flex gap-3 pt-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setConfirmOpen(false)}
+            >
+              Batal
+            </Button>
+            <Button
+              className="flex-1"
+              onClick={doSubmit}
+              disabled={!confirmChecked || createMutation.isPending || updateMutation.isPending}
+            >
+              {createMutation.isPending || updateMutation.isPending ? 'Menyimpan...' : 'Ya, Simpan'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Quick add product — reuse Item entry shortcut (8 Sep §5) */}
+      <Dialog open={quickAddOpen} onOpenChange={setQuickAddOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Produk Baru</DialogTitle>
+            <DialogDescription>
+              Buat produk cepat lalu tambahkan langsung ke daftar item PO. Produk lengkap tetap bisa
+              disempurnakan di Master Data.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2">
+              <Label className="block text-sm font-medium mb-2">
+                Nama Produk <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                value={qaForm.name}
+                onChange={(e) => setQaForm({ ...qaForm, name: e.target.value })}
+                placeholder="Contoh: iPhone 15 Pro 128GB"
+              />
+            </div>
+            <div>
+              <Label className="block text-sm font-medium mb-2">
+                Kategori <span className="text-red-500">*</span>
+              </Label>
+              <select
+                value={qaForm.categoryId}
+                onChange={(e) => setQaForm({ ...qaForm, categoryId: e.target.value })}
+                className={SELECT_CLS}
+              >
+                <option value="">Pilih Kategori</option>
+                {categories.map((c: any) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label className="block text-sm font-medium mb-2">
+                Harga Jual <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                type="number"
+                min="0"
+                step="any"
+                value={qaForm.sellingPrice}
+                onChange={(e) => setQaForm({ ...qaForm, sellingPrice: e.target.value })}
+                placeholder="0"
+              />
+            </div>
+            <div>
+              <Label className="block text-sm font-medium mb-2">Barcode</Label>
+              <Input
+                value={qaForm.barcode}
+                onChange={(e) => setQaForm({ ...qaForm, barcode: e.target.value })}
+                placeholder="Opsional"
+              />
+            </div>
+            <div>
+              <Label className="block text-sm font-medium mb-2">Satuan</Label>
+              <select
+                value={qaForm.unitId}
+                onChange={(e) => setQaForm({ ...qaForm, unitId: e.target.value })}
+                className={SELECT_CLS}
+              >
+                <option value="">-</option>
+                {units.map((u: any) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-3 mt-2">
+            <Button type="button" variant="outline" onClick={() => setQuickAddOpen(false)}>
+              Batal
+            </Button>
+            <Button type="button" onClick={handleQuickAddSubmit} disabled={quickAddMutation.isPending}>
+              {quickAddMutation.isPending ? (
+                <>
+                  <Loader2 className="animate-spin" /> Menyimpan...
+                </>
+              ) : (
+                <>
+                  <Plus /> Buat & Tambahkan
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
