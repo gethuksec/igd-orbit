@@ -268,6 +268,16 @@ export default function PurchaseOrderList() {
                             Perkiraan: {formatDate(order.expectedDeliveryDate)}
                           </div>
                         )}
+                        {order.dueDate && (
+                          <div
+                            className={`text-xs ${
+                              order.isOverdue ? 'font-medium text-red-600' : 'text-muted-foreground'
+                            }`}
+                          >
+                            Jatuh tempo: {formatDate(order.dueDate)}
+                            {order.isOverdue && ' (terlambat)'}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="text-sm font-semibold">{formatCurrency(order.totalAmount)}</div>
