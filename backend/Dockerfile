@@ -45,6 +45,11 @@ COPY --from=prisma --chown=nestjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nestjs:nodejs /app/docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh
 
+# Deploy fix (2026-09-11): the uploads dir must exist in the image with the app
+# user's ownership so a freshly-created named volume (backend_uploads) seeds
+# writable — a root-owned volume caused EACCES on /app/uploads/purchase-docs.
+RUN mkdir -p /app/uploads/purchase-docs && chown -R nestjs:nogroup /app/uploads
+
 # Switch to non-root user
 USER nestjs
 
