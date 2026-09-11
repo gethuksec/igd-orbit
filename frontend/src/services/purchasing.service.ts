@@ -17,6 +17,7 @@ export interface PurchaseOrder {
   invoiceNumber?: string;
   invoiceDate?: string;
   dueDate?: string;
+  isOverdue?: boolean;
   subtotal: number;
   discountAmount: number;
   taxAmount: number;

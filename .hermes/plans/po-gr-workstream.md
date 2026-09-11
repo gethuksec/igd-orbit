@@ -3,6 +3,10 @@
 **Date:** 2026-09-11 · **Owner:** dev agent · **Tracker:** Plane IGDERP · **Base:** `origin/main` @ `d008a2b` · **Branch:** `ws-po-create-v2`
 
 > **S1 status — IMPLEMENTED on branch (2026-09-11).** Invoice-mandatory creation (no. + date), due-date calc, invoice fields on PO (+migration `po-invoice-fields.sql`), invoice-doc approve gate (`PURCHASE_INVOICE` default ON), cancel + send-order removed, GR unlocked from approved, FE form v2 (invoice fields + required doc upload + confirm modal + quick-add product + margin column), detail actions/cards updated. Backend suite **312/312 green**; FE production build green. Not merged / not deployed (awaiting review).
+>
+> **S1 review rounds (2026-09-11):** EDD-optional payload fix + UI copy cleanup + WIB order-date autofill; then Informasi Umum layout v2 (mandatory Perkiraan Barang Diterima, Payment Type Tunai/Termin with master-driven terms, input reorder per approved mock). Preview deployed on `ws-deploy-po-s1` for review.
+>
+> **S2 status — IMPLEMENTED on branch (2026-09-11).** Termin master wiring (landed in the S1 review rounds) + `isOverdue` flag (WIB calendar day; excludes cancelled/rejected) surfaced on the PO list (red "Jatuh tempo … (terlambat)") and PO detail (red "Terlambat" badge). Backend tests cover the flag. Overdue notification = later slice.
 
 ---
 

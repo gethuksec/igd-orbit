@@ -11,6 +11,22 @@ import { ApprovePurchaseOrderDto } from '../dto/approve-purchase-order.dto';
 import { RejectPurchaseOrderDto } from '../dto/reject-purchase-order.dto';
 import { Decimal } from '@prisma/client/runtime/library';
 
+/**
+ * S2 (cda254f1): overdue = due date has passed and the PO is still live.
+ * Uses the WIB calendar day; payment tracking arrives with the finance round
+ * (v1 = visual flag only).
+ */
+export function isPurchaseOrderOverdue(
+  dueDate: Date | null | undefined,
+  status: string,
+): boolean {
+  if (!dueDate) return false;
+  if (status === 'cancelled' || status === 'rejected') return false;
+  const todayWib = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const dueStr = new Date(dueDate).toISOString().slice(0, 10);
+  return dueStr < todayWib;
+}
+
 @Injectable()
 export class PurchaseOrdersService {
   constructor(private prisma: PrismaService) {}
@@ -298,6 +314,7 @@ export class PurchaseOrdersService {
     return {
       data: data.map((po) => ({
         ...po,
+        isOverdue: isPurchaseOrderOverdue(po.dueDate, po.status),
         subtotal: po.subtotal.toNumber(),
         discountAmount: po.discountAmount.toNumber(),
         taxAmount: po.taxAmount.toNumber(),
@@ -363,6 +380,7 @@ export class PurchaseOrdersService {
 
     return {
       ...po,
+      isOverdue: isPurchaseOrderOverdue(po.dueDate, po.status),
       subtotal: po.subtotal.toNumber(),
       discountAmount: po.discountAmount.toNumber(),
       taxAmount: po.taxAmount.toNumber(),

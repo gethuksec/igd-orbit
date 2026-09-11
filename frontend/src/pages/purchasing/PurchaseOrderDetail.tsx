@@ -237,7 +237,12 @@ export default function PurchaseOrderDetail() {
               {po.invoiceDate ? formatDate(po.invoiceDate) : 'Tanggal invoice: —'}
             </p>
             {po.dueDate && (
-              <p className="text-sm text-muted-foreground">Jatuh tempo: {formatDate(po.dueDate)}</p>
+              <p className="text-sm text-muted-foreground">
+                Jatuh tempo: {formatDate(po.dueDate)}
+                {po.isOverdue && (
+                  <Badge variant="destructive" className="ml-2 align-middle">Terlambat</Badge>
+                )}
+              </p>
             )}
           </CardContent>
         </Card>

@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Decimal } from '@prisma/client/runtime/library';
 import { PrismaService } from '../../../shared/services/prisma.service';
-import { PurchaseOrdersService } from './purchase-orders.service';
+import { PurchaseOrdersService, isPurchaseOrderOverdue } from './purchase-orders.service';
 
 describe('PurchaseOrdersService IGDERP-82 flows (create->pending, reject, update-from-pending)', () => {
   let service: PurchaseOrdersService;
@@ -310,5 +310,22 @@ describe('PurchaseOrdersService IGDERP-82 flows (create->pending, reject, update
 
     const result = await service.approve('po-1', {}, 'cso-1', ['CSO']);
     expect(result.status).toBe('approved');
+  });
+});
+
+describe('isPurchaseOrderOverdue (S2 — due date flag)', () => {
+  it('flags a past due date on a live PO', () => {
+    expect(isPurchaseOrderOverdue(new Date('2026-09-01'), 'approved')).toBe(true);
+  });
+
+  it('does not flag future due dates or missing due dates', () => {
+    expect(isPurchaseOrderOverdue(new Date('2099-01-01'), 'approved')).toBe(false);
+    expect(isPurchaseOrderOverdue(null, 'approved')).toBe(false);
+    expect(isPurchaseOrderOverdue(undefined, 'pending')).toBe(false);
+  });
+
+  it('ignores closed POs (cancelled / rejected)', () => {
+    expect(isPurchaseOrderOverdue(new Date('2026-09-01'), 'cancelled')).toBe(false);
+    expect(isPurchaseOrderOverdue(new Date('2026-09-01'), 'rejected')).toBe(false);
   });
 });
