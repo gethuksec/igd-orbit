@@ -265,7 +265,7 @@ export default function PurchaseOrderList() {
                         <div className="text-sm">{formatDate(order.orderDate)}</div>
                         {order.expectedDeliveryDate && (
                           <div className="text-xs text-muted-foreground">
-                            ETA: {formatDate(order.expectedDeliveryDate)}
+                            Perkiraan: {formatDate(order.expectedDeliveryDate)}
                           </div>
                         )}
                       </TableCell>

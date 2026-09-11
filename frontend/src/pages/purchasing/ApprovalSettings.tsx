@@ -739,7 +739,7 @@ export default function ApprovalSettingsPage() {
                     <Label>Invoice wajib sebelum approve</Label>
                     <p className="text-xs text-muted-foreground">
                       {cat === 'PURCHASE_INVOICE'
-                        ? 'Wajib secara default (8 Sep) — upload invoice supplier dilakukan saat PO dibuat.'
+                        ? 'Wajib — PO tidak bisa di-approve sebelum invoice supplier diunggah.'
                         : '#81 — opsional secara default; aktifkan bila klien meminta.'}
                     </p>
                   </div>

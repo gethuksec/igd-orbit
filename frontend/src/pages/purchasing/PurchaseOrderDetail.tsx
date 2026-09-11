@@ -246,7 +246,7 @@ export default function PurchaseOrderDetail() {
             <h3 className="text-sm font-semibold text-muted-foreground mb-2">Tanggal Order</h3>
             <p className="text-lg font-bold">{formatDate(po.orderDate)}</p>
             {po.expectedDeliveryDate && (
-              <p className="text-sm text-muted-foreground">ETA: {formatDate(po.expectedDeliveryDate)}</p>
+              <p className="text-sm text-muted-foreground">Perkiraan diterima: {formatDate(po.expectedDeliveryDate)}</p>
             )}
           </CardContent>
         </Card>
