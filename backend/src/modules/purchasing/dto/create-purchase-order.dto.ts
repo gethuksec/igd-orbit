@@ -57,10 +57,9 @@ export class CreatePurchaseOrderDto {
   @IsDateString()
   order_date!: string;
 
-  @IsOptional()
-  @ValidateIf((o) => o.expected_delivery_date !== '' && o.expected_delivery_date !== null)
-  @IsDateString()
-  expected_delivery_date?: string;
+  @ValidateIf((o) => o.expected_delivery_date !== '')
+  @IsDateString({}, { message: 'Perkiraan barang diterima wajib diisi' })
+  expected_delivery_date!: string;
 
   @IsString()
   @IsOptional()

@@ -77,6 +77,9 @@ export class PurchaseOrdersService {
     if (!dto.invoice_date) {
       throw new BadRequestException('Tanggal invoice supplier wajib diisi');
     }
+    if (!dto.expected_delivery_date) {
+      throw new BadRequestException('Perkiraan barang diterima wajib diisi');
+    }
 
     // Destination is always central-good (27 Aug §9) — the outlet selector was
     // removed from the UI (8 Sep). If the client still sends branch_id we honor

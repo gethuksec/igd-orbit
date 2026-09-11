@@ -100,6 +100,7 @@ describe('PurchaseOrdersService IGDERP-82 flows (create->pending, reject, update
         invoice_number: 'INV-001',
         invoice_date: '2026-09-05',
         order_date: '2026-09-07',
+        expected_delivery_date: '2026-09-10',
         items: [{ product_id: 'prod-1', quantity_ordered: 10, unit_price: 1000 }],
       } as any,
       'cso-1',
@@ -207,6 +208,25 @@ describe('PurchaseOrdersService IGDERP-82 flows (create->pending, reject, update
     ).rejects.toThrow('Tanggal invoice supplier wajib diisi');
   });
 
+  it('blocks create without Perkiraan Barang Diterima', async () => {
+    prisma.customer.findUnique.mockResolvedValue({ id: 'sup-1', customerType: 'wholesale' });
+    prisma.branch.findUnique.mockResolvedValue({ id: 'branch-1' });
+    await expect(
+      service.create(
+        {
+          supplier_id: 'sup-1',
+          branch_id: 'branch-1',
+          invoice_number: 'INV-001',
+          invoice_date: '2026-09-05',
+          order_date: '2026-09-07',
+          items: [{ product_id: 'prod-1', quantity_ordered: 10, unit_price: 1000 }],
+        } as any,
+        'cso-1',
+      ),
+    ).rejects.toThrow('Perkiraan barang diterima wajib diisi');
+    expect(prisma.purchaseOrder.create).not.toHaveBeenCalled();
+  });
+
   it('IGDERP-79: computes dueDate = invoice date + payment term days', async () => {
     prisma.customer.findUnique.mockResolvedValue({ id: 'sup-1', customerType: 'wholesale' });
     prisma.branch.findUnique.mockResolvedValue({ id: 'branch-1' });
@@ -220,6 +240,7 @@ describe('PurchaseOrdersService IGDERP-82 flows (create->pending, reject, update
         invoice_number: 'INV-001',
         invoice_date: '2026-09-05',
         order_date: '2026-09-05',
+        expected_delivery_date: '2026-09-08',
         payment_term_days: 30,
         items: [{ product_id: 'prod-1', quantity_ordered: 10, unit_price: 1000 }],
       } as any,
@@ -242,6 +263,7 @@ describe('PurchaseOrdersService IGDERP-82 flows (create->pending, reject, update
         invoice_number: 'INV-002',
         invoice_date: '2026-09-05',
         order_date: '2026-09-05',
+        expected_delivery_date: '2026-09-08',
         items: [{ product_id: 'prod-1', quantity_ordered: 1, unit_price: 1000 }],
       } as any,
       'sodo-1',

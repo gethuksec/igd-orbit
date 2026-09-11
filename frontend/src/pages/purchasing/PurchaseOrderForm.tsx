@@ -30,6 +30,7 @@ import { productsService } from '@/services/products.service';
 import { suppliersService } from '@/services/suppliers.service';
 import { categoriesService } from '@/services/categories.service';
 import { unitsService } from '@/services/units.service';
+import { paymentTermsService } from '@/services/payment-terms.service';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/utils/format';
 
@@ -51,13 +52,12 @@ export default function PurchaseOrderForm() {
 
   const [formData, setFormData] = useState({
     supplier_id: '',
-    // IGDERP-79 (8 Sep): PO is recorded after the supplier invoice exists —
-    // invoice number + date are mandatory at creation.
     invoice_number: '',
     invoice_date: '',
     order_date: todayLocal(),
     expected_delivery_date: '',
-    payment_terms: '',
+    payment_type: 'Tunai',
+    payment_terms: 'Tunai',
     payment_term_days: '',
     discount_amount: '',
     tax_amount: '',
@@ -161,6 +161,15 @@ export default function PurchaseOrderForm() {
   });
   const units: any[] = (unitsResp as any)?.data || [];
 
+  // Shared termin master (same one POS/customers use) — termin options only.
+  const { data: paymentTermsResp } = useQuery({
+    queryKey: ['payment-terms', 'active'],
+    queryFn: () => paymentTermsService.getAll({ limit: 200 }),
+  });
+  const termOptions: any[] = ((paymentTermsResp as any)?.data || []).filter(
+    (pt: any) => pt.days > 0 && pt.isActive !== false,
+  );
+
   // Fetch existing PO if editing
   const { data: existingPO } = useQuery({
     queryKey: ['purchase-order', id],
@@ -170,13 +179,15 @@ export default function PurchaseOrderForm() {
 
   useEffect(() => {
     if (existingPO) {
+      const isTermin = !!(existingPO.paymentTermDays && existingPO.paymentTermDays > 0);
       setFormData({
         supplier_id: existingPO.supplierId,
         invoice_number: existingPO.invoiceNumber || '',
         invoice_date: existingPO.invoiceDate?.split('T')[0] || '',
         order_date: existingPO.orderDate.split('T')[0],
         expected_delivery_date: existingPO.expectedDeliveryDate?.split('T')[0] || '',
-        payment_terms: existingPO.paymentTerms || '',
+        payment_type: isTermin ? 'Termin' : 'Tunai',
+        payment_terms: isTermin ? existingPO.paymentTerms || '' : 'Tunai',
         payment_term_days: existingPO.paymentTermDays?.toString() || '',
         discount_amount: existingPO.discountAmount.toString(),
         tax_amount: existingPO.taxAmount.toString(),
@@ -379,6 +390,14 @@ export default function PurchaseOrderForm() {
       toast.error('Tanggal invoice supplier wajib diisi');
       return;
     }
+    if (!formData.expected_delivery_date) {
+      toast.error('Perkiraan barang diterima wajib diisi');
+      return;
+    }
+    if (formData.payment_type === 'Termin' && !formData.payment_terms) {
+      toast.error('Pilih Payment Terms');
+      return;
+    }
     if (items.length === 0) {
       toast.error('Tambahkan minimal satu item');
       return;
@@ -393,13 +412,20 @@ export default function PurchaseOrderForm() {
   };
 
   const doSubmit = () => {
-    const data = {
-      ...formData,
+    const isTermin = formData.payment_type === 'Termin';
+    const data: any = {
+      supplier_id: formData.supplier_id,
+      invoice_number: formData.invoice_number,
+      invoice_date: formData.invoice_date,
+      order_date: formData.order_date,
       expected_delivery_date: formData.expected_delivery_date || undefined,
-      payment_term_days: formData.payment_term_days ? parseInt(formData.payment_term_days) : undefined,
+      payment_terms: isTermin ? formData.payment_terms : 'Tunai',
+      payment_term_days:
+        isTermin && formData.payment_term_days ? parseInt(formData.payment_term_days) : undefined,
       discount_amount: parseFloat(formData.discount_amount) || 0,
       tax_amount: parseFloat(formData.tax_amount) || 0,
       shipping_cost: parseFloat(formData.shipping_cost) || 0,
+      notes: formData.notes,
       items: items.map((item) => ({
         product_id: item.product_id,
         quantity_ordered: Number(item.quantity_ordered) || 0,
@@ -430,7 +456,7 @@ export default function PurchaseOrderForm() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+              <div className="md:col-span-2">
                 <Label className="block mb-2">Supplier *</Label>
                 <select
                   value={formData.supplier_id}
@@ -484,45 +510,65 @@ export default function PurchaseOrderForm() {
               </div>
 
               <div>
-                <Label className="block mb-2">Expected Delivery Date</Label>
+                <Label className="block mb-2">Perkiraan Barang Diterima *</Label>
                 <Input
                   type="date"
                   value={formData.expected_delivery_date}
                   onChange={(e) => setFormData({ ...formData, expected_delivery_date: e.target.value })}
+                  required
                 />
               </div>
 
-              <div>
-                <Label className="block mb-2">Payment Terms</Label>
+              <div className={formData.payment_type === 'Termin' ? '' : 'md:col-span-2'}>
+                <Label className="block mb-2">Payment Type *</Label>
                 <select
-                  value={formData.payment_terms}
-                  onChange={(e) => setFormData({ ...formData, payment_terms: e.target.value })}
+                  value={formData.payment_type}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData((f) => ({
+                      ...f,
+                      payment_type: value,
+                      payment_terms: value === 'Termin' ? '' : 'Tunai',
+                      payment_term_days: '',
+                    }));
+                  }}
                   className={SELECT_CLS}
                 >
-                  <option value="">Pilih Payment Terms</option>
-                  <option value="CASH">CASH</option>
-                  <option value="COD">COD</option>
-                  <option value="CREDIT">CREDIT</option>
+                  <option value="Tunai">Tunai</option>
+                  <option value="Termin">Termin</option>
                 </select>
               </div>
 
-              <div>
-                <Label className="block mb-2">Payment Term Days</Label>
-                <Input
-                  type="number"
-                  value={formData.payment_term_days}
-                  onChange={(e) => setFormData({ ...formData, payment_term_days: e.target.value })}
-                  min="0"
-                  placeholder="Contoh: 30"
-                />
-                {dueDateDisplay && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Jatuh tempo: <span className="font-medium text-foreground">{dueDateDisplay}</span>
-                  </p>
-                )}
-              </div>
+              {formData.payment_type === 'Termin' && (
+                <div>
+                  <Label className="block mb-2">Payment Terms *</Label>
+                  <select
+                    value={formData.payment_terms}
+                    onChange={(e) => {
+                      const name = e.target.value;
+                      const term = termOptions.find((t: any) => t.name === name);
+                      setFormData((f) => ({
+                        ...f,
+                        payment_terms: name,
+                        payment_term_days: term ? String(term.days) : '',
+                      }));
+                    }}
+                    className={SELECT_CLS}
+                  >
+                    <option value="">Pilih Payment Terms</option>
+                    {termOptions.map((t: any) => (
+                      <option key={t.id} value={t.name}>{t.name}</option>
+                    ))}
+                  </select>
+                  {dueDateDisplay && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Jatuh tempo: <span className="font-medium text-foreground">{dueDateDisplay}</span>
+                    </p>
+                  )}
+                </div>
+              )}
 
-              <div className="md:col-span-2">
+              <div>
                 <Label className="block mb-2">
                   Dokumen Invoice Supplier {!isEdit && '*'}
                 </Label>
@@ -538,16 +584,16 @@ export default function PurchaseOrderForm() {
                     : 'Wajib diunggah — PDF / JPG / PNG.'}
                 </p>
               </div>
-            </div>
 
-            <div>
-              <Label className="block mb-2">Notes</Label>
-              <Textarea
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                rows={3}
-                placeholder="Catatan PO (opsional)"
-              />
+              <div>
+                <Label className="block mb-2">Notes</Label>
+                <Textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  rows={3}
+                  placeholder="Catatan PO (opsional)"
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
