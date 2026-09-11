@@ -2,6 +2,8 @@
 
 **Date:** 2026-09-11 · **Owner:** dev agent · **Tracker:** Plane IGDERP · **Base:** `origin/main` @ `d008a2b` · **Branch:** `ws-po-create-v2`
 
+> **S1 status — IMPLEMENTED on branch (2026-09-11).** Invoice-mandatory creation (no. + date), due-date calc, invoice fields on PO (+migration `po-invoice-fields.sql`), invoice-doc approve gate (`PURCHASE_INVOICE` default ON), cancel + send-order removed, GR unlocked from approved, FE form v2 (invoice fields + required doc upload + confirm modal + quick-add product + margin column), detail actions/cards updated. Backend suite **312/312 green**; FE production build green. Not merged / not deployed (awaiting review).
+
 ---
 
 ## 0. State audit (verified 2026-09-11)
