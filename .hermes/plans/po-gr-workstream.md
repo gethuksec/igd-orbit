@@ -7,6 +7,8 @@
 > **S1 review rounds (2026-09-11):** EDD-optional payload fix + UI copy cleanup + WIB order-date autofill; then Informasi Umum layout v2 (mandatory Perkiraan Barang Diterima, Payment Type Tunai/Termin with master-driven terms, input reorder per approved mock). Preview deployed on `ws-deploy-po-s1` for review.
 >
 > **S2 status — IMPLEMENTED on branch (2026-09-11).** Termin master wiring (landed in the S1 review rounds) + `isOverdue` flag (WIB calendar day; excludes cancelled/rejected) surfaced on the PO list (red "Jatuh tempo … (terlambat)") and PO detail (red "Terlambat" badge). Backend tests cover the flag. Overdue notification = later slice.
+>
+> **S3 status — IMPLEMENTED on branch (2026-09-11).** Edit-after-approval policy: status guard matrix (pending + rejected editable; approved/ordered = permission `purchasing.edit_after_approval` + mandatory reason + audit log; received/partially_received locked). Rejected PO → edit → resubmit flips back to `pending`. New `PurchaseOrderEditLog` (old/new JSON snapshot) + idempotent migration `po-edit-log.sql`; permission key added to the D-PERM catalog + FE labels. FE: detail actions `edit`/`revisi` (role-gated; post-approval gated by permission), form shows the rejection banner / requires the revision reason. Backend +7 tests (323 total).
 
 ---
 

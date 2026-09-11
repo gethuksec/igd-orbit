@@ -9,6 +9,10 @@ import { CreatePurchaseOrderDto } from '../dto/create-purchase-order.dto';
 import { UpdatePurchaseOrderDto } from '../dto/update-purchase-order.dto';
 import { ApprovePurchaseOrderDto } from '../dto/approve-purchase-order.dto';
 import { RejectPurchaseOrderDto } from '../dto/reject-purchase-order.dto';
+import {
+  computeEffectivePermissions,
+  isPermissionWithinDefaults,
+} from '../../../shared/utils/permissions.util';
 import { Decimal } from '@prisma/client/runtime/library';
 
 /**
@@ -54,6 +58,56 @@ export class PurchaseOrdersService {
       return null;
     }
     return new Date(invoiceDate.getTime() + termDays * 24 * 60 * 60 * 1000);
+  }
+
+  /** IGDERP-82 (S3): edit-after-approval gate — SUPERADMIN bypass, else the
+   *  user's effective permissions must cover `purchasing.edit_after_approval`. */
+  private async canEditAfterApproval(userId: string): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        userBranches: {
+          select: {
+            deniedPermissions: true,
+            role: { select: { code: true, defaultPermissions: true } },
+          },
+        },
+      },
+    });
+    const rows = (user?.userBranches || []) as any[];
+    if (rows.some((r) => r.role?.code === 'SUPERADMIN')) return true;
+    const effective = computeEffectivePermissions(rows);
+    return isPermissionWithinDefaults('purchasing.edit_after_approval', effective);
+  }
+
+  /** IGDERP-82 (S3): JSON-safe audit snapshot (decimals/dates as strings). */
+  private buildEditSnapshot(po: any) {
+    const dec = (v: any) => (v == null ? null : v.toString());
+    const dt = (v: any) => (v == null ? null : new Date(v).toISOString());
+    return {
+      status: po.status,
+      invoiceNumber: po.invoiceNumber ?? null,
+      invoiceDate: dt(po.invoiceDate),
+      dueDate: dt(po.dueDate),
+      orderDate: dt(po.orderDate),
+      expectedDeliveryDate: dt(po.expectedDeliveryDate),
+      paymentTerms: po.paymentTerms ?? null,
+      paymentTermDays: po.paymentTermDays ?? null,
+      subtotal: dec(po.subtotal),
+      discountAmount: dec(po.discountAmount),
+      taxAmount: dec(po.taxAmount),
+      shippingCost: dec(po.shippingCost),
+      totalAmount: dec(po.totalAmount),
+      notes: po.notes ?? null,
+      items: (po.items || []).map((i: any) => ({
+        productId: i.productId,
+        quantityOrdered: dec(i.quantityOrdered),
+        quantityReceived: dec(i.quantityReceived),
+        unitPrice: dec(i.unitPrice),
+        discountPercent: dec(i.discountPercent),
+        subtotal: dec(i.subtotal),
+      })),
+    };
   }
 
   /**
@@ -401,7 +455,7 @@ export class PurchaseOrdersService {
   /**
    * Update purchase order (only if draft)
    */
-  async update(id: string, dto: UpdatePurchaseOrderDto, _userId: string) {
+  async update(id: string, dto: UpdatePurchaseOrderDto, userId: string) {
     const po = await this.prisma.purchaseOrder.findUnique({
       where: { id },
       include: { items: true },
@@ -411,8 +465,27 @@ export class PurchaseOrdersService {
       throw new NotFoundException('Purchase order not found');
     }
 
-    if (po.status !== 'draft' && po.status !== 'pending') {
-      throw new BadRequestException('Can only update draft or pending purchase orders');
+    // IGDERP-82 (S3) status guard matrix —
+    //   pending  → normal corrections by the purchasing team (no extra gate)
+    //   rejected → "revisi": edit then resubmit (flips back to pending)
+    //   approved/ordered → post-approval edit: permission + mandatory reason + audit log
+    //   received/partially_received/cancelled → locked
+    const EDITABLE_STATUSES = ['draft', 'pending', 'rejected'];
+    const POST_APPROVAL_STATUSES = ['approved', 'ordered'];
+    const isPostApproval = POST_APPROVAL_STATUSES.includes(po.status);
+    if (!EDITABLE_STATUSES.includes(po.status) && !isPostApproval) {
+      throw new BadRequestException(`Cannot update purchase order with status: ${po.status}`);
+    }
+    if (isPostApproval) {
+      if (!dto.reason || !dto.reason.trim()) {
+        throw new BadRequestException('Alasan revisi wajib diisi untuk PO yang sudah di-approve');
+      }
+      const allowed = await this.canEditAfterApproval(userId);
+      if (!allowed) {
+        throw new ForbiddenException(
+          'Tidak berwenang mengedit PO setelah approve (butuh permission purchasing.edit_after_approval)',
+        );
+      }
     }
 
     if (dto.invoice_number !== undefined && !dto.invoice_number.trim()) {
@@ -466,6 +539,8 @@ export class PurchaseOrdersService {
     const shippingCost = new Decimal(dto.shipping_cost ?? po.shippingCost);
     const totalAmount = subtotal.minus(discountAmount).plus(taxAmount).plus(shippingCost);
 
+    const beforeSnapshot = this.buildEditSnapshot(po);
+
     return await this.prisma.$transaction(async (tx) => {
       // Delete existing items if new items provided
       if (itemsData) {
@@ -495,6 +570,8 @@ export class PurchaseOrdersService {
           shippingCost,
           totalAmount,
           notes: dto.notes ?? po.notes,
+          // S3: a revised (rejected) PO goes back to the approval queue.
+          ...(po.status === 'rejected' ? { status: 'pending' } : {}),
           ...(itemsData && {
             items: {
               create: itemsData,
@@ -516,6 +593,19 @@ export class PurchaseOrdersService {
           },
         },
       });
+
+      if (isPostApproval) {
+        // S3: post-approval edits are audited — mandatory reason + old/new snapshot.
+        await tx.purchaseOrderEditLog.create({
+          data: {
+            poId: id,
+            actorId: userId,
+            reason: dto.reason!.trim(),
+            before: beforeSnapshot as any,
+            after: this.buildEditSnapshot(updated) as any,
+          },
+        });
+      }
 
       return {
         ...updated,

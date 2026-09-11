@@ -46,6 +46,7 @@ model User {
   passwordChangeRequests PasswordChangeRequest[]
   processedReturns       SalesReturn[]           @relation("SalesReturnProcessedBy")
   grEvents               GoodsReceiptEvent[]     @relation("GoodsReceiptEventActor")
+  poEditLogs             PurchaseOrderEditLog[] @relation("PurchaseOrderEditLogActor")
 
   @@index([email])
   @@index([username])
@@ -1823,6 +1824,7 @@ model PurchaseOrder {
   goodsReceipts  GoodsReceipt[]
   journalEntryId String?             @unique @map("journal_entry_id")
   journalEntry   JournalEntry?       @relation(fields: [journalEntryId], references: [id], onDelete: SetNull)
+  editLogs       PurchaseOrderEditLog[]
 
   @@index([poNumber])
   @@index([invoiceNumber])
@@ -1856,6 +1858,23 @@ model PurchaseOrderItem {
   @@index([purchaseOrderId])
   @@index([productId])
   @@map("purchase_order_items")
+}
+
+// IGDERP-82 (S3): post-approval PO edits — mandatory reason + old/new snapshot.
+model PurchaseOrderEditLog {
+  id        String   @id @default(uuid())
+  poId      String   @map("purchase_order_id")
+  actorId   String   @map("actor_id")
+  reason    String   @db.Text
+  before    Json     @map("before_snapshot")
+  after     Json     @map("after_snapshot")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  purchaseOrder PurchaseOrder @relation(fields: [poId], references: [id], onDelete: Cascade)
+  actor         User          @relation("PurchaseOrderEditLogActor", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([poId])
+  @@map("purchase_order_edit_logs")
 }
 
 model GoodsReceipt {

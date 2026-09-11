@@ -241,6 +241,8 @@ export const purchasingService = {
     id: string,
     data: {
       expected_delivery_date?: string;
+      // IGDERP-82 (S3): mandatory for post-approval edits (approved/ordered).
+      reason?: string;
       invoice_number?: string;
       invoice_date?: string;
       payment_terms?: string;

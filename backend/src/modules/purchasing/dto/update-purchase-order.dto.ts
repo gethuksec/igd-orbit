@@ -19,6 +19,12 @@ export class UpdatePurchaseOrderDto {
   @IsDateString()
   expected_delivery_date?: string;
 
+  // IGDERP-82 (S3): mandatory for post-approval edits (approved/ordered).
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  reason?: string;
+
   @IsString()
   @IsOptional()
   payment_terms?: string;

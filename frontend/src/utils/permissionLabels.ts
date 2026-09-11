@@ -129,6 +129,9 @@ export const PERMISSION_LABELS: Record<string, string> = {
   'hr.kpi.create': 'Kelola KPI',
   'hr.*.view': 'Lihat Semua Data HR',
 
+  // Purchasing
+  'purchasing.edit_after_approval': 'Edit PO setelah approve (alasan + audit)',
+
   // Users / Roles / Branches
   'users.user.view': 'Lihat User',
   'users.user.create': 'Tambah User',

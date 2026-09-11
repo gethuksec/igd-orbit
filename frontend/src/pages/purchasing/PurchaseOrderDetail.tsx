@@ -20,6 +20,7 @@ import { formatCurrency, formatDate } from '@/utils/format';
 import { toast } from 'sonner';
 import { Modal } from '@/components/ui/modal';
 import AttachmentPanel from '@/components/purchasing/AttachmentPanel';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export default function PurchaseOrderDetail() {
   const { id } = useParams<{ id: string }>();
@@ -37,6 +38,7 @@ export default function PurchaseOrderDetail() {
 
   const currentUser = getCurrentUser();
   const userRoles: string[] = currentUser?.roles || (currentUser?.role?.code ? [currentUser.role.code] : []);
+  const { hasPermission } = usePermissions();
   const [approveModalOpen, setApproveModalOpen] = useState(false);
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [approveNotes, setApproveNotes] = useState('');
@@ -133,6 +135,23 @@ export default function PurchaseOrderDetail() {
   if (canApprove) {
     dropdownItems.push({ label: 'approve', destructive: false, onSelect: () => setApproveModalOpen(true) });
     dropdownItems.push({ label: 'reject', destructive: true, onSelect: () => setRejectModalOpen(true) });
+  }
+  // IGDERP-82 (S3): edit paths — pending (corrections), rejected (revisi → resubmit),
+  // approved/ordered (post-approval edit; permission-gated + mandatory reason).
+  const canEditRole =
+    userRoles.includes('SUPERADMIN') ||
+    userRoles.some((r) => ['CSO', 'SPV', 'HS', 'ASA', 'SODO'].includes(r));
+  if (canEditRole && po?.status === 'pending') {
+    dropdownItems.push({ label: 'edit', destructive: false, onSelect: () => navigate(`/purchasing/po/${id}/edit`) });
+  }
+  if (canEditRole && po?.status === 'rejected') {
+    dropdownItems.push({ label: 'revisi', destructive: false, onSelect: () => navigate(`/purchasing/po/${id}/edit`) });
+  }
+  if (
+    (po?.status === 'approved' || po?.status === 'ordered') &&
+    hasPermission('purchasing.edit_after_approval')
+  ) {
+    dropdownItems.push({ label: 'edit', destructive: false, onSelect: () => navigate(`/purchasing/po/${id}/edit`) });
   }
 
   const primaryDisabled = primaryAction === 'approve' ? approveMutation.isPending : false;

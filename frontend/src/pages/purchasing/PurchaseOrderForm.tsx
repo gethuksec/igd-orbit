@@ -68,6 +68,8 @@ export default function PurchaseOrderForm() {
   const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmChecked, setConfirmChecked] = useState(false);
+  // IGDERP-82 (S3): post-approval edits require a reason (audited server-side).
+  const [revisionReason, setRevisionReason] = useState('');
 
   const [items, setItems] = useState<Array<{
     product_id: string;
@@ -206,6 +208,9 @@ export default function PurchaseOrderForm() {
       );
     }
   }, [existingPO]);
+
+  const isPostApprovalEdit = !!existingPO && ['approved', 'ordered'].includes(existingPO.status);
+  const isRejectedEdit = existingPO?.status === 'rejected';
 
   const uploadInvoiceIfAny = async (poId: string) => {
     if (!invoiceFile) return;
@@ -398,6 +403,10 @@ export default function PurchaseOrderForm() {
       toast.error('Pilih Payment Terms');
       return;
     }
+    if (isPostApprovalEdit && !revisionReason.trim()) {
+      toast.error('Alasan revisi wajib diisi');
+      return;
+    }
     if (items.length === 0) {
       toast.error('Tambahkan minimal satu item');
       return;
@@ -414,6 +423,7 @@ export default function PurchaseOrderForm() {
   const doSubmit = () => {
     const isTermin = formData.payment_type === 'Termin';
     const data: any = {
+      ...(isPostApprovalEdit ? { reason: revisionReason.trim() } : {}),
       supplier_id: formData.supplier_id,
       invoice_number: formData.invoice_number,
       invoice_date: formData.invoice_date,
@@ -448,6 +458,20 @@ export default function PurchaseOrderForm() {
   return (
     <div className="w-full space-y-6">
       <BreadcrumbHeader title={isEdit ? 'Edit Purchase Order' : 'Buat Purchase Order'} />
+
+      {isRejectedEdit && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          PO ditolak
+          {existingPO?.rejectionReason ? `: ${existingPO.rejectionReason}` : ''} — perbaiki lalu Simpan
+          untuk mengajukan ulang.
+        </div>
+      )}
+      {isPostApprovalEdit && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          PO sudah di-approve. Perubahan setelah approve dicatat di log audit dan wajib disertai alasan
+          (lihat kolom Alasan Revisi di bawah).
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
@@ -594,6 +618,18 @@ export default function PurchaseOrderForm() {
                   placeholder="Catatan PO (opsional)"
                 />
               </div>
+
+              {isPostApprovalEdit && (
+                <div className="md:col-span-2">
+                  <Label className="block mb-2">Alasan Revisi *</Label>
+                  <Textarea
+                    value={revisionReason}
+                    onChange={(e) => setRevisionReason(e.target.value)}
+                    rows={2}
+                    placeholder="Jelaskan alasan perubahan pada PO yang sudah di-approve"
+                  />
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
