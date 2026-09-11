@@ -552,9 +552,12 @@ export class GoodsReceiptsService {
               );
 
               let newStatus = po.status;
-              if (allReceived && po.status === 'ordered') {
+              // 8 Sep: the manual "send order" step was dropped — receiving can
+              // proceed straight from an approved PO (legacy 'ordered' rows too).
+              const receivingEligible = po.status === 'ordered' || po.status === 'approved';
+              if (allReceived && receivingEligible) {
                 newStatus = 'received';
-              } else if (partiallyReceived && po.status === 'ordered') {
+              } else if (partiallyReceived && receivingEligible) {
                 newStatus = 'partially_received';
               }
 

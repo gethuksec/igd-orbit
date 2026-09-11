@@ -9,6 +9,7 @@ import {
   IsOptional,
   IsString,
   IsInt,
+  MaxLength,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -41,8 +42,16 @@ export class CreatePurchaseOrderDto {
   supplier_id!: string;
 
   @IsUUID()
-  @IsNotEmpty()
-  branch_id!: string;
+  @IsOptional()
+  branch_id?: string;
+
+  @IsString()
+  @IsNotEmpty({ message: 'Nomor invoice supplier wajib diisi' })
+  @MaxLength(100)
+  invoice_number!: string;
+
+  @IsDateString()
+  invoice_date!: string;
 
   @IsDateString()
   order_date!: string;

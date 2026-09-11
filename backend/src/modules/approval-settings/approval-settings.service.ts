@@ -15,7 +15,7 @@ export class ApprovalSettingsService {
         category,
         roles: row?.roles ?? [],
         userIds: row?.userIds ?? [],
-        mandatoryInvoice: row?.mandatoryInvoice ?? false,
+        mandatoryInvoice: row?.mandatoryInvoice ?? (category === 'PURCHASE_INVOICE'),
         configured: !!row,
       };
     });

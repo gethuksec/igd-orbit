@@ -332,4 +332,45 @@ describe('GoodsReceiptsService IGDERP-80 flows (revisit / receiving / rejected->
       service.updateReceiving('gr-1', dto, 'sodo-1', ['SODO']),
     ).rejects.toThrow('Quantitas melebihi sisa PO');
   });
+
+  // ---------- 8 Sep: send-order dropped — receiving from an approved PO ----------
+  it('8 Sep: an approved PO (no manual send-order step) flips to received on GR approve', async () => {
+    const grPo = {
+      ...gr,
+      purchaseOrderId: 'po-1',
+      purchaseOrder: {
+        id: 'po-1',
+        items: [{ id: 'poi-1', quantityOrdered: new Decimal(4) }],
+      },
+      items: [
+        {
+          ...gr.items[0],
+          purchaseOrderItemId: 'poi-1',
+          quantityReceived: new Decimal(4),
+          quantityAccepted: new Decimal(4),
+          quantityRejected: new Decimal(0),
+          unitPrice: new Decimal(1000),
+        },
+      ],
+    };
+    prisma.goodsReceipt.findUnique.mockResolvedValue(grPo);
+    tx.purchaseOrderItem.findUnique.mockResolvedValue({
+      id: 'poi-1',
+      purchaseOrderId: 'po-1',
+      quantityReceived: new Decimal(0),
+    });
+    tx.purchaseOrderItem.update = jest.fn().mockResolvedValue({ id: 'poi-1' });
+    tx.purchaseOrder.findUnique.mockResolvedValue({
+      id: 'po-1',
+      status: 'approved',
+      items: [{ id: 'poi-1', quantityOrdered: new Decimal(4), quantityReceived: new Decimal(4) }],
+    });
+    tx.purchaseOrder.update = jest.fn().mockResolvedValue({ id: 'po-1', status: 'received' });
+
+    await service.approve('gr-1', approveDto, 'cso-1', ['CSO']);
+
+    expect(tx.purchaseOrder.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: 'received' }) }),
+    );
+  });
 });

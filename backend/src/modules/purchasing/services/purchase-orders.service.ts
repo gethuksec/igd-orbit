@@ -28,6 +28,19 @@ export class PurchaseOrdersService {
   }
 
   /**
+   * IGDERP-79 (8 Sep): due date = supplier invoice date + payment term days.
+   */
+  private computeDueDate(
+    invoiceDate: Date | null | undefined,
+    termDays?: number | null,
+  ): Date | null {
+    if (!invoiceDate || !termDays || termDays <= 0) {
+      return null;
+    }
+    return new Date(invoiceDate.getTime() + termDays * 24 * 60 * 60 * 1000);
+  }
+
+  /**
    * Get required approvers based on total amount
    */
   private getRequiredApprovers(totalAmount: number): string[] {
@@ -57,13 +70,45 @@ export class PurchaseOrdersService {
       throw new BadRequestException('Selected customer is not a supplier (wholesale)');
     }
 
-    // Validate branch
-    const branch = await this.prisma.branch.findUnique({
-      where: { id: dto.branch_id },
-    });
+    // IGDERP-79 (8 Sep): supplier invoice no. + date are mandatory at creation
+    if (!dto.invoice_number || !dto.invoice_number.trim()) {
+      throw new BadRequestException('Nomor invoice supplier wajib diisi');
+    }
+    if (!dto.invoice_date) {
+      throw new BadRequestException('Tanggal invoice supplier wajib diisi');
+    }
 
-    if (!branch) {
-      throw new NotFoundException('Branch not found');
+    // Destination is always central-good (27 Aug §9) — the outlet selector was
+    // removed from the UI (8 Sep). If the client still sends branch_id we honor
+    // it; otherwise fall back to the creator's branch (operator = logged-in
+    // account), then to any active branch for global users without assignments.
+    let branchId = dto.branch_id;
+    if (branchId) {
+      const branch = await this.prisma.branch.findUnique({
+        where: { id: branchId },
+      });
+
+      if (!branch) {
+        throw new NotFoundException('Branch not found');
+      }
+    } else {
+      const userBranch = await this.prisma.userBranch.findFirst({
+        where: { userId },
+        orderBy: { isPrimary: 'desc' },
+        select: { branchId: true },
+      });
+      branchId = userBranch?.branchId;
+      if (!branchId) {
+        const fallbackBranch = await this.prisma.branch.findFirst({
+          where: { isActive: true },
+          orderBy: { createdAt: 'asc' },
+          select: { id: true },
+        });
+        branchId = fallbackBranch?.id;
+      }
+      if (!branchId) {
+        throw new BadRequestException('Tidak ada cabang aktif — hubungi administrator');
+      }
     }
 
     // Validate products
@@ -116,8 +161,11 @@ export class PurchaseOrdersService {
       data: {
         poNumber: this.generatePONumber(),
         supplierId: dto.supplier_id,
-        branchId: dto.branch_id,
+        branchId,
         status: 'pending',
+        invoiceNumber: dto.invoice_number.trim(),
+        invoiceDate: new Date(dto.invoice_date),
+        dueDate: this.computeDueDate(new Date(dto.invoice_date), dto.payment_term_days),
         orderDate: new Date(dto.order_date),
         expectedDeliveryDate: dto.expected_delivery_date
           ? new Date(dto.expected_delivery_date)
@@ -346,6 +394,10 @@ export class PurchaseOrdersService {
       throw new BadRequestException('Can only update draft or pending purchase orders');
     }
 
+    if (dto.invoice_number !== undefined && !dto.invoice_number.trim()) {
+      throw new BadRequestException('Nomor invoice supplier wajib diisi');
+    }
+
     // If items are provided, recalculate totals
     let subtotal = po.subtotal;
     let itemsData = undefined;
@@ -408,6 +460,12 @@ export class PurchaseOrdersService {
           expectedDeliveryDate: dto.expected_delivery_date
             ? new Date(dto.expected_delivery_date)
             : po.expectedDeliveryDate,
+          invoiceNumber: dto.invoice_number?.trim() ?? po.invoiceNumber,
+          invoiceDate: dto.invoice_date ? new Date(dto.invoice_date) : po.invoiceDate,
+          dueDate: this.computeDueDate(
+            dto.invoice_date ? new Date(dto.invoice_date) : po.invoiceDate,
+            dto.payment_term_days ?? po.paymentTermDays,
+          ),
           paymentTerms: dto.payment_terms ?? po.paymentTerms,
           paymentTermDays: dto.payment_term_days ?? po.paymentTermDays,
           subtotal,
@@ -478,6 +536,24 @@ export class PurchaseOrdersService {
 
     if (po.status !== 'draft' && po.status !== 'pending') {
       throw new BadRequestException(`Cannot approve purchase order with status: ${po.status}`);
+    }
+
+    // 8 Sep decision (a4353fe9): the supplier invoice document is required
+    // before approval. Reuses Approval Settings (category PURCHASE_INVOICE);
+    // default ON — only an explicit OFF toggle disables it.
+    const invoiceSetting = await this.prisma.approvalSetting.findUnique({
+      where: { category: 'PURCHASE_INVOICE' },
+    });
+    const invoiceMandatory = invoiceSetting?.mandatoryInvoice ?? true;
+    if (invoiceMandatory) {
+      const invoiceCount = await this.prisma.purchaseAttachment.count({
+        where: { entityType: 'PURCHASE_ORDER', entityId: id, documentType: 'INVOICE' },
+      });
+      if (invoiceCount === 0) {
+        throw new BadRequestException(
+          'Invoice wajib diunggah sebelum approve (sesuai pengaturan persetujuan)',
+        );
+      }
     }
 
     const totalAmount = po.totalAmount.toNumber();
@@ -694,85 +770,5 @@ export class PurchaseOrdersService {
     });
   }
 
-  /**
-   * Mark purchase order as ordered (sent to supplier)
-   */
-  async order(id: string, userId: string) {
-    const po = await this.prisma.purchaseOrder.findUnique({
-      where: { id },
-    });
-
-    if (!po) {
-      throw new NotFoundException('Purchase order not found');
-    }
-
-    if (po.status !== 'approved') {
-      throw new BadRequestException('Can only order approved purchase orders');
-    }
-
-    return await this.prisma.purchaseOrder.update({
-      where: { id },
-      data: {
-        status: 'ordered',
-        orderedBy: userId,
-        orderedAt: new Date(),
-      },
-      include: {
-        supplier: true,
-        branch: true,
-        items: {
-          include: {
-            product: {
-              include: {
-                category: true,
-                brand: true,
-              },
-            },
-          },
-        },
-      },
-    });
-  }
-
-  /**
-   * Cancel purchase order
-   */
-  async cancel(id: string, userId: string, reason?: string) {
-    const po = await this.prisma.purchaseOrder.findUnique({
-      where: { id },
-    });
-
-    if (!po) {
-      throw new NotFoundException('Purchase order not found');
-    }
-
-    if (po.status === 'received' || po.status === 'cancelled') {
-      throw new BadRequestException(`Cannot cancel purchase order with status: ${po.status}`);
-    }
-
-    return await this.prisma.purchaseOrder.update({
-      where: { id },
-      data: {
-        status: 'cancelled',
-        cancelledBy: userId,
-        cancelledAt: new Date(),
-        cancellationReason: reason,
-      },
-      include: {
-        supplier: true,
-        branch: true,
-        items: {
-          include: {
-            product: {
-              include: {
-                category: true,
-                brand: true,
-              },
-            },
-          },
-        },
-      },
-    });
-  }
 }
 

@@ -99,13 +99,6 @@ export class PurchaseOrdersController {
     return this.purchaseOrdersService.approve(id, dto, req.user.id, req.user.roles);
   }
 
-  @Post(':id/order')
-  @UseGuards(RolesGuard)
-  @Roles('CSO', 'SPV', 'HS', 'ASA', 'SODO')
-  async order(@Param('id') id: string, @Request() req: ExpressRequest) {
-    return this.purchaseOrdersService.order(id, req.user.id);
-  }
-
   @Post(':id/reject')
   @UseGuards(RolesGuard)
   @Roles('CSO', 'CFO', 'OWNER', 'SUPERADMIN')
@@ -115,17 +108,6 @@ export class PurchaseOrdersController {
     @Request() req: ExpressRequest,
   ) {
     return this.purchaseOrdersService.reject(id, dto, req.user.id, req.user.roles);
-  }
-
-  @Post(':id/cancel')
-  @UseGuards(RolesGuard)
-  @Roles('CSO', 'SPV', 'HS', 'ASA', 'SODO', 'CFO', 'OWNER')
-  async cancel(
-    @Param('id') id: string,
-    @Body() body: { reason?: string },
-    @Request() req: ExpressRequest,
-  ) {
-    return this.purchaseOrdersService.cancel(id, req.user.id, body.reason);
   }
 }
 
