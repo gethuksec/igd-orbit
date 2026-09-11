@@ -7,6 +7,7 @@ import {
   IsNumber,
   IsArray,
   ValidateNested,
+  MaxLength,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CreatePurchaseOrderItemDto } from './create-purchase-order.dto';
@@ -24,6 +25,15 @@ export class UpdatePurchaseOrderDto {
   @Min(0)
   @IsOptional()
   payment_term_days?: number;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  invoice_number?: string;
+
+  @IsDateString()
+  @IsOptional()
+  invoice_date?: string;
 
   @IsNumber()
   @Min(0)

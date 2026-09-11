@@ -1,7 +1,7 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
-import { CheckCircle, XCircle, Package, AlertCircle, Loader2, Eye, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, Loader2, Eye, ChevronDown, ChevronUp } from 'lucide-react';
 import { BreadcrumbHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -38,11 +38,8 @@ export default function PurchaseOrderDetail() {
   const currentUser = getCurrentUser();
   const userRoles: string[] = currentUser?.roles || (currentUser?.role?.code ? [currentUser.role.code] : []);
   const [approveModalOpen, setApproveModalOpen] = useState(false);
-  const [cancelModalOpen, setCancelModalOpen] = useState(false);
-  const [orderModalOpen, setOrderModalOpen] = useState(false);
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [approveNotes, setApproveNotes] = useState('');
-  const [cancelReason, setCancelReason] = useState('');
   const [rejectReason, setRejectReason] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const actionBarRef = useRef<HTMLDivElement>(null);
@@ -77,19 +74,6 @@ export default function PurchaseOrderDetail() {
     },
   });
 
-  const orderMutation = useMutation({
-    mutationFn: () => purchasingService.orderPurchaseOrder(id!),
-    onSuccess: () => {
-      toast.success('Purchase order berhasil dikirim ke supplier');
-      setOrderModalOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['purchase-order', id] });
-      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Gagal menandai purchase order');
-    },
-  });
-
   const rejectMutation = useMutation({
     mutationFn: (reason?: string) => purchasingService.rejectPurchaseOrder(id!, reason),
     onSuccess: () => {
@@ -101,21 +85,6 @@ export default function PurchaseOrderDetail() {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Gagal menolak purchase order');
-    },
-  });
-
-  const cancelMutation = useMutation({
-    mutationFn: (reason?: string) => purchasingService.cancelPurchaseOrder(id!, reason),
-    onSuccess: () => {
-      toast.success('Purchase order berhasil dibatalkan');
-      setCancelModalOpen(false);
-      setCancelReason('');
-      queryClient.invalidateQueries({ queryKey: ['purchase-order', id] });
-      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
-      navigate('/purchasing/po');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Gagal membatalkan purchase order');
     },
   });
 
@@ -145,47 +114,28 @@ export default function PurchaseOrderDetail() {
   const canApprove =
     (userRoles.includes('CSO') || userRoles.includes('CFO') || userRoles.includes('OWNER') || userRoles.includes('SUPERADMIN')) &&
     (po?.status === 'draft' || po?.status === 'pending');
-  const canOrder =
-    po?.status === 'approved' &&
-    (userRoles.includes('CSO') || userRoles.includes('SPV') || userRoles.includes('HS') || userRoles.includes('ASA') || userRoles.includes('SODO') || userRoles.includes('SUPERADMIN'));
-  const canCancel =
-    po?.status !== 'received' && po?.status !== 'cancelled' && po?.status !== 'rejected';
-  const canBuatGR = po?.status === 'ordered' || po?.status === 'partially_received';
+  // 8 Sep: the manual "send order" step was dropped — GR can be created
+  // straight from an approved PO (legacy 'ordered' rows keep working too).
+  // "cancel" is no longer part of the PO action set.
+  const canBuatGR =
+    po?.status === 'approved' || po?.status === 'ordered' || po?.status === 'partially_received';
 
   const primaryAction: string | null =
     po?.status === 'draft' || po?.status === 'pending'
       ? canApprove
         ? 'approve'
         : null
-      : po?.status === 'approved'
-        ? canOrder
-          ? 'send order'
-          : null
-        : canBuatGR
-          ? 'buat GR'
-          : null;
+      : canBuatGR
+        ? 'buat GR'
+        : null;
 
   const dropdownItems: { label: string; destructive: boolean; onSelect: () => void }[] = [];
   if (canApprove) {
     dropdownItems.push({ label: 'approve', destructive: false, onSelect: () => setApproveModalOpen(true) });
     dropdownItems.push({ label: 'reject', destructive: true, onSelect: () => setRejectModalOpen(true) });
   }
-  if (canOrder) {
-    dropdownItems.push({ label: 'send order', destructive: false, onSelect: () => setOrderModalOpen(true) });
-  }
-  if (canCancel) {
-    dropdownItems.push({ label: 'cancel', destructive: true, onSelect: () => setCancelModalOpen(true) });
-  }
-  if (po?.status === 'approved') {
-    dropdownItems.push({ label: 'buat GR', destructive: false, onSelect: () => navigate(`/purchasing/goods-receipt/new/${id}`) });
-  }
 
-  const primaryDisabled =
-    primaryAction === 'approve'
-      ? approveMutation.isPending
-      : primaryAction === 'send order'
-        ? orderMutation.isPending
-        : false;
+  const primaryDisabled = primaryAction === 'approve' ? approveMutation.isPending : false;
 
   const hasActions = primaryAction !== null || dropdownItems.length > 0;
 
@@ -221,8 +171,6 @@ export default function PurchaseOrderDetail() {
                   onClick={() => {
                     if (primaryAction === 'approve') {
                       setApproveModalOpen(true);
-                    } else if (primaryAction === 'send order') {
-                      setOrderModalOpen(true);
                     } else if (primaryAction === 'buat GR') {
                       navigate(`/purchasing/goods-receipt/new/${id}`);
                     }
@@ -273,12 +221,24 @@ export default function PurchaseOrderDetail() {
       )}
 
       {/* Info Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardContent className="p-6">
             <h3 className="text-sm font-semibold text-muted-foreground mb-2">Supplier</h3>
             <p className="text-lg font-bold">{po.supplier?.name || 'N/A'}</p>
             <p className="text-sm text-muted-foreground">{po.supplier?.customerCode}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <h3 className="text-sm font-semibold text-muted-foreground mb-2">Invoice Supplier</h3>
+            <p className="text-lg font-bold">{po.invoiceNumber || '—'}</p>
+            <p className="text-sm text-muted-foreground">
+              {po.invoiceDate ? formatDate(po.invoiceDate) : 'Tanggal invoice: —'}
+            </p>
+            {po.dueDate && (
+              <p className="text-sm text-muted-foreground">Jatuh tempo: {formatDate(po.dueDate)}</p>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -523,109 +483,6 @@ export default function PurchaseOrderDetail() {
               disabled={rejectMutation.isPending || !rejectReason.trim()}
             >
               {rejectMutation.isPending ? 'Menolak...' : 'Ya, Tolak'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Send Order Modal */}
-      <Modal
-        open={orderModalOpen}
-        onClose={() => setOrderModalOpen(false)}
-        title="Kirim Purchase Order ke Supplier"
-        size="md"
-      >
-        <div className="space-y-4">
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 p-2 bg-blue-100 rounded-full">
-              <Package className="w-5 h-5 text-blue-600" />
-            </div>
-            <div className="flex-1">
-              <p>
-                Apakah Anda yakin ingin mengirim Purchase Order <strong>{po.poNumber}</strong> ke supplier?
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Tindakan ini menandai PO sebagai terkirim ke supplier.
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-3 pt-4">
-            <Button
-              variant="outline"
-              className="flex-1"
-              onClick={() => setOrderModalOpen(false)}
-            >
-              Batal
-            </Button>
-            <Button
-              className="flex-1"
-              onClick={() => orderMutation.mutate()}
-              disabled={orderMutation.isPending}
-            >
-              {orderMutation.isPending ? 'Mengirim...' : 'Ya, Kirim'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Cancel Modal */}
-      <Modal
-        open={cancelModalOpen}
-        onClose={() => {
-          setCancelModalOpen(false);
-          setCancelReason('');
-        }}
-        title="Batalkan Purchase Order"
-        size="md"
-      >
-        <div className="space-y-4">
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
-              <AlertCircle className="w-5 h-5 text-red-600" />
-            </div>
-            <div className="flex-1">
-              <p>
-                Apakah Anda yakin ingin membatalkan Purchase Order <strong>{po.poNumber}</strong>?
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">Tindakan ini tidak dapat dibatalkan.</p>
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold mb-2">
-              Alasan Pembatalan *
-            </label>
-            <Textarea
-              value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
-              placeholder="Masukkan alasan pembatalan..."
-              rows={3}
-              required
-            />
-          </div>
-          <div className="flex gap-3 pt-4">
-            <Button
-              variant="outline"
-              className="flex-1"
-              onClick={() => {
-                setCancelModalOpen(false);
-                setCancelReason('');
-              }}
-            >
-              Batal
-            </Button>
-            <Button
-              variant="destructive"
-              className="flex-1"
-              onClick={() => {
-                if (!cancelReason.trim()) {
-                  toast.error('Alasan pembatalan harus diisi');
-                  return;
-                }
-                cancelMutation.mutate(cancelReason);
-              }}
-              disabled={cancelMutation.isPending || !cancelReason.trim()}
-            >
-              {cancelMutation.isPending ? 'Membatalkan...' : 'Ya, Batalkan'}
             </Button>
           </div>
         </div>

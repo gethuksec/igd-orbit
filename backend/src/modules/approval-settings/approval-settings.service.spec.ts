@@ -28,7 +28,11 @@ describe('ApprovalSettingsService (IGDERP-80)', () => {
     const all = await service.findAll();
     expect(all).toHaveLength(2);
     expect(all.map((r) => r.category)).toEqual(['PURCHASE_INVOICE', 'GOODS_RECEIPT']);
-    expect(all.every((r) => r.roles.length === 0 && r.mandatoryInvoice === false && r.configured === false)).toBe(true);
+    expect(all.every((r) => r.roles.length === 0 && r.configured === false)).toBe(true);
+    // 8 Sep (a4353fe9): invoice upload defaults to mandatory for PO; GR stays false.
+    const byCategory = Object.fromEntries(all.map((r) => [r.category, r]));
+    expect(byCategory.PURCHASE_INVOICE.mandatoryInvoice).toBe(true);
+    expect(byCategory.GOODS_RECEIPT.mandatoryInvoice).toBe(false);
   });
 
   it('assertApprover: default roles accept SUPERADMIN/HS/SPV/CSO/OWNER', async () => {

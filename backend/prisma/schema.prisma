@@ -1791,6 +1791,9 @@ model PurchaseOrder {
   expectedDeliveryDate DateTime? @map("expected_delivery_date")
   paymentTerms         String?   @map("payment_terms") // e.g., "Net 30", "COD"
   paymentTermDays      Int?      @map("payment_term_days") // Days until payment due
+  invoiceNumber        String?   @map("invoice_number") // IGDERP-79: supplier invoice no. — mandatory at creation (service-enforced, 8 Sep)
+  invoiceDate          DateTime? @map("invoice_date") // supplier invoice date; due = invoiceDate + paymentTermDays
+  dueDate              DateTime? @map("due_date") // auto-computed from invoiceDate + paymentTermDays
   subtotal             Decimal   @map("subtotal") @db.Decimal(15, 2)
   discountAmount       Decimal   @default(0) @map("discount_amount") @db.Decimal(15, 2)
   taxAmount            Decimal   @default(0) @map("tax_amount") @db.Decimal(15, 2)
@@ -1823,6 +1826,7 @@ model PurchaseOrder {
   journalEntry   JournalEntry?       @relation(fields: [journalEntryId], references: [id], onDelete: SetNull)
 
   @@index([poNumber])
+  @@index([invoiceNumber])
   @@index([supplierId])
   @@index([branchId])
   @@index([status])

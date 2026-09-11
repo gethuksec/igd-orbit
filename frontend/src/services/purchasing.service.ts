@@ -14,6 +14,9 @@ export interface PurchaseOrder {
   expectedDeliveryDate?: string;
   paymentTerms?: string;
   paymentTermDays?: number;
+  invoiceNumber?: string;
+  invoiceDate?: string;
+  dueDate?: string;
   subtotal: number;
   discountAmount: number;
   taxAmount: number;
@@ -170,7 +173,9 @@ export const purchasingService = {
    */
   async createPurchaseOrder(data: {
     supplier_id: string;
-    branch_id: string;
+    branch_id?: string;
+    invoice_number: string;
+    invoice_date: string;
     order_date: string;
     expected_delivery_date?: string;
     payment_terms?: string;
@@ -235,6 +240,8 @@ export const purchasingService = {
     id: string,
     data: {
       expected_delivery_date?: string;
+      invoice_number?: string;
+      invoice_date?: string;
       payment_terms?: string;
       payment_term_days?: number;
       discount_amount?: number;
@@ -259,22 +266,6 @@ export const purchasingService = {
    */
   async approvePurchaseOrder(id: string, notes?: string) {
     const response = await api.post(`/purchasing/purchase-orders/${id}/approve`, { notes });
-    return response.data.data || response.data;
-  },
-
-  /**
-   * Mark purchase order as ordered
-   */
-  async orderPurchaseOrder(id: string) {
-    const response = await api.post(`/purchasing/purchase-orders/${id}/order`);
-    return response.data.data || response.data;
-  },
-
-  /**
-   * Cancel purchase order
-   */
-  async cancelPurchaseOrder(id: string, reason?: string) {
-    const response = await api.post(`/purchasing/purchase-orders/${id}/cancel`, { reason });
     return response.data.data || response.data;
   },
 
