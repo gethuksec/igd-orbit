@@ -83,7 +83,7 @@ export default function ProductMovementModal({ product, open, onClose }: Props) 
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && close()}>
-      <DialogContent className="sm:max-w-4xl w-[calc(100vw-2rem)] h-[90vh] max-h-[90vh] flex flex-col">
+      <DialogContent className="w-[75vw] max-w-[75vw] h-[50vh] max-h-[50vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-sm">
             Riwayat pergerakan — {product?.name || '-'}
@@ -134,6 +134,21 @@ export default function ProductMovementModal({ product, open, onClose }: Props) 
             />
           </div>
           <span className="ml-auto text-xs text-muted-foreground">{total} pergerakan</span>
+          <select
+            value={pageSize}
+            onChange={(e) => {
+              setPageSize(Number(e.target.value));
+              setPage(1);
+            }}
+            className="h-9 rounded-md border border-input bg-background px-1 text-xs"
+            title="Baris per halaman"
+          >
+            {PAGE_SIZE_OPTIONS.map((n) => (
+              <option key={n} value={n}>
+                {n} / halaman
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="flex-1 overflow-y-auto -mx-1 px-1">
@@ -149,8 +164,8 @@ export default function ProductMovementModal({ product, open, onClose }: Props) 
                 <tr className="text-left text-xs uppercase tracking-wider text-gray-500">
                   <th className="py-2 pr-2">Tanggal</th>
                   <th className="py-2 pr-2">Tipe</th>
-                  <th className="py-2 pr-2 text-right">Perubahan</th>
                   <th className="py-2 pr-2 text-right">Stok awal</th>
+                  <th className="py-2 pr-2 text-right">Perubahan</th>
                   <th className="py-2 pr-2 text-right">Stok akhir</th>
                   <th className="py-2">Keterangan</th>
                 </tr>
@@ -166,6 +181,7 @@ export default function ProductMovementModal({ product, open, onClose }: Props) 
                       })}
                     </td>
                     <td className="py-2 pr-2">{typeBadge(m.movementType)}</td>
+                    <td className="py-2 pr-2 text-right">{m.quantityBefore ?? '-'}</td>
                     <td
                       className={`py-2 pr-2 text-right font-semibold ${
                         Number(m.quantityChange) < 0 ? 'text-red-600' : 'text-green-600'
@@ -174,7 +190,6 @@ export default function ProductMovementModal({ product, open, onClose }: Props) 
                       {Number(m.quantityChange) > 0 ? '+' : ''}
                       {m.quantityChange}
                     </td>
-                    <td className="py-2 pr-2 text-right">{m.quantityBefore ?? '-'}</td>
                     <td className="py-2 pr-2 text-right">{m.quantityAfter}</td>
                     <td className="py-2 text-xs text-muted-foreground whitespace-normal break-words min-w-[180px]">
                       {m.notes || m.referenceType || '-'}
@@ -187,26 +202,9 @@ export default function ProductMovementModal({ product, open, onClose }: Props) 
         </div>
 
         <div className="flex items-center justify-between border-t pt-3">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">
-              Halaman {page} dari {totalPages}
-            </span>
-            <select
-              value={pageSize}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value));
-                setPage(1);
-              }}
-              className="h-8 rounded-md border border-input bg-background px-1 text-xs"
-              title="Baris per halaman"
-            >
-              {PAGE_SIZE_OPTIONS.map((n) => (
-                <option key={n} value={n}>
-                  {n} / halaman
-                </option>
-              ))}
-            </select>
-          </div>
+          <span className="text-xs text-muted-foreground">
+            Halaman {page} dari {totalPages}
+          </span>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
               Sebelumnya
