@@ -1,4 +1,4 @@
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, useRef } from 'react';
 import {
@@ -8,6 +8,7 @@ import {
   History,
   ChevronDown,
   ChevronUp,
+  Printer,
 } from 'lucide-react';
 import { BreadcrumbHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,7 @@ import { formatDate } from '@/utils/format';
 import { toast } from 'sonner';
 import { Modal } from '@/components/ui/modal';
 import { purchasingService } from '@/services/purchasing.service';
+import { labelPrintingService } from '@/services/labelPrinting.service';
 import AttachmentPanel from '@/components/purchasing/AttachmentPanel';
 
 const REVISIT_REASONS = [
@@ -51,6 +53,7 @@ const PROCESSOR_ROLES = ['SODO', 'HS', 'SPV', 'SUPERADMIN', 'OWNER'];
 export default function GoodsReceiptDetail() {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const getCurrentUser = () => {
     try {
@@ -81,6 +84,15 @@ export default function GoodsReceiptDetail() {
     queryFn: () => purchasingService.getGoodsReceipt(id!),
     enabled: !!id,
   });
+
+  // S5: barcode labels queued for this GR on approve.
+  const { data: labelJobsResp } = useQuery({
+    queryKey: ['label-jobs-gr', id],
+    queryFn: () => labelPrintingService.getJobs({ goods_receipt_id: id! }),
+    enabled: !!id && gr?.status === 'approved',
+  });
+  const labelJobs = labelJobsResp?.data || [];
+  const pendingLabelIds = labelJobs.filter((j) => j.status === 'pending').map((j) => j.id);
 
   // Receiving rows state (editable in draft/received/revisit)
   const [receiving, setReceiving] = useState<Record<string, { received: string; rejected: string }>>({});
@@ -466,6 +478,53 @@ export default function GoodsReceiptDetail() {
           </CardHeader>
           <CardContent>
             <p className="whitespace-pre-wrap text-muted-foreground">{gr.notes}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {labelJobs.length > 0 && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <Printer className="w-5 h-5 text-muted-foreground" />
+              <CardTitle>Label Barcode</CardTitle>
+            </div>
+            <Button
+              size="sm"
+              onClick={() =>
+                pendingLabelIds.length &&
+                navigate(`/purchasing/label-print/sheet?ids=${pendingLabelIds.join(',')}`)
+              }
+              disabled={pendingLabelIds.length === 0}
+            >
+              <Printer className="w-4 h-4 mr-1" />
+              {pendingLabelIds.length ? `Cetak Label (${pendingLabelIds.length})` : 'Semua sudah dicetak'}
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <ul className="divide-y">
+              {labelJobs.map((job) => (
+                <li key={job.id} className="flex items-center justify-between gap-3 py-2.5">
+                  <div className="min-w-0">
+                    <div className="font-mono text-xs text-muted-foreground">{job.jobNumber}</div>
+                    <div className="text-sm font-medium truncate">
+                      {job.payload?.printedName || job.product?.name || '—'}
+                      <span className="text-muted-foreground"> × {job.copies}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 flex-none">
+                    {job.status === 'printed' ? (
+                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Sudah Cetak</Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Pending</Badge>
+                    )}
+                    <span className="text-xs text-muted-foreground w-28 text-right truncate">
+                      {job.printedByUser?.fullName || '—'}
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ul>
           </CardContent>
         </Card>
       )}

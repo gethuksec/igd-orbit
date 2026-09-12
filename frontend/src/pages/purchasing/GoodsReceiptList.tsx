@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Package, Eye, Plus, AlertCircle, Loader2 } from 'lucide-react';
+import { Package, Eye, Plus, AlertCircle, Loader2, Printer } from 'lucide-react';
 import { BreadcrumbHeader, FilterToolbar } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +15,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { purchasingService, type GoodsReceipt } from '@/services/purchasing.service';
+import { labelPrintingService } from '@/services/labelPrinting.service';
 import { formatDate } from '@/utils/format';
 import { useBranchFilter } from '@/components/branch/BranchFilter';
 
@@ -33,6 +34,20 @@ export default function GoodsReceiptList() {
   const [page, setPage] = useState(1);
   const limit = 20;
   const { branchId, setBranchId } = useBranchFilter();
+  const navigate = useNavigate();
+
+  // Queue-wide pending barcode labels (created on GR approve) — one-click print.
+  const { data: labelInfo } = useQuery({
+    queryKey: ['label-jobs-pending'],
+    queryFn: () => labelPrintingService.getJobs({ status: 'pending' }),
+  });
+  const pendingLabelCount = labelInfo?.pendingCount || 0;
+
+  const printPendingLabels = async () => {
+    const resp = await labelPrintingService.getJobs({ status: 'pending' });
+    const ids = resp.data.map((j) => j.id);
+    if (ids.length) navigate(`/purchasing/label-print/sheet?ids=${ids.join(',')}`);
+  };
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['goods-receipts', page, limit, searchTerm, statusFilter, branchId],
@@ -65,6 +80,10 @@ export default function GoodsReceiptList() {
   return (
     <div className="w-full space-y-6">
       <BreadcrumbHeader title="Goods Receipt" subtitle="Kelola penerimaan barang">
+        <Button variant="outline" onClick={printPendingLabels} disabled={pendingLabelCount === 0}>
+          <Printer />
+          Label Pending ({pendingLabelCount})
+        </Button>
         <Button asChild>
           <Link to="/purchasing/goods-receipt/new">
             <Plus />
