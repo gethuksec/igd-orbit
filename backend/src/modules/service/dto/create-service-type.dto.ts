@@ -2,6 +2,7 @@ import {
   IsString,
   IsNotEmpty,
   IsOptional,
+  IsObject,
   IsNumber,
   IsBoolean,
   Min,
@@ -44,6 +45,10 @@ export class CreateServiceTypeDto {
   @Min(0, { message: 'Duration hours must be at least 0' })
   @IsOptional()
   durationHours?: number;
+
+  @IsObject({ message: 'Tier pricing must be an object' })
+  @IsOptional()
+  tierPricing?: Record<string, any>; // JSON object {tierId: price} — mirrors Product.memberPricing
 
   @IsBoolean({ message: 'isActive must be a boolean' })
   @IsOptional()
