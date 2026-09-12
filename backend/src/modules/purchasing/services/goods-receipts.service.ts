@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../../shared/services/prisma.service';
 import { ApprovalSettingsService } from '../../approval-settings/approval-settings.service';
+import { LabelPrintingService } from '../../label-printing/label-printing.service';
 import { CreateGoodsReceiptDto } from '../dto/create-goods-receipt.dto';
 import { ApproveGoodsReceiptDto } from '../dto/approve-goods-receipt.dto';
 import { RevisitGoodsReceiptDto, UpdateReceivingDto } from '../dto/receiving.dto';
@@ -16,6 +17,7 @@ export class GoodsReceiptsService {
   constructor(
     private prisma: PrismaService,
     private approval: ApprovalSettingsService,
+    private labelPrinting: LabelPrintingService,
   ) {}
 
   /** Append-only lifecycle event row (IGDERP-80 audit trail). */
@@ -626,6 +628,12 @@ export class GoodsReceiptsService {
             },
           });
         }
+      }
+
+      // S5 (fc7b9d65): queue barcode labels for every accepted unit (prints on the label page).
+      const labelJobs = this.labelPrinting.buildJobsForReceipt(gr, gr.items);
+      if (labelJobs.length > 0) {
+        await tx.labelPrintJob.createMany({ data: labelJobs });
       }
 
       // IGDERP-80: audit trail event

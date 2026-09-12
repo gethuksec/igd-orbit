@@ -37,6 +37,7 @@ import { StockOutModule } from './modules/stock-out/stock-out.module';
 import { TransferStockModule } from './modules/transfer-stock/transfer-stock.module';
 import { MutasiModule } from './modules/mutasi/mutasi.module';
 import { ApprovalSettingsModule } from './modules/approval-settings/approval-settings.module';
+import { LabelPrintingModule } from './modules/label-printing/label-printing.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -78,6 +79,7 @@ import { ApprovalSettingsModule } from './modules/approval-settings/approval-set
     TransferStockModule,
     MutasiModule,
     ApprovalSettingsModule,
+    LabelPrintingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

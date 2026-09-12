@@ -47,6 +47,8 @@ model User {
   processedReturns       SalesReturn[]           @relation("SalesReturnProcessedBy")
   purchaseReturns        PurchaseReturn[]        @relation("PurchaseReturnProcessedBy")
   completedReturns       PurchaseReturn[]        @relation("PurchaseReturnCompletedBy")
+  labelPrintJobs         LabelPrintJob[]          @relation("LabelPrintJobPrintedBy")
+  labelSettings          LabelSetting[]           @relation("LabelSettingUpdatedBy")
   grEvents               GoodsReceiptEvent[]     @relation("GoodsReceiptEventActor")
   poEditLogs             PurchaseOrderEditLog[] @relation("PurchaseOrderEditLogActor")
 
@@ -439,6 +441,7 @@ model Product {
   purchaseOrderItems PurchaseOrderItem[]
   goodsReceiptItems  GoodsReceiptItem[]     @relation("GoodsReceiptItemProduct")
   purchaseReturnItems PurchaseReturnItem[]  @relation("PurchaseReturnItemProduct")
+  labelPrintJobs     LabelPrintJob[]        @relation("LabelPrintJobProduct")
 
   @@index([barcode])
   @@index([sku])
@@ -1972,6 +1975,7 @@ model GoodsReceipt {
   branch        Branch             @relation("GoodsReceiptBranch", fields: [branchId], references: [id], onDelete: Restrict)
   items         GoodsReceiptItem[]
   events        GoodsReceiptEvent[]
+  labelPrintJobs LabelPrintJob[]
 
   @@index([grNumber])
   @@index([purchaseOrderId])
@@ -2026,6 +2030,52 @@ model GoodsReceiptEvent {
 
   @@index([goodsReceiptId])
   @@map("goods_receipt_events")
+}
+
+// S5 (fc7b9d65): barcode/label print scaffolding — settings profile + print queue.
+model LabelSetting {
+  id              String   @id @default(uuid())
+  name            String   @default("Default")
+  isActive        Boolean  @default(true) @map("is_active")
+  autoPrint       Boolean  @default(false) @map("auto_print") // send to print agent when wired (scaffold flag)
+  labelWidthMm    Decimal  @map("label_width_mm") @db.Decimal(6, 1)
+  labelHeightMm   Decimal  @map("label_height_mm") @db.Decimal(6, 1)
+  columns         Int      @default(3) // labels per row on A4 sheets
+  symbology       String   @default("BARCODE") // 'BARCODE' | 'QR'
+  paperType       String   @default("THERMAL") // 'THERMAL' (one label/page) | 'A4' (sheet grid)
+  showPrintedName Boolean  @default(true) @map("show_printed_name")
+  showPrice       Boolean  @default(true) @map("show_price")
+  showSku         Boolean  @default(true) @map("show_sku")
+  updatedBy       String?  @map("updated_by")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  updatedByUser User? @relation("LabelSettingUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  @@map("label_settings")
+}
+
+// Print queue: one job per GR line created when the GR is approved (copies = accepted qty).
+model LabelPrintJob {
+  id             String    @id @default(uuid())
+  jobNumber      String    @unique @map("job_number") // LBL-YYYYMMDD-XXXXXX
+  goodsReceiptId String?   @map("goods_receipt_id")
+  productId      String    @map("product_id")
+  copies         Int       @default(1)
+  payload        Json // snapshot: { barcode, sku, name, printedName, price, grNumber, batchNumber, serialNumber, expiryDate }
+  status         String    @default("pending") // 'pending' | 'printed' | 'cancelled'
+  printedAt      DateTime? @map("printed_at")
+  printedBy      String?   @map("printed_by")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  goodsReceipt  GoodsReceipt? @relation(fields: [goodsReceiptId], references: [id], onDelete: SetNull)
+  product       Product       @relation("LabelPrintJobProduct", fields: [productId], references: [id], onDelete: Restrict)
+  printedByUser User?         @relation("LabelPrintJobPrintedBy", fields: [printedBy], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([goodsReceiptId])
+  @@index([createdAt])
+  @@map("label_print_jobs")
 }
 
 // IGDERP-81: supplier invoice / delivery-note documents on PurchaseOrder or GoodsReceipt.

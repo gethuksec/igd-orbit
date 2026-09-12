@@ -132,6 +132,8 @@ import PurchaseOrderForm from './pages/purchasing/PurchaseOrderForm';
 import PurchaseReturnList from './pages/purchasing/PurchaseReturnList';
 import PurchaseReturnForm from './pages/purchasing/PurchaseReturnForm';
 import PurchaseReturnDetail from './pages/purchasing/PurchaseReturnDetail';
+import LabelPrint from './pages/purchasing/LabelPrint';
+import LabelPrintSheet from './pages/purchasing/LabelPrintSheet';
 import GoodsReceiptList from './pages/purchasing/GoodsReceiptList';
 import GoodsReceiptDetail from './pages/purchasing/GoodsReceiptDetail';
 import GoodsReceiptForm from './pages/purchasing/GoodsReceiptForm';
@@ -1592,6 +1594,24 @@ function App() {
                   <DashboardLayout>
                     <PurchaseReturnDetail />
                   </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/purchasing/label-print"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <LabelPrint />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/purchasing/label-print/sheet"
+              element={
+                <ProtectedRoute>
+                  <LabelPrintSheet />
                 </ProtectedRoute>
               }
             />

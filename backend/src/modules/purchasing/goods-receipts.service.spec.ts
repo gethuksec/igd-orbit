@@ -3,6 +3,7 @@ import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Decimal } from '@prisma/client/runtime/library';
 import { PrismaService } from '../../shared/services/prisma.service';
 import { ApprovalSettingsService } from '../approval-settings/approval-settings.service';
+import { LabelPrintingService } from '../label-printing/label-printing.service';
 import { GoodsReceiptsService } from './services/goods-receipts.service';
 import { ApproveGoodsReceiptDto } from './dto/approve-goods-receipt.dto';
 
@@ -120,6 +121,7 @@ describe('GoodsReceiptsService.approve — central-good landing (IGDERP-159)', (
         GoodsReceiptsService,
         { provide: PrismaService, useValue: prisma },
         { provide: ApprovalSettingsService, useValue: approval },
+        { provide: LabelPrintingService, useValue: { buildJobsForReceipt: jest.fn().mockReturnValue([]) } },
       ],
     }).compile();
 
