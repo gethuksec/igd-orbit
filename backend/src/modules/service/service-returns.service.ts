@@ -73,9 +73,9 @@ export class ServiceReturnsService {
       throw new NotFoundException('Service order not found');
     }
 
-    if (serviceOrder.status !== 'delivered') {
+    if (serviceOrder.status !== 'done') {
       throw new BadRequestException(
-        'Service order must be delivered before creating return',
+        'Service order must be completed (done) before creating return',
       );
     }
 

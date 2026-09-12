@@ -116,21 +116,6 @@ export const serviceOrdersService = {
     return response.data.data || response.data;
   },
 
-  async complete(id: string) {
-    const response = await api.post(`/service-orders/${id}/complete`, {});
-    return response.data.data || response.data;
-  },
-
-  async qcCheck(id: string, payload: { status: 'pass' | 'fail'; notes?: string; photos?: string[] }) {
-    const response = await api.post(`/service-orders/${id}/qc`, payload);
-    return response.data.data || response.data;
-  },
-
-  async deliver(id: string) {
-    const response = await api.post(`/service-orders/${id}/deliver`, {});
-    return response.data.data || response.data;
-  },
-
   async addParts(id: string, payload: {
     parts: Array<{
       productId: string;

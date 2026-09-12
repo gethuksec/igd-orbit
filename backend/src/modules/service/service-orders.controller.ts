@@ -27,7 +27,6 @@ import { UpdateStatusDto } from './dto/update-status.dto';
 import { AddServiceTimeDto } from './dto/add-service-time.dto';
 import { AddPartsDto } from './dto/add-parts.dto';
 import { AddLayananDto } from './dto/add-layanan.dto';
-import { QcCheckDto } from './dto/qc-check.dto';
 import { CustomerFeedbackDto } from './dto/customer-feedback.dto';
 import { AssignTechnicianDto } from './dto/assign-technician.dto';
 import { UploadPhotosDto } from './dto/upload-photos.dto';
@@ -223,35 +222,10 @@ export class ServiceOrdersController {
     return this.serviceOrdersService.uploadPhotoFiles(id, files, body?.photoType || 'repair', body?.description, req.user.id);
   }
 
-  @Post(':id/complete')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('HS', 'SPV', 'SUPERADMIN')
-  async completeService(@Param('id') id: string, @Request() req: any) {
-    return this.serviceOrdersService.completeService(id, req.user.id);
-  }
-
   @Public()
   @Get('track/:serviceNumber')
   async trackService(@Param('serviceNumber') serviceNumber: string) {
     return this.serviceOrdersService.trackService(serviceNumber);
-  }
-
-  @Post(':id/qc')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('HS', 'SPV', 'SUPERADMIN') // QC staff role - can be customized
-  async qcCheck(
-    @Param('id') id: string,
-    @Body() dto: QcCheckDto,
-    @Request() req: any,
-  ) {
-    return this.serviceOrdersService.qcCheck(id, dto, req.user.id);
-  }
-
-  @Post(':id/deliver')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('CS', 'HS', 'SPV', 'SUPERADMIN')
-  async deliverService(@Param('id') id: string, @Request() req: any) {
-    return this.serviceOrdersService.deliverService(id, req.user.id);
   }
 
   @Public()
