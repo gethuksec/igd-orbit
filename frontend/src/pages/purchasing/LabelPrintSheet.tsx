@@ -43,7 +43,7 @@ export default function LabelPrintSheet() {
     mutationFn: () => labelPrintingService.markPrinted(ids),
     onSuccess: (r) => {
       toast.success(`${r.updated} label ditandai sudah dicetak`);
-      navigate('/purchasing/label-print');
+      navigate(-1);
     },
     onError: () => toast.error('Gagal menandai label sudah dicetak'),
   });
@@ -98,7 +98,7 @@ export default function LabelPrintSheet() {
             )}
             Tandai Sudah Dicetak
           </Button>
-          <Button variant="ghost" onClick={() => navigate('/purchasing/label-print')}>
+          <Button variant="ghost" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Kembali
           </Button>
