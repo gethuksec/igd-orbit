@@ -39,15 +39,13 @@ Owner: dev-2. Status of every finished slice: **Needs Review** (never straight t
 - Files: `frontend/src/pages/inventory/*` (StockList, movements, alerts), shared FilterToolbar/DataTable consumers. BE: read-only query extensions in `inventory/stock.service.ts` (low-stock, age aggregation).
 - Tests: backend unit + integration on new service queries. AC per item description (88/89/90/91).
 
-### I1 — SO hardening (175/176/177 on top of 92)
-- 176 first (confirmed ~500-scan draft-loss risk): autosave durability + save-lock. Then 175 (3-condition scan modal + mismatch/double-scan guards). Then 177 (result document export + variance analytics).
-- Files: `backend/src/modules/inventory/stock-opname.service.ts` + spec, `frontend/src/pages/inventory/*opname*`.
-- Tests: unit + integration for opname service (per 92 AC).
+### I1 — SO hardening (175/176/177 on top of 92) ✅ DONE 2026-09-13 (`3106c59`), preview BE+FE rebuilt, 175/176/177 → Needs Review
+- 176: localStorage draft autosave + restore banner + autosave bar + save-lock (recordCount single in-flight); Simpan writes remain server-durable. 175: per-condition rows (no migration), condition-first scan (no default), first scan CLAIMS the uncounted snapshot row, same-condition 409 + reject modal, second condition allowed, >5% info modal (catatan optional), force corrections for Draft SO/bulk. 177: xlsx export (ExcelJS) + variance filter. Scan-column cursor standby.
+- Review flags: draft tier is client-side (not a server-side draft state); export xlsx-only per user call (PDF dropped).
 
-### I2 — Movement correctness (173 → 174 → 172)
-- 173: transit→receive (pending → approve/reject + qty adjust, GR-mirror; damage via separate SODO mutasi to bad stock w/ WA photo). Records alokasi semantics (D3). 174: printable packer checklist. 172: cross-outlet UX. Verifies 108 (bad-global vs good-outlet) along the way.
-- Files: `backend/src/modules/mutasi/*`, `transfer-stock/*`, FE Mutasi/Transfer pages.
-- Tests: unit + integration per service.
+### I2 — Movement correctness (173 → 174 → 172) ✅ DONE 2026-09-13 (`3106c59`), preview BE+FE rebuilt, 173/174/172 → Needs Review
+- 173: pending→sent→received lifecycle (send = source OUT + qty adjust ≤ requested; receive = dest IN; shortfall/damage auto-books a separate SODO mutasi dest-GOOD → central-BAD w/ WA photo; cancel pending/sent). Inter-branch outlet↔outlet + central↔outlet (same-outlet stays Transfer per #7). Searchable destination dropdown + Stok Asal/Stok Tujuan columns (new GET /mutasi/destination-stock). Status filter + Dikirim/Diterima badges + timeline. 174: printable checklist (roles Penyortir/Penanggung Jawab/Penerima). 172: "Sebagai Mutasi" handoff from Transfer + badges.
+- Review flags: damage booking semi-auto at receive; 172 cross-outlet shape (via Mutasi vs Transfer-side destination) flagged for review.
 
 ### I4 — Import (97)
 - Contract: templates + required columns + preview/confirm; SO barcode migration template (RZAP migration — the client-flagged hard need). PO item import stays in PO batch per client ("belakangan").
@@ -66,7 +64,8 @@ Owner: dev-2. Status of every finished slice: **Needs Review** (never straight t
 ## 3. Plane moves — APPLIED 2026-09-12 (I0 + D4/D3 annotation)
 1. ✅ 92 → Needs Review + I0 evidence comment (comment `fdf3b221-…`).
 2. ✅ 146 annotated with D4 (F4 superseded by 6 Aug §7) + D3 (alokasi == mutasi, see 173). Epic deliberately LEFT in backlog — it groups live items 92/105/139/140, so Cancelled would have buried them. Deviation from the draft "Cancelled" proposal, rationale recorded in the item.
-3. Pending (needs build first): each finished slice (I3 items etc.) → Needs Review.
+3. ✅ 2026-09-13: I3 items (88/89/90/91/104/106) → Needs Review with evidence.
+4. ✅ 2026-09-13: I1/I2 slices → Needs Review (175/176/177/173/174/172) with evidence comments; interpretation flags noted in-item (176 draft tier client-side, 173 damage semi-auto, 172 cross-outlet shape).
 
 ## 4. Parallel work vs fullstack-dev (ws-sr-batch, Smart Repair)
 - Their diff vs `origin/main` (verified 2026-09-12): only `backend/src/modules/service/*` + `frontend/src/pages/services/*`. No schema/migration touch.
@@ -76,5 +75,6 @@ Owner: dev-2. Status of every finished slice: **Needs Review** (never straight t
 - Verdict: **safe to run in parallel**. Only coordination point is merge/deploy sequencing.
 
 ## 5. Resume notes
-- Worktree: `~/worktrees/ws-inventory-improve`, branch `ws-inventory-improve` off `ef2d6a0`. Shared clone untouched.
-- Next after approval: I0 E2E pass (needs nothing else), then I3 slice per D1.
+- Worktree: `~/worktrees/ws-inventory-improve`, branch `ws-inventory-improve`, tip after I1+I2: `3106c59` (pushed). Shared clone untouched.
+- Preview (igd-vm): BE+FE rebuilt at `3106c59`; live E2E 2026-09-13: I1 claim/409/second-row/force/export ✓; I2 create→send→receive + guards ✓; destination-stock 200 + 400 guard ✓.
+- Next: I4 (97 import) / I5 (thin cost layer); merge to main (I3+I1+I2) waits on user approval (`--no-ff`).
