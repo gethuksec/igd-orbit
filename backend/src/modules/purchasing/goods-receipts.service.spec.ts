@@ -4,7 +4,6 @@ import { Decimal } from '@prisma/client/runtime/library';
 import { PrismaService } from '../../shared/services/prisma.service';
 import { ApprovalSettingsService } from '../approval-settings/approval-settings.service';
 import { GoodsReceiptsService } from './services/goods-receipts.service';
-import { PurchaseReturnsService } from './services/purchase-returns.service';
 import { ApproveGoodsReceiptDto } from './dto/approve-goods-receipt.dto';
 
 describe('GoodsReceiptsService.approve — central-good landing (IGDERP-159)', () => {
@@ -121,7 +120,6 @@ describe('GoodsReceiptsService.approve — central-good landing (IGDERP-159)', (
         GoodsReceiptsService,
         { provide: PrismaService, useValue: prisma },
         { provide: ApprovalSettingsService, useValue: approval },
-        { provide: PurchaseReturnsService, useValue: { createReceivingReturn: jest.fn() } },
       ],
     }).compile();
 

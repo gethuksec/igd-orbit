@@ -9,7 +9,6 @@ import { ApprovalSettingsService } from '../../approval-settings/approval-settin
 import { CreateGoodsReceiptDto } from '../dto/create-goods-receipt.dto';
 import { ApproveGoodsReceiptDto } from '../dto/approve-goods-receipt.dto';
 import { RevisitGoodsReceiptDto, UpdateReceivingDto } from '../dto/receiving.dto';
-import { PurchaseReturnsService } from './purchase-returns.service';
 import { Decimal } from '@prisma/client/runtime/library';
 
 @Injectable()
@@ -17,7 +16,6 @@ export class GoodsReceiptsService {
   constructor(
     private prisma: PrismaService,
     private approval: ApprovalSettingsService,
-    private purchaseReturns: PurchaseReturnsService,
   ) {}
 
   /** Append-only lifecycle event row (IGDERP-80 audit trail). */
@@ -630,21 +628,6 @@ export class GoodsReceiptsService {
         }
       }
 
-      // IGDERP-83: lines flagged "buat retur" at receiving auto-create the
-      // invoice's purchase return (document only — the rejected qty is already
-      // parked in central-bad above; this is the supplier paperwork).
-      const flaggedForReturn = gr.items.filter(
-        (i: any) => i.createReturn === true && i.quantityRejected.greaterThan(0),
-      );
-      if (flaggedForReturn.length > 0) {
-        await this.purchaseReturns.createReceivingReturn(
-          tx,
-          gr,
-          flaggedForReturn,
-          userId,
-        );
-      }
-
       // IGDERP-80: audit trail event
       await this.grEvent(
         tx,
@@ -933,8 +916,6 @@ export class GoodsReceiptsService {
             serialNumber: item.serial_number ?? grItem.serialNumber,
             expiryDate: item.expiry_date ? new Date(item.expiry_date) : grItem.expiryDate,
             notes: item.notes ?? grItem.notes,
-            // IGDERP-83: persist the "buat retur" flag (ignored when nothing rejected).
-            createReturn: item.create_return ?? (grItem as any).createReturn,
           },
         });
       }

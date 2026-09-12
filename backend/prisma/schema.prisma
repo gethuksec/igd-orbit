@@ -1887,15 +1887,14 @@ model PurchaseOrderEditLog {
 model PurchaseReturn {
   id              String   @id @default(uuid())
   returnNumber    String   @unique @map("return_number") // RTP-YYYYMMDD-XXXXXX
-  purchaseOrderId String   @map("purchase_order_id")
-  supplierId      String   @map("supplier_id") // denormalized from the PO
-  invoiceNumber   String?  @map("invoice_number") // snapshot from the PO
+  purchaseOrderId String?  @map("purchase_order_id") // null for manual returns (pre-system data)
+  supplierId      String   @map("supplier_id")
+  invoiceNumber   String?  @map("invoice_number") // snapshot from the PO / manual input
   processedBy     String   @map("processed_by") // User ID
   reason          String   @db.Text // mandatory header reason
   notes           String?  @db.Text
-  source          String   @default("manual") // 'manual' | 'receiving' (IGDERP-83 auto)
   totalQty        Decimal  @map("total_qty") @db.Decimal(15, 3)
-  totalValue      Decimal  @map("total_value") @db.Decimal(15, 2) // supplier credit at PO price
+  totalValue      Decimal  @map("total_value") @db.Decimal(15, 2) // supplier credit
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
@@ -1990,7 +1989,6 @@ model GoodsReceiptItem {
   expiryDate          DateTime? @map("expiry_date")
   inspectionStatus    String?   @map("inspection_status") // 'pending', 'passed', 'failed', 'partial'
   inspectionNotes     String?   @map("inspection_notes") @db.Text
-  createReturn        Boolean   @default(false) @map("create_return") // IGDERP-83: flagged at receiving → auto purchase return
   notes               String?   @db.Text
   createdAt           DateTime  @default(now()) @map("created_at")
   updatedAt           DateTime  @updatedAt @map("updated_at")

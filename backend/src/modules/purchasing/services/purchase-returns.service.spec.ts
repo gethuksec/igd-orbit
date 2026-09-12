@@ -69,6 +69,8 @@ describe('PurchaseReturnsService (S4 — IGDERP-84 manual + IGDERP-83 receiving)
       },
       purchaseReturnItem: { findMany: jest.fn() },
       warehouse: { findFirst: jest.fn() },
+      customer: { findUnique: jest.fn() },
+      product: { findMany: jest.fn() },
     };
     tx = {
       purchaseReturn: {
@@ -100,6 +102,10 @@ describe('PurchaseReturnsService (S4 — IGDERP-84 manual + IGDERP-83 receiving)
     prisma.purchaseOrder.findUnique.mockResolvedValue(poReceived);
     prisma.purchaseReturn.findFirst.mockResolvedValue(null);
     prisma.purchaseReturnItem.findMany.mockResolvedValue([]);
+    prisma.product.findMany.mockResolvedValue([
+      { id: 'prod-1', name: 'Charger' },
+      { id: 'prod-2', name: 'Case' },
+    ]);
     prisma.warehouse.findFirst
       .mockResolvedValueOnce({ id: 'wh-good' })
       .mockResolvedValueOnce({ id: 'wh-bad' });
@@ -120,7 +126,6 @@ describe('PurchaseReturnsService (S4 — IGDERP-84 manual + IGDERP-83 receiving)
     );
 
     const createCall = tx.purchaseReturn.create.mock.calls[0][0];
-    expect(createCall.data.source).toBe('manual');
     expect(createCall.data.totalQty.toNumber()).toBe(3);
     expect(createCall.data.totalValue.toNumber()).toBe(200000);
     expect(createCall.data.items.create).toHaveLength(2);
@@ -222,75 +227,70 @@ describe('PurchaseReturnsService (S4 — IGDERP-84 manual + IGDERP-83 receiving)
     ).rejects.toThrow('Alasan retur wajib diisi');
   });
 
-  it('IGDERP-83: receiving flag creates the return document without touching stock', async () => {
-    const gr = {
-      id: 'gr-1',
-      grNumber: 'GR-20260911-000001',
-      purchaseOrderId: 'po-1',
-      purchaseOrder: {
-        supplierId: 'sup-1',
-        invoiceNumber: 'INV-001',
-        items: poReceived.items,
-      },
-    };
-    const flagged = [
-      {
-        productId: 'prod-1',
-        purchaseOrderItemId: 'poi-1',
-        quantityRejected: new Decimal(1),
-        unitPrice: new Decimal(50000),
-        inspectionNotes: 'Layar retak',
-      },
-    ];
-    tx.purchaseReturn.findFirst.mockResolvedValue(null);
+  it('manual mode: creates a return without a PO (supplier + free invoice + manual prices)', async () => {
+    prisma.customer.findUnique.mockResolvedValue({ id: 'sup-1' });
+    prisma.product.findMany.mockResolvedValue([
+      { id: 'prod-1', name: 'Charger' },
+      { id: 'prod-2', name: 'Case' },
+    ]);
+    prisma.warehouse.findFirst
+      .mockResolvedValueOnce({ id: 'wh-good' })
+      .mockResolvedValueOnce({ id: 'wh-bad' });
 
-    await service.createReceivingReturn(tx, gr, flagged, 'user-1');
+    await service.create(
+      {
+        supplier_id: 'sup-1',
+        invoice_number: 'INV-LAMA-001',
+        reason: 'Stok awal rusak',
+        items: [
+          { product_id: 'prod-1', quantity: 1, unit_price: 45000 },
+          { product_id: 'prod-2', quantity: 2, unit_price: 90000 },
+        ],
+      } as any,
+      'user-1',
+    );
 
     const createCall = tx.purchaseReturn.create.mock.calls[0][0];
-    expect(createCall.data.source).toBe('receiving');
-    expect(createCall.data.reason).toContain('GR-20260911-000001');
-    expect(createCall.data.totalQty.toNumber()).toBe(1);
-    expect(createCall.data.items.create[0].reason).toBe('Layar retak');
-    expect(tx.stockMovement.create).not.toHaveBeenCalled();
-    expect(tx.productStock.update).not.toHaveBeenCalled();
+    expect(createCall.data.purchaseOrderId).toBeNull();
+    expect(createCall.data.invoiceNumber).toBe('INV-LAMA-001');
+    expect(createCall.data.totalQty.toNumber()).toBe(3);
+    expect(createCall.data.totalValue.toNumber()).toBe(225000);
+    expect(tx.stockMovement.create).toHaveBeenCalledTimes(4);
   });
 
-  it("IGDERP-83: flagged lines merge into the invoice's existing return", async () => {
-    const gr = {
-      id: 'gr-1',
-      grNumber: 'GR-20260911-000002',
-      purchaseOrderId: 'po-1',
-      purchaseOrder: {
-        supplierId: 'sup-1',
-        invoiceNumber: 'INV-001',
-        items: poReceived.items,
-      },
-    };
-    const flagged = [
-      {
-        productId: 'prod-2',
-        purchaseOrderItemId: 'poi-2',
-        quantityRejected: new Decimal(2),
-        unitPrice: new Decimal(100000),
-        inspectionNotes: null,
-      },
-    ];
-    tx.purchaseReturn.findFirst.mockResolvedValue({
-      id: 'ret-1',
-      totalQty: new Decimal(3),
-      totalValue: new Decimal(200000),
-    });
-
-    await service.createReceivingReturn(tx, gr, flagged, 'user-1');
-
-    expect(tx.purchaseReturn.update).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: 'ret-1' } }),
-    );
-    const updateData = tx.purchaseReturn.update.mock.calls[0][0].data;
-    expect(updateData.totalQty.toNumber()).toBe(5);
-    expect(updateData.totalValue.toNumber()).toBe(400000);
-    expect(tx.purchaseReturnItem.createMany).toHaveBeenCalled();
-    expect(tx.purchaseReturn.create).not.toHaveBeenCalled();
+  it('manual mode requires supplier, invoice number, and unit price', async () => {
+    prisma.product.findMany.mockResolvedValue([{ id: 'prod-1', name: 'Charger' }]);
+    await expect(
+      service.create(
+        {
+          reason: 'x',
+          items: [{ product_id: 'prod-1', quantity: 1, unit_price: 1000 }],
+        } as any,
+        'user-1',
+      ),
+    ).rejects.toThrow('Supplier wajib diisi untuk retur manual');
+    await expect(
+      service.create(
+        {
+          supplier_id: 'sup-1',
+          reason: 'x',
+          items: [{ product_id: 'prod-1', quantity: 1, unit_price: 1000 }],
+        } as any,
+        'user-1',
+      ),
+    ).rejects.toThrow('Nomor invoice supplier wajib diisi');
+    prisma.customer.findUnique.mockResolvedValue({ id: 'sup-1' });
+    await expect(
+      service.create(
+        {
+          supplier_id: 'sup-1',
+          invoice_number: 'INV-1',
+          reason: 'x',
+          items: [{ product_id: 'prod-1', quantity: 1 }],
+        } as any,
+        'user-1',
+      ),
+    ).rejects.toThrow('Harga satuan wajib diisi pada retur manual');
   });
 
   it('findById throws NotFound on a missing return', async () => {

@@ -1,17 +1,16 @@
--- IGDERP-84 (S4): purchase returns (Retur Pembelian) — models + the IGDERP-83
--- receiving checkbox flag. Idempotent; apply BEFORE the rebuild.
--- Run as postgres superuser; table ownership stays with the app user.
+-- IGDERP-84 (S4): purchase returns (Retur Pembelian) — per supplier invoice.
+-- purchase_order_id is NULLABLE: manual returns cover pre-system invoices without PO data.
+-- Idempotent; apply BEFORE the rebuild. Run as postgres superuser.
 
 CREATE TABLE IF NOT EXISTS "purchase_returns" (
   "id" TEXT NOT NULL,
   "return_number" TEXT NOT NULL,
-  "purchase_order_id" TEXT NOT NULL,
+  "purchase_order_id" TEXT,
   "supplier_id" TEXT NOT NULL,
   "invoice_number" TEXT,
   "processed_by" TEXT NOT NULL,
   "reason" TEXT NOT NULL,
   "notes" TEXT,
-  "source" TEXT NOT NULL DEFAULT 'manual',
   "total_qty" DECIMAL(15,3) NOT NULL,
   "total_value" DECIMAL(15,2) NOT NULL,
   "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -44,7 +43,7 @@ CREATE INDEX IF NOT EXISTS "idx_purchase_return_items_product" ON "purchase_retu
 
 DO $$ BEGIN
   ALTER TABLE "purchase_returns" ADD CONSTRAINT "purchase_returns_purchase_order_id_fkey"
-    FOREIGN KEY ("purchase_order_id") REFERENCES "purchase_orders"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+    FOREIGN KEY ("purchase_order_id") REFERENCES "purchase_orders"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
@@ -66,6 +65,3 @@ DO $$ BEGIN
   ALTER TABLE "purchase_return_items" ADD CONSTRAINT "purchase_return_items_product_id_fkey"
     FOREIGN KEY ("product_id") REFERENCES "products"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
--- IGDERP-83: "buat retur" flag on receiving lines
-ALTER TABLE "goods_receipt_items" ADD COLUMN IF NOT EXISTS "create_return" BOOLEAN NOT NULL DEFAULT false;

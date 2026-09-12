@@ -10,13 +10,15 @@ import { Decimal } from '@prisma/client/runtime/library';
 /**
  * IGDERP-84 (S4): Retur Pembelian — purchase returns per supplier invoice.
  *
- * Stock semantics (locked decisions):
- *  - Manual return: central-good −qty (leaves the sellable pool); the physical
- *    unit parks in central-bad until it's shipped back to the supplier.
- *  - Receiving-sourced return (IGDERP-83): the rejected qty already went straight
- *    to central-bad at GR approve — this return is the supplier paperwork only.
- *  - 1 invoice = 1 return: a second return for the same PO/invoice is rejected;
- *    receiving flags merge into the existing return.
+ * Two creation modes:
+ *  - PO mode: pick a received PO → lines capped at received − already returned,
+ *    unit price snapshotted from the PO; 1 invoice = 1 return (second → blocked).
+ *  - Manual mode (first system deploy / pre-system invoices without PO data):
+ *    supplier + free invoice number + manual unit prices; no cap from a PO
+ *    (limited by available central-good stock).
+ *
+ * Stock semantics (locked decisions): central-good −qty (leaves the sellable
+ * pool); the physical unit parks in central-bad until shipped back to supplier.
  */
 @Injectable()
 export class PurchaseReturnsService {
@@ -49,20 +51,7 @@ export class PurchaseReturnsService {
     return { goodWarehouse, badWarehouse };
   }
 
-  /** Manual create — reduces central-good, parks the unit in central-bad. */
   async create(dto: CreatePurchaseReturnDto, userId: string) {
-    const po = await this.prisma.purchaseOrder.findUnique({
-      where: { id: dto.purchase_order_id },
-      include: { items: { include: { product: true } } },
-    });
-    if (!po) {
-      throw new NotFoundException('Purchase order not found');
-    }
-    if (po.status !== 'received' && po.status !== 'partially_received') {
-      throw new BadRequestException(
-        'Retur pembelian hanya untuk PO yang sudah diterima (received / partially_received)',
-      );
-    }
     if (!dto.reason || !dto.reason.trim()) {
       throw new BadRequestException('Alasan retur wajib diisi');
     }
@@ -70,34 +59,10 @@ export class PurchaseReturnsService {
       throw new BadRequestException('Minimal satu item untuk diretur');
     }
 
-    // 1 invoice = 1 return (IGDERP-84).
-    const existing = await this.prisma.purchaseReturn.findFirst({
-      where: { purchaseOrderId: po.id },
-      select: { returnNumber: true },
-    });
-    if (existing) {
-      throw new BadRequestException(
-        `Retur untuk invoice ini sudah dibuat (${existing.returnNumber})`,
-      );
-    }
-
-    // Cap per product: qty ≤ received − already returned.
-    const priorReturns = await this.prisma.purchaseReturnItem.findMany({
-      where: { purchaseReturn: { purchaseOrderId: po.id } },
-      select: { productId: true, quantity: true },
-    });
-    const returnedByProduct = new Map<string, number>();
-    for (const r of priorReturns) {
-      returnedByProduct.set(
-        r.productId,
-        (returnedByProduct.get(r.productId) || 0) + Number(r.quantity),
-      );
-    }
-
     // Merge duplicate lines for the same product.
     const merged = new Map<
       string,
-      { quantity: number; reason?: string; notes?: string }
+      { quantity: number; unitPrice?: number; reason?: string; notes?: string }
     >();
     for (const line of dto.items) {
       if (!line.quantity || line.quantity <= 0) {
@@ -106,12 +71,87 @@ export class PurchaseReturnsService {
       const prev = merged.get(line.product_id);
       merged.set(line.product_id, {
         quantity: (prev?.quantity || 0) + line.quantity,
+        unitPrice: line.unit_price ?? prev?.unitPrice,
         reason: line.reason ?? prev?.reason,
         notes: line.notes ?? prev?.notes,
       });
     }
 
-    const poItemByProduct = new Map(po.items.map((i) => [i.productId, i]));
+    const productIds = [...merged.keys()];
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, name: true },
+    });
+    const productById = new Map(products.map((p) => [p.id, p]));
+    for (const pid of productIds) {
+      if (!productById.has(pid)) {
+        throw new BadRequestException(`Produk ${pid} tidak ditemukan`);
+      }
+    }
+
+    const isManual = !dto.purchase_order_id;
+    let po: any = null;
+    let supplierId: string;
+    let invoiceNumber: string;
+    const returnedByProduct = new Map<string, number>();
+
+    if (isManual) {
+      // Manual mode — pre-system invoices (no PO data in the system yet).
+      if (!dto.supplier_id) {
+        throw new BadRequestException('Supplier wajib diisi untuk retur manual');
+      }
+      if (!dto.invoice_number || !dto.invoice_number.trim()) {
+        throw new BadRequestException('Nomor invoice supplier wajib diisi');
+      }
+      const supplier = await this.prisma.customer.findUnique({
+        where: { id: dto.supplier_id },
+        select: { id: true },
+      });
+      if (!supplier) {
+        throw new NotFoundException('Supplier not found');
+      }
+      supplierId = dto.supplier_id;
+      invoiceNumber = dto.invoice_number.trim();
+    } else {
+      // PO mode — lines capped at received − already returned (1 invoice = 1 return).
+      po = await this.prisma.purchaseOrder.findUnique({
+        where: { id: dto.purchase_order_id },
+        include: { items: true },
+      });
+      if (!po) {
+        throw new NotFoundException('Purchase order not found');
+      }
+      if (po.status !== 'received' && po.status !== 'partially_received') {
+        throw new BadRequestException(
+          'Retur pembelian hanya untuk PO yang sudah diterima (received / partially_received)',
+        );
+      }
+      const existing = await this.prisma.purchaseReturn.findFirst({
+        where: { purchaseOrderId: po.id },
+        select: { returnNumber: true },
+      });
+      if (existing) {
+        throw new BadRequestException(
+          `Retur untuk invoice ini sudah dibuat (${existing.returnNumber})`,
+        );
+      }
+      const priorReturns = await this.prisma.purchaseReturnItem.findMany({
+        where: { purchaseReturn: { purchaseOrderId: po.id } },
+        select: { productId: true, quantity: true },
+      });
+      for (const r of priorReturns) {
+        returnedByProduct.set(
+          r.productId,
+          (returnedByProduct.get(r.productId) || 0) + Number(r.quantity),
+        );
+      }
+      supplierId = po.supplierId;
+      invoiceNumber = po.invoiceNumber || '';
+    }
+
+    const poItemByProduct = new Map<string, any>(
+      (po?.items || []).map((i: any) => [i.productId, i] as [string, any]),
+    );
     const lines: Array<{
       productId: string;
       quantity: Decimal;
@@ -121,27 +161,43 @@ export class PurchaseReturnsService {
       notes?: string;
       productName: string;
     }> = [];
-    for (const [productId, { quantity, reason, notes }] of merged.entries()) {
-      const poItem = poItemByProduct.get(productId);
-      if (!poItem) {
-        throw new BadRequestException(`Produk ${productId} tidak ada pada PO ini`);
+
+    for (const [productId, { quantity, unitPrice, reason, notes }] of merged.entries()) {
+      let price: Decimal;
+      if (isManual) {
+        if (unitPrice == null) {
+          throw new BadRequestException(
+            'Harga satuan wajib diisi pada retur manual',
+          );
+        }
+        if (unitPrice <= 0) {
+          throw new BadRequestException('Harga satuan harus lebih dari 0');
+        }
+        price = new Decimal(unitPrice);
+      } else {
+        const poItem = poItemByProduct.get(productId);
+        if (!poItem) {
+          throw new BadRequestException(
+            `Produk ${productId} tidak ada pada PO ini`,
+          );
+        }
+        const received = Number(poItem.quantityReceived);
+        const already = returnedByProduct.get(productId) || 0;
+        if (quantity > received - already) {
+          throw new BadRequestException(
+            `Jumlah retur melebihi jumlah diterima (maks ${received - already})`,
+          );
+        }
+        price = new Decimal(poItem.unitPrice);
       }
-      const received = Number(poItem.quantityReceived);
-      const already = returnedByProduct.get(productId) || 0;
-      if (quantity > received - already) {
-        throw new BadRequestException(
-          `Jumlah retur melebihi jumlah diterima (maks ${received - already})`,
-        );
-      }
-      const unitPrice = new Decimal(poItem.unitPrice);
       lines.push({
         productId,
         quantity: new Decimal(quantity),
-        unitPrice,
-        subtotal: unitPrice.times(quantity),
+        unitPrice: price,
+        subtotal: price.times(quantity),
         reason,
         notes,
-        productName: poItem.product?.name || productId,
+        productName: productById.get(productId)?.name || productId,
       });
     }
 
@@ -158,13 +214,12 @@ export class PurchaseReturnsService {
       const created = await tx.purchaseReturn.create({
         data: {
           returnNumber,
-          purchaseOrderId: po.id,
-          supplierId: po.supplierId,
-          invoiceNumber: po.invoiceNumber ?? null,
+          purchaseOrderId: po?.id ?? null,
+          supplierId,
+          invoiceNumber: invoiceNumber || null,
           processedBy: userId,
           reason: dto.reason.trim(),
           notes: dto.notes ?? null,
-          source: 'manual',
           totalQty: new Decimal(totalQty),
           totalValue,
           items: {
@@ -287,89 +342,6 @@ export class PurchaseReturnsService {
         },
       });
       return this.mapReturn(full);
-    });
-  }
-
-  /**
-   * IGDERP-83: receiving flagged lines → the invoice's return (merge if it exists).
-   * Stock is NOT touched here: rejected-at-receiving qty is already in central-bad.
-   * Runs inside the GR-approve transaction.
-   */
-  async createReceivingReturn(
-    tx: any,
-    gr: any,
-    flaggedItems: any[],
-    userId: string,
-  ) {
-    const poId = gr.purchaseOrderId;
-    if (!poId) {
-      return null; // standalone (hibah) receipts have no invoice to return against
-    }
-    const po = gr.purchaseOrder || null;
-
-    const lines = flaggedItems.map((item: any) => {
-      const poItem = po?.items?.find(
-        (i: any) => i.id === item.purchaseOrderItemId,
-      );
-      const unitPrice = new Decimal(item.unitPrice ?? poItem?.unitPrice ?? 0);
-      const quantity = new Decimal(item.quantityRejected);
-      return {
-        productId: item.productId,
-        quantity,
-        unitPrice,
-        subtotal: unitPrice.times(quantity),
-        reason: item.inspectionNotes || 'Rusak / kurang saat penerimaan',
-        notes: item.notes ?? null,
-      };
-    });
-    const addedQty = lines.reduce(
-      (s: Decimal, l: any) => s.plus(l.quantity),
-      new Decimal(0),
-    );
-    const addedValue = lines.reduce(
-      (s: Decimal, l: any) => s.plus(l.subtotal),
-      new Decimal(0),
-    );
-
-    const existing = await tx.purchaseReturn.findFirst({
-      where: { purchaseOrderId: poId },
-    });
-    if (existing) {
-      await tx.purchaseReturn.update({
-        where: { id: existing.id },
-        data: {
-          totalQty: existing.totalQty.plus(addedQty),
-          totalValue: existing.totalValue.plus(addedValue),
-        },
-      });
-      await tx.purchaseReturnItem.createMany({
-        data: lines.map((l: any) => ({
-          purchaseReturnId: existing.id,
-          productId: l.productId,
-          quantity: l.quantity,
-          unitPrice: l.unitPrice,
-          subtotal: l.subtotal,
-          reason: l.reason,
-          notes: l.notes,
-        })),
-      });
-      return existing;
-    }
-
-    return tx.purchaseReturn.create({
-      data: {
-        returnNumber: this.generateReturnNumber(),
-        purchaseOrderId: poId,
-        supplierId: po?.supplierId,
-        invoiceNumber: po?.invoiceNumber ?? null,
-        processedBy: userId,
-        reason: `Retur dari penerimaan barang (${gr.grNumber})`,
-        notes: null,
-        source: 'receiving',
-        totalQty: addedQty,
-        totalValue: addedValue,
-        items: { create: lines },
-      },
     });
   }
 
