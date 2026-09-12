@@ -89,12 +89,12 @@ export default function MutasiChecklist() {
 
       <div style={{ display: 'flex', gap: 32, marginTop: 40, fontSize: 13 }}>
         <div style={{ flex: 1, textAlign: 'center' }}>
-          Packer
+          Penyortir
           <div style={{ height: 64 }} />
           ( ……………… )
         </div>
         <div style={{ flex: 1, textAlign: 'center' }}>
-          Pengirim / Ekspedisi
+          Penanggung Jawab
           <div style={{ height: 64 }} />
           ( ……………… )
         </div>

@@ -11,12 +11,23 @@ import {
   History,
   Package,
   Warehouse,
+  ChevronsUpDown,
+  Check,
 } from 'lucide-react';
 import { BreadcrumbHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 import { toast } from 'sonner';
 import { inventoryService } from '../../services/inventory.service';
 import type {
@@ -61,6 +72,9 @@ export default function Mutasi() {
 
   const [items, setItems] = useState<LineItem[]>([]);
   const [productSearch, setProductSearch] = useState('');
+  // IGDERP-173 (§2): searchable destination picker + destination availability
+  const [destOpen, setDestOpen] = useState(false);
+  const [destStock, setDestStock] = useState<Record<string, number>>({});
   // IGDERP-172: set when the handoff prefill lands, so the warehouse-change
   // reset below doesn't wipe the carried lines on mount.
   const handoffApplied = useRef(false);
@@ -121,6 +135,36 @@ export default function Mutasi() {
     window.history.replaceState({}, '');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // IGDERP-173 (§2): "form mutasi menampilkan stok asal + stok tujuan" —
+  // refresh destination availability whenever the destination or lines change.
+  const lineIds = items.map((l) => l.productId).join(',');
+  useEffect(() => {
+    if (!toWarehouseId || items.length === 0) {
+      setDestStock({});
+      return;
+    }
+    let cancelled = false;
+    inventoryService
+      .getMutasiDestinationStock(
+        toWarehouseId,
+        items.map((l) => l.productId),
+      )
+      .then((rows) => {
+        if (!cancelled) {
+          setDestStock(
+            Object.fromEntries(rows.map((r) => [r.productId, r.availableQuantity])),
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setDestStock({});
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [toWarehouseId, lineIds]);
 
   const addProductToLines = (product: TransferStockProduct, quantity = 1) => {
     setItems((prev) => {
@@ -264,20 +308,50 @@ export default function Mutasi() {
               <Label className="block text-sm font-medium text-gray-700 mb-2">
                 Gudang Tujuan <span className="text-red-500">*</span>
               </Label>
-              <Select
-                value={toWarehouseId}
-                onChange={(e) => setToWarehouseId(e.target.value)}
-                required
-              >
-                <option value="">Pilih Gudang Tujuan</option>
-                {warehouses
-                  .filter((w: StockTransferWarehouse) => w.id !== fromWarehouseId)
-                  .map((w: StockTransferWarehouse) => (
-                    <option key={w.id} value={w.id}>
-                      {warehouseLabel(w)}
-                    </option>
-                  ))}
-              </Select>
+              <Popover open={destOpen} onOpenChange={setDestOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    role="combobox"
+                    aria-expanded={destOpen}
+                    className="flex h-10 w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-left focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <span className={selectedTo ? 'truncate text-gray-900' : 'text-gray-400'}>
+                      {selectedTo ? warehouseLabel(selectedTo) : 'Pilih Gudang Tujuan'}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-gray-400" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Cari gudang tujuan (gudang / cabang)…" />
+                    <CommandList>
+                      <CommandEmpty>Gudang tidak ditemukan.</CommandEmpty>
+                      <CommandGroup>
+                        {warehouses
+                          .filter((w: StockTransferWarehouse) => w.id !== fromWarehouseId)
+                          .map((w: StockTransferWarehouse) => (
+                            <CommandItem
+                              key={w.id}
+                              value={warehouseLabel(w)}
+                              onSelect={() => {
+                                setToWarehouseId(w.id);
+                                setDestOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 ${
+                                  toWarehouseId === w.id ? 'opacity-100' : 'opacity-0'
+                                }`}
+                              />
+                              {warehouseLabel(w)}
+                            </CommandItem>
+                          ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
 
@@ -353,7 +427,8 @@ export default function Mutasi() {
                 <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Produk</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase w-24">Stok</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase w-24">Stok Asal</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase w-24">Stok Tujuan</th>
                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase w-24">Qty</th>
                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase w-32">Satuan</th>
                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase w-14"></th>
@@ -370,6 +445,9 @@ export default function Mutasi() {
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">
                         {line.availableQuantity}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {toWarehouseId ? (destStock[line.productId] ?? '—') : '—'}
                       </td>
                       <td className="px-4 py-3">
                         <Input

@@ -83,6 +83,24 @@ export class MutasiController {
     );
   }
 
+  /**
+   * Supporting: destination availability per line for the create form
+   * (IGDERP-173 §2: "form mutasi menampilkan stok asal + stok tujuan").
+   */
+  @Get('destination-stock')
+  @UseGuards(RolesGuard)
+  @Roles(...MUTASI_ROLES)
+  async destinationStock(
+    @Query('warehouseId') warehouseId: string,
+    @Query('productIds') productIds?: string,
+  ) {
+    const ids = (productIds || '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    return this.mutasiService.findDestinationStock(warehouseId, ids);
+  }
+
   /** List Mutasi documents (paginated, filters). */
   @Get()
   @UseGuards(RolesGuard)

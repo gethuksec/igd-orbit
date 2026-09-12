@@ -53,6 +53,7 @@ export default function StockOpnameCount() {
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [addSearch, setAddSearch] = useState('');
+  const scanInputRef = useRef<HTMLInputElement>(null);
   const activeQtyRef = useRef<HTMLInputElement>(null);
 
   // IGDERP-176: crash-proof draft — unsubmitted inputs survive refresh.
@@ -177,6 +178,15 @@ export default function StockOpnameCount() {
   useEffect(() => {
     if (activeItemId) {
       const t = setTimeout(() => activeQtyRef.current?.focus(), 50);
+      return () => clearTimeout(t);
+    }
+  }, [activeItemId]);
+
+  // IGDERP-175 (§3): cursor standby in the scan column — refocus the scan
+  // box whenever no scan card is open (initial load, after a save, on close).
+  useEffect(() => {
+    if (!activeItemId) {
+      const t = setTimeout(() => scanInputRef.current?.focus(), 50);
       return () => clearTimeout(t);
     }
   }, [activeItemId]);
@@ -570,6 +580,8 @@ export default function StockOpnameCount() {
         <div className="flex items-center gap-3 rounded-lg border-2 border-primary-600 bg-white px-4 shadow-[0_0_0_4px_rgba(220,38,38,0.08)]">
           <ScanBarcode className="w-5 h-5 text-primary-600" />
           <input
+            ref={scanInputRef}
+            autoFocus
             value={scanQuery}
             onChange={(e) => setScanQuery(e.target.value)}
             placeholder="Scan barcode, atau ketik nama/SKU lalu tekan Enter…"

@@ -420,6 +420,17 @@ export const inventoryService = {
     }
   },
 
+  // IGDERP-173 (§2): per-line destination availability ("stok tujuan" column)
+  async getMutasiDestinationStock(
+    warehouseId: string,
+    productIds: string[],
+  ): Promise<Array<{ productId: string; availableQuantity: number }>> {
+    const response = await api.get('/mutasi/destination-stock', {
+      params: { warehouseId, productIds: productIds.join(',') },
+    });
+    return response.data;
+  },
+
   async searchTransferProducts(
     q: string,
     limit = 15,

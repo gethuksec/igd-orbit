@@ -816,6 +816,33 @@ export class MutasiService {
   }
 
   /**
+   * IGDERP-173 (§2): destination availability per line for the create form
+   * ("form mutasi menampilkan stok asal + stok tujuan").
+   */
+  async findDestinationStock(warehouseId: string, productIds: string[]) {
+    const warehouse = await this.prisma.warehouse.findUnique({
+      where: { id: warehouseId },
+    });
+    if (!warehouse || !this.isValidMoveWarehouse(warehouse as WarehouseRow)) {
+      throw new BadRequestException('Destination warehouse is not a valid move endpoint');
+    }
+    if (!productIds || productIds.length === 0) {
+      return [];
+    }
+    const stocks = await this.prisma.productStock.findMany({
+      where: { warehouseId, productId: { in: productIds } },
+      select: { productId: true, quantityAvailable: true },
+    });
+    const stockMap = new Map(
+      stocks.map((s) => [s.productId, Number(s.quantityAvailable)]),
+    );
+    return productIds.map((productId) => ({
+      productId,
+      availableQuantity: stockMap.get(productId) ?? 0,
+    }));
+  }
+
+  /**
    * Product search for the line picker, with available quantity in the
    * selected source warehouse.
    */

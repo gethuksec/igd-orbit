@@ -615,5 +615,31 @@ describe('MutasiService (IGDERP-140 — central ↔ outlet + outlet ↔ outlet)'
       const result = await service.searchProducts('iphone', 15, 'wh-a');
       expect(result[0].availableQuantity).toBe(7);
     });
+
+    it('findDestinationStock returns per-product availability at the destination', async () => {
+      prisma.warehouse.findUnique.mockResolvedValue(whB);
+      prisma.productStock.findMany.mockResolvedValue([
+        { productId: 'prod-1', quantityAvailable: new Decimal(4) },
+      ]);
+
+      const result = await service.findDestinationStock('wh-b', ['prod-1', 'prod-2']);
+
+      expect(prisma.productStock.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { warehouseId: 'wh-b', productId: { in: ['prod-1', 'prod-2'] } },
+        }),
+      );
+      expect(result).toEqual([
+        { productId: 'prod-1', availableQuantity: 4 },
+        { productId: 'prod-2', availableQuantity: 0 },
+      ]);
+    });
+
+    it('findDestinationStock rejects a non-move warehouse', async () => {
+      prisma.warehouse.findUnique.mockResolvedValue({ ...whA, type: 'BAD' });
+      await expect(
+        service.findDestinationStock('wh-bad', ['prod-1']),
+      ).rejects.toThrow(BadRequestException);
+    });
   });
 });
