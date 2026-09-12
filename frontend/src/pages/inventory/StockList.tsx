@@ -6,7 +6,6 @@ import { useBranchFilter } from '@/components/branch/BranchFilter';
 import { BreadcrumbHeader, StatCard, DataTable, FilterToolbar } from '@/components/shared';
 import type { Column } from '@/components/shared';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
@@ -22,6 +21,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { formatCurrency } from '../../utils/format';
+import ProductMovementModal from './ProductMovementModal';
 
 interface Tier {
   id: string;
@@ -159,30 +159,33 @@ function StockQtyCell({ stock }: { stock: any }) {
 export default function StockList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
-  // IGDERP-88 threshold toggle — hide zero-stock rows
+  // IGDERP-88: cabang + threshold live in the filter popup (not inline).
+  // stockStatus doubles as the IGDERP-104 drill-down target.
+  const { branchId: defaultBranchId } = useBranchFilter();
+  const [popupBranchId, setPopupBranchId] = useState(defaultBranchId);
   const [hideZero, setHideZero] = useState(false);
-  // IGDERP-104 drill-down target (BE stockStatus: low | out | available)
   const [stockStatus, setStockStatus] = useState<string | undefined>(undefined);
+  // IGDERP-90: per-product movement modal
+  const [movementProduct, setMovementProduct] = useState<any | null>(null);
   // IGDERP-106 export column popup
   const [exportOpen, setExportOpen] = useState(false);
   const [exportCols, setExportCols] = useState<string[]>(EXPORT_COLUMNS.map((c) => c.key));
   const [exporting, setExporting] = useState(false);
   const limit = 20;
-  const { branchId, setBranchId } = useBranchFilter();
 
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, branchId, hideZero, stockStatus]);
+  }, [searchTerm, popupBranchId, hideZero, stockStatus]);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['product-stocks', page, searchTerm, branchId, hideZero, stockStatus],
+    queryKey: ['product-stocks', page, searchTerm, popupBranchId, hideZero, stockStatus],
     queryFn: async () => {
       const response = await api.get('/inventory/stock', {
         params: {
           page,
           limit,
           search: searchTerm || undefined,
-          branchId: branchId || undefined,
+          branchId: popupBranchId || undefined,
           hideZero: hideZero || undefined,
           stockStatus: stockStatus || undefined,
         },
@@ -211,7 +214,7 @@ export default function StockList() {
       const response = await api.get('/inventory/stock/export', {
         params: {
           search: searchTerm || undefined,
-          branchId: branchId || undefined,
+          branchId: popupBranchId || undefined,
           hideZero: hideZero || undefined,
           stockStatus: stockStatus || undefined,
           columns: exportCols.join(','),
@@ -235,11 +238,19 @@ export default function StockList() {
     {
       key: 'product',
       header: 'Produk',
+      // IGDERP-90: click opens the per-product movement modal
       cell: (stock) => (
-        <div>
-          <div className="text-sm font-semibold text-foreground">{stock.product?.name || '-'}</div>
+        <button
+          type="button"
+          className="text-left hover:opacity-80"
+          title="Lihat riwayat pergerakan produk"
+          onClick={() => setMovementProduct(stock.product || { id: stock.productId })}
+        >
+          <div className="text-sm font-semibold text-primary-700 underline decoration-dotted underline-offset-2">
+            {stock.product?.name || '-'}
+          </div>
           <div className="text-xs text-muted-foreground">{stock.product?.sku || '-'}</div>
-        </div>
+        </button>
       ),
     },
     {
@@ -353,27 +364,47 @@ export default function StockList() {
         </div>
       )}
 
+      {/* IGDERP-88: cabang + status + threshold live in the filter popup;
+          Export rides inline with search via the toolbar children slot (106) */}
       <FilterToolbar
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
         searchPlaceholder="Cari produk atau SKU..."
-        branchFilter={{ value: branchId, onChange: setBranchId, allowAll: true }}
-        fields={[]}
-        values={{}}
-        onFieldChange={() => {}}
-        onReset={() => {}}
-      />
-
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-1">
-        <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
-          <Switch checked={hideZero} onCheckedChange={setHideZero} />
-          Sembunyikan stok kosong
-        </label>
+        fields={[
+          { key: 'branchId', label: 'Cabang', type: 'branch' },
+          {
+            key: 'stockStatus',
+            label: 'Status stok',
+            type: 'select',
+            options: [
+              { value: 'low', label: 'Stok rendah' },
+              { value: 'out', label: 'Kosong' },
+              { value: 'available', label: 'Tersedia' },
+            ],
+          },
+          { key: 'hideZero', label: 'Sembunyikan stok kosong', type: 'toggle' },
+        ]}
+        values={{
+          branchId: popupBranchId,
+          stockStatus: stockStatus || '',
+          hideZero: hideZero ? 'true' : '',
+        }}
+        onFieldChange={(key, v) => {
+          if (key === 'branchId') setPopupBranchId(v);
+          else if (key === 'stockStatus') setStockStatus(v || undefined);
+          else if (key === 'hideZero') setHideZero(v === 'true');
+        }}
+        onReset={() => {
+          setPopupBranchId('');
+          setStockStatus(undefined);
+          setHideZero(false);
+        }}
+      >
         <Button variant="outline" size="sm" onClick={() => setExportOpen(true)}>
           <Download className="w-4 h-4 mr-1" />
           Export
         </Button>
-      </div>
+      </FilterToolbar>
 
       <DataTable
         columns={columns}
@@ -443,6 +474,13 @@ export default function StockList() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* IGDERP-90: per-product movement history (replaces the dedicated page) */}
+      <ProductMovementModal
+        product={movementProduct}
+        open={!!movementProduct}
+        onClose={() => setMovementProduct(null)}
+      />
     </div>
   );
 }
