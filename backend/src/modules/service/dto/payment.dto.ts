@@ -3,6 +3,7 @@ import { IsString, IsEnum, IsNumber, IsOptional, Min } from 'class-validator';
 export enum PaymentMethod {
   CASH = 'cash',
   TRANSFER = 'transfer',
+  QRIS = 'qris', // IGDERP-171: QRIS quick-pick alongside tunai/transfer
   E_WALLET = 'e_wallet',
   CREDIT_CARD = 'credit_card',
   DEBIT_CARD = 'debit_card',
