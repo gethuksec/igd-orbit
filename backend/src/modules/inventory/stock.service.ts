@@ -10,7 +10,7 @@ export class StockService {
   constructor(private prisma: PrismaService) {}
 
   async getStockSummary(query: ListStockDto) {
-    const { branchId, warehouseId, categoryId, brandId, stockStatus, search, page = 1, limit = 20 } = query;
+    const { branchId, warehouseId, categoryId, brandId, stockStatus, search, hideZero, page = 1, limit = 20 } = query;
     const skip = (page - 1) * limit;
 
     // Build where clause
@@ -20,6 +20,11 @@ export class StockService {
         deletedAt: null,
       },
     };
+
+    // IGDERP-88 threshold toggle: hide zero-stock rows
+    if (hideZero) {
+      where.quantityAvailable = { gt: 0 };
+    }
 
     if (warehouseId) {
       where.warehouseId = warehouseId;
@@ -55,22 +60,55 @@ export class StockService {
       };
     }
 
-    // Get all product stocks
-    const stocks = await this.prisma.productStock.findMany({
-      where,
-      include: {
-        product: {
-          include: {
-            category: true,
-            brand: true,
+    // Get all product stocks + total + active tiers (tier list drives per-tier
+    // member pricing on the client; single query, shared across the page)
+    const [stocks, total, tiers] = await Promise.all([
+      this.prisma.productStock.findMany({
+        where,
+        include: {
+          product: {
+            include: {
+              category: true,
+              brand: true,
+            },
           },
+          branch: true,
+          warehouse: true,
         },
-        branch: true,
-        warehouse: true,
-      },
-      skip,
-      take: limit,
-    });
+        skip,
+        take: limit,
+      }),
+      this.prisma.productStock.count({ where }),
+      this.prisma.customerTier.findMany({
+        where: { isActive: true },
+        orderBy: { level: 'asc' },
+        select: { id: true, code: true, name: true, discountPercentage: true },
+      }),
+    ]);
+
+    // IGDERP-91 product age: earliest date each (product, branch) pair first
+    // held stock > 0 (first positive stockMovement). One aggregate query
+    // for the whole page; rows without history get ageDays: null.
+    const ageByPair = new Map<string, number | null>();
+    if (stocks.length) {
+      const firstPositive = await this.prisma.stockMovement.groupBy({
+        by: ['productId', 'branchId'],
+        where: {
+          productId: { in: stocks.map((s: any) => s.productId) },
+          branchId: { in: [...new Set(stocks.map((s: any) => s.branchId))] },
+          quantityAfter: { gt: 0 },
+        },
+        _min: { createdAt: true },
+      });
+      const now = Date.now();
+      for (const row of firstPositive) {
+        const minDate = row._min.createdAt ? new Date(row._min.createdAt).getTime() : null;
+        ageByPair.set(
+          `${row.productId}::${row.branchId}`,
+          minDate === null ? null : Math.max(0, Math.floor((now - minDate) / 86400000)),
+        );
+      }
+    }
 
     // Calculate stock status and filter
     const processedStocks = stocks
@@ -89,15 +127,13 @@ export class StockService {
           ...stock,
           stockStatus: status,
           totalStock,
+          ageDays: ageByPair.get(`${stock.productId}::${stock.branchId}`) ?? null,
         };
       })
       .filter((stock) => {
         if (!stockStatus) return true;
         return stock.stockStatus === stockStatus;
       });
-
-    // Get total count
-    const total = await this.prisma.productStock.count({ where });
 
     return {
       data: processedStocks,
@@ -106,6 +142,10 @@ export class StockService {
         page,
         limit,
         totalPages: Math.ceil(total / limit),
+        tiers: tiers.map((t: any) => ({
+          ...t,
+          discountPercentage: Number(t.discountPercentage),
+        })),
       },
     };
   }
@@ -352,6 +392,7 @@ export class StockService {
       referenceType,
       startDate,
       endDate,
+      search,
       page = 1,
       limit = 20,
     } = query;
@@ -361,6 +402,17 @@ export class StockService {
 
     if (productId) {
       where.productId = productId;
+    }
+
+    // IGDERP-90 detail mode: product/barcode search (global mode omits it)
+    if (search) {
+      where.product = {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { sku: { contains: search, mode: 'insensitive' } },
+          { barcode: { contains: search, mode: 'insensitive' } },
+        ],
+      };
     }
 
     if (warehouseId) {
@@ -424,6 +476,55 @@ export class StockService {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  /**
+   * IGDERP-106 — stock CSV export honoring the active list filters.
+   * `columns` is a comma-separated subset of EXPORT_COLUMNS; unknown keys
+   * are ignored so a stale FE selection can never break the download.
+   */
+  static readonly EXPORT_COLUMNS: Record<string, { header: string; pick: (row: any, tiers: any[]) => string }> = {
+    sku: { header: 'SKU', pick: (r) => r.product?.sku ?? '' },
+    product: { header: 'Produk', pick: (r) => r.product?.name ?? '' },
+    barcode: { header: 'Barcode', pick: (r) => r.product?.barcode ?? '' },
+    branch: { header: 'Cabang', pick: (r) => r.branch?.name ?? '' },
+    warehouse: { header: 'Gudang', pick: (r) => r.warehouse?.name ?? '' },
+    available: { header: 'Stok Tersedia', pick: (r) => String(r.totalStock ?? r.quantityAvailable ?? 0) },
+    minStock: { header: 'Min Stock', pick: (r) => String(r.minStock ?? 0) },
+    reorderPoint: { header: 'Reorder Point', pick: (r) => (r.reorderPoint ?? '') as string },
+    regularPrice: { header: 'Harga Reguler', pick: (r) => String(r.product?.sellingPrice ?? 0) },
+    memberPrice: {
+      header: 'Harga Member (Gold 10%)',
+      pick: (r, tiers) => {
+        const base = Number(r.product?.sellingPrice ?? 0);
+        const gold = tiers.find((t: any) => t.code === 'GOLD') ?? tiers.find((t: any) => Number(t.discountPercentage) > 0);
+        if (!gold) return String(base);
+        return String(Math.round(base * (1 - Number(gold.discountPercentage) / 100)));
+      },
+    },
+    ageDays: { header: 'Umur Stok (hari)', pick: (r) => (r.ageDays ?? '') as string },
+    stockValue: {
+      header: 'Nilai Stok',
+      pick: (r) => String(Number(r.product?.costPrice ?? 0) * Number(r.totalStock ?? r.quantityAvailable ?? 0)),
+    },
+  };
+
+  async exportStockCsv(query: ListStockDto, columns?: string) {
+    const keys = (columns?.split(',').map((c) => c.trim()).filter(Boolean) ?? []).filter(
+      (c) => c in StockService.EXPORT_COLUMNS,
+    );
+    const picked = keys.length ? keys : Object.keys(StockService.EXPORT_COLUMNS);
+
+    // Reuse the list query (filters applied, no pagination for export)
+    const { data, meta } = await this.getStockSummary({ ...query, page: 1, limit: 5000 });
+    const tiers = (meta as any).tiers ?? [];
+
+    const escape = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+    const lines = [picked.map((k) => StockService.EXPORT_COLUMNS[k].header).join(',')];
+    for (const row of data as any[]) {
+      lines.push(picked.map((k) => escape(StockService.EXPORT_COLUMNS[k].pick(row, tiers))).join(','));
+    }
+    return lines.join('\n');
   }
 }
 

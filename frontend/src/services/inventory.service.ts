@@ -214,6 +214,7 @@ export const inventoryService = {
     brandId?: string;
     stockStatus?: 'low' | 'out' | 'available';
     search?: string;
+    hideZero?: boolean;
   }) {
     try {
       const response = await api.get('/inventory/stock', { params });
@@ -253,6 +254,7 @@ export const inventoryService = {
     referenceType?: string;
     startDate?: string;
     endDate?: string;
+    search?: string;
   }) {
     try {
       const response = await api.get('/inventory/movements', { params });
