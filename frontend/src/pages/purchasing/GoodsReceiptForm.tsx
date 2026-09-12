@@ -75,16 +75,35 @@ export default function GoodsReceiptForm() {
     enabled: !!formData.purchase_order_id && !isHibah,
   });
 
-  // Fetch ordered POs for selection
+  // Fetch receivable POs for selection: approved (D3 — no send-order step anymore),
+  // partially received (additional GRs) + legacy 'ordered' rows.
   const { data: orderedPOs } = useQuery({
-    queryKey: ['purchase-orders', 'ordered', branchId],
+    queryKey: ['purchase-orders', 'receivable', branchId],
     queryFn: async () => {
-      const result = await purchasingService.getPurchaseOrders({
-        status: 'ordered',
-        branchId: branchId || undefined,
-        limit: 100,
+      const [approved, ordered, partial] = await Promise.all([
+        purchasingService.getPurchaseOrders({
+          status: 'approved',
+          branchId: branchId || undefined,
+          limit: 100,
+        }),
+        purchasingService.getPurchaseOrders({
+          status: 'ordered',
+          branchId: branchId || undefined,
+          limit: 100,
+        }),
+        purchasingService.getPurchaseOrders({
+          status: 'partially_received',
+          branchId: branchId || undefined,
+          limit: 100,
+        }),
+      ]);
+      const merged = [...(approved.data || []), ...(ordered.data || []), ...(partial.data || [])];
+      const seen = new Set<string>();
+      return merged.filter((p: any) => {
+        if (!p?.id || seen.has(p.id)) return false;
+        seen.add(p.id);
+        return true;
       });
-      return result.data || [];
     },
     enabled: !isHibah,
   });
