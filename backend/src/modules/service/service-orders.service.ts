@@ -95,36 +95,6 @@ export class ServiceOrdersService {
     return `INT-${random}`;
   }
 
-  private async generateQuotationNumber(branchId: string): Promise<string> {
-    const branch = await this.prisma.branch.findUnique({
-      where: { id: branchId },
-      select: { code: true },
-    });
-
-    const year = new Date().getFullYear();
-    const month = String(new Date().getMonth() + 1).padStart(2, '0');
-
-    const lastOrder = await this.prisma.serviceOrder.findFirst({
-      where: {
-        quotationNumber: {
-          startsWith: `Q-SRV-${branch?.code || 'BR'}-${year}${month}`,
-        },
-      },
-      orderBy: {
-        quotationNumber: 'desc',
-      },
-    });
-
-    let nextNumber = 1;
-    if (lastOrder && lastOrder.quotationNumber) {
-      const parts = lastOrder.quotationNumber.split('-');
-      const lastNum = parseInt(parts[parts.length - 1] || '0');
-      nextNumber = lastNum + 1;
-    }
-
-    return `Q-SRV-${branch?.code || 'BR'}-${year}${month}-${String(nextNumber).padStart(6, '0')}`;
-  }
-
   private async generateInvoiceNumber(branchId: string): Promise<string> {
     const branch = await this.prisma.branch.findUnique({
       where: { id: branchId },
@@ -796,7 +766,7 @@ export class ServiceOrdersService {
     //   where: {
     //     assignedTechnicianId: dto.technicianId,
     //     status: {
-    //       in: ['diagnosed', 'approved', 'in-progress', 'qc'],
+    //       in: ['diagnosed', 'in-progress', 'qc'],
     //     },
     //   },
     // });
@@ -942,7 +912,7 @@ export class ServiceOrdersService {
     if (!serviceOrder) {
       throw new NotFoundException('Service order tidak ditemukan');
     }
-    if (['done', 'delivered', 'completed', 'cancelled'].includes(serviceOrder.status)) {
+    if (['done', 'cancelled'].includes(serviceOrder.status)) {
       throw new BadRequestException(
         `Cannot remove layanan from service order with status: ${serviceOrder.status}`,
       );
@@ -983,18 +953,14 @@ export class ServiceOrdersService {
     }
 
     // Validate status transition
-    // Smart Repair lifecycle (27 Aug §5): pending(Receive) -> diagnosed -> in-progress -> ready -> done;
-    // cancel allowed from any non-final status. Legacy flow (quoted/approved/qc/completed/delivered) preserved.
+    // Smart Repair lifecycle (IGDERP-168, proposal B): pending(Receive) → diagnosed → in-progress → qc → ready → done.
+    // Cancel allowed from pending/diagnosed/in-progress only — blocked once QC starts. Legacy chain removed.
     const validTransitions: Record<string, string[]> = {
       pending: ['diagnosed', 'cancelled'],
-      diagnosed: ['quoted', 'in-progress', 'cancelled'],
-      quoted: ['approved', 'cancelled'],
-      approved: ['in-progress', 'cancelled'],
-      'in-progress': ['qc', 'ready', 'cancelled'],
-      qc: ['completed', 'in-progress'], // Can return to in-progress if QC fails
-      completed: ['delivered'],
-      delivered: [],
-      ready: ['done', 'cancelled'],
+      diagnosed: ['in-progress', 'cancelled'],
+      'in-progress': ['qc', 'cancelled'],
+      qc: ['ready', 'in-progress'], // pass → ready, fail → back to in-progress
+      ready: ['done'],
       done: [],
       cancelled: [],
     };
@@ -1011,21 +977,7 @@ export class ServiceOrdersService {
       throw new BadRequestException('Alasan pembatalan wajib diisi');
     }
 
-    // Check required fields for specific statuses
-    // Quoted price is now auto-calculated from laborCost + partsCost
-    // No need to check quotedPrice input
-
-    if (
-      dto.status === 'approved' &&
-      dto.customerApprovedPrice === undefined &&
-      !serviceOrder.customerApprovedPrice
-    ) {
-      throw new BadRequestException('Customer approved price is required for approved status');
-    }
-
-    if (dto.status === 'completed' && serviceOrder.qualityStatus !== 'pass') {
-      throw new BadRequestException('QC must pass before completing service');
-    }
+    // IGDERP-168: no per-status field guards — QC pass/fail is the qc → ready / qc → in-progress transition
 
     return await this.prisma.$transaction(async (tx) => {
       const updateData: any = {
@@ -1049,38 +1001,21 @@ export class ServiceOrdersService {
         updateData.promoCode = dto.promoCode;
       }
 
-      // Update relevant timestamps and generate numbers
-      if (dto.status === 'quoted') {
-        updateData.quotedAt = new Date();
-        // Generate quotation number if not already set
-        if (!serviceOrder.quotationNumber) {
-          updateData.quotationNumber = await this.generateQuotationNumber(serviceOrder.branchId);
-        }
-        // Auto-calculate quoted price: laborCost + partsCost
-        const laborCost = dto.laborCost !== undefined 
-          ? Number(dto.laborCost) 
-          : Number(serviceOrder.laborCost || 0);
-        const partsCost = Number(serviceOrder.partsCost || 0);
-        updateData.quotedPrice = new Decimal(laborCost + partsCost);
-      } else if (dto.status === 'approved') {
-        updateData.approvedAt = new Date();
-        // Approved price can be different from quoted price (with discount)
-        if (dto.customerApprovedPrice !== undefined) {
-          updateData.customerApprovedPrice = new Decimal(dto.customerApprovedPrice);
-        }
+      // IGDERP-168: new status machine — pending → diagnosed → in-progress → qc → ready → done
+      if (dto.status === 'diagnosed') {
+        updateData.diagnosedAt = new Date();
       } else if (dto.status === 'in-progress') {
         updateData.startedAt = new Date();
       } else if (dto.status === 'ready') {
         updateData.readyAt = new Date();
       } else if (dto.status === 'done') {
-        updateData.completedAt = new Date();
+        const doneAt = new Date();
+        updateData.completedAt = doneAt;
         // IGDERP-185: wipe customer lock credential on handover
         updateData.devicePassword = null;
         updateData.deviceLockType = 'none';
-      } else if (dto.status === 'completed') {
-        updateData.completedAt = new Date();
-      } else if (dto.status === 'delivered') {
-        updateData.deliveredAt = new Date();
+        // IGDERP-168: warranty starts at handover (replaces legacy deliverService calc)
+        updateData.warrantyExpiryDate = new Date(doneAt.getTime() + Number(serviceOrder.warrantyDays ?? 30) * 86400000);
       } else if (dto.status === 'cancelled') {
         updateData.cancelledAt = new Date();
       }
@@ -1226,7 +1161,7 @@ export class ServiceOrdersService {
       throw new NotFoundException('Service order not found');
     }
 
-    if (serviceOrder.status === 'delivered' || serviceOrder.status === 'cancelled') {
+    if (serviceOrder.status === 'done' || serviceOrder.status === 'cancelled') {
       throw new BadRequestException(
         `Cannot add parts to service order with status: ${serviceOrder.status}`,
       );
@@ -1396,7 +1331,7 @@ export class ServiceOrdersService {
       throw new NotFoundException('Service order not found');
     }
 
-    if (serviceOrder.status === 'delivered' || serviceOrder.status === 'cancelled') {
+    if (serviceOrder.status === 'done' || serviceOrder.status === 'cancelled') {
       throw new BadRequestException(
         `Cannot remove parts from service order with status: ${serviceOrder.status}`,
       );
@@ -1581,7 +1516,7 @@ export class ServiceOrdersService {
     if (!serviceOrder) {
       throw new NotFoundException('Service order not found');
     }
-    if (['done', 'delivered', 'completed', 'cancelled'].includes(serviceOrder.status) && photoType !== 'completed') {
+    if (['done', 'cancelled'].includes(serviceOrder.status) && photoType !== 'completed') {
       throw new BadRequestException('Dokumentasi tahap ini hanya dapat ditambah sebelum serah terima');
     }
     const dir = join(process.cwd(), 'uploads', 'service-photos');
@@ -1626,64 +1561,6 @@ export class ServiceOrdersService {
     });
   }
 
-  async completeService(serviceOrderId: string, _userId: string) {
-    const serviceOrder = await this.prisma.serviceOrder.findUnique({
-      where: { id: serviceOrderId },
-      include: {
-        partsUsed: true,
-      },
-    });
-
-    if (!serviceOrder) {
-      throw new NotFoundException('Service order not found');
-    }
-
-    if (serviceOrder.status !== 'qc') {
-      throw new BadRequestException(`Cannot complete service with status: ${serviceOrder.status}`);
-    }
-
-    if (serviceOrder.qualityStatus !== 'pass') {
-      throw new BadRequestException('QC must pass before completing service');
-    }
-
-    // Calculate final price
-    // Total = (approvedPrice or quotedPrice) * 1.11 (11% tax)
-    // approvedPrice = quotedPrice - discountAmount
-    const quotedPrice = Number(serviceOrder.quotedPrice || 0);
-    const approvedPrice = Number(serviceOrder.customerApprovedPrice || quotedPrice);
-    const discountAmount = Number(serviceOrder.discountAmount || 0);
-    const finalPrice = approvedPrice - discountAmount; // Price after discount
-    const taxAmount = Math.round(finalPrice * 0.11);
-    const totalPrice = Math.round(finalPrice * 1.11); // Total includes 11% tax (rounded)
-
-    // Calculate warranty expiry date
-    const warrantyExpiryDate = new Date();
-    warrantyExpiryDate.setDate(warrantyExpiryDate.getDate() + serviceOrder.warrantyDays);
-
-    return this.prisma.serviceOrder.update({
-      where: { id: serviceOrderId },
-      data: {
-        status: 'completed',
-        completedAt: new Date(),
-        finalPrice: new Decimal(finalPrice),
-        taxAmount: new Decimal(taxAmount),
-        totalPrice: new Decimal(totalPrice),
-        warrantyExpiryDate,
-      },
-      include: {
-        branch: true,
-        customer: true,
-        serviceType: true,
-        assignedTechnician: true,
-        partsUsed: {
-          include: {
-            product: true,
-          },
-        },
-      },
-    });
-  }
-
   async trackService(serviceNumber: string) {
     try {
       const serviceOrder = await this.prisma.serviceOrder.findUnique({
@@ -1722,69 +1599,6 @@ export class ServiceOrdersService {
     }
   }
 
-  async qcCheck(serviceOrderId: string, dto: QcCheckDto, userId: string) {
-    const serviceOrder = await this.prisma.serviceOrder.findUnique({
-      where: { id: serviceOrderId },
-    });
-
-    if (!serviceOrder) {
-      throw new NotFoundException('Service order not found');
-    }
-
-    if (serviceOrder.status !== 'qc') {
-      throw new BadRequestException(`Cannot perform QC check on service with status: ${serviceOrder.status}`);
-    }
-
-    return await this.prisma.$transaction(async (tx) => {
-      const updateData: any = {
-        qualityStatus: dto.status,
-      };
-
-      // If QC fails, return to in-progress
-      if (dto.status === 'fail') {
-        updateData.status = 'in-progress';
-      }
-
-      const updated = await tx.serviceOrder.update({
-        where: { id: serviceOrderId },
-        data: updateData,
-        include: {
-          assignedTechnician: true,
-        },
-      });
-
-      // Create status history
-      await tx.serviceStatusHistory.create({
-        data: {
-          serviceOrderId,
-          status: updateData.status || serviceOrder.status,
-          previousStatus: serviceOrder.status,
-          notes: `QC ${dto.status.toUpperCase()}: ${dto.notes || ''}`,
-          changedBy: userId,
-        },
-      });
-
-      // Upload photos if provided
-      if (dto.photos && dto.photos.length > 0) {
-        await Promise.all(
-          dto.photos.map((photoUrl) =>
-            tx.servicePhoto.create({
-              data: {
-                serviceOrderId,
-                photoUrl,
-                photoType: 'completed',
-                description: 'QC photos',
-                uploadedBy: userId,
-              },
-            }),
-          ),
-        );
-      }
-
-      return updated;
-    });
-  }
-
   // IGDERP-185: reveal lock credential (role-gated by controller) + audit to history
   async revealLock(serviceOrderId: string, userId: string) {
     const serviceOrder = await this.prisma.serviceOrder.findUnique({
@@ -1817,70 +1631,6 @@ export class ServiceOrdersService {
     });
 
     return { lockType: serviceOrder.deviceLockType, value };
-  }
-
-  async deliverService(serviceOrderId: string, userId: string) {
-    const serviceOrder = await this.prisma.serviceOrder.findUnique({
-      where: { id: serviceOrderId },
-      include: {
-        branch: true,
-      },
-    });
-
-    if (!serviceOrder) {
-      throw new NotFoundException('Service order not found');
-    }
-
-    if (serviceOrder.status !== 'completed') {
-      throw new BadRequestException(`Cannot deliver service with status: ${serviceOrder.status}`);
-    }
-
-    if (serviceOrder.qualityStatus !== 'pass') {
-      throw new BadRequestException('QC must pass before delivery');
-    }
-
-    // Check payment status (can be enhanced with actual payment processing)
-    const wasPaidBefore = serviceOrder.paymentStatus === 'paid';
-    const totalPrice = Number(serviceOrder.totalPrice || 0);
-
-    const updated = await this.prisma.serviceOrder.update({
-      where: { id: serviceOrderId },
-      data: {
-        status: 'delivered',
-        deliveredAt: new Date(),
-        paymentStatus: 'paid', // Assuming payment collected on delivery
-        paidAt: serviceOrder.paidAt || new Date(),
-      },
-      include: {
-        branch: true,
-        customer: true,
-        serviceType: true,
-        assignedTechnician: true,
-      },
-    });
-
-    // Auto-generate journal entry when delivered and paid (if not already created)
-    if (
-      this.journalEntriesService &&
-      !wasPaidBefore &&
-      totalPrice > 0 &&
-      serviceOrder.paymentMethod
-    ) {
-      try {
-        await this.journalEntriesService.autoGenerateFromServicePayment(
-          serviceOrderId,
-          serviceOrder.branchId,
-          totalPrice,
-          serviceOrder.paymentMethod || 'cash',
-          userId,
-        );
-      } catch (error) {
-        // Don't fail delivery if journal creation fails
-        console.error('Error creating auto journal entry on delivery:', error);
-      }
-    }
-
-    return updated;
   }
 
   async processPayment(serviceOrderId: string, dto: ProcessPaymentDto, userId: string) {
@@ -1996,8 +1746,8 @@ export class ServiceOrdersService {
       throw new NotFoundException('Service order not found');
     }
 
-    if (serviceOrder.status !== 'delivered') {
-      throw new BadRequestException('Feedback can only be collected for delivered services');
+    if (serviceOrder.status !== 'done') {
+      throw new BadRequestException('Feedback can only be collected for completed (done) services');
     }
 
     return await this.prisma.$transaction(async (tx) => {

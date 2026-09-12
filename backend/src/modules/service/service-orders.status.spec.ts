@@ -150,6 +150,13 @@ describe('ServiceOrdersService.updateStatus — Smart Repair lifecycle (IGDERP-1
   });
   });
 
+  it('allows pending -> diagnosed and stamps diagnosedAt (IGDERP-168)', async () => {
+    await run('pending', { status: 'diagnosed', notes: 'cek awal' });
+    const data = tx.serviceOrder.update.mock.calls[0][0].data;
+    expect(data.status).toBe('diagnosed');
+    expect(data.diagnosedAt).toBeInstanceOf(Date);
+  });
+
   it('allows diagnosed -> in-progress (SR flow shortcut)', async () => {
     await run('diagnosed', { status: 'in-progress', notes: 'mulai kerjakan' });
     expect(tx.serviceOrder.update).toHaveBeenCalled();
@@ -161,21 +168,52 @@ describe('ServiceOrdersService.updateStatus — Smart Repair lifecycle (IGDERP-1
     );
   });
 
-  it('allows in-progress -> ready and stamps readyAt + logs history', async () => {
-    await run('in-progress', { status: 'ready', notes: 'selesai, part terpasang' });
-    const data = tx.serviceOrder.update.mock.calls[0][0].data;
-    expect(data.status).toBe('ready');
-    expect(data.readyAt).toBeInstanceOf(Date);
+  it('rejects legacy diagnosed -> quoted (chain retired, IGDERP-168)', async () => {
+    await expect(run('diagnosed', { status: 'quoted' })).rejects.toThrow(BadRequestException);
   });
 
-  it('allows ready -> done and stamps completedAt', async () => {
-    await run('ready', { status: 'done', notes: 'unit diambil' });
+  it('rejects in-progress -> ready (must pass QC first, IGDERP-168)', async () => {
+    await expect(run('in-progress', { status: 'ready', notes: 'selesai' })).rejects.toThrow(
+      BadRequestException,
+    );
+  });
+
+  it('allows in-progress -> qc', async () => {
+    await run('in-progress', { status: 'qc', notes: 'mulai QC' });
+    expect(tx.serviceOrder.update.mock.calls[0][0].data.status).toBe('qc');
+  });
+
+  it('allows qc -> ready (pass) and qc -> in-progress (fail)', async () => {
+    await run('qc', { status: 'ready', notes: 'lolos QC' });
+    expect(tx.serviceOrder.update.mock.calls[0][0].data.readyAt).toBeInstanceOf(Date);
+
+    tx.serviceOrder.update.mockClear();
+    await run('qc', { status: 'in-progress', notes: 'gagal QC, kerjakan ulang' });
+    expect(tx.serviceOrder.update.mock.calls[0][0].data.status).toBe('in-progress');
+  });
+
+  it('rejects legacy qc -> completed and completed -> delivered (chain retired)', async () => {
+    await expect(run('qc', { status: 'completed', notes: '' })).rejects.toThrow(BadRequestException);
+    await expect(run('completed', { status: 'delivered' })).rejects.toThrow(BadRequestException);
+  });
+
+  it('allows ready -> done: completedAt + warrantyExpiryDate + lock wipe (IGDERP-168/185)', async () => {
+    prisma.serviceOrder.findUnique.mockResolvedValue({
+      ...order('ready'),
+      warrantyDays: 30,
+      devicePassword: 'iv:enc',
+      deviceLockType: 'pin',
+    });
+    await service.updateStatus('so-1', { status: 'done', notes: 'unit diambil' }, 'user-1');
     const data = tx.serviceOrder.update.mock.calls[0][0].data;
     expect(data.status).toBe('done');
     expect(data.completedAt).toBeInstanceOf(Date);
+    expect(data.warrantyExpiryDate).toBeInstanceOf(Date);
+    expect(data.devicePassword).toBeNull();
+    expect(data.deviceLockType).toBe('none');
   });
 
-  it('rejects ready -> done - INVALID: done is terminal', async () => {
+  it('rejects done -> done - INVALID: done is terminal', async () => {
     await expect(run('done', { status: 'done' })).rejects.toThrow(BadRequestException);
   });
 
@@ -192,28 +230,25 @@ describe('ServiceOrdersService.updateStatus — Smart Repair lifecycle (IGDERP-1
     );
   });
 
-  it('cancel allowed with reason from any non-final status (in-progress + ready)', async () => {
-    await run('in-progress', { status: 'cancelled', notes: 'customer batal' });
+  it('cancel allowed with reason from pending/diagnosed/in-progress', async () => {
+    await run('pending', { status: 'cancelled', notes: 'salah input' });
     expect(tx.serviceOrder.update.mock.calls[0][0].data.cancelledAt).toBeInstanceOf(Date);
 
     tx.serviceOrder.update.mockClear();
-    await run('ready', { status: 'cancelled', notes: 'customer tidak jadi ambil' });
+    await run('diagnosed', { status: 'cancelled', notes: 'customer batal' });
+    expect(tx.serviceOrder.update.mock.calls[0][0].data.status).toBe('cancelled');
+
+    tx.serviceOrder.update.mockClear();
+    await run('in-progress', { status: 'cancelled', notes: 'customer batal' });
     expect(tx.serviceOrder.update.mock.calls[0][0].data.status).toBe('cancelled');
   });
 
-  it('preserves legacy transitions (regression): completed -> delivered', async () => {
-    await run('completed', { status: 'delivered' });
-    expect(tx.serviceOrder.update.mock.calls[0][0].data.status).toBe('delivered');
-  });
-
-  it('preserves legacy guard: QC must pass before completed (regression)', async () => {
-    // qualityStatus null/undefined on fixture -> rejected
-    await expect(run('qc', { status: 'completed', notes: '' })).rejects.toThrow(
-      /QC must pass before completing/,
+  it('cancel blocked once QC starts — qc/ready/done reject (IGDERP-168)', async () => {
+    await expect(run('qc', { status: 'cancelled', notes: 'x' })).rejects.toThrow(BadRequestException);
+    await expect(run('ready', { status: 'cancelled', notes: 'customer tidak jadi ambil' })).rejects.toThrow(
+      BadRequestException,
     );
-    // with QC pass -> allowed
-    prisma.serviceOrder.findUnique.mockResolvedValue({ ...order('qc'), qualityStatus: 'pass' });
-    await expect(service.updateStatus('so-1', { status: 'completed', notes: '' }, 'u')).resolves.toBeTruthy();
+    await expect(run('done', { status: 'cancelled', notes: 'x' })).rejects.toThrow(BadRequestException);
   });
 
   it('throws NotFound when order missing', async () => {

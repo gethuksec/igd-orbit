@@ -14,24 +14,20 @@ interface ServiceInfoProps {
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800',
   diagnosed: 'bg-blue-100 text-blue-800',
-  quoted: 'bg-purple-100 text-purple-800',
-  approved: 'bg-indigo-100 text-indigo-800',
   'in-progress': 'bg-blue-100 text-blue-800',
   qc: 'bg-orange-100 text-orange-800',
-  completed: 'bg-green-100 text-green-800',
-  delivered: 'bg-gray-100 text-gray-800',
+  ready: 'bg-blue-100 text-blue-800',
+  done: 'bg-green-100 text-green-800',
   cancelled: 'bg-red-100 text-red-800',
 };
 
 const statusLabels: Record<string, string> = {
   pending: 'Pending',
   diagnosed: 'Diagnosed',
-  quoted: 'Quoted',
-  approved: 'Approved',
   'in-progress': 'In Progress',
   qc: 'Quality Check',
-  completed: 'Completed',
-  delivered: 'Delivered',
+  ready: 'Ready',
+  done: 'Done',
   cancelled: 'Cancelled',
 };
 

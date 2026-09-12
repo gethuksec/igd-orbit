@@ -39,45 +39,37 @@ import { Select } from '@/components/ui/select';
 import { BreadcrumbHeader } from '@/components/shared';
 import TagCombobox from '@/components/services/TagCombobox';
 import PatternPad from '@/components/services/PatternPad';
+import QcModal from '@/components/services/QcModal';
 import { LOCK_TYPE_LABELS } from '@/components/services/LockModal';
 import { serviceOrdersService } from '@/services/service-orders.service';
 import { formatCurrency } from '@/utils/format';
 
-// ─── Status vocabulary (IGDERP-133: 6 + Cancel) ───────────────────────
+// ─── Status vocabulary (IGDERP-168: proposal B + Cancel) ────────────────────
 const STATUS_LABELS: Record<string, string> = {
   pending: 'Receive',
   diagnosed: 'Diagnose',
   'in-progress': 'In Progress',
+  qc: 'QC',
   ready: 'Ready',
   done: 'Done',
   cancelled: 'Cancel',
-  quoted: 'Quoted',
-  approved: 'Approved',
-  qc: 'QC',
-  completed: 'Completed',
-  delivered: 'Delivered',
 };
 
 const STATUS_PILL: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
   diagnosed: 'bg-blue-100 text-blue-800 border-blue-200',
   'in-progress': 'bg-blue-100 text-blue-800 border-blue-200',
+  qc: 'bg-amber-100 text-amber-800 border-amber-200',
   ready: 'bg-blue-100 text-blue-800 border-blue-200',
   done: 'bg-green-100 text-green-800 border-green-200',
   cancelled: 'bg-red-100 text-red-800 border-red-200',
-  quoted: 'bg-blue-100 text-blue-800 border-blue-200',
-  approved: 'bg-blue-100 text-blue-800 border-blue-200',
-  qc: 'bg-blue-100 text-blue-800 border-blue-200',
-  completed: 'bg-green-100 text-green-800 border-green-200',
-  delivered: 'bg-green-100 text-green-800 border-green-200',
 };
 
-const SR_FLOW = ['pending', 'diagnosed', 'in-progress', 'ready', 'done'] as const;
+const SR_FLOW = ['pending', 'diagnosed', 'in-progress', 'qc', 'ready', 'done'] as const;
 const SR_NEXT_LABEL: Record<string, string> = {
   diagnosed: 'Tandai Diagnose',
   'in-progress': 'Mulai Pengerjaan',
-  ready: 'Tandai Ready',
-  done: 'Tandai Done',
+  qc: 'Mulai QC',
 };
 
 const formatDateTime = (d?: string | null) =>
@@ -115,6 +107,8 @@ export default function SmartRepairDetailPage() {
   const [barangSearch, setBarangSearch] = useState('');
   const [barangRows, setBarangRows] = useState<any[]>([]);
   const [openBayar, setOpenBayar] = useState(false);
+  // IGDERP-168: QC popup state
+  const [openQc, setOpenQc] = useState(false);
   // IGDERP-185: lock viewer state (reveal gated server-side, audit logged)
   const [openLockView, setOpenLockView] = useState(false);
   const [lockReveal, setLockReveal] = useState<{ lockType: string; value: string | null } | null>(null);
@@ -342,7 +336,7 @@ export default function SmartRepairDetailPage() {
   const paidSoFar = Number(order.downPayment || 0);
   const sisaBayar = Math.max(0, totalFee - paidSoFar);
   const isPaid = String(order.paymentStatus || '').toLowerCase() === 'paid' || (totalFee > 0 && sisaBayar <= 0);
-  const frozen = ['done', 'delivered', 'completed', 'cancelled'].includes(status);
+  const frozen = ['done', 'cancelled'].includes(status);
   // IGDERP-136 detail round: estimasi antrian per baris (received + ΣSLA s.d. baris itu)
   const receivedBase = order.receivedDate || order.createdAt;
   const layananEta: string[] = (() => {
@@ -766,12 +760,21 @@ export default function SmartRepairDetailPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-64">
-              {currentIndex >= 0 && currentIndex < SR_FLOW.length - 1 && !isCancelled && (
+              {currentIndex >= 0 && currentIndex < SR_FLOW.length - 1 && !isCancelled && status !== 'qc' && status !== 'ready' && (
                 <DropdownMenuItem
                   className="font-semibold"
                   onClick={() => statusMutation.mutate({ status: SR_FLOW[currentIndex + 1] })}
                 >
                   {SR_NEXT_LABEL[SR_FLOW[currentIndex + 1]]}
+                </DropdownMenuItem>
+              )}
+              {/* IGDERP-168: QC runs through the popup (checklist + general checkup + note/row) */}
+              {status === 'qc' && !isCancelled && (
+                <DropdownMenuItem
+                  className="font-semibold"
+                  onClick={() => setOpenQc(true)}
+                >
+                  Pemeriksaan QC
                 </DropdownMenuItem>
               )}
               {status === 'in-progress' && !isCancelled && (
@@ -829,13 +832,18 @@ export default function SmartRepairDetailPage() {
                   Tambah Barang
                 </DropdownMenuItem>
               )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="text-red-600 font-semibold"
-                onClick={() => setOpenCancel(true)}
-              >
-                Batal
-              </DropdownMenuItem>
+              {/* IGDERP-168: cancel blocked once QC starts */}
+              {['pending', 'diagnosed', 'in-progress'].includes(status ?? '') && !isCancelled && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-red-600 font-semibold"
+                    onClick={() => setOpenCancel(true)}
+                  >
+                    Batal
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
           )}
@@ -911,7 +919,7 @@ export default function SmartRepairDetailPage() {
                     ) : (
                       !current && (
                         <div className="text-xs text-gray-400 mt-1">
-                          {s === 'ready' ? 'Selesai dikerjakan — siap diambil customer' : s === 'done' ? 'Sudah diambil / diserahkan ke customer' : ''}
+                          {s === 'qc' ? 'Pemeriksaan kualitas — siap diambil bila lolos' : s === 'ready' ? 'Selesai dikerjakan — siap diambil customer' : s === 'done' ? 'Sudah diambil / diserahkan ke customer' : ''}
                         </div>
                       )
                     )}
@@ -1315,6 +1323,21 @@ export default function SmartRepairDetailPage() {
           )}
         </DialogContent>
       </Dialog>
+      {/* IGDERP-168: QC popup — intake checklist + general checkup + note/row; pass → ready, fail → in-progress */}
+      <QcModal
+        open={openQc}
+        onOpenChange={setOpenQc}
+        items={((order as any)?.completenessItems || []).filter((x: any) => x.checked).map((x: any) => ({ name: x.name, conditionNote: x.conditionNote }))}
+        busy={statusMutation.isPending}
+        onPass={(notes) => {
+          setOpenQc(false);
+          statusMutation.mutate({ status: 'ready', notes });
+        }}
+        onFail={(notes) => {
+          setOpenQc(false);
+          statusMutation.mutate({ status: 'in-progress', notes });
+        }}
+      />
       <Dialog open={openBayar} onOpenChange={setOpenBayar}>
         <DialogContent>
           <DialogHeader><DialogTitle>Terima Pembayaran</DialogTitle></DialogHeader>

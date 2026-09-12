@@ -139,12 +139,12 @@ export default function MyServiceOrders() {
             label: 'Status',
             type: 'select',
             options: [
-              { value: 'PENDING', label: 'Pending' },
-              { value: 'DIAGNOSED', label: 'Diagnosed' },
-              { value: 'APPROVED', label: 'Approved' },
-              { value: 'IN_PROGRESS', label: 'In Progress' },
-              { value: 'QC', label: 'QC' },
-              { value: 'COMPLETED', label: 'Completed' },
+              { value: 'pending', label: 'Pending' },
+              { value: 'diagnosed', label: 'Diagnosed' },
+              { value: 'in-progress', label: 'In Progress' },
+              { value: 'qc', label: 'QC' },
+              { value: 'ready', label: 'Ready' },
+              { value: 'done', label: 'Done' },
             ],
           },
         ]}

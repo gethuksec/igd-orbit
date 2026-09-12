@@ -19,23 +19,19 @@ interface StatusTimelineProps {
 const statusOrder = [
   'pending',
   'diagnosed',
-  'quoted',
-  'approved',
   'in-progress',
   'qc',
-  'completed',
-  'delivered',
+  'ready',
+  'done',
 ];
 
 const statusLabels: Record<string, string> = {
   pending: 'Received',
   diagnosed: 'Diagnosed',
-  quoted: 'Quotation Sent',
-  approved: 'Approved',
   'in-progress': 'In Progress',
   qc: 'Quality Check',
-  completed: 'Completed',
-  delivered: 'Delivered',
+  ready: 'Ready',
+  done: 'Done',
 };
 
 export default function StatusTimeline({ currentStatus, statusHistory }: StatusTimelineProps) {

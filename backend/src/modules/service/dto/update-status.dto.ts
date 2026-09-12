@@ -7,16 +7,14 @@ import {
   Min,
 } from 'class-validator';
 
+// IGDERP-168: new status machine — pending → diagnosed → in-progress → qc → ready → done (+cancelled).
+// Legacy quoted/approved/completed/delivered removed.
 export class UpdateStatusDto {
   @IsEnum([
     'pending',
     'diagnosed',
-    'quoted',
-    'approved',
     'in-progress',
     'qc',
-    'completed',
-    'delivered',
     'cancelled',
     'ready',
     'done',
@@ -24,12 +22,8 @@ export class UpdateStatusDto {
   status!:
     | 'pending'
     | 'diagnosed'
-    | 'quoted'
-    | 'approved'
     | 'in-progress'
     | 'qc'
-    | 'completed'
-    | 'delivered'
     | 'cancelled'
     | 'ready'
     | 'done';
@@ -66,6 +60,3 @@ export class UpdateStatusDto {
   @IsOptional()
   promoCode?: string; // Kode promo/diskon
 }
-
-
-
