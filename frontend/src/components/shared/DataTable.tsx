@@ -31,6 +31,7 @@ interface DataTableProps<T> {
   sortDirection?: 'asc' | 'desc';
   onSort?: (column: string) => void;
   className?: string;
+  onRowClick?: (item: T) => void;
 }
 
 const ROWS = 5;
@@ -47,6 +48,7 @@ export function DataTable<T>({
   sortDirection,
   onSort,
   className,
+  onRowClick,
 }: DataTableProps<T>) {
   if (isLoading) {
     return (
@@ -119,7 +121,11 @@ export function DataTable<T>({
         </TableHeader>
         <TableBody>
           {data.map((item) => (
-            <TableRow key={keyExtractor(item)}>
+            <TableRow
+              key={keyExtractor(item)}
+              onClick={onRowClick ? () => onRowClick(item) : undefined}
+              className={onRowClick ? 'cursor-pointer' : undefined}
+            >
               {columns.map((col) => (
                 <TableCell key={col.key} className={col.className}>
                   {col.cell(item)}

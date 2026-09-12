@@ -238,19 +238,12 @@ export default function StockList() {
     {
       key: 'product',
       header: 'Produk',
-      // IGDERP-90: click opens the per-product movement modal
+      // IGDERP-90: the whole row opens the per-product movement modal
       cell: (stock) => (
-        <button
-          type="button"
-          className="text-left hover:opacity-80"
-          title="Lihat riwayat pergerakan produk"
-          onClick={() => setMovementProduct(stock.product || { id: stock.productId })}
-        >
-          <div className="text-sm font-semibold text-primary-700 underline decoration-dotted underline-offset-2">
-            {stock.product?.name || '-'}
-          </div>
+        <div>
+          <div className="text-sm font-semibold text-foreground">{stock.product?.name || '-'}</div>
           <div className="text-xs text-muted-foreground">{stock.product?.sku || '-'}</div>
-        </button>
+        </div>
       ),
     },
     {
@@ -413,6 +406,7 @@ export default function StockList() {
         isLoading={isLoading}
         emptyMessage="Tidak ada stok ditemukan"
         emptyIcon={<Package className="w-16 h-16" />}
+        onRowClick={(stock: any) => setMovementProduct(stock.product || { id: stock.productId })}
       />
 
       {/* Pagination */}

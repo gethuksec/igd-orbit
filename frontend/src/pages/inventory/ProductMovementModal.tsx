@@ -133,7 +133,6 @@ export default function ProductMovementModal({ product, open, onClose }: Props) 
               className="h-9"
             />
           </div>
-          <span className="ml-auto text-xs text-muted-foreground">{total} pergerakan</span>
           <select
             value={pageSize}
             onChange={(e) => {
@@ -149,6 +148,7 @@ export default function ProductMovementModal({ product, open, onClose }: Props) 
               </option>
             ))}
           </select>
+          <span className="ml-auto text-xs text-muted-foreground">{total} pergerakan</span>
         </div>
 
         <div className="flex-1 overflow-y-auto -mx-1 px-1">
