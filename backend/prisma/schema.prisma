@@ -2041,7 +2041,7 @@ model LabelSetting {
   labelHeightMm   Decimal  @map("label_height_mm") @db.Decimal(6, 1)
   columns         Int      @default(3) // labels per row on A4 sheets
   symbology       String   @default("BARCODE") // 'BARCODE' | 'QR'
-  paperType       String   @default("THERMAL") // 'THERMAL' (one label/page) | 'A4' (sheet grid)
+  paperType       String   @default("THERMAL") @map("paper_type") // 'THERMAL' (one label/page) | 'A4' (sheet grid)
   showPrintedName Boolean  @default(true) @map("show_printed_name")
   showPrice       Boolean  @default(true) @map("show_price")
   showSku         Boolean  @default(true) @map("show_sku")
