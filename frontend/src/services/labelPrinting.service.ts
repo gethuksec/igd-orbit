@@ -59,12 +59,20 @@ export const labelPrintingService = {
     ids?: string;
   }): Promise<{ data: LabelPrintJob[]; total: number; pendingCount: number }> {
     const response = await api.get('/label-printing/jobs', { params });
-    const body = response.data.data || response.data;
-    const jobs: LabelPrintJob[] = body.data ?? body;
+    const raw = response.data;
+    // API returns { data: [...], total, pendingCount } — but stay tolerant of a bare array.
+    if (Array.isArray(raw)) {
+      return {
+        data: raw,
+        total: raw.length,
+        pendingCount: raw.filter((j: LabelPrintJob) => j.status === 'pending').length,
+      };
+    }
+    const jobs: LabelPrintJob[] = raw?.data ?? [];
     return {
       data: jobs,
-      total: body.total ?? jobs.length,
-      pendingCount: body.pendingCount ?? 0,
+      total: raw?.total ?? jobs.length,
+      pendingCount: raw?.pendingCount ?? jobs.filter((j) => j.status === 'pending').length,
     };
   },
 
