@@ -1032,6 +1032,7 @@ model ServiceType {
   maxPrice    Decimal? @map("max_price") @db.Decimal(15, 2)
   slaHours    Decimal @map("sla_hours") @db.Decimal(5, 2) // Base SLA in hours (0.5 = 30m allowed, IGDERP-135)
   durationHours Decimal? @map("duration_hours") @db.Decimal(5, 2) // IGDERP-186: auto duration per service type (hours, step 0.5)
+  tierPricing   Json?     @map("tier_pricing") // IGDERP-187: per-tier service prices {"tierId": number} (mirrors Product.memberPricing)
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")

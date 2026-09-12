@@ -155,6 +155,7 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
         label: 'Smart Repair',
         children: [
           { label: 'Buat Smart Repair', key: 'action.service.smart_repair.create' },
+          { label: 'Ubah Harga Service', key: 'service.price.edit' }, // IGDERP-187: price override (tier auto-fill is default)
         ],
       },
       {

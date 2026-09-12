@@ -87,4 +87,28 @@ describe('ServiceTypesService durationHours (IGDERP-186)', () => {
     expect(out[0].durationHours).toBe(2);
     expect(out[1].durationHours).toBeNull();
   });
+
+  it('create/update pass tierPricing through untouched (IGDERP-187)', async () => {
+    prisma.serviceType.findFirst.mockResolvedValue(null);
+    prisma.serviceType.create.mockImplementation(() =>
+      Promise.resolve(row({ tierPricing: { 'tier-1': 250000 } })),
+    );
+    const created: any = await service.create({
+      code: 'X', name: 'X', basePrice: 1, slaHours: 4, tierPricing: { 'tier-1': 250000 },
+    } as any);
+    expect(prisma.serviceType.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ tierPricing: { 'tier-1': 250000 } }) }),
+    );
+    expect(created.tierPricing).toEqual({ 'tier-1': 250000 });
+
+    prisma.serviceType.findFirst.mockResolvedValue(row());
+    prisma.serviceType.update.mockImplementation(() =>
+      Promise.resolve(row({ tierPricing: { 'tier-1': 240000 } })),
+    );
+    const updated: any = await service.update('st-1', { tierPricing: { 'tier-1': 240000 } } as any);
+    expect(prisma.serviceType.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ tierPricing: { 'tier-1': 240000 } }) }),
+    );
+    expect(updated.tierPricing).toEqual({ 'tier-1': 240000 });
+  });
 });

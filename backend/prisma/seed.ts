@@ -137,14 +137,14 @@ async function main() {
   const ownerRole = await prisma.role.upsert({
     where: { code: 'OWNER' },
     update: {
-      defaultPermissions: ['menu.dashboard', 'menu.pos', 'menu.service', 'menu.sales', 'menu.master-data', 'menu.inventory', 'menu.finance', 'menu.purchasing', 'menu.hr', 'menu.users', 'menu.branches', 'action.view', 'action.pos.create', 'action.pos.edit', 'action.service.create', 'action.service.edit', 'action.service.delete', 'action.service.assign', 'action.service.smart_repair.create', 'service.checkpoint.view', 'service.checkpoint.create', 'service.checkpoint.edit', 'service.checkpoint.delete'],
+      defaultPermissions: ['menu.dashboard', 'menu.pos', 'menu.service', 'menu.sales', 'menu.master-data', 'menu.inventory', 'menu.finance', 'menu.purchasing', 'menu.hr', 'menu.users', 'menu.branches', 'action.view', 'action.pos.create', 'action.pos.edit', 'action.service.create', 'action.service.edit', 'action.service.delete', 'action.service.assign', 'action.service.smart_repair.create', 'service.price.edit', 'service.checkpoint.view', 'service.checkpoint.create', 'service.checkpoint.edit', 'service.checkpoint.delete'],
     },
     create: {
       code: 'OWNER',
       name: 'Pemilik',
       description: 'Full access to all modules',
       level: 1,
-      defaultPermissions: ['menu.dashboard', 'menu.pos', 'menu.service', 'menu.sales', 'menu.master-data', 'menu.inventory', 'menu.finance', 'menu.purchasing', 'menu.hr', 'menu.users', 'menu.branches', 'action.view', 'action.pos.create', 'action.pos.edit', 'action.service.create', 'action.service.edit', 'action.service.delete', 'action.service.assign', 'action.service.smart_repair.create', 'service.checkpoint.view', 'service.checkpoint.create', 'service.checkpoint.edit', 'service.checkpoint.delete'],
+      defaultPermissions: ['menu.dashboard', 'menu.pos', 'menu.service', 'menu.sales', 'menu.master-data', 'menu.inventory', 'menu.finance', 'menu.purchasing', 'menu.hr', 'menu.users', 'menu.branches', 'action.view', 'action.pos.create', 'action.pos.edit', 'action.service.create', 'action.service.edit', 'action.service.delete', 'action.service.assign', 'action.service.smart_repair.create', 'service.price.edit', 'service.checkpoint.view', 'service.checkpoint.create', 'service.checkpoint.edit', 'service.checkpoint.delete'],
       isActive: true,
     },
   });
@@ -167,14 +167,14 @@ async function main() {
   const managerRole = await prisma.role.upsert({
     where: { code: 'MGR' },
     update: {
-      defaultPermissions: ['menu.dashboard', 'menu.pos', 'menu.service', 'menu.sales', 'menu.master-data', 'menu.inventory', 'menu.purchasing', 'menu.branches', 'menu.users', 'action.view', 'action.pos.create', 'action.pos.edit', 'action.service.create', 'action.service.edit', 'action.service.smart_repair.create', 'service.checkpoint.view', 'service.checkpoint.create', 'service.checkpoint.edit', 'service.checkpoint.delete'],
+      defaultPermissions: ['menu.dashboard', 'menu.pos', 'menu.service', 'menu.sales', 'menu.master-data', 'menu.inventory', 'menu.purchasing', 'menu.branches', 'menu.users', 'action.view', 'action.pos.create', 'action.pos.edit', 'action.service.create', 'action.service.edit', 'action.service.smart_repair.create', 'service.price.edit', 'service.checkpoint.view', 'service.checkpoint.create', 'service.checkpoint.edit', 'service.checkpoint.delete'],
     },
     create: {
       code: 'MGR',
       name: 'Manager',
       description: 'Management access',
       level: 3,
-            defaultPermissions: ['menu.dashboard', 'menu.pos', 'menu.service', 'menu.sales', 'menu.master-data', 'menu.inventory', 'menu.purchasing', 'menu.branches', 'menu.users', 'action.view', 'action.pos.create', 'action.pos.edit', 'action.service.create', 'action.service.edit', 'action.service.smart_repair.create', 'service.checkpoint.view', 'service.checkpoint.create', 'service.checkpoint.edit', 'service.checkpoint.delete'],
+            defaultPermissions: ['menu.dashboard', 'menu.pos', 'menu.service', 'menu.sales', 'menu.master-data', 'menu.inventory', 'menu.purchasing', 'menu.branches', 'menu.users', 'action.view', 'action.pos.create', 'action.pos.edit', 'action.service.create', 'action.service.edit', 'action.service.smart_repair.create', 'service.price.edit', 'service.checkpoint.view', 'service.checkpoint.create', 'service.checkpoint.edit', 'service.checkpoint.delete'],
       isActive: true,
     },
   });
@@ -294,14 +294,14 @@ async function main() {
   const spvRole = await prisma.role.upsert({
     where: { code: 'SPV' },
     update: {
-      defaultPermissions: ['menu.pos', 'menu.service', 'menu.sales', 'action.view', 'action.service.view'],
+      defaultPermissions: ['menu.pos', 'menu.service', 'menu.sales', 'action.view', 'action.service.view', 'service.price.edit'],
     },
     create: {
       code: 'SPV',
       name: 'Supervisor',
       description: 'Store / area supervisor',
       level: 3,
-            defaultPermissions: ['menu.pos', 'menu.service', 'menu.sales', 'action.view', 'action.service.view'],
+            defaultPermissions: ['menu.pos', 'menu.service', 'menu.sales', 'action.view', 'action.service.view', 'service.price.edit'],
       isActive: true,
     },
   });
@@ -309,14 +309,14 @@ async function main() {
   const hsRole = await prisma.role.upsert({
     where: { code: 'HS' },
     update: {
-      defaultPermissions: ['menu.pos', 'menu.service', 'menu.sales', 'menu.master-data', 'menu.inventory', 'menu.hr', 'action.view', 'action.service.create', 'action.service.edit', 'action.service.assign'],
+      defaultPermissions: ['menu.pos', 'menu.service', 'menu.sales', 'menu.master-data', 'menu.inventory', 'menu.hr', 'action.view', 'action.service.create', 'action.service.edit', 'action.service.assign', 'service.price.edit'],
     },
     create: {
       code: 'HS',
       name: 'Head of Store',
       description: 'Kepala toko per cabang',
       level: 4,
-            defaultPermissions: ['menu.pos', 'menu.service', 'menu.sales', 'menu.master-data', 'menu.inventory', 'menu.hr', 'action.view', 'action.service.create', 'action.service.edit', 'action.service.assign'],
+            defaultPermissions: ['menu.pos', 'menu.service', 'menu.sales', 'menu.master-data', 'menu.inventory', 'menu.hr', 'action.view', 'action.service.create', 'action.service.edit', 'action.service.assign', 'service.price.edit'],
       isActive: true,
     },
   });
@@ -438,7 +438,7 @@ async function main() {
         name: 'Super Administrator',
         description: 'System administrator with full access',
         level: 0,
-        defaultPermissions: ['dashboard.view', 'master_data.customer.view', 'master_data.customer.create', 'master_data.customer.edit', 'master_data.customer.delete', 'master_data.product.view', 'master_data.product.create', 'master_data.product.edit', 'master_data.product.delete', 'master_data.supplier.view', 'master_data.supplier.create', 'master_data.supplier.edit', 'master_data.supplier.delete', 'master_data.category.view', 'master_data.category.create', 'master_data.category.edit', 'master_data.category.delete', 'master_data.brand.view', 'master_data.brand.create', 'master_data.brand.edit', 'master_data.brand.delete', 'master_data.attribute.view', 'master_data.attribute.create', 'master_data.attribute.edit', 'master_data.attribute.delete', 'master_data.service_type.view', 'master_data.service_type.create', 'master_data.service_type.edit', 'master_data.service_type.delete', 'action.pos.create', 'action.pos.edit', 'sales.history.view', 'sales.return.create', 'sales.return.edit', 'service.order.view', 'action.service.create', 'action.service.edit', 'action.service.delete', 'action.service.assign', 'service.return.create', 'service.return.edit', 'inventory.stock.view', 'inventory.stock.adjust', 'inventory.stock_in.create', 'inventory.stock_out.create', 'inventory.transfer.create', 'inventory.transfer.approve', 'inventory.opname.create', 'inventory.opname.approve', 'inventory.history.view', 'inventory.alert.view', 'finance.coa.view', 'finance.coa.create', 'finance.coa.edit', 'finance.journal.create', 'finance.expense.create', 'finance.petty_cash.create', 'finance.ar.create', 'finance.report.view', 'purchasing.supplier.view', 'purchasing.supplier.create', 'purchasing.supplier.edit', 'purchasing.po.create', 'purchasing.po.approve', 'purchasing.po.receive', 'hr.employee.view', 'hr.employee.create', 'hr.employee.edit', 'hr.employee.deactivate', 'hr.attendance.view', 'hr.leave.approve', 'hr.payroll.view', 'hr.kpi.create', 'branch.view', 'users.user.view', 'users.user.create', 'users.user.edit', 'users.user.deactivate', 'roles.role.view', 'roles.role.create', 'roles.role.edit', 'roles.role.delete', 'users.password.approve', 'action.service.smart_repair.create', 'service.checkpoint.view', 'service.checkpoint.create', 'service.checkpoint.edit', 'service.checkpoint.delete'],
+        defaultPermissions: ['dashboard.view', 'master_data.customer.view', 'master_data.customer.create', 'master_data.customer.edit', 'master_data.customer.delete', 'master_data.product.view', 'master_data.product.create', 'master_data.product.edit', 'master_data.product.delete', 'master_data.supplier.view', 'master_data.supplier.create', 'master_data.supplier.edit', 'master_data.supplier.delete', 'master_data.category.view', 'master_data.category.create', 'master_data.category.edit', 'master_data.category.delete', 'master_data.brand.view', 'master_data.brand.create', 'master_data.brand.edit', 'master_data.brand.delete', 'master_data.attribute.view', 'master_data.attribute.create', 'master_data.attribute.edit', 'master_data.attribute.delete', 'master_data.service_type.view', 'master_data.service_type.create', 'master_data.service_type.edit', 'master_data.service_type.delete', 'action.pos.create', 'action.pos.edit', 'sales.history.view', 'sales.return.create', 'sales.return.edit', 'service.order.view', 'action.service.create', 'action.service.edit', 'action.service.delete', 'action.service.assign', 'service.return.create', 'service.return.edit', 'inventory.stock.view', 'inventory.stock.adjust', 'inventory.stock_in.create', 'inventory.stock_out.create', 'inventory.transfer.create', 'inventory.transfer.approve', 'inventory.opname.create', 'inventory.opname.approve', 'inventory.history.view', 'inventory.alert.view', 'finance.coa.view', 'finance.coa.create', 'finance.coa.edit', 'finance.journal.create', 'finance.expense.create', 'finance.petty_cash.create', 'finance.ar.create', 'finance.report.view', 'purchasing.supplier.view', 'purchasing.supplier.create', 'purchasing.supplier.edit', 'purchasing.po.create', 'purchasing.po.approve', 'purchasing.po.receive', 'hr.employee.view', 'hr.employee.create', 'hr.employee.edit', 'hr.employee.deactivate', 'hr.attendance.view', 'hr.leave.approve', 'hr.payroll.view', 'hr.kpi.create', 'branch.view', 'users.user.view', 'users.user.create', 'users.user.edit', 'users.user.deactivate', 'roles.role.view', 'roles.role.create', 'roles.role.edit', 'roles.role.delete', 'users.password.approve', 'action.service.smart_repair.create', 'service.checkpoint.view', 'service.checkpoint.create', 'service.checkpoint.edit', 'service.checkpoint.delete', 'service.price.edit'],
         isSystemRole: true,
         isActive: true,
       },

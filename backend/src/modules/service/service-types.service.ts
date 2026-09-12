@@ -169,6 +169,7 @@ export class ServiceTypesService {
       maxPrice: st.maxPrice ? st.maxPrice.toNumber() : null,
       slaHours: st.slaHours,
       durationHours: st.durationHours ? st.durationHours.toNumber() : null,
+      tierPricing: (st as any).tierPricing ?? null,
       isActive: st.isActive,
       serviceOrderCount: st._count.serviceOrders,
       createdAt: st.createdAt,
@@ -203,6 +204,7 @@ export class ServiceTypesService {
       maxPrice: serviceType.maxPrice ? serviceType.maxPrice.toNumber() : null,
       slaHours: serviceType.slaHours,
       durationHours: serviceType.durationHours ? serviceType.durationHours.toNumber() : null,
+      tierPricing: (serviceType as any).tierPricing ?? null,
       isActive: serviceType.isActive,
       serviceOrderCount: serviceType._count.serviceOrders,
       createdAt: serviceType.createdAt,
@@ -261,6 +263,8 @@ export class ServiceTypesService {
         slaHours: createServiceTypeDto.slaHours,
         // IGDERP-186: auto duration per service type
         durationHours: createServiceTypeDto.durationHours ?? null,
+        // IGDERP-187: per-tier service prices (satu nota follows customer tier)
+        tierPricing: createServiceTypeDto.tierPricing ?? undefined,
         isActive: createServiceTypeDto.isActive !== undefined ? createServiceTypeDto.isActive : true,
       },
     });
@@ -275,6 +279,7 @@ export class ServiceTypesService {
       maxPrice: serviceType.maxPrice ? serviceType.maxPrice.toNumber() : null,
       slaHours: serviceType.slaHours,
       durationHours: serviceType.durationHours ? serviceType.durationHours.toNumber() : null,
+      tierPricing: (serviceType as any).tierPricing ?? null,
       isActive: serviceType.isActive,
       createdAt: serviceType.createdAt,
       updatedAt: serviceType.updatedAt,
@@ -366,6 +371,10 @@ export class ServiceTypesService {
     if (updateServiceTypeDto.durationHours !== undefined) {
       updateData.durationHours = updateServiceTypeDto.durationHours;
     }
+    // IGDERP-187: per-tier service prices
+    if (updateServiceTypeDto.tierPricing !== undefined) {
+      updateData.tierPricing = updateServiceTypeDto.tierPricing;
+    }
     if (updateServiceTypeDto.isActive !== undefined) {
       updateData.isActive = updateServiceTypeDto.isActive;
     }
@@ -385,6 +394,7 @@ export class ServiceTypesService {
       maxPrice: updated.maxPrice ? updated.maxPrice.toNumber() : null,
       slaHours: updated.slaHours,
       durationHours: updated.durationHours ? updated.durationHours.toNumber() : null,
+      tierPricing: (updated as any).tierPricing ?? null,
       isActive: updated.isActive,
       createdAt: updated.createdAt,
       updatedAt: updated.updatedAt,

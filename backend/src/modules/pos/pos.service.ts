@@ -236,6 +236,7 @@ export class PosService {
         phone: true,
         email: true,
         subdistrict: true,
+        tierId: true, // IGDERP-187: satu nota follows customer tier
       },
       take: limit,
       orderBy: { name: 'asc' },
