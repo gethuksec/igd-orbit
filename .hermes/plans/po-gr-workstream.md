@@ -40,7 +40,7 @@
 | 10 | Margin / pricing | — | Unit price + margin **reference display** on PO lines (beli vs harga jual) — **no writes to product master**; per-product PO-value history lives in the activity-log / finance items (see §2) | ✗ Pending |
 | 11 | Invoice total check | — | PO total must match supplier invoice — enforced via **creation confirm modal** (checkbox, no value input — §4 D1) | ✗ Pending |
 | 12 | Purchase returns | — | Retur Pembelian per invoice → reduces central-good, parks in **central-bad**; receiving-discrepancy **auto-create checkbox** (not forced) | Partial — reject-at-receiving → central-bad ✓; return module ✗; checkbox ✗ |
-| 13 | Barcode | Manual print, one by one | **Auto-print after approval** + label/printer settings (position, size, barcode/QR, paper, columns). Client to send existing label format (blocker) | ✗ Pending |
+| 13 | Barcode | Manual print, one by one | **Auto-print after approval** + label/printer settings (position, size, barcode/QR, paper, columns). Client to send existing label format (blocker) | ✓ Done — scaffold + default template shipped; client format swap pending |
 | 14 | Approval tiers | hardcoded: <5M CSO; 5–50M +CFO; >50M +OWNER. GR configurable via Approval Settings | Keep as-is for now — confirmation open (IGDERP-163, awaiting owner) | No change |
 | 15 | OCR / DO scan | — | Future; not now | Out |
 | 16 | Buffer | — | "Buffer = PO recommendation + allocation" — client's next topic after this batch (IGDERP-105) | Out of scope |
@@ -114,9 +114,13 @@ Adjacent / cross-referenced (not this workstream): import contract `a364be5b` (P
 - Deploy fixes this round: `PurchaseReturn.purchaseOrder` relation made optional (prisma generate validation); controller must carry `JwtAuthGuard` (class) + `RolesGuard` (route) — no global auth guard in this app.
 **Tests:** manual + PO stock math, cap, duplicate, insufficient-stock, manual-mode validation — 9 in `purchase-returns.service.spec.ts` (suite 332 local / 358 merged tree).
 
-### S5 — Barcode auto-print *(fc7b9d65)*
-- Print queue triggered on GR approve (labels = approved qty); settings page: printer/label template (size, columns, barcode vs QR, paper) — client format pending (explicit blocker; implement scaffold + default template).
-**Tests:** label payload generation unit; settings persist.
+### S5 — Barcode auto-print *(fc7b9d65)* — **IMPLEMENTED + deployed to preview (2026-09-12)**
+- Print queue triggered on GR approve: one `LabelPrintJob` per GR line, **copies = accepted qty**, payload snapshot (barcode||sku, printedName, price, GR no, batch/serial/expiry). New `LabelSetting` (active profile: size mm, columns, BARCODE/QR, thermal/A4, show name/price/SKU, autoPrint flag) + new `LabelPrintingModule` (settings GET/PUT + jobs list + mark-printed).
+- FE: `Cetak Label` menu (Expense group) — **Antrian** tab (Pending/Sudah/Semua filters, bulk + per-row print) + **Pengaturan** tab (form + live label preview); print sheet `/purchasing/label-print/sheet?ids=` renders labels at exact mm — CODE128 via JsBarcode / QR via qrcode, thermal (1 label/page) or A4 grid, auto `window.print()`, then "Tandai Sudah Dicetak" (actor + time recorded).
+- **Client label format still pending** — ships with the default template (40×30mm thermal); `autoPrint` flag stored, wired once a print agent exists.
+- E2E (preview 2026-09-12): GR-20260912-525454 (PO-20260911-555902) approved → job **LBL-20260912-187090** queued (copies 1) → print sheet rendered (CODE128 svg) → marked printed (actor/time) → settings save roundtrip (`configured: true`).
+- Fixed along the way (found by S5 E2E): GR form PO list now includes **approved/partially_received** POs (send-order step was dropped), PO query follows the form's **Cabang** (was locked to first-in-list branch), `LabelSetting.paperType` needed `@map("paper_type")` (settings API 500'd on the snake column).
+**Tests:** label payload builder (copies/ceil/fallbacks/job numbers), settings defaults + upsert, jobs filter (csv ids) + mark-printed — 12 in `label-printing.service.spec.ts` (347 local / 373 merged tree).
 
 ## 4. Decisions (resolved 2026-09-11)
 
