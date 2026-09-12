@@ -174,7 +174,8 @@ export default function StockList() {
         },
         responseType: 'blob',
       });
-      const url = window.URL.createObjectURL(new Blob([\uFEFF, response.data], { type: 'text/csv;charset=utf-8' }));
+      const csvText = await response.data.text();
+      const url = window.URL.createObjectURL(new Blob([csvText], { type: 'text/csv;charset=utf-8' }));
       const a = document.createElement('a');
       a.href = url;
       a.download = `stok-${new Date().toISOString().split('T')[0]}.csv`;
