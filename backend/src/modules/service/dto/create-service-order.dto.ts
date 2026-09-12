@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsString,
   IsEnum,
+  IsIn,
   IsNumber,
   IsBoolean,
   IsArray,
@@ -131,6 +132,11 @@ export class CreateServiceOrderDto {
   @IsString()
   @IsOptional()
   devicePassword?: string; // Will be encrypted
+
+  @IsString()
+  @IsIn(['none', 'password', 'pin', 'pattern'])
+  @IsOptional()
+  deviceLockType?: string; // IGDERP-185: lock-screen credential kind
 
   @IsString()
   @IsOptional()

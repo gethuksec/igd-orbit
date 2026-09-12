@@ -1102,6 +1102,7 @@ model ServiceOrder {
   deviceSerial        String? @map("device_serial")
   deviceImei          String? @map("device_imei")
   devicePassword      String? @map("device_password") // Encrypted
+  deviceLockType      String  @default("none") @map("device_lock_type") // IGDERP-185: none/password/pin/pattern
   deviceCondition     String? @map("device_condition") @db.Text // textarea
   accessoriesIncluded Json?   @map("accessories_included") // JSONB array
 

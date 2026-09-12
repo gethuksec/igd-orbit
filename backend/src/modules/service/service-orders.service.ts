@@ -19,6 +19,7 @@ import { CustomerFeedbackDto } from './dto/customer-feedback.dto';
 import { AssignTechnicianDto } from './dto/assign-technician.dto';
 import { UploadPhotosDto } from './dto/upload-photos.dto';
 import { encryptPassword, decryptPassword } from './utils/password-encryption.util';
+import { validateDeviceLock } from './utils/device-lock.util';
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join, extname } from 'path';
 import { Decimal } from '@prisma/client/runtime/library';
@@ -233,6 +234,7 @@ export class ServiceOrdersService {
       deviceSerial,
       deviceImei,
       devicePassword,
+      deviceLockType,
       deviceCondition,
       accessoriesIncluded,
       complaint,
@@ -336,7 +338,8 @@ export class ServiceOrdersService {
       serviceTypeId = uniqueIds[0];
     }
 
-    // Encrypt device password if provided
+    // IGDERP-185: validate lock combo, then encrypt if provided
+    const lockType = validateDeviceLock(deviceLockType, devicePassword);
     const encryptedPassword = devicePassword ? encryptPassword(devicePassword) : null;
 
     // Resolve parts: validate products exist, compute parts cost + auto finalPrice (E-FE)
@@ -440,6 +443,7 @@ export class ServiceOrdersService {
           deviceSerial,
           deviceImei,
           devicePassword: encryptedPassword,
+          deviceLockType: lockType,
           deviceCondition,
           accessoriesIncluded: accessoriesIncluded ? JSON.parse(JSON.stringify(accessoriesIncluded)) : null,
           complaint,
@@ -665,6 +669,14 @@ export class ServiceOrdersService {
 
     if (dto.devicePassword) {
       updateData.devicePassword = encryptPassword(dto.devicePassword);
+    }
+
+    // IGDERP-185: lock combo changes (clear credential when type reset to none)
+    if (dto.deviceLockType === 'none') {
+      updateData.deviceLockType = 'none';
+      updateData.devicePassword = null;
+    } else if (dto.devicePassword) {
+      validateDeviceLock(dto.deviceLockType ?? (serviceOrder as any).deviceLockType, dto.devicePassword);
     }
 
     if (dto.estimatedCost !== undefined) {
@@ -1062,6 +1074,9 @@ export class ServiceOrdersService {
         updateData.readyAt = new Date();
       } else if (dto.status === 'done') {
         updateData.completedAt = new Date();
+        // IGDERP-185: wipe customer lock credential on handover
+        updateData.devicePassword = null;
+        updateData.deviceLockType = 'none';
       } else if (dto.status === 'completed') {
         updateData.completedAt = new Date();
       } else if (dto.status === 'delivered') {
@@ -1768,6 +1783,40 @@ export class ServiceOrdersService {
 
       return updated;
     });
+  }
+
+  // IGDERP-185: reveal lock credential (role-gated by controller) + audit to history
+  async revealLock(serviceOrderId: string, userId: string) {
+    const serviceOrder = await this.prisma.serviceOrder.findUnique({
+      where: { id: serviceOrderId },
+    });
+
+    if (!serviceOrder) {
+      throw new NotFoundException('Service order not found');
+    }
+
+    if (!serviceOrder.devicePassword || serviceOrder.deviceLockType === 'none') {
+      return { lockType: 'none' as const, value: null };
+    }
+
+    let value: string;
+    try {
+      value = decryptPassword(serviceOrder.devicePassword);
+    } catch (error) {
+      throw new BadRequestException('Kunci layar tidak dapat dibuka');
+    }
+
+    await this.prisma.serviceStatusHistory.create({
+      data: {
+        serviceOrderId,
+        status: serviceOrder.status,
+        previousStatus: serviceOrder.status,
+        notes: 'Kunci layar dilihat',
+        changedBy: userId,
+      },
+    });
+
+    return { lockType: serviceOrder.deviceLockType, value };
   }
 
   async deliverService(serviceOrderId: string, userId: string) {

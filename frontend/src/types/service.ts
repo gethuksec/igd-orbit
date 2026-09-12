@@ -43,6 +43,8 @@ export interface SmartRepairPayload {
   deviceUnit?: string;
   deviceColor?: string;
   deviceSerial?: string;
+  devicePassword?: string;
+  deviceLockType?: 'none' | 'password' | 'pin' | 'pattern';
   deviceCondition?: string;
 
   complaint: string;
