@@ -440,7 +440,7 @@ export class StockOpnameService {
           );
         }
 
-        let opnameItem = cond
+        let opnameItem: any = cond
           ? candidates.find((i) => (i.condition || undefined) === cond)
           : candidates[0];
 
