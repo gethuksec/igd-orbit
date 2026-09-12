@@ -1,6 +1,6 @@
 # PO/GR Workstream — Plan & Change Log
 
-**Date:** 2026-09-11 · **Owner:** dev agent · **Tracker:** Plane IGDERP · **Base:** `origin/main` @ `d008a2b` · **Branch:** `ws-po-create-v2`
+**Date:** 2026-09-11 · **Owner:** dev agent · **Tracker:** Plane IGDERP · **Base:** `origin/main` @ `d008a2b` · **Branch:** `ws-po-create-v2` · **MERGED to `main` 2026-09-12 (FF → `3e7a35e`)**
 
 > **S1 status — IMPLEMENTED on branch (2026-09-11).** Invoice-mandatory creation (no. + date), due-date calc, invoice fields on PO (+migration `po-invoice-fields.sql`), invoice-doc approve gate (`PURCHASE_INVOICE` default ON), cancel + send-order removed, GR unlocked from approved, FE form v2 (invoice fields + required doc upload + confirm modal + quick-add product + margin column), detail actions/cards updated. Backend suite **312/312 green**; FE production build green. Not merged / not deployed (awaiting review).
 >
@@ -9,6 +9,8 @@
 > **S2 status — IMPLEMENTED on branch (2026-09-11).** Termin master wiring (landed in the S1 review rounds) + `isOverdue` flag (WIB calendar day; excludes cancelled/rejected) surfaced on the PO list (red "Jatuh tempo … (terlambat)") and PO detail (red "Terlambat" badge). Backend tests cover the flag. Overdue notification = later slice.
 >
 > **S3 status — IMPLEMENTED on branch (2026-09-11).** Edit-after-approval policy: status guard matrix (pending + rejected editable; approved/ordered = permission `purchasing.edit_after_approval` + mandatory reason + audit log; received/partially_received locked). Rejected PO → edit → resubmit flips back to `pending`. New `PurchaseOrderEditLog` (old/new JSON snapshot) + idempotent migration `po-edit-log.sql`; permission key added to the D-PERM catalog + FE labels. FE: detail actions `edit`/`revisi` (role-gated; post-approval gated by permission), form shows the rejection banner / requires the revision reason. Backend +7 tests (323 total).
+>
+> **S4 (Retur) + S5 (Barcode labels) — IMPLEMENTED + user-approved + MERGED (2026-09-12).** `origin/main` fast-forwarded `d008a2b → 3e7a35e` (tree equality verified `a8c6c69`). Preview `igd.ad8ya.cloud` runs `ws-deploy-po-s1` = main + request-stock (separate, unmerged). Retur = IGDERP-84 incl. completion lifecycle (`pending`/`completed`, central-bad stock-out). Labels = IGDERP-93 — queue on GR approve, embeds in Goods Receipt (list button + detail card), settings at Administrator → General → Barcode Setting; print sheet CODE128/QR at exact mm.
 
 ---
 
@@ -21,6 +23,7 @@
   - IGDERP-159 — central-good warehouse (SYSTEM/GOOD), IGDERP-139/140 — Transfer Stock v2 + Mutasi v2, QA batch (65/66/68/69/58)
 - **Prod (igd-vm):** container build 2026-09-07 19:36 WIB; deploy checkout = `ws-request-stock` @ `70f2078` (main + 5 request-stock commits). Verified on prod: BE `stock-requests` module present; BE strings "Invoice wajib diunggah…" + central-good; FE markers "Terima Semua"/"Sisa". So prod = request-stock **preview build**, not a main build.
 - **Not merged:** `ws-request-stock` (5 commits — IGDERP-164/165/166, status Needs Review). Separate workstream; out of PO/GR scope. Merge + main rebuild = coordination item.
+- **Merged 2026-09-12:** `origin/main` now **`3e7a35e`** (FF from `d008a2b`) — contains **S1–S5** (PO v2, overdue, edit-after-approval, retur + completion lifecycle, barcode labels). FF executed via fresh worktree + `push origin HEAD:main`; tree equality verified. `ws-request-stock` remains preview-only; prod rebuild from main = separate deploy-gate item.
 - **Pitfall for future audits:** the shared clone's local `main` ref was stale (`b6ae6f6`, pre-merge). Always compare against `origin/main` after `git fetch`.
 - **Branch housekeeping:** `origin/ws-f-po-receiving-upload` deleted after merge (local worktree copy still exists).
 
