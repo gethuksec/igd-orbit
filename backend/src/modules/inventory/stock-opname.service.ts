@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services/prisma.service';
 import { StartOpnameDto } from './dto/start-opname.dto';
@@ -233,6 +234,73 @@ export class StockOpnameService {
     return this.attachLiveQuantities(opname);
   }
 
+  /**
+   * IGDERP-177 — result document export (.xlsx, ExcelJS).
+   * Header meta + variance summary + one row per counted line
+   * (one row per product+condition after IGDERP-175).
+   */
+  async exportOpname(id: string): Promise<{ buffer: Buffer; filename: string }> {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const ExcelJS = require('exceljs');
+    const opname: any = await this.findById(id);
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'IGD-ERP';
+    const ws = wb.addWorksheet('Hasil Opname');
+
+    ws.columns = [
+      { header: 'Produk', key: 'product', width: 32 },
+      { header: 'SKU', key: 'sku', width: 16 },
+      { header: 'Barcode', key: 'barcode', width: 20 },
+      { header: 'Stok Sistem', key: 'system', width: 13 },
+      { header: 'Stok Fisik', key: 'physical', width: 13 },
+      { header: 'Selisih', key: 'discrepancy', width: 12 },
+      { header: 'Selisih %', key: 'pct', width: 11 },
+      { header: 'Nilai Selisih', key: 'value', width: 16 },
+      { header: 'Kondisi', key: 'condition', width: 12 },
+      { header: 'Catatan', key: 'notes', width: 30 },
+    ];
+
+    const fmtDate = (d: any) => (d ? new Date(d).toLocaleDateString('id-ID') : '-');
+    ws.addRow([`Hasil Opname ${opname.opnameNumber}`]);
+    ws.addRow([`Cabang: ${opname.branch?.name || '-'} · Tanggal: ${fmtDate(opname.opnameDate)} · Status: ${opname.status}`]);
+    const items: any[] = opname.items ?? [];
+    const counted = items.filter((i) => i.physicalQuantity !== null && i.physicalQuantity !== undefined);
+    const withDiff = counted.filter((i) => Number(i.discrepancy || 0) !== 0);
+    const totalValue = counted.reduce((s, i) => s + Number(i.discrepancyValue || 0), 0);
+    ws.addRow([
+      `Item: ${items.length} · Dihitung: ${counted.length} · Selisih: ${withDiff.length} · Nilai: ${totalValue}`,
+    ]);
+    ws.addRow([]);
+
+    const condLabel = (c: string | null) =>
+      c === 'damaged' ? 'Rusak' : c === 'expired' ? 'Kadaluarsa' : 'Baik';
+    for (const item of items) {
+      const sys = Number(item.systemQuantity || 0);
+      const phys = item.physicalQuantity === null || item.physicalQuantity === undefined
+        ? null
+        : Number(item.physicalQuantity);
+      const diff = phys === null ? null : Number(item.discrepancy ?? phys - sys);
+      const pct = phys === null || sys <= 0 || diff === null ? null : Math.abs(diff / sys) * 100;
+      ws.addRow({
+        product: item.product?.name || '-',
+        sku: item.product?.sku || '-',
+        barcode: item.product?.barcode || '-',
+        system: sys,
+        physical: phys,
+        discrepancy: diff,
+        pct: pct === null ? null : Math.round(pct * 10) / 10,
+        value: phys === null ? null : Number(item.discrepancyValue || 0),
+        condition: phys === null ? null : condLabel(item.condition),
+        notes: item.notes || null,
+      });
+    }
+    ws.getRow(5).font = { bold: true };
+
+    const buffer = Buffer.from(await wb.xlsx.writeBuffer());
+    return { buffer, filename: `opname-${opname.opnameNumber}.xlsx` };
+  }
+
   /** Draft model: add a product to an ongoing (draft/counting) opname. */
   async addItem(opnameId: string, productId: string) {
     const opname = await this.prisma.stockOpname.findUnique({
@@ -279,8 +347,8 @@ export class StockOpnameService {
     return this.findById(opnameId);
   }
 
-  /** Draft model: remove a product from an ongoing (draft/counting) opname. */
-  async removeItem(opnameId: string, productId: string) {
+  /** Draft model: remove a row from an ongoing (draft/counting) opname. IGDERP-175: item-id based (one row per product+condition). */
+  async removeItem(opnameId: string, itemId: string) {
     const opname = await this.prisma.stockOpname.findUnique({
       where: { id: opnameId },
     });
@@ -291,10 +359,10 @@ export class StockOpnameService {
     this.assertActive(opname, 'remove items from');
 
     const item = await this.prisma.stockOpnameItem.findFirst({
-      where: { opnameId, productId },
+      where: { id: itemId, opnameId },
     });
     if (!item) {
-      throw new NotFoundException('Product not found in opname items');
+      throw new NotFoundException('Opname item not found');
     }
 
     await this.prisma.stockOpnameItem.delete({ where: { id: item.id } });
@@ -357,12 +425,68 @@ export class StockOpnameService {
     }
 
     return await this.prisma.$transaction(async (tx) => {
-      // Update each item
+      // IGDERP-175: one row per (product, condition). A scan carrying a
+      // condition targets the row with that condition: same-condition
+      // re-scan of a counted row is a 409 (FE shows the reject modal),
+      // a new condition creates a second row (service-level enforcement,
+      // no migration — condition stays nullable).
       for (const item of dto.items) {
-        const opnameItem = opname.items.find((i) => i.productId === item.productId);
+        const candidates = opname.items.filter((i) => i.productId === item.productId);
+        const cond = item.condition || undefined;
+
+        if (!cond && candidates.length > 1) {
+          throw new BadRequestException(
+            `Product ${item.productId} has multiple condition rows — condition is required`,
+          );
+        }
+
+        let opnameItem = cond
+          ? candidates.find((i) => (i.condition || undefined) === cond)
+          : candidates[0];
+
+        if (!opnameItem && candidates.length === 0) {
+          throw new NotFoundException(`Product ${item.productId} not found in opname items`);
+        }
+
+        if (
+          opnameItem &&
+          opnameItem.physicalQuantity !== null &&
+          opnameItem.physicalQuantity !== undefined &&
+          !item.force
+        ) {
+          // Scan-flow double-submit guard. Explicit corrections (table edit
+          // via Draft SO) send force:true and overwrite instead.
+          throw new ConflictException(
+            `Product ${item.productId} already counted${cond ? ` with condition ${cond}` : ''}`,
+          );
+        }
 
         if (!opnameItem) {
-          throw new NotFoundException(`Product ${item.productId} not found in opname items`);
+          // Different-condition second row: snapshot live stock at creation,
+          // mirroring addItem semantics.
+          const liveStock0 = await tx.productStock.findUnique({
+            where: {
+              productId_warehouseId: {
+                productId: item.productId,
+                warehouseId: opname.warehouseId,
+              },
+            },
+          });
+          opnameItem = await tx.stockOpnameItem.create({
+            data: {
+              opnameId,
+              productId: item.productId,
+              systemQuantity: liveStock0 ? liveStock0.quantityAvailable : new Decimal(0),
+              physicalQuantity: null,
+              discrepancy: null,
+              discrepancyValue: null,
+              condition: cond,
+            },
+          });
+          // Same product as the candidate rows — reuse their loaded relation
+          // for the costPrice math below (create returns no includes).
+          const sibling = candidates[0];
+          if (sibling) opnameItem.product = sibling.product;
         }
 
         const systemQuantity = Number(opnameItem.systemQuantity);

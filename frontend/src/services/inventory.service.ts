@@ -380,6 +380,36 @@ export const inventoryService = {
     }
   },
 
+  // IGDERP-173: mutasi transit → receive lifecycle
+  async sendMutasi(
+    id: string,
+    data: { items?: Array<{ itemId: string; quantitySent?: number }> },
+  ): Promise<StockTransfer> {
+    const response = await api.post(`/mutasi/${id}/send`, data);
+    return response.data;
+  },
+
+  async receiveMutasi(
+    id: string,
+    data: {
+      items: Array<{
+        itemId: string;
+        quantityReceived: number;
+        damageQuantity?: number;
+        damagePhotoUrl?: string;
+        damageNotes?: string;
+      }>;
+    },
+  ): Promise<StockTransfer> {
+    const response = await api.post(`/mutasi/${id}/receive`, data);
+    return response.data;
+  },
+
+  async cancelMutasi(id: string): Promise<StockTransfer> {
+    const response = await api.post(`/mutasi/${id}/cancel`);
+    return response.data;
+  },
+
   /** All move-endpoint warehouses: system central (good/bad) + outlet GOOD. */
   async getMutasiWarehouses(): Promise<StockTransferWarehouse[]> {
     try {
@@ -447,6 +477,7 @@ export const inventoryService = {
       condition?: 'good' | 'damaged' | 'expired';
       notes?: string;
       countedBy?: string;
+      force?: boolean;
     }>;
   }): Promise<StockOpname> {
     try {
@@ -464,6 +495,14 @@ export const inventoryService = {
     } catch (error: any) {
       throw error;
     }
+  },
+
+  // IGDERP-177: result document download (.xlsx blob)
+  async exportOpnameExcel(id: string): Promise<Blob> {
+    const response = await api.get(`/inventory/opname/${id}/export`, {
+      responseType: 'blob',
+    });
+    return response.data;
   },
 
   async approveOpname(id: string): Promise<StockOpname> {
@@ -486,9 +525,9 @@ export const inventoryService = {
   },
 
   /** Draft model: remove a product from the ongoing opname. */
-  async removeOpnameItem(opnameId: string, productId: string): Promise<StockOpname> {
+  async removeOpnameItem(opnameId: string, itemId: string): Promise<StockOpname> {
     try {
-      const response = await api.delete(`/inventory/opname/${opnameId}/items/${productId}`);
+      const response = await api.delete(`/inventory/opname/${opnameId}/items/${itemId}`);
       return response.data;
     } catch (error: any) {
       throw error;

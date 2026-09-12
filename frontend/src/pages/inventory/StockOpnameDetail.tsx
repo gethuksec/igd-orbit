@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { BreadcrumbHeader } from '@/components/shared';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -10,6 +11,7 @@ import {
   AlertTriangle,
   TrendingUp,
   TrendingDown,
+  Download,
 } from 'lucide-react';
 import { inventoryService } from '../../services/inventory.service';
 import { toast } from 'sonner';
@@ -139,6 +141,41 @@ export default function StockOpnameDetail() {
   const canComplete = opname.status === 'counting' && countedItems === totalItems;
   const canApprove = opname.status === 'completed';
 
+  // IGDERP-177: variance analytics filter + Excel export
+  const [varianceFilter, setVarianceFilter] = useState<'all' | 'diff' | 'big'>('all');
+  const [exporting, setExporting] = useState(false);
+
+  const pctOf = (item: any) => {
+    const sys = Number(item.systemQuantity || 0);
+    const d = Number(item.discrepancy || 0);
+    return sys > 0 ? (Math.abs(d) / sys) * 100 : 0;
+  };
+  const visibleItems = opname.items.filter((item) => {
+    if (varianceFilter === 'all') return true;
+    if (item.physicalQuantity === null || item.physicalQuantity === undefined) return false;
+    if (varianceFilter === 'diff') return Number(item.discrepancy || 0) !== 0;
+    return pctOf(item) > 5;
+  });
+
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      const blob = await inventoryService.exportOpnameExcel(opname.id);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `opname-${opname.opnameNumber}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      toast.error('Gagal mengekspor hasil opname');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="w-full space-y-3">
       {/* Header */}
@@ -150,6 +187,15 @@ export default function StockOpnameDetail() {
         >
           {getStatusLabel(opname.status)}
         </span>
+        {/* IGDERP-177: result document export (Excel-only) */}
+        <button
+          onClick={handleExport}
+          disabled={exporting}
+          className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+        >
+          <Download className="w-4 h-4" />
+          {exporting ? 'Mengekspor…' : 'Export Excel'}
+        </button>
       </BreadcrumbHeader>
 
       {/* Stats Cards */}
@@ -276,7 +322,19 @@ export default function StockOpnameDetail() {
             <Package className="w-5 h-5 text-primary-600" />
             Daftar Item
           </h2>
-          {opname.status === 'counting' && (
+          <div className="flex items-center gap-2">
+            {/* IGDERP-177: variance analytics filter */}
+            <span className="text-xs text-gray-500">tampilkan:</span>
+            <select
+              value={varianceFilter}
+              onChange={(e) => setVarianceFilter(e.target.value as 'all' | 'diff' | 'big')}
+              className="h-8 rounded-md border border-gray-300 bg-white px-2 text-xs"
+            >
+              <option value="all">semua</option>
+              <option value="diff">selisih saja</option>
+              <option value="big">&gt;5% saja</option>
+            </select>
+            {opname.status === 'counting' && (
             <Link
               to={`/inventory/opname/${opname.id}/count`}
               className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium flex items-center gap-2"
@@ -285,6 +343,7 @@ export default function StockOpnameDetail() {
               Lanjutkan Menghitung
             </Link>
           )}
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -304,7 +363,7 @@ export default function StockOpnameDetail() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {opname.items.map((item) => {
+              {visibleItems.map((item) => {
                 const systemQty = Number(item.systemQuantity);
                 const physicalQty = Number(item.physicalQuantity || 0);
                 const discrepancy = Number(item.discrepancy || 0);

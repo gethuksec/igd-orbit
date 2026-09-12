@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { Decimal } from '@prisma/client/runtime/library';
 import { PrismaService } from '../../shared/services/prisma.service';
 import { StockOpnameService } from './stock-opname.service';
@@ -351,6 +351,87 @@ describe('StockOpnameService', () => {
           { items: [{ productId: 'prod-1', physicalQuantity: 9 }] },
           'user-1',
         ),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('recordCount per-condition rows (IGDERP-175)', () => {
+    const row = (overrides: any = {}) => ({
+      id: 'item-1',
+      productId: 'prod-1',
+      systemQuantity: new Decimal(10),
+      physicalQuantity: null,
+      condition: null,
+      product: { costPrice: new Decimal(2500) },
+      ...overrides,
+    });
+
+    it('creates a second row when the condition is new', async () => {
+      prisma.stockOpname.findUnique.mockResolvedValue(
+        opname({ items: [row({ id: 'item-1', physicalQuantity: new Decimal(10), condition: 'good' })] }),
+      );
+      tx.productStock.findUnique.mockResolvedValue({ quantityAvailable: new Decimal(10) });
+      tx.stockOpnameItem.create.mockResolvedValue({ id: 'item-2' });
+      tx.stockOpnameItem.update.mockResolvedValue({});
+      tx.stockOpname.findUnique.mockResolvedValue({ id: 'op-1' });
+
+      await service.recordCount(
+        'op-1',
+        { items: [{ productId: 'prod-1', physicalQuantity: 2, condition: 'damaged' }] },
+        'user-1',
+      );
+
+      expect(tx.stockOpnameItem.create).toHaveBeenCalledTimes(1);
+      expect(tx.stockOpnameItem.create.mock.calls[0][0].data.condition).toBe('damaged');
+      expect(tx.stockOpnameItem.update).toHaveBeenCalledTimes(1);
+    });
+
+    it('409s on same-condition re-scan without force', async () => {
+      prisma.stockOpname.findUnique.mockResolvedValue(
+        opname({ items: [row({ physicalQuantity: new Decimal(10), condition: 'good' })] }),
+      );
+
+      await expect(
+        service.recordCount(
+          'op-1',
+          { items: [{ productId: 'prod-1', physicalQuantity: 10, condition: 'good' }] },
+          'user-1',
+        ),
+      ).rejects.toThrow(ConflictException);
+      expect(tx.stockOpnameItem.update).not.toHaveBeenCalled();
+    });
+
+    it('overwrites a counted row when force:true (explicit correction)', async () => {
+      prisma.stockOpname.findUnique.mockResolvedValue(
+        opname({ items: [row({ physicalQuantity: new Decimal(10), condition: 'good' })] }),
+      );
+      tx.productStock.findUnique.mockResolvedValue({ quantityAvailable: new Decimal(10) });
+      tx.stockOpnameItem.update.mockResolvedValue({});
+      tx.stockOpname.findUnique.mockResolvedValue({ id: 'op-1' });
+
+      await service.recordCount(
+        'op-1',
+        { items: [{ productId: 'prod-1', physicalQuantity: 11, condition: 'good', force: true }] },
+        'user-2',
+      );
+
+      const data = tx.stockOpnameItem.update.mock.calls[0][0].data;
+      expect(data.physicalQuantity.toString()).toBe('11');
+      expect(data.countedBy).toBe('user-2');
+    });
+
+    it('requires condition when the product already has multiple rows', async () => {
+      prisma.stockOpname.findUnique.mockResolvedValue(
+        opname({
+          items: [
+            row({ id: 'item-1', condition: 'good' }),
+            row({ id: 'item-2', condition: 'damaged' }),
+          ],
+        }),
+      );
+
+      await expect(
+        service.recordCount('op-1', { items: [{ productId: 'prod-1', physicalQuantity: 1 }] }, 'user-1'),
       ).rejects.toThrow(BadRequestException);
     });
   });
