@@ -1900,7 +1900,7 @@ model PurchaseReturn {
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   // Relations
-  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Restrict)
+  purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id], onDelete: Restrict)
   supplier        Customer      @relation("PurchaseReturnSupplier", fields: [supplierId], references: [id], onDelete: Restrict)
   processedByUser User          @relation("PurchaseReturnProcessedBy", fields: [processedBy], references: [id], onDelete: Restrict)
   items           PurchaseReturnItem[]
