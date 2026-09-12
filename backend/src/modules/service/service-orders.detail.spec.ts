@@ -11,6 +11,7 @@ describe('ServiceOrdersService detail round — internalNotes, removeLayanan', (
     };
     const prisma = {
       customer: { findUnique: jest.fn() },
+      deviceType: { findFirst: jest.fn().mockResolvedValue({ code: 'handphone' }) },
       serviceType: {
         findUnique: jest.fn().mockResolvedValue({ id: 'st-1', slaHours: 24 }),
         findMany: jest.fn().mockResolvedValue([{ id: 'st-1', name: 'Ganti LCD', slaHours: 24, basePrice: 950000 }]),
@@ -45,6 +46,7 @@ describe('ServiceOrdersService detail round — internalNotes, removeLayanan', (
     };
     const prisma = {
       customer: { findUnique: jest.fn() },
+      deviceType: { findFirst: jest.fn().mockResolvedValue({ code: 'handphone' }) },
       serviceType: {
         findUnique: jest.fn().mockResolvedValue({ id: 'st-1', slaHours: 24 }),
         findMany: jest.fn().mockResolvedValue([{ id: 'st-1', name: 'Ganti LCD', slaHours: 24, basePrice: 950000 }]),

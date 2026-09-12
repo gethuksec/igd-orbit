@@ -12,6 +12,7 @@ import {
   Info,
   Printer,
   Trash2,
+  Pencil,
   Package,
   Wrench,
   Phone,
@@ -283,6 +284,19 @@ export default function SmartRepairDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['service-order', id] });
     },
     onError: (err: any) => toast.error(err.response?.data?.message || 'Gagal hapus layanan'),
+  });
+
+  // IGDERP-137: final tag mapping per row — Ready only
+  const [editingTags, setEditingTags] = useState<{ id: string; tags: string[] } | null>(null);
+  const tagsMutation = useMutation({
+    mutationFn: ({ rowId, notes }: { rowId: string; notes: string }) =>
+      serviceOrdersService.updateLayanan(id!, rowId, { notes }),
+    onSuccess: () => {
+      toast.success('Tag final tersimpan — tercatat di timeline');
+      setEditingTags(null);
+      queryClient.invalidateQueries({ queryKey: ['service-order', id] });
+    },
+    onError: (err: any) => toast.error(err.response?.data?.message || 'Gagal simpan tag'),
   });
 
   const removePartMutation = useMutation({
@@ -583,28 +597,49 @@ export default function SmartRepairDetailPage() {
                   {(order.layanan as any[]).map((l, li) => (
                     <div
                       key={l.id}
-                      className="flex items-center gap-2 px-2 py-2 border-b border-dashed border-gray-100 last:border-b-0"
+                      className="border-b border-dashed border-gray-100 last:border-b-0"
                     >
-                      <span className="font-semibold text-sm flex-1">{l.name}{(l.notes ? String(l.notes).split(',').map((t) => t.trim()).filter(Boolean) : []).map((t) => <span key={t} className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-normal text-amber-800">🏷 {t}</span>)}</span>
-                      <span className="text-xs text-gray-600 font-mono whitespace-nowrap">
-                        SLA {formatSLA(Number(l.slaHours))}
-                      </span>
-                      {layananEta[li] && (
-                        <span className={`text-xs whitespace-nowrap ${isOverdue && !frozen ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
-                          ETA {layananEta[li]}
+                      <div className="flex items-center gap-2 px-2 py-2">
+                        <span className="font-semibold text-sm flex-1">{l.name}{(l.notes ? String(l.notes).split(',').map((t) => t.trim()).filter(Boolean) : []).map((t) => <span key={t} className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-normal text-amber-800">🏷 {t}</span>)}</span>
+                        <span className="text-xs text-gray-600 font-mono whitespace-nowrap">
+                          SLA {formatSLA(Number(l.slaHours))}
                         </span>
-                      )}
-                      <span className="text-xs text-gray-600 whitespace-nowrap">
-                        {formatCurrency(Number(l.estimatedCost || 0))}
-                      </span>
-                      {status === 'in-progress' && !isCancelled && (order.layanan as any[]).length > 1 && (
-                        <button
-                          type="button"
-                          title="Hapus layanan"
-                          onClick={() => { if (window.confirm(`Hapus layanan ${l.name}? Tercatat di timeline.`)) removeLayananMutation.mutate(l.id); }}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </button>
+                        {layananEta[li] && (
+                          <span className={`text-xs whitespace-nowrap ${isOverdue && !frozen ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
+                            ETA {layananEta[li]}
+                          </span>
+                        )}
+                        <span className="text-xs text-gray-600 whitespace-nowrap">
+                          {formatCurrency(Number(l.estimatedCost || 0))}
+                        </span>
+                        {status === 'ready' && !isCancelled && (
+                          <button
+                            type="button"
+                            title="Edit tag final"
+                            onClick={() => setEditingTags({ id: l.id, tags: String(l.notes || '').split(',').map((t: string) => t.trim()).filter(Boolean) })}
+                          >
+                            <Pencil className="h-4 w-4 text-amber-600" />
+                          </button>
+                        )}
+                        {status === 'in-progress' && !isCancelled && (order.layanan as any[]).length > 1 && (
+                          <button
+                            type="button"
+                            title="Hapus layanan"
+                            onClick={() => { if (window.confirm(`Hapus layanan ${l.name}? Tercatat di timeline.`)) removeLayananMutation.mutate(l.id); }}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </button>
+                        )}
+                      </div>
+                      {/* IGDERP-137: final tag editor — Ready only */}
+                      {editingTags && editingTags.id === l.id && (
+                        <div className="px-2 pb-2">
+                          <TagCombobox value={editingTags.tags} onChange={(tags) => setEditingTags({ id: l.id, tags })} localSuggestions={[]} suggestRemote={suggestTags} placeholder="Tag final: Lcd, Baterai..." />
+                          <div className="mt-2 flex gap-2">
+                            <Button size="sm" disabled={tagsMutation.isPending} onClick={() => tagsMutation.mutate({ rowId: l.id, notes: editingTags.tags.join(', ') })}>Simpan tag final</Button>
+                            <Button size="sm" variant="ghost" onClick={() => setEditingTags(null)}>Batal</Button>
+                          </div>
+                        </div>
                       )}
                     </div>
                   ))}
