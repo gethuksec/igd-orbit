@@ -1897,7 +1897,7 @@ model PurchaseReturn {
   notes           String?  @db.Text
   totalQty        Decimal  @map("total_qty") @db.Decimal(15, 3)
   totalValue      Decimal  @map("total_value") @db.Decimal(15, 2) // supplier credit
-  status          String   @default("open") // 'open' | 'completed' (completed = shipped back to supplier; central-bad −qty)
+  status          String   @default("pending") // 'pending' | 'completed' (completed = shipped back to supplier; central-bad −qty)
   completedAt     DateTime? @map("completed_at")
   completedBy     String?  @map("completed_by") // User ID
   completionNotes String?  @map("completion_notes") @db.Text

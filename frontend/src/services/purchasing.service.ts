@@ -509,7 +509,7 @@ export interface PurchaseReturn {
   notes?: string | null;
   totalQty: number;
   totalValue: number;
-  status: 'open' | 'completed';
+  status: 'pending' | 'completed';
   completedAt?: string | null;
   completionNotes?: string | null;
   createdAt: string;

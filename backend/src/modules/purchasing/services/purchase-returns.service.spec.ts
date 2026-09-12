@@ -302,7 +302,7 @@ describe('PurchaseReturnsService (S4 — IGDERP-84 manual + IGDERP-83 receiving)
     prisma.purchaseReturn.findUnique.mockResolvedValue({
       id: 'ret-1',
       returnNumber: 'RTP-20260912-000001',
-      status: 'open',
+      status: 'pending',
       items: [{ id: 'ri-1', productId: 'prod-1', quantity: new Decimal(2) }],
     });
     prisma.warehouse.findFirst.mockResolvedValue({ id: 'wh-bad' });
@@ -344,7 +344,7 @@ describe('PurchaseReturnsService (S4 — IGDERP-84 manual + IGDERP-83 receiving)
     prisma.purchaseReturn.findUnique.mockResolvedValue({
       id: 'ret-1',
       returnNumber: 'RTP-20260912-000002',
-      status: 'open',
+      status: 'pending',
       items: [{ id: 'ri-1', productId: 'prod-1', quantity: new Decimal(4) }],
     });
     prisma.warehouse.findFirst.mockResolvedValue({ id: 'wh-bad' });

@@ -408,7 +408,7 @@ export class PurchaseReturnsService {
 
   /**
    * Completion: the physical units are shipped back to the supplier —
-   * central-bad −qty + an audit movement. One-way (open → completed).
+   * central-bad −qty + an audit movement. One-way (pending → completed).
    */
   async complete(id: string, userId: string, notes?: string) {
     const ret = await this.prisma.purchaseReturn.findUnique({

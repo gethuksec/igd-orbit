@@ -90,7 +90,7 @@ export default function PurchaseReturnDetail() {
             </span>
           ) : (
             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 border border-amber-300 text-amber-700">
-              Belum Selesai
+              Pending
             </span>
           )}
           {ret.status !== 'completed' && (

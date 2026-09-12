@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS "purchase_returns" (
   "notes" TEXT,
   "total_qty" DECIMAL(15,3) NOT NULL,
   "total_value" DECIMAL(15,2) NOT NULL,
-  "status" TEXT NOT NULL DEFAULT 'open',
+  "status" TEXT NOT NULL DEFAULT 'pending',
   "completed_at" TIMESTAMP(3),
   "completed_by" TEXT,
   "completion_notes" TEXT,
@@ -30,10 +30,14 @@ CREATE INDEX IF NOT EXISTS "idx_purchase_returns_processed_by" ON "purchase_retu
 CREATE INDEX IF NOT EXISTS "idx_purchase_returns_created_at" ON "purchase_returns"("created_at");
 
 -- Completion lifecycle (added 2026-09-12): idempotent for already-created tables.
-ALTER TABLE "purchase_returns" ADD COLUMN IF NOT EXISTS "status" TEXT NOT NULL DEFAULT 'open';
+ALTER TABLE "purchase_returns" ADD COLUMN IF NOT EXISTS "status" TEXT NOT NULL DEFAULT 'pending';
 ALTER TABLE "purchase_returns" ADD COLUMN IF NOT EXISTS "completed_at" TIMESTAMP(3);
 ALTER TABLE "purchase_returns" ADD COLUMN IF NOT EXISTS "completed_by" TEXT;
 ALTER TABLE "purchase_returns" ADD COLUMN IF NOT EXISTS "completion_notes" TEXT;
+
+-- 2026-09-12: status naming aligned with app vocabulary — 'open' → 'pending'.
+ALTER TABLE "purchase_returns" ALTER COLUMN "status" SET DEFAULT 'pending';
+UPDATE "purchase_returns" SET "status" = 'pending' WHERE "status" = 'open';
 
 DO $$ BEGIN
   ALTER TABLE "purchase_returns" ADD CONSTRAINT "purchase_returns_completed_by_fkey"
