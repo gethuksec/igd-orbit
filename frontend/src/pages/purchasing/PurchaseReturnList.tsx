@@ -101,7 +101,7 @@ export default function PurchaseReturnList() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Stat label="Total Retur" value={String(total)} />
-        <Stat label="Belum Selesai" value={String(openCount)} />
+        <Stat label="Pending" value={String(openCount)} />
         <Stat label="Total Qty Diretur" value={fmtQty(totalQty)} />
         <Stat label="Nilai Retur · Bulan Ini" value={formatCurrency(monthValue)} accent />
       </div>
@@ -165,7 +165,7 @@ export default function PurchaseReturnList() {
                         </span>
                       ) : (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 border border-amber-300 text-amber-700">
-                          Belum Selesai
+                          Pending
                         </span>
                       )}
                     </TableCell>
