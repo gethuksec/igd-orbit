@@ -90,12 +90,16 @@ export class StockService {
     // held stock > 0 (first positive stockMovement). One aggregate query
     // for the whole page; rows without history get ageDays: null.
     const ageByPair = new Map<string, number | null>();
-    if (stocks.length) {
+    // System-scoped rows (central-good/bad) carry branchId null, which Prisma
+    // rejects inside `in: [...]` — exclude them; they keep ageDays null.
+    const ageProductIds = [...new Set(stocks.map((s: any) => s.productId).filter(Boolean))];
+    const ageBranchIds = [...new Set(stocks.map((s: any) => s.branchId).filter((v: any) => !!v))];
+    if (ageProductIds.length && ageBranchIds.length) {
       const firstPositive = await this.prisma.stockMovement.groupBy({
         by: ['productId', 'branchId'],
         where: {
-          productId: { in: stocks.map((s: any) => s.productId) },
-          branchId: { in: [...new Set(stocks.map((s: any) => s.branchId))] },
+          productId: { in: ageProductIds },
+          branchId: { in: ageBranchIds },
           quantityAfter: { gt: 0 },
         },
         _min: { createdAt: true },

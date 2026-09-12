@@ -95,6 +95,18 @@ describe('StockService — I3 list view (IGDERP-88/90/91/106)', () => {
     );
   });
 
+  it('null branchId rows are excluded from the age lookup (central stock)', async () => {
+    prisma.productStock.findMany.mockResolvedValue([
+      stockRow(),
+      stockRow({ id: 's-sys', productId: 'prod-sys', branchId: null, branch: null }),
+    ]);
+    const res: any = await service.getStockSummary({});
+    expect(prisma.stockMovement.groupBy).toHaveBeenCalledTimes(1);
+    const groupByWhere = prisma.stockMovement.groupBy.mock.calls[0][0].where;
+    expect(groupByWhere.branchId.in).not.toContain(null);
+    expect(res.data[1].ageDays).toBeNull();
+  });
+
   it('export honors column subset and drops unknown keys (106)', async () => {
     const csv = await service.exportStockCsv({} as any, 'sku,available,bogus');
     const [header, body] = csv.split('\n');
