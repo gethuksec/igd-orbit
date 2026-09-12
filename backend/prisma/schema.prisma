@@ -45,6 +45,7 @@ model User {
   branchHeadOfService    Branch[]                @relation("BranchHeadOfService")
   passwordChangeRequests PasswordChangeRequest[]
   processedReturns       SalesReturn[]           @relation("SalesReturnProcessedBy")
+  purchaseReturns        PurchaseReturn[]        @relation("PurchaseReturnProcessedBy")
   grEvents               GoodsReceiptEvent[]     @relation("GoodsReceiptEventActor")
   poEditLogs             PurchaseOrderEditLog[] @relation("PurchaseOrderEditLogActor")
 
@@ -436,6 +437,7 @@ model Product {
   servicePartsUsed   ServicePartsUsed[]
   purchaseOrderItems PurchaseOrderItem[]
   goodsReceiptItems  GoodsReceiptItem[]     @relation("GoodsReceiptItemProduct")
+  purchaseReturnItems PurchaseReturnItem[]  @relation("PurchaseReturnItemProduct")
 
   @@index([barcode])
   @@index([sku])
@@ -555,6 +557,7 @@ model Customer {
   writeOffs        WriteOff[]
   supplierProducts Product[]          @relation("ProductSupplier")
   purchaseOrders   PurchaseOrder[]    @relation("PurchaseOrderSupplier")
+  purchaseReturns  PurchaseReturn[]   @relation("PurchaseReturnSupplier")
   customerDeposits CustomerDeposit[]
 
   @@index([customerCode])
@@ -1826,6 +1829,7 @@ model PurchaseOrder {
   journalEntryId String?             @unique @map("journal_entry_id")
   journalEntry   JournalEntry?       @relation(fields: [journalEntryId], references: [id], onDelete: SetNull)
   editLogs       PurchaseOrderEditLog[]
+  purchaseReturns PurchaseReturn[]
 
   @@index([poNumber])
   @@index([invoiceNumber])
@@ -1876,6 +1880,56 @@ model PurchaseOrderEditLog {
 
   @@index([poId])
   @@map("purchase_order_edit_logs")
+}
+
+// IGDERP-84: purchase returns (Retur Pembelian) — per supplier invoice.
+// Manual returns reduce central-good and park the unit in central-bad;
+// receiving-sourced returns (IGDERP-83) are paperwork only (stock already in bad).
+model PurchaseReturn {
+  id              String   @id @default(uuid())
+  returnNumber    String   @unique @map("return_number") // RTP-YYYYMMDD-XXXXXX
+  purchaseOrderId String?  @map("purchase_order_id") // null for manual returns (pre-system data)
+  supplierId      String   @map("supplier_id")
+  invoiceNumber   String?  @map("invoice_number") // snapshot from the PO / manual input
+  processedBy     String   @map("processed_by") // User ID
+  reason          String   @db.Text // mandatory header reason
+  notes           String?  @db.Text
+  totalQty        Decimal  @map("total_qty") @db.Decimal(15, 3)
+  totalValue      Decimal  @map("total_value") @db.Decimal(15, 2) // supplier credit
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Restrict)
+  supplier        Customer      @relation("PurchaseReturnSupplier", fields: [supplierId], references: [id], onDelete: Restrict)
+  processedByUser User          @relation("PurchaseReturnProcessedBy", fields: [processedBy], references: [id], onDelete: Restrict)
+  items           PurchaseReturnItem[]
+
+  @@index([purchaseOrderId])
+  @@index([supplierId])
+  @@index([processedBy])
+  @@index([createdAt])
+  @@map("purchase_returns")
+}
+
+model PurchaseReturnItem {
+  id               String   @id @default(uuid())
+  purchaseReturnId String   @map("purchase_return_id")
+  productId        String   @map("product_id")
+  quantity         Decimal  @db.Decimal(15, 3)
+  unitPrice        Decimal  @map("unit_price") @db.Decimal(15, 2) // PO price snapshot
+  subtotal         Decimal  @db.Decimal(15, 2)
+  reason           String?  @db.Text // per-line reason (receiving source: e.g. damaged)
+  notes            String?  @db.Text
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  // Relations
+  purchaseReturn PurchaseReturn @relation(fields: [purchaseReturnId], references: [id], onDelete: Cascade)
+  product        Product        @relation("PurchaseReturnItemProduct", fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([purchaseReturnId])
+  @@index([productId])
+  @@map("purchase_return_items")
 }
 
 model GoodsReceipt {

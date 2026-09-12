@@ -129,6 +129,9 @@ import PurchasingLanding from './pages/purchasing/PurchasingLanding';
 import PurchaseOrderList from './pages/purchasing/PurchaseOrderList';
 import PurchaseOrderDetail from './pages/purchasing/PurchaseOrderDetail';
 import PurchaseOrderForm from './pages/purchasing/PurchaseOrderForm';
+import PurchaseReturnList from './pages/purchasing/PurchaseReturnList';
+import PurchaseReturnForm from './pages/purchasing/PurchaseReturnForm';
+import PurchaseReturnDetail from './pages/purchasing/PurchaseReturnDetail';
 import GoodsReceiptList from './pages/purchasing/GoodsReceiptList';
 import GoodsReceiptDetail from './pages/purchasing/GoodsReceiptDetail';
 import GoodsReceiptForm from './pages/purchasing/GoodsReceiptForm';
@@ -1567,7 +1570,27 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <PlaceholderPage title="Retur Pembelian" description="Kelola retur pembelian ke supplier" />
+                    <PurchaseReturnList />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/purchasing/returns/new"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PurchaseReturnForm />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/purchasing/returns/:id"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PurchaseReturnDetail />
                   </DashboardLayout>
                 </ProtectedRoute>
               }

@@ -436,5 +436,78 @@ export const purchasingService = {
     const response = await api.delete(`/purchasing/attachments/${id}`);
     return response.data.data || response.data;
   },
+
+  // ============================================
+  // S4 (IGDERP-84): Purchase Returns — Retur Pembelian
+  // ============================================
+
+  async getPurchaseReturns(params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    purchaseOrderId?: string;
+  }): Promise<{ data: PurchaseReturn[]; total: number; page: number; limit: number; totalPages: number }> {
+    const response = await api.get('/purchasing/purchase-returns', { params });
+    const payload = response.data?.data ?? response.data;
+    const meta = response.data?.meta;
+    if (Array.isArray(payload)) {
+      return {
+        data: payload,
+        total: meta?.total ?? payload.length,
+        page: meta?.page ?? 1,
+        limit: meta?.limit ?? 20,
+        totalPages: meta?.totalPages ?? 1,
+      };
+    }
+    return { data: payload || [], total: meta?.total ?? 0, page: meta?.page ?? 1, limit: meta?.limit ?? 20, totalPages: meta?.totalPages ?? 0 };
+  },
+
+  async getPurchaseReturn(id: string): Promise<PurchaseReturn> {
+    const response = await api.get(`/purchasing/purchase-returns/${id}`);
+    return response.data.data || response.data;
+  },
+
+  async createPurchaseReturn(data: {
+    purchase_order_id?: string;
+    supplier_id?: string;
+    invoice_number?: string;
+    reason: string;
+    notes?: string;
+    items: Array<{ product_id: string; quantity: number; unit_price?: number; reason?: string; notes?: string }>;
+  }): Promise<PurchaseReturn> {
+    const response = await api.post('/purchasing/purchase-returns', data);
+    return response.data.data || response.data;
+  },
 };
+
+export interface PurchaseReturnItem {
+  id: string;
+  purchaseReturnId: string;
+  productId: string;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+  reason?: string | null;
+  notes?: string | null;
+  product?: { id: string; name: string; sku: string };
+}
+
+export interface PurchaseReturn {
+  id: string;
+  returnNumber: string;
+  purchaseOrderId?: string | null;
+  supplierId: string;
+  invoiceNumber?: string | null;
+  processedBy: string;
+  reason: string;
+  notes?: string | null;
+  totalQty: number;
+  totalValue: number;
+  createdAt: string;
+  updatedAt: string;
+  purchaseOrder?: { id: string; poNumber: string; invoiceNumber?: string | null; status: string } | null;
+  supplier?: { id: string; name: string; customerCode: string };
+  processedByUser?: { id: string; fullName: string };
+  items?: PurchaseReturnItem[];
+}
 

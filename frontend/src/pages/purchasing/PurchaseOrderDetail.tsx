@@ -153,6 +153,10 @@ export default function PurchaseOrderDetail() {
   ) {
     dropdownItems.push({ label: 'edit', destructive: false, onSelect: () => navigate(`/purchasing/po/${id}/edit`) });
   }
+  // S4 (IGDERP-84): received POs can be returned against (opens "Dari PO" form preselected).
+  if (po?.status === 'received' || po?.status === 'partially_received') {
+    dropdownItems.push({ label: 'buat retur', destructive: false, onSelect: () => navigate(`/purchasing/returns/new?po=${po.id}`) });
+  }
 
   const primaryDisabled = primaryAction === 'approve' ? approveMutation.isPending : false;
 
