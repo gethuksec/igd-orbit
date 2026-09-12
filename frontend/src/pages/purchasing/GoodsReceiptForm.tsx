@@ -45,6 +45,12 @@ export default function GoodsReceiptForm() {
     notes: '',
   }));
 
+  // The branch auto-default from useBranchFilter resolves after mount — seed the
+  // form's Cabang with it until the user picks one (keeps PO list + GR branch consistent).
+  useEffect(() => {
+    if (branchId) setFormData((f) => (f.branch_id === '' ? { ...f, branch_id: branchId } : f));
+  }, [branchId]);
+
   const [items, setItems] = useState<Array<{
     purchase_order_item_id?: string;
     product_id: string;
@@ -77,23 +83,24 @@ export default function GoodsReceiptForm() {
 
   // Fetch receivable POs for selection: approved (D3 — no send-order step anymore),
   // partially received (additional GRs) + legacy 'ordered' rows.
+  // Filter follows the form's Cabang so changing it re-filters the PO list.
   const { data: orderedPOs } = useQuery({
-    queryKey: ['purchase-orders', 'receivable', branchId],
+    queryKey: ['purchase-orders', 'receivable', formData.branch_id],
     queryFn: async () => {
       const [approved, ordered, partial] = await Promise.all([
         purchasingService.getPurchaseOrders({
           status: 'approved',
-          branchId: branchId || undefined,
+          branchId: formData.branch_id || undefined,
           limit: 100,
         }),
         purchasingService.getPurchaseOrders({
           status: 'ordered',
-          branchId: branchId || undefined,
+          branchId: formData.branch_id || undefined,
           limit: 100,
         }),
         purchasingService.getPurchaseOrders({
           status: 'partially_received',
-          branchId: branchId || undefined,
+          branchId: formData.branch_id || undefined,
           limit: 100,
         }),
       ]);
