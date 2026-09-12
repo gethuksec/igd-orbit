@@ -212,6 +212,7 @@ export const PERMISSION_CATALOG: string[] = [
   'inventory.alert.view',
   // Sidebar restructure (2026-08-22): new placeholder modules
   'inventory.request.view',
+  'inventory.request.approve',
   'inventory.*.view',
   // Finance
   'finance.coa.view',

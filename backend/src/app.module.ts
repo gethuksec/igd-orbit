@@ -31,6 +31,7 @@ import { CustomerTiersModule } from './modules/customer-tiers/customer-tiers.mod
 import { PaymentTermsModule } from './modules/payment-terms/payment-terms.module';
 import { ServiceCheckpointsModule } from './modules/service-checkpoints/service-checkpoints.module';
 import { PosModule } from './modules/pos/pos.module';
+import { StockRequestsModule } from './modules/stock-requests/stock-requests.module';
 import { StockInModule } from './modules/stock-in/stock-in.module';
 import { StockOutModule } from './modules/stock-out/stock-out.module';
 import { TransferStockModule } from './modules/transfer-stock/transfer-stock.module';
@@ -72,6 +73,7 @@ import { LabelPrintingModule } from './modules/label-printing/label-printing.mod
     PaymentTermsModule,
     ServiceCheckpointsModule,
     PosModule,
+    StockRequestsModule,
     StockInModule,
     StockOutModule,
     TransferStockModule,
