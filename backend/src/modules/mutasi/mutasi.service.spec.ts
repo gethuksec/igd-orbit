@@ -8,7 +8,7 @@ import { CreateMutasiDto } from './dto/create-mutasi.dto';
 describe('MutasiService (IGDERP-140 — central ↔ outlet + outlet ↔ outlet)', () => {
   let service: MutasiService;
   let prisma: {
-    warehouse: { findUnique: jest.Mock; findMany: jest.Mock };
+    warehouse: { findUnique: jest.Mock; findMany: jest.Mock; findFirst: jest.Mock };
     product: { findMany: jest.Mock };
     user: { findMany: jest.Mock; findUnique: jest.Mock };
     productStock: { findMany: jest.Mock };
@@ -20,7 +20,8 @@ describe('MutasiService (IGDERP-140 — central ↔ outlet + outlet ↔ outlet)'
     $transaction: jest.Mock;
   };
   let tx: {
-    stockTransfer: { create: jest.Mock; findUnique: jest.Mock };
+    stockTransfer: { create: jest.Mock; findUnique: jest.Mock; update: jest.Mock };
+    stockTransferItem: { update: jest.Mock };
     productStock: {
       findUnique: jest.Mock;
       update: jest.Mock;
@@ -140,6 +141,10 @@ describe('MutasiService (IGDERP-140 — central ↔ outlet + outlet ↔ outlet)'
           ...args.data,
         })),
         findUnique: jest.fn().mockResolvedValue(createdTransfer),
+        update: jest.fn().mockResolvedValue({ id: 'mutasi-1' }),
+      },
+      stockTransferItem: {
+        update: jest.fn().mockResolvedValue({ id: 'item-1' }),
       },
       productStock: {
         findUnique: jest.fn().mockResolvedValue(stockRow),
@@ -162,6 +167,7 @@ describe('MutasiService (IGDERP-140 — central ↔ outlet + outlet ↔ outlet)'
           return map[where.id] || null;
         }),
         findMany: jest.fn().mockResolvedValue([]),
+        findFirst: jest.fn().mockResolvedValue(centralBad),
       },
       product: { findMany: jest.fn().mockResolvedValue([product]) },
       user: {
@@ -266,39 +272,26 @@ describe('MutasiService (IGDERP-140 — central ↔ outlet + outlet ↔ outlet)'
     });
   });
 
-  describe('create — success central ↔ outlet', () => {
-    it('outlet → central-good: one completed doc, OUT/IN atomic, branches nulled at central', async () => {
-      tx.productStock.findUnique
-        .mockResolvedValueOnce(stockRow) // source row exists
-        .mockResolvedValueOnce(null); // central stock row missing → create
+  describe('create — success central ↔ outlet (IGDERP-173: pending, no stock move)', () => {
+    it('outlet → central-good: pending doc, requested-only lines, branches nulled at central', async () => {
       const result = await service.create(baseDto, 'user-1');
 
       const createdData = tx.stockTransfer.create.mock.calls[0][0].data;
-      expect(createdData.status).toBe('completed');
+      expect(createdData.status).toBe('pending');
       expect(createdData.requestedBy).toBe('user-1');
       expect(createdData.transferType).toBe('mutasi');
       expect(createdData.fromWarehouseId).toBe('wh-a');
       expect(createdData.toWarehouseId).toBe(centralGood.id);
       expect(createdData.fromBranchId).toBe('outlet-a');
       expect(createdData.toBranchId).toBeNull();
+      expect(createdData.items.create[0].quantityRequested.toString()).toBe('2');
+      expect(createdData.items.create[0].quantitySent).toBeUndefined();
+      expect(createdData.items.create[0].quantityReceived).toBeUndefined();
 
-      expect(tx.stockMovement.create).toHaveBeenCalledTimes(2);
-      const out = tx.stockMovement.create.mock.calls[0][0].data;
-      const inn = tx.stockMovement.create.mock.calls[1][0].data;
-      expect(out.movementType).toBe('OUT');
-      expect(out.warehouseId).toBe('wh-a');
-      expect(out.branchId).toBe('outlet-a');
-      expect(Number(out.quantityChange)).toBe(-2);
-      expect(inn.movementType).toBe('IN');
-      expect(inn.warehouseId).toBe(centralGood.id);
-      expect(inn.branchId).toBeNull();
-      expect(Number(inn.quantityChange)).toBe(2);
-
-      // central row created because it did not exist
-      const createdStock = tx.productStock.create.mock.calls[0][0].data;
-      expect(createdStock.warehouseId).toBe(centralGood.id);
-      expect(createdStock.branchId).toBeNull();
-      expect(Number(createdStock.quantityAvailable)).toBe(2);
+      // No stock moves at creation — source decrements at send()
+      expect(tx.productStock.update).not.toHaveBeenCalled();
+      expect(tx.productStock.create).not.toHaveBeenCalled();
+      expect(tx.stockMovement.create).not.toHaveBeenCalled();
 
       expect(result.transferNumber).toBe('MUT-20260906-123456');
     });
@@ -313,6 +306,7 @@ describe('MutasiService (IGDERP-140 — central ↔ outlet + outlet ↔ outlet)'
         'user-1',
       );
       const createdData = tx.stockTransfer.create.mock.calls[0][0].data;
+      expect(createdData.status).toBe('pending');
       expect(createdData.fromWarehouseId).toBe(centralBad.id);
       expect(createdData.toWarehouseId).toBe('wh-a');
       expect(createdData.fromBranchId).toBeNull();
@@ -333,7 +327,7 @@ describe('MutasiService (IGDERP-140 — central ↔ outlet + outlet ↔ outlet)'
       const createdItems = tx.stockTransfer.create.mock.calls[0][0].data.items.create;
       expect(createdItems).toHaveLength(1);
       expect(Number(createdItems[0].quantityRequested)).toBe(7);
-      expect(tx.stockMovement.create).toHaveBeenCalledTimes(2);
+      expect(tx.stockMovement.create).not.toHaveBeenCalled();
     });
   });
 
@@ -355,22 +349,204 @@ describe('MutasiService (IGDERP-140 — central ↔ outlet + outlet ↔ outlet)'
     });
   });
 
-  describe('create — insufficient stock', () => {
-    it('rejects when no stock row exists at the source warehouse', async () => {
-      tx.productStock.findUnique.mockResolvedValue(null);
-      await expect(service.create(baseDto, 'user-1')).rejects.toThrow(
-        /Insufficient stock for "iPhone 15" \(available: 0, requested: 2\)/,
-      );
-      expect(tx.stockMovement.create).not.toHaveBeenCalled();
+  describe('send — pending → sent (IGDERP-173)', () => {
+    const pendingDoc = (overrides: any = {}) => ({
+      ...createdTransfer,
+      status: 'pending',
+      items: [
+        {
+          id: 'item-1',
+          transferId: 'mutasi-1',
+          productId: 'prod-1',
+          productName: 'iPhone 15',
+          productSku: 'IP15-128',
+          quantityRequested: new Decimal(2),
+          quantitySent: null,
+          quantityReceived: null,
+          notes: null,
+        },
+      ],
+      ...overrides,
     });
 
-    it('rejects when requested quantity exceeds available quantity', async () => {
-      tx.productStock.findUnique.mockResolvedValue({
-        ...stockRow,
-        quantityAvailable: new Decimal(1),
+    it('decrements source stock and stamps sent without touching destination', async () => {
+      prisma.stockTransfer.findUnique.mockResolvedValue(pendingDoc());
+
+      await service.send('mutasi-1', {}, 'user-1');
+
+      expect(tx.stockTransferItem.update).toHaveBeenCalledWith({
+        where: { id: 'item-1' },
+        data: { quantitySent: expect.anything() },
       });
-      await expect(service.create(baseDto, 'user-1')).rejects.toThrow(
-        /Insufficient stock for "iPhone 15" \(available: 1, requested: 2\)/,
+      expect(Number(tx.stockTransferItem.update.mock.calls[0][0].data.quantitySent)).toBe(2);
+      // source OUT only: one update + one OUT movement
+      expect(tx.productStock.update).toHaveBeenCalledTimes(1);
+      expect(Number(tx.productStock.update.mock.calls[0][0].data.quantityAvailable)).toBe(8);
+      expect(tx.stockMovement.create).toHaveBeenCalledTimes(1);
+      expect(tx.stockMovement.create.mock.calls[0][0].data.movementType).toBe('OUT');
+      expect(tx.stockTransfer.update).toHaveBeenCalledWith({
+        where: { id: 'mutasi-1' },
+        data: { status: 'sent', sentBy: 'user-1', sentAt: expect.anything() },
+      });
+    });
+
+    it('allows lowering quantitySent below requested', async () => {
+      prisma.stockTransfer.findUnique.mockResolvedValue(pendingDoc());
+
+      await service.send('mutasi-1', { items: [{ itemId: 'item-1', quantitySent: 1 }] }, 'user-1');
+
+      expect(Number(tx.stockTransferItem.update.mock.calls[0][0].data.quantitySent)).toBe(1);
+      expect(Number(tx.productStock.update.mock.calls[0][0].data.quantityAvailable)).toBe(9);
+    });
+
+    it('rejects send on non-pending docs', async () => {
+      prisma.stockTransfer.findUnique.mockResolvedValue(pendingDoc({ status: 'sent' }));
+      await expect(service.send('mutasi-1', {}, 'user-1')).rejects.toThrow(
+        /Only pending documents can be sent/,
+      );
+    });
+
+    it('rejects sent above requested and insufficient source stock', async () => {
+      prisma.stockTransfer.findUnique.mockResolvedValue(pendingDoc());
+      await expect(
+        service.send('mutasi-1', { items: [{ itemId: 'item-1', quantitySent: 5 }] }, 'user-1'),
+      ).rejects.toThrow(/must be between 0 and 2/);
+
+      tx.productStock.findUnique.mockResolvedValue({ ...stockRow, quantityAvailable: new Decimal(1) });
+      await expect(service.send('mutasi-1', {}, 'user-1')).rejects.toThrow(/Insufficient stock/);
+    });
+  });
+
+  describe('receive — sent → received (IGDERP-173)', () => {
+    const sentDoc = (overrides: any = {}) => ({
+      ...createdTransfer,
+      status: 'sent',
+      items: [
+        {
+          id: 'item-1',
+          transferId: 'mutasi-1',
+          productId: 'prod-1',
+          productName: 'iPhone 15',
+          productSku: 'IP15-128',
+          quantityRequested: new Decimal(2),
+          quantitySent: new Decimal(2),
+          quantityReceived: null,
+          notes: null,
+        },
+      ],
+      ...overrides,
+    });
+
+    it('increments destination stock for a clean receive', async () => {
+      prisma.stockTransfer.findUnique.mockResolvedValue(sentDoc());
+      tx.productStock.findUnique.mockResolvedValue(null); // no dest row → create
+
+      await service.receive(
+        'mutasi-1',
+        { items: [{ itemId: 'item-1', quantityReceived: 2 }] },
+        'user-1',
+      );
+
+      expect(tx.productStock.create).toHaveBeenCalledTimes(1);
+      expect(Number(tx.productStock.create.mock.calls[0][0].data.quantityAvailable)).toBe(2);
+      expect(tx.stockMovement.create).toHaveBeenCalledTimes(1);
+      expect(tx.stockMovement.create.mock.calls[0][0].data.movementType).toBe('IN');
+      // no damage doc
+      expect(tx.stockTransfer.create).not.toHaveBeenCalled();
+      expect(tx.stockTransfer.update).toHaveBeenCalledWith({
+        where: { id: 'mutasi-1' },
+        data: { status: 'received', receivedBy: 'user-1', receivedAt: expect.anything() },
+      });
+    });
+
+    it('books damage to central-bad via auto mutasi when received + damage = sent', async () => {
+      prisma.stockTransfer.findUnique.mockResolvedValue(sentDoc());
+      tx.productStock.findUnique.mockResolvedValue({ ...stockRow, warehouseId: 'wh-a' });
+
+      await service.receive(
+        'mutasi-1',
+        {
+          items: [
+            {
+              itemId: 'item-1',
+              quantityReceived: 1,
+              damageQuantity: 1,
+              damagePhotoUrl: 'https://wa.me/photo-1',
+              damageNotes: 'layar retak',
+            },
+          ],
+        },
+        'user-1',
+      );
+
+      // damage doc: destination GOOD → central BAD, completed
+      const dmgData = tx.stockTransfer.create.mock.calls[0][0].data;
+      expect(dmgData.transferType).toBe('mutasi');
+      expect(dmgData.status).toBe('completed');
+      expect(dmgData.fromWarehouseId).toBe(centralGood.id);
+      expect(dmgData.toWarehouseId).toBe(centralBad.id);
+      expect(dmgData.notes).toContain('https://wa.me/photo-1');
+      // dest IN arrived(2), then damage leg OUT(dest,1) + IN(central-bad,1) → net +1 at dest
+      const movements = tx.stockMovement.create.mock.calls.map((c: any) => c[0].data);
+      expect(movements.filter((m: any) => m.movementType === 'IN')).toHaveLength(2);
+      const outs = movements.filter((m: any) => m.movementType === 'OUT');
+      expect(outs).toHaveLength(1);
+      expect(outs[0].warehouseId).toBe(centralGood.id);
+      expect(outs[0].notes).toContain('https://wa.me/photo-1');
+    });
+
+    it('rejects unexplained shortfall and non-sent docs', async () => {
+      prisma.stockTransfer.findUnique.mockResolvedValue(sentDoc());
+      await expect(
+        service.receive('mutasi-1', { items: [{ itemId: 'item-1', quantityReceived: 1 }] }, 'user-1'),
+      ).rejects.toThrow(/must equal sent \(2\)/);
+
+      prisma.stockTransfer.findUnique.mockResolvedValue(sentDoc({ status: 'pending' }));
+      await expect(
+        service.receive('mutasi-1', { items: [{ itemId: 'item-1', quantityReceived: 2 }] }, 'user-1'),
+      ).rejects.toThrow(/Only sent documents can be received/);
+    });
+  });
+
+  describe('cancel (IGDERP-173)', () => {
+    it('cancels pending docs without touching stock', async () => {
+      prisma.stockTransfer.findUnique.mockResolvedValue({ ...createdTransfer, status: 'pending' });
+
+      await service.cancel('mutasi-1', 'user-1');
+
+      expect(tx.productStock.update).not.toHaveBeenCalled();
+      expect(tx.stockMovement.create).not.toHaveBeenCalled();
+      expect(tx.stockTransfer.update).toHaveBeenCalledWith({
+        where: { id: 'mutasi-1' },
+        data: { status: 'cancelled' },
+      });
+    });
+
+    it('returns in-transit units to source when cancelling sent docs', async () => {
+      prisma.stockTransfer.findUnique.mockResolvedValue({
+        ...createdTransfer,
+        status: 'sent',
+        items: [
+          {
+            id: 'item-1',
+            productId: 'prod-1',
+            productName: 'iPhone 15',
+            quantityRequested: new Decimal(2),
+            quantitySent: new Decimal(2),
+          },
+        ],
+      });
+
+      await service.cancel('mutasi-1', 'user-1');
+
+      expect(Number(tx.productStock.update.mock.calls[0][0].data.quantityAvailable)).toBe(12);
+      expect(tx.stockMovement.create.mock.calls[0][0].data.movementType).toBe('IN');
+    });
+
+    it('rejects cancelling received docs', async () => {
+      prisma.stockTransfer.findUnique.mockResolvedValue({ ...createdTransfer, status: 'received' });
+      await expect(service.cancel('mutasi-1', 'user-1')).rejects.toThrow(
+        /Only pending\/sent documents can be cancelled/,
       );
     });
   });

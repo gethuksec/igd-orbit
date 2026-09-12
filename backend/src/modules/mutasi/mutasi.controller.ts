@@ -13,6 +13,7 @@ import { RolesGuard } from '../../shared/guards/roles.guard';
 import { Roles } from '../../shared/decorators/roles.decorator';
 import { MutasiService } from './mutasi.service';
 import { CreateMutasiDto } from './dto/create-mutasi.dto';
+import { ReceiveMutasiDto, SendMutasiDto } from './dto/lifecycle-mutasi.dto';
 
 /**
  * Mutasi is the central ↔ outlet movement menu (IGDERP-140):
@@ -26,12 +27,36 @@ const MUTASI_ROLES = ['SUPERADMIN', 'OWNER', 'SODO'];
 export class MutasiController {
   constructor(private readonly mutasiService: MutasiService) {}
 
-  /** Create a completed Mutasi document. POST /api/v1/mutasi */
+  /** Create a PENDING Mutasi document (IGDERP-173 transit → receive). POST /api/v1/mutasi */
   @Post()
   @UseGuards(RolesGuard)
   @Roles(...MUTASI_ROLES)
   async create(@Body() dto: CreateMutasiDto, @Request() req: any) {
     return this.mutasiService.create(dto, req.user.id);
+  }
+
+  /** IGDERP-173: send a pending document (source OUT). */
+  @Post(':id/send')
+  @UseGuards(RolesGuard)
+  @Roles(...MUTASI_ROLES)
+  async send(@Param('id') id: string, @Body() dto: SendMutasiDto, @Request() req: any) {
+    return this.mutasiService.send(id, dto, req.user.id);
+  }
+
+  /** IGDERP-173: receive a sent document (destination IN + damage booking). */
+  @Post(':id/receive')
+  @UseGuards(RolesGuard)
+  @Roles(...MUTASI_ROLES)
+  async receive(@Param('id') id: string, @Body() dto: ReceiveMutasiDto, @Request() req: any) {
+    return this.mutasiService.receive(id, dto, req.user.id);
+  }
+
+  /** IGDERP-173: cancel a pending/sent document. */
+  @Post(':id/cancel')
+  @UseGuards(RolesGuard)
+  @Roles(...MUTASI_ROLES)
+  async cancel(@Param('id') id: string, @Request() req: any) {
+    return this.mutasiService.cancel(id, req.user.id);
   }
 
   /** Supporting list: system central + outlet GOOD warehouses (with outlet). */
@@ -68,6 +93,7 @@ export class MutasiController {
       limit: query.limit ? parseInt(query.limit, 10) : undefined,
       outletId: query.outletId,
       warehouseId: query.warehouseId,
+      status: query.status,
     });
   }
 

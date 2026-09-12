@@ -446,6 +446,27 @@ export default function StockTransfer() {
                   <X className="w-4 h-4 mr-2" />
                   Batal
                 </Button>
+                {/* IGDERP-172: cross-outlet handoff — carry lines to the Mutasi form */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={items.length === 0}
+                  title="Pindah ke outlet lain atau gudang pusat via Mutasi (baris ikut terbawa)"
+                  onClick={() =>
+                    navigate('/inventory/mutasi/new', {
+                      state: {
+                        fromTransfer: {
+                          fromWarehouseId: warehouseId,
+                          notes,
+                          items: items.map((l) => ({ ...l })),
+                        },
+                      },
+                    })
+                  }
+                >
+                  <ArrowRightLeft className="w-4 h-4 mr-2" />
+                  Sebagai Mutasi
+                </Button>
                 <Button
                   type="submit"
                   disabled={mutation.isPending || items.length === 0}

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Save,
@@ -52,6 +52,7 @@ const warehouseLabel = (w: StockTransferWarehouse) => {
  */
 export default function Mutasi() {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
 
   const [fromWarehouseId, setFromWarehouseId] = useState('');
@@ -60,6 +61,9 @@ export default function Mutasi() {
 
   const [items, setItems] = useState<LineItem[]>([]);
   const [productSearch, setProductSearch] = useState('');
+  // IGDERP-172: set when the handoff prefill lands, so the warehouse-change
+  // reset below doesn't wipe the carried lines on mount.
+  const handoffApplied = useRef(false);
 
   // All move-endpoint warehouses: system central (good/bad) + outlet GOOD
   const { data: warehouses = [] } = useQuery({
@@ -84,8 +88,39 @@ export default function Mutasi() {
   });
 
   useEffect(() => {
+    if (handoffApplied.current) {
+      handoffApplied.current = false;
+      return;
+    }
     setItems([]);
   }, [fromWarehouseId]);
+
+  // IGDERP-172: cross-outlet handoff from the Transfer form — same source
+  // warehouse, so carried availability figures stay valid.
+  const handoff = (location.state as any)?.fromTransfer;
+  useEffect(() => {
+    if (!handoff) return;
+    if (handoff.fromWarehouseId) setFromWarehouseId(handoff.fromWarehouseId);
+    if (handoff.notes) setNotes(handoff.notes);
+    if (Array.isArray(handoff.items) && handoff.items.length > 0) {
+      handoffApplied.current = true;
+      setItems(
+        handoff.items.map((l: any) => ({
+          productId: l.productId,
+          name: l.name,
+          sku: l.sku,
+          barcode: l.barcode,
+          quantity: l.quantity,
+          unitName: l.unitName || '',
+          availableQuantity: l.availableQuantity ?? 0,
+        })),
+      );
+      toast.info(`${handoff.items.length} baris dibawa dari Transfer — pilih gudang tujuan`);
+    }
+    // consume once so back-navigation doesn't re-apply
+    window.history.replaceState({}, '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const addProductToLines = (product: TransferStockProduct, quantity = 1) => {
     setItems((prev) => {

@@ -114,12 +114,11 @@ export class MutasiService {
   }
 
   /**
-   * Create a completed Mutasi document atomically:
-   * - StockTransfer + StockTransferItem rows (status 'completed',
-   *   transferType 'mutasi')
-   * - Source ProductStock decrement (must exist with enough quantity)
-   * - Destination ProductStock increment (row created when missing)
-   * - StockMovement OUT at source + IN at destination (referenceType TRANSFER)
+   * IGDERP-173 — create a PENDING Mutasi document (transit → receive).
+   * No stock moves at creation: source decrements at send(), destination
+   * increments at receive(). Historical docs keep status 'completed'.
+   * Same validation + snapshots as before; items carry quantityRequested
+   * only (sent/received are filled by send()/receive()).
    * No GL / cash / sales / purchase / finance transaction is created.
    */
   async create(dto: CreateMutasiDto, userId: string) {
@@ -167,7 +166,7 @@ export class MutasiService {
           fromBranchId: fromWarehouse.outletId,
           toBranchId: toWarehouse.outletId,
           transferType: 'mutasi',
-          status: 'completed',
+          status: 'pending',
           requestedBy: userId,
           notes: dto.notes,
           items: {
@@ -176,110 +175,11 @@ export class MutasiService {
               productName: line.productName,
               productSku: line.productSku,
               quantityRequested: new Decimal(line.quantity),
-              quantitySent: new Decimal(line.quantity),
-              quantityReceived: new Decimal(line.quantity),
             })),
           },
         },
         include: { items: true },
       });
-
-      // Per-line: source OUT + destination IN + StockMovement rows
-      for (const line of resolvedLines) {
-        // ── Source OUT ──
-        const srcStock = await tx.productStock.findUnique({
-          where: {
-            productId_warehouseId: {
-              productId: line.productId,
-              warehouseId: fromWarehouse.id,
-            },
-          },
-        });
-        const srcBefore = srcStock ? Number(srcStock.quantityAvailable) : 0;
-        if (!srcStock || srcBefore < line.quantity) {
-          throw new BadRequestException(
-            `Insufficient stock for "${line.productName}" (available: ${srcBefore}, requested: ${line.quantity})`,
-          );
-        }
-        const srcAfter = srcBefore - line.quantity;
-        await tx.productStock.update({
-          where: {
-            productId_warehouseId: {
-              productId: line.productId,
-              warehouseId: fromWarehouse.id,
-            },
-          },
-          data: {
-            quantityAvailable: new Decimal(srcAfter),
-          },
-        });
-        await tx.stockMovement.create({
-          data: {
-            productId: line.productId,
-            warehouseId: fromWarehouse.id,
-            branchId: fromWarehouse.outletId,
-            movementType: 'OUT',
-            referenceType: 'TRANSFER',
-            referenceId: transfer.id,
-            quantityChange: new Decimal(-line.quantity),
-            quantityBefore: new Decimal(srcBefore),
-            quantityAfter: new Decimal(srcAfter),
-            notes: `Mutasi: ${documentNumber} - ${fromWarehouse.name} → ${toWarehouse.name}`,
-            createdBy: userId,
-          },
-        });
-
-        // ── Destination IN (create row when missing) ──
-        const dstStock = await tx.productStock.findUnique({
-          where: {
-            productId_warehouseId: {
-              productId: line.productId,
-              warehouseId: toWarehouse.id,
-            },
-          },
-        });
-        const dstBefore = dstStock ? Number(dstStock.quantityAvailable) : 0;
-        const dstAfter = dstBefore + line.quantity;
-        if (dstStock) {
-          await tx.productStock.update({
-            where: {
-              productId_warehouseId: {
-                productId: line.productId,
-                warehouseId: toWarehouse.id,
-              },
-            },
-            data: {
-              quantityAvailable: new Decimal(dstAfter),
-            },
-          });
-        } else {
-          await tx.productStock.create({
-            data: {
-              productId: line.productId,
-              warehouseId: toWarehouse.id,
-              branchId: toWarehouse.outletId,
-              quantityAvailable: new Decimal(dstAfter),
-              quantityReserved: new Decimal(0),
-              quantityDamaged: new Decimal(0),
-            },
-          });
-        }
-        await tx.stockMovement.create({
-          data: {
-            productId: line.productId,
-            warehouseId: toWarehouse.id,
-            branchId: toWarehouse.outletId,
-            movementType: 'IN',
-            referenceType: 'TRANSFER',
-            referenceId: transfer.id,
-            quantityChange: new Decimal(line.quantity),
-            quantityBefore: new Decimal(dstBefore),
-            quantityAfter: new Decimal(dstAfter),
-            notes: `Mutasi: ${documentNumber} - ${fromWarehouse.name} → ${toWarehouse.name}`,
-            createdBy: userId,
-          },
-        });
-      }
 
       const doc = await tx.stockTransfer.findUnique({
         where: { id: transfer.id },
@@ -295,17 +195,504 @@ export class MutasiService {
     });
   }
 
+  /**
+   * IGDERP-173 — shared atomic OUT→IN leg used by send() (source OUT),
+   * receive() (destination IN) and the damage booking. Moves `qty` of
+   * available stock from one warehouse to another with StockMovement rows.
+   */
+  private async moveAvailable(
+    tx: any,
+    args: {
+      productId: string;
+      productName: string;
+      qty: number;
+      fromWarehouse: WarehouseRow;
+      toWarehouse: WarehouseRow;
+      referenceType: string;
+      referenceId: string;
+      note: string;
+      userId: string;
+    },
+  ) {
+    const { productId, productName, qty, fromWarehouse, toWarehouse } = args;
+    if (qty <= 0) return;
+
+    const srcStock = await tx.productStock.findUnique({
+      where: {
+        productId_warehouseId: { productId, warehouseId: fromWarehouse.id },
+      },
+    });
+    const srcBefore = srcStock ? Number(srcStock.quantityAvailable) : 0;
+    if (!srcStock || srcBefore < qty) {
+      throw new BadRequestException(
+        `Insufficient stock for "${productName}" at ${fromWarehouse.name} (available: ${srcBefore}, needed: ${qty})`,
+      );
+    }
+    const srcAfter = srcBefore - qty;
+    await tx.productStock.update({
+      where: {
+        productId_warehouseId: { productId, warehouseId: fromWarehouse.id },
+      },
+      data: { quantityAvailable: new Decimal(srcAfter) },
+    });
+    await tx.stockMovement.create({
+      data: {
+        productId,
+        warehouseId: fromWarehouse.id,
+        branchId: fromWarehouse.outletId,
+        movementType: 'OUT',
+        referenceType: args.referenceType,
+        referenceId: args.referenceId,
+        quantityChange: new Decimal(-qty),
+        quantityBefore: new Decimal(srcBefore),
+        quantityAfter: new Decimal(srcAfter),
+        notes: args.note,
+        createdBy: args.userId,
+      },
+    });
+
+    const dstStock = await tx.productStock.findUnique({
+      where: {
+        productId_warehouseId: { productId, warehouseId: toWarehouse.id },
+      },
+    });
+    const dstBefore = dstStock ? Number(dstStock.quantityAvailable) : 0;
+    const dstAfter = dstBefore + qty;
+    if (dstStock) {
+      await tx.productStock.update({
+        where: {
+          productId_warehouseId: { productId, warehouseId: toWarehouse.id },
+        },
+        data: { quantityAvailable: new Decimal(dstAfter) },
+      });
+    } else {
+      await tx.productStock.create({
+        data: {
+          productId,
+          warehouseId: toWarehouse.id,
+          branchId: toWarehouse.outletId,
+          quantityAvailable: new Decimal(dstAfter),
+          quantityReserved: new Decimal(0),
+          quantityDamaged: new Decimal(0),
+        },
+      });
+    }
+    await tx.stockMovement.create({
+      data: {
+        productId,
+        warehouseId: toWarehouse.id,
+        branchId: toWarehouse.outletId,
+        movementType: 'IN',
+        referenceType: args.referenceType,
+        referenceId: args.referenceId,
+        quantityChange: new Decimal(qty),
+        quantityBefore: new Decimal(dstBefore),
+        quantityAfter: new Decimal(dstAfter),
+        notes: args.note,
+        createdBy: args.userId,
+      },
+    });
+  }
+
+  private async loadMutasiDoc(id: string) {
+    const doc: any = await this.prisma.stockTransfer.findUnique({
+      where: { id },
+      include: {
+        items: { include: { product: true } },
+        fromWarehouse: true,
+        toWarehouse: true,
+        fromBranch: true,
+        toBranch: true,
+      },
+    });
+    if (!doc || doc.transferType !== 'mutasi') {
+      throw new NotFoundException('Mutasi document not found');
+    }
+    return doc;
+  }
+
+  /**
+   * IGDERP-173 — send (pending → sent). Goods leave the source now;
+   * quantitySent defaults to requested and may be lowered per line.
+   */
+  async send(id: string, dto: { items?: Array<{ itemId: string; quantitySent?: number }> }, userId: string) {
+    const doc = await this.loadMutasiDoc(id);
+    if (doc.status !== 'pending') {
+      throw new BadRequestException(`Only pending documents can be sent (status: ${doc.status})`);
+    }
+    const overrides = new Map((dto.items || []).map((l) => [l.itemId, l.quantitySent]));
+
+    return await this.prisma.$transaction(async (tx) => {
+      for (const item of doc.items) {
+        const requested = Number(item.quantityRequested);
+        let sent = overrides.has(item.id) ? Number(overrides.get(item.id)) : requested;
+        if (!Number.isFinite(sent) || sent < 0 || sent > requested) {
+          throw new BadRequestException(
+            `quantitySent for "${item.productName || item.productId}" must be between 0 and ${requested}`,
+          );
+        }
+        await tx.stockTransferItem.update({
+          where: { id: item.id },
+          data: { quantitySent: new Decimal(sent) },
+        });
+        // Source OUT now; destination IN happens at receive(). The sent
+        // units are physically in transit between the two legs.
+        const srcStock = await tx.productStock.findUnique({
+          where: {
+            productId_warehouseId: { productId: item.productId, warehouseId: doc.fromWarehouseId },
+          },
+        });
+        const srcBefore = srcStock ? Number(srcStock.quantityAvailable) : 0;
+        if (sent > 0 && (!srcStock || srcBefore < sent)) {
+          throw new BadRequestException(
+            `Insufficient stock for "${item.productName || item.productId}" at ${doc.fromWarehouse.name} (available: ${srcBefore}, needed: ${sent})`,
+          );
+        }
+        if (sent > 0) {
+          const srcAfter = srcBefore - sent;
+          await tx.productStock.update({
+            where: {
+              productId_warehouseId: { productId: item.productId, warehouseId: doc.fromWarehouseId },
+            },
+            data: { quantityAvailable: new Decimal(srcAfter) },
+          });
+          await tx.stockMovement.create({
+            data: {
+              productId: item.productId,
+              warehouseId: doc.fromWarehouseId,
+              branchId: doc.fromBranchId,
+              movementType: 'OUT',
+              referenceType: 'TRANSFER',
+              referenceId: doc.id,
+              quantityChange: new Decimal(-sent),
+              quantityBefore: new Decimal(srcBefore),
+              quantityAfter: new Decimal(srcAfter),
+              notes: `Mutasi terkirim: ${doc.transferNumber} - ${doc.fromWarehouse.name} → ${doc.toWarehouse.name}`,
+              createdBy: userId,
+            },
+          });
+        }
+      }
+      await tx.stockTransfer.update({
+        where: { id: doc.id },
+        data: { status: 'sent', sentBy: userId, sentAt: new Date() },
+      });
+      const updated = await tx.stockTransfer.findUnique({
+        where: { id: doc.id },
+        include: {
+          items: { include: { product: true } },
+          fromWarehouse: true,
+          toWarehouse: true,
+          fromBranch: true,
+          toBranch: true,
+        },
+      });
+      return this.serialize(updated);
+    });
+  }
+
+  /**
+   * IGDERP-173 — receive (sent → received, GR-mirror). Per line:
+   * received + damage must equal sent — every missing unit is booked to
+   * bad stock via an auto-created completed SODO mutasi
+   * (destination GOOD → central BAD) carrying the WA photo reference.
+   */
+  async receive(
+    id: string,
+    dto: {
+      items: Array<{
+        itemId: string;
+        quantityReceived: number;
+        damageQuantity?: number;
+        damagePhotoUrl?: string;
+        damageNotes?: string;
+      }>;
+    },
+    userId: string,
+  ) {
+    const doc = await this.loadMutasiDoc(id);
+    if (doc.status !== 'sent') {
+      throw new BadRequestException(`Only sent documents can be received (status: ${doc.status})`);
+    }
+    if (!dto.items || dto.items.length === 0) {
+      throw new BadRequestException('Receive lines are required');
+    }
+    const byId = new Map(dto.items.map((l) => [l.itemId, l]));
+    if (byId.size !== doc.items.length) {
+      throw new BadRequestException('Receive must cover every line of the document');
+    }
+
+    const centralBad = await this.prisma.warehouse.findFirst({
+      where: { scope: 'SYSTEM', type: 'BAD', isActive: true },
+    });
+    const needsBad = dto.items.some((l) => Number(l.damageQuantity || 0) > 0);
+    if (needsBad && !centralBad) {
+      throw new BadRequestException('Central Bad Stock warehouse is not configured');
+    }
+
+    return await this.prisma.$transaction(async (tx) => {
+      const damageDocLines: any[] = [];
+      for (const item of doc.items) {
+        const line = byId.get(item.id);
+        const sent = Number(item.quantitySent ?? 0);
+        const received = Number(line!.quantityReceived);
+        const damage = Number(line!.damageQuantity || 0);
+        if (!Number.isFinite(received) || received < 0 || received > sent) {
+          throw new BadRequestException(
+            `quantityReceived for "${item.productName || item.productId}" must be between 0 and ${sent}`,
+          );
+        }
+        if (!Number.isFinite(damage) || damage < 0 || damage > sent) {
+          throw new BadRequestException(
+            `damageQuantity for "${item.productName || item.productId}" must be between 0 and ${sent}`,
+          );
+        }
+        if (received + damage !== sent) {
+          throw new BadRequestException(
+            `Line "${item.productName || item.productId}": received (${received}) + damage (${damage}) must equal sent (${sent})`,
+          );
+        }
+
+        await tx.stockTransferItem.update({
+          where: { id: item.id },
+          data: {
+            quantityReceived: new Decimal(received),
+            notes: [
+              item.notes,
+              line!.damageNotes ? `Rusak: ${line!.damageNotes}` : null,
+              line!.damagePhotoUrl ? `Foto: ${line!.damagePhotoUrl}` : null,
+            ]
+              .filter(Boolean)
+              .join(' | ') || null,
+          },
+        });
+
+        // Destination IN: good units stay, damaged units arrive broken and
+        // are immediately re-booked to bad stock below (net += received).
+        const arrived = received + damage;
+        if (arrived > 0) {
+          const dstStock = await tx.productStock.findUnique({
+            where: {
+              productId_warehouseId: { productId: item.productId, warehouseId: doc.toWarehouseId },
+            },
+          });
+          const dstBefore = dstStock ? Number(dstStock.quantityAvailable) : 0;
+          const dstAfter = dstBefore + arrived;
+          if (dstStock) {
+            await tx.productStock.update({
+              where: {
+                productId_warehouseId: { productId: item.productId, warehouseId: doc.toWarehouseId },
+              },
+              data: { quantityAvailable: new Decimal(dstAfter) },
+            });
+          } else {
+            await tx.productStock.create({
+              data: {
+                productId: item.productId,
+                warehouseId: doc.toWarehouseId,
+                branchId: doc.toBranchId,
+                quantityAvailable: new Decimal(dstAfter),
+                quantityReserved: new Decimal(0),
+                quantityDamaged: new Decimal(0),
+              },
+            });
+          }
+          await tx.stockMovement.create({
+            data: {
+              productId: item.productId,
+              warehouseId: doc.toWarehouseId,
+              branchId: doc.toBranchId,
+              movementType: 'IN',
+              referenceType: 'TRANSFER',
+              referenceId: doc.id,
+              quantityChange: new Decimal(arrived),
+              quantityBefore: new Decimal(dstBefore),
+              quantityAfter: new Decimal(dstAfter),
+              notes: `Mutasi diterima: ${doc.transferNumber} - ${doc.fromWarehouse.name} → ${doc.toWarehouse.name}`,
+              createdBy: userId,
+            },
+          });
+        }
+
+        if (damage > 0) {
+          damageDocLines.push({
+            productId: item.productId,
+            productName: item.productName,
+            productSku: item.productSku,
+            quantity: damage,
+            photoUrl: line!.damagePhotoUrl,
+            notes: line!.damageNotes,
+          });
+        }
+      }
+
+      // Auto-created SODO damage mutasi: destination GOOD → central BAD.
+      if (damageDocLines.length > 0) {
+        const damageNumber = this.generateDocumentNumber();
+        const damageDoc = await tx.stockTransfer.create({
+          data: {
+            transferNumber: damageNumber,
+            fromWarehouseId: doc.toWarehouseId,
+            toWarehouseId: centralBad!.id,
+            fromBranchId: doc.toBranchId,
+            toBranchId: centralBad!.outletId,
+            transferType: 'mutasi',
+            status: 'completed',
+            requestedBy: userId,
+            notes: `Rusak dari ${doc.transferNumber}${damageDocLines[0]?.photoUrl ? ` · Foto: ${damageDocLines.map((l) => l.photoUrl).filter(Boolean).join(', ')}` : ''}`,
+            items: {
+              create: damageDocLines.map((l) => ({
+                productId: l.productId,
+                productName: l.productName,
+                productSku: l.productSku,
+                quantityRequested: new Decimal(l.quantity),
+                quantitySent: new Decimal(l.quantity),
+                quantityReceived: new Decimal(l.quantity),
+              })),
+            },
+          },
+          include: { items: true },
+        });
+        for (const l of damageDocLines) {
+          await this.moveAvailable(tx, {
+            productId: l.productId,
+            productName: l.productName || l.productId,
+            qty: l.quantity,
+            fromWarehouse: {
+              id: doc.toWarehouseId,
+              code: doc.toWarehouse.code,
+              name: doc.toWarehouse.name,
+              type: doc.toWarehouse.type,
+              scope: doc.toWarehouse.scope,
+              outletId: doc.toBranchId,
+              isActive: true,
+            },
+            toWarehouse: {
+              id: centralBad!.id,
+              code: centralBad!.code,
+              name: centralBad!.name,
+              type: centralBad!.type,
+              scope: centralBad!.scope,
+              outletId: centralBad!.outletId,
+              isActive: true,
+            },
+            referenceType: 'TRANSFER',
+            referenceId: damageDoc.id,
+            note: `Mutasi rusak: ${damageNumber} (dari ${doc.transferNumber})${l.photoUrl ? ` · Foto: ${l.photoUrl}` : ''}${l.notes ? ` · ${l.notes}` : ''}`,
+            userId,
+          });
+        }
+      }
+
+      await tx.stockTransfer.update({
+        where: { id: doc.id },
+        data: { status: 'received', receivedBy: userId, receivedAt: new Date() },
+      });
+      const updated = await tx.stockTransfer.findUnique({
+        where: { id: doc.id },
+        include: {
+          items: { include: { product: true } },
+          fromWarehouse: true,
+          toWarehouse: true,
+          fromBranch: true,
+          toBranch: true,
+        },
+      });
+      return this.serialize(updated);
+    });
+  }
+
+  /**
+   * IGDERP-173 — cancel. Pending docs reverse nothing; sent docs return
+   * the in-transit units to the source. Received docs are final.
+   */
+  async cancel(id: string, userId: string) {
+    const doc = await this.loadMutasiDoc(id);
+    if (doc.status !== 'pending' && doc.status !== 'sent') {
+      throw new BadRequestException(`Only pending/sent documents can be cancelled (status: ${doc.status})`);
+    }
+
+    return await this.prisma.$transaction(async (tx) => {
+      if (doc.status === 'sent') {
+        for (const item of doc.items) {
+          const sent = Number(item.quantitySent ?? 0);
+          if (sent <= 0) continue;
+          const srcStock = await tx.productStock.findUnique({
+            where: {
+              productId_warehouseId: { productId: item.productId, warehouseId: doc.fromWarehouseId },
+            },
+          });
+          const srcBefore = srcStock ? Number(srcStock.quantityAvailable) : 0;
+          const srcAfter = srcBefore + sent;
+          if (srcStock) {
+            await tx.productStock.update({
+              where: {
+                productId_warehouseId: { productId: item.productId, warehouseId: doc.fromWarehouseId },
+              },
+              data: { quantityAvailable: new Decimal(srcAfter) },
+            });
+          } else {
+            await tx.productStock.create({
+              data: {
+                productId: item.productId,
+                warehouseId: doc.fromWarehouseId,
+                branchId: doc.fromBranchId,
+                quantityAvailable: new Decimal(srcAfter),
+                quantityReserved: new Decimal(0),
+                quantityDamaged: new Decimal(0),
+              },
+            });
+          }
+          await tx.stockMovement.create({
+            data: {
+              productId: item.productId,
+              warehouseId: doc.fromWarehouseId,
+              branchId: doc.fromBranchId,
+              movementType: 'IN',
+              referenceType: 'TRANSFER',
+              referenceId: doc.id,
+              quantityChange: new Decimal(sent),
+              quantityBefore: new Decimal(srcBefore),
+              quantityAfter: new Decimal(srcAfter),
+              notes: `Mutasi dibatalkan: ${doc.transferNumber} — kembali ke ${doc.fromWarehouse.name}`,
+              createdBy: userId,
+            },
+          });
+        }
+      }
+      await tx.stockTransfer.update({
+        where: { id: doc.id },
+        data: { status: 'cancelled' },
+      });
+      const updated = await tx.stockTransfer.findUnique({
+        where: { id: doc.id },
+        include: {
+          items: { include: { product: true } },
+          fromWarehouse: true,
+          toWarehouse: true,
+          fromBranch: true,
+          toBranch: true,
+        },
+      });
+      return this.serialize(updated);
+    });
+  }
+
   async findAll(query: {
     page?: number;
     limit?: number;
     outletId?: string;
     warehouseId?: string;
+    status?: string;
   }) {
     const page = query.page && query.page > 0 ? query.page : 1;
     const limit = query.limit && query.limit > 0 ? Math.min(query.limit, 100) : 20;
     const skip = (page - 1) * limit;
 
     const where: any = { transferType: 'mutasi' };
+    if (query.status) {
+      where.status = query.status;
+    }
     if (query.outletId) {
       where.OR = [{ fromBranchId: query.outletId }, { toBranchId: query.outletId }];
     }
