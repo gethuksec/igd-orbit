@@ -312,6 +312,14 @@ export class ServiceOrdersService {
       serviceTypeId = uniqueIds[0];
     }
 
+    // IGDERP-169: device type strictly from master (no free "lainnya")
+    const deviceTypeRow = await this.prisma.deviceType.findFirst({
+      where: { code: deviceType, isActive: true },
+    });
+    if (!deviceTypeRow) {
+      throw new BadRequestException('Jenis perangkat tidak valid (lihat master Tipe Perangkat)');
+    }
+
     // IGDERP-185: validate lock combo, then encrypt if provided
     const lockType = validateDeviceLock(deviceLockType, devicePassword);
     const encryptedPassword = devicePassword ? encryptPassword(devicePassword) : null;
@@ -651,6 +659,16 @@ export class ServiceOrdersService {
       updateData.devicePassword = null;
     } else if (dto.devicePassword) {
       validateDeviceLock(dto.deviceLockType ?? (serviceOrder as any).deviceLockType, dto.devicePassword);
+    }
+
+    // IGDERP-169: device type strictly from master on change
+    if (dto.deviceType !== undefined) {
+      const deviceTypeRow = await this.prisma.deviceType.findFirst({
+        where: { code: dto.deviceType, isActive: true },
+      });
+      if (!deviceTypeRow) {
+        throw new BadRequestException('Jenis perangkat tidak valid (lihat master Tipe Perangkat)');
+      }
     }
 
     if (dto.estimatedCost !== undefined) {

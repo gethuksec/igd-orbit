@@ -110,6 +110,7 @@ import ServiceLanding from './pages/services/ServiceLanding';
 import SmartRepairPage from './pages/services/SmartRepairPage';
 import SmartRepairDetailPage from './pages/services/SmartRepairDetailPage';
 import ServiceCheckpointList from './pages/service-checkpoints/ServiceCheckpointList';
+import DeviceTypeList from './pages/device-types/DeviceTypeList';
 import FinanceLanding from './pages/finance/FinanceLanding';
 import COAList from './pages/finance/coa/COAList';
 import COADetail from './pages/finance/coa/COADetail';
@@ -697,6 +698,17 @@ function App() {
                 <ProtectedRoute>
                   <DashboardLayout>
                     <ServiceCheckpointList />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            {/* Tipe Perangkat master (IGDERP-169) */}
+            <Route
+              path="/device-types"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <DeviceTypeList />
                   </DashboardLayout>
                 </ProtectedRoute>
               }

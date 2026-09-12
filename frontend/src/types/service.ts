@@ -14,6 +14,22 @@ export interface ServiceCheckpointListResponse {
   meta: { page: number; limit: number; total: number; totalPages: number };
 }
 
+// IGDERP-169: device type master
+export interface DeviceType {
+  id: string;
+  code: string;
+  name: string;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface DeviceTypeListResponse {
+  data: DeviceType[];
+  meta: { page: number; limit: number; total: number; totalPages: number };
+}
+
 export interface CompletenessItem {
   checkpointId?: string;
   name: string;
@@ -39,7 +55,7 @@ export interface SmartRepairPayload {
   customerEmail?: string;
   customerSubdistrict?: string;
 
-  deviceType: 'handphone' | 'laptop' | 'tablet' | 'other';
+  deviceType: string; // IGDERP-169: master code (device-types/active)
   deviceUnit?: string;
   deviceColor?: string;
   deviceSerial?: string;

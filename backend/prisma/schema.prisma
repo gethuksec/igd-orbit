@@ -1226,6 +1226,20 @@ model ServiceCheckpoint {
   @@map("service_checkpoints")
 }
 
+// IGDERP-169: device type master (strict source for intake — no free "lainnya")
+model DeviceType {
+  id        String   @id @default(uuid())
+  code      String   @unique // stable intake value: handphone, laptop, tablet, smartwatch
+  name      String
+  isActive  Boolean  @default(true) @map("is_active")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([isActive, sortOrder])
+  @@map("device_types")
+}
+
 model ServiceStatusHistory {
   id             String   @id @default(uuid())
   serviceOrderId String   @map("service_order_id")

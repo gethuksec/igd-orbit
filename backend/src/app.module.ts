@@ -30,6 +30,7 @@ import { RolesModule } from './modules/roles/roles.module';
 import { CustomerTiersModule } from './modules/customer-tiers/customer-tiers.module';
 import { PaymentTermsModule } from './modules/payment-terms/payment-terms.module';
 import { ServiceCheckpointsModule } from './modules/service-checkpoints/service-checkpoints.module';
+import { DeviceTypesModule } from './modules/device-types/device-types.module';
 import { PosModule } from './modules/pos/pos.module';
 import { StockRequestsModule } from './modules/stock-requests/stock-requests.module';
 import { StockInModule } from './modules/stock-in/stock-in.module';
@@ -72,6 +73,7 @@ import { LabelPrintingModule } from './modules/label-printing/label-printing.mod
     CustomerTiersModule,
     PaymentTermsModule,
     ServiceCheckpointsModule,
+    DeviceTypesModule,
     PosModule,
     StockRequestsModule,
     StockInModule,

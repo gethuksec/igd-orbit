@@ -2675,6 +2675,22 @@ async function main() {
 
   console.log('✅ Service checkpoints created');
 
+  // IGDERP-169: device type master (strict source for intake — codes stay stable)
+  console.log('📱 Creating device types...');
+  const defaultDeviceTypes = [
+    { code: 'handphone', name: 'Handphone', sortOrder: 0 },
+    { code: 'tablet', name: 'Tablet', sortOrder: 1 },
+    { code: 'laptop', name: 'Laptop', sortOrder: 2 },
+    { code: 'smartwatch', name: 'Smartwatch', sortOrder: 3 },
+  ];
+  for (const dt of defaultDeviceTypes) {
+    const existing = await prisma.deviceType.findFirst({ where: { code: dt.code } });
+    if (!existing) {
+      await prisma.deviceType.create({ data: { ...dt, isActive: true } });
+    }
+  }
+  console.log('✅ Device types created');
+
   console.log('✅ Database seed completed!');
   console.log('\n📋 Demo Credentials (Organized by Tier):');
   console.log('\n🟣 TIER 0 - SUPER ADMIN (Password: SuperAdmin@1234)');

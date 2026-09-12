@@ -35,6 +35,7 @@ import {
   Maximize,
   ClipboardCheck,
   ClipboardList,
+  Smartphone,
   Truck,
   ReceiptText,
   Wallet,
@@ -286,6 +287,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           children: [
             { icon: Wrench, label: 'Layanan', path: '/service-types', permission: 'master_data.service_type.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS'] },
             { icon: ClipboardList, label: 'Kelengkapan', path: '/service-checkpoints', permission: 'service.checkpoint.view', roles: ['SUPERADMIN', 'OWNER', 'MGR', 'CS', 'HS', 'SPV'] },
+            { icon: Smartphone, label: 'Tipe Perangkat', path: '/device-types', permission: 'service.checkpoint.view', roles: ['SUPERADMIN', 'OWNER', 'MGR', 'CS', 'HS', 'SPV'] },
           ],
         },
       ],
