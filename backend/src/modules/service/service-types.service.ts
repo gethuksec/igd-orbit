@@ -57,6 +57,7 @@ export class ServiceTypesService {
         minPrice: new Decimal(150000),
         maxPrice: new Decimal(500000),
         slaHours: 4,
+        durationHours: 2,
       },
       {
         code: 'BATTERY_REPLACE',
@@ -66,6 +67,7 @@ export class ServiceTypesService {
         minPrice: new Decimal(100000),
         maxPrice: new Decimal(300000),
         slaHours: 2,
+        durationHours: 1,
       },
       {
         code: 'CHARGING_PORT',
@@ -75,6 +77,7 @@ export class ServiceTypesService {
         minPrice: new Decimal(100000),
         maxPrice: new Decimal(200000),
         slaHours: 3,
+        durationHours: 1.5,
       },
       {
         code: 'WATER_DAMAGE',
@@ -84,6 +87,7 @@ export class ServiceTypesService {
         minPrice: new Decimal(200000),
         maxPrice: new Decimal(1000000),
         slaHours: 72, // 3 days
+        durationHours: 48,
       },
       {
         code: 'SOFTWARE_ISSUE',
@@ -93,6 +97,7 @@ export class ServiceTypesService {
         minPrice: new Decimal(50000),
         maxPrice: new Decimal(200000),
         slaHours: 2,
+        durationHours: 1,
       },
       {
         code: 'MOTHERBOARD_REPAIR',
@@ -102,6 +107,7 @@ export class ServiceTypesService {
         minPrice: new Decimal(300000),
         maxPrice: new Decimal(2000000),
         slaHours: 120, // 5 days
+        durationHours: 72,
       },
     ];
 
@@ -162,6 +168,7 @@ export class ServiceTypesService {
       minPrice: st.minPrice ? st.minPrice.toNumber() : null,
       maxPrice: st.maxPrice ? st.maxPrice.toNumber() : null,
       slaHours: st.slaHours,
+      durationHours: st.durationHours ? st.durationHours.toNumber() : null,
       isActive: st.isActive,
       serviceOrderCount: st._count.serviceOrders,
       createdAt: st.createdAt,
@@ -195,6 +202,7 @@ export class ServiceTypesService {
       minPrice: serviceType.minPrice ? serviceType.minPrice.toNumber() : null,
       maxPrice: serviceType.maxPrice ? serviceType.maxPrice.toNumber() : null,
       slaHours: serviceType.slaHours,
+      durationHours: serviceType.durationHours ? serviceType.durationHours.toNumber() : null,
       isActive: serviceType.isActive,
       serviceOrderCount: serviceType._count.serviceOrders,
       createdAt: serviceType.createdAt,
@@ -251,6 +259,8 @@ export class ServiceTypesService {
         minPrice: createServiceTypeDto.minPrice ? new Decimal(createServiceTypeDto.minPrice) : null,
         maxPrice: createServiceTypeDto.maxPrice ? new Decimal(createServiceTypeDto.maxPrice) : null,
         slaHours: createServiceTypeDto.slaHours,
+        // IGDERP-186: auto duration per service type
+        durationHours: createServiceTypeDto.durationHours ?? null,
         isActive: createServiceTypeDto.isActive !== undefined ? createServiceTypeDto.isActive : true,
       },
     });
@@ -264,6 +274,7 @@ export class ServiceTypesService {
       minPrice: serviceType.minPrice ? serviceType.minPrice.toNumber() : null,
       maxPrice: serviceType.maxPrice ? serviceType.maxPrice.toNumber() : null,
       slaHours: serviceType.slaHours,
+      durationHours: serviceType.durationHours ? serviceType.durationHours.toNumber() : null,
       isActive: serviceType.isActive,
       createdAt: serviceType.createdAt,
       updatedAt: serviceType.updatedAt,
@@ -351,6 +362,10 @@ export class ServiceTypesService {
     if (updateServiceTypeDto.slaHours !== undefined) {
       updateData.slaHours = updateServiceTypeDto.slaHours;
     }
+    // IGDERP-186: auto duration per service type
+    if (updateServiceTypeDto.durationHours !== undefined) {
+      updateData.durationHours = updateServiceTypeDto.durationHours;
+    }
     if (updateServiceTypeDto.isActive !== undefined) {
       updateData.isActive = updateServiceTypeDto.isActive;
     }
@@ -369,6 +384,7 @@ export class ServiceTypesService {
       minPrice: updated.minPrice ? updated.minPrice.toNumber() : null,
       maxPrice: updated.maxPrice ? updated.maxPrice.toNumber() : null,
       slaHours: updated.slaHours,
+      durationHours: updated.durationHours ? updated.durationHours.toNumber() : null,
       isActive: updated.isActive,
       createdAt: updated.createdAt,
       updatedAt: updated.updatedAt,

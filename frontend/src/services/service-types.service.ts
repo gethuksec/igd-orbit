@@ -9,6 +9,7 @@ export interface ServiceType {
   minPrice?: number;
   maxPrice?: number;
   slaHours: number;
+  durationHours?: number | null;
   isActive: boolean;
   serviceOrderCount?: number;
   createdAt: string;
