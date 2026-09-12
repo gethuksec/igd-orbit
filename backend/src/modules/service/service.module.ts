@@ -8,9 +8,10 @@ import { ServiceReturnsService } from './service-returns.service';
 import { ServiceReturnsController } from './service-returns.controller';
 import { FinanceModule } from '../finance/finance.module';
 import { SalesModule } from '../sales/sales.module';
+import { ApprovalSettingsModule } from '../approval-settings/approval-settings.module';
 
 @Module({
-  imports: [FinanceModule, SalesModule],
+  imports: [FinanceModule, SalesModule, ApprovalSettingsModule],
   providers: [PrismaService, ServiceOrdersService, ServiceTypesService, ServiceReturnsService],
   controllers: [ServiceOrdersController, ServiceTypesController, ServiceReturnsController],
   exports: [ServiceOrdersService, ServiceTypesService, ServiceReturnsService],

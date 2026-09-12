@@ -154,12 +154,18 @@ export const serviceOrdersService = {
   },
 
   async processPayment(id: string, payload: {
-    paymentMethod: 'cash' | 'transfer' | 'e_wallet' | 'credit_card' | 'debit_card';
+    paymentMethod: 'cash' | 'transfer' | 'qris' | 'e_wallet' | 'credit_card' | 'debit_card';
     amount: number;
     reference?: string;
     notes?: string;
   }) {
     const response = await api.post(`/service-orders/${id}/payment`, payload);
+    return response.data.data || response.data;
+  },
+
+  // IGDERP-171: void mistaken payment (approver asserted server-side)
+  async voidPayment(id: string, payload: { reason: string }) {
+    const response = await api.post(`/service-orders/${id}/payment/void`, payload);
     return response.data.data || response.data;
   },
 

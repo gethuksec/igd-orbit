@@ -31,6 +31,7 @@ import { CustomerFeedbackDto } from './dto/customer-feedback.dto';
 import { AssignTechnicianDto } from './dto/assign-technician.dto';
 import { UploadPhotosDto } from './dto/upload-photos.dto';
 import { ProcessPaymentDto } from './dto/payment.dto';
+import { VoidPaymentDto } from './dto/void-payment.dto';
 
 @Controller('service-orders')
 export class ServiceOrdersController {
@@ -246,6 +247,20 @@ export class ServiceOrdersController {
     @Request() req: any,
   ) {
     return this.serviceOrdersService.processPayment(id, dto, req.user.id);
+  }
+
+  // IGDERP-171: void mistaken payment — caller must hold the SERVICE_PAYMENT_VOID
+  // approver role (asserted in service against Admin approval settings).
+  @Post(':id/payment/void')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('CS', 'TC', 'HS', 'SPV', 'CMO', 'CFO', 'OWNER', 'SUPERADMIN')
+  async voidPayment(
+    @Param('id') id: string,
+    @Body() dto: VoidPaymentDto,
+    @Request() req: any,
+  ) {
+    const roles: string[] = (req.user as any)?.roles || [];
+    return this.serviceOrdersService.voidPayment(id, dto, (req.user as any)?.id, roles);
   }
 }
 

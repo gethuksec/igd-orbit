@@ -295,14 +295,37 @@ export default function SmartRepairDetailPage() {
   });
 
   const paymentMutation = useMutation({
-    mutationFn: (payload: { paymentMethod: 'cash' | 'transfer' | 'e_wallet' | 'credit_card' | 'debit_card'; amount: number; reference?: string }) =>
+    mutationFn: (payload: { paymentMethod: 'cash' | 'transfer' | 'qris'; amount: number; reference?: string }) =>
       serviceOrdersService.processPayment(id!, payload),
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success('Pembayaran tercatat');
       setOpenBayar(false); setBayarAmount(''); setBayarRef('');
-      queryClient.invalidateQueries({ queryKey: ['service-order', id] });
+      await queryClient.invalidateQueries({ queryKey: ['service-order', id] });
+      await queryClient.invalidateQueries({ queryKey: ['sr-pos-faktur', id] });
+      // IGDERP-171: faktur opens in a new tab (service + POS when cross-sold)
+      try {
+        const list = await fetchList(`/api/v1/sales/transactions?serviceOrderId=${id}`);
+        const posId = (list as any[])[0]?.id;
+        window.open(`/service-orders/${id}/print?type=invoice${posId ? `&pos=${posId}` : ''}`, '_blank');
+      } catch {
+        // popup blocked — user can still print from the faktur banner
+      }
     },
     onError: (err: any) => toast.error(err.response?.data?.message || 'Gagal mencatat pembayaran'),
+  });
+
+  // IGDERP-171: void mistaken payment (approver role asserted server-side)
+  const [openVoid, setOpenVoid] = useState(false);
+  const [voidReason, setVoidReason] = useState('');
+  const voidMutation = useMutation({
+    mutationFn: (reason: string) => serviceOrdersService.voidPayment(id!, { reason }),
+    onSuccess: () => {
+      toast.success('Pembayaran di-void — order kembali ke Ready');
+      setOpenVoid(false); setVoidReason('');
+      queryClient.invalidateQueries({ queryKey: ['service-order', id] });
+      queryClient.invalidateQueries({ queryKey: ['sr-pos-faktur', id] });
+    },
+    onError: (err: any) => toast.error(err.response?.data?.message || 'Gagal void pembayaran'),
   });
 
   const uploadPhotoMutation = useMutation({
@@ -367,6 +390,10 @@ export default function SmartRepairDetailPage() {
     return digits;
   })();
   const waLink = waNumber ? `https://wa.me/${waNumber}?text=${encodeURIComponent(`Halo ${order.customerName || ''}, info service ${order.serviceNumber || ''} (${STATUS_LABELS[status] || status})`)}` : '';
+  // IGDERP-171: digital faktur via click-to-open WA (never auto-send)
+  const waFakturLink = waNumber
+    ? `https://wa.me/${waNumber}?text=${encodeURIComponent(`Faktur Service ${order.serviceNumber || ''} — Total ${formatCurrency(totalFee)} — LUNAS. Terima kasih!`)}`
+    : '';
 
   const handleCancel = () => {
     if (!cancelReason.trim()) {
@@ -678,7 +705,16 @@ export default function SmartRepairDetailPage() {
                   {posFaktur.transactionNumber}
                 </Link>
                 <span className="text-xs text-gray-500">({posFaktur.paymentStatus})</span>
-                <div className="ml-auto">
+                <div className="ml-auto flex gap-2">
+                  {waFakturLink && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(waFakturLink, '_blank')}
+                    >
+                      Faktur WA
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
@@ -690,6 +726,30 @@ export default function SmartRepairDetailPage() {
                     }
                   >
                     <Printer className="w-4 h-4 mr-1" /> Cetak Faktur (Service + POS)
+                  </Button>
+                </div>
+              </div>
+            )}
+            {/* IGDERP-171: paid service-only order — faktur actions without POS link */}
+            {isPaid && !posFaktur && (
+              <div className="mt-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-sm">
+                <span className="text-gray-600">Lunas — faktur siap dibagikan:</span>
+                <div className="ml-auto flex gap-2">
+                  {waFakturLink && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(waFakturLink, '_blank')}
+                    >
+                      Faktur WA
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(`/service-orders/${id}/print?type=invoice`, '_blank')}
+                  >
+                    <Printer className="w-4 h-4 mr-1" /> Cetak Faktur
                   </Button>
                 </div>
               </div>
@@ -825,6 +885,15 @@ export default function SmartRepairDetailPage() {
                   onClick={() => { setBayarAmount(String(sisaBayar)); setBayarMethod('cash'); setBayarRef(''); setOpenBayar(true); }}
                 >
                   Terima Pembayaran {sisaBayar > 0 ? `(${formatCurrency(sisaBayar)})` : ''}
+                </DropdownMenuItem>
+              )}
+              {/* IGDERP-171: void mistaken payment — approver asserted server-side */}
+              {status === 'done' && isPaid && !isCancelled && (
+                <DropdownMenuItem
+                  className="text-red-600 font-semibold"
+                  onClick={() => { setVoidReason(''); setOpenVoid(true); }}
+                >
+                  Void pembayaran
                 </DropdownMenuItem>
               )}
               {(!status || (status !== 'in-progress' && status !== 'ready')) && (
@@ -1338,6 +1407,28 @@ export default function SmartRepairDetailPage() {
           statusMutation.mutate({ status: 'in-progress', notes });
         }}
       />
+      {/* IGDERP-171: void confirm — reason mandatory, approver asserted server-side */}
+      <Dialog open={openVoid} onOpenChange={setOpenVoid}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Void Pembayaran</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Order kembali ke Ready dan pembayaran dibuka ulang untuk koreksi. Butuh peran approver.
+            </p>
+            <div><Label>Alasan void <span className="text-red-500">*</span></Label><Input value={voidReason} onChange={(e) => setVoidReason(e.target.value)} placeholder="Mis. salah input metode…" className="mt-1" /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenVoid(false)}>Batal</Button>
+            <Button
+              variant="destructive"
+              disabled={!voidReason.trim() || voidMutation.isPending}
+              onClick={() => voidMutation.mutate(voidReason.trim())}
+            >
+              Void
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Dialog open={openBayar} onOpenChange={setOpenBayar}>
         <DialogContent>
           <DialogHeader><DialogTitle>Terima Pembayaran</DialogTitle></DialogHeader>
@@ -1346,7 +1437,7 @@ export default function SmartRepairDetailPage() {
               Total {formatCurrency(totalFee)} · Sudah masuk {formatCurrency(paidSoFar)} · <b>Sisa {formatCurrency(sisaBayar)}</b>
             </div>
             <div><Label>Nominal (Rp)</Label><Input inputMode="numeric" value={bayarAmount ? Number(bayarAmount).toLocaleString('id-ID') : ''} onChange={(e) => setBayarAmount(e.target.value.replace(/\D/g, ''))} className="mt-1" /></div>
-            <div><Label>Metode</Label><Select value={bayarMethod} onValueChange={setBayarMethod} className="mt-1"><option value="cash">Tunai</option><option value="transfer">Transfer</option><option value="e_wallet">E-Wallet</option><option value="credit_card">Kartu Kredit</option><option value="debit_card">Kartu Debit</option></Select></div>
+            <div><Label>Metode</Label><div className="mt-1 grid grid-cols-3 gap-2">{([['cash', 'Tunai'], ['transfer', 'Transfer'], ['qris', 'QRIS']] as const).map(([v, l]) => (<button key={v} type="button" onClick={() => setBayarMethod(v)} className={`rounded-lg border px-3 py-2 text-sm font-semibold ${bayarMethod === v ? 'border-primary bg-primary-50 text-primary-700' : 'border-gray-200 text-gray-600'}`}>{l}</button>))}</div></div>
             <div><Label>Referensi (opsional)</Label><Input value={bayarRef} onChange={(e) => setBayarRef(e.target.value)} placeholder="No. referensi transfer…" className="mt-1" /></div>
           </div>
           <DialogFooter>

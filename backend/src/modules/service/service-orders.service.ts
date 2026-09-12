@@ -20,10 +20,12 @@ import { AssignTechnicianDto } from './dto/assign-technician.dto';
 import { UploadPhotosDto } from './dto/upload-photos.dto';
 import { encryptPassword, decryptPassword } from './utils/password-encryption.util';
 import { validateDeviceLock } from './utils/device-lock.util';
+import { ApprovalSettingsService } from '../approval-settings/approval-settings.service';
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join, extname } from 'path';
 import { Decimal } from '@prisma/client/runtime/library';
 import { ProcessPaymentDto } from './dto/payment.dto';
+import { VoidPaymentDto } from './dto/void-payment.dto';
 import { JournalEntriesService } from '../finance/services/journal-entries.service';
 import { buildPerWordSearch } from '../../shared/services/search.utils';
 
@@ -43,6 +45,8 @@ export class ServiceOrdersService {
     private journalEntriesService?: JournalEntriesService,
     @Optional()
     private salesTransactionsService?: SalesTransactionsService,
+    @Optional()
+    private approvalSettingsService?: ApprovalSettingsService,
   ) {}
 
   /**
@@ -1718,8 +1722,22 @@ export class ServiceOrdersService {
 
       return updated;
     }).then(async (updated) => {
+      // IGDERP-171: paid in full at Ready auto-flips to Done FIRST (wipe + warranty +
+      // POS faktur creation run inside updateStatus), then the linked faktur is marked paid.
+      let finalOrder: any = updated;
+      if (updated.paymentStatus === 'paid' && updated.status === 'ready') {
+        try {
+          finalOrder = await this.updateStatus(
+            serviceOrderId,
+            { status: 'done', notes: `Terima pembayaran lunas via ${dto.paymentMethod}` },
+            userId,
+          );
+        } catch (e: any) {
+          console.error('[IGDERP-171] Auto-done after payment failed:', e?.message, e);
+        }
+      }
       // IGDERP-138: parts (POS No Service faktur) paid together at serah terima
-      if (updated.paymentStatus === 'paid' && this.salesTransactionsService) {
+      if (finalOrder.paymentStatus === 'paid' && this.salesTransactionsService) {
         try {
           await this.salesTransactionsService.markPaidForServiceOrder(
             serviceOrderId,
@@ -1730,8 +1748,73 @@ export class ServiceOrdersService {
           console.error('[IGDERP-138] Mark POS No Service faktur paid failed:', e?.message, e);
         }
       }
-      return updated;
+      return finalOrder;
     });
+  }
+
+  // IGDERP-171: void a mistaken payment — approver-only (SERVICE_PAYMENT_VOID setting),
+  // reopens the order to Ready for correction. Wrong-input record is erased; the
+  // history line + internal notes keep the trail. Linked auto-paid POS faktur reopens too.
+  async voidPayment(
+    serviceOrderId: string,
+    dto: VoidPaymentDto,
+    approverId: string,
+    approverRoles: string[] = [],
+  ) {
+    const serviceOrder = await this.prisma.serviceOrder.findUnique({
+      where: { id: serviceOrderId },
+    });
+
+    if (!serviceOrder) {
+      throw new NotFoundException('Service order not found');
+    }
+
+    if (serviceOrder.status !== 'done' || serviceOrder.paymentStatus !== 'paid') {
+      throw new BadRequestException('Hanya pembayaran lunas pada order Done yang dapat di-void');
+    }
+
+    if (this.approvalSettingsService) {
+      await this.approvalSettingsService.assertApprover(
+        'SERVICE_PAYMENT_VOID',
+        approverId,
+        approverRoles,
+      );
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const reopened = await tx.serviceOrder.update({
+        where: { id: serviceOrderId },
+        data: {
+          status: 'ready',
+          paymentStatus: 'pending',
+          paidAt: null,
+          paymentMethod: null,
+          downPayment: new Decimal(0),
+        },
+      });
+
+      await tx.serviceStatusHistory.create({
+        data: {
+          serviceOrderId,
+          status: 'ready',
+          previousStatus: 'done',
+          notes: `Void pembayaran: ${dto.reason}`,
+          changedBy: approverId,
+        },
+      });
+
+      return reopened;
+    });
+
+    if (this.salesTransactionsService) {
+      try {
+        await this.salesTransactionsService.reopenForServiceOrder(serviceOrderId);
+      } catch (e: any) {
+        console.error('[IGDERP-171] Reopen POS faktur failed:', e?.message, e);
+      }
+    }
+
+    return updated;
   }
 
   async collectFeedback(serviceOrderId: string, dto: CustomerFeedbackDto) {
