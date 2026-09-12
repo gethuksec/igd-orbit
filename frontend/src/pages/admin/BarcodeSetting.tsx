@@ -177,12 +177,9 @@ export default function BarcodeSetting() {
             <CardTitle>Preview Label</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex justify-center py-4">
-              <LabelCard data={SAMPLE_LABEL} settings={form} />
+            <div className="flex justify-center py-6">
+              <LabelCard data={SAMPLE_LABEL} settings={form} scale={2.5} />
             </div>
-            <p className="text-xs text-muted-foreground">
-              Contoh tampilan. Format resmi menunggu contoh label dari klien — template default ini bisa diganti.
-            </p>
             {!form.configured && (
               <p className="text-xs text-amber-600">
                 Belum dikonfigurasi — memakai default (40×30mm, thermal).

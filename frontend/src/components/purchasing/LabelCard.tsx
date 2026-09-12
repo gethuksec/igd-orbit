@@ -23,8 +23,17 @@ const rupiah = (v: number) => new Intl.NumberFormat('id-ID').format(v);
 /**
  * S5: one physical label rendered at exact mm size (screen preview + print sheet).
  * Barcode = CODE128 via JsBarcode; QR via qrcode. Barcode value falls back to SKU upstream.
+ * `scale` enlarges the on-screen preview only — the print sheet always uses scale=1.
  */
-export function LabelCard({ data, settings }: { data: LabelCardData; settings: LabelCardSettings }) {
+export function LabelCard({
+  data,
+  settings,
+  scale = 1,
+}: {
+  data: LabelCardData;
+  settings: LabelCardSettings;
+  scale?: number;
+}) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [qrHtml, setQrHtml] = useState('');
 
@@ -50,7 +59,7 @@ export function LabelCard({ data, settings }: { data: LabelCardData; settings: L
     }
   }, [data.barcode, settings.symbology]);
 
-  return (
+  const card = (
     <div
       className="label-card flex flex-col items-center justify-between bg-white border border-dashed border-gray-300 overflow-hidden text-black"
       style={{
@@ -83,6 +92,19 @@ export function LabelCard({ data, settings }: { data: LabelCardData; settings: L
           <svg ref={svgRef} className="max-w-full" style={{ maxHeight: '12mm' }} />
         )}
       </div>
+    </div>
+  );
+
+  if (scale === 1) return card;
+
+  return (
+    <div
+      style={{
+        width: `${settings.labelWidthMm * scale}mm`,
+        height: `${settings.labelHeightMm * scale}mm`,
+      }}
+    >
+      <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left' }}>{card}</div>
     </div>
   );
 }
