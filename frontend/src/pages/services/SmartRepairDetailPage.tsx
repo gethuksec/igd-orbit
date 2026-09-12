@@ -322,6 +322,16 @@ export default function SmartRepairDetailPage() {
   // Past-due = order-level, dari Estimasi Selesai yang sama dengan yang tampil (slaDue || promised)
   const dueDate = order.slaDueDate || order.promisedDate;
   const isOverdue = !frozen && !!dueDate && new Date(dueDate).getTime() < Date.now();
+  // IGDERP-184: remaining/active warranty display (checkbox removed from intake)
+  const warrantyInfo: { label: string; sub: string } = (() => {
+    const days = Number((order as any).warrantyDays ?? 0);
+    const expiry = (order as any).warrantyExpiryDate ? new Date((order as any).warrantyExpiryDate).getTime() : 0;
+    if (expiry) {
+      const left = Math.ceil((expiry - Date.now()) / 86400000);
+      return left > 0 ? { label: `Sisa ${left} hari`, sub: 'masa garansi berjalan' } : { label: 'Kadaluarsa', sub: 'masa garansi habis' };
+    }
+    return days > 0 ? { label: `${days} hari`, sub: 'aktif sejak serah terima' } : { label: '—', sub: '' };
+  })();
   const waNumber = (() => {
     const digits = String(order.customerPhone || '').replace(/\D/g, '');
     if (digits.startsWith('0')) return '62' + digits.slice(1);
@@ -396,6 +406,11 @@ export default function SmartRepairDetailPage() {
           <div>
             <Label className="text-sm text-gray-500">Teknisi</Label>
             <p className="font-semibold">{order.assignedTechnician?.fullName || 'Belum di-assign'}</p>
+          </div>
+          <div>
+            <Label className="text-sm text-gray-500">Garansi</Label>
+            <p className="font-semibold">{warrantyInfo.label}</p>
+            {warrantyInfo.sub ? <p className="text-xs text-gray-500">{warrantyInfo.sub}</p> : null}
           </div>
           <div>
             <Label className="text-sm text-gray-500">Outlet</Label>
