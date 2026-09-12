@@ -25,7 +25,10 @@ Owner: dev-2. Status of every finished slice: **Needs Review** (never straight t
 
 ## 2. Slice plan
 
-### I0 — E2E hygiene (no product code; can run any time, needs no decisions)
+### I3 — List & visibility ✅ DONE 2026-09-12, branch `ws-inventory-improve` (96c6462), preview BE+FE rebuilt
+88/89/90/91/104/106 → Needs Review with evidence. 119 stays backlog (client decision pending).
+
+### I0 — E2E hygiene (no product code; can run any time, needs no decisions) ✅ DONE (92 → Needs Review)
 - Pass over all 10 inventory routes on current build; post evidence to 92; move 92 → Needs Review.
 - Align 93/84/79/82 statuses to reality.
 

@@ -49,7 +49,51 @@ const EXPORT_COLUMNS: { key: string; label: string }[] = [
   { key: 'stockValue', label: 'Nilai Stok' },
 ];
 
-// IGDERP-89: per-warehouse breakdown, fetched lazily on first hover
+// IGDERP-88: tier prices as hover tooltip (same pattern as stock breakdown)
+function TierPriceCell({ regular, tiers }: { regular: number; tiers: Tier[] }) {
+  const [open, setOpen] = useState(false);
+  if (!tiers.length) {
+    return (
+      <div className="text-sm font-semibold text-foreground">{formatCurrency(regular)}</div>
+    );
+  }
+  return (
+    <TooltipProvider>
+      <Tooltip open={open} onOpenChange={setOpen}>
+        <TooltipTrigger asChild>
+          <div
+            className="cursor-help w-fit ml-auto"
+            onMouseEnter={() => setOpen(true)}
+          >
+            <div className="text-sm font-semibold text-foreground">{formatCurrency(regular)}</div>
+            <div className="text-[11px] text-muted-foreground underline decoration-dotted underline-offset-2">
+              {tiers.length} harga member
+            </div>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="left" className="max-w-xs">
+          <div className="space-y-1 min-w-[200px]">
+            <div className="text-xs font-semibold mb-1">Harga jual per tier</div>
+            <div className="flex items-center justify-between gap-4 text-xs">
+              <span className="text-muted-foreground">Reguler</span>
+              <span className="font-bold text-foreground">{formatCurrency(regular)}</span>
+            </div>
+            {tiers.map((t) => (
+              <div key={t.id} className="flex items-center justify-between gap-4 text-xs">
+                <span className="text-muted-foreground">{t.name}</span>
+                <span className="font-bold text-red-600">
+                  {formatCurrency(memberPrice(regular, Number(t.discountPercentage)))}
+                </span>
+              </div>
+            ))}
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+ // IGDERP-89: per-warehouse breakdown, fetched lazily on first hover
 function WarehouseBreakdown({ productId }: { productId: string }) {
   const { data, isLoading } = useQuery({
     queryKey: ['product-stock-breakdown', productId],
@@ -224,24 +268,14 @@ export default function StockList() {
       cell: (stock) => <div className="text-sm text-foreground">{stock.minStock || 0}</div>,
     },
     {
-      // IGDERP-88: reguler (black) + member per tier (red), same values as master product
+      // IGDERP-88: reguler inline; member per tier lives in the hover tooltip
       key: 'sellPrice',
       header: 'Harga Jual',
       headerClassName: 'text-right',
       className: 'text-right',
-      cell: (stock) => {
-        const regular = Number(stock.product?.sellingPrice || 0);
-        return (
-          <div>
-            <div className="text-sm font-semibold text-foreground">{formatCurrency(regular)}</div>
-            {tiers.map((t) => (
-              <div key={t.id} className="text-xs font-medium text-red-600">
-                {t.name}: {formatCurrency(memberPrice(regular, Number(t.discountPercentage)))}
-              </div>
-            ))}
-          </div>
-        );
-      },
+      cell: (stock) => (
+        <TierPriceCell regular={Number(stock.product?.sellingPrice || 0)} tiers={tiers} />
+      ),
     },
     {
       key: 'value',
