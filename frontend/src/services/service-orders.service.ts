@@ -116,6 +116,12 @@ export const serviceOrdersService = {
     return response.data.data || response.data;
   },
 
+  // IGDERP-137: final tag mapping per layanan row — Ready only
+  async updateLayanan(id: string, rowId: string, payload: { notes?: string }) {
+    const response = await api.patch(`/service-orders/${id}/layanan/${rowId}`, payload);
+    return response.data.data || response.data;
+  },
+
   async addParts(id: string, payload: {
     parts: Array<{
       productId: string;

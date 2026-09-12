@@ -924,6 +924,44 @@ export class ServiceOrdersService {
     });
   }
 
+  // IGDERP-137: final tag mapping per layanan row — Ready only (technician confirms
+  // actual damage for analytics; intake/in-progress tags stay as draft notes).
+  async updateLayananTags(serviceOrderId: string, rowId: string, notes: string | undefined, userId: string) {
+    const serviceOrder = await this.prisma.serviceOrder.findUnique({
+      where: { id: serviceOrderId },
+    });
+    if (!serviceOrder) {
+      throw new NotFoundException('Service order tidak ditemukan');
+    }
+    if (serviceOrder.status !== 'ready') {
+      throw new BadRequestException('Tag final hanya dapat diubah pada status Ready');
+    }
+    const row = await this.prisma.serviceOrderLayanan.findFirst({
+      where: { id: rowId, serviceOrderId },
+    });
+    if (!row) {
+      throw new NotFoundException('Layanan tidak ditemukan pada order ini');
+    }
+    const clean = (notes ?? '').trim();
+    return await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.serviceOrderLayanan.update({
+        where: { id: rowId },
+        data: { notes: clean || null },
+      });
+      await this.recordTagUsage(ServiceOrdersService.splitTags(clean), tx);
+      await tx.serviceStatusHistory.create({
+        data: {
+          serviceOrderId,
+          status: serviceOrder.status,
+          previousStatus: serviceOrder.status,
+          notes: `Tag layanan ${row.name}: ${clean || '—'}`,
+          changedBy: userId,
+        },
+      });
+      return updated;
+    });
+  }
+
   // IGDERP-136 detail round: hapus layanan row (edit capability; timeline append-only —
   // deletion itself is logged, never rolled back). Frozen once done/delivered/cancelled.
   async removeLayanan(serviceOrderId: string, rowId: string, userId: string) {

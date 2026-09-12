@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Body,
   Param,
@@ -27,6 +28,7 @@ import { UpdateStatusDto } from './dto/update-status.dto';
 import { AddServiceTimeDto } from './dto/add-service-time.dto';
 import { AddPartsDto } from './dto/add-parts.dto';
 import { AddLayananDto } from './dto/add-layanan.dto';
+import { UpdateLayananDto } from './dto/update-layanan.dto';
 import { CustomerFeedbackDto } from './dto/customer-feedback.dto';
 import { AssignTechnicianDto } from './dto/assign-technician.dto';
 import { UploadPhotosDto } from './dto/upload-photos.dto';
@@ -194,6 +196,19 @@ export class ServiceOrdersController {
     @Request() req: any,
   ) {
     return this.serviceOrdersService.removeLayanan(id, rowId, req.user.id);
+  }
+
+  /** IGDERP-137: final tag mapping per layanan row — Ready only */
+  @Patch(':id/layanan/:rowId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('CS', 'HS', 'SPV', 'SUPERADMIN', 'TC')
+  async updateLayanan(
+    @Param('id') id: string,
+    @Param('rowId') rowId: string,
+    @Body() dto: UpdateLayananDto,
+    @Request() req: any,
+  ) {
+    return this.serviceOrdersService.updateLayananTags(id, rowId, dto.notes, req.user.id);
   }
 
   @Post(':id/photos')
