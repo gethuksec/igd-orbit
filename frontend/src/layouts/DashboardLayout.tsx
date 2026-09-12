@@ -44,6 +44,7 @@ import {
   Banknote,
   Target,
   RotateCcw,
+  Printer,
   Zap,
 } from 'lucide-react';
 import type { Branch } from '@/services/public.service';
@@ -299,6 +300,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         { icon: FileText, label: 'Purchase Order', path: '/purchasing/po', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
         { icon: Truck, label: 'Goods Receipt', path: '/purchasing/goods-receipt', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
         { icon: RotateCcw, label: 'Retur', path: '/purchasing/returns', permission: 'purchasing.return.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
+        { icon: Printer, label: 'Cetak Label', path: '/purchasing/label-print', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
         { icon: ShieldCheck, label: 'Approval', path: '/purchasing/approval', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
         { icon: Building2, label: 'Supplier', path: '/purchasing/suppliers', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR'] },
       ],
