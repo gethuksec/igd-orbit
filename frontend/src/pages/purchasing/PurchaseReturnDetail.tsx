@@ -1,9 +1,12 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
 import { BreadcrumbHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Modal } from '@/components/ui/modal';
 import {
   Table,
   TableBody,
@@ -14,6 +17,7 @@ import {
 } from '@/components/ui/table';
 import { purchasingService } from '@/services/purchasing.service';
 import { formatCurrency, formatDate } from '@/utils/format';
+import { toast } from 'sonner';
 
 const fmtQty = (n: number) => new Intl.NumberFormat('id-ID').format(n);
 
@@ -25,6 +29,25 @@ export default function PurchaseReturnDetail() {
     queryKey: ['purchase-return', id],
     queryFn: () => purchasingService.getPurchaseReturn(id!),
     enabled: !!id,
+  });
+
+  const queryClient = useQueryClient();
+  const [completeOpen, setCompleteOpen] = useState(false);
+  const [completeChecked, setCompleteChecked] = useState(false);
+
+  const completeMutation = useMutation({
+    mutationFn: () => purchasingService.completePurchaseReturn(id!),
+    onSuccess: (updated) => {
+      toast.success(`Retur ${updated.returnNumber} selesai — stok central-bad berkurang`);
+      setCompleteOpen(false);
+      setCompleteChecked(false);
+      queryClient.invalidateQueries({ queryKey: ['purchase-return', id] });
+      queryClient.invalidateQueries({ queryKey: ['purchase-returns'] });
+    },
+    onError: (e: any) => {
+      const msg = e?.response?.data?.message;
+      toast.error(Array.isArray(msg) ? msg[0] : msg || 'Gagal menyelesaikan retur');
+    },
   });
 
   if (isLoading) {
@@ -60,6 +83,22 @@ export default function PurchaseReturnDetail() {
           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 border border-gray-300 text-gray-700">
             {ret.purchaseOrder ? 'Dari PO' : 'Manual (tanpa PO)'}
           </span>
+          {ret.status === 'completed' ? (
+            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-green-50 border border-green-300 text-green-700">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              Selesai
+            </span>
+          ) : (
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 border border-amber-300 text-amber-700">
+              Belum Selesai
+            </span>
+          )}
+          {ret.status !== 'completed' && (
+            <Button onClick={() => setCompleteOpen(true)}>
+              <CheckCircle2 className="w-4 h-4 mr-2" />
+              Tandai Selesai
+            </Button>
+          )}
           <Button variant="outline" onClick={() => navigate('/purchasing/returns')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Kembali
@@ -118,6 +157,15 @@ export default function PurchaseReturnDetail() {
             <div className="w-32 shrink-0 text-gray-500">Catatan</div>
             <div className={ret.notes ? '' : 'text-gray-400'}>{ret.notes || '—'}</div>
           </div>
+          {ret.status === 'completed' && (
+            <div className="flex gap-4">
+              <div className="w-32 shrink-0 text-gray-500">Diselesaikan oleh</div>
+              <div>
+                {ret.completedByUser?.fullName || '-'}
+                {ret.completedAt ? ` · ${formatDate(ret.completedAt)}` : ''}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -171,16 +219,62 @@ export default function PurchaseReturnDetail() {
           <CardTitle>Dampak Stok</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            <span className="font-semibold">Central-good:</span> −{fmtQty(Number(ret.totalQty))} unit ·{' '}
-            <span className="font-semibold">Central-bad:</span> +{fmtQty(Number(ret.totalQty))} unit
-            <div className="mt-1">
-              Unit fisik menunggu di <span className="font-semibold">Gudang Pusat (BAD)</span> sampai
-              dikirim kembali ke supplier.
+          {ret.status === 'completed' ? (
+            <div className="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+              <span className="font-semibold">Retur selesai</span> — barang sudah dikirim kembali ke
+              supplier. Central-bad berkurang {fmtQty(Number(ret.totalQty))} unit
+              {ret.completedByUser?.fullName ? ` (oleh ${ret.completedByUser.fullName})` : ''}.
             </div>
-          </div>
+          ) : (
+            <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <span className="font-semibold">Central-good:</span> −{fmtQty(Number(ret.totalQty))} unit ·{' '}
+              <span className="font-semibold">Central-bad:</span> +{fmtQty(Number(ret.totalQty))} unit
+              <div className="mt-1">
+                Unit fisik menunggu di <span className="font-semibold">Gudang Pusat (BAD)</span> sampai
+                dikirim kembali ke supplier.
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      {/* Completion modal — same pattern as the create-PO total confirmation. */}
+      <Modal
+        open={completeOpen}
+        onClose={() => setCompleteOpen(false)}
+        title="Konfirmasi Retur Selesai"
+        size="md"
+      >
+        <div className="space-y-4">
+          <div className="rounded-lg border bg-muted/30 p-4 text-center">
+            <p className="text-sm text-muted-foreground mb-1">Total Qty Retur</p>
+            <p className="text-2xl font-bold text-primary">{fmtQty(Number(ret.totalQty))} unit</p>
+          </div>
+          <label className="flex items-start gap-3 cursor-pointer">
+            <Checkbox
+              checked={completeChecked}
+              onCheckedChange={(checked) => setCompleteChecked(checked)}
+              className="mt-0.5"
+            />
+            <span className="text-sm">
+              Saya sudah memastikan <strong>barang retur ini sudah dikirim kembali ke supplier</strong>.
+              Stok central-bad akan berkurang {fmtQty(Number(ret.totalQty))} unit.
+            </span>
+          </label>
+          <div className="flex gap-3 pt-2">
+            <Button variant="outline" className="flex-1" onClick={() => setCompleteOpen(false)}>
+              Batal
+            </Button>
+            <Button
+              className="flex-1"
+              onClick={() => completeMutation.mutate()}
+              disabled={!completeChecked || completeMutation.isPending}
+            >
+              {completeMutation.isPending ? 'Menyelesaikan...' : 'Ya, Selesaikan'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

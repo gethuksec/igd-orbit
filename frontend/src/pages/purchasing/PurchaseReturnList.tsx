@@ -64,6 +64,7 @@ export default function PurchaseReturnList() {
     return dt.getMonth() === now.getMonth() && dt.getFullYear() === now.getFullYear();
   };
   const thisMonth = returns.filter((r) => isThisMonth(r.createdAt));
+  const openCount = returns.filter((r) => r.status !== 'completed').length;
   const totalQty = returns.reduce((s, r) => s + Number(r.totalQty || 0), 0);
   const monthValue = thisMonth.reduce((s, r) => s + Number(r.totalValue || 0), 0);
 
@@ -100,7 +101,7 @@ export default function PurchaseReturnList() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Stat label="Total Retur" value={String(total)} />
-        <Stat label="Bulan Ini" value={String(thisMonth.length)} />
+        <Stat label="Belum Selesai" value={String(openCount)} />
         <Stat label="Total Qty Diretur" value={fmtQty(totalQty)} />
         <Stat label="Nilai Retur · Bulan Ini" value={formatCurrency(monthValue)} accent />
       </div>
@@ -129,6 +130,7 @@ export default function PurchaseReturnList() {
                   <TableHead>Supplier</TableHead>
                   <TableHead>No. PO</TableHead>
                   <TableHead>Produk / Qty</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead className="text-right">Nilai</TableHead>
                   <TableHead />
                 </TableRow>
@@ -155,6 +157,17 @@ export default function PurchaseReturnList() {
                     <TableCell>
                       <div className="font-medium">{r.items?.length || 0} produk</div>
                       <div className="text-xs text-gray-500">{fmtQty(Number(r.totalQty || 0))} unit</div>
+                    </TableCell>
+                    <TableCell>
+                      {r.status === 'completed' ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-50 border border-green-300 text-green-700">
+                          Selesai
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 border border-amber-300 text-amber-700">
+                          Belum Selesai
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right font-medium">{formatCurrency(Number(r.totalValue || 0))}</TableCell>
                     <TableCell>

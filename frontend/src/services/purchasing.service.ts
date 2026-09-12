@@ -478,6 +478,12 @@ export const purchasingService = {
     const response = await api.post('/purchasing/purchase-returns', data);
     return response.data.data || response.data;
   },
+
+  /** Completion: goods shipped back to supplier → central-bad −qty. */
+  async completePurchaseReturn(id: string, notes?: string): Promise<PurchaseReturn> {
+    const response = await api.post(`/purchasing/purchase-returns/${id}/complete`, { notes });
+    return response.data.data || response.data;
+  },
 };
 
 export interface PurchaseReturnItem {
@@ -503,11 +509,15 @@ export interface PurchaseReturn {
   notes?: string | null;
   totalQty: number;
   totalValue: number;
+  status: 'open' | 'completed';
+  completedAt?: string | null;
+  completionNotes?: string | null;
   createdAt: string;
   updatedAt: string;
   purchaseOrder?: { id: string; poNumber: string; invoiceNumber?: string | null; status: string } | null;
   supplier?: { id: string; name: string; customerCode: string };
   processedByUser?: { id: string; fullName: string };
+  completedByUser?: { id: string; fullName: string } | null;
   items?: PurchaseReturnItem[];
 }
 

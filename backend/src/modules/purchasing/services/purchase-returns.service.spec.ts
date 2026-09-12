@@ -297,4 +297,62 @@ describe('PurchaseReturnsService (S4 — IGDERP-84 manual + IGDERP-83 receiving)
     prisma.purchaseReturn.findUnique.mockResolvedValue(null);
     await expect(service.findById('missing')).rejects.toThrow(NotFoundException);
   });
+
+  it('complete: ships back — central-bad −qty, audit movement, status completed', async () => {
+    prisma.purchaseReturn.findUnique.mockResolvedValue({
+      id: 'ret-1',
+      returnNumber: 'RTP-20260912-000001',
+      status: 'open',
+      items: [{ id: 'ri-1', productId: 'prod-1', quantity: new Decimal(2) }],
+    });
+    prisma.warehouse.findFirst.mockResolvedValue({ id: 'wh-bad' });
+    tx.productStock.findUnique.mockResolvedValue({
+      quantityAvailable: new Decimal(5),
+    });
+    tx.purchaseReturn.update.mockResolvedValue({
+      ...fullReturn,
+      status: 'completed',
+      completedAt: new Date(),
+    });
+
+    const result = await service.complete('ret-1', 'user-1', 'Dikirim via JNE');
+
+    const mov = tx.stockMovement.create.mock.calls[0][0].data;
+    expect(mov.movementType).toBe('OUT');
+    expect(mov.referenceType).toBe('PURCHASE_RETURN');
+    expect(mov.quantityChange.toNumber()).toBe(-2);
+    const stockUpd = tx.productStock.update.mock.calls[0][0];
+    expect(stockUpd.data.quantityAvailable.toNumber()).toBe(3);
+    const upd = tx.purchaseReturn.update.mock.calls[0][0].data;
+    expect(upd.status).toBe('completed');
+    expect(upd.completionNotes).toBe('Dikirim via JNE');
+    expect(result.status).toBe('completed');
+  });
+
+  it('complete: blocks when already completed', async () => {
+    prisma.purchaseReturn.findUnique.mockResolvedValue({
+      id: 'ret-1',
+      status: 'completed',
+      items: [],
+    });
+    await expect(service.complete('ret-1', 'user-1')).rejects.toThrow(
+      'Retur ini sudah diselesaikan',
+    );
+  });
+
+  it('complete: blocks when central-bad stock is insufficient', async () => {
+    prisma.purchaseReturn.findUnique.mockResolvedValue({
+      id: 'ret-1',
+      returnNumber: 'RTP-20260912-000002',
+      status: 'open',
+      items: [{ id: 'ri-1', productId: 'prod-1', quantity: new Decimal(4) }],
+    });
+    prisma.warehouse.findFirst.mockResolvedValue({ id: 'wh-bad' });
+    tx.productStock.findUnique.mockResolvedValue({
+      quantityAvailable: new Decimal(1),
+    });
+    await expect(service.complete('ret-1', 'user-1')).rejects.toThrow(
+      'Stok central-bad tidak cukup',
+    );
+  });
 });

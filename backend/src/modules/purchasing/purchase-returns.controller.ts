@@ -13,6 +13,7 @@ import { RolesGuard } from '../../shared/guards/roles.guard';
 import { Roles } from '../../shared/decorators/roles.decorator';
 import { PurchaseReturnsService } from './services/purchase-returns.service';
 import { CreatePurchaseReturnDto } from './dto/create-purchase-return.dto';
+import { CompletePurchaseReturnDto } from './dto/complete-purchase-return.dto';
 
 /**
  * IGDERP-84: Purchase returns (Retur Pembelian).
@@ -76,5 +77,17 @@ export class PurchaseReturnsController {
   @Roles('CSO', 'SPV', 'HS', 'ASA', 'SODO')
   async create(@Body() dto: CreatePurchaseReturnDto, @Req() req: any) {
     return this.purchaseReturnsService.create(dto, req.user.id);
+  }
+
+  /** Completion: goods shipped back to supplier → central-bad −qty. */
+  @Post(':id/complete')
+  @UseGuards(RolesGuard)
+  @Roles('CSO', 'SPV', 'HS', 'ASA', 'SODO')
+  async complete(
+    @Param('id') id: string,
+    @Body() dto: CompletePurchaseReturnDto,
+    @Req() req: any,
+  ) {
+    return this.purchaseReturnsService.complete(id, req.user.id, dto.notes);
   }
 }
