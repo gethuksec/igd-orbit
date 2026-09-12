@@ -12,6 +12,7 @@ describe('ServiceOrdersService.create — Smart Repair v9 payload', () => {
     };
     const prisma = {
       customer: { findUnique: jest.fn() },
+      deviceType: { findFirst: jest.fn().mockResolvedValue({ code: 'handphone' }) },
       serviceType: {
         findUnique: jest.fn().mockResolvedValue({ id: 'st-1', slaHours: 24 }),
         findMany: jest.fn().mockResolvedValue([{ id: 'st-1', name: 'Ganti LCD', slaHours: 24, basePrice: 950000 }]),
@@ -92,6 +93,7 @@ describe('ServiceOrdersService.create — Smart Repair v9 payload', () => {
     };
     const prisma = {
       customer: { findUnique: jest.fn() },
+      deviceType: { findFirst: jest.fn().mockResolvedValue({ code: 'handphone' }) },
       serviceType: {
         findUnique: jest.fn().mockResolvedValue({ id: 'st-1', slaHours: 24 }),
         findMany: jest.fn().mockResolvedValue([{ id: 'st-1', name: 'Ganti LCD', slaHours: 24, basePrice: 950000 }]),
@@ -143,6 +145,7 @@ describe('ServiceOrdersService.create — Smart Repair v9 payload', () => {
     };
     const prisma = {
       customer: { findUnique: jest.fn() },
+      deviceType: { findFirst: jest.fn().mockResolvedValue({ code: 'handphone' }) },
       serviceType: {
         findUnique: jest.fn().mockResolvedValue({ id: 'st-1', slaHours: 24 }),
         findMany: jest.fn().mockResolvedValue([
@@ -182,5 +185,37 @@ describe('ServiceOrdersService.create — Smart Repair v9 payload', () => {
     await expect(service.create(noTech, 'user-1', 'br-1')).rejects.toThrow('Teknisi wajib dipilih');
     const { deviceUnit, ...noUnit } = dto;
     await expect(service.create(noUnit, 'user-1', 'br-1')).rejects.toThrow('Nama Barang wajib diisi');
+  });
+
+  it('rejects unknown deviceType not in master (IGDERP-169)', async () => {
+    const tx = {
+      serviceOrder: { create: jest.fn() },
+      serviceStatusHistory: { create: jest.fn().mockResolvedValue({}) },
+      servicePartsUsed: { createMany: jest.fn().mockResolvedValue({ count: 0 }) },
+    };
+    const prisma = {
+      customer: { findUnique: jest.fn() },
+      deviceType: { findFirst: jest.fn().mockResolvedValue(null) },
+      serviceType: { findUnique: jest.fn(), findMany: jest.fn().mockResolvedValue([]) },
+      product: { findMany: jest.fn().mockResolvedValue([]) },
+      warehouse: { findUnique: jest.fn().mockResolvedValue({ id: 'wh-1', isActive: true, type: 'GOOD', scope: 'OUTLET', outletId: 'br-1' }) },
+      serviceTag: { upsert: jest.fn().mockResolvedValue({}) },
+      $transaction: jest.fn((callback: (client: typeof tx) => unknown) => callback(tx)),
+    };
+    const service = new ServiceOrdersService(prisma as any, {} as any, {} as any);
+    await expect(
+      service.create(
+        {
+          branchId: 'br-1', customerName: 'Budi', customerPhone: '081234567890',
+          deviceType: 'other', deviceUnit: 'X', complaint: 'y',
+          serviceSubType: 'quick', assignedTechnicianId: 'tech-1',
+          finalPrice: 100000, warehouseId: 'wh-1',
+          taxPpn: false, taxIncPpn: false, taxPph22: false, taxPph23: false,
+        } as any,
+        'user-1',
+        'br-1',
+      ),
+    ).rejects.toThrow('Jenis perangkat tidak valid');
+    expect(tx.serviceOrder.create).not.toHaveBeenCalled();
   });
 });
