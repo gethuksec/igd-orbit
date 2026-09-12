@@ -18,7 +18,7 @@ interface Props {
   onClose: () => void;
 }
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
 function typeBadge(type: string) {
   switch (type) {
@@ -53,18 +53,19 @@ function typeBadge(type: string) {
 // product cell. Replaces the dedicated movements page for day-to-day use.
 export default function ProductMovementModal({ product, open, onClose }: Props) {
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [movementType, setMovementType] = useState('');
 
   const { data, isLoading } = useQuery({
-    queryKey: ['product-movements', product?.id, page, startDate, endDate, movementType],
+    queryKey: ['product-movements', product?.id, page, pageSize, startDate, endDate, movementType],
     enabled: open && !!product?.id,
     queryFn: () =>
       inventoryService.getStockMovementHistory({
         productId: product!.id,
         page,
-        limit: PAGE_SIZE,
+        limit: pageSize,
         startDate: startDate || undefined,
         endDate: endDate || undefined,
         movementType: movementType || undefined,
@@ -82,7 +83,7 @@ export default function ProductMovementModal({ product, open, onClose }: Props) 
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && close()}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+      <DialogContent className="sm:max-w-4xl w-[calc(100vw-2rem)] h-[90vh] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-sm">
             Riwayat pergerakan — {product?.name || '-'}
@@ -149,6 +150,7 @@ export default function ProductMovementModal({ product, open, onClose }: Props) 
                   <th className="py-2 pr-2">Tanggal</th>
                   <th className="py-2 pr-2">Tipe</th>
                   <th className="py-2 pr-2 text-right">Perubahan</th>
+                  <th className="py-2 pr-2 text-right">Stok awal</th>
                   <th className="py-2 pr-2 text-right">Stok akhir</th>
                   <th className="py-2">Keterangan</th>
                 </tr>
@@ -172,8 +174,9 @@ export default function ProductMovementModal({ product, open, onClose }: Props) 
                       {Number(m.quantityChange) > 0 ? '+' : ''}
                       {m.quantityChange}
                     </td>
+                    <td className="py-2 pr-2 text-right">{m.quantityBefore ?? '-'}</td>
                     <td className="py-2 pr-2 text-right">{m.quantityAfter}</td>
-                    <td className="py-2 text-xs text-muted-foreground max-w-[220px] truncate" title={m.notes || m.referenceType}>
+                    <td className="py-2 text-xs text-muted-foreground whitespace-normal break-words min-w-[180px]">
                       {m.notes || m.referenceType || '-'}
                     </td>
                   </tr>
@@ -184,9 +187,26 @@ export default function ProductMovementModal({ product, open, onClose }: Props) 
         </div>
 
         <div className="flex items-center justify-between border-t pt-3">
-          <span className="text-xs text-muted-foreground">
-            Halaman {page} dari {totalPages}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">
+              Halaman {page} dari {totalPages}
+            </span>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setPage(1);
+              }}
+              className="h-8 rounded-md border border-input bg-background px-1 text-xs"
+              title="Baris per halaman"
+            >
+              {PAGE_SIZE_OPTIONS.map((n) => (
+                <option key={n} value={n}>
+                  {n} / halaman
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
               Sebelumnya
