@@ -394,6 +394,7 @@ export class PurchaseReturnsService {
         },
         supplier: { select: { id: true, name: true, customerCode: true } },
         processedByUser: { select: { id: true, fullName: true } },
+        completedByUser: { select: { id: true, fullName: true } },
         items: {
           include: { product: { select: { id: true, name: true, sku: true } } },
         },
@@ -403,6 +404,100 @@ export class PurchaseReturnsService {
       throw new NotFoundException('Purchase return not found');
     }
     return this.mapReturn(found);
+  }
+
+  /**
+   * Completion: the physical units are shipped back to the supplier —
+   * central-bad −qty + an audit movement. One-way (open → completed).
+   */
+  async complete(id: string, userId: string, notes?: string) {
+    const ret = await this.prisma.purchaseReturn.findUnique({
+      where: { id },
+      include: { items: true },
+    });
+    if (!ret) {
+      throw new NotFoundException('Purchase return not found');
+    }
+    if (ret.status === 'completed') {
+      throw new BadRequestException('Retur ini sudah diselesaikan');
+    }
+
+    const badWarehouse = await this.prisma.warehouse.findFirst({
+      where: { type: 'BAD', scope: 'SYSTEM', isActive: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    if (!badWarehouse) {
+      throw new BadRequestException(
+        'Central Bad Stock warehouse not found — apply prisma/inventory-warehouse-stock.sql',
+      );
+    }
+
+    return await this.prisma.$transaction(async (tx) => {
+      for (const item of ret.items) {
+        const qty = Number(item.quantity);
+        const badStock = await tx.productStock.findUnique({
+          where: {
+            productId_warehouseId: {
+              productId: item.productId,
+              warehouseId: badWarehouse.id,
+            },
+          },
+        });
+        const before = badStock ? Number(badStock.quantityAvailable) : 0;
+        if (before < qty) {
+          throw new BadRequestException(
+            `Stok central-bad tidak cukup untuk menyelesaikan retur (butuh ${qty}, tersedia ${before})`,
+          );
+        }
+        const after = before - qty;
+        await tx.productStock.update({
+          where: {
+            productId_warehouseId: {
+              productId: item.productId,
+              warehouseId: badWarehouse.id,
+            },
+          },
+          data: { quantityAvailable: new Decimal(after) },
+        });
+        await tx.stockMovement.create({
+          data: {
+            productId: item.productId,
+            warehouseId: badWarehouse.id,
+            branchId: null,
+            movementType: 'OUT',
+            referenceType: 'PURCHASE_RETURN',
+            referenceId: ret.id,
+            quantityChange: new Decimal(-qty),
+            quantityBefore: new Decimal(before),
+            quantityAfter: new Decimal(after),
+            notes: `Retur pembelian ${ret.returnNumber} — dikirim ke supplier (selesai)`,
+            createdBy: userId,
+          },
+        });
+      }
+
+      const updated = await tx.purchaseReturn.update({
+        where: { id },
+        data: {
+          status: 'completed',
+          completedAt: new Date(),
+          completedBy: userId,
+          completionNotes: notes?.trim() || null,
+        },
+        include: {
+          purchaseOrder: {
+            select: { id: true, poNumber: true, invoiceNumber: true, status: true },
+          },
+          supplier: { select: { id: true, name: true, customerCode: true } },
+          processedByUser: { select: { id: true, fullName: true } },
+          completedByUser: { select: { id: true, fullName: true } },
+          items: {
+            include: { product: { select: { id: true, name: true, sku: true } } },
+          },
+        },
+      });
+      return this.mapReturn(updated);
+    });
   }
 
   /** Decimal → number mapping for API output (Prisma Decimals serialize as strings). */

@@ -4,4 +4,5 @@ export * from './approve-purchase-order.dto';
 export * from './create-goods-receipt.dto';
 export * from './approve-goods-receipt.dto';
 export * from './create-purchase-return.dto';
+export * from './complete-purchase-return.dto';
 

@@ -104,11 +104,14 @@ Adjacent / cross-referenced (not this workstream): import contract `a364be5b` (P
 - **Fix reject dead-end:** rejected PO currently cannot be edited (update guard) → allow `rejected` → edit → resubmit (`pending`). This *is* the 8-Sep "revisi" semantics.
 **Tests:** guard matrix by status; reason required; audit entry written; resubmit flips to pending.
 
-### S4 — Purchase returns *(bf95dbbf + IGDERP-83)*
-- New module + models `PurchaseReturn`/`PurchaseReturnItem` (pattern: `SalesReturn`): per PO/invoice; reason + notes + qty; stock movements: central-good −qty, central-bad +qty (ref `reference_id` per existing polymorphic convention); supplier traceability (doc no. series to confirm with format convention).
-- GR receiving: per-line **"buat retur" checkbox** on short/damaged → auto-creates return draft (1 invoice = 1 return; NOT forced); damage already parked in central-bad at receiving → return doc = paperwork + counters where applicable.
-- FE: list/detail under Expense/Purchasing menu (direct list pattern per conventions).
-**Tests:** stock math both cases (post-receipt return vs receiving-time damage), auto-create checkbox logic, reason capture.
+### S4 — Purchase returns *(bf95dbbf + IGDERP-83)* — **IMPLEMENTED + deployed to preview (2026-09-12)**
+- New module + models `PurchaseReturn`/`PurchaseReturnItem`: per supplier invoice; **two modes** — PO mode (pick a received PO; qty capped at received − already returned; unit price snapshotted; 1 invoice = 1 return) and **manual mode** (supplier + free invoice number + manual unit prices — covers first-deploy data without PO). Reason mandatory; nullable PO link; doc series **RTP-YYYYMMDD-XXXXXX**.
+- Stock: central-good −qty → central-bad +qty (movements ref `PURCHASE_RETURN`); insufficient good stock → blocked.
+- **IGDERP-83 receiving integration DROPPED by user decision (2026-09-12):** GR stays a pure "confirm incoming qty" step; returns are always created manually afterwards (list dropdown or a received PO's action). No checkbox, no auto-create.
+- FE: list (`Produk / Qty` column; no source column) + form (mode picked from the `＋ Buat Retur` dropdown at entry; search-bar-driven lines, no add-row button) + detail (Dampak Stok block); PO-detail "buat retur" action for received POs.
+- E2E (preview 2026-09-12): manual return RTP-20260912-810979 (good 50→49 / bad 0→1) + PO return RTP-20260912-115031 (good 49→47 / bad 1→3); duplicate guard blocks a 2nd return per invoice; DB movements verified.
+- Deploy fixes this round: `PurchaseReturn.purchaseOrder` relation made optional (prisma generate validation); controller must carry `JwtAuthGuard` (class) + `RolesGuard` (route) — no global auth guard in this app.
+**Tests:** manual + PO stock math, cap, duplicate, insufficient-stock, manual-mode validation — 9 in `purchase-returns.service.spec.ts` (suite 332 local / 358 merged tree).
 
 ### S5 — Barcode auto-print *(fc7b9d65)*
 - Print queue triggered on GR approve (labels = approved qty); settings page: printer/label template (size, columns, barcode vs QR, paper) — client format pending (explicit blocker; implement scaffold + default template).

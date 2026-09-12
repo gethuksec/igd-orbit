@@ -46,6 +46,7 @@ model User {
   passwordChangeRequests PasswordChangeRequest[]
   processedReturns       SalesReturn[]           @relation("SalesReturnProcessedBy")
   purchaseReturns        PurchaseReturn[]        @relation("PurchaseReturnProcessedBy")
+  completedReturns       PurchaseReturn[]        @relation("PurchaseReturnCompletedBy")
   grEvents               GoodsReceiptEvent[]     @relation("GoodsReceiptEventActor")
   poEditLogs             PurchaseOrderEditLog[] @relation("PurchaseOrderEditLogActor")
 
@@ -1896,6 +1897,10 @@ model PurchaseReturn {
   notes           String?  @db.Text
   totalQty        Decimal  @map("total_qty") @db.Decimal(15, 3)
   totalValue      Decimal  @map("total_value") @db.Decimal(15, 2) // supplier credit
+  status          String   @default("open") // 'open' | 'completed' (completed = shipped back to supplier; central-bad −qty)
+  completedAt     DateTime? @map("completed_at")
+  completedBy     String?  @map("completed_by") // User ID
+  completionNotes String?  @map("completion_notes") @db.Text
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
@@ -1903,6 +1908,7 @@ model PurchaseReturn {
   purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id], onDelete: Restrict)
   supplier        Customer      @relation("PurchaseReturnSupplier", fields: [supplierId], references: [id], onDelete: Restrict)
   processedByUser User          @relation("PurchaseReturnProcessedBy", fields: [processedBy], references: [id], onDelete: Restrict)
+  completedByUser User?         @relation("PurchaseReturnCompletedBy", fields: [completedBy], references: [id], onDelete: SetNull)
   items           PurchaseReturnItem[]
 
   @@index([purchaseOrderId])

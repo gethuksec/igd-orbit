@@ -13,6 +13,10 @@ CREATE TABLE IF NOT EXISTS "purchase_returns" (
   "notes" TEXT,
   "total_qty" DECIMAL(15,3) NOT NULL,
   "total_value" DECIMAL(15,2) NOT NULL,
+  "status" TEXT NOT NULL DEFAULT 'open',
+  "completed_at" TIMESTAMP(3),
+  "completed_by" TEXT,
+  "completion_notes" TEXT,
   "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT "purchase_returns_pkey" PRIMARY KEY ("id")
@@ -24,6 +28,17 @@ CREATE INDEX IF NOT EXISTS "idx_purchase_returns_po" ON "purchase_returns"("purc
 CREATE INDEX IF NOT EXISTS "idx_purchase_returns_supplier" ON "purchase_returns"("supplier_id");
 CREATE INDEX IF NOT EXISTS "idx_purchase_returns_processed_by" ON "purchase_returns"("processed_by");
 CREATE INDEX IF NOT EXISTS "idx_purchase_returns_created_at" ON "purchase_returns"("created_at");
+
+-- Completion lifecycle (added 2026-09-12): idempotent for already-created tables.
+ALTER TABLE "purchase_returns" ADD COLUMN IF NOT EXISTS "status" TEXT NOT NULL DEFAULT 'open';
+ALTER TABLE "purchase_returns" ADD COLUMN IF NOT EXISTS "completed_at" TIMESTAMP(3);
+ALTER TABLE "purchase_returns" ADD COLUMN IF NOT EXISTS "completed_by" TEXT;
+ALTER TABLE "purchase_returns" ADD COLUMN IF NOT EXISTS "completion_notes" TEXT;
+
+DO $$ BEGIN
+  ALTER TABLE "purchase_returns" ADD CONSTRAINT "purchase_returns_completed_by_fkey"
+    FOREIGN KEY ("completed_by") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 CREATE TABLE IF NOT EXISTS "purchase_return_items" (
   "id" TEXT NOT NULL,
