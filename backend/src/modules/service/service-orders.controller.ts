@@ -74,6 +74,15 @@ export class ServiceOrdersController {
     return this.serviceOrdersService.suggestTags(q, take ? Number(take) : 5);
   }
 
+  // IGDERP-185: lock credential reveal — TC/HS/SPV only (parity with findById password gate).
+  // Detail page already passed the branch check; audit line lands in status history.
+  @Get(':id/lock')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('TC', 'HS', 'SPV')
+  async revealLock(@Param('id') id: string, @Request() req: ExpressRequest & { user: any }) {
+    return this.serviceOrdersService.revealLock(id, (req.user as any)?.id);
+  }
+
   @Get(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('CS', 'TC', 'HS', 'SPV', 'CMO', 'CFO', 'CHR', 'OWNER', 'SUPERADMIN')

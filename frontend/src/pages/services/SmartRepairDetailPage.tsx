@@ -38,6 +38,8 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { BreadcrumbHeader } from '@/components/shared';
 import TagCombobox from '@/components/services/TagCombobox';
+import PatternPad from '@/components/services/PatternPad';
+import { LOCK_TYPE_LABELS } from '@/components/services/LockModal';
 import { serviceOrdersService } from '@/services/service-orders.service';
 import { formatCurrency } from '@/utils/format';
 
@@ -113,6 +115,11 @@ export default function SmartRepairDetailPage() {
   const [barangSearch, setBarangSearch] = useState('');
   const [barangRows, setBarangRows] = useState<any[]>([]);
   const [openBayar, setOpenBayar] = useState(false);
+  // IGDERP-185: lock viewer state (reveal gated server-side, audit logged)
+  const [openLockView, setOpenLockView] = useState(false);
+  const [lockReveal, setLockReveal] = useState<{ lockType: string; value: string | null } | null>(null);
+  const [showLockValue, setShowLockValue] = useState(false);
+  const [lockLoading, setLockLoading] = useState(false);
   const [bayarAmount, setBayarAmount] = useState('');
   const [bayarMethod, setBayarMethod] = useState('cash');
   const [bayarRef, setBayarRef] = useState('');
@@ -122,6 +129,34 @@ export default function SmartRepairDetailPage() {
     queryFn: () => serviceOrdersService.getById(id!),
     enabled: !!id,
   });
+
+  // IGDERP-185: open viewer + fetch decrypted credential (audit line appears in timeline)
+  const openLockViewer = () => {
+    setLockReveal(null);
+    setShowLockValue(false);
+    setOpenLockView(true);
+  };
+  const handleRevealLock = async () => {
+    setLockLoading(true);
+    try {
+      const res = await serviceOrdersService.revealLock(id!);
+      setLockReveal(res);
+      setShowLockValue(true);
+      queryClient.invalidateQueries({ queryKey: ['service-order', id] });
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Tidak dapat membuka kunci');
+    } finally {
+      setLockLoading(false);
+    }
+  };
+  const lockNodes: number[] =
+    lockReveal && lockReveal.lockType === 'pattern' && lockReveal.value
+      ? lockReveal.value
+          .replace(/^pattern:/, '')
+          .split('-')
+          .map(Number)
+          .filter((n) => Number.isInteger(n) && n >= 0 && n <= 8)
+      : [];
 
   const authHeader = useCallback(
     () => ({ Authorization: 'Bearer ' + localStorage.getItem('access_token') }),
@@ -468,6 +503,21 @@ export default function SmartRepairDetailPage() {
             <div>
               <Label className="text-sm text-gray-500">Serial</Label>
               <p className="font-semibold font-mono text-sm">{order.deviceSerial || '—'}</p>
+            </div>
+            <div>
+              <Label className="text-sm text-gray-500">Kunci layar</Label>
+              {(order as any).deviceLockType && (order as any).deviceLockType !== 'none' ? (
+                <p className="flex items-center gap-2">
+                  <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
+                    Ada ({(LOCK_TYPE_LABELS as any)[(order as any).deviceLockType] || (order as any).deviceLockType})
+                  </Badge>
+                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={openLockViewer}>
+                    Lihat
+                  </Button>
+                </p>
+              ) : (
+                <p className="font-semibold text-gray-400">Tidak ada</p>
+              )}
             </div>
           </div>
         </div>
@@ -1231,6 +1281,40 @@ export default function SmartRepairDetailPage() {
         </DialogContent>
       </Dialog>
 
+      {/* IGDERP-185: lock viewer — reveal gated server-side (TC/HS/SPV), audit logged */}
+      <Dialog open={openLockView} onOpenChange={setOpenLockView}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Kunci Layar Perangkat</DialogTitle>
+          </DialogHeader>
+          {!lockReveal ? (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">Kunci tersimpan terenkripsi. Klik Lihat untuk membuka — tercatat di histori.</p>
+              <Button onClick={handleRevealLock} disabled={lockLoading} className="w-full">
+                {lockLoading ? 'Membuka...' : 'Lihat'}
+              </Button>
+            </div>
+          ) : lockReveal.lockType === 'pattern' ? (
+            <div className="space-y-2">
+              <PatternPad value={lockNodes} readOnly />
+              <p className="text-xs text-muted-foreground">Ikuti urutan angka untuk membuka HP customer · tercatat di histori</p>
+            </div>
+          ) : (
+            <div className="space-y-2 rounded-lg border p-3">
+              <p className="text-xs font-semibold text-muted-foreground">{(LOCK_TYPE_LABELS as any)[lockReveal.lockType] || lockReveal.lockType}</p>
+              <p className="font-mono text-lg tracking-widest">
+                {showLockValue ? lockReveal.value : '••••••'}
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setShowLockValue((v) => !v)}>
+                  {showLockValue ? 'Sembunyikan' : 'Lihat'}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">Tercatat di histori</p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
       <Dialog open={openBayar} onOpenChange={setOpenBayar}>
         <DialogContent>
           <DialogHeader><DialogTitle>Terima Pembayaran</DialogTitle></DialogHeader>

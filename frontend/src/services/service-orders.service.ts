@@ -105,6 +105,12 @@ export const serviceOrdersService = {
     return response.data.data || response.data;
   },
 
+  // IGDERP-185: reveal lock credential (TC/HS/SPV; audit logged server-side)
+  async revealLock(id: string) {
+    const response = await api.get(`/service-orders/${id}/lock`);
+    return response.data.data || response.data;
+  },
+
   async addLayanan(id: string, payload: { serviceTypeId: string; notes?: string }) {
     const response = await api.post(`/service-orders/${id}/layanan`, payload);
     return response.data.data || response.data;
