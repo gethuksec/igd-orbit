@@ -366,6 +366,26 @@ describe('StockOpnameService', () => {
       ...overrides,
     });
 
+    it('claims the uncounted snapshot row on the first condition scan (no duplicate)', async () => {
+      prisma.stockOpname.findUnique.mockResolvedValue(
+        opname({ items: [row({ id: 'item-1', physicalQuantity: null, condition: null })] }),
+      );
+      tx.productStock.findUnique.mockResolvedValue({ quantityAvailable: new Decimal(10) });
+      tx.stockOpnameItem.update.mockResolvedValue({});
+      tx.stockOpname.findUnique.mockResolvedValue({ id: 'op-1' });
+
+      await service.recordCount(
+        'op-1',
+        { items: [{ productId: 'prod-1', physicalQuantity: 7, condition: 'good' }] },
+        'user-1',
+      );
+
+      expect(tx.stockOpnameItem.create).not.toHaveBeenCalled();
+      expect(tx.stockOpnameItem.update).toHaveBeenCalledTimes(1);
+      expect(tx.stockOpnameItem.update.mock.calls[0][0].where.id).toBe('item-1');
+      expect(tx.stockOpnameItem.update.mock.calls[0][0].data.condition).toBe('good');
+    });
+
     it('creates a second row when the condition is new', async () => {
       prisma.stockOpname.findUnique.mockResolvedValue(
         opname({ items: [row({ id: 'item-1', physicalQuantity: new Decimal(10), condition: 'good' })] }),

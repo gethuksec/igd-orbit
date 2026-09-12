@@ -448,6 +448,18 @@ export class StockOpnameService {
           throw new NotFoundException(`Product ${item.productId} not found in opname items`);
         }
 
+        // IGDERP-175: the first condition-carrying scan CLAIMS the uncounted
+        // snapshot row (condition null) instead of creating a duplicate — the
+        // placeholder row is the product's pre-scan state, so a fresh scan
+        // must fill it rather than leave it dangling uncounted.
+        if (cond && !opnameItem) {
+          opnameItem = candidates.find(
+            (i) =>
+              !i.condition &&
+              (i.physicalQuantity === null || i.physicalQuantity === undefined),
+          );
+        }
+
         if (
           opnameItem &&
           opnameItem.physicalQuantity !== null &&
