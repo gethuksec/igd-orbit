@@ -165,6 +165,12 @@ export default function ServiceTypeDetail() {
                 <p className="text-2xl font-bold text-blue-900">{formatSLA(serviceType.slaHours)}</p>
                 <p className="text-xs text-blue-600 mt-1">({Number(serviceType.slaHours)} jam)</p>
               </div>
+              {serviceType.durationHours != null && (
+                <div className="mt-3 p-4 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg border border-emerald-200">
+                  <p className="text-xs text-emerald-600 mb-1">Estimasi Durasi</p>
+                  <p className="text-2xl font-bold text-emerald-900">{Number(serviceType.durationHours)} jam</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 

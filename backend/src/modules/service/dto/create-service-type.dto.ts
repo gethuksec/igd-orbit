@@ -40,6 +40,11 @@ export class CreateServiceTypeDto {
   @Max(720, { message: 'SLA hours cannot exceed 720 (30 days)' })
   slaHours!: number;
 
+  @IsNumber({}, { message: 'Duration hours must be a number' })
+  @Min(0, { message: 'Duration hours must be at least 0' })
+  @IsOptional()
+  durationHours?: number;
+
   @IsBoolean({ message: 'isActive must be a boolean' })
   @IsOptional()
   isActive?: boolean = true;

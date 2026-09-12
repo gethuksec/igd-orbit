@@ -20,6 +20,7 @@ export default function ServiceTypeForm() {
     maxPrice: '',
     slaDays: 1,
     slaHoursRemainder: 0,
+    durationHours: '',
     isActive: true,
   });
 
@@ -40,6 +41,7 @@ export default function ServiceTypeForm() {
         maxPrice: serviceType.maxPrice ? String(serviceType.maxPrice) : '',
         slaDays: Math.floor(hours / 24),
         slaHoursRemainder: hours % 24,
+        durationHours: serviceType.durationHours != null ? String(serviceType.durationHours) : '',
         isActive: serviceType.isActive !== false,
       });
     }
@@ -63,6 +65,10 @@ export default function ServiceTypeForm() {
       }
       if (data.maxPrice) {
         submitData.maxPrice = Number(data.maxPrice);
+      }
+      // IGDERP-186: auto duration per service type (optional)
+      if (data.durationHours !== '' && data.durationHours != null) {
+        submitData.durationHours = Number(data.durationHours);
       }
 
       if (isEdit) {
@@ -249,6 +255,29 @@ export default function ServiceTypeForm() {
                   Total: <span className="font-semibold">{formData.slaDays * 24 + formData.slaHoursRemainder} jam</span>
                   {formData.slaDays > 0 && ` (${formData.slaDays} hari${formData.slaHoursRemainder > 0 ? ` ${formData.slaHoursRemainder} jam` : ''})`}
                 </p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                Estimasi Durasi (opsional)
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Clock className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  value={formData.durationHours}
+                  onChange={(e) => {
+                    setFormData({ ...formData, durationHours: e.target.value });
+                  }}
+                  className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+                  placeholder="0"
+                />
+                <p className="text-xs text-gray-500 mt-1">Jam (step 0.5) — tampil otomatis saat pilih layanan di Smart Repair</p>
               </div>
             </div>
 
