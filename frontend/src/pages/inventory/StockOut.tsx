@@ -41,6 +41,9 @@ interface LineItem {
   availableQuantity: number;
 }
 
+// Stable empty ref (same nav-freeze lesson as StockTransfer).
+const EMPTY_WAREHOUSES: StockOutWarehouse[] = [];
+
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('id-ID', {
     style: 'currency',
@@ -99,10 +102,13 @@ export default function StockOut() {
 
   // Source warehouses: outlet GOOD warehouses (filtered by outlet when chosen)
   // plus the system-scoped Central Bad Stock warehouse (always available).
-  const { data: warehouses = [] } = useQuery({
+  const { data: warehousesData } = useQuery({
     queryKey: ['stock-out-warehouses', outletId],
     queryFn: () => inventoryService.getStockOutWarehouses(outletId || undefined),
   });
+  // Stable empty ref (same nav-freeze lesson as StockTransfer: a `= []`
+  // default would churn effect deps while the query is pending).
+  const warehouses: StockOutWarehouse[] = warehousesData ?? EMPTY_WAREHOUSES;
 
   const { data: units = [] } = useQuery({
     queryKey: ['units'],
@@ -131,15 +137,14 @@ export default function StockOut() {
   const selectedWarehouse = warehouses.find((w: StockOutWarehouse) => w.id === warehouseId);
 
   // Auto-select the first warehouse when the outlet changes
+  // (bail-safe sets only, so a re-run never schedules another render).
   useEffect(() => {
-    setWarehouseId('');
-    setItems([]);
-    if (warehouses.length > 0) {
-      const first = warehouses[0];
-      setWarehouseId(first.id);
-      if (first.scope === 'SYSTEM') {
-        setOutletId('');
-      }
+    const first = warehouses.length > 0 ? warehouses[0] : undefined;
+    const firstId = first ? first.id : '';
+    setWarehouseId((prev) => (prev === firstId ? prev : firstId));
+    setItems((prev) => (prev.length === 0 ? prev : []));
+    if (first && first.scope === 'SYSTEM') {
+      setOutletId((prev) => (prev === '' ? prev : ''));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [outletId, warehouses]);

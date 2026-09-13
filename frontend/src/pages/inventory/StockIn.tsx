@@ -52,6 +52,10 @@ interface LineItem {
   stockValue: number;
 }
 
+// Stable empty ref (same nav-freeze lesson as StockTransfer: this query is
+// disabled until an outlet is picked, so `data` is undefined by design).
+const EMPTY_WAREHOUSES: StockInWarehouse[] = [];
+
 interface AddProductForm {
   name: string;
   categoryId: string;
@@ -122,11 +126,12 @@ export default function StockIn() {
     },
   });
 
-  const { data: warehouses = [] } = useQuery({
+  const { data: warehousesData } = useQuery({
     queryKey: ['stock-in-warehouses', outletId],
     queryFn: () => inventoryService.getStockInWarehouses(outletId || undefined),
     enabled: !!outletId,
   });
+  const warehouses: StockInWarehouse[] = warehousesData ?? EMPTY_WAREHOUSES;
 
   const { data: suppliers = [] } = useQuery({
     queryKey: ['suppliers'],
@@ -155,12 +160,10 @@ export default function StockIn() {
     queryFn: () => inventoryService.getStockIns({ page: 1, limit: 10 }),
   });
 
-  // Auto-select first GOOD warehouse of the outlet
+  // Auto-select first GOOD warehouse of the outlet (bail-safe: re-runs schedule nothing)
   useEffect(() => {
-    setWarehouseId('');
-    if (warehouses.length > 0) {
-      setWarehouseId(warehouses[0].id);
-    }
+    const firstId = warehouses.length > 0 ? warehouses[0].id : '';
+    setWarehouseId((prev) => (prev === firstId ? prev : firstId));
   }, [outletId, warehouses]);
 
   const addProductToLines = (product: StockInProduct, quantity = 1) => {
