@@ -60,8 +60,8 @@ export const IMPORT_COLUMNS: ImportColumnDef[] = [
 const norm = (v: any) =>
   String(v ?? '')
     .toLowerCase()
-    .trim()
-    .replace(/[_\s]+/g, '');
+    .replace(/\(.*?\)/g, '') // strip parentheticals: "Qty (wajib)" -> "Qty"
+    .replace(/[_\s*]+/g, ''); // strip separators + required stars: "Qty *" -> "qty"
 
 export interface RawImportRow {
   rowNumber: number;
@@ -160,10 +160,12 @@ const SAMPLE_ROWS: SnapshotRow[] = [
   { sku: 'CONTOH-005', name: 'Contoh Produk 5', quantity: 20 },
 ];
 
-/** Template workbook: 'Data' sheet (headers only) + 'Contoh' sheet (5 sample rows). */
+/** Template workbook: 'Data' sheet (headers only) + 'Contoh' sheet (5 sample rows).
+ * Headers are byte-identical to the export snapshot (round-trip); required
+ * columns are documented in the Contoh sheet + import UI, not via suffixes. */
 export async function buildImportTemplate(): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
-  const headers = IMPORT_COLUMNS.map((c) => c.label + (c.required ? ' *' : ''));
+  const headers = IMPORT_COLUMNS.map((c) => c.label);
   const data = wb.addWorksheet('Data');
   data.addRow(headers);
   styleHeader(data.getRow(1));

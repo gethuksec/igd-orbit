@@ -63,6 +63,26 @@ describe('template round-trip', () => {
     expect(rows[0]).toMatchObject({ sku: 'X-1', quantityRaw: '4', stockValueRaw: '9000' });
   });
 
+  it('tolerates required-star and parenthetical headers', async () => {
+    const buf = await toBuffer(['SKU *', 'Qty (wajib isi)'], [['X-1', 4]]);
+    const rows = await parseImportBuffer(buf);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ sku: 'X-1', quantityRaw: '4' });
+  });
+
+  it('template Data headers are byte-identical to the export snapshot', async () => {
+    const tpl = await buildImportTemplate();
+    const exp = await buildSnapshotWorkbook([
+      { sku: 'A-1', name: 'Produk A', quantity: 1 },
+    ]);
+    const headers = async (buf: Buffer) => {
+      const w = new ExcelJS.Workbook();
+      await w.xlsx.load(buf as any);
+      return (w.getWorksheet('Data')!.getRow(1).values as any[]).slice(1).join('|');
+    };
+    expect(await headers(tpl)).toBe(await headers(exp));
+  });
+
   it('throws when identifier and quantity columns are missing', async () => {
     await expect(toBuffer(['Nama Produk'], [['X']]).then((b) => parseImportBuffer(b))).rejects.toThrow(
       /SKU atau Barcode/,
