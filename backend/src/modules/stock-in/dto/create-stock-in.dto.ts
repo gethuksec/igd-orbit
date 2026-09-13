@@ -63,6 +63,10 @@ export class CreateStockInDto {
   @IsOptional()
   date?: string;
 
+  @IsString({ message: 'PO number must be a string' })
+  @IsOptional()
+  poNumber?: string;
+
   @IsString({ message: 'Reason must be a string' })
   @IsNotEmpty({ message: 'Reason is required' })
   reason!: string;

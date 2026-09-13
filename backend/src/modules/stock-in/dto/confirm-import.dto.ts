@@ -64,6 +64,10 @@ export class ConfirmImportDto {
   @IsOptional()
   reason?: string;
 
+  @IsString({ message: 'PO number must be a string' })
+  @IsOptional()
+  poNumber?: string;
+
   @IsArray({ message: 'Rows must be an array' })
   @ValidateNested({ each: true })
   @Type(() => ConfirmImportRowDto)

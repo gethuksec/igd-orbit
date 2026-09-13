@@ -103,6 +103,7 @@ export interface StockIn {
   supplierId?: string | null;
   supplierName?: string | null;
   documentDate: string;
+  poNumber?: string | null;
   reason: string;
   totalValue: number;
   createdBy: string;
@@ -598,6 +599,7 @@ export const inventoryService = {
     warehouseId: string;
     supplierId?: string;
     date?: string;
+    poNumber?: string;
     reason: string;
     items: Array<{
       productId: string;
@@ -777,6 +779,7 @@ export const inventoryService = {
       mode: 'TAMBAH' | 'REPLACE';
       fileName: string;
       reason?: string;
+      poNumber?: string;
       rows: Array<{ productId: string; quantity: number; stockValue?: number; notes?: string }>;
     },
   ): Promise<StockImportResult> {

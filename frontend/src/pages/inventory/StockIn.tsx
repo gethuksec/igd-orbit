@@ -83,6 +83,7 @@ export default function StockIn() {
   const [warehouseId, setWarehouseId] = useState('');
   const [supplierId, setSupplierId] = useState('');
   const [documentDate, setDocumentDate] = useState(todayISO());
+  const [poNumber, setPoNumber] = useState('');
   const [reason, setReason] = useState('');
 
   const [items, setItems] = useState<LineItem[]>([]);
@@ -221,6 +222,7 @@ export default function StockIn() {
       toast.success('Stok masuk berhasil disimpan');
       setItems([]);
       setReason('');
+      setPoNumber('');
       setSupplierId('');
       setProductSearch('');
     },
@@ -252,6 +254,7 @@ export default function StockIn() {
       warehouseId,
       supplierId: supplierId || NO_SUPPLIER,
       date: documentDate,
+      poNumber: poNumber.trim() || undefined,
       reason: reason.trim(),
       items: items.map((l) => ({
         productId: l.productId,
@@ -345,6 +348,16 @@ export default function StockIn() {
                 onChange={(e) => setDocumentDate(e.target.value)}
               />
             </div>
+          </div>
+          <div className="mt-4">
+            <Label className="block text-sm font-medium text-gray-700 mb-2">
+              No. PO / Invoice Supplier (opsional)
+            </Label>
+            <Input
+              value={poNumber}
+              onChange={(e) => setPoNumber(e.target.value)}
+              placeholder="cth. PO-2026-0091"
+            />
           </div>
           <div className="mt-4">
             <Label className="block text-sm font-medium text-gray-700 mb-2">

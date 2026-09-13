@@ -147,6 +147,7 @@ export default function StockImportModal({
   const [warehouseId, setWarehouseId] = useState('');
   const [mode, setMode] = useState<'TAMBAH' | 'REPLACE'>('TAMBAH');
   const [reason, setReason] = useState('');
+  const [poNumber, setPoNumber] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<StockImportPreview | null>(null);
   const [confirmBox, setConfirmBox] = useState(false);
@@ -179,6 +180,7 @@ export default function StockImportModal({
     setWarehouseId('');
     setMode('TAMBAH');
     setReason('');
+    setPoNumber('');
     setFile(null);
     setPreview(null);
     setConfirmBox(false);
@@ -230,6 +232,7 @@ export default function StockImportModal({
         mode,
         fileName: file?.name || 'import.xlsx',
         reason: reason || undefined,
+        poNumber: kind === 'in' ? poNumber.trim() || undefined : undefined,
         rows,
       });
     },
@@ -341,6 +344,19 @@ export default function StockImportModal({
                   placeholder="cth. Stok awal migrasi spreadsheet"
                 />
               </div>
+
+              {kind === 'in' && (
+                <div>
+                  <Label className="block text-sm font-medium text-gray-700 mb-2">
+                    No. PO / Invoice Supplier (opsional)
+                  </Label>
+                  <Input
+                    value={poNumber}
+                    onChange={(e) => setPoNumber(e.target.value)}
+                    placeholder="cth. PO-2026-0091"
+                  />
+                </div>
+              )}
 
               <div className="flex flex-wrap items-center gap-2">
                 <Button type="button" variant="outline" onClick={downloadTemplate} disabled={busyFile}>
