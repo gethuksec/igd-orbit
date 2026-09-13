@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>I1 Opname Mock — dev-2 (DRAFT copy)</title>
+<style>
+  :root{
+    --primary:#dc2626; --primary-dark:#b91c1c; --primary-50:#fef2f2;
+    --ink:#111827; --muted:#6b7280; --border:#e5e7eb; --card:#ffffff; --bg:#f3f4f6;
+    --green:#16a34a; --green-bg:#f0fdf4; --red:#dc2626; --red-bg:#fef2f2;
+    --yellow:#ca8a04; --yellow-bg:#fefce8; --blue:#2563eb; --blue-bg:#eff6ff;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--ink); font-size:14px; line-height:1.45;}
+  .screen{max-width:1100px; margin:28px auto; background:#fff; border:1px solid var(--border); border-radius:12px; overflow:hidden;}
+  .screen-tag{background:#111827; color:#fff; font-size:12px; font-weight:700; padding:8px 16px; letter-spacing:.04em;}
+  .screen-tag span{color:#9ca3af; font-weight:400;}
+  .page{padding:16px;}
+  .crumb{display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap;}
+  .crumb h1{font-size:18px; font-weight:800;}
+  .crumb .sub{font-size:12px; color:var(--muted); width:100%;}
+  .badge{display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:3px 12px; font-size:11px; font-weight:800; border:1px solid;}
+  .b-count{border-color:#fecaca; background:var(--red-bg); color:#b91c1c;}
+  .b-done{border-color:#bbf7d0; background:var(--green-bg); color:#15803d;}
+  .btn{display:inline-flex; align-items:center; gap:6px; border-radius:8px; padding:8px 14px; font-size:13px; font-weight:700; border:1px solid var(--border); background:#fff; color:#374151; cursor:pointer;}
+  .btn-primary{background:var(--primary); border-color:var(--primary); color:#fff;}
+  .btn-green{background:var(--green); border-color:var(--green); color:#fff;}
+  .btn:disabled{opacity:.5; cursor:not-allowed;}
+  .spacer{flex:1;}
+  .card{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin-bottom:12px;}
+  .savebar{display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); background:#f9fafb; border:1px dashed #d1d5db; border-radius:8px; padding:7px 12px; margin-bottom:12px;}
+  .dot{width:8px; height:8px; border-radius:50%;}
+  .dot-green{background:var(--green);} .dot-amber{background:#f59e0b;} .dot-gray{background:#9ca3af;}
+  .spin{width:12px; height:12px; border:2px solid #d1d5db; border-top-color:var(--primary); border-radius:50%; animation:sp 0.8s linear infinite; display:inline-block;}
+  @keyframes sp{to{transform:rotate(360deg);}}
+  .prog-top{display:flex; justify-content:space-between; margin-bottom:6px;}
+  .prog-top b.t{font-size:13px;} .prog-top span{font-size:12px; color:var(--muted);}
+  .bar{height:10px; background:#f3f4f6; border-radius:999px; overflow:hidden;}
+  .bar > div{height:100%; background:linear-gradient(90deg,#b91c1c,#ef4444); border-radius:999px;}
+  .chips{display:flex; flex-wrap:wrap; gap:12px; margin-top:8px; font-size:12px; color:var(--muted);}
+  .pill-red{background:var(--red-bg); border:1px solid #fecaca; color:#b91c1c; border-radius:999px; padding:2px 10px; font-weight:700;}
+  .scanbox{border:2px solid var(--primary); border-radius:10px; padding:10px 14px; display:flex; align-items:center; gap:10px; box-shadow:0 0 0 4px rgba(220,38,38,.08);}
+  .scanbox input{flex:1; border:none; outline:none; font-size:15px;}
+  kbd{border:1px solid #d1d5db; border-bottom-width:2px; background:#f3f4f6; border-radius:4px; padding:1px 7px; font-size:11px; font-weight:700; color:#4b5563; font-family:inherit;}
+  .hint{font-size:11px; color:#9ca3af; margin-top:6px; padding:0 4px;}
+  .hint b{color:var(--primary);}
+  .scancard{border:2px solid var(--primary); background:var(--primary-50); border-radius:12px; padding:14px 16px; margin-bottom:12px; box-shadow:0 0 0 4px rgba(220,38,38,.08);}
+  .scancard.warn{border-color:#eab308; background:#fefce8; box-shadow:0 0 0 4px rgba(234,179,8,.12);}
+  .scancard.err{border-color:var(--red); background:var(--red-bg);}
+  .rowline{display:flex; flex-wrap:wrap; align-items:center; gap:14px;}
+  .grow{flex:1; min-width:180px;}
+  .pname{font-weight:800; display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .psub{font-size:11px; color:var(--muted);}
+  .tag-new{background:#fee2e2; border:1px solid #fecaca; color:#b91c1c; font-size:10px; font-weight:800; border-radius:999px; padding:2px 8px;}
+  .live{font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); text-align:center;}
+  .live b{color:var(--green);}
+  .bignum{font-size:24px; font-weight:800; text-align:center;}
+  .qty{width:110px; height:44px; border:2px solid var(--primary); border-radius:8px; font-size:20px; font-weight:800; text-align:center;}
+  select.sel{height:44px; border:2px solid #d1d5db; border-radius:8px; padding:0 10px; font-size:13px; background:#fff;}
+  .diff{font-size:11px; color:var(--muted); margin-top:2px; text-align:center;}
+  .alert{display:flex; gap:10px; border-radius:8px; padding:10px 12px; font-size:13px; margin:10px 0;}
+  .alert-yellow{background:var(--yellow-bg); border:1px solid #fde68a; color:#854d0e;}
+  .alert-red{background:var(--red-bg); border:1px solid #fecaca; color:#991b1b;}
+  .alert-blue{background:var(--blue-bg); border:1px solid #bfdbfe; color:#1e40af;}
+  table.grid{width:100%; border-collapse:collapse;}
+  table.grid th{background:#f9fafb; font-size:11px; text-transform:uppercase; color:#374151; text-align:left; padding:9px 14px; border-bottom:1px solid var(--border);}
+  table.grid th.r, table.grid td.r{text-align:right;}
+  table.grid td{padding:9px 14px; border-bottom:1px solid #f3f4f6; font-size:13px;}
+  table.grid tr.hl{background:#fefce8;}
+  .statgrid{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:12px;}
+  .stat{background:#fff; border:1px solid var(--border); border-radius:12px; padding:14px 16px;}
+  .stat .l{font-size:12px; color:var(--muted); font-weight:600; display:flex; justify-content:space-between; align-items:center;}
+  .stat .v{font-size:22px; font-weight:800; margin-top:2px;}
+  .stat .s{font-size:11px; color:var(--muted); margin-top:2px;}
+  .twocol{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;}
+  .warnbox{background:#fefce8; border-left:4px solid #eab308; border-radius:12px; padding:16px;}
+  .actions{display:flex; justify-content:flex-end; gap:10px; margin-top:4px;}
+  .foot{font-size:11px; color:#9ca3af; text-align:center; padding:10px;}
+</style>
+</head>
+<body>
+
+<!-- ============ SCREEN A: 176 autosave + save-lock ============ -->
+<div class="screen">
+  <div class="screen-tag">A · 176 AUTOSAVE + SAVE-LOCK <span>— counting page, draft survives refresh; double-tap safe</span></div>
+  <div class="page">
+    <div class="crumb">
+      <h1>Catat Hasil Perhitungan</h1>
+      <span class="badge b-count">● COUNTING</span>
+      <span class="spacer"></span>
+      <button class="btn">⟳ Muat Ulang</button>
+      <button class="btn btn-primary">＋ Tambah Produk</button>
+      <div class="sub">OP-20260912-0007 · Cabang Teuku Umar · 12 Sep 2026</div>
+    </div>
+
+    <div class="savebar">
+      <span class="dot dot-green"></span>
+      <span><b>Draft tersimpan otomatis</b> · terakhir 14:32:07 · 212 dari 486 item</span>
+      <span class="spacer"></span>
+      <span style="display:inline-flex;align-items:center;gap:6px;"><span class="spin"></span> Menyimpan 3 perubahan… (tombol Simpan terkunci)</span>
+    </div>
+
+    <div class="card">
+      <div class="prog-top"><b class="t">Progress Perhitungan</b><span><b style="color:var(--primary)">212</b> dari 486 item dihitung · <b>2</b> petugas</span></div>
+      <div class="bar"><div style="width:44%"></div></div>
+      <div class="chips"><span><b>Anda (Budi):</b> 140 item</span><span><b>Petugas lain:</b> 72 item</span><span class="pill-red">274 item belum dihitung</span><span>Total selisih: <b>Rp1.240.000</b></span></div>
+    </div>
+
+    <div class="card">
+      <div class="scanbox"><span style="color:var(--primary);font-size:18px;">▮▶</span><input placeholder="Scan barcode, atau ketik nama/SKU lalu tekan Enter…" disabled><kbd>Enter</kbd></div>
+      <p class="hint">Scanner USB (keyboard-wedge) langsung berfungsi — scan atau ketik → item muncul di kartu atas → isi jumlah → <b>Enter</b> → otomatis lanjut ke item berikutnya.</p>
+    </div>
+
+    <div class="alert alert-blue">🔒 <span><b>Save-lock (176):</b> tombol <b>Simpan</b> nonaktif selama request berjalan — scan 500 item beruntun tidak bisa double-submit. Refresh halaman di tengah jalan → draft kembali dari server, tidak hilang.</span></div>
+  </div>
+</div>
+
+<!-- ============ SCREEN B: 175 scan modal states ============ -->
+<div class="screen">
+  <div class="screen-tag">B · 175 SCAN + GUARDS <span>— condition-first tiap scan, mismatch info saja, double-scan modal reject</span></div>
+  <div class="page">
+    <div class="crumb">
+      <h1>Catat Hasil Perhitungan</h1>
+      <span class="badge b-count">● COUNTING</span>
+      <span class="spacer"></span>
+      <div class="sub">OP-20260912-0007 · Cabang Teuku Umar · 12 Sep 2026</div>
+    </div>
+
+    <div class="card">
+      <div class="scanbox"><span style="color:var(--primary);font-size:18px;">▮▶</span><input value="899269651201" readonly><kbd>Enter</kbd></div>
+    </div>
+
+    <!-- B1: condition-first, qty locked until condition picked -->
+    <div class="scancard">
+      <div class="rowline">
+        <div class="grow"><div class="pname">Indomie Goreng 85g <span class="tag-new">BARU DI-SCAN</span></div><div class="psub">SKU: IDM-GRG-85 · Barcode: 899269651201</div></div>
+        <div><div class="live">Stok Sistem <b>● LIVE</b></div><div class="bignum">120</div></div>
+        <div style="text-align:center;"><div class="live" style="color:var(--primary);font-weight:800;">1 · KONDISI DULU</div>
+        <select class="sel" style="border-color:var(--primary);"><option value="">— Pilih —</option><option>Baik</option><option>Rusak</option><option>Kadaluarsa</option></select></div>
+        <div><div class="live">2 · JUMLAH (terkunci)</div><input class="qty" value="" placeholder="—" disabled style="background:#f3f4f6;border-color:#d1d5db;color:#9ca3af;"></div>
+        <button class="btn btn-primary" disabled>💾 Simpan</button>
+      </div>
+      <div class="alert alert-blue">ℹ️ <span><b>Condition-first (konsisten):</b> tiap scan wajib pilih kondisi dulu — kolom jumlah + Simpan terkunci sampai kondisi dipilih. Tidak ada default “Baik”. <i>DRAFT — perilaku usulan, belum final.</i></span></div>
+    </div>
+
+    <!-- B1b: condition picked, qty unlocked, single save -->
+    <div class="scancard">
+      <div class="rowline">
+        <div class="grow"><div class="pname">Indomie Goreng 85g <span class="tag-new">BARU DI-SCAN</span></div><div class="psub">SKU: IDM-GRG-85 · Barcode: 899269651201</div></div>
+        <div><div class="live">Stok Sistem <b>● LIVE</b></div><div class="bignum">120</div></div>
+        <div style="text-align:center;"><div class="live">1 · KONDISI ✓</div>
+        <select class="sel"><option>Baik</option><option>Rusak</option><option>Kadaluarsa</option></select></div>
+        <div><div class="live">2 · JUMLAH</div><input class="qty" value="118"><div class="diff">selisih <b style="color:var(--red)">−2</b></div></div>
+        <button class="btn btn-primary">💾 Simpan</button>
+      </div>
+    </div>
+
+    <!-- B2: >5% → warning MODAL, note optional, single confirm -->
+    <div class="scancard warn">
+      <div class="rowline">
+        <div class="grow"><div class="pname">Teh Botol Sosro 450ml <span class="tag-new">BARU DI-SCAN</span></div><div class="psub">SKU: TBS-450 · Barcode: 899600130101</div></div>
+        <div><div class="live">Stok Sistem <b>● LIVE</b></div><div class="bignum">200</div></div>
+        <div style="text-align:center;"><div class="live">1 · KONDISI ✓</div>
+        <select class="sel"><option>Baik</option><option selected>Rusak</option><option>Kadaluarsa</option></select></div>
+        <div><div class="live">2 · JUMLAH</div><input class="qty" value="150" style="border-color:#eab308;"><div class="diff">selisih <b style="color:var(--red)">−50 (−25%)</b></div></div>
+        <button class="btn btn-primary">💾 Simpan</button>
+      </div>
+      <div style="margin-top:12px; border:1px solid var(--border); border-radius:12px; padding:16px; background:#fff; max-width:520px;">
+        <div style="font-weight:800; font-size:15px; margin-bottom:4px;">⚠️ Selisih besar (−25%)</div>
+        <p style="font-size:13px; color:#374151;">Sistem <b>200</b> · Fisik <b>150</b> · kondisi <b>Rusak</b>. Tekan <b>Tetap simpan</b> untuk menyimpan, atau <b>Periksa lagi</b> untuk hitung ulang.</p>
+        <input placeholder="Catatan (opsional)" style="width:100%; height:38px; border:1px solid #d1d5db; border-radius:8px; padding:0 10px; font-size:13px; margin-top:10px;">
+        <div style="display:flex; gap:8px; margin-top:12px; justify-content:flex-end;">
+          <button class="btn">Periksa lagi</button>
+          <button class="btn btn-primary">Tetap simpan</button>
+        </div>
+      </div>
+      <div class="alert alert-yellow">⚠️ <span><b>Modal hanya saat selisih &gt; 5%:</b> ≤5% langsung tersimpan tanpa modal; catatan selalu opsional. Input row tidak bergeser — modal melayang di atas. <i>DRAFT — perilaku usulan, belum final.</i></span></div>
+    </div>
+
+    <!-- B3: double-scan → hard-reject MODAL (not inline) -->
+    <div class="scancard">
+      <div class="rowline">
+        <div class="grow"><div class="pname">Aqua 600ml <span class="tag-new">BARU DI-SCAN</span></div><div class="psub">SKU: AQU-600 · Barcode: 899276111101</div></div>
+        <div><div class="live">Stok Sistem <b>● LIVE</b></div><div class="bignum">96</div></div>
+      </div>
+      <div style="margin-top:12px; border:1px solid var(--border); border-radius:12px; padding:16px; background:#fff; max-width:520px;">
+        <div style="font-weight:800; font-size:15px; margin-bottom:4px;">⛔ Sudah dihitung</div>
+        <p style="font-size:13px; color:#374151;">Aqua 600ml sudah dicatat <b>14:21 oleh Budi</b> (fisik 96, kondisi Baik). Scan ganda ditolak.</p>
+        <div style="display:flex; gap:8px; margin-top:12px;">
+          <button class="btn">Tutup</button>
+          <button class="btn btn-primary">Lihat di tabel</button>
+        </div>
+      </div>
+      <div class="alert alert-red">⛔ <span><b>Hard-reject modal (kondisi SAMA):</b> scan ganda kondisi sama tidak bisa disimpan ulang — ubah lewat tabel Daftar Item. <i>DRAFT — perilaku usulan, belum final.</i></span></div>
+    </div>
+
+    <!-- B4: same product, DIFFERENT condition → allowed as second row -->
+    <div class="scancard">
+      <div class="rowline">
+        <div class="grow"><div class="pname">Aqua 600ml <span class="tag-new">BARU DI-SCAN</span></div><div class="psub">SKU: AQU-600 · Barcode: 899276111101 · <b>sudah ada: Baik 96</b></div></div>
+        <div><div class="live">Stok Sistem <b>● LIVE</b></div><div class="bignum">96</div></div>
+        <div style="text-align:center;"><div class="live">1 · KONDISI ✓</div>
+        <select class="sel"><option>Baik</option><option selected>Rusak</option><option>Kadaluarsa</option></select></div>
+        <div><div class="live">2 · JUMLAH</div><input class="qty" value="5"></div>
+        <button class="btn btn-primary">💾 Simpan</button>
+      </div>
+      <div class="alert alert-blue">ℹ️ <span><b>Kondisi BERBEDA → diizinkan:</b> Baik 96 sudah tercatat, scan Rusak 5 membuat <b>baris kedua</b> (satu baris per kondisi; total fisik produk = 101). <i>DRAFT — perilaku usulan, belum final.</i></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SCREEN C: 177 variance + export ============ -->
+<div class="screen">
+  <div class="screen-tag">C · 177 HASIL + VARIANCE + EXPORT <span>— ringkasan selisih, dokumen hasil, tombol export</span></div>
+  <div class="page">
+    <div class="crumb">
+      <h1>Hasil Opname OP-20260912-0007</h1>
+      <span class="badge b-done">● COMPLETED</span>
+      <span class="spacer"></span>
+      <button class="btn btn-green">⬇ Export Excel</button>
+      <div class="sub">Cabang Teuku Umar · 12 Sep 2026 · diajukan 15:40 oleh Budi</div>
+    </div>
+
+    <div class="statgrid">
+      <div class="stat"><div class="l">Total item <span>📦</span></div><div class="v">486</div><div class="s">486 dihitung · 0 tersisa</div></div>
+      <div class="stat"><div class="l">Nilai selisih <span>💰</span></div><div class="v" style="color:var(--red)">−Rp1.240.000</div><div class="s">susut bersih</div></div>
+      <div class="stat"><div class="l">Item selisih <span>⇅</span></div><div class="v">37</div><div class="s">23 kurang · 14 lebih</div></div>
+      <div class="stat"><div class="l">Selisih &gt; 5% <span style="color:var(--red)">⚠</span></div><div class="v" style="color:var(--red)">6</div><div class="s">perlu investigasi</div></div>
+    </div>
+
+    <div class="twocol">
+      <div class="card" style="margin:0">
+        <b style="font-size:13px;">📋 Informasi Opname</b>
+        <div style="margin-top:8px; font-size:13px; display:grid; gap:6px;">
+          <div><span style="color:var(--muted)">Cabang</span><br><b>Cabang Teuku Umar</b></div>
+          <div><span style="color:var(--muted)">Tanggal</span><br><b>12 September 2026</b></div>
+          <div><span style="color:var(--muted)">Petugas</span><br><b>Budi (140) · Sari (72) · +1 lain</b></div>
+        </div>
+      </div>
+      <div class="warnbox">
+        <b>⚠ Peringatan</b>
+        <p style="font-size:13px; margin-top:4px;">Terdapat <b>6 item</b> dengan selisih lebih dari 5%. Harap investigasi sebelum menyetujui opname ini.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;"><b>📦 Daftar Item</b><span class="spacer"></span><span style="font-size:12px; color:var(--muted)">tampilkan: <b>semua / selisih saja / &gt;5% saja</b></span></div>
+      <table class="grid">
+        <thead><tr><th>Produk</th><th class="r">Sistem</th><th class="r">Fisik</th><th class="r">Selisih</th><th class="r">Nilai</th><th>Kondisi</th><th>Catatan</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td><b>Teh Botol Sosro 450ml</b><br><span style="font-size:11px;color:var(--muted)">TBS-450</span></td><td class="r"><b>200</b></td><td class="r"><b>150</b></td><td class="r" style="color:var(--red);font-weight:800;">−50 (−25%)</td><td class="r" style="color:var(--red);font-weight:700;">Rp175.000</td><td><span class="pill-red">Rusak</span></td><td style="font-size:12px;">kardus basah</td></tr>
+          <tr><td><b>Indomie Goreng 85g</b><br><span style="font-size:11px;color:var(--muted)">IDM-GRG-85</span></td><td class="r"><b>120</b></td><td class="r"><b>118</b></td><td class="r" style="color:var(--red);font-weight:800;">−2 (−1,7%)</td><td class="r" style="color:var(--red);font-weight:700;">Rp6.000</td><td>Baik</td><td style="font-size:12px;">-</td></tr>
+          <tr><td><b>Kopi Kapal Api 165g</b><br><span style="font-size:11px;color:var(--muted)">KKA-165</span></td><td class="r"><b>80</b></td><td class="r"><b>86</b></td><td class="r" style="color:var(--green);font-weight:800;">+6 (+7,5%)</td><td class="r" style="color:var(--green);font-weight:700;">Rp54.000</td><td>Baik</td><td style="font-size:12px;">retur belum catat</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-green">✓ Setujui <span style="font-weight:400;font-size:11px;">(stok menyesuaikan)</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="foot">I1 opname mock · dev-2 · DRAFT copy (nama/angka contoh) · 3 screens: A=176 · B=175 · C=177</div>
+</body>
+</html>

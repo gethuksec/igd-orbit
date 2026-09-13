@@ -152,6 +152,43 @@ export interface StockInTier {
   level: number;
 }
 
+// IGDERP-97 (I4) — Excel import preview/result shapes (shared in/out).
+export interface StockImportPreviewRow {
+  rowNumbers: number[];
+  productId: string | null;
+  sku?: string;
+  barcode?: string;
+  productName?: string;
+  quantity: number | null;
+  stockValue?: number;
+  notes?: string;
+  available?: number;
+  overQty?: boolean;
+  merged?: boolean;
+  errors: string[];
+}
+
+export interface StockImportPreview {
+  rows: StockImportPreviewRow[];
+  validCount: number;
+  errorCount: number;
+  overQtyCount?: number;
+  mergedCount?: number;
+}
+
+export interface StockImportSkipped {
+  productId: string;
+  requested: number;
+  available: number;
+  reason: string;
+}
+
+export interface StockImportResult {
+  doc: any;
+  skipped: StockImportSkipped[];
+  logId: string;
+}
+
 export interface StockOut {
   id: string;
   documentNumber: string;
@@ -707,6 +744,54 @@ export const inventoryService = {
     } catch (error: any) {
       return handleApiError(error, []);
     }
+  },
+
+  // ── I4 Excel import/export — IGDERP-97 ──
+  // Template === export columns (round-trip). Files are never stored server-side.
+  async downloadImportTemplate(kind: 'in' | 'out'): Promise<Blob> {
+    const base = kind === 'in' ? '/stock-in' : '/stock-out';
+    const response = await api.get(`${base}/import/template`, { responseType: 'blob' });
+    return response.data;
+  },
+
+  async previewStockImport(
+    kind: 'in' | 'out',
+    file: File,
+    warehouseId?: string,
+  ): Promise<StockImportPreview> {
+    const base = kind === 'in' ? '/stock-in' : '/stock-out';
+    const form = new FormData();
+    form.append('file', file);
+    const response = await api.post(`${base}/import/preview`, form, {
+      params: warehouseId ? { warehouseId } : {},
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  async confirmStockImport(
+    kind: 'in' | 'out',
+    payload: {
+      outletId?: string;
+      warehouseId: string;
+      mode: 'TAMBAH' | 'REPLACE';
+      fileName: string;
+      reason?: string;
+      rows: Array<{ productId: string; quantity: number; stockValue?: number; notes?: string }>;
+    },
+  ): Promise<StockImportResult> {
+    const base = kind === 'in' ? '/stock-in' : '/stock-out';
+    const response = await api.post(`${base}/import/confirm`, payload);
+    return response.data;
+  },
+
+  async exportStockSnapshot(kind: 'in' | 'out', warehouseId: string): Promise<Blob> {
+    const base = kind === 'in' ? '/stock-in' : '/stock-out';
+    const response = await api.get(`${base}/export`, {
+      params: { warehouseId },
+      responseType: 'blob',
+    });
+    return response.data;
   },
 
 };

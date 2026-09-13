@@ -1018,6 +1018,30 @@ model StockOutItem {
   @@map("stock_out_items")
 }
 
+// IGDERP-97 (I4) — file-level audit for Stock In / Stock Out Excel imports.
+// Per-item history rides on StockMovement via the normal confirm path;
+// files themselves are never stored (22 Aug §9).
+model StockImportLog {
+  id           String   @id @default(uuid())
+  type         String   // STOCK_IN | STOCK_OUT
+  fileName     String   @map("file_name")
+  mode         String   // TAMBAH | REPLACE
+  outletId     String?  @map("outlet_id")
+  warehouseId  String   @map("warehouse_id")
+  totalRows    Int      @map("total_rows")
+  successRows  Int      @map("success_rows")
+  skippedRows  Int      @map("skipped_rows")
+  status       String   @default("SUCCESS") // SUCCESS | PARTIAL | FAILED
+  errorSummary String?  @map("error_summary") @db.Text
+  referenceId  String?  @map("reference_id") // created StockIn/StockOut doc id
+  createdBy    String   @map("created_by")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([warehouseId])
+  @@index([createdAt])
+  @@map("stock_import_logs")
+}
+
 // ============================================
 // 7. SERVICE MANAGEMENT
 // ============================================
