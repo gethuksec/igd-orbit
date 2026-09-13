@@ -51,6 +51,12 @@ export default function StockOpnameDetail() {
     },
   });
 
+  // IGDERP-177: variance analytics filter + Excel export state.
+  // NOTE: hooks must stay above the early returns below (React #310 —
+  // conditional hooks blank the whole page once data arrives).
+  const [varianceFilter, setVarianceFilter] = useState<'all' | 'diff' | 'big'>('all');
+  const [exporting, setExporting] = useState(false);
+
   if (isLoading) {
     return (
       <div className="w-full flex items-center justify-center min-h-[400px]">
@@ -140,10 +146,6 @@ export default function StockOpnameDetail() {
 
   const canComplete = opname.status === 'counting' && countedItems === totalItems;
   const canApprove = opname.status === 'completed';
-
-  // IGDERP-177: variance analytics filter + Excel export
-  const [varianceFilter, setVarianceFilter] = useState<'all' | 'diff' | 'big'>('all');
-  const [exporting, setExporting] = useState(false);
 
   const pctOf = (item: any) => {
     const sys = Number(item.systemQuantity || 0);
