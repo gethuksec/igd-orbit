@@ -9,14 +9,23 @@ import {
   Search,
   Trash2,
   ArrowRight,
-  History,
   Package,
+  ChevronsUpDown,
+  Check,
 } from 'lucide-react';
 import { BreadcrumbHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 import { toast } from 'sonner';
 import { api } from '../../services/api';
 import { inventoryService } from '../../services/inventory.service';
@@ -52,6 +61,10 @@ export default function StockTransfer() {
 
   const [items, setItems] = useState<LineItem[]>([]);
   const [productSearch, setProductSearch] = useState('');
+  // Searchable pickers for every gudang/outlet selection (review).
+  const [outletOpen, setOutletOpen] = useState(false);
+  const [srcOpen, setSrcOpen] = useState(false);
+  const [destOpen, setDestOpen] = useState(false);
 
   // ── Supporting lists ──
   const { data: branches = [] } = useQuery({
@@ -75,6 +88,10 @@ export default function StockTransfer() {
     [sourceWarehouses, warehouseId],
   );
 
+  const outletLabel = (b: any) => `${b.name} (${b.code})`;
+  const whLabel = (w: StockTransferWarehouse) => `${w.name} (${w.code})`;
+  const selectedOutlet = (branches as any[]).find((b: any) => b.id === outletId);
+
   const { data: productResults = [] } = useQuery({
     queryKey: ['transfer-products', productSearch, warehouseId],
     queryFn: () =>
@@ -86,10 +103,7 @@ export default function StockTransfer() {
     enabled: productSearch.trim().length >= 2,
   });
 
-  const { data: recentDocs = { data: [], meta: { total: 0 } } } = useQuery({
-    queryKey: ['transfer-docs'],
-    queryFn: () => inventoryService.getTransfers({ page: 1, limit: 10 }),
-  });
+  // Recent-docs section removed per review (dedup with Transfer list page).
 
   // Auto-select the first source warehouse when the source outlet changes
   useEffect(() => {
@@ -240,35 +254,89 @@ export default function StockTransfer() {
               <Label className="block text-sm font-medium text-gray-700 mb-2">
                 Outlet <span className="text-red-500">*</span>
               </Label>
-              <Select value={outletId} onChange={(e) => setOutletId(e.target.value)} required>
-                <option value="">Pilih Outlet</option>
-                {(branches as any[]).map((b: any) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name} ({b.code})
-                  </option>
-                ))}
-              </Select>
+              <Popover open={outletOpen} onOpenChange={setOutletOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    role="combobox"
+                    aria-expanded={outletOpen}
+                    className="flex h-10 w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-left focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <span className={selectedOutlet ? 'truncate text-gray-900' : 'text-gray-400'}>
+                      {selectedOutlet ? outletLabel(selectedOutlet) : 'Pilih Outlet'}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-gray-400" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Cari outlet (nama / kode)…" />
+                    <CommandList>
+                      <CommandEmpty>Outlet tidak ditemukan.</CommandEmpty>
+                      <CommandGroup>
+                        {(branches as any[]).map((b: any) => (
+                          <CommandItem
+                            key={b.id}
+                            value={outletLabel(b)}
+                            onSelect={() => {
+                              setOutletId(b.id);
+                              setOutletOpen(false);
+                            }}
+                          >
+                            <Check className={`mr-2 h-4 w-4 ${outletId === b.id ? 'opacity-100' : 'opacity-0'}`} />
+                            {outletLabel(b)}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <div>
               <Label className="block text-sm font-medium text-gray-700 mb-2">
                 Gudang Sumber <span className="text-red-500">*</span>
               </Label>
-              <Select
-                value={warehouseId}
-                onChange={(e) => {
-                  setWarehouseId(e.target.value);
-                  setItems([]);
-                }}
-                disabled={!outletId}
-                required
-              >
-                <option value="">Pilih Gudang</option>
-                {sourceWarehouses.map((w: StockTransferWarehouse) => (
-                  <option key={w.id} value={w.id}>
-                    {w.name} ({w.code})
-                  </option>
-                ))}
-              </Select>
+              <Popover open={srcOpen} onOpenChange={setSrcOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    role="combobox"
+                    aria-expanded={srcOpen}
+                    disabled={!outletId}
+                    className="flex h-10 w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-left focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <span className={selectedSource ? 'truncate text-gray-900' : 'text-gray-400'}>
+                      {selectedSource ? whLabel(selectedSource) : 'Pilih Gudang'}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-gray-400" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Cari gudang sumber (nama / kode)…" />
+                    <CommandList>
+                      <CommandEmpty>Gudang tidak ditemukan.</CommandEmpty>
+                      <CommandGroup>
+                        {sourceWarehouses.map((w: StockTransferWarehouse) => (
+                          <CommandItem
+                            key={w.id}
+                            value={whLabel(w)}
+                            onSelect={() => {
+                              setWarehouseId(w.id);
+                              setItems([]);
+                              setSrcOpen(false);
+                            }}
+                          >
+                            <Check className={`mr-2 h-4 w-4 ${warehouseId === w.id ? 'opacity-100' : 'opacity-0'}`} />
+                            {whLabel(w)}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
               {outletId && sourceWarehouses.length === 0 && (
                 <p className="text-xs text-red-500 mt-1">
                   Outlet ini belum memiliki gudang aktif.
@@ -279,19 +347,45 @@ export default function StockTransfer() {
               <Label className="block text-sm font-medium text-gray-700 mb-2">
                 Gudang Tujuan <span className="text-red-500">*</span>
               </Label>
-              <Select
-                value={toWarehouseId}
-                onChange={(e) => setToWarehouseId(e.target.value)}
-                disabled={!warehouseId}
-                required
-              >
-                <option value="">Pilih Gudang</option>
-                {destWarehouses.map((w: StockTransferWarehouse) => (
-                  <option key={w.id} value={w.id}>
-                    {w.name} ({w.code})
-                  </option>
-                ))}
-              </Select>
+              <Popover open={destOpen} onOpenChange={setDestOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    role="combobox"
+                    aria-expanded={destOpen}
+                    disabled={!warehouseId}
+                    className="flex h-10 w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-left focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <span className={selectedDest ? 'truncate text-gray-900' : 'text-gray-400'}>
+                      {selectedDest ? whLabel(selectedDest) : 'Pilih Gudang'}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-gray-400" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Cari gudang tujuan (nama / kode)…" />
+                    <CommandList>
+                      <CommandEmpty>Gudang tidak ditemukan.</CommandEmpty>
+                      <CommandGroup>
+                        {destWarehouses.map((w: StockTransferWarehouse) => (
+                          <CommandItem
+                            key={w.id}
+                            value={whLabel(w)}
+                            onSelect={() => {
+                              setToWarehouseId(w.id);
+                              setDestOpen(false);
+                            }}
+                          >
+                            <Check className={`mr-2 h-4 w-4 ${toWarehouseId === w.id ? 'opacity-100' : 'opacity-0'}`} />
+                            {whLabel(w)}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
               {warehouseId && destWarehouses.length === 0 && (
                 <p className="text-xs text-red-500 mt-1">
                   Tidak ada gudang lain di outlet ini. Untuk pindah ke outlet lain
@@ -483,45 +577,6 @@ export default function StockTransfer() {
           </div>
         )}
 
-        {/* ── Recent documents ── */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <History className="w-5 h-5 text-primary-600" />
-              Riwayat Terbaru
-            </h2>
-            <Button variant="link" onClick={() => navigate('/inventory/transfer')}>
-              Lihat Semua
-            </Button>
-          </div>
-          {recentDocs.data.length === 0 ? (
-            <p className="text-sm text-gray-500">Belum ada dokumen transfer.</p>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {recentDocs.data.slice(0, 5).map((doc: StockTransfer) => (
-                <button
-                  key={doc.id}
-                  type="button"
-                  className="w-full py-3 text-left hover:bg-gray-50 transition-colors"
-                  onClick={() => navigate(`/inventory/transfer/${doc.id}`)}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-primary-600">
-                      {doc.transferNumber}
-                    </span>
-                    <span className="text-xs text-gray-400">
-                      {new Date(doc.createdAt).toLocaleDateString('id-ID')}
-                    </span>
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {doc.fromWarehouse?.name} → {doc.toWarehouse?.name} •{' '}
-                    {doc.items.length} produk
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
       </form>
     </div>
   );

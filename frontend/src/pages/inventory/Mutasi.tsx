@@ -8,7 +8,6 @@ import {
   ArrowRight,
   Search,
   Trash2,
-  History,
   Package,
   Warehouse,
   ChevronsUpDown,
@@ -18,7 +17,6 @@ import { BreadcrumbHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import {
   Command,
@@ -74,6 +72,7 @@ export default function Mutasi() {
   const [productSearch, setProductSearch] = useState('');
   // IGDERP-173 (§2): searchable destination picker + destination availability
   const [destOpen, setDestOpen] = useState(false);
+  const [srcOpen, setSrcOpen] = useState(false);
   const [destStock, setDestStock] = useState<Record<string, number>>({});
   // IGDERP-172: set when the handoff prefill lands, so the warehouse-change
   // reset below doesn't wipe the carried lines on mount.
@@ -96,10 +95,7 @@ export default function Mutasi() {
     enabled: productSearch.trim().length >= 2,
   });
 
-  const { data: recentDocs = { data: [], meta: { total: 0 } } } = useQuery({
-    queryKey: ['mutasi-docs'],
-    queryFn: () => inventoryService.getMutasi({ page: 1, limit: 10 }),
-  });
+  // Recent-docs section removed per review (dedup with Mutasi list page).
 
   useEffect(() => {
     if (handoffApplied.current) {
@@ -291,18 +287,48 @@ export default function Mutasi() {
               <Label className="block text-sm font-medium text-gray-700 mb-2">
                 Gudang Asal <span className="text-red-500">*</span>
               </Label>
-              <Select
-                value={fromWarehouseId}
-                onChange={(e) => setFromWarehouseId(e.target.value)}
-                required
-              >
-                <option value="">Pilih Gudang Asal</option>
-                {warehouses.map((w: StockTransferWarehouse) => (
-                  <option key={w.id} value={w.id}>
-                    {warehouseLabel(w)}
-                  </option>
-                ))}
-              </Select>
+              <Popover open={srcOpen} onOpenChange={setSrcOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    role="combobox"
+                    aria-expanded={srcOpen}
+                    className="flex h-10 w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-left focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <span className={selectedFrom ? 'truncate text-gray-900' : 'text-gray-400'}>
+                      {selectedFrom ? warehouseLabel(selectedFrom) : 'Pilih Gudang Asal'}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-gray-400" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Cari gudang asal (gudang / cabang)…" />
+                    <CommandList>
+                      <CommandEmpty>Gudang tidak ditemukan.</CommandEmpty>
+                      <CommandGroup>
+                        {warehouses.map((w: StockTransferWarehouse) => (
+                          <CommandItem
+                            key={w.id}
+                            value={warehouseLabel(w)}
+                            onSelect={() => {
+                              setFromWarehouseId(w.id);
+                              setSrcOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={`mr-2 h-4 w-4 ${
+                                fromWarehouseId === w.id ? 'opacity-100' : 'opacity-0'
+                              }`}
+                            />
+                            {warehouseLabel(w)}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <div>
               <Label className="block text-sm font-medium text-gray-700 mb-2">
@@ -516,45 +542,6 @@ export default function Mutasi() {
           </div>
         )}
 
-        {/* ── Recent documents ── */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <History className="w-5 h-5 text-primary-600" />
-              Riwayat Terbaru
-            </h2>
-            <Button variant="link" onClick={() => navigate('/inventory/mutasi')}>
-              Lihat Semua
-            </Button>
-          </div>
-          {recentDocs.data.length === 0 ? (
-            <p className="text-sm text-gray-500">Belum ada dokumen mutasi.</p>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {recentDocs.data.slice(0, 5).map((doc: StockTransfer) => (
-                <button
-                  key={doc.id}
-                  type="button"
-                  className="w-full py-3 text-left hover:bg-gray-50 transition-colors"
-                  onClick={() => navigate(`/inventory/mutasi/${doc.id}`)}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-primary-600">
-                      {doc.transferNumber}
-                    </span>
-                    <span className="text-xs text-gray-400">
-                      {new Date(doc.createdAt).toLocaleDateString('id-ID')}
-                    </span>
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {doc.fromWarehouse?.name} → {doc.toWarehouse?.name} •{' '}
-                    {doc.items.length} produk
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
       </form>
     </div>
   );
