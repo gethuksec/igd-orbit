@@ -45,6 +45,12 @@ interface LineItem {
   availableQuantity: number;
 }
 
+// Stable empty ref: useQuery `data` is undefined while the warehouses query is
+// disabled/pending — a `= []` default would create a fresh array every render,
+// churning effect deps below into an infinite render loop (which starved
+// router transitions: URL changed, content frozen, zero errors).
+const EMPTY_WAREHOUSES: StockTransferWarehouse[] = [];
+
 /**
  * Transfer Stock v2 — INTRA-OUTLET (IGDERP-139).
  * Same outlet, warehouse ↔ warehouse (e.g., Gudang Service ↔ Gudang
@@ -76,11 +82,12 @@ export default function StockTransfer() {
   });
 
   // Source AND destination warehouses: GOOD OUTLET warehouses of the source outlet
-  const { data: sourceWarehouses = [] } = useQuery({
+  const { data: sourceWarehousesData } = useQuery({
     queryKey: ['transfer-warehouses', outletId],
     queryFn: () => inventoryService.getTransferWarehouses(outletId || undefined),
     enabled: !!outletId,
   });
+  const sourceWarehouses: StockTransferWarehouse[] = sourceWarehousesData ?? EMPTY_WAREHOUSES;
 
   // Destination options: same outlet, excluding the selected source
   const destWarehouses = useMemo(
@@ -105,14 +112,15 @@ export default function StockTransfer() {
 
   // Recent-docs section removed per review (dedup with Transfer list page).
 
-  // Auto-select the first source warehouse when the source outlet changes
+  // Auto-select the first source warehouse when the source outlet changes.
+  // Bail-safe sets only (returning the previous value commits nothing), so a
+  // re-run with unchanged inputs never schedules another render — no loop.
   useEffect(() => {
-    setWarehouseId('');
-    setToWarehouseId('');
-    setItems([]);
-    if (outletId && sourceWarehouses.length > 0) {
-      setWarehouseId(sourceWarehouses[0].id);
-    }
+    const firstSourceId =
+      outletId && sourceWarehouses.length > 0 ? sourceWarehouses[0].id : '';
+    setWarehouseId((prev) => (prev === firstSourceId ? prev : firstSourceId));
+    setToWarehouseId((prev) => (prev === '' ? prev : ''));
+    setItems((prev) => (prev.length === 0 ? prev : []));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [outletId, sourceWarehouses]);
 
