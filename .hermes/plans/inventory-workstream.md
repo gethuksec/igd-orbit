@@ -75,6 +75,6 @@ Owner: dev-2. Status of every finished slice: **Needs Review** (never straight t
 - Verdict: **safe to run in parallel**. Only coordination point is merge/deploy sequencing.
 
 ## 5. Resume notes
-- Worktree: `~/worktrees/ws-inventory-improve`, branch `ws-inventory-improve`, tip: `2398ae5` (pushed; after I1+I2 `3106c59` + hotfix `c88c798` + I2 refine). Shared clone untouched.
-- Preview (igd-vm): BE+FE rebuilt at `3106c59`; live E2E 2026-09-13: I1 claim/409/second-row/force/export ✓; I2 create→send→receive + guards ✓; destination-stock 200 + 400 guard ✓.
-- Next: I4 (97 import) / I5 (thin cost layer); merge to main (I3+I1+I2) waits on user approval (`--no-ff`).
+- Worktree: `~/worktrees/ws-inventory-improve`, branch `ws-inventory-improve`, tip: `b1ac4f5` (pushed; I4+I5 done, 97/182 → Needs Review; PO payment-column fix on tip). Shared clone untouched.
+- Preview (igd-vm): BE+FE at `9e5d260`; live E2E 2026-09-13/14: I4 net-zero 13/13 ✓; I5 net-zero 7/7 ✓; nav render-loop fixed (`f9b0d6e`) + siblings hardened (`2cc7640`) ✓.
+- Next: merge to main + deploy (user-approved 2026-09-14); then I6 client-blocked (105/119/first-opname) / I7 finance round (FIFO outflow + margin) on the I5 cost layer.
