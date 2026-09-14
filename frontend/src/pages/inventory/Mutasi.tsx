@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Save,
@@ -8,15 +8,24 @@ import {
   ArrowRight,
   Search,
   Trash2,
-  History,
   Package,
   Warehouse,
+  ChevronsUpDown,
+  Check,
 } from 'lucide-react';
 import { BreadcrumbHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 import { toast } from 'sonner';
 import { inventoryService } from '../../services/inventory.service';
 import type {
@@ -52,6 +61,7 @@ const warehouseLabel = (w: StockTransferWarehouse) => {
  */
 export default function Mutasi() {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
 
   const [fromWarehouseId, setFromWarehouseId] = useState('');
@@ -60,6 +70,13 @@ export default function Mutasi() {
 
   const [items, setItems] = useState<LineItem[]>([]);
   const [productSearch, setProductSearch] = useState('');
+  // IGDERP-173 (§2): searchable destination picker + destination availability
+  const [destOpen, setDestOpen] = useState(false);
+  const [srcOpen, setSrcOpen] = useState(false);
+  const [destStock, setDestStock] = useState<Record<string, number>>({});
+  // IGDERP-172: set when the handoff prefill lands, so the warehouse-change
+  // reset below doesn't wipe the carried lines on mount.
+  const handoffApplied = useRef(false);
 
   // All move-endpoint warehouses: system central (good/bad) + outlet GOOD
   const { data: warehouses = [] } = useQuery({
@@ -78,14 +95,72 @@ export default function Mutasi() {
     enabled: productSearch.trim().length >= 2,
   });
 
-  const { data: recentDocs = { data: [], meta: { total: 0 } } } = useQuery({
-    queryKey: ['mutasi-docs'],
-    queryFn: () => inventoryService.getMutasi({ page: 1, limit: 10 }),
-  });
+  // Recent-docs section removed per review (dedup with Mutasi list page).
 
   useEffect(() => {
+    if (handoffApplied.current) {
+      handoffApplied.current = false;
+      return;
+    }
     setItems([]);
   }, [fromWarehouseId]);
+
+  // IGDERP-172: cross-outlet handoff from the Transfer form — same source
+  // warehouse, so carried availability figures stay valid.
+  const handoff = (location.state as any)?.fromTransfer;
+  useEffect(() => {
+    if (!handoff) return;
+    if (handoff.fromWarehouseId) setFromWarehouseId(handoff.fromWarehouseId);
+    if (handoff.notes) setNotes(handoff.notes);
+    if (Array.isArray(handoff.items) && handoff.items.length > 0) {
+      handoffApplied.current = true;
+      setItems(
+        handoff.items.map((l: any) => ({
+          productId: l.productId,
+          name: l.name,
+          sku: l.sku,
+          barcode: l.barcode,
+          quantity: l.quantity,
+          unitName: l.unitName || '',
+          availableQuantity: l.availableQuantity ?? 0,
+        })),
+      );
+      toast.info(`${handoff.items.length} baris dibawa dari Transfer — pilih gudang tujuan`);
+    }
+    // consume once so back-navigation doesn't re-apply
+    window.history.replaceState({}, '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // IGDERP-173 (§2): "form mutasi menampilkan stok asal + stok tujuan" —
+  // refresh destination availability whenever the destination or lines change.
+  const lineIds = items.map((l) => l.productId).join(',');
+  useEffect(() => {
+    if (!toWarehouseId || items.length === 0) {
+      setDestStock({});
+      return;
+    }
+    let cancelled = false;
+    inventoryService
+      .getMutasiDestinationStock(
+        toWarehouseId,
+        items.map((l) => l.productId),
+      )
+      .then((rows) => {
+        if (!cancelled) {
+          setDestStock(
+            Object.fromEntries(rows.map((r) => [r.productId, r.availableQuantity])),
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setDestStock({});
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [toWarehouseId, lineIds]);
 
   const addProductToLines = (product: TransferStockProduct, quantity = 1) => {
     setItems((prev) => {
@@ -212,37 +287,97 @@ export default function Mutasi() {
               <Label className="block text-sm font-medium text-gray-700 mb-2">
                 Gudang Asal <span className="text-red-500">*</span>
               </Label>
-              <Select
-                value={fromWarehouseId}
-                onChange={(e) => setFromWarehouseId(e.target.value)}
-                required
-              >
-                <option value="">Pilih Gudang Asal</option>
-                {warehouses.map((w: StockTransferWarehouse) => (
-                  <option key={w.id} value={w.id}>
-                    {warehouseLabel(w)}
-                  </option>
-                ))}
-              </Select>
+              <Popover open={srcOpen} onOpenChange={setSrcOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    role="combobox"
+                    aria-expanded={srcOpen}
+                    className="flex h-10 w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-left focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <span className={selectedFrom ? 'truncate text-gray-900' : 'text-gray-400'}>
+                      {selectedFrom ? warehouseLabel(selectedFrom) : 'Pilih Gudang Asal'}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-gray-400" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Cari gudang asal (gudang / cabang)…" />
+                    <CommandList>
+                      <CommandEmpty>Gudang tidak ditemukan.</CommandEmpty>
+                      <CommandGroup>
+                        {warehouses.map((w: StockTransferWarehouse) => (
+                          <CommandItem
+                            key={w.id}
+                            value={warehouseLabel(w)}
+                            onSelect={() => {
+                              setFromWarehouseId(w.id);
+                              setSrcOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={`mr-2 h-4 w-4 ${
+                                fromWarehouseId === w.id ? 'opacity-100' : 'opacity-0'
+                              }`}
+                            />
+                            {warehouseLabel(w)}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <div>
               <Label className="block text-sm font-medium text-gray-700 mb-2">
                 Gudang Tujuan <span className="text-red-500">*</span>
               </Label>
-              <Select
-                value={toWarehouseId}
-                onChange={(e) => setToWarehouseId(e.target.value)}
-                required
-              >
-                <option value="">Pilih Gudang Tujuan</option>
-                {warehouses
-                  .filter((w: StockTransferWarehouse) => w.id !== fromWarehouseId)
-                  .map((w: StockTransferWarehouse) => (
-                    <option key={w.id} value={w.id}>
-                      {warehouseLabel(w)}
-                    </option>
-                  ))}
-              </Select>
+              <Popover open={destOpen} onOpenChange={setDestOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    role="combobox"
+                    aria-expanded={destOpen}
+                    className="flex h-10 w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-left focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <span className={selectedTo ? 'truncate text-gray-900' : 'text-gray-400'}>
+                      {selectedTo ? warehouseLabel(selectedTo) : 'Pilih Gudang Tujuan'}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-gray-400" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Cari gudang tujuan (gudang / cabang)…" />
+                    <CommandList>
+                      <CommandEmpty>Gudang tidak ditemukan.</CommandEmpty>
+                      <CommandGroup>
+                        {warehouses
+                          .filter((w: StockTransferWarehouse) => w.id !== fromWarehouseId)
+                          .map((w: StockTransferWarehouse) => (
+                            <CommandItem
+                              key={w.id}
+                              value={warehouseLabel(w)}
+                              onSelect={() => {
+                                setToWarehouseId(w.id);
+                                setDestOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 ${
+                                  toWarehouseId === w.id ? 'opacity-100' : 'opacity-0'
+                                }`}
+                              />
+                              {warehouseLabel(w)}
+                            </CommandItem>
+                          ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
 
@@ -318,7 +453,8 @@ export default function Mutasi() {
                 <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Produk</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase w-24">Stok</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase w-24">Stok Asal</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase w-24">Stok Tujuan</th>
                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase w-24">Qty</th>
                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase w-32">Satuan</th>
                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase w-14"></th>
@@ -335,6 +471,9 @@ export default function Mutasi() {
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">
                         {line.availableQuantity}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {toWarehouseId ? (destStock[line.productId] ?? '—') : '—'}
                       </td>
                       <td className="px-4 py-3">
                         <Input
@@ -403,45 +542,6 @@ export default function Mutasi() {
           </div>
         )}
 
-        {/* ── Recent documents ── */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <History className="w-5 h-5 text-primary-600" />
-              Riwayat Terbaru
-            </h2>
-            <Button variant="link" onClick={() => navigate('/inventory/mutasi')}>
-              Lihat Semua
-            </Button>
-          </div>
-          {recentDocs.data.length === 0 ? (
-            <p className="text-sm text-gray-500">Belum ada dokumen mutasi.</p>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {recentDocs.data.slice(0, 5).map((doc: StockTransfer) => (
-                <button
-                  key={doc.id}
-                  type="button"
-                  className="w-full py-3 text-left hover:bg-gray-50 transition-colors"
-                  onClick={() => navigate(`/inventory/mutasi/${doc.id}`)}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-primary-600">
-                      {doc.transferNumber}
-                    </span>
-                    <span className="text-xs text-gray-400">
-                      {new Date(doc.createdAt).toLocaleDateString('id-ID')}
-                    </span>
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {doc.fromWarehouse?.name} → {doc.toWarehouse?.name} •{' '}
-                    {doc.items.length} produk
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
       </form>
     </div>
   );

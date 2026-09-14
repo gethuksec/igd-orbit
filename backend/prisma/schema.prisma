@@ -719,6 +719,7 @@ model StockMovement {
   quantityChange Decimal  @map("quantity_change") @db.Decimal(15, 3) // Positive for IN, negative for OUT
   quantityBefore Decimal  @map("quantity_before") @db.Decimal(15, 3)
   quantityAfter  Decimal  @map("quantity_after") @db.Decimal(15, 3)
+  unitCost       Decimal? @map("unit_cost") @db.Decimal(15, 2) // IGDERP-182 thin slice: per-unit cost on IN rows (FIFO foundation)
   batchNumber    String?  @map("batch_number")
   serialNumber   String?  @map("serial_number")
   notes          String?  @db.Text
@@ -929,6 +930,7 @@ model StockIn {
   documentNumber String   @unique @map("document_number") // SIN-YYYYMMDD-XXXXXX
   outletId       String   @map("outlet_id")
   warehouseId    String   @map("warehouse_id")
+  poNumber       String?  @map("po_number") // IGDERP-182 thin slice: supplier PO / invoice ref for cost layers
   supplierId     String?  @map("supplier_id") // real supplier (Customer wholesale) UUID or the 'NO_SUPPLIER' sentinel
   supplierName   String?  @map("supplier_name") // snapshot for display
   documentDate   DateTime @map("document_date") @default(now())
@@ -1016,6 +1018,30 @@ model StockOutItem {
   @@index([stockOutId])
   @@index([productId])
   @@map("stock_out_items")
+}
+
+// IGDERP-97 (I4) — file-level audit for Stock In / Stock Out Excel imports.
+// Per-item history rides on StockMovement via the normal confirm path;
+// files themselves are never stored (22 Aug §9).
+model StockImportLog {
+  id           String   @id @default(uuid())
+  type         String   // STOCK_IN | STOCK_OUT
+  fileName     String   @map("file_name")
+  mode         String   // TAMBAH | REPLACE
+  outletId     String?  @map("outlet_id")
+  warehouseId  String   @map("warehouse_id")
+  totalRows    Int      @map("total_rows")
+  successRows  Int      @map("success_rows")
+  skippedRows  Int      @map("skipped_rows")
+  status       String   @default("SUCCESS") // SUCCESS | PARTIAL | FAILED
+  errorSummary String?  @map("error_summary") @db.Text
+  referenceId  String?  @map("reference_id") // created StockIn/StockOut doc id
+  createdBy    String   @map("created_by")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([warehouseId])
+  @@index([createdAt])
+  @@map("stock_import_logs")
 }
 
 // ============================================

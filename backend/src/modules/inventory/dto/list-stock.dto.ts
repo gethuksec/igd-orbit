@@ -4,10 +4,11 @@ import {
   IsString,
   IsOptional,
   IsInt,
+  IsBoolean,
   Min,
   Max,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 
 export class ListStockDto {
   @IsUUID()
@@ -37,6 +38,11 @@ export class ListStockDto {
   @IsString()
   @IsOptional()
   search?: string;
+
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsBoolean()
+  @IsOptional()
+  hideZero?: boolean;
 
   @Type(() => Number)
   @IsInt()

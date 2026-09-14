@@ -103,6 +103,7 @@ export interface StockIn {
   supplierId?: string | null;
   supplierName?: string | null;
   documentDate: string;
+  poNumber?: string | null;
   reason: string;
   totalValue: number;
   createdBy: string;
@@ -150,6 +151,43 @@ export interface StockInTier {
   code: string;
   name: string;
   level: number;
+}
+
+// IGDERP-97 (I4) — Excel import preview/result shapes (shared in/out).
+export interface StockImportPreviewRow {
+  rowNumbers: number[];
+  productId: string | null;
+  sku?: string;
+  barcode?: string;
+  productName?: string;
+  quantity: number | null;
+  stockValue?: number;
+  notes?: string;
+  available?: number;
+  overQty?: boolean;
+  merged?: boolean;
+  errors: string[];
+}
+
+export interface StockImportPreview {
+  rows: StockImportPreviewRow[];
+  validCount: number;
+  errorCount: number;
+  overQtyCount?: number;
+  mergedCount?: number;
+}
+
+export interface StockImportSkipped {
+  productId: string;
+  requested: number;
+  available: number;
+  reason: string;
+}
+
+export interface StockImportResult {
+  doc: any;
+  skipped: StockImportSkipped[];
+  logId: string;
 }
 
 export interface StockOut {
@@ -214,6 +252,7 @@ export const inventoryService = {
     brandId?: string;
     stockStatus?: 'low' | 'out' | 'available';
     search?: string;
+    hideZero?: boolean;
   }) {
     try {
       const response = await api.get('/inventory/stock', { params });
@@ -253,6 +292,7 @@ export const inventoryService = {
     referenceType?: string;
     startDate?: string;
     endDate?: string;
+    search?: string;
   }) {
     try {
       const response = await api.get('/inventory/movements', { params });
@@ -378,6 +418,36 @@ export const inventoryService = {
     }
   },
 
+  // IGDERP-173: mutasi transit → receive lifecycle
+  async sendMutasi(
+    id: string,
+    data: { items?: Array<{ itemId: string; quantitySent?: number }> },
+  ): Promise<StockTransfer> {
+    const response = await api.post(`/mutasi/${id}/send`, data);
+    return response.data;
+  },
+
+  async receiveMutasi(
+    id: string,
+    data: {
+      items: Array<{
+        itemId: string;
+        quantityReceived: number;
+        damageQuantity?: number;
+        damagePhotoUrl?: string;
+        damageNotes?: string;
+      }>;
+    },
+  ): Promise<StockTransfer> {
+    const response = await api.post(`/mutasi/${id}/receive`, data);
+    return response.data;
+  },
+
+  async cancelMutasi(id: string): Promise<StockTransfer> {
+    const response = await api.post(`/mutasi/${id}/cancel`);
+    return response.data;
+  },
+
   /** All move-endpoint warehouses: system central (good/bad) + outlet GOOD. */
   async getMutasiWarehouses(): Promise<StockTransferWarehouse[]> {
     try {
@@ -386,6 +456,17 @@ export const inventoryService = {
     } catch (error: any) {
       return handleApiError(error, []);
     }
+  },
+
+  // IGDERP-173 (§2): per-line destination availability ("stok tujuan" column)
+  async getMutasiDestinationStock(
+    warehouseId: string,
+    productIds: string[],
+  ): Promise<Array<{ productId: string; availableQuantity: number }>> {
+    const response = await api.get('/mutasi/destination-stock', {
+      params: { warehouseId, productIds: productIds.join(',') },
+    });
+    return response.data;
   },
 
   async searchTransferProducts(
@@ -445,6 +526,7 @@ export const inventoryService = {
       condition?: 'good' | 'damaged' | 'expired';
       notes?: string;
       countedBy?: string;
+      force?: boolean;
     }>;
   }): Promise<StockOpname> {
     try {
@@ -462,6 +544,14 @@ export const inventoryService = {
     } catch (error: any) {
       throw error;
     }
+  },
+
+  // IGDERP-177: result document download (.xlsx blob)
+  async exportOpnameExcel(id: string): Promise<Blob> {
+    const response = await api.get(`/inventory/opname/${id}/export`, {
+      responseType: 'blob',
+    });
+    return response.data;
   },
 
   async approveOpname(id: string): Promise<StockOpname> {
@@ -484,9 +574,9 @@ export const inventoryService = {
   },
 
   /** Draft model: remove a product from the ongoing opname. */
-  async removeOpnameItem(opnameId: string, productId: string): Promise<StockOpname> {
+  async removeOpnameItem(opnameId: string, itemId: string): Promise<StockOpname> {
     try {
-      const response = await api.delete(`/inventory/opname/${opnameId}/items/${productId}`);
+      const response = await api.delete(`/inventory/opname/${opnameId}/items/${itemId}`);
       return response.data;
     } catch (error: any) {
       throw error;
@@ -509,6 +599,7 @@ export const inventoryService = {
     warehouseId: string;
     supplierId?: string;
     date?: string;
+    poNumber?: string;
     reason: string;
     items: Array<{
       productId: string;
@@ -655,6 +746,55 @@ export const inventoryService = {
     } catch (error: any) {
       return handleApiError(error, []);
     }
+  },
+
+  // ── I4 Excel import/export — IGDERP-97 ──
+  // Template === export columns (round-trip). Files are never stored server-side.
+  async downloadImportTemplate(kind: 'in' | 'out'): Promise<Blob> {
+    const base = kind === 'in' ? '/stock-in' : '/stock-out';
+    const response = await api.get(`${base}/import/template`, { responseType: 'blob' });
+    return response.data;
+  },
+
+  async previewStockImport(
+    kind: 'in' | 'out',
+    file: File,
+    warehouseId?: string,
+  ): Promise<StockImportPreview> {
+    const base = kind === 'in' ? '/stock-in' : '/stock-out';
+    const form = new FormData();
+    form.append('file', file);
+    const response = await api.post(`${base}/import/preview`, form, {
+      params: warehouseId ? { warehouseId } : {},
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  async confirmStockImport(
+    kind: 'in' | 'out',
+    payload: {
+      outletId?: string;
+      warehouseId: string;
+      mode: 'TAMBAH' | 'REPLACE';
+      fileName: string;
+      reason?: string;
+      poNumber?: string;
+      rows: Array<{ productId: string; quantity: number; stockValue?: number; notes?: string }>;
+    },
+  ): Promise<StockImportResult> {
+    const base = kind === 'in' ? '/stock-in' : '/stock-out';
+    const response = await api.post(`${base}/import/confirm`, payload);
+    return response.data;
+  },
+
+  async exportStockSnapshot(kind: 'in' | 'out', warehouseId: string): Promise<Blob> {
+    const base = kind === 'in' ? '/stock-in' : '/stock-out';
+    const response = await api.get(`${base}/export`, {
+      params: { warehouseId },
+      responseType: 'blob',
+    });
+    return response.data;
   },
 
 };

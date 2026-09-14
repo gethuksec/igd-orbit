@@ -5,9 +5,11 @@ import {
   Body,
   Param,
   Query,
+  Res,
   UseGuards,
   Request,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../shared/guards/roles.guard';
 import { Roles } from '../../shared/decorators/roles.decorator';
@@ -34,6 +36,30 @@ export class StockController {
       query.branchIds = resolveBranchFilter(req, undefined).branchIds;
     }
     return this.stockService.getStockSummary(query);
+  }
+
+  @Get('stock/export')
+  @UseGuards(RolesGuard)
+  @Roles('CSO', 'SPV', 'HS', 'ASA', 'SODO', 'CS', 'CR', 'TC', 'AS', 'SMO', 'AR', 'CMO', 'CFO', 'CHR', 'OWNER', 'SUPERADMIN')
+  async exportStock(
+    @Query() query: ListStockDto,
+    @Query('columns') columns: string | undefined,
+    @Request() req: any,
+    @Res() res: Response,
+  ): Promise<void> {
+    // NOTE: declared before @Get('stock/:productId') to avoid route conflict.
+    // "Semua Cabang" default (22-Agu-2026): no branchId → user's branches.
+    // Filters (search/status/threshold) ride along via ListStockDto — IGDERP-106.
+    if (!query.branchId && !query.warehouseId) {
+      query.branchIds = resolveBranchFilter(req, undefined).branchIds;
+    }
+    const csv = await this.stockService.exportStockCsv(query, columns);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="stok-${new Date().toISOString().split('T')[0]}.csv"`,
+    );
+    res.send('\\uFEFF' + csv); // BOM for Excel UTF-8 support
   }
 
   @Get('stock/:productId')

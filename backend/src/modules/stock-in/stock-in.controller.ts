@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -6,13 +7,19 @@ import {
   Post,
   Query,
   Request,
+  Res,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import type { Response } from 'express';
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../shared/guards/roles.guard';
 import { Roles } from '../../shared/decorators/roles.decorator';
 import { StockInService } from './stock-in.service';
 import { CreateStockInDto } from './dto/create-stock-in.dto';
+import { ConfirmImportDto } from './dto/confirm-import.dto';
 
 const INVENTORY_ROLES = [
   'CSO',
@@ -71,6 +78,53 @@ export class StockInController {
   @Roles(...INVENTORY_ROLES)
   async tiers() {
     return this.stockInService.getTiers();
+  }
+
+  /**
+   * IGDERP-97 (I4) — Excel import/export. Template === export columns
+   * (round-trip). Uploaded files are parsed in memory, never stored.
+   */
+  @Get('import/template')
+  @UseGuards(RolesGuard)
+  @Roles(...INVENTORY_ROLES)
+  async importTemplate(@Res() res: Response) {
+    const buffer = await this.stockInService.buildImportTemplate();
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': 'attachment; filename="template-stok-masuk.xlsx"',
+      'Content-Length': buffer.length,
+    });
+    res.send(buffer);
+  }
+
+  @Post('import/preview')
+  @UseGuards(RolesGuard)
+  @Roles(...INVENTORY_ROLES)
+  @UseInterceptors(FileInterceptor('file'))
+  async importPreview(@UploadedFile() file: any) {
+    if (!file?.buffer) throw new BadRequestException('File Excel wajib diunggah');
+    return this.stockInService.previewImport(file.buffer);
+  }
+
+  @Post('import/confirm')
+  @UseGuards(RolesGuard)
+  @Roles(...INVENTORY_ROLES)
+  async importConfirm(@Body() dto: ConfirmImportDto, @Request() req: any) {
+    return this.stockInService.confirmImport(dto, req.user.id);
+  }
+
+  @Get('export')
+  @UseGuards(RolesGuard)
+  @Roles(...INVENTORY_ROLES)
+  async exportSnapshot(@Query('warehouseId') warehouseId: string, @Res() res: Response) {
+    if (!warehouseId) throw new BadRequestException('warehouseId wajib diisi');
+    const { buffer, filename } = await this.stockInService.exportSnapshot(warehouseId);
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': buffer.length,
+    });
+    res.send(buffer);
   }
 
   /** List Stock In documents (paginated, filters). */

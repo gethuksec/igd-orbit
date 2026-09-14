@@ -6,9 +6,11 @@ import {
   Body,
   Param,
   Query,
+  Res,
   UseGuards,
   Request,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../shared/guards/roles.guard';
 import { Roles } from '../../shared/decorators/roles.decorator';
@@ -53,6 +55,20 @@ export class StockOpnameController {
     return this.opnameService.findById(id);
   }
 
+  /** IGDERP-177: result document download (.xlsx). */
+  @Get(':id/export')
+  @UseGuards(RolesGuard)
+  @Roles('CSO', 'SPV', 'HS', 'ASA', 'SODO', 'CS', 'CR', 'TC', 'AS', 'SMO', 'AR', 'CMO', 'CFO', 'CHR', 'OWNER', 'SUPERADMIN')
+  async exportOpname(@Param('id') id: string, @Res() res: Response) {
+    const { buffer, filename } = await this.opnameService.exportOpname(id);
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': buffer.length,
+    });
+    res.send(buffer);
+  }
+
   /** Draft model: add a product to the ongoing opname. */
   @Post(':id/items/add')
   @UseGuards(RolesGuard)
@@ -61,12 +77,12 @@ export class StockOpnameController {
     return this.opnameService.addItem(id, dto.productId);
   }
 
-  /** Draft model: remove a product from the ongoing opname. */
-  @Delete(':id/items/:productId')
+  /** Draft model: remove a row from the ongoing opname (IGDERP-175: item id). */
+  @Delete(':id/items/:itemId')
   @UseGuards(RolesGuard)
   @Roles('HS', 'ASA', 'SODO')
-  async removeItem(@Param('id') id: string, @Param('productId') productId: string) {
-    return this.opnameService.removeItem(id, productId);
+  async removeItem(@Param('id') id: string, @Param('itemId') itemId: string) {
+    return this.opnameService.removeItem(id, itemId);
   }
 
   @Post(':id/items')

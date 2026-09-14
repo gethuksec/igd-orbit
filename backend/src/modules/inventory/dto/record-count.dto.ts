@@ -24,6 +24,13 @@ export class OpnameItemDto {
   @IsOptional()
   notes?: string;
 
+  /**
+   * IGDERP-175: explicit correction (table edit / Draft SO). Without it,
+   * re-recording a counted row is a 409 double-scan guard.
+   */
+  @IsOptional()
+  force?: boolean;
+
   @IsUUID()
   @IsOptional()
   countedBy?: string;

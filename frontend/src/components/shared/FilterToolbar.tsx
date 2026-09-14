@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { BranchFilterSelect } from '@/components/branch/BranchFilter';
 import { cn } from '@/lib/utils';
@@ -48,6 +49,12 @@ export type FilterField =
       key: string;
       label: string;
       type: 'branch';
+    }
+  | {
+      key: string;
+      label: string;
+      type: 'toggle';
+      hint?: string;
     };
 
 interface FilterToolbarProps {
@@ -75,6 +82,9 @@ function isFieldActive(field: FilterField, values: Record<string, string>): bool
   if (field.type === 'date-range') {
     return Boolean(values[`${field.key}From`] || values[`${field.key}To`]);
   }
+  if (field.type === 'toggle') {
+    return values[field.key] === 'true';
+  }
   const v = values[field.key];
   return Boolean(v && v !== '' && v !== 'all');
 }
@@ -90,6 +100,9 @@ function getFieldSummary(field: FilterField, values: Record<string, string>): st
   const v = values[field.key];
   if (field.type === 'select') {
     return field.options.find((o) => o.value === v)?.label || v;
+  }
+  if (field.type === 'toggle') {
+    return v === 'true' ? 'Ya' : '';
   }
   return v;
 }
@@ -272,6 +285,17 @@ export function FilterToolbar({
                     label=""
                     className="h-9 w-full text-sm"
                   />
+                )}
+                {field.type === 'toggle' && (
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={(draft[field.key] ?? values[field.key]) === 'true'}
+                      onCheckedChange={(checked) =>
+                        setDraft((d) => ({ ...d, [field.key]: checked ? 'true' : '' }))
+                      }
+                    />
+                    {field.hint && <span className="text-xs text-muted-foreground">{field.hint}</span>}
+                  </div>
                 )}
               </div>
             ))}

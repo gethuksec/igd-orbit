@@ -10,6 +10,8 @@ import {
   Trash2,
   ArrowUpFromLine,
   History,
+  Upload,
+  Download,
 } from 'lucide-react';
 import { BreadcrumbHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
@@ -18,6 +20,7 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { api } from '../../services/api';
+import StockImportModal from './StockImportModal';
 import {
   inventoryService,
 } from '../../services/inventory.service';
@@ -37,6 +40,9 @@ interface LineItem {
   stockValue: number;
   availableQuantity: number;
 }
+
+// Stable empty ref (same nav-freeze lesson as StockTransfer).
+const EMPTY_WAREHOUSES: StockOutWarehouse[] = [];
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('id-ID', {
@@ -58,6 +64,32 @@ export default function StockOut() {
 
   const [items, setItems] = useState<LineItem[]>([]);
   const [productSearch, setProductSearch] = useState('');
+  // IGDERP-97 (I4): Excel import/export
+  const [importOpen, setImportOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    if (!warehouseId) {
+      toast.error('Pilih gudang terlebih dahulu');
+      return;
+    }
+    setExporting(true);
+    try {
+      const blob = await inventoryService.exportStockSnapshot('out', warehouseId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `stok-keluar-${warehouseId.slice(0, 8)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch {
+      toast.error('Gagal mengunduh export');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   // ── Supporting lists ──
   const { data: branches = [] } = useQuery({
@@ -70,10 +102,13 @@ export default function StockOut() {
 
   // Source warehouses: outlet GOOD warehouses (filtered by outlet when chosen)
   // plus the system-scoped Central Bad Stock warehouse (always available).
-  const { data: warehouses = [] } = useQuery({
+  const { data: warehousesData } = useQuery({
     queryKey: ['stock-out-warehouses', outletId],
     queryFn: () => inventoryService.getStockOutWarehouses(outletId || undefined),
   });
+  // Stable empty ref (same nav-freeze lesson as StockTransfer: a `= []`
+  // default would churn effect deps while the query is pending).
+  const warehouses: StockOutWarehouse[] = warehousesData ?? EMPTY_WAREHOUSES;
 
   const { data: units = [] } = useQuery({
     queryKey: ['units'],
@@ -102,15 +137,14 @@ export default function StockOut() {
   const selectedWarehouse = warehouses.find((w: StockOutWarehouse) => w.id === warehouseId);
 
   // Auto-select the first warehouse when the outlet changes
+  // (bail-safe sets only, so a re-run never schedules another render).
   useEffect(() => {
-    setWarehouseId('');
-    setItems([]);
-    if (warehouses.length > 0) {
-      const first = warehouses[0];
-      setWarehouseId(first.id);
-      if (first.scope === 'SYSTEM') {
-        setOutletId('');
-      }
+    const first = warehouses.length > 0 ? warehouses[0] : undefined;
+    const firstId = first ? first.id : '';
+    setWarehouseId((prev) => (prev === firstId ? prev : firstId));
+    setItems((prev) => (prev.length === 0 ? prev : []));
+    if (first && first.scope === 'SYSTEM') {
+      setOutletId((prev) => (prev === '' ? prev : ''));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [outletId, warehouses]);
@@ -246,6 +280,24 @@ export default function StockOut() {
       <BreadcrumbHeader
         title="Stok Keluar"
         subtitle="Pencatatan stok keluar non-penjualan (buang, kadaluarsa, rusak, koreksi stok)"
+      />
+
+      {/* IGDERP-97 (I4): Excel import/export — same template, round-trip */}
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" variant="outline" onClick={() => setImportOpen(true)}>
+          <Upload className="w-4 h-4 mr-2" />
+          Import Excel
+        </Button>
+        <Button type="button" variant="outline" onClick={handleExport} disabled={!warehouseId || exporting}>
+          <Download className="w-4 h-4 mr-2" />
+          {exporting ? 'Mengunduh…' : 'Export Excel'}
+        </Button>
+      </div>
+      <StockImportModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        kind="out"
+        onImported={() => queryClient.invalidateQueries({ queryKey: ['stock-out-docs'] })}
       />
 
       <form onSubmit={handleSubmit} className="space-y-4">

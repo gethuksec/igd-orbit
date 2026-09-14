@@ -16,6 +16,8 @@ import { useBranchFilter } from '@/components/branch/BranchFilter';
 
 export default function StockMovementHistory() {
   const [searchTerm, setSearchTerm] = useState('');
+  // IGDERP-90: global mode (product optional) vs detail mode (barcode/name required)
+  const [mode, setMode] = useState<'global' | 'detail'>('global');
   const [selectedMovementType, setSelectedMovementType] = useState<string>('ALL');
   const [selectedReferenceType, setSelectedReferenceType] = useState<string>('ALL');
   const [startDate, setStartDate] = useState('');
@@ -29,12 +31,15 @@ export default function StockMovementHistory() {
       'inventory-movements',
       page,
       searchTerm,
+      mode,
       selectedMovementType,
       selectedReferenceType,
       startDate,
       endDate,
       branchId,
     ],
+    // Detail mode requires a product query; global mode lists everything
+    enabled: mode === 'global' || searchTerm.trim().length > 0,
     queryFn: () =>
       inventoryService.getStockMovementHistory({
         page,
@@ -44,6 +49,7 @@ export default function StockMovementHistory() {
         referenceType: selectedReferenceType !== 'ALL' ? selectedReferenceType : undefined,
         startDate: startDate || undefined,
         endDate: endDate || undefined,
+        search: searchTerm.trim() || undefined,
       }),
   });
 
@@ -138,11 +144,38 @@ export default function StockMovementHistory() {
         </div>
       )}
 
+      {/* IGDERP-90 mode toggle: global (no product required) vs detail (barcode + name required) */}
+      <div className="flex flex-wrap items-center gap-2 px-1">
+        <div className="inline-flex rounded-lg border border-gray-200 bg-white p-0.5 text-sm">
+          {(['global', 'detail'] as const).map((m) => (
+            <button
+              key={m}
+              className={`px-3 py-1.5 rounded-md font-medium transition-colors ${
+                mode === m ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-600 hover:text-foreground'
+              }`}
+              onClick={() => {
+                setMode(m);
+                setPage(1);
+              }}
+            >
+              {m === 'global' ? 'Global' : 'Detail'}
+            </button>
+          ))}
+        </div>
+        {mode === 'detail' && !searchTerm.trim() && (
+          <span className="text-xs text-muted-foreground">
+            Wajib isi barcode / nama produk untuk mode detail.
+          </span>
+        )}
+      </div>
+
       {/* Toolbar: search inline + branch inline + filter popup (IGDERP-110) */}
       <FilterToolbar
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
-        searchPlaceholder="Cari produk..."
+        searchPlaceholder={
+          mode === 'detail' ? 'Wajib: barcode / nama produk...' : 'Cari produk / SKU / barcode... (opsional)'
+        }
         branchFilter={{ value: branchId, onChange: setBranchId, allowAll: true }}
         fields={[
           {

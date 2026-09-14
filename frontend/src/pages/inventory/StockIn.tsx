@@ -11,6 +11,8 @@ import {
   Trash2,
   ArrowDownToLine,
   History,
+  Upload,
+  Download,
 } from 'lucide-react';
 import { BreadcrumbHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
@@ -26,6 +28,7 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { api } from '../../services/api';
+import StockImportModal from './StockImportModal';
 import {
   inventoryService,
 } from '../../services/inventory.service';
@@ -48,6 +51,10 @@ interface LineItem {
   unitName: string;
   stockValue: number;
 }
+
+// Stable empty ref (same nav-freeze lesson as StockTransfer: this query is
+// disabled until an outlet is picked, so `data` is undefined by design).
+const EMPTY_WAREHOUSES: StockInWarehouse[] = [];
 
 interface AddProductForm {
   name: string;
@@ -76,10 +83,37 @@ export default function StockIn() {
   const [warehouseId, setWarehouseId] = useState('');
   const [supplierId, setSupplierId] = useState('');
   const [documentDate, setDocumentDate] = useState(todayISO());
+  const [poNumber, setPoNumber] = useState('');
   const [reason, setReason] = useState('');
 
   const [items, setItems] = useState<LineItem[]>([]);
   const [productSearch, setProductSearch] = useState('');
+  // IGDERP-97 (I4): Excel import/export
+  const [importOpen, setImportOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    if (!warehouseId) {
+      toast.error('Pilih gudang terlebih dahulu');
+      return;
+    }
+    setExporting(true);
+    try {
+      const blob = await inventoryService.exportStockSnapshot('in', warehouseId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `stok-masuk-${warehouseId.slice(0, 8)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch {
+      toast.error('Gagal mengunduh export');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   // Add Product dialog state
   const [showAddProduct, setShowAddProduct] = useState(false);
@@ -93,11 +127,12 @@ export default function StockIn() {
     },
   });
 
-  const { data: warehouses = [] } = useQuery({
+  const { data: warehousesData } = useQuery({
     queryKey: ['stock-in-warehouses', outletId],
     queryFn: () => inventoryService.getStockInWarehouses(outletId || undefined),
     enabled: !!outletId,
   });
+  const warehouses: StockInWarehouse[] = warehousesData ?? EMPTY_WAREHOUSES;
 
   const { data: suppliers = [] } = useQuery({
     queryKey: ['suppliers'],
@@ -126,12 +161,10 @@ export default function StockIn() {
     queryFn: () => inventoryService.getStockIns({ page: 1, limit: 10 }),
   });
 
-  // Auto-select first GOOD warehouse of the outlet
+  // Auto-select first GOOD warehouse of the outlet (bail-safe: re-runs schedule nothing)
   useEffect(() => {
-    setWarehouseId('');
-    if (warehouses.length > 0) {
-      setWarehouseId(warehouses[0].id);
-    }
+    const firstId = warehouses.length > 0 ? warehouses[0].id : '';
+    setWarehouseId((prev) => (prev === firstId ? prev : firstId));
   }, [outletId, warehouses]);
 
   const addProductToLines = (product: StockInProduct, quantity = 1) => {
@@ -189,6 +222,7 @@ export default function StockIn() {
       toast.success('Stok masuk berhasil disimpan');
       setItems([]);
       setReason('');
+      setPoNumber('');
       setSupplierId('');
       setProductSearch('');
     },
@@ -220,6 +254,7 @@ export default function StockIn() {
       warehouseId,
       supplierId: supplierId || NO_SUPPLIER,
       date: documentDate,
+      poNumber: poNumber.trim() || undefined,
       reason: reason.trim(),
       items: items.map((l) => ({
         productId: l.productId,
@@ -235,6 +270,24 @@ export default function StockIn() {
       <BreadcrumbHeader
         title="Stok Masuk"
         subtitle="Pencatatan stok masuk non-pembelian (stok awal, barang hadiah, dll)"
+      />
+
+      {/* IGDERP-97 (I4): Excel import/export — same template, round-trip */}
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" variant="outline" onClick={() => setImportOpen(true)}>
+          <Upload className="w-4 h-4 mr-2" />
+          Import Excel
+        </Button>
+        <Button type="button" variant="outline" onClick={handleExport} disabled={!warehouseId || exporting}>
+          <Download className="w-4 h-4 mr-2" />
+          {exporting ? 'Mengunduh…' : 'Export Excel'}
+        </Button>
+      </div>
+      <StockImportModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        kind="in"
+        onImported={() => queryClient.invalidateQueries({ queryKey: ['stock-in-docs'] })}
       />
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -295,6 +348,16 @@ export default function StockIn() {
                 onChange={(e) => setDocumentDate(e.target.value)}
               />
             </div>
+          </div>
+          <div className="mt-4">
+            <Label className="block text-sm font-medium text-gray-700 mb-2">
+              No. PO / Invoice Supplier (opsional)
+            </Label>
+            <Input
+              value={poNumber}
+              onChange={(e) => setPoNumber(e.target.value)}
+              placeholder="cth. PO-2026-0091"
+            />
           </div>
           <div className="mt-4">
             <Label className="block text-sm font-medium text-gray-700 mb-2">
