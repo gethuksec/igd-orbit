@@ -28,4 +28,9 @@ export class AssignRoleDto {
   @IsString({ each: true, message: 'Each denied permission must be a string' })
   @IsOptional()
   deniedPermissions?: string[];
+
+  @IsArray({ message: 'grantedPermissions must be an array' })
+  @IsString({ each: true, message: 'Each granted permission must be a string' })
+  @IsOptional()
+  grantedPermissions?: string[];
 }

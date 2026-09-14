@@ -104,6 +104,7 @@ export class UserTransformer {
       branchName: ur.branch?.name || null,
       isPrimary: ur.isPrimary,
       deniedPermissions: (ur as any).deniedPermissions || [],
+      grantedPermissions: (ur as any).grantedPermissions || [],
     }));
 
     const permissions = computeEffectivePermissions(activeRoles);

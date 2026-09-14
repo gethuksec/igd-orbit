@@ -2,6 +2,7 @@ import {
   patternMatchesKey,
   isPermissionWithinDefaults,
   computeEffectivePermissions,
+  GRANTABLE_PERMISSIONS,
   PERMISSION_CATALOG,
 } from './permissions.util';
 
@@ -81,6 +82,64 @@ describe('computeEffectivePermissions', () => {
     expect(effective).toEqual(
       expect.arrayContaining(['purchasing.*.view', 'sales.history.view', 'service.order.view']),
     );
+  });
+});
+
+describe('computeEffectivePermissions — feature grants (IGDERP-141)', () => {
+  it('adds allowlisted grants beyond role defaults', () => {
+    const roles = [
+      {
+        role: { code: 'CS', defaultPermissions: ['menu.sales', 'action.view'] },
+        deniedPermissions: [],
+        grantedPermissions: ['action.pos.create'],
+      },
+    ];
+    const effective = computeEffectivePermissions(roles as any);
+    expect(effective).toContain('action.pos.create');
+    expect(effective).toContain('menu.sales');
+  });
+
+  it('ignores grants outside the allowlist', () => {
+    const roles = [
+      {
+        role: { code: 'CS', defaultPermissions: ['action.view'] },
+        deniedPermissions: [],
+        grantedPermissions: ['finance.coa.create', 'users.user.create'],
+      },
+    ];
+    const effective = computeEffectivePermissions(roles as any);
+    expect(effective).not.toContain('finance.coa.create');
+    expect(effective).not.toContain('users.user.create');
+    expect(effective).toEqual(['action.view']);
+  });
+
+  it('deny always wins over grant for the same key', () => {
+    const roles = [
+      {
+        role: { code: 'CS', defaultPermissions: [] },
+        deniedPermissions: ['action.pos.create'],
+        grantedPermissions: ['action.pos.create'],
+      },
+    ];
+    const effective = computeEffectivePermissions(roles as any);
+    expect(effective).not.toContain('action.pos.create');
+  });
+
+  it('grants on a different assignment still apply (per-user union), deny wins globally', () => {
+    const roles = [
+      {
+        role: { code: 'CS', defaultPermissions: [] },
+        deniedPermissions: [],
+        grantedPermissions: ['action.pos.create'],
+      },
+      { role: { code: 'CS', defaultPermissions: [] }, deniedPermissions: [] },
+    ];
+    const effective = computeEffectivePermissions(roles as any);
+    expect(effective).toContain('action.pos.create');
+  });
+
+  it('allowlist contains only the POS feature keys (guards against accidental admin keys)', () => {
+    expect(GRANTABLE_PERMISSIONS).toEqual(['action.pos.create', 'action.pos.edit']);
   });
 });
 

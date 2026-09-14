@@ -110,6 +110,7 @@ model UserBranch {
   branchId          String   @map("branch_id") // outlet only (required) — multi-outlet users via multiple rows
   isPrimary         Boolean  @default(false) @map("is_primary")
   deniedPermissions String[] @default([]) @map("denied_permissions") // Deny-only: can never exceed role defaults
+  grantedPermissions String[] @default([]) @map("granted_permissions") // IGDERP-141: feature enrollment — allowlisted grants only (additive, deny still wins)
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
 

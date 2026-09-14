@@ -50,12 +50,14 @@ export interface MergeUserRole {
     defaultPermissions?: string[];
   };
   deniedPermissions?: string[];
+  grantedPermissions?: string[];
 }
 
 /**
  * THE single merge function.
  *
- * effective = (∪ role.defaultPermissions) − (∪ assignment.deniedPermissions)
+ * effective = (∪ role.defaultPermissions ∪ allowlisted grantedPermissions)
+ *           − (∪ assignment.deniedPermissions)   // deny always wins (IGDERP-141)
  *
  * Used by: auth login, auth refresh, jwt.strategy, user detail, roles service.
  */
@@ -93,6 +95,14 @@ export function isPermissionWithinDefaults(
   );
 }
 
+/**
+ * IGDERP-141 (Plan C): allowlisted feature grants.
+ * A grant may ADD only these keys beyond role defaults; deny still wins.
+ * NEVER put user-management / finance / admin keys here.
+ * First feature: "Akses POS" for CS (27 Aug §10 #6, decision C).
+ */
+export const GRANTABLE_PERMISSIONS: string[] = ['action.pos.create', 'action.pos.edit'];
+
 export function computeEffectivePermissions(userRoles: MergeUserRole[]): string[] {
   const permissionSet = new Set<string>();
 
@@ -103,7 +113,16 @@ export function computeEffectivePermissions(userRoles: MergeUserRole[]): string[
     }
   }
 
-  // Subtract deniedPermissions (per-assignment, deny-only model)
+  // Add allowlisted feature grants (IGDERP-141) — BEFORE denies so deny always wins
+  for (const ur of userRoles || []) {
+    for (const granted of ur.grantedPermissions || []) {
+      if (GRANTABLE_PERMISSIONS.includes(granted)) {
+        permissionSet.add(granted);
+      }
+    }
+  }
+
+  // Subtract deniedPermissions (deny wins over defaults AND grants)
   for (const ur of userRoles || []) {
     for (const denied of ur.deniedPermissions || []) {
       permissionSet.delete(denied);
