@@ -17,6 +17,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production-min-32-chars}
       JWT_EXPIRES_IN: 1h
       REFRESH_TOKEN_EXPIRES_IN: 7d
+      DEVICE_PASSWORD_SECRET: ${DEVICE_PASSWORD_SECRET:-}
       STORAGE_TYPE: local
       STORAGE_PATH: ./uploads
     volumes:
