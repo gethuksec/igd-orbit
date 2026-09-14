@@ -14,7 +14,6 @@ import { AddServiceTimeDto } from './dto/add-service-time.dto';
 import { AddLayananDto } from './dto/add-layanan.dto';
 import { AddPartsDto } from './dto/add-parts.dto';
 import { SalesTransactionsService } from '../sales/sales-transactions.service';
-import { QcCheckDto } from './dto/qc-check.dto';
 import { CustomerFeedbackDto } from './dto/customer-feedback.dto';
 import { AssignTechnicianDto } from './dto/assign-technician.dto';
 import { UploadPhotosDto } from './dto/upload-photos.dto';
