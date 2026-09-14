@@ -543,7 +543,7 @@ export default function PurchaseOrderForm() {
                 />
               </div>
 
-              <div className={formData.payment_type === 'Termin' ? '' : 'md:col-span-2'}>
+              <div>
                 <Label className="block mb-2">Payment Type *</Label>
                 <select
                   value={formData.payment_type}
