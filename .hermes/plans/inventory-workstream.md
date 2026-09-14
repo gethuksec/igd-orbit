@@ -77,4 +77,5 @@ Owner: dev-2. Status of every finished slice: **Needs Review** (never straight t
 ## 5. Resume notes
 - Worktree: `~/worktrees/ws-inventory-improve`, branch `ws-inventory-improve`, tip: `b1ac4f5` (pushed; I4+I5 done, 97/182 → Needs Review; PO payment-column fix on tip). Shared clone untouched.
 - Preview (igd-vm): BE+FE at `9e5d260`; live E2E 2026-09-13/14: I4 net-zero 13/13 ✓; I5 net-zero 7/7 ✓; nav render-loop fixed (`f9b0d6e`) + siblings hardened (`2cc7640`) ✓.
-- Next: merge to main + deploy (user-approved 2026-09-14); then I6 client-blocked (105/119/first-opname) / I7 finance round (FIFO outflow + margin) on the I5 cost layer.
+- MERGED to main `4609b16` (2026-09-14, user-approved) + deployed: BE rebuilt from main (healthy), FE `main-vLWT7ysS.js`; PO payment-column fix live-verified.
+- Next: I6 client-blocked (105/119/first-opname) / I7 finance round (FIFO outflow + margin) on the I5 cost layer.
