@@ -77,6 +77,9 @@ export default function StockOpnameCount() {
     physical: number;
     rowId: string;
   } | null>(null);
+  // IGDERP-175 (QA 23 Sep): unknown-barcode mismatch popup (explicit dialog,
+  // a toast alone was missed/proved too subtle on live)
+  const [mismatchQuery, setMismatchQuery] = useState<string | null>(null);
   const [bigSave, setBigSave] = useState<{
     item: any;
     qty: number;
@@ -287,11 +290,21 @@ export default function StockOpnameCount() {
     if (rows.length > 0) {
       // IGDERP-175: prefer an uncounted row; the condition picker + reject
       // modal sort out same-condition re-scans after the condition is chosen
-      const target = rows.find((i) => i.physicalQuantity === null || i.physicalQuantity === undefined) || rows[0];
+      const uncounted = rows.find((i) => i.physicalQuantity === null || i.physicalQuantity === undefined);
+      const target = uncounted || rows[0];
       setActiveItemId(target.id);
       setScanQuery('');
+      // IGDERP-175 (QA 23 Sep): scan-time double-scan warning — every matching
+      // row is already counted, so this scan can only be a correction
+      if (!uncounted) {
+        toast.warning(
+          `"${target.product?.name || '-'}" sudah dihitung (fisik ${target.physicalQuantity}) — kartu dibuka untuk koreksi`,
+        );
+      }
     } else {
-      toast.error('Produk tidak ditemukan dalam opname ini');
+      // IGDERP-175 (QA 23 Sep): explicit mismatch popup, not just a toast
+      setMismatchQuery(scanQuery.trim());
+      setScanQuery('');
     }
   };
 
@@ -759,6 +772,30 @@ export default function StockOpnameCount() {
               }}
             >
               Lihat di tabel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* IGDERP-175 (QA 23 Sep): unknown-barcode mismatch popup */}
+      <Dialog open={mismatchQuery !== null} onOpenChange={(o) => !o && setMismatchQuery(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>🔍 Barcode tidak cocok</DialogTitle>
+            <DialogDescription>
+              <b>{mismatchQuery}</b> tidak cocok dengan barcode, SKU, atau nama produk mana pun
+              dalam opname ini. Periksa barang atau ketik ulang.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button
+              size="sm"
+              onClick={() => {
+                setMismatchQuery(null);
+                setTimeout(() => scanInputRef.current?.focus(), 50);
+              }}
+            >
+              Scan lagi
             </Button>
           </div>
         </DialogContent>
