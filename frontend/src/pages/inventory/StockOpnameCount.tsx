@@ -80,6 +80,9 @@ export default function StockOpnameCount() {
   // IGDERP-175 (QA 23 Sep): unknown-barcode mismatch popup (explicit dialog,
   // a toast alone was missed/proved too subtle on live)
   const [mismatchQuery, setMismatchQuery] = useState<string | null>(null);
+  // IGDERP-175 (QA R2 23 Sep): persistent scan-event notice — headless runs
+  // can miss toasts/dialogs, the last scan result always stays in the DOM
+  const [scanNotice, setScanNotice] = useState<{ kind: 'found' | 'mismatch' | 'double'; text: string } | null>(null);
   const [bigSave, setBigSave] = useState<{
     item: any;
     qty: number;
@@ -292,19 +295,32 @@ export default function StockOpnameCount() {
       // modal sort out same-condition re-scans after the condition is chosen
       const uncounted = rows.find((i) => i.physicalQuantity === null || i.physicalQuantity === undefined);
       const target = uncounted || rows[0];
+      // IGDERP-175 (QA R2 23 Sep): PRE-SAVE double-scan — card already open
+      // for this product, or a qty already typed but not saved yet
+      const alreadyOpen = rows.some(
+        (i) => i.id === activeItemId || (counts[i.id] !== undefined && counts[i.id] !== ''),
+      );
       setActiveItemId(target.id);
       setScanQuery('');
+      const prodName = target.product?.name || '-';
       // IGDERP-175 (QA 23 Sep): scan-time double-scan warning — every matching
       // row is already counted, so this scan can only be a correction
       if (!uncounted) {
         toast.warning(
-          `"${target.product?.name || '-'}" sudah dihitung (fisik ${target.physicalQuantity}) — kartu dibuka untuk koreksi`,
+          `"${prodName}" sudah dihitung (fisik ${target.physicalQuantity}) — kartu dibuka untuk koreksi`,
         );
+        setScanNotice({ kind: 'double', text: `"${prodName}" sudah dihitung (fisik ${target.physicalQuantity}) — scan ganda, kartu dibuka untuk koreksi` });
+      } else if (alreadyOpen) {
+        toast.warning(`"${prodName}" sudah di-scan — kartu sudah terbuka, koreksi langsung di kartu`);
+        setScanNotice({ kind: 'double', text: `"${prodName}" sudah di-scan — kartu sudah terbuka (scan ganda)` });
+      } else {
+        setScanNotice({ kind: 'found', text: `"${prodName}" cocok — kartu dibuka, pilih kondisi lalu isi jumlah` });
       }
     } else {
-      // IGDERP-175 (QA 23 Sep): explicit mismatch popup, not just a toast
+      // IGDERP-175 (QA 23 Sep): explicit mismatch popup, not just a toast.
+      // QA R2: keep the text in the box as evidence + persistent notice.
       setMismatchQuery(scanQuery.trim());
-      setScanQuery('');
+      setScanNotice({ kind: 'mismatch', text: `"${scanQuery.trim()}" tidak cocok dengan barcode, SKU, atau nama produk mana pun dalam opname ini` });
     }
   };
 
@@ -334,6 +350,13 @@ export default function StockOpnameCount() {
       rows.find((i) => i.physicalQuantity === null || i.physicalQuantity === undefined) ||
       rows[0] ||
       item;
+    // IGDERP-175 (QA R2 23 Sep): pre-save double-scan via suggestion tap too
+    if (target.id === activeItemId) {
+      toast.warning(`"${target.product?.name || '-'}" sudah di-scan — kartu sudah terbuka`);
+      setScanNotice({ kind: 'double', text: `"${target.product?.name || '-'}" sudah di-scan — kartu sudah terbuka (scan ganda)` });
+    } else {
+      setScanNotice({ kind: 'found', text: `"${target.product?.name || '-'}" cocok — kartu dibuka, pilih kondisi lalu isi jumlah` });
+    }
     setActiveItemId(target.id);
     setScanQuery('');
   };
@@ -631,6 +654,25 @@ export default function StockOpnameCount() {
           Scanner USB (keyboard-wedge) langsung berfungsi — scan atau ketik → item muncul di kartu atas → isi jumlah →{' '}
           <b className="text-primary-600">Enter</b> → otomatis lanjut ke item berikutnya.
         </p>
+        {/* IGDERP-175 (QA R2 23 Sep): last scan result stays in the DOM */}
+        {scanNotice && (
+          <div
+            role="status"
+            aria-live="polite"
+            data-testid="scan-notice"
+            data-kind={scanNotice.kind}
+            className={`mt-2 px-3 py-2 rounded-lg text-xs font-medium ${
+              scanNotice.kind === 'mismatch'
+                ? 'bg-red-50 border border-red-200 text-red-700'
+                : scanNotice.kind === 'double'
+                  ? 'bg-amber-50 border border-amber-200 text-amber-700'
+                  : 'bg-green-50 border border-green-200 text-green-700'
+            }`}
+          >
+            {scanNotice.kind === 'mismatch' ? '🔍 ' : scanNotice.kind === 'double' ? '⚠️ ' : '✅ '}
+            {scanNotice.text}
+          </div>
+        )}
       </form>
 
       {/* Scanned item card */}
@@ -778,8 +820,16 @@ export default function StockOpnameCount() {
       </Dialog>
 
       {/* IGDERP-175 (QA 23 Sep): unknown-barcode mismatch popup */}
-      <Dialog open={mismatchQuery !== null} onOpenChange={(o) => !o && setMismatchQuery(null)}>
-        <DialogContent className="max-w-md">
+      <Dialog
+        open={mismatchQuery !== null}
+        onOpenChange={(o) => {
+          if (!o) {
+            setMismatchQuery(null);
+            setTimeout(() => scanInputRef.current?.focus(), 50);
+          }
+        }}
+      >
+        <DialogContent className="max-w-md" data-testid="mismatch-dialog">
           <DialogHeader>
             <DialogTitle>🔍 Barcode tidak cocok</DialogTitle>
             <DialogDescription>

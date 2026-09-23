@@ -49,7 +49,8 @@ const EXPORT_COLUMNS: { key: string; label: string }[] = [
   { key: 'stockValue', label: 'Nilai Stok' },
 ];
 
-// IGDERP-88: tier prices as hover/click tooltip (same pattern as stock breakdown)
+// IGDERP-88: tier prices rendered INLINE (QA R2 23 Sep: hover-only tooltip was
+// unverifiable — "static text". Values now visible per row, no hover needed).
 // IGDERP-195: prefer per-product master values (memberPricing[tierId]) over
 // the computed discount fallback, so the list matches /products master.
 function TierPriceCell({
@@ -63,7 +64,6 @@ function TierPriceCell({
   memberPricing?: Record<string, any> | null;
   masterMin?: number | null;
 }) {
-  const [open, setOpen] = useState(false);
   const tierValue = (t: Tier) => {
     const stored = memberPricing?.[t.id];
     if (typeof stored === 'number' && stored > 0) return stored;
@@ -72,53 +72,24 @@ function TierPriceCell({
       return memberPrice(regular, Number(stored.discount));
     return memberPrice(regular, Number(t.discountPercentage));
   };
-  if (!tiers.length) {
-    return (
-      <div className="text-sm font-semibold text-foreground">{formatCurrency(regular)}</div>
-    );
-  }
   return (
-    <TooltipProvider>
-      <Tooltip open={open} onOpenChange={setOpen}>
-        <TooltipTrigger asChild>
-          {/* IGDERP-195: click toggles too (row click opens drawer); stopPropagation guards it */}
-          <div
-            className="cursor-help w-fit ml-auto"
-            onMouseEnter={() => setOpen(true)}
-            onClick={(e) => {
-              e.stopPropagation();
-              setOpen((o) => !o);
-            }}
-          >
-            <div className="text-sm font-semibold text-foreground">{formatCurrency(regular)}</div>
-            <div className="text-[11px] text-muted-foreground underline decoration-dotted underline-offset-2">
-              {tiers.length} harga member
-            </div>
-          </div>
-        </TooltipTrigger>
-        <TooltipContent side="left" className="max-w-xs">
-          <div className="space-y-1 min-w-[200px]">
-            <div className="text-xs font-semibold mb-1">Harga jual per tier</div>
-            <div className="flex items-center justify-between gap-4 text-xs">
-              <span className="text-muted-foreground">Reguler</span>
-              <span className="font-bold text-foreground">{formatCurrency(regular)}</span>
-            </div>
-            {Number(masterMin) > 0 && (
-              <div className="flex items-center justify-between gap-4 text-xs">
-                <span className="text-muted-foreground">Minimum (master)</span>
-                <span className="font-bold text-foreground">{formatCurrency(Number(masterMin))}</span>
-              </div>
-            )}
-            {tiers.map((t) => (
-              <div key={t.id} className="flex items-center justify-between gap-4 text-xs">
-                <span className="text-muted-foreground">{t.name}</span>
-                <span className="font-bold text-red-600">{formatCurrency(tierValue(t))}</span>
-              </div>
-            ))}
-          </div>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <div className="w-fit ml-auto text-right">
+      <div className="text-sm font-semibold text-foreground">{formatCurrency(regular)}</div>
+      {tiers.map((t) => (
+        <div key={t.id} className="text-[11px] leading-5 text-muted-foreground flex items-center justify-end gap-1.5">
+          <span>{t.name}</span>
+          <span className="font-semibold text-red-600 font-mono" data-testid={`tier-price-${t.id}`}>
+            {formatCurrency(tierValue(t))}
+          </span>
+        </div>
+      ))}
+      {Number(masterMin) > 0 && (
+        <div className="text-[11px] leading-5 text-muted-foreground flex items-center justify-end gap-1.5">
+          <span>Minimum (master)</span>
+          <span className="font-semibold text-foreground font-mono">{formatCurrency(Number(masterMin))}</span>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -155,7 +126,9 @@ function StockQtyCell({ stock }: { stock: any }) {
   const [open, setOpen] = useState(false);
   const isLow = (stock.quantityAvailable || 0) < (stock.minStock || 0);
   return (
-    <TooltipProvider>
+    // IGDERP-194 (QA R2 23 Sep): delayDuration=0 — default 700ms made hover
+    // checks miss the popover; tooltip opens instantly on hover AND click
+    <TooltipProvider delayDuration={0}>
       <Tooltip open={open} onOpenChange={setOpen}>
         <TooltipTrigger asChild>
           {/* IGDERP-194: click toggles too; stopPropagation keeps the row drawer shut */}
@@ -167,7 +140,8 @@ function StockQtyCell({ stock }: { stock: any }) {
               setOpen((o) => !o);
             }}
           >
-            <span className={`text-base font-bold ${isLow ? 'text-red-600' : 'text-foreground'}`}>
+            {/* dotted underline = hoverable affordance (QA R2: no visual cue) */}
+            <span className={`text-base font-bold underline decoration-dotted underline-offset-4 ${isLow ? 'text-red-600' : 'text-foreground'}`}>
               {stock.quantityAvailable || 0}
             </span>
             {isLow && (

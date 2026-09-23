@@ -16,6 +16,7 @@ import {
   Settings,
 } from 'lucide-react';
 import { productsService } from '../../services/products.service';
+import { customerTiersService } from '../../services/customer-tiers.service';
 import { api } from '../../services/api';
 import { Button } from '@/components/ui/button';
 
@@ -54,6 +55,27 @@ export default function ProductDetail() {
     enabled: !!id,
     staleTime: 60000,
   });
+
+  // IGDERP-195 (QA R2 23 Sep): master must show per-tier member values, not
+  // just reguler+minimum — same source as the stock list (global tiers +
+  // product.memberPricing overrides)
+  const { data: tiersData } = useQuery({
+    queryKey: ['customer-tiers-active'],
+    queryFn: () => customerTiersService.getAll({ limit: 50 }),
+    staleTime: 300000,
+  });
+  const activeTiers = (tiersData?.data || []).filter(
+    (t: any) => t.isActive !== false && Number(t.discountPercentage) > 0,
+  );
+  const tierValue = (t: any) => {
+    const stored = (product as any)?.memberPricing?.[t.id];
+    const selling = Number(product?.sellingPrice) || 0;
+    if (typeof stored === 'number' && stored > 0) return stored;
+    if (stored && typeof stored.price === 'number' && stored.price > 0) return stored.price;
+    if (stored && typeof stored.discount === 'number')
+      return Math.round(selling * (1 - Number(stored.discount) / 100));
+    return Math.round(selling * (1 - Number(t.discountPercentage) / 100));
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -315,6 +337,30 @@ export default function ProductDetail() {
                   </div>
                 </div>
               </div>
+              {/* IGDERP-195 (QA R2 23 Sep): per-tier member values on master */}
+              {activeTiers.length > 0 && (
+                <div className="mt-3 rounded-lg border border-gray-200 overflow-hidden" data-testid="tier-pricing-table">
+                  <p className="text-xs font-semibold text-gray-500 px-3 py-2 bg-gray-50">
+                    HARGA MEMBER PER TIER
+                  </p>
+                  {activeTiers.map((t: any) => (
+                    <div
+                      key={t.id}
+                      className="flex items-center justify-between px-3 py-1.5 border-t border-gray-100 text-sm"
+                    >
+                      <span className="text-gray-600">
+                        {t.name}
+                        <span className="ml-1 text-[11px] text-gray-400">
+                          ({Number(t.discountPercentage)}%)
+                        </span>
+                      </span>
+                      <span className="font-bold text-red-600 font-mono" data-testid={`tier-price-${t.id}`}>
+                        {formatCurrency(tierValue(t))}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Sales Statistics */}

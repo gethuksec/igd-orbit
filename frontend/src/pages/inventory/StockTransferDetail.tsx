@@ -136,8 +136,10 @@ export default function StockTransferDetail({ backPath = '/inventory/transfer' }
   const canSend = isMutasi && doc.status === 'pending';
   const canReceive = isMutasi && doc.status === 'sent';
   const canCancel = isMutasi && (doc.status === 'pending' || doc.status === 'sent');
+  // IGDERP-196 (QA R2 23 Sep): gate on lifecycle status, NOT transferType —
+  // pre-173 Diterima docs have transferType 'transfer' but still need paper
   const canPrint =
-    isMutasi && (doc.status === 'pending' || doc.status === 'sent' || doc.status === 'received');
+    doc.status === 'pending' || doc.status === 'sent' || doc.status === 'received';
 
   const openSend = () => {
     const init: Record<string, string> = {};
@@ -202,10 +204,10 @@ export default function StockTransferDetail({ backPath = '/inventory/transfer' }
           </Button>
         )}
         {canPrint && (
-          <Button variant="outline" size="sm" asChild>
+          <Button variant="outline" size="sm" asChild data-testid="print-checklist-btn">
             <Link to={`/inventory/mutasi/${doc.id}/checklist`}>
               <Printer className="w-4 h-4 mr-1" />
-              Checklist
+              Cetak Checklist
             </Link>
           </Button>
         )}
