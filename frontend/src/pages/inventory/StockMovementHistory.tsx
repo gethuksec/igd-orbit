@@ -252,6 +252,10 @@ export default function StockMovementHistory() {
                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                   Cabang
                 </th>
+                {/* IGDERP-194: warehouse column */}
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  Gudang
+                </th>
                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                   Tipe
                 </th>
@@ -275,7 +279,7 @@ export default function StockMovementHistory() {
             <tbody className="bg-white divide-y divide-gray-100">
               {isLoading ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-16 text-center">
+                  <td colSpan={10} className="px-4 py-16 text-center">
                     <div className="flex flex-col items-center gap-4">
                       <Loader2 className="w-16 h-16 text-primary-600 animate-spin" />
                       <p className="text-gray-600 font-semibold text-lg">Memuat data perpindahan...</p>
@@ -284,7 +288,7 @@ export default function StockMovementHistory() {
                 </tr>
               ) : movements.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-16 text-center">
+                  <td colSpan={10} className="px-4 py-16 text-center">
                     <div className="flex flex-col items-center gap-4">
                       <div className="p-4 bg-gray-100 rounded-full">
                         <Package className="w-16 h-16 text-gray-400" />
@@ -325,6 +329,10 @@ export default function StockMovementHistory() {
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="text-sm text-gray-900">{movement.branch?.name || '-'}</div>
+                      </td>
+                      {/* IGDERP-194 */}
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{movement.warehouse?.name || '-'}</div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span

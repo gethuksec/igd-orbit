@@ -49,9 +49,29 @@ const EXPORT_COLUMNS: { key: string; label: string }[] = [
   { key: 'stockValue', label: 'Nilai Stok' },
 ];
 
-// IGDERP-88: tier prices as hover tooltip (same pattern as stock breakdown)
-function TierPriceCell({ regular, tiers }: { regular: number; tiers: Tier[] }) {
+// IGDERP-88: tier prices as hover/click tooltip (same pattern as stock breakdown)
+// IGDERP-195: prefer per-product master values (memberPricing[tierId]) over
+// the computed discount fallback, so the list matches /products master.
+function TierPriceCell({
+  regular,
+  tiers,
+  memberPricing,
+  masterMin,
+}: {
+  regular: number;
+  tiers: Tier[];
+  memberPricing?: Record<string, any> | null;
+  masterMin?: number | null;
+}) {
   const [open, setOpen] = useState(false);
+  const tierValue = (t: Tier) => {
+    const stored = memberPricing?.[t.id];
+    if (typeof stored === 'number' && stored > 0) return stored;
+    if (stored && typeof stored.price === 'number' && stored.price > 0) return stored.price;
+    if (stored && typeof stored.discount === 'number')
+      return memberPrice(regular, Number(stored.discount));
+    return memberPrice(regular, Number(t.discountPercentage));
+  };
   if (!tiers.length) {
     return (
       <div className="text-sm font-semibold text-foreground">{formatCurrency(regular)}</div>
@@ -61,9 +81,14 @@ function TierPriceCell({ regular, tiers }: { regular: number; tiers: Tier[] }) {
     <TooltipProvider>
       <Tooltip open={open} onOpenChange={setOpen}>
         <TooltipTrigger asChild>
+          {/* IGDERP-195: click toggles too (row click opens drawer); stopPropagation guards it */}
           <div
             className="cursor-help w-fit ml-auto"
             onMouseEnter={() => setOpen(true)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpen((o) => !o);
+            }}
           >
             <div className="text-sm font-semibold text-foreground">{formatCurrency(regular)}</div>
             <div className="text-[11px] text-muted-foreground underline decoration-dotted underline-offset-2">
@@ -78,12 +103,16 @@ function TierPriceCell({ regular, tiers }: { regular: number; tiers: Tier[] }) {
               <span className="text-muted-foreground">Reguler</span>
               <span className="font-bold text-foreground">{formatCurrency(regular)}</span>
             </div>
+            {Number(masterMin) > 0 && (
+              <div className="flex items-center justify-between gap-4 text-xs">
+                <span className="text-muted-foreground">Minimum (master)</span>
+                <span className="font-bold text-foreground">{formatCurrency(Number(masterMin))}</span>
+              </div>
+            )}
             {tiers.map((t) => (
               <div key={t.id} className="flex items-center justify-between gap-4 text-xs">
                 <span className="text-muted-foreground">{t.name}</span>
-                <span className="font-bold text-red-600">
-                  {formatCurrency(memberPrice(regular, Number(t.discountPercentage)))}
-                </span>
+                <span className="font-bold text-red-600">{formatCurrency(tierValue(t))}</span>
               </div>
             ))}
           </div>
@@ -129,9 +158,14 @@ function StockQtyCell({ stock }: { stock: any }) {
     <TooltipProvider>
       <Tooltip open={open} onOpenChange={setOpen}>
         <TooltipTrigger asChild>
+          {/* IGDERP-194: click toggles too; stopPropagation keeps the row drawer shut */}
           <div
             className="flex items-center gap-2 cursor-help w-fit"
             onMouseEnter={() => setOpen(true)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpen((o) => !o);
+            }}
           >
             <span className={`text-base font-bold ${isLow ? 'text-red-600' : 'text-foreground'}`}>
               {stock.quantityAvailable || 0}
@@ -278,7 +312,12 @@ export default function StockList() {
       headerClassName: 'text-right',
       className: 'text-right',
       cell: (stock) => (
-        <TierPriceCell regular={Number(stock.product?.sellingPrice || 0)} tiers={tiers} />
+        <TierPriceCell
+          regular={Number(stock.product?.sellingPrice || 0)}
+          tiers={tiers}
+          memberPricing={stock.product?.memberPricing}
+          masterMin={stock.product?.minSellingPrice}
+        />
       ),
     },
     {

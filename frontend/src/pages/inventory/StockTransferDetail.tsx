@@ -46,6 +46,8 @@ export default function StockTransferDetail({ backPath = '/inventory/transfer' }
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  // IGDERP-196: mutasi route shows "Detail Mutasi" (menu says "Mutasi Stok")
+  const detailTitle = backPath.includes('mutasi') ? 'Detail Mutasi' : 'Detail Transfer';
 
   // IGDERP-173/174 dialog state
   const [sendOpen, setSendOpen] = useState(false);
@@ -102,7 +104,7 @@ export default function StockTransferDetail({ backPath = '/inventory/transfer' }
   if (isLoading) {
     return (
       <div className="w-full space-y-4">
-        <BreadcrumbHeader title="Detail Transfer" subtitle="Memuat data transfer..." />
+        <BreadcrumbHeader title={detailTitle} subtitle="Memuat data transfer..." />
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-10 text-center text-gray-500">
           Memuat...
         </div>
@@ -113,7 +115,7 @@ export default function StockTransferDetail({ backPath = '/inventory/transfer' }
   if (isError || !doc) {
     return (
       <div className="w-full space-y-4">
-        <BreadcrumbHeader title="Detail Transfer" subtitle="Dokumen tidak ditemukan">
+        <BreadcrumbHeader title={detailTitle} subtitle="Dokumen tidak ditemukan">
           <Button variant="ghost" size="sm" onClick={() => navigate(backPath)}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Kembali
@@ -134,7 +136,8 @@ export default function StockTransferDetail({ backPath = '/inventory/transfer' }
   const canSend = isMutasi && doc.status === 'pending';
   const canReceive = isMutasi && doc.status === 'sent';
   const canCancel = isMutasi && (doc.status === 'pending' || doc.status === 'sent');
-  const canPrint = isMutasi && (doc.status === 'pending' || doc.status === 'sent');
+  const canPrint =
+    isMutasi && (doc.status === 'pending' || doc.status === 'sent' || doc.status === 'received');
 
   const openSend = () => {
     const init: Record<string, string> = {};
@@ -182,7 +185,7 @@ export default function StockTransferDetail({ backPath = '/inventory/transfer' }
 
   return (
     <div className="w-full space-y-4">
-      <BreadcrumbHeader title="Detail Transfer" subtitle={`Dokumen ${doc.transferNumber}`}>
+      <BreadcrumbHeader title={detailTitle} subtitle={`Dokumen ${doc.transferNumber}`}>
         <Button variant="ghost" size="sm" onClick={() => navigate(backPath)}>
           <ArrowLeft className="w-4 h-4 mr-2" />
           Kembali

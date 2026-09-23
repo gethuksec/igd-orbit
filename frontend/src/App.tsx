@@ -52,6 +52,7 @@ import MutasiList from './pages/inventory/MutasiList';
 import MutasiChecklist from './pages/inventory/MutasiChecklist';
 import StockOpnameList from './pages/inventory/StockOpnameList';
 import StockOpnameDetail from './pages/inventory/StockOpnameDetail';
+import OpnameResultDoc from './pages/inventory/OpnameResultDoc';
 import StockOpnameCount from './pages/inventory/StockOpnameCount';
 import StockOpnameForm from './pages/inventory/StockOpnameForm';
 import StockAdjustment from './pages/inventory/StockAdjustment';
@@ -948,6 +949,17 @@ function App() {
                 <ProtectedRoute>
                   <DashboardLayout>
                     <StockOpnameCount />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            {/* IGDERP-177: signed result document (print/PDF) */}
+            <Route
+              path="/inventory/opname/:id/dokumen"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <OpnameResultDoc />
                   </DashboardLayout>
                 </ProtectedRoute>
               }

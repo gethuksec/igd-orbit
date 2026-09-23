@@ -340,6 +340,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         { icon: ArrowRightLeft, label: 'Transfer Stok', path: '/inventory/transfer', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
         { icon: RefreshCcw, label: 'Mutasi Stok', path: '/inventory/mutasi', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'SODO'] },
         { icon: ClipboardCheck, label: 'Stock Opname', path: '/inventory/opname', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
+        // IGDERP-90: global/detail movement history was URL-only
+        { icon: Clock, label: 'Riwayat Pergerakan', path: '/inventory/movements', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'SPV', 'HS', 'ASA', 'SODO'] },
       ],
     },
     {

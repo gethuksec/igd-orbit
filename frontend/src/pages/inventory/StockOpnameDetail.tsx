@@ -198,6 +198,14 @@ export default function StockOpnameDetail() {
           <Download className="w-4 h-4" />
           {exporting ? 'Mengekspor…' : 'Export Excel'}
         </button>
+        {/* IGDERP-177: signed result document (print/PDF) */}
+        <Link
+          to={`/inventory/opname/${opname.id}/dokumen`}
+          className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-3 py-2 text-sm font-semibold text-white hover:bg-primary-700"
+        >
+          <ClipboardCheck className="w-4 h-4" />
+          Dokumen
+        </Link>
       </BreadcrumbHeader>
 
       {/* Stats Cards */}
@@ -232,8 +240,11 @@ export default function StockOpnameDetail() {
                   : 'text-gray-900'
             }`}
           >
+            {/* IGDERP-193: signed netto (header = sum of signed rows) */}
+            {totalDiscrepancyValue > 0 ? '+' : totalDiscrepancyValue < 0 ? '−' : ''}
             {formatCurrency(Math.abs(totalDiscrepancyValue))}
           </h3>
+          <p className="text-xs text-gray-500 mt-1">Netto semua item · dasar harga beli</p>
         </div>
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-2">
@@ -428,6 +439,8 @@ export default function StockOpnameDetail() {
                                 : 'text-gray-900'
                           }`}
                         >
+                          {/* IGDERP-193: signed row nominal (matches netto header) */}
+                          {discrepancyValue > 0 ? '+' : discrepancyValue < 0 ? '−' : ''}
                           {formatCurrency(Math.abs(discrepancyValue))}
                         </div>
                       )}

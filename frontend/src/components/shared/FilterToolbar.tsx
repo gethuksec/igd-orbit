@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { BranchFilterSelect } from '@/components/branch/BranchFilter';
+import { useBranchStore } from '@/stores/branchStore';
 import { cn } from '@/lib/utils';
 
 /**
@@ -89,7 +90,11 @@ function isFieldActive(field: FilterField, values: Record<string, string>): bool
   return Boolean(v && v !== '' && v !== 'all');
 }
 
-function getFieldSummary(field: FilterField, values: Record<string, string>): string {
+function getFieldSummary(
+  field: FilterField,
+  values: Record<string, string>,
+  branchName?: (id: string) => string,
+): string {
   if (field.type === 'date-range') {
     const from = values[`${field.key}From`];
     const to = values[`${field.key}To`];
@@ -103,6 +108,10 @@ function getFieldSummary(field: FilterField, values: Record<string, string>): st
   }
   if (field.type === 'toggle') {
     return v === 'true' ? 'Ya' : '';
+  }
+  // IGDERP-192: branch chips resolve id → name (was raw UUID)
+  if (field.type === 'branch') {
+    return branchName?.(v) || v;
   }
   return v;
 }
@@ -122,6 +131,11 @@ export function FilterToolbar({
   const [open, setOpen] = useState(false);
   // Local draft while the popup is open — committed on "Terapkan".
   const [draft, setDraft] = useState<Record<string, string>>({});
+
+  // IGDERP-192: resolve branch ids to names for chips (falls back to raw id)
+  const { availableBranches } = useBranchStore();
+  const branchName = (id: string) =>
+    availableBranches.find((b) => b.id === id)?.name || id;
 
   const activeCount = fields.filter((f) => isFieldActive(f, values)).length;
 
@@ -202,7 +216,7 @@ export function FilterToolbar({
               key={field.key}
               className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-2.5 py-0.5 text-xs font-medium text-primary-700"
             >
-              {field.label}: {getFieldSummary(field, values)}
+              {field.label}: {getFieldSummary(field, values, branchName)}
               <button
                 type="button"
                 aria-label={`Hapus filter ${field.label}`}

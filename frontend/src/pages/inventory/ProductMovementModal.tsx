@@ -164,6 +164,8 @@ export default function ProductMovementModal({ product, open, onClose }: Props) 
                 <tr className="text-left text-xs uppercase tracking-wider text-gray-500">
                   <th className="py-2 pr-2">Tanggal</th>
                   <th className="py-2 pr-2">Tipe</th>
+                  {/* IGDERP-194: warehouse column (backend already includes it) */}
+                  <th className="py-2 pr-2">Gudang</th>
                   <th className="py-2 pr-2 text-right">Stok awal</th>
                   <th className="py-2 pr-2 text-right">Perubahan</th>
                   <th className="py-2 pr-2 text-right">Stok akhir</th>
@@ -181,6 +183,10 @@ export default function ProductMovementModal({ product, open, onClose }: Props) 
                       })}
                     </td>
                     <td className="py-2 pr-2">{typeBadge(m.movementType)}</td>
+                    {/* IGDERP-194 */}
+                    <td className="py-2 pr-2 text-xs text-muted-foreground whitespace-nowrap">
+                      {m.warehouse?.name || m.branch?.name || '-'}
+                    </td>
                     <td className="py-2 pr-2 text-right">{m.quantityBefore ?? '-'}</td>
                     <td
                       className={`py-2 pr-2 text-right font-semibold ${

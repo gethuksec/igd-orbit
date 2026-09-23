@@ -551,6 +551,19 @@ export class ProductsService {
       );
     }
 
+    // IGDERP-195 (PROD-003 data check): minimum price above selling price is
+    // invalid data — reject instead of storing it
+    if (
+      createProductDto.minSellingPrice !== undefined &&
+      createProductDto.minSellingPrice !== null &&
+      Number(createProductDto.minSellingPrice) > 0 &&
+      Number(createProductDto.minSellingPrice) > Number(createProductDto.sellingPrice)
+    ) {
+      throw new BadRequestException(
+        `Harga jual minimum (${createProductDto.minSellingPrice}) tidak boleh lebih besar dari harga jual (${createProductDto.sellingPrice})`,
+      );
+    }
+
     // Prepare product data
     const productData: any = {
       sku,
@@ -691,6 +704,22 @@ export class ProductsService {
     }
     if (updateProductDto.minSellingPrice !== undefined) {
       updateData.minSellingPrice = updateProductDto.minSellingPrice ? new Prisma.Decimal(updateProductDto.minSellingPrice) : null;
+    }
+    // IGDERP-195 (PROD-003 data check): merged minimum must not exceed selling
+    {
+      const effSelling =
+        updateProductDto.sellingPrice !== undefined
+          ? Number(updateProductDto.sellingPrice)
+          : Number(product.sellingPrice);
+      const effMin =
+        updateProductDto.minSellingPrice !== undefined
+          ? Number(updateProductDto.minSellingPrice || 0)
+          : Number(product.minSellingPrice || 0);
+      if (effMin > 0 && effMin > effSelling) {
+        throw new BadRequestException(
+          `Harga jual minimum (${effMin}) tidak boleh lebih besar dari harga jual (${effSelling})`,
+        );
+      }
     }
     if (updateProductDto.unitId !== undefined) {
       updateData.unitId = updateProductDto.unitId;
