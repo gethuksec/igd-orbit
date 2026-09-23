@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsString,
   IsEnum,
+  IsIn,
   IsNumber,
   IsBoolean,
   IsArray,
@@ -133,6 +134,11 @@ export class CreateServiceOrderDto {
   devicePassword?: string; // Will be encrypted
 
   @IsString()
+  @IsIn(['none', 'password', 'pin', 'pattern'])
+  @IsOptional()
+  deviceLockType?: string; // IGDERP-185: lock-screen credential kind
+
+  @IsString()
   @IsOptional()
   deviceCondition?: string;
 
@@ -151,7 +157,7 @@ export class CreateServiceOrderDto {
   @IsOptional()
   initialDiagnosis?: string;
 
-  // IGDERP-136 v9: order warranty (Dalam Garansi checkbox + days input; schema default 30 applies when omitted)
+  // IGDERP-184: order warranty days (plain days input; schema default 30 applies when omitted)
   @IsInt()
   @Min(0)
   @IsOptional()

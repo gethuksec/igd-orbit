@@ -169,6 +169,7 @@ export default function UserDetail() {
               const roleCode = userRole.code || userRole.role?.code || 'N/A';
               const branchName = userRole.branchName || userRole.branch?.name;
               const denies: string[] = (userRole as any).deniedPermissions || [];
+              const grants: string[] = (userRole as any).grantedPermissions || [];
 
               return (
                 <div key={userRole.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
@@ -203,6 +204,21 @@ export default function UserDetail() {
                         >
                           <span className="text-[11px] font-semibold">{labelForPermission(k)}</span>
                           <span className="text-[10px] font-mono text-red-400">{k}</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {grants.length > 0 && (
+                    <div className="mt-2 flex items-center gap-2 flex-wrap">
+                      <span className="text-[11px] text-gray-500 font-medium">Hak tambahan:</span>
+                      {grants.map((k) => (
+                        <span
+                          key={k}
+                          className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md flex flex-col leading-tight"
+                          title={k}
+                        >
+                          <span className="text-[11px] font-semibold">{labelForPermission(k)}</span>
+                          <span className="text-[10px] font-mono text-emerald-500">{k}</span>
                         </span>
                       ))}
                     </div>

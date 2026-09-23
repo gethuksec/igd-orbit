@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Save, Loader2, Wrench, Clock, DollarSign } from 'lucide-react';
 import { BreadcrumbHeader } from '@/components/shared';
 import { serviceTypesService } from '../../services/service-types.service';
+import { api } from '../../services/api';
 import { toast } from 'sonner';
 
 export default function ServiceTypeForm() {
@@ -20,6 +21,8 @@ export default function ServiceTypeForm() {
     maxPrice: '',
     slaDays: 1,
     slaHoursRemainder: 0,
+    durationHours: '',
+    tierPricing: {} as Record<string, number>,
     isActive: true,
   });
 
@@ -27,6 +30,15 @@ export default function ServiceTypeForm() {
     queryKey: ['service-type', id],
     queryFn: () => serviceTypesService.getById(id!),
     enabled: !!id,
+  });
+
+  // IGDERP-187: tier list for per-tier price inputs
+  const { data: customerTiers = [] } = useQuery({
+    queryKey: ['service-type-form', 'customer-tiers'],
+    queryFn: async () => {
+      const res = await api.get('/customers/tiers');
+      return res.data.data || res.data || [];
+    },
   });
 
   useEffect(() => {
@@ -40,6 +52,8 @@ export default function ServiceTypeForm() {
         maxPrice: serviceType.maxPrice ? String(serviceType.maxPrice) : '',
         slaDays: Math.floor(hours / 24),
         slaHoursRemainder: hours % 24,
+        durationHours: serviceType.durationHours != null ? String(serviceType.durationHours) : '',
+        tierPricing: (serviceType as any).tierPricing || {},
         isActive: serviceType.isActive !== false,
       });
     }
@@ -63,6 +77,19 @@ export default function ServiceTypeForm() {
       }
       if (data.maxPrice) {
         submitData.maxPrice = Number(data.maxPrice);
+      }
+      // IGDERP-186: auto duration per service type (optional)
+      if (data.durationHours !== '' && data.durationHours != null) {
+        submitData.durationHours = Number(data.durationHours);
+      }
+      // IGDERP-187: per-tier service prices (optional; empty = null)
+      if (data.tierPricing && Object.keys(data.tierPricing).length > 0) {
+        const cleaned: Record<string, number> = {};
+        for (const [k, v] of Object.entries(data.tierPricing)) {
+          const n = Number(v);
+          if (Number.isFinite(n) && n > 0) cleaned[k] = n;
+        }
+        submitData.tierPricing = Object.keys(cleaned).length > 0 ? cleaned : null;
       }
 
       if (isEdit) {
@@ -249,6 +276,59 @@ export default function ServiceTypeForm() {
                   Total: <span className="font-semibold">{formData.slaDays * 24 + formData.slaHoursRemainder} jam</span>
                   {formData.slaDays > 0 && ` (${formData.slaDays} hari${formData.slaHoursRemainder > 0 ? ` ${formData.slaHoursRemainder} jam` : ''})`}
                 </p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                Estimasi Durasi (opsional)
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Clock className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  value={formData.durationHours}
+                  onChange={(e) => {
+                    setFormData({ ...formData, durationHours: e.target.value });
+                  }}
+                  className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+                  placeholder="0"
+                />
+                <p className="text-xs text-gray-500 mt-1">Jam (step 0.5) — tampil otomatis saat pilih layanan di Smart Repair</p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                Harga per Tier (opsional)
+              </label>
+              <p className="text-xs text-gray-500 mb-2">Kosongkan = ikut harga dasar. Terisi = harga otomatis mengikuti tier customer di Smart Repair.</p>
+              <div className="grid grid-cols-2 gap-3">
+                {(customerTiers as any[]).map((tier: any) => (
+                  <div key={tier.id}>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.tierPricing[tier.id] ?? ''}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setFormData((prev) => {
+                          const next = { ...prev.tierPricing };
+                          if (v === '' || Number(v) <= 0) delete next[tier.id];
+                          else next[tier.id] = Number(v);
+                          return { ...prev, tierPricing: next };
+                        });
+                      }}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+                      placeholder={String(formData.basePrice || 0)}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">{tier.name}</p>
+                  </div>
+                ))}
               </div>
             </div>
 

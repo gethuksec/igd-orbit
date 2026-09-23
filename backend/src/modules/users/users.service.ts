@@ -26,6 +26,7 @@ import {
   bumpPermissionVersion,
   computeEffectivePermissions,
   isPermissionWithinDefaults,
+  GRANTABLE_PERMISSIONS,
 } from '../../shared/utils/permissions.util';
 
 /**
@@ -803,6 +804,18 @@ export class UsersService {
       }
     }
 
+    // IGDERP-141 (Plan C): grants are allowlisted — reject anything not grantable
+    if (assignRoleDto.grantedPermissions && assignRoleDto.grantedPermissions.length > 0) {
+      const notGrantable = assignRoleDto.grantedPermissions.filter(
+        (p) => !GRANTABLE_PERMISSIONS.includes(p),
+      );
+      if (notGrantable.length > 0) {
+        throw new BadRequestException(
+          `Not grantable permissions: ${notGrantable.join(', ')}`,
+        );
+      }
+    }
+
     // Check for duplicate role assignment
     const existingAssignment = await this.prisma.userBranch.findFirst({
       where: {
@@ -824,6 +837,7 @@ export class UsersService {
         branchId: resolvedBranchId,
         isPrimary: assignRoleDto.isPrimary || false,
         deniedPermissions: assignRoleDto.deniedPermissions || [],
+        grantedPermissions: assignRoleDto.grantedPermissions || [],
       },
     });
 

@@ -14,7 +14,21 @@ interface PenugasanRow {
   roleId: string;
   branchId: string;
   denied: string[];
+  granted: string[];
 }
+
+/**
+ * IGDERP-141 (Plan C): allowlisted feature grants offered in the assignment editor.
+ * Default = off; grants ADD the listed keys beyond role defaults (deny still wins).
+ */
+const GRANT_FEATURES: { id: string; label: string; keys: string[]; roleCodes: string[] }[] = [
+  {
+    id: 'pos-access',
+    label: 'Akses POS',
+    keys: ['action.pos.create', 'action.pos.edit'],
+    roleCodes: ['CS'],
+  },
+];
 
 interface UserFormModalProps {
   open: boolean;
@@ -77,6 +91,7 @@ export function UserFormModal({ open, user, onClose, onSaved }: UserFormModalPro
           roleId: codeToRoleId.get(ur.code) || '',
           branchId: ur.branchId || '',
           denied: (ur as any).deniedPermissions || [],
+          granted: (ur as any).grantedPermissions || [],
         })),
       );
     } else {
@@ -87,7 +102,7 @@ export function UserFormModal({ open, user, onClose, onSaved }: UserFormModalPro
   }, [open, user, codeToRoleId]);
 
   const addRow = () => {
-    setRows((prev) => [...prev, { key: nextKey(), ubId: null, roleId: '', branchId: '', denied: [] }]);
+    setRows((prev) => [...prev, { key: nextKey(), ubId: null, roleId: '', branchId: '', denied: [], granted: [] }]);
   };
   const updateRow = (key: string, patch: Partial<PenugasanRow>) => {
     setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
@@ -130,27 +145,30 @@ export function UserFormModal({ open, user, onClose, onSaved }: UserFormModalPro
           roleId: codeToRoleId.get(ur.code) || '',
           branchId: ur.branchId || '',
           denied: (ur as any).deniedPermissions || [],
+          granted: (ur as any).grantedPermissions || [],
         });
       }
 
       for (const row of rows) {
         if (!row.roleId || !row.branchId) continue; // incomplete row — skip
         const denied = row.denied.length ? row.denied : undefined;
+        const granted = row.granted.length ? row.granted : undefined;
         if (row.ubId) {
           const orig = originals.get(row.ubId);
           const unchanged =
             orig &&
             orig.roleId === row.roleId &&
             orig.branchId === row.branchId &&
-            JSON.stringify([...orig.denied].sort()) === JSON.stringify([...row.denied].sort());
+            JSON.stringify([...orig.denied].sort()) === JSON.stringify([...row.denied].sort()) &&
+            JSON.stringify([...orig.granted].sort()) === JSON.stringify([...row.granted].sort());
           if (unchanged) {
             continue;
           }
-          // Changed → remove old assignment, re-assign (no PUT for denies)
+          // Changed → remove old assignment, re-assign (no PUT for denies/grants)
           await usersService.removeRole(userId!, row.ubId);
-          await usersService.assignRole(userId!, { roleId: row.roleId, branchId: row.branchId, deniedPermissions: denied });
+          await usersService.assignRole(userId!, { roleId: row.roleId, branchId: row.branchId, deniedPermissions: denied, grantedPermissions: granted });
         } else {
-          await usersService.assignRole(userId!, { roleId: row.roleId, branchId: row.branchId, deniedPermissions: denied });
+          await usersService.assignRole(userId!, { roleId: row.roleId, branchId: row.branchId, deniedPermissions: denied, grantedPermissions: granted });
         }
       }
 
@@ -323,7 +341,7 @@ export function UserFormModal({ open, user, onClose, onSaved }: UserFormModalPro
                       <select
                         value={row.roleId}
                         onChange={(e) => {
-                          updateRow(row.key, { roleId: e.target.value, denied: [] });
+                          updateRow(row.key, { roleId: e.target.value, denied: [], granted: [] });
                           setExpandedDeny(null);
                         }}
                         disabled={superAdminRow}
@@ -397,6 +415,33 @@ export function UserFormModal({ open, user, onClose, onSaved }: UserFormModalPro
                       >
                         + Atur
                       </button>
+                    </div>
+                  )}
+
+                  {/* Feature grants (IGDERP-141): allowlisted enrollment, default off */}
+                  {!superAdminRow && role && GRANT_FEATURES.some((f) => f.roleCodes.includes(role.code)) && (
+                    <div className="flex items-center gap-4 flex-wrap border-t border-dashed border-gray-200 pt-2">
+                      <span className="text-[11px] text-gray-500 font-medium">Hak tambahan:</span>
+                      {GRANT_FEATURES.filter((f) => f.roleCodes.includes(role.code)).map((f) => {
+                        const checked = f.keys.every((k) => row.granted.includes(k));
+                        return (
+                          <label key={f.id} className="flex items-center gap-2 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              disabled={!row.roleId}
+                              onChange={(e) =>
+                                updateRow(row.key, { granted: e.target.checked ? [...f.keys] : [] })
+                              }
+                              className="w-4 h-4 accent-primary-600"
+                            />
+                            <span className="flex flex-col leading-tight">
+                              <span className="text-xs font-medium text-gray-700">{f.label}</span>
+                              <span className="text-[10px] font-mono text-gray-400">{f.keys.join(', ')}</span>
+                            </span>
+                          </label>
+                        );
+                      })}
                     </div>
                   )}
 

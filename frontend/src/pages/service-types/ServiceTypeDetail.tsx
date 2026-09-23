@@ -2,6 +2,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Edit, Wrench, Clock, DollarSign, Package, Calendar, Loader2 } from "lucide-react";
 import { serviceTypesService } from "../../services/service-types.service";
+import { api } from "../../services/api";
 import { BreadcrumbHeader } from "@/components/shared";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
@@ -12,6 +13,15 @@ export default function ServiceTypeDetail() {
   const { data: serviceType, isLoading } = useQuery({
     queryKey: ["service-type", id],
     queryFn: () => serviceTypesService.getById(id!),
+  });
+
+  // IGDERP-187: tier names for per-tier price display
+  const { data: customerTiers = [] } = useQuery({
+    queryKey: ["service-type-detail", "customer-tiers"],
+    queryFn: async () => {
+      const res = await api.get("/customers/tiers");
+      return res.data.data || res.data || [];
+    },
   });
 
   if (isLoading) {
@@ -148,6 +158,18 @@ export default function ServiceTypeDetail() {
                   </p>
                 </div>
               )}
+
+              {(serviceType as any).tierPricing && Object.keys((serviceType as any).tierPricing).length > 0 && (
+                <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                  <p className="text-xs text-amber-600 mb-1">Harga per Tier</p>
+                  {(customerTiers as any[]).filter((t: any) => (serviceType as any).tierPricing[t.id] != null).map((t: any) => (
+                    <div key={t.id} className="flex justify-between text-sm py-0.5">
+                      <span className="text-gray-600">{t.name}</span>
+                      <span className="font-semibold text-gray-900">{formatPrice((serviceType as any).tierPricing[t.id])}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -165,6 +187,12 @@ export default function ServiceTypeDetail() {
                 <p className="text-2xl font-bold text-blue-900">{formatSLA(serviceType.slaHours)}</p>
                 <p className="text-xs text-blue-600 mt-1">({Number(serviceType.slaHours)} jam)</p>
               </div>
+              {serviceType.durationHours != null && (
+                <div className="mt-3 p-4 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg border border-emerald-200">
+                  <p className="text-xs text-emerald-600 mb-1">Estimasi Durasi</p>
+                  <p className="text-2xl font-bold text-emerald-900">{Number(serviceType.durationHours)} jam</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 

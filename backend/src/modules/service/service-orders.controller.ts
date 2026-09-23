@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Body,
   Param,
@@ -27,11 +28,12 @@ import { UpdateStatusDto } from './dto/update-status.dto';
 import { AddServiceTimeDto } from './dto/add-service-time.dto';
 import { AddPartsDto } from './dto/add-parts.dto';
 import { AddLayananDto } from './dto/add-layanan.dto';
-import { QcCheckDto } from './dto/qc-check.dto';
+import { UpdateLayananDto } from './dto/update-layanan.dto';
 import { CustomerFeedbackDto } from './dto/customer-feedback.dto';
 import { AssignTechnicianDto } from './dto/assign-technician.dto';
 import { UploadPhotosDto } from './dto/upload-photos.dto';
 import { ProcessPaymentDto } from './dto/payment.dto';
+import { VoidPaymentDto } from './dto/void-payment.dto';
 
 @Controller('service-orders')
 export class ServiceOrdersController {
@@ -72,6 +74,15 @@ export class ServiceOrdersController {
   @Roles('CS', 'TC', 'HS', 'SPV', 'CMO', 'CFO', 'CHR', 'OWNER', 'SUPERADMIN')
   async suggestTags(@Query('q') q?: string, @Query('take') take?: string) {
     return this.serviceOrdersService.suggestTags(q, take ? Number(take) : 5);
+  }
+
+  // IGDERP-185: lock credential reveal — TC/HS/SPV only (parity with findById password gate).
+  // Detail page already passed the branch check; audit line lands in status history.
+  @Get(':id/lock')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('TC', 'HS', 'SPV')
+  async revealLock(@Param('id') id: string, @Request() req: ExpressRequest & { user: any }) {
+    return this.serviceOrdersService.revealLock(id, (req.user as any)?.id);
   }
 
   @Get(':id')
@@ -187,6 +198,19 @@ export class ServiceOrdersController {
     return this.serviceOrdersService.removeLayanan(id, rowId, req.user.id);
   }
 
+  /** IGDERP-137: final tag mapping per layanan row — Ready only */
+  @Patch(':id/layanan/:rowId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('CS', 'HS', 'SPV', 'SUPERADMIN', 'TC')
+  async updateLayanan(
+    @Param('id') id: string,
+    @Param('rowId') rowId: string,
+    @Body() dto: UpdateLayananDto,
+    @Request() req: any,
+  ) {
+    return this.serviceOrdersService.updateLayananTags(id, rowId, dto.notes, req.user.id);
+  }
+
   @Post(':id/photos')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('CS', 'HS', 'SPV', 'SUPERADMIN')
@@ -214,35 +238,10 @@ export class ServiceOrdersController {
     return this.serviceOrdersService.uploadPhotoFiles(id, files, body?.photoType || 'repair', body?.description, req.user.id);
   }
 
-  @Post(':id/complete')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('HS', 'SPV', 'SUPERADMIN')
-  async completeService(@Param('id') id: string, @Request() req: any) {
-    return this.serviceOrdersService.completeService(id, req.user.id);
-  }
-
   @Public()
   @Get('track/:serviceNumber')
   async trackService(@Param('serviceNumber') serviceNumber: string) {
     return this.serviceOrdersService.trackService(serviceNumber);
-  }
-
-  @Post(':id/qc')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('HS', 'SPV', 'SUPERADMIN') // QC staff role - can be customized
-  async qcCheck(
-    @Param('id') id: string,
-    @Body() dto: QcCheckDto,
-    @Request() req: any,
-  ) {
-    return this.serviceOrdersService.qcCheck(id, dto, req.user.id);
-  }
-
-  @Post(':id/deliver')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('CS', 'HS', 'SPV', 'SUPERADMIN')
-  async deliverService(@Param('id') id: string, @Request() req: any) {
-    return this.serviceOrdersService.deliverService(id, req.user.id);
   }
 
   @Public()
@@ -263,6 +262,20 @@ export class ServiceOrdersController {
     @Request() req: any,
   ) {
     return this.serviceOrdersService.processPayment(id, dto, req.user.id);
+  }
+
+  // IGDERP-171: void mistaken payment — caller must hold the SERVICE_PAYMENT_VOID
+  // approver role (asserted in service against Admin approval settings).
+  @Post(':id/payment/void')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('CS', 'TC', 'HS', 'SPV', 'CMO', 'CFO', 'OWNER', 'SUPERADMIN')
+  async voidPayment(
+    @Param('id') id: string,
+    @Body() dto: VoidPaymentDto,
+    @Request() req: any,
+  ) {
+    const roles: string[] = (req.user as any)?.roles || [];
+    return this.serviceOrdersService.voidPayment(id, dto, (req.user as any)?.id, roles);
   }
 }
 

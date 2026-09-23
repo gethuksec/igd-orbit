@@ -110,6 +110,7 @@ model UserBranch {
   branchId          String   @map("branch_id") // outlet only (required) — multi-outlet users via multiple rows
   isPrimary         Boolean  @default(false) @map("is_primary")
   deniedPermissions String[] @default([]) @map("denied_permissions") // Deny-only: can never exceed role defaults
+  grantedPermissions String[] @default([]) @map("granted_permissions") // IGDERP-141: feature enrollment — allowlisted grants only (additive, deny still wins)
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
 
@@ -1057,6 +1058,8 @@ model ServiceType {
   minPrice    Decimal? @map("min_price") @db.Decimal(15, 2)
   maxPrice    Decimal? @map("max_price") @db.Decimal(15, 2)
   slaHours    Decimal @map("sla_hours") @db.Decimal(5, 2) // Base SLA in hours (0.5 = 30m allowed, IGDERP-135)
+  durationHours Decimal? @map("duration_hours") @db.Decimal(5, 2) // IGDERP-186: auto duration per service type (hours, step 0.5)
+  tierPricing   Json?     @map("tier_pricing") // IGDERP-187: per-tier service prices {"tierId": number} (mirrors Product.memberPricing)
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -1126,6 +1129,7 @@ model ServiceOrder {
   deviceSerial        String? @map("device_serial")
   deviceImei          String? @map("device_imei")
   devicePassword      String? @map("device_password") // Encrypted
+  deviceLockType      String  @default("none") @map("device_lock_type") // IGDERP-185: none/password/pin/pattern
   deviceCondition     String? @map("device_condition") @db.Text // textarea
   accessoriesIncluded Json?   @map("accessories_included") // JSONB array
 
@@ -1247,6 +1251,20 @@ model ServiceCheckpoint {
 
   @@index([isActive, sortOrder])
   @@map("service_checkpoints")
+}
+
+// IGDERP-169: device type master (strict source for intake — no free "lainnya")
+model DeviceType {
+  id        String   @id @default(uuid())
+  code      String   @unique // stable intake value: handphone, laptop, tablet, smartwatch
+  name      String
+  isActive  Boolean  @default(true) @map("is_active")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([isActive, sortOrder])
+  @@map("device_types")
 }
 
 model ServiceStatusHistory {

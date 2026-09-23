@@ -589,6 +589,28 @@ export class SalesTransactionsService {
     });
   }
 
+  /** IGDERP-171: reverse the auto-paid POS faktur when a service payment is voided.
+   * Only reverses a clean auto-payment (single completed payment == total);
+   * manual POS payments must be voided in POS first. */
+  async reopenForServiceOrder(serviceOrderId: string) {
+    const tx = await this.findByServiceOrderId(serviceOrderId);
+    if (!tx || tx.paymentStatus !== 'paid') return null;
+    const payments = await this.prisma.payment.findMany({
+      where: { transactionId: tx.id, status: 'completed' },
+    });
+    const autoOnly =
+      payments.length === 1 && Number(payments[0].amount) === Number((tx as any).total);
+    if (!autoOnly) {
+      throw new BadRequestException('Faktur POS memiliki pembayaran manual — void manual di POS');
+    }
+    return this.prisma.$transaction(async (prismaTx) => {
+      await prismaTx.payment.deleteMany({ where: { transactionId: tx.id } });
+      return prismaTx.salesTransaction.update({
+        where: { id: tx.id },
+        data: { paymentStatus: 'pending' },
+      });
+    });
+  }
   /** IGDERP-138: mark the linked POS No Service faktur paid (parts paid at serah terima) */
   async markPaidForServiceOrder(serviceOrderId: string, paymentMethod: string, _userId: string) {
     const tx = await this.findByServiceOrderId(serviceOrderId);

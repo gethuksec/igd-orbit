@@ -105,23 +105,20 @@ export const serviceOrdersService = {
     return response.data.data || response.data;
   },
 
+  // IGDERP-185: reveal lock credential (TC/HS/SPV; audit logged server-side)
+  async revealLock(id: string) {
+    const response = await api.get(`/service-orders/${id}/lock`);
+    return response.data.data || response.data;
+  },
+
   async addLayanan(id: string, payload: { serviceTypeId: string; notes?: string }) {
     const response = await api.post(`/service-orders/${id}/layanan`, payload);
     return response.data.data || response.data;
   },
 
-  async complete(id: string) {
-    const response = await api.post(`/service-orders/${id}/complete`, {});
-    return response.data.data || response.data;
-  },
-
-  async qcCheck(id: string, payload: { status: 'pass' | 'fail'; notes?: string; photos?: string[] }) {
-    const response = await api.post(`/service-orders/${id}/qc`, payload);
-    return response.data.data || response.data;
-  },
-
-  async deliver(id: string) {
-    const response = await api.post(`/service-orders/${id}/deliver`, {});
+  // IGDERP-137: final tag mapping per layanan row — Ready only
+  async updateLayanan(id: string, rowId: string, payload: { notes?: string }) {
+    const response = await api.patch(`/service-orders/${id}/layanan/${rowId}`, payload);
     return response.data.data || response.data;
   },
 
@@ -163,12 +160,18 @@ export const serviceOrdersService = {
   },
 
   async processPayment(id: string, payload: {
-    paymentMethod: 'cash' | 'transfer' | 'e_wallet' | 'credit_card' | 'debit_card';
+    paymentMethod: 'cash' | 'transfer' | 'qris' | 'e_wallet' | 'credit_card' | 'debit_card';
     amount: number;
     reference?: string;
     notes?: string;
   }) {
     const response = await api.post(`/service-orders/${id}/payment`, payload);
+    return response.data.data || response.data;
+  },
+
+  // IGDERP-171: void mistaken payment (approver asserted server-side)
+  async voidPayment(id: string, payload: { reason: string }) {
+    const response = await api.post(`/service-orders/${id}/payment/void`, payload);
     return response.data.data || response.data;
   },
 

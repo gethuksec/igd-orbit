@@ -23,6 +23,7 @@ export interface UserRole {
   validFrom: string;
   validUntil?: string | null;
   deniedPermissions?: string[];
+  grantedPermissions?: string[];
   // Legacy format support (for backward compatibility)
   role?: {
     id: string;
@@ -69,6 +70,7 @@ export interface AssignRoleDto {
   validFrom?: string;
   validUntil?: string | null;
   deniedPermissions?: string[];
+  grantedPermissions?: string[];
 }
 
 export const usersService = {

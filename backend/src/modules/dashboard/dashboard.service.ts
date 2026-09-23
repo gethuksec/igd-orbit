@@ -37,7 +37,7 @@ export class DashboardService {
     };
 
     const baseServiceWhere: any = {
-      status: { in: ['completed', 'delivered'] },
+      status: { in: ['done'] },
       createdAt: {
         gte: today,
       },

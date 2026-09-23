@@ -102,6 +102,15 @@ export default function ServiceOrderForm() {
     enabled: true,
   });
 
+  // IGDERP-169: device types strictly from master (no free "lainnya")
+  const { data: deviceTypes = [] } = useQuery({
+    queryKey: ['service-order-form', 'device-types'],
+    queryFn: async () => {
+      const res = await api.get('/device-types/active');
+      return res.data?.data || res.data || [];
+    },
+  });
+
   // Fetch customer data if customerId is provided in URL
   const { data: customerFromUrl } = useQuery({
     queryKey: ['customer', customerIdFromUrl],
@@ -578,10 +587,10 @@ export default function ServiceOrderForm() {
                 onChange={(e) => setFormData({ ...formData, deviceType: e.target.value as any })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none bg-white"
               >
-                <option value="handphone">Handphone</option>
-                <option value="laptop">Laptop</option>
-                <option value="tablet">Tablet</option>
-                <option value="other">Lainnya</option>
+                {(deviceTypes as any[]).map((d: any) => <option key={d.id} value={d.code}>{d.name}</option>)}
+                {!(deviceTypes as any[]).some((d: any) => d.code === formData.deviceType) && formData.deviceType && (
+                  <option value={formData.deviceType}>{formData.deviceType}</option>
+                )}
               </select>
             </div>
             <div className="relative">

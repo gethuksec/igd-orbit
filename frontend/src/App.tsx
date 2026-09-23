@@ -112,6 +112,7 @@ import ServiceLanding from './pages/services/ServiceLanding';
 import SmartRepairPage from './pages/services/SmartRepairPage';
 import SmartRepairDetailPage from './pages/services/SmartRepairDetailPage';
 import ServiceCheckpointList from './pages/service-checkpoints/ServiceCheckpointList';
+import DeviceTypeList from './pages/device-types/DeviceTypeList';
 import FinanceLanding from './pages/finance/FinanceLanding';
 import COAList from './pages/finance/coa/COAList';
 import COADetail from './pages/finance/coa/COADetail';
@@ -136,6 +137,7 @@ import PurchaseReturnForm from './pages/purchasing/PurchaseReturnForm';
 import PurchaseReturnDetail from './pages/purchasing/PurchaseReturnDetail';
 import LabelPrintSheet from './pages/purchasing/LabelPrintSheet';
 import BarcodeSetting from './pages/admin/BarcodeSetting';
+import ServiceApprovalSettings from './pages/admin/ServiceApprovalSettings';
 import GoodsReceiptList from './pages/purchasing/GoodsReceiptList';
 import GoodsReceiptDetail from './pages/purchasing/GoodsReceiptDetail';
 import GoodsReceiptForm from './pages/purchasing/GoodsReceiptForm';
@@ -698,6 +700,17 @@ function App() {
                 <ProtectedRoute>
                   <DashboardLayout>
                     <ServiceCheckpointList />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            {/* Tipe Perangkat master (IGDERP-169) */}
+            <Route
+              path="/device-types"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <DeviceTypeList />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
@@ -1765,7 +1778,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <PlaceholderPage title="Approval" description="Atur alur persetujuan transaksi" />
+                    <ServiceApprovalSettings />
                   </DashboardLayout>
                 </ProtectedRoute>
               }

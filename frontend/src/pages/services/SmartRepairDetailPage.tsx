@@ -12,6 +12,7 @@ import {
   Info,
   Printer,
   Trash2,
+  Pencil,
   Package,
   Wrench,
   Phone,
@@ -38,44 +39,38 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { BreadcrumbHeader } from '@/components/shared';
 import TagCombobox from '@/components/services/TagCombobox';
+import PatternPad from '@/components/services/PatternPad';
+import QcModal from '@/components/services/QcModal';
+import { LOCK_TYPE_LABELS } from '@/components/services/LockModal';
 import { serviceOrdersService } from '@/services/service-orders.service';
 import { formatCurrency } from '@/utils/format';
 
-// ─── Status vocabulary (IGDERP-133: 6 + Cancel) ───────────────────────
+// ─── Status vocabulary (IGDERP-168: proposal B + Cancel) ────────────────────
 const STATUS_LABELS: Record<string, string> = {
   pending: 'Receive',
   diagnosed: 'Diagnose',
   'in-progress': 'In Progress',
+  qc: 'QC',
   ready: 'Ready',
   done: 'Done',
   cancelled: 'Cancel',
-  quoted: 'Quoted',
-  approved: 'Approved',
-  qc: 'QC',
-  completed: 'Completed',
-  delivered: 'Delivered',
 };
 
 const STATUS_PILL: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
   diagnosed: 'bg-blue-100 text-blue-800 border-blue-200',
   'in-progress': 'bg-blue-100 text-blue-800 border-blue-200',
+  qc: 'bg-amber-100 text-amber-800 border-amber-200',
   ready: 'bg-blue-100 text-blue-800 border-blue-200',
   done: 'bg-green-100 text-green-800 border-green-200',
   cancelled: 'bg-red-100 text-red-800 border-red-200',
-  quoted: 'bg-blue-100 text-blue-800 border-blue-200',
-  approved: 'bg-blue-100 text-blue-800 border-blue-200',
-  qc: 'bg-blue-100 text-blue-800 border-blue-200',
-  completed: 'bg-green-100 text-green-800 border-green-200',
-  delivered: 'bg-green-100 text-green-800 border-green-200',
 };
 
-const SR_FLOW = ['pending', 'diagnosed', 'in-progress', 'ready', 'done'] as const;
+const SR_FLOW = ['pending', 'diagnosed', 'in-progress', 'qc', 'ready', 'done'] as const;
 const SR_NEXT_LABEL: Record<string, string> = {
   diagnosed: 'Tandai Diagnose',
   'in-progress': 'Mulai Pengerjaan',
-  ready: 'Tandai Ready',
-  done: 'Tandai Done',
+  qc: 'Mulai QC',
 };
 
 const formatDateTime = (d?: string | null) =>
@@ -113,6 +108,13 @@ export default function SmartRepairDetailPage() {
   const [barangSearch, setBarangSearch] = useState('');
   const [barangRows, setBarangRows] = useState<any[]>([]);
   const [openBayar, setOpenBayar] = useState(false);
+  // IGDERP-168: QC popup state
+  const [openQc, setOpenQc] = useState(false);
+  // IGDERP-185: lock viewer state (reveal gated server-side, audit logged)
+  const [openLockView, setOpenLockView] = useState(false);
+  const [lockReveal, setLockReveal] = useState<{ lockType: string; value: string | null } | null>(null);
+  const [showLockValue, setShowLockValue] = useState(false);
+  const [lockLoading, setLockLoading] = useState(false);
   const [bayarAmount, setBayarAmount] = useState('');
   const [bayarMethod, setBayarMethod] = useState('cash');
   const [bayarRef, setBayarRef] = useState('');
@@ -122,6 +124,34 @@ export default function SmartRepairDetailPage() {
     queryFn: () => serviceOrdersService.getById(id!),
     enabled: !!id,
   });
+
+  // IGDERP-185: open viewer + fetch decrypted credential (audit line appears in timeline)
+  const openLockViewer = () => {
+    setLockReveal(null);
+    setShowLockValue(false);
+    setOpenLockView(true);
+  };
+  const handleRevealLock = async () => {
+    setLockLoading(true);
+    try {
+      const res = await serviceOrdersService.revealLock(id!);
+      setLockReveal(res);
+      setShowLockValue(true);
+      queryClient.invalidateQueries({ queryKey: ['service-order', id] });
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Tidak dapat membuka kunci');
+    } finally {
+      setLockLoading(false);
+    }
+  };
+  const lockNodes: number[] =
+    lockReveal && lockReveal.lockType === 'pattern' && lockReveal.value
+      ? lockReveal.value
+          .replace(/^pattern:/, '')
+          .split('-')
+          .map(Number)
+          .filter((n) => Number.isInteger(n) && n >= 0 && n <= 8)
+      : [];
 
   const authHeader = useCallback(
     () => ({ Authorization: 'Bearer ' + localStorage.getItem('access_token') }),
@@ -256,6 +286,19 @@ export default function SmartRepairDetailPage() {
     onError: (err: any) => toast.error(err.response?.data?.message || 'Gagal hapus layanan'),
   });
 
+  // IGDERP-137: final tag mapping per row — Ready only
+  const [editingTags, setEditingTags] = useState<{ id: string; tags: string[] } | null>(null);
+  const tagsMutation = useMutation({
+    mutationFn: ({ rowId, notes }: { rowId: string; notes: string }) =>
+      serviceOrdersService.updateLayanan(id!, rowId, { notes }),
+    onSuccess: () => {
+      toast.success('Tag final tersimpan — tercatat di timeline');
+      setEditingTags(null);
+      queryClient.invalidateQueries({ queryKey: ['service-order', id] });
+    },
+    onError: (err: any) => toast.error(err.response?.data?.message || 'Gagal simpan tag'),
+  });
+
   const removePartMutation = useMutation({
     mutationFn: (partId: string) => serviceOrdersService.removePart(id!, partId),
     onSuccess: () => {
@@ -266,14 +309,37 @@ export default function SmartRepairDetailPage() {
   });
 
   const paymentMutation = useMutation({
-    mutationFn: (payload: { paymentMethod: 'cash' | 'transfer' | 'e_wallet' | 'credit_card' | 'debit_card'; amount: number; reference?: string }) =>
+    mutationFn: (payload: { paymentMethod: 'cash' | 'transfer' | 'qris'; amount: number; reference?: string }) =>
       serviceOrdersService.processPayment(id!, payload),
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success('Pembayaran tercatat');
       setOpenBayar(false); setBayarAmount(''); setBayarRef('');
-      queryClient.invalidateQueries({ queryKey: ['service-order', id] });
+      await queryClient.invalidateQueries({ queryKey: ['service-order', id] });
+      await queryClient.invalidateQueries({ queryKey: ['sr-pos-faktur', id] });
+      // IGDERP-171: faktur opens in a new tab (service + POS when cross-sold)
+      try {
+        const list = await fetchList(`/api/v1/sales/transactions?serviceOrderId=${id}`);
+        const posId = (list as any[])[0]?.id;
+        window.open(`/service-orders/${id}/print?type=invoice${posId ? `&pos=${posId}` : ''}`, '_blank');
+      } catch {
+        // popup blocked — user can still print from the faktur banner
+      }
     },
     onError: (err: any) => toast.error(err.response?.data?.message || 'Gagal mencatat pembayaran'),
+  });
+
+  // IGDERP-171: void mistaken payment (approver role asserted server-side)
+  const [openVoid, setOpenVoid] = useState(false);
+  const [voidReason, setVoidReason] = useState('');
+  const voidMutation = useMutation({
+    mutationFn: (reason: string) => serviceOrdersService.voidPayment(id!, { reason }),
+    onSuccess: () => {
+      toast.success('Pembayaran di-void — order kembali ke Ready');
+      setOpenVoid(false); setVoidReason('');
+      queryClient.invalidateQueries({ queryKey: ['service-order', id] });
+      queryClient.invalidateQueries({ queryKey: ['sr-pos-faktur', id] });
+    },
+    onError: (err: any) => toast.error(err.response?.data?.message || 'Gagal void pembayaran'),
   });
 
   const uploadPhotoMutation = useMutation({
@@ -307,7 +373,7 @@ export default function SmartRepairDetailPage() {
   const paidSoFar = Number(order.downPayment || 0);
   const sisaBayar = Math.max(0, totalFee - paidSoFar);
   const isPaid = String(order.paymentStatus || '').toLowerCase() === 'paid' || (totalFee > 0 && sisaBayar <= 0);
-  const frozen = ['done', 'delivered', 'completed', 'cancelled'].includes(status);
+  const frozen = ['done', 'cancelled'].includes(status);
   // IGDERP-136 detail round: estimasi antrian per baris (received + ΣSLA s.d. baris itu)
   const receivedBase = order.receivedDate || order.createdAt;
   const layananEta: string[] = (() => {
@@ -322,12 +388,26 @@ export default function SmartRepairDetailPage() {
   // Past-due = order-level, dari Estimasi Selesai yang sama dengan yang tampil (slaDue || promised)
   const dueDate = order.slaDueDate || order.promisedDate;
   const isOverdue = !frozen && !!dueDate && new Date(dueDate).getTime() < Date.now();
+  // IGDERP-184: remaining/active warranty display (checkbox removed from intake)
+  const warrantyInfo: { label: string; sub: string } = (() => {
+    const days = Number((order as any).warrantyDays ?? 0);
+    const expiry = (order as any).warrantyExpiryDate ? new Date((order as any).warrantyExpiryDate).getTime() : 0;
+    if (expiry) {
+      const left = Math.ceil((expiry - Date.now()) / 86400000);
+      return left > 0 ? { label: `Sisa ${left} hari`, sub: 'masa garansi berjalan' } : { label: 'Kadaluarsa', sub: 'masa garansi habis' };
+    }
+    return days > 0 ? { label: `${days} hari`, sub: 'aktif sejak serah terima' } : { label: '—', sub: '' };
+  })();
   const waNumber = (() => {
     const digits = String(order.customerPhone || '').replace(/\D/g, '');
     if (digits.startsWith('0')) return '62' + digits.slice(1);
     return digits;
   })();
   const waLink = waNumber ? `https://wa.me/${waNumber}?text=${encodeURIComponent(`Halo ${order.customerName || ''}, info service ${order.serviceNumber || ''} (${STATUS_LABELS[status] || status})`)}` : '';
+  // IGDERP-171: digital faktur via click-to-open WA (never auto-send)
+  const waFakturLink = waNumber
+    ? `https://wa.me/${waNumber}?text=${encodeURIComponent(`Faktur Service ${order.serviceNumber || ''} — Total ${formatCurrency(totalFee)} — LUNAS. Terima kasih!`)}`
+    : '';
 
   const handleCancel = () => {
     if (!cancelReason.trim()) {
@@ -398,6 +478,11 @@ export default function SmartRepairDetailPage() {
             <p className="font-semibold">{order.assignedTechnician?.fullName || 'Belum di-assign'}</p>
           </div>
           <div>
+            <Label className="text-sm text-gray-500">Garansi</Label>
+            <p className="font-semibold">{warrantyInfo.label}</p>
+            {warrantyInfo.sub ? <p className="text-xs text-gray-500">{warrantyInfo.sub}</p> : null}
+          </div>
+          <div>
             <Label className="text-sm text-gray-500">Outlet</Label>
             <p className="font-semibold">{order.branch?.name || '—'}</p>
           </div>
@@ -454,6 +539,21 @@ export default function SmartRepairDetailPage() {
               <Label className="text-sm text-gray-500">Serial</Label>
               <p className="font-semibold font-mono text-sm">{order.deviceSerial || '—'}</p>
             </div>
+            <div>
+              <Label className="text-sm text-gray-500">Kunci layar</Label>
+              {(order as any).deviceLockType && (order as any).deviceLockType !== 'none' ? (
+                <p className="flex items-center gap-2">
+                  <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
+                    Ada ({(LOCK_TYPE_LABELS as any)[(order as any).deviceLockType] || (order as any).deviceLockType})
+                  </Badge>
+                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={openLockViewer}>
+                    Lihat
+                  </Button>
+                </p>
+              ) : (
+                <p className="font-semibold text-gray-400">Tidak ada</p>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -497,28 +597,49 @@ export default function SmartRepairDetailPage() {
                   {(order.layanan as any[]).map((l, li) => (
                     <div
                       key={l.id}
-                      className="flex items-center gap-2 px-2 py-2 border-b border-dashed border-gray-100 last:border-b-0"
+                      className="border-b border-dashed border-gray-100 last:border-b-0"
                     >
-                      <span className="font-semibold text-sm flex-1">{l.name}{(l.notes ? String(l.notes).split(',').map((t) => t.trim()).filter(Boolean) : []).map((t) => <span key={t} className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-normal text-amber-800">🏷 {t}</span>)}</span>
-                      <span className="text-xs text-gray-600 font-mono whitespace-nowrap">
-                        SLA {formatSLA(Number(l.slaHours))}
-                      </span>
-                      {layananEta[li] && (
-                        <span className={`text-xs whitespace-nowrap ${isOverdue && !frozen ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
-                          ETA {layananEta[li]}
+                      <div className="flex items-center gap-2 px-2 py-2">
+                        <span className="font-semibold text-sm flex-1">{l.name}{(l.notes ? String(l.notes).split(',').map((t) => t.trim()).filter(Boolean) : []).map((t) => <span key={t} className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-normal text-amber-800">🏷 {t}</span>)}</span>
+                        <span className="text-xs text-gray-600 font-mono whitespace-nowrap">
+                          SLA {formatSLA(Number(l.slaHours))}
                         </span>
-                      )}
-                      <span className="text-xs text-gray-600 whitespace-nowrap">
-                        {formatCurrency(Number(l.estimatedCost || 0))}
-                      </span>
-                      {status === 'in-progress' && !isCancelled && (order.layanan as any[]).length > 1 && (
-                        <button
-                          type="button"
-                          title="Hapus layanan"
-                          onClick={() => { if (window.confirm(`Hapus layanan ${l.name}? Tercatat di timeline.`)) removeLayananMutation.mutate(l.id); }}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </button>
+                        {layananEta[li] && (
+                          <span className={`text-xs whitespace-nowrap ${isOverdue && !frozen ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
+                            ETA {layananEta[li]}
+                          </span>
+                        )}
+                        <span className="text-xs text-gray-600 whitespace-nowrap">
+                          {formatCurrency(Number(l.estimatedCost || 0))}
+                        </span>
+                        {status === 'ready' && !isCancelled && (
+                          <button
+                            type="button"
+                            title="Edit tag final"
+                            onClick={() => setEditingTags({ id: l.id, tags: String(l.notes || '').split(',').map((t: string) => t.trim()).filter(Boolean) })}
+                          >
+                            <Pencil className="h-4 w-4 text-amber-600" />
+                          </button>
+                        )}
+                        {status === 'in-progress' && !isCancelled && (order.layanan as any[]).length > 1 && (
+                          <button
+                            type="button"
+                            title="Hapus layanan"
+                            onClick={() => { if (window.confirm(`Hapus layanan ${l.name}? Tercatat di timeline.`)) removeLayananMutation.mutate(l.id); }}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </button>
+                        )}
+                      </div>
+                      {/* IGDERP-137: final tag editor — Ready only */}
+                      {editingTags && editingTags.id === l.id && (
+                        <div className="px-2 pb-2">
+                          <TagCombobox value={editingTags.tags} onChange={(tags) => setEditingTags({ id: l.id, tags })} localSuggestions={[]} suggestRemote={suggestTags} placeholder="Tag final: Lcd, Baterai..." />
+                          <div className="mt-2 flex gap-2">
+                            <Button size="sm" disabled={tagsMutation.isPending} onClick={() => tagsMutation.mutate({ rowId: l.id, notes: editingTags.tags.join(', ') })}>Simpan tag final</Button>
+                            <Button size="sm" variant="ghost" onClick={() => setEditingTags(null)}>Batal</Button>
+                          </div>
+                        </div>
                       )}
                     </div>
                   ))}
@@ -619,7 +740,16 @@ export default function SmartRepairDetailPage() {
                   {posFaktur.transactionNumber}
                 </Link>
                 <span className="text-xs text-gray-500">({posFaktur.paymentStatus})</span>
-                <div className="ml-auto">
+                <div className="ml-auto flex gap-2">
+                  {waFakturLink && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(waFakturLink, '_blank')}
+                    >
+                      Faktur WA
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
@@ -631,6 +761,30 @@ export default function SmartRepairDetailPage() {
                     }
                   >
                     <Printer className="w-4 h-4 mr-1" /> Cetak Faktur (Service + POS)
+                  </Button>
+                </div>
+              </div>
+            )}
+            {/* IGDERP-171: paid service-only order — faktur actions without POS link */}
+            {isPaid && !posFaktur && (
+              <div className="mt-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-sm">
+                <span className="text-gray-600">Lunas — faktur siap dibagikan:</span>
+                <div className="ml-auto flex gap-2">
+                  {waFakturLink && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(waFakturLink, '_blank')}
+                    >
+                      Faktur WA
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(`/service-orders/${id}/print?type=invoice`, '_blank')}
+                  >
+                    <Printer className="w-4 h-4 mr-1" /> Cetak Faktur
                   </Button>
                 </div>
               </div>
@@ -701,12 +855,21 @@ export default function SmartRepairDetailPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-64">
-              {currentIndex >= 0 && currentIndex < SR_FLOW.length - 1 && !isCancelled && (
+              {currentIndex >= 0 && currentIndex < SR_FLOW.length - 1 && !isCancelled && status !== 'qc' && status !== 'ready' && (
                 <DropdownMenuItem
                   className="font-semibold"
                   onClick={() => statusMutation.mutate({ status: SR_FLOW[currentIndex + 1] })}
                 >
                   {SR_NEXT_LABEL[SR_FLOW[currentIndex + 1]]}
+                </DropdownMenuItem>
+              )}
+              {/* IGDERP-168: QC runs through the popup (checklist + general checkup + note/row) */}
+              {status === 'qc' && !isCancelled && (
+                <DropdownMenuItem
+                  className="font-semibold"
+                  onClick={() => setOpenQc(true)}
+                >
+                  Pemeriksaan QC
                 </DropdownMenuItem>
               )}
               {status === 'in-progress' && !isCancelled && (
@@ -759,18 +922,32 @@ export default function SmartRepairDetailPage() {
                   Terima Pembayaran {sisaBayar > 0 ? `(${formatCurrency(sisaBayar)})` : ''}
                 </DropdownMenuItem>
               )}
+              {/* IGDERP-171: void mistaken payment — approver asserted server-side */}
+              {status === 'done' && isPaid && !isCancelled && (
+                <DropdownMenuItem
+                  className="text-red-600 font-semibold"
+                  onClick={() => { setVoidReason(''); setOpenVoid(true); }}
+                >
+                  Void pembayaran
+                </DropdownMenuItem>
+              )}
               {(!status || (status !== 'in-progress' && status !== 'ready')) && (
                 <DropdownMenuItem disabled>
                   Tambah Barang
                 </DropdownMenuItem>
               )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="text-red-600 font-semibold"
-                onClick={() => setOpenCancel(true)}
-              >
-                Batal
-              </DropdownMenuItem>
+              {/* IGDERP-168: cancel blocked once QC starts */}
+              {['pending', 'diagnosed', 'in-progress'].includes(status ?? '') && !isCancelled && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-red-600 font-semibold"
+                    onClick={() => setOpenCancel(true)}
+                  >
+                    Batal
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
           )}
@@ -846,7 +1023,7 @@ export default function SmartRepairDetailPage() {
                     ) : (
                       !current && (
                         <div className="text-xs text-gray-400 mt-1">
-                          {s === 'ready' ? 'Selesai dikerjakan — siap diambil customer' : s === 'done' ? 'Sudah diambil / diserahkan ke customer' : ''}
+                          {s === 'qc' ? 'Pemeriksaan kualitas — siap diambil bila lolos' : s === 'ready' ? 'Selesai dikerjakan — siap diambil customer' : s === 'done' ? 'Sudah diambil / diserahkan ke customer' : ''}
                         </div>
                       )
                     )}
@@ -1216,6 +1393,77 @@ export default function SmartRepairDetailPage() {
         </DialogContent>
       </Dialog>
 
+      {/* IGDERP-185: lock viewer — reveal gated server-side (TC/HS/SPV), audit logged */}
+      <Dialog open={openLockView} onOpenChange={setOpenLockView}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Kunci Layar Perangkat</DialogTitle>
+          </DialogHeader>
+          {!lockReveal ? (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">Kunci tersimpan terenkripsi. Klik Lihat untuk membuka — tercatat di histori.</p>
+              <Button onClick={handleRevealLock} disabled={lockLoading} className="w-full">
+                {lockLoading ? 'Membuka...' : 'Lihat'}
+              </Button>
+            </div>
+          ) : lockReveal.lockType === 'pattern' ? (
+            <div className="space-y-2">
+              <PatternPad value={lockNodes} readOnly />
+              <p className="text-xs text-muted-foreground">Ikuti urutan angka untuk membuka HP customer · tercatat di histori</p>
+            </div>
+          ) : (
+            <div className="space-y-2 rounded-lg border p-3">
+              <p className="text-xs font-semibold text-muted-foreground">{(LOCK_TYPE_LABELS as any)[lockReveal.lockType] || lockReveal.lockType}</p>
+              <p className="font-mono text-lg tracking-widest">
+                {showLockValue ? lockReveal.value : '••••••'}
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setShowLockValue((v) => !v)}>
+                  {showLockValue ? 'Sembunyikan' : 'Lihat'}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">Tercatat di histori</p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+      {/* IGDERP-168: QC popup — intake checklist + general checkup + note/row; pass → ready, fail → in-progress */}
+      <QcModal
+        open={openQc}
+        onOpenChange={setOpenQc}
+        items={((order as any)?.completenessItems || []).filter((x: any) => x.checked).map((x: any) => ({ name: x.name, conditionNote: x.conditionNote }))}
+        busy={statusMutation.isPending}
+        onPass={(notes) => {
+          setOpenQc(false);
+          statusMutation.mutate({ status: 'ready', notes });
+        }}
+        onFail={(notes) => {
+          setOpenQc(false);
+          statusMutation.mutate({ status: 'in-progress', notes });
+        }}
+      />
+      {/* IGDERP-171: void confirm — reason mandatory, approver asserted server-side */}
+      <Dialog open={openVoid} onOpenChange={setOpenVoid}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Void Pembayaran</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Order kembali ke Ready dan pembayaran dibuka ulang untuk koreksi. Butuh peran approver.
+            </p>
+            <div><Label>Alasan void <span className="text-red-500">*</span></Label><Input value={voidReason} onChange={(e) => setVoidReason(e.target.value)} placeholder="Mis. salah input metode…" className="mt-1" /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenVoid(false)}>Batal</Button>
+            <Button
+              variant="destructive"
+              disabled={!voidReason.trim() || voidMutation.isPending}
+              onClick={() => voidMutation.mutate(voidReason.trim())}
+            >
+              Void
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Dialog open={openBayar} onOpenChange={setOpenBayar}>
         <DialogContent>
           <DialogHeader><DialogTitle>Terima Pembayaran</DialogTitle></DialogHeader>
@@ -1224,7 +1472,7 @@ export default function SmartRepairDetailPage() {
               Total {formatCurrency(totalFee)} · Sudah masuk {formatCurrency(paidSoFar)} · <b>Sisa {formatCurrency(sisaBayar)}</b>
             </div>
             <div><Label>Nominal (Rp)</Label><Input inputMode="numeric" value={bayarAmount ? Number(bayarAmount).toLocaleString('id-ID') : ''} onChange={(e) => setBayarAmount(e.target.value.replace(/\D/g, ''))} className="mt-1" /></div>
-            <div><Label>Metode</Label><Select value={bayarMethod} onValueChange={setBayarMethod} className="mt-1"><option value="cash">Tunai</option><option value="transfer">Transfer</option><option value="e_wallet">E-Wallet</option><option value="credit_card">Kartu Kredit</option><option value="debit_card">Kartu Debit</option></Select></div>
+            <div><Label>Metode</Label><div className="mt-1 grid grid-cols-3 gap-2">{([['cash', 'Tunai'], ['transfer', 'Transfer'], ['qris', 'QRIS']] as const).map(([v, l]) => (<button key={v} type="button" onClick={() => setBayarMethod(v)} className={`rounded-lg border px-3 py-2 text-sm font-semibold ${bayarMethod === v ? 'border-primary bg-primary-50 text-primary-700' : 'border-gray-200 text-gray-600'}`}>{l}</button>))}</div></div>
             <div><Label>Referensi (opsional)</Label><Input value={bayarRef} onChange={(e) => setBayarRef(e.target.value)} placeholder="No. referensi transfer…" className="mt-1" /></div>
           </div>
           <DialogFooter>
