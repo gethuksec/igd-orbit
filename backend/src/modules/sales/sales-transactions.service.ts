@@ -8,6 +8,7 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services';
+import { assertNoFreezeOpname } from '../inventory/opname-freeze.guard';
 import { BranchFilter } from '../../common/branch-access.util';
 import { CreateSalesTransactionDto, VoidTransactionDto, HoldTransactionDto } from './dto';
 import { CustomersService } from '../customers/customers.service';
@@ -240,6 +241,9 @@ export class SalesTransactionsService {
     if (!warehouse || !warehouse.isActive || warehouse.type !== 'GOOD' || warehouse.outletId !== branchId) {
       throw new BadRequestException('An active GOOD warehouse belonging to the sale branch is required');
     }
+
+    // IGDERP-233 (OP1): strict FREEZE — no sales while a FREEZE opname covers this warehouse
+    await assertNoFreezeOpname(this.prisma, warehouse.id, 'complete a sale');
 
     // Validate all products exist and have stock
     const productIds = createDto.items.map((item) => item.productId);
@@ -844,6 +848,11 @@ export class SalesTransactionsService {
                 },
               })
             : null;
+
+          // IGDERP-233 (OP1): strict FREEZE — void restores stock, blocked like any other mutation
+          if (stock) {
+            await assertNoFreezeOpname(tx, stock.warehouseId, 'void a sale');
+          }
 
           if (stock) {
             const damagedBefore = stock.quantityDamaged.toNumber();

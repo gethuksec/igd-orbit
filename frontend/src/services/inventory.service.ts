@@ -58,6 +58,9 @@ export interface TransferStockProduct {
 export interface StockOpname {
   id: string;
   opnameNumber: string;
+  code?: string;
+  opnameType?: 'FREEZE' | 'OPEN';
+  approverId?: string | null;
   warehouseId: string;
   branchId: string;
   branch?: { id: string; name: string; code: string };
@@ -506,10 +509,22 @@ export const inventoryService = {
     }
   },
 
+  async getOpnameByCode(code: string): Promise<StockOpname> {
+    try {
+      const response = await api.get(`/inventory/opname/code/${encodeURIComponent(code.trim())}`);
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
   async startOpname(data: {
     branchId: string;
     opnameDate: string;
     notes?: string;
+    opnameType?: 'FREEZE' | 'OPEN';
+    approverId?: string;
+    categoryIds?: string[];
   }): Promise<StockOpname> {
     try {
       const response = await api.post('/inventory/opname', data);

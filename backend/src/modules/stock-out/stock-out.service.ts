@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services/prisma.service';
+import { assertNoFreezeOpname } from '../inventory/opname-freeze.guard';
 import { CreateStockOutDto, StockOutItemDto } from './dto/create-stock-out.dto';
 import { ConfirmImportDto } from './dto/confirm-import.dto';
 import {
@@ -108,6 +109,10 @@ export class StockOutService {
         );
       }
       outletId = warehouse.outletId;
+
+      // IGDERP-233 (OP1): strict FREEZE — stock-out blocked while a FREEZE opname covers this warehouse
+      // (Central BAD warehouse unaffected — only outlet GOOD warehouses freeze)
+      await assertNoFreezeOpname(this.prisma, warehouse.id, 'remove stock');
     } else if (!isSystemBad) {
       throw new BadRequestException(
         'Selected warehouse must be an outlet GOOD warehouse or the Central Bad Stock warehouse',

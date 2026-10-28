@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services/prisma.service';
+import { assertNoFreezeOpname } from '../inventory/opname-freeze.guard';
 import { CreateStockInDto, StockInItemDto } from './dto/create-stock-in.dto';
 import { ConfirmImportDto } from './dto/confirm-import.dto';
 import {
@@ -121,6 +122,9 @@ export class StockInService {
     if (!warehouse.isActive) {
       throw new BadRequestException('Cannot receive stock in an inactive warehouse');
     }
+
+    // IGDERP-233 (OP1): strict FREEZE — stock-in blocked while a FREEZE opname covers this warehouse
+    await assertNoFreezeOpname(this.prisma, warehouse.id, 'receive stock');
 
     // ── Supplier: real supplier or the NO_SUPPLIER sentinel ──
     let supplierName: string | null = null;
@@ -592,6 +596,9 @@ export class StockInService {
     if (!warehouse.isActive) {
       throw new BadRequestException('Cannot receive stock in an inactive warehouse');
     }
+
+    // IGDERP-233 (OP1): strict FREEZE — import replace blocked while a FREEZE opname covers this warehouse
+    await assertNoFreezeOpname(this.prisma, warehouse.id, 'receive stock');
 
     const products = await this.prisma.product.findMany({
       where: { id: { in: dto.rows.map((r) => r.productId) } },

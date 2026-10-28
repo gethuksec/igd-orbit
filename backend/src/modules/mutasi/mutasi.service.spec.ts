@@ -12,6 +12,7 @@ describe('MutasiService (IGDERP-140 — central ↔ outlet + outlet ↔ outlet)'
     product: { findMany: jest.Mock };
     user: { findMany: jest.Mock; findUnique: jest.Mock };
     productStock: { findMany: jest.Mock };
+    stockOpname: { findFirst: jest.Mock };
     stockTransfer: {
       findMany: jest.Mock;
       count: jest.Mock;
@@ -175,6 +176,7 @@ describe('MutasiService (IGDERP-140 — central ↔ outlet + outlet ↔ outlet)'
         findUnique: jest.fn().mockResolvedValue(null),
       },
       productStock: { findMany: jest.fn().mockResolvedValue([]) },
+      stockOpname: { findFirst: jest.fn().mockResolvedValue(null) },
       stockTransfer: {
         findMany: jest.fn().mockResolvedValue([]),
         count: jest.fn().mockResolvedValue(0),
