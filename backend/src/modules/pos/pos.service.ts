@@ -3,6 +3,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services';
+import { assertNoFreezeOpname } from '../inventory/opname-freeze.guard';
 import { CreatePosTransactionDto } from './dto/create-pos-transaction.dto';
 import { randomBytes } from 'crypto';
 
@@ -37,6 +38,9 @@ export class PosService {
     if (!warehouse || !warehouse.isActive || warehouse.type !== 'GOOD' || warehouse.outletId !== dto.branchId) {
       throw new BadRequestException('An active GOOD warehouse belonging to the sale outlet is required');
     }
+
+    // IGDERP-233 (OP1): strict FREEZE — no sales while a FREEZE opname covers this warehouse
+    await assertNoFreezeOpname(this.prisma, warehouse.id, 'complete a sale');
 
     const stockWarehouseId = warehouse.id;
     const productIds = dto.items.map((i) => i.productId);

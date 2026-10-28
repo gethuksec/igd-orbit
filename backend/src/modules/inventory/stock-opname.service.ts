@@ -26,6 +26,33 @@ export class StockOpnameService {
     return `OP-${dateStr}-${random}`;
   }
 
+  /**
+   * IGDERP-233 (OP1): short human join code for multi-user sessions
+   * (Menu > Opname > Count > Code), e.g. OPN-7K2QD.
+   */
+  private generateOpnameCode(): string {
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I
+    let suffix = '';
+    for (let i = 0; i < 5; i++) {
+      suffix += alphabet[Math.floor(Math.random() * alphabet.length)];
+    }
+    return `OPN-${suffix}`;
+  }
+
+  // prisma typed as any: both PrismaService and tx clients satisfy the
+  // { stockOpname.findFirst } surface the generator needs (avoids delegate
+  // generic-vs-concrete assignability friction).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private async generateUniqueOpnameCode(prisma: any): Promise<string> {
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const code = this.generateOpnameCode();
+      const existing = await prisma.stockOpname.findFirst({ where: { code } });
+      if (!existing) return code;
+    }
+    // Astronomically unlikely — fall back to a timestamp-suffixed code
+    return `OPN-${Date.now().toString(36).toUpperCase().slice(-5)}`;
+  }
+
   /** Fetch live product_stock for every item of an opname and attach as `liveQuantity`. */
   private async attachLiveQuantities(opname: any) {
     const productIds = (opname.items ?? []).map((i: any) => i.productId);
@@ -57,7 +84,10 @@ export class StockOpnameService {
   }
 
   async startOpname(dto: StartOpnameDto, userId: string) {
-    const { warehouseId, branchId: legacyBranchId, opnameDate, notes } = dto;
+    const { warehouseId, branchId: legacyBranchId, opnameDate, notes, approverId } = dto;
+    // IGDERP-233 (OP1): default FREEZE preserves the old implicit-freeze behaviour
+    const opnameType = dto.opnameType ?? 'FREEZE';
+    const categoryIds = dto.categoryIds?.length ? dto.categoryIds : undefined;
 
     const warehouse = warehouseId
       ? await this.prisma.warehouse.findUnique({ where: { id: warehouseId } })
@@ -101,13 +131,14 @@ export class StockOpnameService {
       );
     }
 
-    // Get all products with stock in this warehouse
+    // Get all products with stock in this warehouse (optionally scoped to categories)
     const stocks = await this.prisma.productStock.findMany({
       where: {
         warehouseId: warehouse.id,
         product: {
           isActive: true,
           deletedAt: null,
+          ...(categoryIds ? { categoryId: { in: categoryIds } } : {}),
         },
       },
       include: {
@@ -116,10 +147,14 @@ export class StockOpnameService {
     });
 
     // Create opname with items
+    const code = await this.generateUniqueOpnameCode(this.prisma);
     return await this.prisma.$transaction(async (tx) => {
       const opname = await tx.stockOpname.create({
         data: {
           opnameNumber: this.generateOpnameNumber(),
+          code,
+          opnameType,
+          approverId: approverId ?? null,
           warehouseId: warehouse.id,
           branchId: effectiveBranchId,
           opnameDate: new Date(opnameDate),
@@ -232,6 +267,24 @@ export class StockOpnameService {
     }
 
     return this.attachLiveQuantities(opname);
+  }
+
+  /**
+   * IGDERP-233 (OP1): join a session by its short code (Menu > Opname > Count > Code).
+   * Blind-count clients use the id from here for subsequent calls.
+   */
+  async findByCode(code: string) {
+    const normalized = code.trim().toUpperCase();
+    const opname = await this.prisma.stockOpname.findFirst({
+      where: { code: normalized },
+      select: { id: true },
+    });
+
+    if (!opname) {
+      throw new NotFoundException('Opname session not found for this code');
+    }
+
+    return this.findById(opname.id);
   }
 
   /**

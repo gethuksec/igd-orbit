@@ -3,6 +3,7 @@ import { BadRequestException, ConflictException, NotFoundException } from '@nest
 import { Decimal } from '@prisma/client/runtime/library';
 import { PrismaService } from '../../shared/services/prisma.service';
 import { StockOpnameService } from './stock-opname.service';
+import { assertNoFreezeOpname } from './opname-freeze.guard';
 
 type Mock<T> = { [K in keyof T]: jest.Mock };
 
@@ -690,6 +691,138 @@ describe('StockOpnameService', () => {
       prisma.stockOpname.findUnique.mockResolvedValue(null);
 
       await expect(service.findById('op-1')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('startOpname type/code/approver (IGDERP-233)', () => {
+    it('stores FREEZE type, join code and approver by default', async () => {
+      prisma.warehouse.findUnique.mockResolvedValue(warehouse);
+      prisma.stockOpname.findFirst.mockResolvedValue(null);
+      prisma.productStock.findMany.mockResolvedValue([]);
+      tx.stockOpname.create.mockResolvedValue({ id: 'op-1' });
+      tx.stockOpname.update.mockResolvedValue({});
+
+      await service.startOpname(
+        { warehouseId: 'wh-outlet-1', opnameDate: '2026-10-28', approverId: 'mgr-1' },
+        'user-1',
+      );
+
+      const data = tx.stockOpname.create.mock.calls[0][0].data;
+      expect(data.opnameType).toBe('FREEZE');
+      expect(data.code).toMatch(/^OPN-[A-Z2-9]{5}$/);
+      expect(data.approverId).toBe('mgr-1');
+    });
+
+    it('stores OPEN type when requested', async () => {
+      prisma.warehouse.findUnique.mockResolvedValue(warehouse);
+      prisma.stockOpname.findFirst.mockResolvedValue(null);
+      prisma.productStock.findMany.mockResolvedValue([]);
+      tx.stockOpname.create.mockResolvedValue({ id: 'op-1' });
+      tx.stockOpname.update.mockResolvedValue({});
+
+      await service.startOpname(
+        { warehouseId: 'wh-outlet-1', opnameDate: '2026-10-28', opnameType: 'OPEN' },
+        'user-1',
+      );
+
+      const data = tx.stockOpname.create.mock.calls[0][0].data;
+      expect(data.opnameType).toBe('OPEN');
+      expect(data.approverId).toBeNull();
+    });
+
+    it('scopes the snapshot to the selected categories', async () => {
+      prisma.warehouse.findUnique.mockResolvedValue(warehouse);
+      prisma.stockOpname.findFirst.mockResolvedValue(null);
+      prisma.productStock.findMany.mockResolvedValue([]);
+      tx.stockOpname.create.mockResolvedValue({ id: 'op-1' });
+      tx.stockOpname.update.mockResolvedValue({});
+
+      await service.startOpname(
+        { warehouseId: 'wh-outlet-1', opnameDate: '2026-10-28', categoryIds: ['cat-1', 'cat-2'] },
+        'user-1',
+      );
+
+      expect(prisma.productStock.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            product: expect.objectContaining({ categoryId: { in: ['cat-1', 'cat-2'] } }),
+          }),
+        }),
+      );
+    });
+
+    it('retries code generation on collision', async () => {
+      prisma.warehouse.findUnique.mockResolvedValue(warehouse);
+      prisma.stockOpname.findFirst
+        .mockResolvedValueOnce(null) // active-session check
+        .mockResolvedValueOnce({ id: 'other' }) // code collision
+        .mockResolvedValue(null); // retry is unique
+      prisma.productStock.findMany.mockResolvedValue([]);
+      tx.stockOpname.create.mockResolvedValue({ id: 'op-1' });
+      tx.stockOpname.update.mockResolvedValue({});
+
+      await service.startOpname(
+        { warehouseId: 'wh-outlet-1', opnameDate: '2026-10-28' },
+        'user-1',
+      );
+
+      expect(prisma.stockOpname.findFirst).toHaveBeenCalledTimes(3);
+      expect(tx.stockOpname.create).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('findByCode (IGDERP-233)', () => {
+    it('normalizes the code and delegates to findById', async () => {
+      prisma.stockOpname.findFirst.mockResolvedValue({ id: 'op-1' });
+      prisma.stockOpname.findUnique.mockResolvedValue(opname({ items: [] }));
+      prisma.productStock.findMany.mockResolvedValue([]);
+
+      await service.findByCode('opn-abc12');
+
+      expect(prisma.stockOpname.findFirst).toHaveBeenCalledWith({
+        where: { code: 'OPN-ABC12' },
+        select: { id: true },
+      });
+    });
+
+    it('throws when the code is unknown', async () => {
+      prisma.stockOpname.findFirst.mockResolvedValue(null);
+
+      await expect(service.findByCode('OPN-NOPE1')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('assertNoFreezeOpname (IGDERP-233)', () => {
+    it('throws when a FREEZE session covers the warehouse', async () => {
+      prisma.stockOpname.findFirst.mockResolvedValue({
+        opnameNumber: 'OP-20261028-000001',
+        code: 'OPN-AAAAA',
+      });
+
+      await expect(
+        assertNoFreezeOpname(prisma, 'wh-outlet-1', 'complete a sale'),
+      ).rejects.toThrow(BadRequestException);
+      expect(prisma.stockOpname.findFirst).toHaveBeenCalledWith({
+        where: {
+          warehouseId: 'wh-outlet-1',
+          opnameType: 'FREEZE',
+          status: { in: ['draft', 'counting', 'completed'] },
+        },
+      });
+    });
+
+    it('passes when no FREEZE session exists', async () => {
+      prisma.stockOpname.findFirst.mockResolvedValue(null);
+
+      await expect(
+        assertNoFreezeOpname(prisma, 'wh-outlet-1', 'complete a sale'),
+      ).resolves.toBeUndefined();
+    });
+
+    it('skips the check when warehouseId is missing', async () => {
+      await expect(assertNoFreezeOpname(prisma, null, 'x')).resolves.toBeUndefined();
+      await expect(assertNoFreezeOpname(prisma, undefined, 'x')).resolves.toBeUndefined();
+      expect(prisma.stockOpname.findFirst).not.toHaveBeenCalled();
     });
   });
 });

@@ -872,6 +872,10 @@ model StockTransferItem {
 model StockOpname {
   id                    String    @id @default(uuid())
   opnameNumber          String    @unique @map("opname_number") // OP-YYYYMMDD-XXXXXX
+  // IGDERP-233 (OP1): new opname mechanism — FREEZE/OPEN type, short join code, assigned approver
+  opnameType            String    @default("FREEZE") @map("opname_type") // 'FREEZE' | 'OPEN'
+  code                  String    @unique @map("code") // short session code, e.g. OPN-7K2QD (Menu > Opname > Count > Code)
+  approverId            String?   @map("approver_id") // User ID assigned at start (default: outlet manager)
   warehouseId           String    @map("warehouse_id")
   branchId              String?   @map("branch_id") // denormalized outlet; null for system-scoped warehouses
   opnameDate            DateTime  @map("opname_date")
@@ -894,6 +898,7 @@ model StockOpname {
   items     StockOpnameItem[]
 
   @@index([opnameNumber])
+  @@index([code])
   @@index([warehouseId])
   @@index([branchId])
   @@index([status])

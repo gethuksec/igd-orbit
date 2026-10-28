@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services/prisma.service';
+import { assertNoFreezeOpname } from '../inventory/opname-freeze.guard';
 import { CreateMutasiDto } from './dto/create-mutasi.dto';
 import {
   TransferStockItemDto,
@@ -322,6 +323,9 @@ export class MutasiService {
     }
     const overrides = new Map((dto.items || []).map((l) => [l.itemId, l.quantitySent]));
 
+    // IGDERP-233 (OP1): strict FREEZE — mutasi send deducts source stock
+    await assertNoFreezeOpname(this.prisma, doc.fromWarehouseId, 'send mutasi');
+
     return await this.prisma.$transaction(async (tx) => {
       for (const item of doc.items) {
         const requested = Number(item.quantityRequested);
@@ -421,6 +425,9 @@ export class MutasiService {
     if (byId.size !== doc.items.length) {
       throw new BadRequestException('Receive must cover every line of the document');
     }
+
+    // IGDERP-233 (OP1): strict FREEZE — mutasi receive adds destination stock
+    await assertNoFreezeOpname(this.prisma, doc.toWarehouseId, 'receive mutasi');
 
     const centralBad = await this.prisma.warehouse.findFirst({
       where: { scope: 'SYSTEM', type: 'BAD', isActive: true },

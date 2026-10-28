@@ -4,6 +4,7 @@ import { StockAdjustmentDto } from './dto/stock-adjustment.dto';
 import { ListStockDto } from './dto/list-stock.dto';
 import { ListMovementsDto } from './dto/list-movements.dto';
 import { Decimal } from '@prisma/client/runtime/library';
+import { assertNoFreezeOpname } from './opname-freeze.guard';
 
 @Injectable()
 export class StockService {
@@ -235,6 +236,9 @@ export class StockService {
     if (!warehouse.isActive) {
       throw new BadRequestException('Cannot adjust stock in an inactive warehouse');
     }
+
+    // IGDERP-233 (OP1): strict FREEZE — manual adjustments blocked during an active FREEZE opname
+    await assertNoFreezeOpname(this.prisma, warehouse.id, 'adjust stock');
 
     const effectiveBranchId = warehouse.outletId;
     let stock = await this.prisma.productStock.findUnique({
