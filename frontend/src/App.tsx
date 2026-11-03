@@ -205,6 +205,8 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/track" element={<ServiceTracking />} />
             <Route path="/track/:serviceNumber" element={<ServiceTracking />} />
+            {/* Short alias for nota print / WA share — same page, shorter URL */}
+            <Route path="/s/:serviceNumber" element={<ServiceTracking />} />
             <Route path="/r/:token" element={<RequestIntakePage />} />
             
             {/* Protected Routes with DashboardLayout */}
