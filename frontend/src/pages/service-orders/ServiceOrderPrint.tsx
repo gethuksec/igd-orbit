@@ -2,7 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { serviceOrdersService } from '../../services/service-orders.service';
 import { Loader2 } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import QRCode from 'qrcode';
 
 const ServiceOrderPrint = () => {
   const { id } = useParams<{ id: string }>();
@@ -38,6 +39,22 @@ const ServiceOrderPrint = () => {
       }, 500);
     }
   }, [isLoading, serviceOrder]);
+
+  // Short public tracking link (same page as /track/:serviceNumber) + QR for the nota.
+  // window.location.origin keeps it correct on preview and prod with zero config.
+  const trackUrl = (serviceOrder as any)?.serviceNumber
+    ? `${window.location.origin}/s/${(serviceOrder as any).serviceNumber}`
+    : '';
+  const [trackQrSvg, setTrackQrSvg] = useState('');
+  useEffect(() => {
+    if (!trackUrl) {
+      setTrackQrSvg('');
+      return;
+    }
+    QRCode.toString(trackUrl, { type: 'svg', margin: 1, width: 120 })
+      .then(setTrackQrSvg)
+      .catch(() => setTrackQrSvg(''));
+  }, [trackUrl]);
 
   if (isLoading) {
     return (
@@ -554,6 +571,24 @@ const ServiceOrderPrint = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Lacak Service — short link + QR (same page as /track/:serviceNumber) */}
+      {trackUrl && (
+        <div className="mb-1 section flex items-center justify-center gap-3 text-center">
+          {trackQrSvg && (
+            <div
+              style={{ width: '28mm', height: '28mm' }}
+              dangerouslySetInnerHTML={{ __html: trackQrSvg }}
+            />
+          )}
+          <div>
+            <div className="font-bold text-gray-900 text-[9px]">LACAK SERVICE ANDA</div>
+            <div className="text-gray-700 text-[8px]">Scan QR atau buka:</div>
+            <div className="font-bold text-gray-900 text-[8px]">{trackUrl}</div>
+            <div className="text-gray-500 text-[7px]">No. Service: {order.serviceNumber}</div>
+          </div>
+        </div>
+      )}
 
       {/* Garis Merah Putih - Bottom (Estetik & Hemat Tinta) */}
       <div className="mb-0.5 mt-1 flex border-t border-gray-200 border-b-2 border-[#dc2626]">

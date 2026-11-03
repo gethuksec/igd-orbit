@@ -10,6 +10,7 @@ import {
   Clock,
   User as UserIcon,
   Info,
+  Link2,
   Printer,
   Trash2,
   Pencil,
@@ -403,6 +404,17 @@ export default function SmartRepairDetailPage() {
     if (digits.startsWith('0')) return '62' + digits.slice(1);
     return digits;
   })();
+  // Short public tracking link (same page as /track/:serviceNumber) for WA share / nota
+  const trackUrl = order.serviceNumber ? `${window.location.origin}/s/${order.serviceNumber}` : '';
+  const copyTrackLink = async () => {
+    if (!trackUrl) return;
+    try {
+      await navigator.clipboard.writeText(trackUrl);
+      toast.success('Link tracking disalin');
+    } catch {
+      toast.error('Gagal menyalin link');
+    }
+  };
   const waLink = waNumber ? `https://wa.me/${waNumber}?text=${encodeURIComponent(`Halo ${order.customerName || ''}, info service ${order.serviceNumber || ''} (${STATUS_LABELS[status] || status})`)}` : '';
   // IGDERP-171: digital faktur via click-to-open WA (never auto-send)
   const waFakturLink = waNumber
@@ -429,6 +441,12 @@ export default function SmartRepairDetailPage() {
         <Button variant="ghost" size="sm" onClick={() => navigate('/services/smart-repair')}>
           <ArrowLeft className="w-4 h-4" />
         </Button>
+        {trackUrl && (
+          <Button variant="ghost" size="sm" onClick={copyTrackLink} title={`Salin link tracking: ${trackUrl}`}>
+            <Link2 className="w-4 h-4 mr-1" />
+            <span className="hidden md:inline">Salin link tracking</span>
+          </Button>
+        )}
       </BreadcrumbHeader>
 
       {/* ─── Section A1: Informasi Service ─── */}
