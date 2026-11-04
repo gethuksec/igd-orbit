@@ -12,7 +12,7 @@ const getDefaultRouteForUser = (user: any): string => {
     return '/service-orders/my';
   }
 
-  if (roles.includes('HS') || roles.includes('SPV')) {
+  if (roles.includes('HS') || roles.some((r) => r.startsWith('SPV'))) {
     return '/service-orders';
   }
 
@@ -191,266 +191,66 @@ export default function Login() {
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">Atau gunakan kredensial demo</span>
-            </div>
-          </div>
-
-          {/* Demo Credentials - Organized by Tier */}
-          <div className="space-y-4">
-            {/* Tier 0 - Super Admin */}
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-300">
-              <p className="text-xs font-bold text-purple-900 mb-3 flex items-center gap-2">
-                <span className="w-2 h-2 bg-purple-600 rounded-full animate-pulse"></span>
-                🟣 TIER 0 - SUPER ADMIN (Password: SuperAdmin@1234)
-              </p>
-              <div className="grid grid-cols-1 gap-2 text-xs">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('superadmin@igdgroup.com');
-                    setPassword('SuperAdmin@1234');
-                  }}
-                  className="text-left px-3 py-2 bg-white hover:bg-purple-50 border border-purple-300 rounded-lg transition-all"
-                >
-                  <p className="font-semibold text-purple-800">👑 Super Administrator (Full Access)</p>
-                  <p className="text-gray-600">superadmin@igdgroup.com</p>
-                </button>
+          {/* Demo credentials (ORG-REAL, IGDERP-237) — bootstrap accounts only.
+              Rendered only when VITE_SHOW_DEMO_LOGIN=true. Never enable in production. */}
+          {import.meta.env.VITE_SHOW_DEMO_LOGIN === 'true' && (
+            <>
+              {/* Divider */}
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">Atau gunakan kredensial demo</span>
+                </div>
               </div>
-            </div>
 
-            {/* Tier 1 - Executive */}
-            <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-4 border border-red-200">
-              <p className="text-xs font-bold text-red-800 mb-3 flex items-center gap-2">
-                <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                🔴 TIER 1 - EXECUTIVE (Password: Owner@1234)
-              </p>
-              <div className="grid grid-cols-1 gap-2 text-xs">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('owner@igdgroup.com');
-                    setPassword('Owner@1234');
-                  }}
-                  className="text-left px-3 py-2 bg-white hover:bg-red-50 border border-red-200 rounded-lg transition-all"
-                >
-                  <p className="font-semibold text-red-700">👑 Owner (Semua Cabang)</p>
-                  <p className="text-gray-600">owner@igdgroup.com</p>
-                </button>
-              </div>
-            </div>
+              {/* Demo Credentials - bootstrap accounts only */}
+              <div className="space-y-4">
+                {/* Tier 0 - Super Admin */}
+                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-300">
+                  <p className="text-xs font-bold text-purple-900 mb-3 flex items-center gap-2">
+                    <span className="w-2 h-2 bg-purple-600 rounded-full animate-pulse"></span>
+                    🟣 TIER 0 - SUPER ADMIN (Password: SuperAdmin@1234)
+                  </p>
+                  <div className="grid grid-cols-1 gap-2 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEmail('superadmin@igdgroup.com');
+                        setPassword('SuperAdmin@1234');
+                      }}
+                      className="text-left px-3 py-2 bg-white hover:bg-purple-50 border border-purple-300 rounded-lg transition-all"
+                    >
+                      <p className="font-semibold text-purple-800">👑 Super Administrator (Full Access)</p>
+                      <p className="text-gray-600">superadmin@igdgroup.com</p>
+                    </button>
+                  </div>
+                </div>
 
-            {/* Tier 2 - Management */}
-            <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4 border border-orange-200">
-              <p className="text-xs font-bold text-orange-800 mb-3 flex items-center gap-2">
-                <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
-                🟠 TIER 2 - MANAGEMENT (Password: Manager@1234)
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('cfo@igdgroup.com');
-                    setPassword('Manager@1234');
-                  }}
-                  className="text-left px-3 py-2 bg-white hover:bg-orange-50 border border-orange-200 rounded-lg transition-all"
-                >
-                  <p className="font-semibold text-orange-700">💼 CFO (Keuangan & Laporan)</p>
-                  <p className="text-gray-600">cfo@igdgroup.com</p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('manager@igdgroup.com');
-                    setPassword('Manager@1234');
-                  }}
-                  className="text-left px-3 py-2 bg-white hover:bg-orange-50 border border-orange-200 rounded-lg transition-all"
-                >
-                  <p className="font-semibold text-orange-700">📊 Manager Operasional</p>
-                  <p className="text-gray-600">manager@igdgroup.com</p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('regional@igdgroup.com');
-                    setPassword('Manager@1234');
-                  }}
-                  className="text-left px-3 py-2 bg-white hover:bg-orange-50 border border-orange-200 rounded-lg transition-all"
-                >
-                  <p className="font-semibold text-orange-700">🌐 Regional Manager (Multi Cabang)</p>
-                  <p className="text-gray-600">regional@igdgroup.com</p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('cso@igdgroup.com');
-                    setPassword('Manager@1234');
-                  }}
-                  className="text-left px-3 py-2 bg-white hover:bg-orange-50 border border-orange-200 rounded-lg transition-all"
-                >
-                  <p className="font-semibold text-orange-700">📈 CSO (Chief Sales Officer)</p>
-                  <p className="text-gray-600">cso@igdgroup.com</p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('cmo@igdgroup.com');
-                    setPassword('Manager@1234');
-                  }}
-                  className="text-left px-3 py-2 bg-white hover:bg-orange-50 border border-orange-200 rounded-lg transition-all"
-                >
-                  <p className="font-semibold text-orange-700">📣 CMO (Marketing)</p>
-                  <p className="text-gray-600">cmo@igdgroup.com</p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('hr@igdgroup.com');
-                    setPassword('Manager@1234');
-                  }}
-                  className="text-left px-3 py-2 bg-white hover:bg-orange-50 border border-orange-200 rounded-lg transition-all"
-                >
-                  <p className="font-semibold text-orange-700">🧑‍💼 HR Manager (CHR)</p>
-                  <p className="text-gray-600">hr@igdgroup.com</p>
-                </button>
+                {/* Tier 1 - Executive */}
+                <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-4 border border-red-200">
+                  <p className="text-xs font-bold text-red-800 mb-3 flex items-center gap-2">
+                    <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                    🔴 TIER 1 - EXECUTIVE (Password: Owner@1234)
+                  </p>
+                  <div className="grid grid-cols-1 gap-2 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEmail('owner@igdgroup.com');
+                        setPassword('Owner@1234');
+                      }}
+                      className="text-left px-3 py-2 bg-white hover:bg-red-50 border border-red-200 rounded-lg transition-all"
+                    >
+                      <p className="font-semibold text-red-700">👑 Owner (Semua Cabang)</p>
+                      <p className="text-gray-600">owner@igdgroup.com</p>
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-
-            {/* Tier 3 - Supervisor */}
-            <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg p-4 border border-yellow-200">
-              <p className="text-xs font-bold text-yellow-800 mb-3 flex items-center gap-2">
-                <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
-                🟡 TIER 3 - SUPERVISOR (Password: Supervisor@1234)
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('spv@igdgroup.com');
-                    setPassword('Supervisor@1234');
-                  }}
-                  className="text-left px-3 py-2 bg-white hover:bg-yellow-50 border border-yellow-200 rounded-lg transition-all"
-                >
-                  <p className="font-semibold text-yellow-700">🧭 Supervisor (SPV)</p>
-                  <p className="text-gray-600">spv@igdgroup.com</p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('hs@igdgroup.com');
-                    setPassword('Supervisor@1234');
-                  }}
-                  className="text-left px-3 py-2 bg-white hover:bg-yellow-50 border border-yellow-200 rounded-lg transition-all"
-                >
-                  <p className="font-semibold text-yellow-700">🏬 Head of Store (HS)</p>
-                  <p className="text-gray-600">hs@igdgroup.com</p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('sodo@igdgroup.com');
-                    setPassword('Supervisor@1234');
-                  }}
-                  className="text-left px-3 py-2 bg-white hover:bg-yellow-50 border border-yellow-200 rounded-lg transition-all"
-                >
-                  <p className="font-semibold text-yellow-700">🔧 Service & Operations</p>
-                  <p className="text-gray-600">sodo@igdgroup.com</p>
-                </button>
-              </div>
-            </div>
-
-            {/* Tier 4 - Staff */}
-            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
-              <p className="text-xs font-bold text-green-800 mb-3 flex items-center gap-2">
-                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                🟢 TIER 4 - STAFF (Password: Staff@1234)
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('cs@igdgroup.com');
-                    setPassword('Staff@1234');
-                  }}
-                  className="text-left px-3 py-2 bg-white hover:bg-green-50 border border-green-200 rounded-lg transition-all"
-                >
-                  <p className="font-semibold text-green-700">🎧 Customer Service</p>
-                  <p className="text-gray-600">cs@igdgroup.com</p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('ar@igdgroup.com');
-                    setPassword('Staff@1234');
-                  }}
-                  className="text-left px-3 py-2 bg-white hover:bg-green-50 border border-green-200 rounded-lg transition-all"
-                >
-                  <p className="font-semibold text-green-700">💰 AR Staff</p>
-                  <p className="text-gray-600">ar@igdgroup.com</p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('tech@igdgroup.com');
-                    setPassword('Staff@1234');
-                  }}
-                  className="text-left px-3 py-2 bg-white hover:bg-green-50 border border-green-200 rounded-lg transition-all"
-                >
-                  <p className="font-semibold text-green-700">🔨 Technician</p>
-                  <p className="text-gray-600">tech@igdgroup.com</p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('asa@igdgroup.com');
-                    setPassword('Staff@1234');
-                  }}
-                  className="text-left px-3 py-2 bg-white hover:bg-green-50 border border-green-200 rounded-lg transition-all"
-                >
-                  <p className="font-semibold text-green-700">📦 Assistant Store Admin</p>
-                  <p className="text-gray-600">asa@igdgroup.com</p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('smo@igdgroup.com');
-                    setPassword('Staff@1234');
-                  }}
-                  className="text-left px-3 py-2 bg-white hover:bg-green-50 border border-green-200 rounded-lg transition-all"
-                >
-                  <p className="font-semibold text-green-700">📊 Sales & Marketing Officer</p>
-                  <p className="text-gray-600">smo@igdgroup.com</p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('as@igdgroup.com');
-                    setPassword('Staff@1234');
-                  }}
-                  className="text-left px-3 py-2 bg-white hover:bg-green-50 border border-green-200 rounded-lg transition-all"
-                >
-                  <p className="font-semibold text-green-700">📝 Accounting Staff</p>
-                  <p className="text-gray-600">as@igdgroup.com</p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('cashier@igdgroup.com');
-                    setPassword('Staff@1234');
-                  }}
-                  className="text-left px-3 py-2 bg-white hover:bg-green-50 border border-green-200 rounded-lg transition-all"
-                >
-                  <p className="font-semibold text-green-700">💵 Cashier POS</p>
-                  <p className="text-gray-600">cashier@igdgroup.com</p>
-                </button>
-              </div>
-            </div>
-          </div>
+            </>
+          )}
         </div>
 
         {/* Footer */}
