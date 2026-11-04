@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import * as bcrypt from 'bcrypt';
+import { RETIRED_ROLE_CODES, ROLE_TREE } from './org-tree';
 
 const prisma = new PrismaClient();
 
@@ -12,14 +13,8 @@ async function main() {
   console.log('🌱 Starting database seed...');
 
   // Hash passwords based on tier/level
-  // Tier 1 (Highest): Owner, CFO
+  // Tier 1 (Highest): Owner
   const tier1Password = await hashPassword('Owner@1234');
-  // Tier 2: Manager, Regional Manager, CSO, CMO, CHR
-  const tier2Password = await hashPassword('Manager@1234');
-  // Tier 3: Supervisor, Head of Store
-  const tier3Password = await hashPassword('Supervisor@1234');
-  // Tier 4: Staff level (CS, AR, SODO, ASA, SMO, AS, CR, TC)
-  const tier4Password = await hashPassword('Staff@1234');
 
   // 1. Create Branches
   console.log('📦 Creating branches...');
@@ -132,79 +127,115 @@ async function main() {
     },
   });
 
-  // 2. Create Roles
-  console.log('👥 Creating roles...');
-  const ownerRole = await prisma.role.upsert({
-    where: { code: 'OWNER' },
-    update: {
-      defaultPermissions: ['menu.dashboard', 'menu.pos', 'menu.service', 'menu.sales', 'menu.master-data', 'menu.inventory', 'menu.finance', 'menu.purchasing', 'menu.hr', 'menu.users', 'menu.branches', 'action.view', 'action.pos.create', 'action.pos.edit', 'action.service.create', 'action.service.edit', 'action.service.delete', 'action.service.assign', 'action.service.smart_repair.create', 'service.price.edit', 'service.checkpoint.view', 'service.checkpoint.create', 'service.checkpoint.edit', 'service.checkpoint.delete'],
-    },
-    create: {
-      code: 'OWNER',
-      name: 'Pemilik',
-      description: 'Full access to all modules',
-      level: 1,
-      defaultPermissions: ['menu.dashboard', 'menu.pos', 'menu.service', 'menu.sales', 'menu.master-data', 'menu.inventory', 'menu.finance', 'menu.purchasing', 'menu.hr', 'menu.users', 'menu.branches', 'action.view', 'action.pos.create', 'action.pos.edit', 'action.service.create', 'action.service.edit', 'action.service.delete', 'action.service.assign', 'action.service.smart_repair.create', 'service.price.edit', 'service.checkpoint.view', 'service.checkpoint.create', 'service.checkpoint.edit', 'service.checkpoint.delete'],
-      isActive: true,
-    },
-  });
+  // 2. Create Roles — ORG-REAL tree (IGDERP-237, chart locked 2026-11-04)
+  // L0 SUPERADMIN (system) > L1 OWNER > L2 MU > L3 MM/MO/MS >
+  // L4 SPV-MKT / HS / SPV-SC / SPV-FO / SPV-HRD > L5 AS-SE / AS-SRV > L6 staff (15)
+  console.log('👥 Creating roles (ORG-REAL tree)...');
+  const roleByCode = new Map<string, { id: string }>();
+  for (const r of ROLE_TREE) {
+    const saved = await prisma.role.upsert({
+      where: { code: r.code },
+      update: { name: r.name, description: r.description, level: r.level, defaultPermissions: r.permissions, isActive: true },
+      create: { code: r.code, name: r.name, description: r.description, level: r.level, defaultPermissions: r.permissions, isSystemRole: r.code === 'SUPERADMIN', isActive: true },
+    });
+    roleByCode.set(r.code, saved);
+  }
+  // Second pass: wire parentRoleId (parents guaranteed to exist now)
+  for (const r of ROLE_TREE) {
+    if (!r.parent) continue;
+    const parent = roleByCode.get(r.parent);
+    const child = roleByCode.get(r.code);
+    if (parent && child) {
+      await prisma.role.update({ where: { id: child.id }, data: { parentRoleId: parent.id } });
+    }
+  }
+  const superadminRole = roleByCode.get('SUPERADMIN')!;
+  const ownerRole = roleByCode.get('OWNER')!;
 
-  const cfoRole = await prisma.role.upsert({
-    where: { code: 'CFO' },
-    update: {
-      defaultPermissions: ['menu.dashboard', 'menu.finance', 'action.view'],
-    },
-    create: {
-      code: 'CFO',
-      name: 'Chief Financial Officer',
-      description: 'Finance and reporting access',
-      level: 2,
-      defaultPermissions: ['menu.dashboard', 'menu.finance', 'action.view'],
-      isActive: true,
-    },
-  });
+  // Retired legacy codes (ORG-REAL): deactivated in place so history never breaks
+  for (const code of RETIRED_ROLE_CODES) {
+    await prisma.role.updateMany({ where: { code }, data: { isActive: false } });
+  }
+  console.log('🚫 Retired legacy role codes:', RETIRED_ROLE_CODES.join(', '));
 
-  const managerRole = await prisma.role.upsert({
-    where: { code: 'MGR' },
-    update: {
-      defaultPermissions: ['menu.dashboard', 'menu.pos', 'menu.service', 'menu.sales', 'menu.master-data', 'menu.inventory', 'menu.purchasing', 'menu.branches', 'menu.users', 'action.view', 'action.pos.create', 'action.pos.edit', 'action.service.create', 'action.service.edit', 'action.service.smart_repair.create', 'service.price.edit', 'service.checkpoint.view', 'service.checkpoint.create', 'service.checkpoint.edit', 'service.checkpoint.delete'],
-    },
-    create: {
-      code: 'MGR',
-      name: 'Manager',
-      description: 'Management access',
-      level: 3,
-            defaultPermissions: ['menu.dashboard', 'menu.pos', 'menu.service', 'menu.sales', 'menu.master-data', 'menu.inventory', 'menu.purchasing', 'menu.branches', 'menu.users', 'action.view', 'action.pos.create', 'action.pos.edit', 'action.service.create', 'action.service.edit', 'action.service.smart_repair.create', 'service.price.edit', 'service.checkpoint.view', 'service.checkpoint.create', 'service.checkpoint.edit', 'service.checkpoint.delete'],
-      isActive: true,
-    },
-  });
+  // 2.5. Module wildcard keys — D1: legacy junction dropped; wildcards now live in defaultPermissions
+  console.log('🔐 Applying module wildcard keys to roles...');
+  const moduleWildcards = [
+    'dashboard.*.view', 'master_data.*.view', 'sales.*.view', 'service.*.view',
+    'inventory.*.view', 'finance.*.view', 'hr.*.view', 'purchasing.*.view',
+    'users.*.view', 'roles.*.view',
+  ];
+  const moduleAccessByRole: Record<string, string[]> = {
+    SUPERADMIN: moduleWildcards,
+    OWNER: moduleWildcards,
+    MU: ['dashboard.*.view', 'master_data.*.view', 'sales.*.view', 'service.*.view', 'inventory.*.view', 'finance.*.view', 'hr.*.view', 'purchasing.*.view'],
+    MM: ['dashboard.*.view', 'master_data.*.view', 'sales.*.view', 'service.*.view'],
+    MO: ['dashboard.*.view', 'master_data.*.view', 'sales.*.view', 'service.*.view', 'inventory.*.view', 'purchasing.*.view'],
+    MS: ['dashboard.*.view', 'master_data.*.view', 'finance.*.view', 'hr.*.view', 'purchasing.*.view'],
+    'SPV-MKT': ['dashboard.*.view', 'master_data.*.view', 'sales.*.view', 'service.*.view'],
+    HS: ['dashboard.*.view', 'master_data.*.view', 'sales.*.view', 'service.*.view', 'inventory.*.view'],
+    'SPV-SC': ['dashboard.*.view', 'master_data.*.view', 'sales.*.view', 'inventory.*.view', 'purchasing.*.view'],
+    'SPV-FO': ['dashboard.*.view', 'master_data.*.view', 'sales.*.view', 'finance.*.view'],
+    'SPV-HRD': ['dashboard.*.view', 'master_data.*.view', 'hr.*.view', 'users.*.view', 'roles.*.view'],
+    'AS-SE': ['dashboard.*.view', 'sales.*.view'],
+    'AS-SRV': ['dashboard.*.view', 'service.*.view'],
+    SMO: ['dashboard.*.view', 'master_data.*.view', 'sales.*.view'],
+    ADV: ['dashboard.*.view', 'sales.*.view'],
+    SM: ['dashboard.*.view', 'master_data.*.view', 'sales.*.view'],
+    CRM: ['dashboard.*.view', 'sales.*.view'],
+    SE: ['dashboard.*.view', 'sales.*.view'],
+    CR: ['dashboard.*.view', 'sales.*.view'],
+    FL: ['dashboard.*.view', 'service.*.view'],
+    CS: ['dashboard.*.view', 'master_data.*.view', 'sales.*.view', 'service.*.view'],
+    TC: ['dashboard.*.view', 'service.*.view'],
+    SODO: ['dashboard.*.view', 'service.*.view', 'inventory.*.view'],
+    MP: ['dashboard.*.view', 'master_data.*.view', 'sales.*.view', 'inventory.*.view'],
+    AO: ['dashboard.*.view', 'finance.*.view'],
+    HR: ['dashboard.*.view', 'hr.*.view'],
+    MT: ['dashboard.*.view', 'sales.*.view', 'service.*.view'],
+    IT: ['dashboard.*.view', 'users.*.view'],
+  };
+  for (const [roleCode, keys] of Object.entries(moduleAccessByRole)) {
+    const role = await prisma.role.findUnique({ where: { code: roleCode } });
+    if (!role) continue;
+    const merged = [...new Set([...role.defaultPermissions, ...keys])];
+    if (merged.length !== role.defaultPermissions.length) {
+      await prisma.role.update({
+        where: { id: role.id },
+        data: { defaultPermissions: merged },
+      });
+    }
+  }
+  console.log('✅ Module wildcard keys applied to roles');
 
-  const csRole = await prisma.role.upsert({
-    where: { code: 'CS' },
-    update: {
-      defaultPermissions: ['menu.sales', 'action.view', 'action.service.smart_repair.create', 'service.checkpoint.view'],
-    },
-    create: {
-      code: 'CS',
-      name: 'Customer Service',
-      description: 'Customer service and POS access',
-      level: 4,
-            defaultPermissions: ['menu.sales', 'action.view', 'action.service.smart_repair.create', 'service.checkpoint.view'],
-      isActive: true,
-    },
-  });
+  // Stock Request approvals (ORG-REAL): MU/MO replace MGR, SODO keeps its key.
+  console.log('📝 Applying stock-request approval keys to roles...');
+  const requestApproveByRole: Record<string, string[]> = {
+    SUPERADMIN: ['inventory.request.approve'],
+    OWNER: ['inventory.request.approve'],
+    MU: ['inventory.request.approve'],
+    MO: ['inventory.request.approve'],
+    SODO: ['inventory.request.approve'],
+  };
+  for (const [roleCode, keys] of Object.entries(requestApproveByRole)) {
+    const role = await prisma.role.findUnique({ where: { code: roleCode } });
+    if (!role) continue;
+    const merged = [...new Set([...role.defaultPermissions, ...keys])];
+    if (merged.length !== role.defaultPermissions.length) {
+      await prisma.role.update({
+        where: { id: role.id },
+        data: { defaultPermissions: merged },
+      });
+    }
+  }
+  console.log('✅ Stock-request approval keys applied to roles');
 
-  // 3. Create Users
-  console.log('👤 Creating users...');
-  
-  // SUPERADMIN user (Tier 0)
+  // 3. Bootstrap users (ORG-REAL, empty-first: only the two login accounts)
+  console.log('👤 Creating bootstrap users...');
   const superadminPassword = await hashPassword('SuperAdmin@1234');
-  
-  // Check if SUPERADMIN user exists and force password update
   const existingSuperadmin = await prisma.user.findUnique({
     where: { email: 'superadmin@igdgroup.com' },
   });
-  
   const superadmin = existingSuperadmin
     ? await prisma.user.update({
         where: { email: 'superadmin@igdgroup.com' },
@@ -245,541 +276,7 @@ async function main() {
     },
   });
 
-  // Additional roles based on PRD matrix
-  const csoRole = await prisma.role.upsert({
-    where: { code: 'CSO' },
-    update: {
-      defaultPermissions: ['menu.inventory', 'menu.sales', 'action.view'],
-    },
-    create: {
-      code: 'CSO',
-      name: 'Chief Sales Officer',
-      description: 'Sales & commercial leadership',
-      level: 2,
-            defaultPermissions: ['menu.inventory', 'menu.sales', 'action.view'],
-      isActive: true,
-    },
-  });
-
-  const cmoRole = await prisma.role.upsert({
-    where: { code: 'CMO' },
-    update: {
-      defaultPermissions: ['menu.dashboard', 'menu.sales', 'action.view'],
-    },
-    create: {
-      code: 'CMO',
-      name: 'Chief Marketing Officer',
-      description: 'Marketing & customer strategy',
-      level: 2,
-            defaultPermissions: ['menu.dashboard', 'menu.sales', 'action.view'],
-      isActive: true,
-    },
-  });
-
-  const chrRole = await prisma.role.upsert({
-    where: { code: 'CHR' },
-    update: {
-      defaultPermissions: ['menu.hr', 'action.view'],
-    },
-    create: {
-      code: 'CHR',
-      name: 'HR Manager',
-      description: 'Human resources & payroll',
-      level: 3,
-            defaultPermissions: ['menu.hr', 'action.view'],
-      isActive: true,
-    },
-  });
-
-  const spvRole = await prisma.role.upsert({
-    where: { code: 'SPV' },
-    update: {
-      defaultPermissions: ['menu.pos', 'menu.service', 'menu.sales', 'action.view', 'action.service.view', 'service.price.edit'],
-    },
-    create: {
-      code: 'SPV',
-      name: 'Supervisor',
-      description: 'Store / area supervisor',
-      level: 3,
-            defaultPermissions: ['menu.pos', 'menu.service', 'menu.sales', 'action.view', 'action.service.view', 'service.price.edit'],
-      isActive: true,
-    },
-  });
-
-  const hsRole = await prisma.role.upsert({
-    where: { code: 'HS' },
-    update: {
-      defaultPermissions: ['menu.pos', 'menu.service', 'menu.sales', 'menu.master-data', 'menu.inventory', 'menu.hr', 'action.view', 'action.service.create', 'action.service.edit', 'action.service.assign', 'service.price.edit'],
-    },
-    create: {
-      code: 'HS',
-      name: 'Head of Store',
-      description: 'Kepala toko per cabang',
-      level: 4,
-            defaultPermissions: ['menu.pos', 'menu.service', 'menu.sales', 'menu.master-data', 'menu.inventory', 'menu.hr', 'action.view', 'action.service.create', 'action.service.edit', 'action.service.assign', 'service.price.edit'],
-      isActive: true,
-    },
-  });
-
-  const arRole = await prisma.role.upsert({
-    where: { code: 'AR' },
-    update: {
-      defaultPermissions: ['menu.finance', 'menu.sales', 'action.view'],
-    },
-    create: {
-      code: 'AR',
-      name: 'Account Receivable',
-      description: 'Pengelolaan piutang',
-      level: 4,
-            defaultPermissions: ['menu.finance', 'menu.sales', 'action.view'],
-      isActive: true,
-    },
-  });
-
-  const tcRole = await prisma.role.upsert({
-    where: { code: 'TC' },
-    update: {
-      defaultPermissions: ['menu.service', 'action.view', 'action.service.view'],
-    },
-    create: {
-      code: 'TC',
-      name: 'Technician',
-      description: 'Teknisi servis',
-      level: 5,
-            defaultPermissions: ['menu.service', 'action.view', 'action.service.view'],
-      isActive: true,
-    },
-  });
-
-  const sodoRole = await prisma.role.upsert({
-    where: { code: 'SODO' },
-    update: {
-      defaultPermissions: ['menu.inventory', 'menu.service', 'action.view'],
-    },
-    create: {
-      code: 'SODO',
-      name: 'Service & Operations',
-      description: 'Koordinator service & operasional',
-      level: 4,
-            defaultPermissions: ['menu.inventory', 'menu.service', 'action.view'],
-      isActive: true,
-    },
-  });
-
-  const asaRole = await prisma.role.upsert({
-    where: { code: 'ASA' },
-    update: {
-      defaultPermissions: ['menu.inventory', 'action.view'],
-    },
-    create: {
-      code: 'ASA',
-      name: 'Assistant Store Admin',
-      description: 'Admin produk & stok',
-      level: 5,
-            defaultPermissions: ['menu.inventory', 'action.view'],
-      isActive: true,
-    },
-  });
-
-  const smoRole = await prisma.role.upsert({
-    where: { code: 'SMO' },
-    update: {
-      defaultPermissions: ['menu.sales', 'action.view'],
-    },
-    create: {
-      code: 'SMO',
-      name: 'Sales & Marketing Officer',
-      description: 'Promosi & campaign',
-      level: 5,
-      defaultPermissions: ['menu.sales', 'action.view'],
-      isActive: true,
-    },
-  });
-
-  const asRole = await prisma.role.upsert({
-    where: { code: 'AS' },
-    update: {
-      defaultPermissions: ['menu.finance', 'action.view'],
-    },
-    create: {
-      code: 'AS',
-      name: 'Accounting Staff',
-      description: 'Pembukuan & jurnal',
-      level: 5,
-            defaultPermissions: ['menu.finance', 'action.view'],
-      isActive: true,
-    },
-  });
-
-  const crRole = await prisma.role.upsert({
-    where: { code: 'CR' },
-    update: {
-      defaultPermissions: ['menu.pos', 'menu.sales', 'action.view', 'action.pos.create'],
-    },
-    create: {
-      code: 'CR',
-      name: 'Cashier',
-      description: 'Kasir POS',
-      level: 5,
-            defaultPermissions: ['menu.pos', 'menu.sales', 'action.view', 'action.pos.create'],
-      isActive: true,
-    },
-  });
-
-  // Check if SUPERADMIN role exists (for permission assignment)
-  let superadminRole = await prisma.role.findUnique({
-    where: { code: 'SUPERADMIN' },
-  });
-
-  if (!superadminRole) {
-    superadminRole = await prisma.role.create({
-      data: {
-        code: 'SUPERADMIN',
-        name: 'Super Administrator',
-        description: 'System administrator with full access',
-        level: 0,
-        defaultPermissions: ['dashboard.view', 'master_data.customer.view', 'master_data.customer.create', 'master_data.customer.edit', 'master_data.customer.delete', 'master_data.product.view', 'master_data.product.create', 'master_data.product.edit', 'master_data.product.delete', 'master_data.supplier.view', 'master_data.supplier.create', 'master_data.supplier.edit', 'master_data.supplier.delete', 'master_data.category.view', 'master_data.category.create', 'master_data.category.edit', 'master_data.category.delete', 'master_data.brand.view', 'master_data.brand.create', 'master_data.brand.edit', 'master_data.brand.delete', 'master_data.attribute.view', 'master_data.attribute.create', 'master_data.attribute.edit', 'master_data.attribute.delete', 'master_data.service_type.view', 'master_data.service_type.create', 'master_data.service_type.edit', 'master_data.service_type.delete', 'action.pos.create', 'action.pos.edit', 'sales.history.view', 'sales.return.create', 'sales.return.edit', 'service.order.view', 'action.service.create', 'action.service.edit', 'action.service.delete', 'action.service.assign', 'service.return.create', 'service.return.edit', 'inventory.stock.view', 'inventory.stock.adjust', 'inventory.stock_in.create', 'inventory.stock_out.create', 'inventory.transfer.create', 'inventory.transfer.approve', 'inventory.opname.create', 'inventory.opname.approve', 'inventory.history.view', 'inventory.alert.view', 'finance.coa.view', 'finance.coa.create', 'finance.coa.edit', 'finance.journal.create', 'finance.expense.create', 'finance.petty_cash.create', 'finance.ar.create', 'finance.report.view', 'purchasing.supplier.view', 'purchasing.supplier.create', 'purchasing.supplier.edit', 'purchasing.po.create', 'purchasing.po.approve', 'purchasing.po.receive', 'hr.employee.view', 'hr.employee.create', 'hr.employee.edit', 'hr.employee.deactivate', 'hr.attendance.view', 'hr.leave.approve', 'hr.payroll.view', 'hr.kpi.create', 'branch.view', 'users.user.view', 'users.user.create', 'users.user.edit', 'users.user.deactivate', 'roles.role.view', 'roles.role.create', 'roles.role.edit', 'roles.role.delete', 'users.password.approve', 'action.service.smart_repair.create', 'service.checkpoint.view', 'service.checkpoint.create', 'service.checkpoint.edit', 'service.checkpoint.delete', 'service.price.edit'],
-        isSystemRole: true,
-        isActive: true,
-      },
-    });
-  }
-
-  // 2.5. Module wildcard keys — D1: legacy junction dropped; wildcards now live in defaultPermissions
-  console.log('🔐 Applying module wildcard keys to roles...');
-  const moduleWildcards = [
-    'dashboard.*.view', 'master_data.*.view', 'sales.*.view', 'service.*.view',
-    'inventory.*.view', 'finance.*.view', 'hr.*.view', 'purchasing.*.view',
-    'users.*.view', 'roles.*.view',
-  ];
-  const moduleAccessByRole: Record<string, string[]> = {
-    SUPERADMIN: moduleWildcards,
-    OWNER: moduleWildcards,
-    CFO: ['dashboard.*.view', 'master_data.*.view', 'finance.*.view', 'hr.*.view'],
-    CHR: ['dashboard.*.view', 'master_data.*.view', 'hr.*.view', 'users.*.view', 'roles.*.view'],
-    CSO: ['dashboard.*.view', 'master_data.*.view', 'sales.*.view', 'service.*.view', 'inventory.*.view', 'purchasing.*.view'],
-    CMO: ['dashboard.*.view', 'master_data.*.view', 'sales.*.view', 'service.*.view'],
-    MGR: ['dashboard.*.view', 'master_data.*.view', 'sales.*.view', 'service.*.view', 'inventory.*.view', 'purchasing.*.view'],
-    SPV: ['dashboard.*.view', 'master_data.*.view', 'sales.*.view', 'service.*.view', 'inventory.*.view', 'purchasing.*.view'],
-    HS: ['dashboard.*.view', 'master_data.*.view', 'sales.*.view', 'service.*.view', 'inventory.*.view'],
-    AR: ['dashboard.*.view', 'master_data.*.view', 'sales.*.view', 'service.*.view'],
-    CS: ['dashboard.*.view', 'master_data.*.view', 'sales.*.view', 'service.*.view'],
-    CR: ['dashboard.*.view', 'sales.*.view'],
-    TC: ['dashboard.*.view', 'service.*.view'],
-    SODO: ['dashboard.*.view', 'service.*.view', 'inventory.*.view'],
-    ASA: ['dashboard.*.view', 'master_data.*.view', 'inventory.*.view'],
-    SMO: ['dashboard.*.view', 'master_data.*.view', 'sales.*.view'],
-    AS: ['dashboard.*.view', 'finance.*.view'],
-  };
-  for (const [roleCode, keys] of Object.entries(moduleAccessByRole)) {
-    const role = await prisma.role.findUnique({ where: { code: roleCode } });
-    if (!role) continue;
-    const merged = [...new Set([...role.defaultPermissions, ...keys])];
-    if (merged.length !== role.defaultPermissions.length) {
-      await prisma.role.update({
-        where: { id: role.id },
-        data: { defaultPermissions: merged },
-      });
-    }
-  }
-  console.log('✅ Module wildcard keys applied to roles');
-
-  // Stock Request approvals (2026-09-07): granular key for SODO flow owners.
-  console.log('📝 Applying stock-request approval keys to roles...');
-  const requestApproveByRole: Record<string, string[]> = {
-    SUPERADMIN: ['inventory.request.approve'],
-    OWNER: ['inventory.request.approve'],
-    MGR: ['inventory.request.approve'],
-    SODO: ['inventory.request.approve'],
-  };
-  for (const [roleCode, keys] of Object.entries(requestApproveByRole)) {
-    const role = await prisma.role.findUnique({ where: { code: roleCode } });
-    if (!role) continue;
-    const merged = [...new Set([...role.defaultPermissions, ...keys])];
-    if (merged.length !== role.defaultPermissions.length) {
-      await prisma.role.update({
-        where: { id: role.id },
-        data: { defaultPermissions: merged },
-      });
-    }
-  }
-  console.log('✅ Stock-request approval keys applied to roles');
-
-
-  const cfo = await prisma.user.upsert({
-    where: { email: 'cfo@igdgroup.com' },
-    update: {
-      passwordHash: tier2Password,
-      fullName: 'Siti Nurhaliza',
-    },
-    create: {
-      email: 'cfo@igdgroup.com',
-      username: 'cfo',
-      passwordHash: tier2Password,
-      fullName: 'Siti Nurhaliza',
-      phone: '081234567891',
-      isActive: true,
-      isVerified: true,
-    },
-  });
-
-  const manager = await prisma.user.upsert({
-    where: { email: 'manager@igdgroup.com' },
-    update: {
-      passwordHash: tier2Password,
-      fullName: 'Ahmad Wijaya',
-    },
-    create: {
-      email: 'manager@igdgroup.com',
-      username: 'manager',
-      passwordHash: tier2Password,
-      fullName: 'Ahmad Wijaya',
-      phone: '081234567892',
-      isActive: true,
-      isVerified: true,
-    },
-  });
-
-  const regionalManager = await prisma.user.upsert({
-    where: { email: 'regional@igdgroup.com' },
-    update: {
-      passwordHash: tier2Password,
-      fullName: 'Dewi Sartika',
-    },
-    create: {
-      email: 'regional@igdgroup.com',
-      username: 'regional',
-      passwordHash: tier2Password,
-      fullName: 'Dewi Sartika',
-      phone: '081234567894',
-      isActive: true,
-      isVerified: true,
-    },
-  });
-
-  const cs = await prisma.user.upsert({
-    where: { email: 'cs@igdgroup.com' },
-    update: {
-      passwordHash: tier4Password,
-      fullName: 'Rina Wati',
-    },
-    create: {
-      email: 'cs@igdgroup.com',
-      username: 'cs',
-      passwordHash: tier4Password,
-      fullName: 'Rina Wati',
-      phone: '081234567893',
-      isActive: true,
-      isVerified: true,
-    },
-  });
-
-  // Additional demo users per PRD roles (single-branch unless noted)
-  const csoUser = await prisma.user.upsert({
-    where: { email: 'cso@igdgroup.com' },
-    update: {
-      passwordHash: tier2Password,
-      fullName: 'Rudi Hartono',
-    },
-    create: {
-      email: 'cso@igdgroup.com',
-      username: 'cso',
-      passwordHash: tier2Password,
-      fullName: 'Rudi Hartono',
-      phone: '081234567895',
-      isActive: true,
-      isVerified: true,
-    },
-  });
-
-  const cmoUser = await prisma.user.upsert({
-    where: { email: 'cmo@igdgroup.com' },
-    update: {
-      passwordHash: tier2Password,
-      fullName: 'Maya Sari',
-    },
-    create: {
-      email: 'cmo@igdgroup.com',
-      username: 'cmo',
-      passwordHash: tier2Password,
-      fullName: 'Maya Sari',
-      phone: '081234567896',
-      isActive: true,
-      isVerified: true,
-    },
-  });
-
-  const chrUser = await prisma.user.upsert({
-    where: { email: 'hr@igdgroup.com' },
-    update: {
-      passwordHash: tier2Password,
-      fullName: 'Indah Permata',
-    },
-    create: {
-      email: 'hr@igdgroup.com',
-      username: 'hr',
-      passwordHash: tier2Password,
-      fullName: 'Indah Permata',
-      phone: '081234567897',
-      isActive: true,
-      isVerified: true,
-    },
-  });
-
-  const spvUser = await prisma.user.upsert({
-    where: { email: 'spv@igdgroup.com' },
-    update: {
-      passwordHash: tier3Password,
-      fullName: 'Bambang Setiawan',
-    },
-    create: {
-      email: 'spv@igdgroup.com',
-      username: 'spv',
-      passwordHash: tier3Password,
-      fullName: 'Bambang Setiawan',
-      phone: '081234567898',
-      isActive: true,
-      isVerified: true,
-    },
-  });
-
-  const hsUser = await prisma.user.upsert({
-    where: { email: 'hs@igdgroup.com' },
-    update: {
-      passwordHash: tier3Password,
-      fullName: 'Eko Prasetyo',
-    },
-    create: {
-      email: 'hs@igdgroup.com',
-      username: 'hs',
-      passwordHash: tier3Password,
-      fullName: 'Eko Prasetyo',
-      phone: '081234567899',
-      isActive: true,
-      isVerified: true,
-    },
-  });
-
-  const arUser = await prisma.user.upsert({
-    where: { email: 'ar@igdgroup.com' },
-    update: {
-      passwordHash: tier4Password,
-      fullName: 'Lina Kurniawan',
-    },
-    create: {
-      email: 'ar@igdgroup.com',
-      username: 'ar',
-      passwordHash: tier4Password,
-      fullName: 'Lina Kurniawan',
-      phone: '081234567810',
-      isActive: true,
-      isVerified: true,
-    },
-  });
-
-  const tcUser = await prisma.user.upsert({
-    where: { email: 'tech@igdgroup.com' },
-    update: {
-      passwordHash: tier4Password,
-      fullName: 'Agus Supriyadi',
-    },
-    create: {
-      email: 'tech@igdgroup.com',
-      username: 'tech',
-      passwordHash: tier4Password,
-      fullName: 'Agus Supriyadi',
-      phone: '081234567811',
-      isActive: true,
-      isVerified: true,
-    },
-  });
-
-  const sodoUser = await prisma.user.upsert({
-    where: { email: 'sodo@igdgroup.com' },
-    update: {
-      passwordHash: tier3Password,
-      fullName: 'Yanto Gunawan',
-    },
-    create: {
-      email: 'sodo@igdgroup.com',
-      username: 'sodo',
-      passwordHash: tier3Password,
-      fullName: 'Yanto Gunawan',
-      phone: '081234567812',
-      isActive: true,
-      isVerified: true,
-    },
-  });
-
-  const asaUser = await prisma.user.upsert({
-    where: { email: 'asa@igdgroup.com' },
-    update: {
-      passwordHash: tier4Password,
-      fullName: 'Sari Indrawati',
-    },
-    create: {
-      email: 'asa@igdgroup.com',
-      username: 'asa',
-      passwordHash: tier4Password,
-      fullName: 'Sari Indrawati',
-      phone: '081234567813',
-      isActive: true,
-      isVerified: true,
-    },
-  });
-
-  const smoUser = await prisma.user.upsert({
-    where: { email: 'smo@igdgroup.com' },
-    update: {
-      passwordHash: tier4Password,
-      fullName: 'Dedi Kurniawan',
-    },
-    create: {
-      email: 'smo@igdgroup.com',
-      username: 'smo',
-      passwordHash: tier4Password,
-      fullName: 'Dedi Kurniawan',
-      phone: '081234567814',
-      isActive: true,
-      isVerified: true,
-    },
-  });
-
-  const asUser = await prisma.user.upsert({
-    where: { email: 'as@igdgroup.com' },
-    update: {
-      passwordHash: tier4Password,
-      fullName: 'Fitri Handayani',
-    },
-    create: {
-      email: 'as@igdgroup.com',
-      username: 'as',
-      passwordHash: tier4Password,
-      fullName: 'Fitri Handayani',
-      phone: '081234567815',
-      isActive: true,
-      isVerified: true,
-    },
-  });
-
-  const crUser = await prisma.user.upsert({
-    where: { email: 'cashier@igdgroup.com' },
-    update: {
-      passwordHash: tier4Password,
-      fullName: 'Andi Saputra',
-    },
-    create: {
-      email: 'cashier@igdgroup.com',
-      username: 'cashier',
-      passwordHash: tier4Password,
-      fullName: 'Andi Saputra',
-      phone: '081234567816',
-      isActive: true,
-      isVerified: true,
-    },
-  });
-
-  // 4. Assign User Roles
+  // 4. Assign bootstrap roles (superadmin + owner only)
   console.log('🔗 Assigning user roles...');
   
   // SUPERADMIN user role
@@ -834,137 +331,6 @@ async function main() {
     });
   }
 
-  const cfoUserRole = await prisma.userBranch.findFirst({
-    where: {
-      userId: cfo.id,
-      roleId: cfoRole.id,
-      branchId: branch1.id,
-    },
-  });
-
-  if (!cfoUserRole) {
-    await prisma.userBranch.create({
-      data: {
-        userId: cfo.id,
-        roleId: cfoRole.id,
-        branchId: branch1.id,
-        isPrimary: true,
-      },
-    });
-  } else {
-    // Update to ensure it's primary
-    await prisma.userBranch.update({
-      where: { id: cfoUserRole.id },
-      data: { isPrimary: true },
-    });
-  }
-
-  // Manager cabang tunggal (hanya Jember)
-  await prisma.userBranch.upsert({
-    where: {
-      userId_branchId_roleId: {
-        userId: manager.id,
-        roleId: managerRole.id,
-        branchId: branch1.id,
-      },
-    },
-    update: {},
-    create: {
-      userId: manager.id,
-      roleId: managerRole.id,
-      branchId: branch1.id,
-      isPrimary: true,
-    },
-  });
-
-  // Regional manager dengan akses multi cabang (Jember + Surabaya)
-  await prisma.userBranch.upsert({
-    where: {
-      userId_branchId_roleId: {
-        userId: regionalManager.id,
-        roleId: managerRole.id,
-        branchId: branch1.id,
-      },
-    },
-    update: {},
-    create: {
-      userId: regionalManager.id,
-      roleId: managerRole.id,
-      branchId: branch1.id,
-      isPrimary: true,
-    },
-  });
-
-  await prisma.userBranch.upsert({
-    where: {
-      userId_branchId_roleId: {
-        userId: regionalManager.id,
-        roleId: managerRole.id,
-        branchId: branch2.id,
-      },
-    },
-    update: {},
-    create: {
-      userId: regionalManager.id,
-      roleId: managerRole.id,
-      branchId: branch2.id,
-      isPrimary: false,
-    },
-  });
-
-  await prisma.userBranch.upsert({
-    where: {
-      userId_branchId_roleId: {
-        userId: cs.id,
-        roleId: csRole.id,
-        branchId: branch1.id,
-      },
-    },
-    update: {},
-    create: {
-      userId: cs.id,
-      roleId: csRole.id,
-      branchId: branch1.id,
-      isPrimary: true,
-    },
-  });
-
-  // Map additional demo users to roles & branches
-  const singleBranchUsers: Array<{ userId: string; roleId: string }> = [
-    { userId: csoUser.id, roleId: csoRole.id },
-    { userId: cmoUser.id, roleId: cmoRole.id },
-    { userId: chrUser.id, roleId: chrRole.id },
-    { userId: spvUser.id, roleId: spvRole.id },
-    { userId: hsUser.id, roleId: hsRole.id },
-    { userId: arUser.id, roleId: arRole.id },
-    { userId: tcUser.id, roleId: tcRole.id },
-    { userId: sodoUser.id, roleId: sodoRole.id },
-    { userId: asaUser.id, roleId: asaRole.id },
-    { userId: smoUser.id, roleId: smoRole.id },
-    { userId: asUser.id, roleId: asRole.id },
-    { userId: crUser.id, roleId: crRole.id },
-  ];
-
-  for (const entry of singleBranchUsers) {
-    await prisma.userBranch.upsert({
-      where: {
-        userId_branchId_roleId: {
-          userId: entry.userId,
-          roleId: entry.roleId,
-          branchId: branch1.id,
-        },
-      },
-      update: {},
-      create: {
-        userId: entry.userId,
-        roleId: entry.roleId,
-        branchId: branch1.id,
-        isPrimary: true,
-      },
-    });
-  }
-
-  // 5. Create Categories
   console.log('📁 Creating categories...');
   await prisma.category.upsert({
     where: { code: 'CAT-ELEC' },
@@ -1825,7 +1191,7 @@ async function main() {
         estimatedCost: new Decimal(1500000),
         priority: 'urgent',
         status: 'pending',
-        createdBy: cs.id,
+        createdBy: owner.id,
         parts: [] as any[],
       },
       {
@@ -1843,7 +1209,7 @@ async function main() {
         estimatedCost: new Decimal(500000),
         priority: 'normal',
         status: 'in_progress',
-        createdBy: cs.id,
+        createdBy: owner.id,
         parts: sparepartProducts.length > 0 ? [{ productId: sparepartProducts[0].id, qty: 1, price: Number(sparepartProducts[0].sellingPrice) }] : [],
       },
       {
@@ -1861,7 +1227,7 @@ async function main() {
         estimatedCost: new Decimal(300000),
         priority: 'normal',
         status: 'completed',
-        createdBy: cs.id,
+        createdBy: owner.id,
         parts: [] as any[],
       },
       {
@@ -1881,7 +1247,7 @@ async function main() {
         status: 'completed',
         completedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
         deliveredAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
-        createdBy: cs.id,
+        createdBy: owner.id,
         parts: sparepartProducts.length > 2 ? [
           { productId: sparepartProducts[2].id, qty: 1, price: Number(sparepartProducts[2].sellingPrice) },
         ] : [],
@@ -1903,7 +1269,7 @@ async function main() {
         status: 'delivered',
         completedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
         deliveredAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000), // 4 days ago
-        createdBy: cs.id,
+        createdBy: owner.id,
         parts: sparepartProducts.length > 4 ? [
           { productId: sparepartProducts[4].id, qty: 1, price: Number(sparepartProducts[4].sellingPrice) },
         ] : [],
@@ -1978,7 +1344,7 @@ async function main() {
             serviceOrderId: created.id,
             status: so.status,
             notes: 'Service order created',
-            changedBy: cs.id,
+            changedBy: owner.id,
           },
         });
       }
@@ -1998,7 +1364,7 @@ async function main() {
         transactionType: 'pos',
         branchId: branch1.id,
         customerId: createdCustomers[0].id,
-        cashierId: cs.id,
+        cashierId: owner.id,
         status: 'completed',
         subtotal: new Decimal(12000000),
         discountAmount: new Decimal(0),
@@ -2015,7 +1381,7 @@ async function main() {
         transactionType: 'pos',
         branchId: branch1.id,
         customerId: createdCustomers[1].id,
-        cashierId: cs.id,
+        cashierId: owner.id,
         status: 'completed',
         subtotal: new Decimal(20000000),
         discountAmount: new Decimal(2000000),
@@ -2032,7 +1398,7 @@ async function main() {
         transactionType: 'pos',
         branchId: branch1.id,
         customerId: createdCustomers[0].id,
-        cashierId: cs.id,
+        cashierId: owner.id,
         status: 'completed',
         subtotal: new Decimal(18000000),
         discountAmount: new Decimal(0),
@@ -2049,7 +1415,7 @@ async function main() {
         transactionType: 'pos',
         branchId: branch1.id,
         customerId: createdCustomers[2].id,
-        cashierId: cs.id,
+        cashierId: owner.id,
         status: 'completed',
         subtotal: new Decimal(350000),
         discountAmount: new Decimal(0),
@@ -2066,7 +1432,7 @@ async function main() {
         transactionType: 'pos',
         branchId: branch1.id,
         customerId: createdCustomers[3].id,
-        cashierId: cs.id,
+        cashierId: owner.id,
         status: 'completed',
         subtotal: new Decimal(1500000),
         discountAmount: new Decimal(0),
@@ -2200,418 +1566,33 @@ async function main() {
   }
   console.log('✅ Chart of Accounts seeded');
 
-  // 16. Create Departments (if not exists)
+  // 16. Create Departments — ORG-REAL (IGDERP-237)
   console.log('🏢 Creating departments...');
-  const salesDept = await prisma.department.upsert({
-    where: { code: 'DEPT-SALES' },
-    update: {},
-    create: {
-      code: 'DEPT-SALES',
-      name: 'Sales & Marketing',
-      isActive: true,
-    },
+  await prisma.department.upsert({
+    where: { code: 'DEPT-MKT' },
+    update: { name: 'Marketing', isActive: true },
+    create: { code: 'DEPT-MKT', name: 'Marketing', isActive: true },
   });
-
-  const serviceDept = await prisma.department.upsert({
-    where: { code: 'DEPT-SERVICE' },
-    update: {},
-    create: {
-      code: 'DEPT-SERVICE',
-      name: 'Service & Operations',
-      isActive: true,
-    },
+  await prisma.department.upsert({
+    where: { code: 'DEPT-OPS' },
+    update: { name: 'Operasional & Toko', isActive: true },
+    create: { code: 'DEPT-OPS', name: 'Operasional & Toko', isActive: true },
   });
-
-  const financeDept = await prisma.department.upsert({
-    where: { code: 'DEPT-FINANCE' },
-    update: {},
-    create: {
-      code: 'DEPT-FINANCE',
-      name: 'Finance & Accounting',
-      isActive: true,
-    },
+  await prisma.department.upsert({
+    where: { code: 'DEPT-SC' },
+    update: { name: 'Supply Chain', isActive: true },
+    create: { code: 'DEPT-SC', name: 'Supply Chain', isActive: true },
   });
-
-  const hrDept = await prisma.department.upsert({
-    where: { code: 'DEPT-HR' },
-    update: {},
-    create: {
-      code: 'DEPT-HR',
-      name: 'Human Resources',
-      isActive: true,
-    },
+  await prisma.department.upsert({
+    where: { code: 'DEPT-FIN' },
+    update: { name: 'Finance & Accounting', isActive: true },
+    create: { code: 'DEPT-FIN', name: 'Finance & Accounting', isActive: true },
   });
-
-  const warehouseDept = await prisma.department.upsert({
-    where: { code: 'DEPT-WAREHOUSE' },
-    update: {},
-    create: {
-      code: 'DEPT-WAREHOUSE',
-      name: 'Warehouse & Inventory',
-      isActive: true,
-    },
+  await prisma.department.upsert({
+    where: { code: 'DEPT-HRD' },
+    update: { name: 'Human Resource Development', isActive: true },
+    create: { code: 'DEPT-HRD', name: 'Human Resource Development', isActive: true },
   });
-
-  // 16. Create Employee Data
-  console.log('👔 Creating employee data...');
-  
-  // Helper function to generate employee code
-  let employeeCounter = 1;
-  const generateEmployeeCode = () => `EMP-${String(employeeCounter++).padStart(4, '0')}`;
-
-  // Calculate hire dates (various dates in the past)
-  const now = new Date();
-  const hireDates = {
-    old: new Date(now.getFullYear() - 3, 0, 15), // 3 years ago
-    mid: new Date(now.getFullYear() - 2, 5, 1), // 2 years ago
-    recent: new Date(now.getFullYear() - 1, 2, 10), // 1 year ago
-    veryRecent: new Date(now.getFullYear() - 0, 8, 1), // 9 months ago
-  };
-
-  // CFO Employee
-  await prisma.employee.upsert({
-    where: { userId: cfo.id },
-    update: {},
-    create: {
-      userId: cfo.id,
-      employeeCode: generateEmployeeCode(),
-      branchId: null, // Global access
-      departmentId: financeDept.id,
-      position: 'Chief Financial Officer',
-      hireDate: hireDates.old,
-      employmentType: 'full-time',
-      basicSalary: new Decimal(25000000),
-      bankAccount: '1234567890',
-      bankName: 'Bank BCA',
-      taxId: '12.345.678.9-000.000',
-      bpjsNumber: '1234567890123456',
-      isActive: true,
-    },
-  });
-
-  // Manager Employee
-  await prisma.employee.upsert({
-    where: { userId: manager.id },
-    update: {},
-    create: {
-      userId: manager.id,
-      employeeCode: generateEmployeeCode(),
-      branchId: branch1.id,
-      departmentId: salesDept.id,
-      position: 'Branch Manager',
-      hireDate: hireDates.mid,
-      employmentType: 'full-time',
-      basicSalary: new Decimal(15000000),
-      bankAccount: '2345678901',
-      bankName: 'Bank Mandiri',
-      taxId: '23.456.789.0-000.000',
-      bpjsNumber: '2345678901234567',
-      isActive: true,
-    },
-  });
-
-  // CSO Employee
-  await prisma.employee.upsert({
-    where: { userId: csoUser.id },
-    update: {},
-    create: {
-      userId: csoUser.id,
-      employeeCode: generateEmployeeCode(),
-      branchId: null, // Global
-      departmentId: salesDept.id,
-      position: 'Chief Sales Officer',
-      hireDate: hireDates.old,
-      employmentType: 'full-time',
-      basicSalary: new Decimal(20000000),
-      bankAccount: '3456789012',
-      bankName: 'Bank BNI',
-      taxId: '34.567.890.1-000.000',
-      bpjsNumber: '3456789012345678',
-      isActive: true,
-    },
-  });
-
-  // CMO Employee
-  await prisma.employee.upsert({
-    where: { userId: cmoUser.id },
-    update: {},
-    create: {
-      userId: cmoUser.id,
-      employeeCode: generateEmployeeCode(),
-      branchId: null, // Global
-      departmentId: salesDept.id,
-      position: 'Chief Marketing Officer',
-      hireDate: hireDates.mid,
-      employmentType: 'full-time',
-      basicSalary: new Decimal(18000000),
-      bankAccount: '4567890123',
-      bankName: 'Bank BRI',
-      taxId: '45.678.901.2-000.000',
-      bpjsNumber: '4567890123456789',
-      isActive: true,
-    },
-  });
-
-  // HR Manager Employee
-  await prisma.employee.upsert({
-    where: { userId: chrUser.id },
-    update: {},
-    create: {
-      userId: chrUser.id,
-      employeeCode: generateEmployeeCode(),
-      branchId: null, // Global
-      departmentId: hrDept.id,
-      position: 'HR Manager',
-      hireDate: hireDates.mid,
-      employmentType: 'full-time',
-      basicSalary: new Decimal(12000000),
-      bankAccount: '5678901234',
-      bankName: 'Bank BCA',
-      taxId: '56.789.012.3-000.000',
-      bpjsNumber: '5678901234567890',
-      isActive: true,
-    },
-  });
-
-  // Supervisor Employee
-  await prisma.employee.upsert({
-    where: { userId: spvUser.id },
-    update: {},
-    create: {
-      userId: spvUser.id,
-      employeeCode: generateEmployeeCode(),
-      branchId: branch1.id,
-      departmentId: salesDept.id,
-      position: 'Supervisor',
-      hireDate: hireDates.recent,
-      employmentType: 'full-time',
-      basicSalary: new Decimal(8000000),
-      bankAccount: '6789012345',
-      bankName: 'Bank Mandiri',
-      taxId: '67.890.123.4-000.000',
-      bpjsNumber: '6789012345678901',
-      isActive: true,
-    },
-  });
-
-  // Head of Store Employee
-  await prisma.employee.upsert({
-    where: { userId: hsUser.id },
-    update: {},
-    create: {
-      userId: hsUser.id,
-      employeeCode: generateEmployeeCode(),
-      branchId: branch1.id,
-      departmentId: salesDept.id,
-      position: 'Head of Store',
-      hireDate: hireDates.recent,
-      employmentType: 'full-time',
-      basicSalary: new Decimal(10000000),
-      bankAccount: '7890123456',
-      bankName: 'Bank BNI',
-      taxId: '78.901.234.5-000.000',
-      bpjsNumber: '7890123456789012',
-      isActive: true,
-    },
-  });
-
-  // AR Staff Employee
-  await prisma.employee.upsert({
-    where: { userId: arUser.id },
-    update: {},
-    create: {
-      userId: arUser.id,
-      employeeCode: generateEmployeeCode(),
-      branchId: branch1.id,
-      departmentId: financeDept.id,
-      position: 'Account Receivable Staff',
-      hireDate: hireDates.veryRecent,
-      employmentType: 'full-time',
-      basicSalary: new Decimal(5000000),
-      hourlyRate: new Decimal(25000),
-      bankAccount: '8901234567',
-      bankName: 'Bank BRI',
-      taxId: '89.012.345.6-000.000',
-      bpjsNumber: '8901234567890123',
-      isActive: true,
-    },
-  });
-
-  // Technician Employee
-  await prisma.employee.upsert({
-    where: { userId: tcUser.id },
-    update: {},
-    create: {
-      userId: tcUser.id,
-      employeeCode: generateEmployeeCode(),
-      branchId: branch1.id,
-      departmentId: serviceDept.id,
-      position: 'Service Technician',
-      hireDate: hireDates.recent,
-      employmentType: 'full-time',
-      basicSalary: new Decimal(6000000),
-      hourlyRate: new Decimal(30000),
-      bankAccount: '9012345678',
-      bankName: 'Bank BCA',
-      taxId: '90.123.456.7-000.000',
-      bpjsNumber: '9012345678901234',
-      isActive: true,
-    },
-  });
-
-  // SODO Employee
-  await prisma.employee.upsert({
-    where: { userId: sodoUser.id },
-    update: {},
-    create: {
-      userId: sodoUser.id,
-      employeeCode: generateEmployeeCode(),
-      branchId: branch1.id,
-      departmentId: serviceDept.id,
-      position: 'Service & Operations Coordinator',
-      hireDate: hireDates.recent,
-      employmentType: 'full-time',
-      basicSalary: new Decimal(7500000),
-      bankAccount: '0123456789',
-      bankName: 'Bank Mandiri',
-      taxId: '01.234.567.8-000.000',
-      bpjsNumber: '0123456789012345',
-      isActive: true,
-    },
-  });
-
-  // ASA Employee
-  await prisma.employee.upsert({
-    where: { userId: asaUser.id },
-    update: {},
-    create: {
-      userId: asaUser.id,
-      employeeCode: generateEmployeeCode(),
-      branchId: branch1.id,
-      departmentId: warehouseDept.id,
-      position: 'Assistant Store Admin',
-      hireDate: hireDates.veryRecent,
-      employmentType: 'full-time',
-      basicSalary: new Decimal(5500000),
-      hourlyRate: new Decimal(27500),
-      bankAccount: '1234509876',
-      bankName: 'Bank BNI',
-      taxId: '12.345.098.7-000.000',
-      bpjsNumber: '1234509876543210',
-      isActive: true,
-    },
-  });
-
-  // SMO Employee
-  await prisma.employee.upsert({
-    where: { userId: smoUser.id },
-    update: {},
-    create: {
-      userId: smoUser.id,
-      employeeCode: generateEmployeeCode(),
-      branchId: branch1.id,
-      departmentId: salesDept.id,
-      position: 'Sales & Marketing Officer',
-      hireDate: hireDates.veryRecent,
-      employmentType: 'full-time',
-      basicSalary: new Decimal(6000000),
-      hourlyRate: new Decimal(30000),
-      bankAccount: '2345610987',
-      bankName: 'Bank BRI',
-      taxId: '23.456.109.8-000.000',
-      bpjsNumber: '2345610987654321',
-      isActive: true,
-    },
-  });
-
-  // Accounting Staff Employee
-  await prisma.employee.upsert({
-    where: { userId: asUser.id },
-    update: {},
-    create: {
-      userId: asUser.id,
-      employeeCode: generateEmployeeCode(),
-      branchId: branch1.id,
-      departmentId: financeDept.id,
-      position: 'Accounting Staff',
-      hireDate: hireDates.veryRecent,
-      employmentType: 'full-time',
-      basicSalary: new Decimal(5500000),
-      hourlyRate: new Decimal(27500),
-      bankAccount: '3456721098',
-      bankName: 'Bank BCA',
-      taxId: '34.567.210.9-000.000',
-      bpjsNumber: '3456721098765432',
-      isActive: true,
-    },
-  });
-
-  // Cashier Employee
-  await prisma.employee.upsert({
-    where: { userId: crUser.id },
-    update: {},
-    create: {
-      userId: crUser.id,
-      employeeCode: generateEmployeeCode(),
-      branchId: branch1.id,
-      departmentId: salesDept.id,
-      position: 'Cashier',
-      hireDate: hireDates.veryRecent,
-      employmentType: 'full-time',
-      basicSalary: new Decimal(5000000),
-      hourlyRate: new Decimal(25000),
-      bankAccount: '4567832109',
-      bankName: 'Bank Mandiri',
-      taxId: '45.678.321.0-000.000',
-      bpjsNumber: '4567832109876543',
-      isActive: true,
-    },
-  });
-
-  // CS Employee
-  await prisma.employee.upsert({
-    where: { userId: cs.id },
-    update: {},
-    create: {
-      userId: cs.id,
-      employeeCode: generateEmployeeCode(),
-      branchId: branch1.id,
-      departmentId: salesDept.id,
-      position: 'Customer Service',
-      hireDate: hireDates.recent,
-      employmentType: 'full-time',
-      basicSalary: new Decimal(5500000),
-      hourlyRate: new Decimal(27500),
-      bankAccount: '5678943210',
-      bankName: 'Bank BNI',
-      taxId: '56.789.432.1-000.000',
-      bpjsNumber: '5678943210987654',
-      isActive: true,
-    },
-  });
-
-  // Regional Manager Employee (multi-branch)
-  await prisma.employee.upsert({
-    where: { userId: regionalManager.id },
-    update: {},
-    create: {
-      userId: regionalManager.id,
-      employeeCode: generateEmployeeCode(),
-      branchId: branch1.id, // Primary branch
-      departmentId: salesDept.id,
-      position: 'Regional Manager',
-      hireDate: hireDates.old,
-      employmentType: 'full-time',
-      basicSalary: new Decimal(18000000),
-      bankAccount: '6789054321',
-      bankName: 'Bank BRI',
-      taxId: '67.890.543.2-000.000',
-      bpjsNumber: '6789054321098765',
-      isActive: true,
-    },
-  });
-
-  // 17. Create Service Returns
   console.log('🔄 Creating service returns...');
   if (createdServiceOrders.length > 0) {
     // Find a completed/delivered service order for return
@@ -2633,7 +1614,7 @@ async function main() {
           isWithinReturnPeriod: true,
           status: 'pending',
           returnedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
-          createdBy: cs.id,
+          createdBy: owner.id,
         },
       });
     }
@@ -2692,30 +1673,10 @@ async function main() {
   console.log('✅ Device types created');
 
   console.log('✅ Database seed completed!');
-  console.log('\n📋 Demo Credentials (Organized by Tier):');
-  console.log('\n🟣 TIER 0 - SUPER ADMIN (Password: SuperAdmin@1234)');
-  console.log('  👑 Super Administrator (Full Access) : superadmin@igdgroup.com / SuperAdmin@1234');
-  console.log('\n🔴 TIER 1 - EXECUTIVE (Password: Owner@1234)');
-  console.log('  👑 Owner (semua cabang)      : owner@igdgroup.com / Owner@1234');
-  console.log('\n🟠 TIER 2 - MANAGEMENT (Password: Manager@1234)');
-  console.log('  💼 CFO (semua cabang)        : cfo@igdgroup.com / Manager@1234');
-  console.log('  📊 Manager Jember (1 cabang): manager@igdgroup.com / Manager@1234');
-  console.log('  🌐 Regional (multi cabang)   : regional@igdgroup.com / Manager@1234');
-  console.log('  📈 CSO (sales director)      : cso@igdgroup.com / Manager@1234');
-  console.log('  📣 CMO (marketing)           : cmo@igdgroup.com / Manager@1234');
-  console.log('  🧑‍💼 HR Manager                : hr@igdgroup.com / Manager@1234');
-  console.log('\n🟡 TIER 3 - SUPERVISOR (Password: Supervisor@1234)');
-  console.log('  🧭 Supervisor                : spv@igdgroup.com / Supervisor@1234');
-  console.log('  🏬 Head of Store             : hs@igdgroup.com / Supervisor@1234');
-  console.log('  🔧 Service Ops               : sodo@igdgroup.com / Supervisor@1234');
-  console.log('\n🟢 TIER 4 - STAFF (Password: Staff@1234)');
-  console.log('  🎧 CS Jember (1 cabang)      : cs@igdgroup.com / Staff@1234');
-  console.log('  💰 AR Staff                  : ar@igdgroup.com / Staff@1234');
-  console.log('  🔨 Technician                : tech@igdgroup.com / Staff@1234');
-  console.log('  📦 Assistant Store Admin     : asa@igdgroup.com / Staff@1234');
-  console.log('  📊 Sales & Marketing Officer  : smo@igdgroup.com / Staff@1234');
-  console.log('  📝 Accounting Staff          : as@igdgroup.com / Staff@1234');
-  console.log('  💵 Cashier POS               : cashier@igdgroup.com / Staff@1234');
+  console.log('✅ Database seed completed!');
+  console.log('\n📋 Seed accounts (ORG-REAL, empty-first):');
+  console.log('  👑 Super Administrator : superadmin@igdgroup.com / SuperAdmin@1234');
+  console.log('  👑 Owner               : owner@igdgroup.com / Owner@1234');
 }
 
 main()
