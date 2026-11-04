@@ -195,6 +195,17 @@ export class ServiceOrdersService {
   }
 
   async create(dto: CreateServiceOrderDto, userId: string, branchId: string) {
+    // IGDERP-240: idempotent replay — offline intake retries with the same
+    // clientMutationId return the original order instead of double-creating.
+    if (dto.clientMutationId) {
+      const existing = await this.prisma.serviceOrder.findUnique({
+        where: { clientMutationId: dto.clientMutationId },
+      });
+      if (existing) {
+        return this.findById(existing.id);
+      }
+    }
+
     const {
       customerId,
       customerName,
@@ -405,10 +416,14 @@ export class ServiceOrdersService {
         totalPrice = totals.totalPrice;
       }
 
-      const serviceOrder = await tx.serviceOrder.create({
+      let serviceOrder;
+      try {
+        serviceOrder = await tx.serviceOrder.create({
         data: {
           serviceNumber: this.generateServiceNumber(),
           internalNumber: this.generateInternalNumber(),
+          // IGDERP-240: idempotency key for offline intake replays
+          clientMutationId: dto.clientMutationId || null,
           branchId,
           warehouseId: serviceWarehouse.id,
           customerId: finalCustomerId,
@@ -466,7 +481,17 @@ export class ServiceOrdersService {
           serviceType: true,
           partsUsed: true,
         },
-      });
+        });
+      } catch (e: any) {
+        // IGDERP-240: concurrent double-submit with same key — return the winner.
+        if (e?.code === 'P2002' && dto.clientMutationId) {
+          const winner = await tx.serviceOrder.findUnique({
+            where: { clientMutationId: dto.clientMutationId },
+          });
+          if (winner) return this.findById(winner.id);
+        }
+        throw e;
+      }
 
       // Create initial status history (catatan internal CS; default legacy)
       await tx.serviceStatusHistory.create({

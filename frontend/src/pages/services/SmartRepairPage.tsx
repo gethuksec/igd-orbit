@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -22,6 +22,9 @@ import { serviceOrdersService } from '@/services/service-orders.service';
 import { colorsService } from '@/services/colors.service';
 import { brandsService } from '@/services/brands.service';
 import type { CompletenessItem, ServicePartItem, SmartRepairPayload } from '@/types/service';
+// IGDERP-240: offline intake outbox + draft + master cache
+import { posCatalogCache, serviceOutbox, serviceDraftStore, compressImage, provisionalServiceRef } from '@/lib/offline-db';
+import { syncPendingIntakes } from '@/services/service-offline-sync.service';
 
 interface ItemRow {
   id: string;
@@ -103,12 +106,118 @@ export default function SmartRepairPage() {
   const [estimasiValue, setEstimasiValue] = useState('');
   const [estimasiManual, setEstimasiManual] = useState(false);
 
+  // ── IGDERP-240: offline intake (queue + draft + auto-sync) ──
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [syncing, setSyncing] = useState(false);
+  // Idempotency key for the in-progress intake — stable across retries, rotated after save/queue
+  const intakeKeyRef = useRef(crypto.randomUUID());
+  const draftLoadedRef = useRef(false);
+  const draftSaveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  const refreshPending = useCallback(async () => {
+    try {
+      setPendingCount(await serviceOutbox.count());
+    } catch {
+      // IndexedDB unavailable — outbox disabled
+    }
+  }, []);
+
+  const handleSyncNow = useCallback(async () => {
+    setSyncing(true);
+    try {
+      const res = await syncPendingIntakes();
+      if (res.synced === 0 && res.failed === 0) {
+        toast.info('Tidak ada antrean offline');
+      } else {
+        toast.success(`${res.synced} tersinkron` + (res.failed ? `, ${res.failed} butuh review` : ''));
+        if (res.remapped.length) navigate(`/service-orders/${res.remapped[res.remapped.length - 1].orderId}`);
+      }
+    } catch {
+      toast.error('Sync gagal — coba lagi');
+    }
+    setSyncing(false);
+    refreshPending();
+  }, [refreshPending, navigate]);
+
+  useEffect(() => {
+    refreshPending();
+    const goOnline = async () => {
+      setIsOnline(true);
+      const res = await syncPendingIntakes().catch(() => null);
+      if (res) {
+        if (res.synced > 0) {
+          toast.success(`${res.synced} intake offline tersinkron`);
+          navigate(`/service-orders/${res.remapped[res.remapped.length - 1].orderId}`);
+        }
+        if (res.failed > 0) toast.warning(`${res.failed} intake butuh review`);
+        refreshPending();
+      }
+    };
+    const goOffline = () => {
+      setIsOnline(false);
+      toast.warning('Offline — intake akan diantre, terkirim otomatis saat online');
+    };
+    window.addEventListener('online', goOnline);
+    window.addEventListener('offline', goOffline);
+    return () => {
+      window.removeEventListener('online', goOnline);
+      window.removeEventListener('offline', goOffline);
+    };
+  }, [refreshPending, navigate]);
+
+  // Draft restore (once) — form + foto survive reload via IndexedDB
+  useEffect(() => {
+    serviceDraftStore.load().then((d) => {
+      if (!d) {
+        draftLoadedRef.current = true;
+        return;
+      }
+      setForm((f) => ({ ...f, ...d.form }));
+      setRows(d.rows || []);
+      setSelectedLayanan(d.selectedLayanan || []);
+      setChecklist(d.checklist || []);
+      setLayananCost(d.layananCost || {});
+      setLayananNotes(d.layananNotes || {});
+      if (d.photoBlobs?.length) setDocFiles(d.photoBlobs as unknown as File[]);
+      draftLoadedRef.current = true;
+    }).catch(() => {
+      draftLoadedRef.current = true;
+    });
+  }, []);
+
+  // Draft autosave (debounced 1.5s)
+  useEffect(() => {
+    if (!draftLoadedRef.current) return;
+    if (draftSaveTimer.current) clearTimeout(draftSaveTimer.current);
+    draftSaveTimer.current = setTimeout(() => {
+      serviceDraftStore.save({
+        key: 'current',
+        form, rows, selectedLayanan, checklist, layananCost, layananNotes,
+        photoBlobs: [...docFiles],
+        savedAt: Date.now(),
+      });
+    }, 1500);
+    return () => {
+      if (draftSaveTimer.current) clearTimeout(draftSaveTimer.current);
+    };
+  }, [form, rows, selectedLayanan, checklist, layananCost, layananNotes, docFiles]);
+
   const authHeader = useCallback(() => ({ Authorization: 'Bearer ' + localStorage.getItem('access_token') }), []);
+  // IGDERP-240: masters fall back to IndexedDB cache when offline (max 7 hari)
   const fetchList = useCallback(async (path: string) => {
-    const res = await fetch(path, { headers: authHeader() });
-    if (!res.ok) return [];
-    const json = await res.json();
-    return Array.isArray(json) ? json : json.data || [];
+    const cacheKey = 'sr:' + path;
+    try {
+      const res = await fetch(path, { headers: authHeader() });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
+      const rows = Array.isArray(json) ? json : json.data || [];
+      posCatalogCache.set(cacheKey, rows);
+      return rows;
+    } catch {
+      const cached = await posCatalogCache.get<any[]>(cacheKey, 7 * 24 * 3600 * 1000);
+      return cached || [];
+    }
   }, [authHeader]);
 
   const { data: branches = [] } = useQuery({ queryKey: ['smart-repair', 'branches'], queryFn: () => fetchList('/api/v1/pos/branches') });
@@ -210,15 +319,76 @@ export default function SmartRepairPage() {
         }
         setDocFiles([]);
       }
+      // IGDERP-240: rotate idempotency key + drop the local draft
+      intakeKeyRef.current = crypto.randomUUID();
+      serviceDraftStore.clear();
       toast.success('Service order berhasil disimpan');
       navigate(orderId ? `/service-orders/${orderId}` : '/service-orders');
     },
-    onError: (err: any) => toast.error(err.response?.data?.message || 'Gagal menyimpan service order'),
+    onError: (err: any, payload: SmartRepairPayload) => {
+      // IGDERP-240: network died mid-request — queue instead of losing the intake
+      // (server dedupes by clientMutationId if the POST actually landed)
+      if (err && !err.response && payload) {
+        queueOfflineIntake(payload);
+        return;
+      }
+      toast.error(err.response?.data?.message || 'Gagal menyimpan service order');
+    },
   });
+
+  const resetIntakeForm = () => {
+    const outlet = form.outlet;
+    const warehouseId = form.warehouseId;
+    setForm({
+      outlet, warehouseId, receivedDate: isoLocal(), promisedDate: isoLocal(new Date(Date.now() + 24 * 3600 * 1000)),
+      customerId: '', customerName: '', customerPhone: '', customerSubdistrict: '',
+      deviceType: 'handphone', deviceUnit: '', deviceColor: '', deviceSerial: '', complaint: '',
+      technicianId: '', downPayment: '', internalNotes: '',
+      warrantyDays: '30',
+    });
+    setCustomerSearch('');
+    setRows([]);
+    setSelectedLayanan([]);
+    setChecklist([]);
+    setLayananCost({});
+    setLayananNotes({});
+    setDocFiles([]);
+    setEstimasiManual(false);
+    setEstimasiValue('');
+    setLockType('none');
+    setLockValue('');
+    setProductDraft(null);
+    setProductSearch('');
+    serviceDraftStore.clear();
+  };
+
+  // IGDERP-240: queue an offline intake (photos compressed into the outbox record)
+  const queueOfflineIntake = async (payload: SmartRepairPayload | undefined) => {
+    if (!payload) return;
+    try {
+      const photoBlobs = await Promise.all(docFiles.map((f) => compressImage(f)));
+      await serviceOutbox.add({
+        clientMutationId: intakeKeyRef.current,
+        payload,
+        photoBlobs,
+        provisionalRef: provisionalServiceRef(),
+        createdAt: Date.now(),
+        attempts: 0,
+        status: 'pending',
+      });
+    } catch {
+      toast.error('Gagal antre — IndexedDB tidak tersedia, jangan tutup halaman');
+      return;
+    }
+    intakeKeyRef.current = crypto.randomUUID();
+    refreshPending();
+    resetIntakeForm();
+    toast.success('Offline — intake masuk antrean, terkirim otomatis saat online');
+  };
 
   const handleOutletChange = (outlet: string) => { if (form.technicianId) toast.warning('Outlet berubah — Teknisi direset, pilih ulang'); setF({ outlet, warehouseId: '', technicianId: '' }); setRows([]); setBarangWarehouseId(''); setProductDraft(null); setProductSearch(''); };
   const handleWarehouseChange = (warehouseId: string) => { setF({ warehouseId }); setRows([]); setBarangWarehouseId(warehouseId); setProductDraft(null); setProductSearch(''); };
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.outlet) return toast.error('Outlet wajib dipilih');
     if (!form.warehouseId) return toast.error('Gudang wajib dipilih');
     if (!form.customerName.trim()) return toast.error('Pelanggan wajib diisi');
@@ -233,7 +403,8 @@ export default function SmartRepairPage() {
     if (!estimasiEfektif) return toast.error('Estimasi biaya wajib diisi');
     if (estimasiEfektif < estimatedAuto) return toast.error('Estimasi tidak boleh di bawah total layanan + barang');
     const parts: ServicePartItem[] = partsRows.map((r) => ({ productId: r.productId, quantity: r.quantity, unitPrice: r.price, purchaseType: 'internal', warrantyDays: r.warrantyDays, warehouseId: r.warehouseId }));
-    saveMutation.mutate({
+    const payload: SmartRepairPayload = {
+      clientMutationId: intakeKeyRef.current,
       branchId: form.outlet, warehouseId: form.warehouseId, customerId: form.customerId || undefined,
       customerName: form.customerName.trim(), customerPhone: form.customerPhone.trim(), customerSubdistrict: form.customerSubdistrict || undefined,
       deviceType: form.deviceType, deviceUnit: form.deviceUnit || undefined, deviceColor: form.deviceColor || undefined,
@@ -245,11 +416,27 @@ export default function SmartRepairPage() {
       deviceLockType: lockType, devicePassword: lockValue || undefined,
       taxPpn: false, taxIncPpn: false, taxPph22: false, taxPph23: false,
       parts: parts.length ? parts : undefined, completenessItems: checklist, internalNotes: form.internalNotes || undefined,
-    });
+    };
+    // IGDERP-240: offline → queue intake with compressed photos (server dedupes on sync)
+    if (!navigator.onLine) {
+      await queueOfflineIntake(payload);
+      return;
+    }
+    saveMutation.mutate(payload);
   };
 
   useHotkeys('f2', (e) => { e.preventDefault(); handleSave(); }, { enableOnFormTags: true });
-  useHotkeys('f3', (e) => { e.preventDefault(); toast.info('Simpan Sementara (Draft) akan diimplementasikan di v2'); }, { enableOnFormTags: true });
+  // IGDERP-240: F3 = real local draft (IndexedDB, survives reload + offline)
+  useHotkeys('f3', (e) => {
+    e.preventDefault();
+    serviceDraftStore.save({
+      key: 'current',
+      form, rows, selectedLayanan, checklist, layananCost, layananNotes,
+      photoBlobs: [...docFiles],
+      savedAt: Date.now(),
+    }).then(() => toast.success('Draf tersimpan lokal — lanjutkan kapan saja'))
+      .catch(() => toast.error('Gagal menyimpan draf'));
+  }, { enableOnFormTags: true });
   useHotkeys('f5', (e) => { e.preventDefault(); window.location.reload(); }, { enableOnFormTags: true });
 
   const chooseCustomer = (customer: any) => {
@@ -297,6 +484,20 @@ export default function SmartRepairPage() {
           <Button variant="outline" size="sm" className="border-primary text-primary" onClick={handleSave} disabled={saveMutation.isPending}><Save className="h-4 w-4" /> Simpan <span className="text-muted-foreground">F2</span></Button>
         </div>
       </div>
+      {/* IGDERP-240: offline mode + pending-queue banners */}
+      {!isOnline && (
+        <div className="border-b border-yellow-200 bg-yellow-50 px-4 py-2 text-center text-sm text-yellow-800">
+          Mode offline — intake akan diantre beserta foto, terkirim otomatis saat online.
+        </div>
+      )}
+      {pendingCount > 0 && (
+        <div className="flex items-center justify-center gap-3 border-b border-blue-200 bg-blue-50 px-4 py-2 text-center text-sm text-blue-800">
+          <span>{pendingCount} intake offline menunggu sync</span>
+          <Button size="sm" variant="outline" onClick={handleSyncNow} disabled={syncing || !isOnline}>
+            {syncing ? 'Syncing…' : 'Sync sekarang'}
+          </Button>
+        </div>
+      )}
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
         <Card><CardContent className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
           <div><Label><span className="text-red-500">*</span> Outlet</Label><Select value={form.outlet} onValueChange={handleOutletChange} className="mt-1"><option value="">Pilih Outlet</option>{branches.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}</Select></div>
@@ -327,7 +528,7 @@ export default function SmartRepairPage() {
         <Card><CardContent className="p-4"><Label>Catatan Internal (tidak tampil pada nota)</Label><Textarea value={form.internalNotes} onChange={(e) => setF({ internalNotes: e.target.value })} placeholder="Catatan internal teknisi: ..." className="mt-2 min-h-14" /></CardContent></Card>
       </div>
 
-      <div className="shrink-0 bg-primary px-4 py-2 text-xs text-primary-foreground"><div className="flex items-center gap-6"><span><strong>F2</strong> = Simpan</span><span><strong>F3</strong> = Simpan Sementara</span><span><strong>F5</strong> = Refresh</span><div className="ml-auto opacity-80">IGD Ponsel - Smart Repair</div></div></div>
+      <div className="shrink-0 bg-primary px-4 py-2 text-xs text-primary-foreground"><div className="flex items-center gap-6"><span><strong>F2</strong> = Simpan</span><span><strong>F3</strong> = Simpan Sementara</span><span><strong>F5</strong> = Refresh</span>{pendingCount > 0 && <span className="rounded bg-white/20 px-2 py-0.5">● {pendingCount} antrean offline</span>}<div className="ml-auto opacity-80">IGD Ponsel - Smart Repair</div></div></div>
 
       <LockModal
         open={openLock}

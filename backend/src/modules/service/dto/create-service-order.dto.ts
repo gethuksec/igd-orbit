@@ -269,6 +269,11 @@ export class CreateServiceOrderDto {
   @ValidateNested({ each: true })
   @Type(() => CompletenessItemDto)
   completenessItems?: CompletenessItemDto[];
+
+  // IGDERP-240: offline intake sync idempotency key (FE-generated uuid v4)
+  @IsUUID('4', { message: 'clientMutationId must be a valid UUID' })
+  @IsOptional()
+  clientMutationId?: string;
 }
 
 

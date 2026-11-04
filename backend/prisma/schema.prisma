@@ -1113,6 +1113,8 @@ model ServiceOrder {
   id                   String  @id @default(uuid())
   serviceNumber        String  @unique @map("service_number") // SRV-YYYYMMDD-XXXXXX
   internalNumber       String? @unique @map("internal_number") // INT-XXXXXX
+  // IGDERP-240: offline intake sync — FE-generated uuid per intake, dedupes reconnect replays
+  clientMutationId     String? @unique @map("client_mutation_id")
   branchId             String  @map("branch_id")
   customerId           String? @map("customer_id") // Nullable for walk-in
   serviceTypeId        String? @map("service_type_id")

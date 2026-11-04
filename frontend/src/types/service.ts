@@ -48,6 +48,8 @@ export interface ServicePartItem {
 }
 
 export interface SmartRepairPayload {
+  // IGDERP-240: offline intake idempotency key (server dedupes reconnect replays)
+  clientMutationId?: string;
   branchId?: string;
   customerId?: string;
   customerName: string;
