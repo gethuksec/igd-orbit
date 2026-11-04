@@ -20,6 +20,16 @@ export class PosService {
       throw new BadRequestException('Transaction must have at least one item');
     }
 
+    // IGDERP-239: idempotent replay — offline outbox retries with the same
+    // clientMutationId return the original transaction instead of double-selling.
+    if (dto.clientMutationId) {
+      const existing = await this.prisma.salesTransaction.findUnique({
+        where: { clientMutationId: dto.clientMutationId },
+        include: { items: true, payments: true },
+      });
+      if (existing) return existing;
+    }
+
     // Resolve the outlet-owned GOOD warehouse. Legacy callers may still send
     // only branchId; new callers should send warehouseId explicitly.
     const warehouse = dto.warehouseId
@@ -77,13 +87,17 @@ export class PosService {
 
     return this.prisma.$transaction(async (tx) => {
       // Create the transaction with items (snapshot real product name/sku)
-      const transaction = await tx.salesTransaction.create({
-        data: {
-          transactionNumber,
-          transactionType: 'pos',
-          branchId: dto.branchId,
-          customerId: dto.customerId || null,
-          cashierId: userId,
+      let transaction;
+      try {
+        transaction = await tx.salesTransaction.create({
+          data: {
+            transactionNumber,
+            transactionType: 'pos',
+            branchId: dto.branchId,
+            customerId: dto.customerId || null,
+            // IGDERP-239: idempotency key for offline outbox replays
+            clientMutationId: dto.clientMutationId || null,
+            cashierId: userId,
           paymentTermId: dto.paymentTermId || null,
           salesPersonId: dto.salesPersonId || null,
           warehouseId: warehouse.id,
@@ -119,7 +133,18 @@ export class PosService {
           items: true,
           payments: true,
         },
-      });
+        });
+      } catch (e: any) {
+        // IGDERP-239: concurrent double-submit with same key — return the winner.
+        if (e?.code === 'P2002' && dto.clientMutationId) {
+          const winner = await tx.salesTransaction.findUnique({
+            where: { clientMutationId: dto.clientMutationId },
+            include: { items: true, payments: true },
+          });
+          if (winner) return winner;
+        }
+        throw e;
+      }
 
       // Deduct stock + create OUT/SALE movement (mirror sales-transactions.service.ts)
       for (const item of dto.items) {

@@ -8,7 +8,7 @@ import App from './App.tsx';
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
-      .register('/sw.js?v=3')  // v3 bump: forces SW script re-fetch (CF/browser cache bust)
+      .register('/sw.js?v=4')  // v4 bump: offline-capable SW (IGDERP-239)
       .then((registration) => {
         console.log('SW registered:', registration);
 

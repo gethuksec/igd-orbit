@@ -603,6 +603,8 @@ model SalesTransaction {
   receiptNotes       String?   @map("receipt_notes") @db.Text
   internalNotes      String?   @map("internal_notes") @db.Text
   receiptUrl         String?   @map("receipt_url")
+  // IGDERP-239: offline PoS sync — FE-generated uuid per sale, dedupes reconnect replays
+  clientMutationId   String?   @unique @map("client_mutation_id")
   voidReason         String?   @map("void_reason")
   voidedAt           DateTime? @map("voided_at")
   voidedBy           String?   @map("voided_by")

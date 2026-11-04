@@ -176,6 +176,17 @@ export class SalesTransactionsService {
       throw new BadRequestException('Transaction must have at least one item');
     }
 
+    // IGDERP-239: idempotent replay — offline outbox retries with the same
+    // clientMutationId return the original transaction instead of double-selling.
+    if (createDto.clientMutationId) {
+      const existing = await this.prisma.salesTransaction.findUnique({
+        where: { clientMutationId: createDto.clientMutationId },
+      });
+      if (existing) {
+        return this.findById(existing.id);
+      }
+    }
+
     // Validate customer if provided
     if (createDto.customerId) {
       const customer = await this.prisma.customer.findUnique({
@@ -322,13 +333,17 @@ export class SalesTransactionsService {
     // Start database transaction
     return await this.prisma.$transaction(async (tx) => {
       // Create sales transaction
-      const transaction = await tx.salesTransaction.create({
-        data: {
-          transactionNumber,
-          transactionType: createDto.transactionType,
-          branchId,
-          customerId: createDto.customerId || null,
-          cashierId: userId,
+      let transaction;
+      try {
+        transaction = await tx.salesTransaction.create({
+          data: {
+            transactionNumber,
+            transactionType: createDto.transactionType,
+            branchId,
+            customerId: createDto.customerId || null,
+            // IGDERP-239: idempotency key for offline outbox replays
+            clientMutationId: createDto.clientMutationId || null,
+            cashierId: userId,
           warehouseId: warehouse.id,
           status: 'completed', // All transactions are completed once created (pending is for held transactions)
           subtotal: calculation.subtotal,
@@ -342,6 +357,16 @@ export class SalesTransactionsService {
           internalNotes: createDto.internalNotes || null,
         },
       });
+      } catch (e: any) {
+        // IGDERP-239: concurrent double-submit with same key — return the winner.
+        if (e?.code === 'P2002' && createDto.clientMutationId) {
+          const winner = await tx.salesTransaction.findUnique({
+            where: { clientMutationId: createDto.clientMutationId },
+          });
+          if (winner) return this.findById(winner.id);
+        }
+        throw e;
+      }
 
       // Create transaction items
       const items = [];

@@ -10,6 +10,9 @@ import { formatCurrency } from '@/utils/format';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { salesService } from '../../services/sales.service';
+// IGDERP-239: offline outbox + sync (cash-only offline)
+import { posOutbox, provisionalNumber } from '@/lib/offline-db';
+import { syncPendingSales } from '@/services/pos-offline-sync.service';
 import {
   Search,
   Plus,
@@ -293,6 +296,86 @@ export default function POSTransaksi() {
     credit_card: 'Kartu',
   };
 
+  // ── IGDERP-239: offline mode (cash-only, outbox queue) ──
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [syncing, setSyncing] = useState(false);
+  // Idempotency key for the in-progress sale — stable across retries, rotated after save/queue
+  const saleKeyRef = useRef(crypto.randomUUID());
+  const draftLoadedRef = useRef(false);
+
+  const refreshPending = useCallback(async () => {
+    try {
+      setPendingCount(await posOutbox.count());
+    } catch {
+      // IndexedDB unavailable (private mode) — outbox disabled
+    }
+  }, []);
+
+  const handleSyncNow = useCallback(async () => {
+    setSyncing(true);
+    try {
+      const res = await syncPendingSales();
+      if (res.synced === 0 && res.failed === 0) {
+        toast.info('Tidak ada antrean offline');
+      } else {
+        toast.success(`${res.synced} tersinkron` + (res.failed ? `, ${res.failed} butuh review` : ''));
+      }
+    } catch {
+      toast.error('Sync gagal — coba lagi');
+    }
+    setSyncing(false);
+    refreshPending();
+  }, [refreshPending]);
+
+  useEffect(() => {
+    refreshPending();
+    const goOnline = async () => {
+      setIsOnline(true);
+      const res = await syncPendingSales().catch(() => null);
+      if (res) {
+        if (res.synced > 0) toast.success(`${res.synced} transaksi offline tersinkron`);
+        if (res.failed > 0) toast.warning(`${res.failed} transaksi butuh review`);
+        refreshPending();
+      }
+    };
+    const goOffline = () => {
+      setIsOnline(false);
+      setPaymentMethod('cash');
+      toast.warning('Offline — mode Tunai saja, transaksi akan diantre');
+    };
+    window.addEventListener('online', goOnline);
+    window.addEventListener('offline', goOffline);
+    return () => {
+      window.removeEventListener('online', goOnline);
+      window.removeEventListener('offline', goOffline);
+    };
+  }, [refreshPending]);
+
+  // Draft persistence — form survives reload (queue in IndexedDB survives too)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('pos-draft');
+      if (raw) {
+        const d = JSON.parse(raw);
+        if (d.form) setForm((prev) => ({ ...prev, ...d.form }));
+        if (Array.isArray(d.rows) && d.rows.length) setRows(d.rows);
+      }
+    } catch {
+      // corrupt draft — ignore
+    }
+    draftLoadedRef.current = true;
+  }, []);
+
+  useEffect(() => {
+    if (!draftLoadedRef.current) return;
+    try {
+      localStorage.setItem('pos-draft', JSON.stringify({ form, rows }));
+    } catch {
+      // quota — draft is best-effort
+    }
+  }, [form, rows]);
+
   // ── Build transaction payload ──
   const buildPayload = (status: 'completed' | 'held') => {
     const items = rows
@@ -307,6 +390,8 @@ export default function POSTransaksi() {
     const typeId = customerTypes.find((st: any) => st.name === form.tipeCustomer)?.id || undefined;
     const total = items.reduce((s, i) => s + i.quantity * i.unitPrice - i.discountAmount, 0);
     const payload: any = {
+      // IGDERP-239: idempotency key — server dedupes reconnect replays
+      clientMutationId: saleKeyRef.current,
       branchId: form.outletPenjual,
       customerId: form.pelangganId || undefined,
       paymentTermId: termId,
@@ -325,6 +410,39 @@ export default function POSTransaksi() {
     return payload;
   };
 
+  // ── Queue an offline cash sale (IGDERP-239) ──
+  const queueOfflineSale = async (payload: any, failedOnline = false) => {
+    try {
+      await posOutbox.add({
+        clientMutationId: saleKeyRef.current,
+        payload,
+        provisionalNumber: provisionalNumber(form.outletPenjual),
+        createdAt: Date.now(),
+        attempts: 0,
+        status: 'pending',
+      });
+    } catch {
+      toast.error('Gagal antre — IndexedDB tidak tersedia, jangan tutup halaman');
+      return;
+    }
+    saleKeyRef.current = crypto.randomUUID();
+    refreshPending();
+    toast.success(failedOnline ? 'Koneksi putus — penjualan masuk antrean offline' : 'Offline — penjualan Tunai masuk antrean');
+    setRows(createInitialRows);
+    setForm((prev) => ({
+      ...prev,
+      pelanggan: '', pelangganId: '', keterangan: '', keteranganStruk: '', termin: 'Tunai',
+      sales: '', tipeCustomer: '', gudang: '', tanggalJatuhTempo: '',
+    }));
+    setCustomerSearch('');
+    setQuickSearch('');
+    try {
+      localStorage.removeItem('pos-draft');
+    } catch {
+      // ignore
+    }
+  };
+
   // ── Save transaction (real POST — T21 rewiring) ──
   const saveTransaction = async (status: 'completed' | 'held') => {
     if (!form.outletPenjual) { toast.error('Outlet Penjual wajib diisi'); return; }
@@ -334,12 +452,26 @@ export default function POSTransaksi() {
     const items = rows.filter((r) => r.productId);
     if (items.length === 0) { toast.error('Minimal satu barang wajib diisi'); return; }
 
+    const payload = buildPayload(status);
+
+    // IGDERP-239: drafts are server-side (held) — queue completed sales only
+    if (!navigator.onLine && status === 'held') {
+      toast.error('Draf butuh koneksi — hanya penjualan selesai (Simpan) yang bisa antre offline');
+      return;
+    }
+
+    // IGDERP-239: fully offline → queue, don't lose the sale
+    if (!navigator.onLine) {
+      await queueOfflineSale(payload);
+      return;
+    }
+
     const token = localStorage.getItem('access_token');
     try {
       const res = await fetch('/api/v1/pos/transactions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-        body: JSON.stringify(buildPayload(status)),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -348,6 +480,7 @@ export default function POSTransaksi() {
         return;
       }
       const data = await res.json();
+      saleKeyRef.current = crypto.randomUUID();
       if (status === 'held') {
         // T21 decision: draft stays on page — data kept for further editing
         toast.success('Draf penjualan tersimpan');
@@ -362,9 +495,16 @@ export default function POSTransaksi() {
       }));
       setCustomerSearch('');
       setQuickSearch('');
+      try {
+        localStorage.removeItem('pos-draft');
+      } catch {
+        // ignore
+      }
       if (data?.id) navigate(`/sales/transactions/${data.id}`);
     } catch {
-      toast.error('Gagal menyimpan transaksi');
+      // IGDERP-239: network died mid-request — queue instead of losing the sale
+      // (server dedupes by clientMutationId if the POST actually landed)
+      await queueOfflineSale(payload, true);
     }
   };
 
@@ -497,6 +637,20 @@ export default function POSTransaksi() {
       <div className="bg-orange-50 border-b border-orange-200 px-4 py-2 text-center text-sm text-orange-800">
         Inputkan data lalu tekan tombol <strong>Simpan</strong> untuk menyimpan
       </div>
+      {/* IGDERP-239: offline mode + pending-queue banners */}
+      {!isOnline && (
+        <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-2 text-center text-sm text-yellow-800">
+          Mode offline — Tunai saja. Penjualan akan diantre dan tersinkron otomatis saat online.
+        </div>
+      )}
+      {pendingCount > 0 && (
+        <div className="bg-blue-50 border-b border-blue-200 px-4 py-2 text-center text-sm text-blue-800 flex items-center justify-center gap-3">
+          <span>{pendingCount} transaksi offline menunggu sync</span>
+          <Button size="sm" variant="outline" onClick={handleSyncNow} disabled={syncing || !isOnline}>
+            {syncing ? 'Syncing…' : 'Sync sekarang'}
+          </Button>
+        </div>
+      )}
 
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 max-w-full">
         {/* ═══ Header Section ═══ */}
@@ -957,18 +1111,24 @@ export default function POSTransaksi() {
               </div>
               <hr className="my-2" />
               {/* T21: payment method — only Tunai enabled for now */}
+              {/* IGDERP-239: offline forces Tunai (transfer/e-wallet/kartu need online) */}
               <div className="flex items-center justify-between gap-2">
                 <Label className="text-xs font-medium text-gray-700">Metode Bayar</Label>
                 <select
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value as any)}
-                  className="h-8 border border-gray-300 rounded-md px-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary bg-white"
+                  disabled={!isOnline}
+                  title={!isOnline ? 'Offline: Tunai saja' : undefined}
+                  className="h-8 border border-gray-300 rounded-md px-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary bg-white disabled:bg-gray-100"
                 >
                   {Object.entries(PAYMENT_LABELS).map(([key, label]) => (
                     <option key={key} value={key} disabled={key !== 'cash'}>{label}</option>
                   ))}
                 </select>
               </div>
+              {!isOnline && (
+                <p className="text-[11px] text-yellow-700">Offline: pembayaran Tunai saja — opsi lain aktif lagi saat online.</p>
+              )}
               <div className="flex justify-between text-base font-bold">
                 <span>Total :</span>
                 <span className="text-primary font-bold">{formatCurrency(subTotal)}</span>

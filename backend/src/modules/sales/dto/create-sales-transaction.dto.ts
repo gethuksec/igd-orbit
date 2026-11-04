@@ -66,5 +66,10 @@ export class CreateSalesTransactionDto {
   @IsString({ message: "Internal notes must be a string" })
   @IsOptional()
   internalNotes?: string;
+
+  // IGDERP-239: offline PoS sync idempotency key (FE-generated uuid v4)
+  @IsUUID('4', { message: 'clientMutationId must be a valid UUID' })
+  @IsOptional()
+  clientMutationId?: string;
 }
 
