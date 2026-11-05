@@ -10,6 +10,7 @@ import { formatCurrency } from '@/utils/format';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { salesService } from '../../services/sales.service';
+import { api } from '@/services/api';
 // IGDERP-239: offline outbox + sync (cash-only offline)
 import { posOutbox, provisionalNumber } from '@/lib/offline-db';
 import { syncPendingSales } from '@/services/pos-offline-sync.service';
@@ -328,6 +329,28 @@ export default function POSTransaksi() {
     refreshPending();
   }, [refreshPending]);
 
+  // Heartbeat for stuck states (IGDERP-239 E2E find): after an offline reload
+  // some browsers report navigator.onLine=true and never fire `online`, so the
+  // queue would sit until manual sync. Reconcile every 15s while pending exists.
+  const syncingRef = useRef(false);
+  useEffect(() => {
+    if (pendingCount === 0) return;
+    const t = setInterval(async () => {
+      if (!navigator.onLine || syncingRef.current) return;
+      syncingRef.current = true;
+      try {
+        const res = await syncPendingSales();
+        if (res.synced > 0) toast.success(`${res.synced} transaksi offline tersinkron`);
+        if (res.failed > 0) toast.warning(`${res.failed} transaksi butuh review`);
+        if (res.synced > 0 || res.failed > 0) refreshPending();
+      } catch {
+        // next tick retries — never park on transient errors here
+      }
+      syncingRef.current = false;
+    }, 15000);
+    return () => clearInterval(t);
+  }, [pendingCount, refreshPending]);
+
   useEffect(() => {
     refreshPending();
     const goOnline = async () => {
@@ -466,20 +489,10 @@ export default function POSTransaksi() {
       return;
     }
 
-    const token = localStorage.getItem('access_token');
+    // IGDERP-241/D4: online POST via the api instance so an expired access
+    // token triggers silent refresh + retry instead of failing the sale.
     try {
-      const res = await fetch('/api/v1/pos/transactions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        const msg = Array.isArray(err?.message) ? err.message.join(', ') : (err?.message || 'Gagal menyimpan transaksi');
-        toast.error(msg);
-        return;
-      }
-      const data = await res.json();
+      const { data } = await api.post('/pos/transactions', payload);
       saleKeyRef.current = crypto.randomUUID();
       if (status === 'held') {
         // T21 decision: draft stays on page — data kept for further editing
@@ -501,9 +514,16 @@ export default function POSTransaksi() {
         // ignore
       }
       if (data?.id) navigate(`/sales/transactions/${data.id}`);
-    } catch {
-      // IGDERP-239: network died mid-request — queue instead of losing the sale
-      // (server dedupes by clientMutationId if the POST actually landed)
+    } catch (e: any) {
+      // Server responded (4xx/5xx validation) → show it, don't queue.
+      // No response at all → network died mid-request, queue instead of losing the sale
+      // (server dedupes by clientMutationId if the POST actually landed).
+      if (e?.response) {
+        const err = e.response.data;
+        const msg = Array.isArray(err?.message) ? err.message.join(', ') : (err?.message || 'Gagal menyimpan transaksi');
+        toast.error(msg);
+        return;
+      }
       await queueOfflineSale(payload, true);
     }
   };

@@ -140,6 +140,30 @@ export default function SmartRepairPage() {
     refreshPending();
   }, [refreshPending, navigate]);
 
+  // Heartbeat for stuck states (same find as PoS): after an offline reload
+  // some browsers never fire `online`. Reconcile every 15s while pending exists.
+  const intakeSyncingRef = useRef(false);
+  useEffect(() => {
+    if (pendingCount === 0) return;
+    const t = setInterval(async () => {
+      if (!navigator.onLine || intakeSyncingRef.current) return;
+      intakeSyncingRef.current = true;
+      try {
+        const res = await syncPendingIntakes();
+        if (res.synced > 0) {
+          toast.success(`${res.synced} intake offline tersinkron`);
+          if (res.remapped.length) navigate(`/service-orders/${res.remapped[res.remapped.length - 1].orderId}`);
+        }
+        if (res.failed > 0) toast.warning(`${res.failed} intake butuh review`);
+        if (res.synced > 0 || res.failed > 0) refreshPending();
+      } catch {
+        // next tick retries
+      }
+      intakeSyncingRef.current = false;
+    }, 15000);
+    return () => clearInterval(t);
+  }, [pendingCount, refreshPending, navigate]);
+
   useEffect(() => {
     refreshPending();
     const goOnline = async () => {
