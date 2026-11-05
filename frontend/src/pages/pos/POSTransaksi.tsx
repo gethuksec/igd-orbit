@@ -12,14 +12,23 @@ import { toast } from 'sonner';
 import { salesService } from '../../services/sales.service';
 import { api } from '@/services/api';
 // IGDERP-239: offline outbox + sync (cash-only offline)
-import { posOutbox, provisionalNumber } from '@/lib/offline-db';
+import { posOutbox, provisionalNumber, posCatalogCache } from '@/lib/offline-db';
 import { syncPendingSales } from '@/services/pos-offline-sync.service';
+import {
+  fetchCatalog,
+  getCachedCatalog,
+  filterProducts,
+  filterCustomers,
+  CATALOG_TTL_MS as CATALOG_TTL,
+  type PosCatalog,
+} from '@/services/pos-catalog.service';
 import {
   Search,
   Plus,
   Trash2,
   Pencil,
   Copy,
+  RefreshCw,
   FileText,
   Repeat,
   Info,
@@ -115,29 +124,82 @@ export default function POSTransaksi() {
   const totalQty = rows.reduce((sum, r) => sum + (r.quantity || 0), 0);
   const subTotal = rows.reduce((sum, r) => sum + (r.total || 0), 0);
 
+  // IGDERP-244: declared early — search queryFns + catalog logic below read it.
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   // ── Customer search ──
+  // IGDERP-244: offline catalog (stored on page render). queryFns below read
+  // catalogRef so offline search/barcode/dropdowns work without network.
+  const [catalog, setCatalog] = useState<PosCatalog | null>(null);
+  const catalogRef = useRef<PosCatalog | null>(null);
+  const [catalogRefreshing, setCatalogRefreshing] = useState(false);
+  const applyCatalog = useCallback((c: PosCatalog | null) => {
+    catalogRef.current = c;
+    setCatalog(c);
+  }, []);
+  const refreshCatalog = useCallback(async (warehouseId?: string, silent = true) => {
+    if (!navigator.onLine) return null;
+    if (!silent) setCatalogRefreshing(true);
+    try {
+      const fresh = await fetchCatalog(warehouseId);
+      catalogRef.current = fresh;
+      setCatalog(fresh);
+      return fresh;
+    } catch {
+      return null;
+    } finally {
+      if (!silent) setCatalogRefreshing(false);
+    }
+  }, []);
+
+  // IGDERP-244: catalog stored on page render — seed from cache instantly for
+  // offline use, refresh in background while online; re-scoped on warehouse change.
+  const gudangRef = useRef(form.gudang);
+  gudangRef.current = form.gudang;
+  useEffect(() => {
+    let cancelled = false;
+    getCachedCatalog(form.gudang).then((c) => {
+      if (!cancelled && c) applyCatalog(c);
+    });
+    if (navigator.onLine) {
+      refreshCatalog(form.gudang).catch(() => {});
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [form.gudang, applyCatalog, refreshCatalog]);
+
   const [customerSearch, setCustomerSearch] = useState('');
   const [showCustomerResults, setShowCustomerResults] = useState(false);
   const customerRef = useRef<HTMLDivElement>(null);
 
   const { data: customerResults = [] } = useQuery({
     queryKey: ['pos-customers', customerSearch],
+    networkMode: 'always', // IGDERP-244: run queryFn offline (local catalog fallback)
     queryFn: async () => {
-      const token = localStorage.getItem('access_token');
-      const res = await fetch('/api/v1/pos/customers?q=' + encodeURIComponent(customerSearch) + '&limit=10', {
-        headers: { Authorization: 'Bearer ' + token }
-      });
-      if (!res.ok) return [];
-      return res.json();
+      // IGDERP-244: offline → local catalog; online → API with cache fallback.
+      if (!navigator.onLine) {
+        return filterCustomers(catalogRef.current?.customers, customerSearch);
+      }
+      try {
+        const token = localStorage.getItem('access_token');
+        const res = await fetch('/api/v1/pos/customers?q=' + encodeURIComponent(customerSearch) + '&limit=10', {
+          headers: { Authorization: 'Bearer ' + token }
+        });
+        if (!res.ok) return filterCustomers(catalogRef.current?.customers, customerSearch);
+        return res.json();
+      } catch {
+        return filterCustomers(catalogRef.current?.customers, customerSearch);
+      }
     },
     enabled: customerSearch.length >= 2,
   });
 
-  // Show selected customer deposit balance in POS
+  // Show selected customer deposit balance in POS (live check — online only;
+  // deposit payments are disabled offline, so no offline fallback needed)
   const { data: posDepositBalance } = useQuery({
     queryKey: ['pos-deposit-balance', form.pelangganId],
     queryFn: () => salesService.getDepositBalance(form.pelangganId.toString()),
-    enabled: !!form.pelangganId,
+    enabled: !!form.pelangganId && isOnline,
   });
 
   // Close customer dropdown on click outside
@@ -156,13 +218,21 @@ export default function POSTransaksi() {
 
   const { data: productResults = [] } = useQuery({
     queryKey: ['pos-products', productSearchState.query],
+    networkMode: 'always', // IGDERP-244: run queryFn offline (local catalog fallback)
     queryFn: async () => {
-      const token = localStorage.getItem('access_token');
-      const res = await fetch('/api/v1/pos/products?q=' + encodeURIComponent(productSearchState.query) + '&limit=10', {
-        headers: { Authorization: 'Bearer ' + token }
-      });
-      if (!res.ok) return [];
-      return res.json();
+      const q = productSearchState.query;
+      // IGDERP-244: offline → local catalog; online → API with cache fallback.
+      if (!navigator.onLine) return filterProducts(catalogRef.current?.products, q);
+      try {
+        const token = localStorage.getItem('access_token');
+        const res = await fetch('/api/v1/pos/products?q=' + encodeURIComponent(q) + '&limit=10', {
+          headers: { Authorization: 'Bearer ' + token }
+        });
+        if (!res.ok) return filterProducts(catalogRef.current?.products, q);
+        return res.json();
+      } catch {
+        return filterProducts(catalogRef.current?.products, q);
+      }
     },
     enabled: productSearchState.query.length >= 2,
   });
@@ -202,27 +272,27 @@ export default function POSTransaksi() {
       barcodeTimeoutRef.current = setTimeout(async () => {
         if (barcodeBuffer.length >= 3) {
           try {
-            const token = localStorage.getItem('access_token');
-          const barcodeRes = await fetch('/api/v1/pos/products?q=' + barcodeBuffer + '&limit=1', {
-            headers: { Authorization: 'Bearer ' + token }
-          });
-          const barcodeProducts = await barcodeRes.json();
-          const product = barcodeProducts[0];
-          if (product) {
-              // Find first empty row
-              const emptyIdx = rows.findIndex((r) => !r.productName && !r.barcode);
-              if (emptyIdx >= 0) {
-                addProductToRow(emptyIdx, product, 1);
-              } else {
-                // Add a new row
-                setRows((prev) => [...prev, { ...createEmptyRow(), ...product, productId: product.id, quantity: 1 }]);
+              const token = localStorage.getItem('access_token');
+              const barcodeRes = await fetch('/api/v1/pos/products?q=' + barcodeBuffer + '&limit=1', {
+                headers: { Authorization: 'Bearer ' + token }
+              });
+              const barcodeProducts = await barcodeRes.json();
+              const product = barcodeProducts[0];
+              if (product) {
+                // Find first empty row
+                const emptyIdx = rows.findIndex((r) => !r.productName && !r.barcode);
+                if (emptyIdx >= 0) {
+                  addProductToRow(emptyIdx, product, 1);
+                } else {
+                  // Add a new row
+                  setRows((prev) => [...prev, { ...createEmptyRow(), ...product, productId: product.id, quantity: 1 }]);
+                }
+                setBarcodeBuffer('');
+                setQuickSearch('');
               }
-              setBarcodeBuffer('');
-              setQuickSearch('');
+            } catch {
+              // Not found
             }
-          } catch {
-            // Not found
-          }
         }
         setBarcodeBuffer('');
       }, 150);
@@ -298,7 +368,7 @@ export default function POSTransaksi() {
   };
 
   // ── IGDERP-239: offline mode (cash-only, outbox queue) ──
-  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  // (isOnline declared near top — search/catalog logic reads it)
   const [pendingCount, setPendingCount] = useState(0);
   const [syncing, setSyncing] = useState(false);
   // IGDERP-241 (D5): expandable queue for offline print-from-queue
@@ -361,6 +431,8 @@ export default function POSTransaksi() {
     refreshPending();
     const goOnline = async () => {
       setIsOnline(true);
+      // IGDERP-244: re-store the catalog as soon as we're back online.
+      refreshCatalog(gudangRef.current).catch(() => {});
       const res = await syncPendingSales().catch(() => null);
       if (res) {
         if (res.synced > 0) toast.success(`${res.synced} transaksi offline tersinkron`);
@@ -576,70 +648,66 @@ export default function POSTransaksi() {
   }, { enableOnFormTags: true });
 
   // ── Fetch options for dropdowns ──
-  const { data: branches = [] } = useQuery({
-    queryKey: ['pos-branches'],
-    queryFn: async () => {
+  // IGDERP-244: masters are cached on fetch and read from cache when offline.
+  // Cache-through helper: online → fetch + store; offline → stored list.
+  const cachedFetch = useCallback(async (key: string, url: string): Promise<any[]> => {
+    if (!navigator.onLine) {
+      return (await posCatalogCache.get<any[]>(key, CATALOG_TTL)) ?? [];
+    }
+    try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch('/api/v1/pos/branches', {
+      const res = await fetch(url, {
         headers: { Authorization: 'Bearer ' + token }
       });
-      if (!res.ok) return [];
-      return res.json();
-    },
+      if (!res.ok) return (await posCatalogCache.get<any[]>(key, CATALOG_TTL)) ?? [];
+      const data = await res.json();
+      await posCatalogCache.set(key, data);
+      return data;
+    } catch {
+      return (await posCatalogCache.get<any[]>(key, CATALOG_TTL)) ?? [];
+    }
+  }, []);
+
+  const { data: branches = [] } = useQuery({
+    queryKey: ['pos-branches'],
+    networkMode: 'always', // IGDERP-244: run queryFn offline (local catalog fallback)
+    queryFn: () => cachedFetch('pos-branches', '/api/v1/pos/branches'),
   });
 
   const { data: paymentTerms = [] } = useQuery({
     queryKey: ['pos-payment-terms'],
-    queryFn: async () => {
-      const token = localStorage.getItem('access_token');
-      const res = await fetch('/api/v1/pos/payment-terms', {
-        headers: { Authorization: 'Bearer ' + token }
-      });
-      if (!res.ok) return [];
-      return res.json();
-    },
+    networkMode: 'always', // IGDERP-244: run queryFn offline (local catalog fallback)
+    queryFn: () => cachedFetch('pos-payment-terms', '/api/v1/pos/payment-terms'),
   });
 
   const { data: customerTypes = [] } = useQuery({
     queryKey: ['pos-customer-types'],
-    queryFn: async () => {
-      const token = localStorage.getItem('access_token');
-      const res = await fetch('/api/v1/pos/customer-types', {
-        headers: { Authorization: 'Bearer ' + token }
-      });
-      if (!res.ok) return [];
-      return res.json();
-    },
+    networkMode: 'always', // IGDERP-244: run queryFn offline (local catalog fallback)
+    queryFn: () => cachedFetch('pos-customer-types', '/api/v1/pos/customer-types'),
   });
 
   // T21: sales persons + warehouses (were empty dropdowns)
   // D5: both scoped to the selected outlet (per-page explicit branch model)
   const { data: salesPersons = [] } = useQuery({
     queryKey: ['pos-sales-persons', form.outletPenjual || 'all'],
-    queryFn: async () => {
-      const token = localStorage.getItem('access_token');
+    networkMode: 'always', // IGDERP-244: run queryFn offline (local catalog fallback)
+    queryFn: () => {
       const url = form.outletPenjual
         ? '/api/v1/pos/sales-persons?outletId=' + encodeURIComponent(form.outletPenjual)
         : '/api/v1/pos/sales-persons';
-      const res = await fetch(url, {
-        headers: { Authorization: 'Bearer ' + token }
-      });
-      if (!res.ok) return [];
-      return res.json();
+      // IGDERP-244: scoped cache key per outlet so offline keeps the right list.
+      return cachedFetch(`pos-sales-persons:${form.outletPenjual || 'all'}`, url);
     },
   });
 
   const { data: warehouses = [] } = useQuery({
     queryKey: ['pos-warehouses', form.outletPenjual || 'all'],
+    networkMode: 'always', // IGDERP-244: run queryFn offline (local catalog fallback)
     enabled: Boolean(form.outletPenjual),
-    queryFn: async () => {
-      const token = localStorage.getItem('access_token');
-      const res = await fetch('/api/v1/pos/warehouses?outletId=' + encodeURIComponent(form.outletPenjual), {
-        headers: { Authorization: 'Bearer ' + token }
-      });
-      if (!res.ok) return [];
-      return res.json();
-    },
+    queryFn: () => cachedFetch(
+      `pos-warehouses:${form.outletPenjual}`,
+      '/api/v1/pos/warehouses?outletId=' + encodeURIComponent(form.outletPenjual),
+    ),
   });
 
   // D5: auto-select outlet when only one branch exists (decision #32)
@@ -666,13 +734,20 @@ export default function POSTransaksi() {
   const quickClean = quickSearch.trim().replace(/^\d+\s+/, '');
   const { data: quickResults = [] } = useQuery({
     queryKey: ['pos-quick-products', quickClean],
+    networkMode: 'always', // IGDERP-244: run queryFn offline (local catalog fallback)
     queryFn: async () => {
-      const token = localStorage.getItem('access_token');
-      const res = await fetch('/api/v1/pos/products?q=' + encodeURIComponent(quickClean) + '&limit=10', {
-        headers: { Authorization: 'Bearer ' + token }
-      });
-      if (!res.ok) return [];
-      return res.json();
+      // IGDERP-244: offline → local catalog; online → API with cache fallback.
+      if (!navigator.onLine) return filterProducts(catalogRef.current?.products, quickClean);
+      try {
+        const token = localStorage.getItem('access_token');
+        const res = await fetch('/api/v1/pos/products?q=' + encodeURIComponent(quickClean) + '&limit=10', {
+          headers: { Authorization: 'Bearer ' + token }
+        });
+        if (!res.ok) return filterProducts(catalogRef.current?.products, quickClean);
+        return res.json();
+      } catch {
+        return filterProducts(catalogRef.current?.products, quickClean);
+      }
     },
     enabled: quickClean.length >= 2,
   });
@@ -684,11 +759,31 @@ export default function POSTransaksi() {
       {/* ═══ Top Alert Banner ═══ */}
       <div className="bg-orange-50 border-b border-orange-200 px-4 py-2 text-center text-sm text-orange-800">
         Inputkan data lalu tekan tombol <strong>Simpan</strong> untuk menyimpan
+        {/* IGDERP-244: catalog freshness + manual refresh (online) */}
+        {catalog && (
+          <span className="ml-2 text-orange-700">
+            • Katalog {new Date(catalog.cachedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+            <button
+              className="ml-1 underline disabled:no-underline disabled:opacity-50"
+              disabled={!isOnline || catalogRefreshing}
+              title={isOnline ? 'Muat ulang katalog' : 'Butuh online untuk muat ulang'}
+              onClick={() => refreshCatalog(gudangRef.current, false)}
+            >
+              <RefreshCw className={`inline w-3 h-3 ${catalogRefreshing ? 'animate-spin' : ''}`} />
+            </button>
+          </span>
+        )}
       </div>
       {/* IGDERP-239: offline mode + pending-queue banners */}
       {!isOnline && (
         <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-2 text-center text-sm text-yellow-800">
           Mode offline — Tunai saja. Penjualan akan diantre dan tersinkron otomatis saat online.
+          {/* IGDERP-244: catalog freshness — search/scan/dropdown read this offline copy */}
+          {catalog && (
+            <span className="ml-2 text-yellow-700">
+              Katalog per {new Date(catalog.cachedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          )}
         </div>
       )}
       {pendingCount > 0 && (
