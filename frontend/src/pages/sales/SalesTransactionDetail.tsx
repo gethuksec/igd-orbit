@@ -55,6 +55,14 @@ export default function SalesTransactionDetail() {
     enabled: !!id,
   });
 
+  // NOTE: hooks must stay above the early returns (Rules of Hooks). The
+  // retur lookup stays disabled until a retur-status transaction loads.
+  const { data: returInfo } = useQuery({
+    queryKey: ['sales-return-by-transaction', id],
+    queryFn: () => salesService.getReturnByTransaction(id!),
+    enabled: !!id && transaction?.status === 'retur',
+  });
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -81,12 +89,7 @@ export default function SalesTransactionDetail() {
   const tx = transaction as any;
   const branch = tx.branch || {};
 
-  // Retur info for retur-status transactions
-  const { data: returInfo } = useQuery({
-    queryKey: ['sales-return-by-transaction', id],
-    queryFn: () => salesService.getReturnByTransaction(id!),
-    enabled: !!id && transaction?.status === 'retur',
-  });
+  // Retur info for retur-status transactions (hook lives above the early returns)
   const customer = tx.customer || {};
   const cashier = tx.cashier || {};
   const items = tx.items || [];
