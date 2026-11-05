@@ -19,7 +19,10 @@ export function OfflineIndicator() {
   if (isOnline) return null;
 
   return (
-    <div className="fixed top-0 left-0 right-0 bg-yellow-500 text-white text-center py-2 z-50">
+    // In-flow bar (NOT fixed): a fixed overlay would cover the sticky app
+    // headers (dashboard + POS account menus). In flow it pushes the header
+    // down so account info stays visible; it scrolls away like page banners.
+    <div className="relative w-full bg-yellow-500 text-white text-center py-2">
       <p className="text-sm font-medium">
         ⚠️ Anda sedang offline. Beberapa fitur mungkin tidak tersedia.
       </p>
