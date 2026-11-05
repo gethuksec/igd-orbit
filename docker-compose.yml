@@ -52,6 +52,9 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      # IGDERP-237: demo-login helper box flag (box-local .env, default off).
+      args:
+        VITE_SHOW_DEMO_LOGIN: ${VITE_SHOW_DEMO_LOGIN:-false}
     container_name: igd-orbit-frontend
     restart: unless-stopped
     ports:
