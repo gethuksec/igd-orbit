@@ -74,4 +74,10 @@ export class PosController {
   async listBranches() {
     return this.posService.listBranches();
   }
+
+  // IGDERP-244: bulk catalog for offline PoS (stored on page render).
+  @Get('catalog')
+  async getCatalog(@Query('warehouseId') warehouseId?: string) {
+    return this.posService.getCatalog(warehouseId);
+  }
 }

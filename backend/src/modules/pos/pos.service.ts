@@ -330,4 +330,53 @@ export class PosService {
       orderBy: { name: 'asc' },
     });
   }
+
+  // IGDERP-244: bulk catalog for offline PoS (stored on page render, searched
+  // locally when offline). Same drop-in shapes as searchProducts/searchCustomers.
+  // No pagination — outlet catalogs are small (tens of rows); hard cap as guard.
+  async getCatalog(warehouseId?: string) {
+    const products = await this.prisma.product.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        name: true,
+        sku: true,
+        barcode: true,
+        sellingPrice: true,
+        unitId: true,
+        productStocks: warehouseId
+          ? { where: { warehouseId }, select: { quantityAvailable: true } }
+          : false,
+      },
+      take: 5000,
+      orderBy: { name: 'asc' },
+    });
+    const customers = await this.prisma.customer.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        customerCode: true,
+        name: true,
+        phone: true,
+        email: true,
+        subdistrict: true,
+        tierId: true,
+      },
+      take: 5000,
+      orderBy: { name: 'asc' },
+    });
+    return {
+      products: products.map((r: any) => ({
+        ...r,
+        available:
+          warehouseId && Array.isArray(r.productStocks) && r.productStocks.length > 0
+            ? Number(r.productStocks[0].quantityAvailable)
+            : null,
+        productStocks: undefined,
+      })),
+      customers,
+      warehouseId: warehouseId ?? null,
+      cachedAt: new Date().toISOString(),
+    };
+  }
 }
