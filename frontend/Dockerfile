@@ -16,6 +16,10 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# IGDERP-237: demo-login helper box is compiled in only when this is 'true'.
+# Passed via compose build.args (box-local .env, default false).
+ARG VITE_SHOW_DEMO_LOGIN=false
+ENV VITE_SHOW_DEMO_LOGIN=$VITE_SHOW_DEMO_LOGIN
 # Build with npm cache mount and memory cap
 ENV NODE_OPTIONS="--max-old-space-size=1024"
 RUN --mount=type=cache,target=/root/.npm \
