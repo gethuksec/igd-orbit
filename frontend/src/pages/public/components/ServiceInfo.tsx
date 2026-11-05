@@ -19,6 +19,7 @@ const statusColors: Record<string, string> = {
   ready: 'bg-blue-100 text-blue-800',
   done: 'bg-green-100 text-green-800',
   cancelled: 'bg-red-100 text-red-800',
+  'ready-cancel': 'bg-orange-100 text-orange-800',
 };
 
 const statusLabels: Record<string, string> = {
@@ -29,6 +30,7 @@ const statusLabels: Record<string, string> = {
   ready: 'Ready',
   done: 'Done',
   cancelled: 'Cancelled',
+  'ready-cancel': 'Ready Cancel',
 };
 
 export default function ServiceInfo({

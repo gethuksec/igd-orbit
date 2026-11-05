@@ -18,6 +18,7 @@ export class UpdateStatusDto {
     'cancelled',
     'ready',
     'done',
+    'ready-cancel',
   ])
   status!:
     | 'pending'
@@ -26,7 +27,8 @@ export class UpdateStatusDto {
     | 'qc'
     | 'cancelled'
     | 'ready'
-    | 'done';
+    | 'done'
+    | 'ready-cancel';
 
   @IsString()
   @IsOptional()
