@@ -13,6 +13,23 @@ export interface PendingSale {
   attempts: number;
   lastError?: string;
   status: 'pending' | 'failed';
+  // IGDERP-241 (D5): display snapshot for offline print-from-queue.
+  // Never sent to the server — sync workers only POST `payload`.
+  snapshot?: PendingSaleSnapshot;
+}
+
+// IGDERP-241 (D5): frozen display data for the provisional thermal receipt.
+export interface PendingSaleSnapshot {
+  storeName: string;
+  branchName?: string;
+  cashierName?: string;
+  customerName?: string;
+  items: { name: string; sku?: string; quantity: number; unitPrice: number; discountAmount?: number }[];
+  subtotal: number;
+  discountAmount: number;
+  total: number;
+  paidAmount: number;
+  createdAt: number;
 }
 
 export interface CatalogCache {

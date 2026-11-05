@@ -33,6 +33,7 @@ import SalesHistory from './pages/sales/SalesHistory';
 import SalesTransactionDetail from './pages/sales/SalesTransactionDetail';
 import ReturnsList from './pages/sales/ReturnsList';
 import SalesReceiptPrint from './pages/sales/SalesReceiptPrint';
+import OfflineReceiptPrint from './pages/pos/OfflineReceiptPrint';
 // Service Orders
 import ServiceOrderList from './pages/service-orders/ServiceOrderList';
 import ServiceOrderForm from './pages/service-orders/ServiceOrderForm';
@@ -282,6 +283,11 @@ function App() {
                   </POSLayout>
                 </ProtectedRoute>
               }
+            />
+            {/* IGDERP-241 (D5): offline queue receipt — plain print sheet, no menu */}
+            <Route
+              path="/pos/offline-receipt/:key"
+              element={<OfflineReceiptPrint />}
             />
             
             {/* Master Data - Products */}

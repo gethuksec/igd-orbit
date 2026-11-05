@@ -228,6 +228,14 @@ export const salesService = {
     return response.data;
   },
 
+  // IGDERP-241 (D5): 80mm thermal receipt PDF via Gotenberg (generate-on-download).
+  async downloadReceiptPdf(transactionId: string): Promise<{ blob: Blob; filename: string }> {
+    const response = await api.post(`/sales/transactions/${transactionId}/receipt.pdf`, {}, { responseType: 'blob' });
+    const disposition: string = response.headers?.['content-disposition'] || '';
+    const match = disposition.match(/filename="?([^";]+)"?/);
+    return { blob: response.data, filename: match?.[1] || `Nota-${transactionId}.pdf` };
+  },
+
   async voidTransaction(transactionId: string, reason: string): Promise<void> {
     await api.post(`/sales/transactions/${transactionId}/void`, { reason });
   },

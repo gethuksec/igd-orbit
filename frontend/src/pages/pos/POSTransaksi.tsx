@@ -301,13 +301,19 @@ export default function POSTransaksi() {
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [pendingCount, setPendingCount] = useState(0);
   const [syncing, setSyncing] = useState(false);
+  // IGDERP-241 (D5): expandable queue for offline print-from-queue
+  const [showQueue, setShowQueue] = useState(false);
+  const [pendingSales, setPendingSales] = useState<any[]>([]);
   // Idempotency key for the in-progress sale — stable across retries, rotated after save/queue
   const saleKeyRef = useRef(crypto.randomUUID());
   const draftLoadedRef = useRef(false);
 
   const refreshPending = useCallback(async () => {
     try {
-      setPendingCount(await posOutbox.count());
+      const all = await posOutbox.list();
+      setPendingCount(all.length);
+      // IGDERP-241 (D5): keep the printable queue rows fresh
+      setPendingSales(all.sort((a, b) => b.createdAt - a.createdAt));
     } catch {
       // IndexedDB unavailable (private mode) — outbox disabled
     }
@@ -436,6 +442,10 @@ export default function POSTransaksi() {
   // ── Queue an offline cash sale (IGDERP-239) ──
   const queueOfflineSale = async (payload: any, failedOnline = false) => {
     try {
+      // IGDERP-241 (D5): freeze display data for offline print-from-queue.
+      const saleRows = rows.filter((r) => r.productId);
+      const subtotal = saleRows.reduce((s, r) => s + (r.quantity || 0) * (r.price || 0), 0);
+      const discountTotal = saleRows.reduce((s, r) => s + (r.discount || 0), 0);
       await posOutbox.add({
         clientMutationId: saleKeyRef.current,
         payload,
@@ -443,6 +453,24 @@ export default function POSTransaksi() {
         createdAt: Date.now(),
         attempts: 0,
         status: 'pending',
+        snapshot: {
+          storeName: 'IGD PONSEL',
+          branchName: branches.find((b: any) => b.id === form.outletPenjual)?.name,
+          cashierName: salesPersons.find((sp: any) => sp.id === form.sales)?.fullName,
+          customerName: form.pelanggan || 'Walk-in',
+          items: saleRows.map((r) => ({
+            name: r.productName || 'Item',
+            sku: r.refCode || undefined,
+            quantity: r.quantity || 0,
+            unitPrice: r.price || 0,
+            discountAmount: r.discount || 0,
+          })),
+          subtotal,
+          discountAmount: discountTotal,
+          total: subtotal - discountTotal,
+          paidAmount: subtotal - discountTotal,
+          createdAt: Date.now(),
+        },
       });
     } catch {
       toast.error('Gagal antre — IndexedDB tidak tersedia, jangan tutup halaman');
@@ -664,11 +692,29 @@ export default function POSTransaksi() {
         </div>
       )}
       {pendingCount > 0 && (
-        <div className="bg-blue-50 border-b border-blue-200 px-4 py-2 text-center text-sm text-blue-800 flex items-center justify-center gap-3">
-          <span>{pendingCount} transaksi offline menunggu sync</span>
-          <Button size="sm" variant="outline" onClick={handleSyncNow} disabled={syncing || !isOnline}>
-            {syncing ? 'Syncing…' : 'Sync sekarang'}
-          </Button>
+        <div className="bg-blue-50 border-b border-blue-200 px-4 py-2 text-sm text-blue-800">
+          <div className="flex items-center justify-center gap-3">
+            <button className="underline font-medium" onClick={() => setShowQueue((v) => !v)}>
+              {pendingCount} transaksi offline menunggu sync {showQueue ? '▴' : '▾'}
+            </button>
+            <Button size="sm" variant="outline" onClick={handleSyncNow} disabled={syncing || !isOnline}>
+              {syncing ? 'Syncing…' : 'Sync sekarang'}
+            </Button>
+          </div>
+          {/* IGDERP-241 (D5): print-from-queue while items wait */}
+          {showQueue && (
+            <div className="max-w-xl mx-auto mt-2 text-left bg-white border border-blue-200 rounded">
+              {pendingSales.map((s) => (
+                <div key={s.clientMutationId} className="flex items-center justify-between gap-2 px-3 py-1.5 border-b border-blue-100 last:border-0 text-xs">
+                  <span className="font-mono">{s.provisionalNumber}</span>
+                  <span className="text-gray-500">{new Date(s.createdAt).toLocaleString('id-ID')}</span>
+                  <a href={`/pos/offline-receipt/${s.clientMutationId}`} target="_blank" rel="noreferrer">
+                    <Button size="sm" variant="outline">Cetak</Button>
+                  </a>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
