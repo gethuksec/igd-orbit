@@ -6,6 +6,8 @@ import {
   Body,
   Param,
   Query,
+  Res,
+  StreamableFile,
   UseGuards,
   Request,
   HttpCode,
@@ -181,6 +183,23 @@ export class SalesTransactionsController {
   async generateReceipt(@Param('id') id: string) {
     const receiptUrl = await this.salesTransactionsService.generateReceipt(id);
     return { receiptUrl, message: 'Receipt generated successfully' };
+  }
+
+  /**
+   * IGDERP-241 (D5): download the 80mm thermal receipt as PDF (Gotenberg,
+   * generate-on-download, nothing stored).
+   * POST /api/v1/sales/transactions/:id/receipt.pdf
+   */
+  @Post(':id/receipt.pdf')
+  @HttpCode(HttpStatus.OK)
+  async downloadReceiptPdf(@Param('id') id: string, @Res({ passthrough: true }) res: any) {
+    const { pdf, filename } = await this.salesTransactionsService.generateReceiptPdf(id);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': pdf.length,
+    });
+    return new StreamableFile(pdf);
   }
 }
 

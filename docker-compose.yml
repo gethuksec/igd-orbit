@@ -20,6 +20,8 @@ services:
       DEVICE_PASSWORD_SECRET: ${DEVICE_PASSWORD_SECRET:-}
       STORAGE_TYPE: local
       STORAGE_PATH: ./uploads
+      # IGDERP-241 (D5): on-download receipt PDF rendering (nothing stored)
+      GOTENBERG_URL: http://gotenberg:3000
     volumes:
       - backend_uploads:/app/uploads
     networks:
@@ -31,6 +33,19 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+  # IGDERP-241 (D5): receipt PDF renderer — internal only, reached by
+  # backend via GOTENBERG_URL. No ports published, nothing stored.
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    container_name: igd-orbit-gotenberg
+    restart: unless-stopped
+    command:
+      - "gotenberg"
+      - "--chromium-disable-javascript=true"
+      - "--api-timeout=30s"
+    networks:
+      - igd-orbit-network
 
   # Frontend Service
   frontend:

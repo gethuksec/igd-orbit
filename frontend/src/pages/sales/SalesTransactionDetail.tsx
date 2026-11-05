@@ -18,12 +18,36 @@ import {
 import { salesService } from '../../services/sales.service';
 import { formatCurrency } from '../../utils/format';
 import { Button } from '@/components/ui/button';
+import { useState } from 'react';
+import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function SalesTransactionDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [downloading, setDownloading] = useState(false);
+
+  // IGDERP-241 (D5): thermal PDF via Gotenberg, generate-on-download.
+  const handleDownloadPdf = async () => {
+    if (!id || downloading) return;
+    setDownloading(true);
+    try {
+      const { blob, filename } = await salesService.downloadReceiptPdf(id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    } catch {
+      toast.error('Unduh PDF gagal — layanan PDF tidak tersedia, coba lagi nanti');
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const { data: transaction, isLoading } = useQuery({
     queryKey: ['sales-transaction', id],
@@ -149,6 +173,10 @@ export default function SalesTransactionDetail() {
                   Cetak Nota
                 </Button>
               </Link>
+              <Button variant="outline" onClick={handleDownloadPdf} disabled={downloading}>
+                <Receipt className="w-4 h-4 mr-1" />
+                {downloading ? 'Menyiapkan…' : 'Unduh PDF'}
+              </Button>
             </div>
           </div>
         </CardContent>

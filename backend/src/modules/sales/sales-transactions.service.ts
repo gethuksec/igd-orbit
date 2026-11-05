@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  ServiceUnavailableException,
   Inject,
   forwardRef,
 } from '@nestjs/common';
@@ -14,6 +15,7 @@ import { CustomerDepositsService } from './customer-deposits.service';
 import { JournalEntriesService } from '../finance/services/journal-entries.service';
 import { randomBytes } from 'crypto';
 import { Decimal } from '@prisma/client/runtime/library';
+import { buildSalesReceiptHtml } from './receipt-html';
 
 /**
  * Transaction Calculation Result
@@ -668,6 +670,68 @@ export class SalesTransactionsService {
     // TODO: Implement PDF generation using puppeteer or pdfkit
     // For now, return placeholder URL
     return `/uploads/receipts/${transactionId}.pdf`;
+  }
+
+  /**
+   * IGDERP-241 (D5): render the 80mm thermal receipt to PDF via Gotenberg,
+   * generate-on-download — nothing is stored. 503 when Gotenberg is down.
+   * @param transactionId - Sales transaction ID
+   * @returns PDF bytes + suggested filename
+   */
+  async generateReceiptPdf(transactionId: string): Promise<{ pdf: Buffer; filename: string }> {
+    const tx = await this.findById(transactionId);
+    const payments = (tx as any).payments ?? [];
+    const payment = payments[0] ?? {};
+    const paid = Number(payment.amount ?? 0);
+    const total = Number((tx as any).total ?? 0);
+    const html = buildSalesReceiptHtml({
+      storeName: 'IGD PONSEL',
+      branchName: (tx as any).branch?.name,
+      branchAddress: (tx as any).branch?.address,
+      branchPhone: (tx as any).branch?.phone,
+      transactionNumber: (tx as any).transactionNumber,
+      createdAt: (tx as any).createdAt,
+      cashierName: (tx as any).cashier?.fullName,
+      customerName: (tx as any).customer?.name,
+      customerPhone: (tx as any).customer?.phone,
+      items: ((tx as any).items ?? []).map((i: any) => ({
+        name: i.product?.name ?? i.productName ?? 'Item',
+        sku: i.product?.sku ?? i.productSku,
+        quantity: Number(i.quantity ?? 0),
+        unitPrice: Number(i.unitPrice ?? 0),
+        discountAmount: Number(i.discountAmount ?? 0),
+      })),
+      subtotal: Number((tx as any).subtotal ?? 0),
+      discountAmount: Number((tx as any).discountAmount ?? 0),
+      taxAmount: Number((tx as any).taxAmount ?? 0),
+      total,
+      paymentMethod: payment.method,
+      paidAmount: paid,
+      changeAmount: paid > 0 ? paid - total : 0,
+      isPaid: (tx as any).paymentStatus === 'paid' || (tx as any).status === 'completed',
+      receiptNotes: (tx as any).receiptNotes,
+    });
+
+    const gotenberg = process.env.GOTENBERG_URL || 'http://gotenberg:3000';
+    const form = new FormData();
+    form.append('files', new Blob([html], { type: 'text/html' }), 'index.html');
+    form.append('paperWidth', '80mm');
+    form.append('paperHeight', '297mm');
+    form.append('marginTop', '2mm');
+    form.append('marginBottom', '2mm');
+    form.append('marginLeft', '2mm');
+    form.append('marginRight', '2mm');
+    let res: Response;
+    try {
+      res = await fetch(`${gotenberg}/forms/chromium/convert/html`, { method: 'POST', body: form });
+    } catch {
+      throw new ServiceUnavailableException('Layanan PDF (Gotenberg) tidak tersedia — coba lagi nanti');
+    }
+    if (!res.ok) {
+      throw new ServiceUnavailableException(`Layanan PDF gagal (${res.status}) — coba lagi nanti`);
+    }
+    const pdf = Buffer.from(await res.arrayBuffer());
+    return { pdf, filename: `Nota-${(tx as any).transactionNumber}.pdf` };
   }
 
   /**
