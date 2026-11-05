@@ -56,8 +56,21 @@ export async function syncPendingIntakes(): Promise<IntakeSyncResult> {
         // remap cache is best-effort
       }
     } catch (e: any) {
+      const status = e?.response?.status;
       const msg = e?.response?.data?.message || e?.message || 'sync gagal';
-      const valErr = e?.response?.status >= 400 && e?.response?.status < 500;
+      // IGDERP-241/D4: 401 that survives silent refresh means the login redirect
+      // fires from the interceptor — keep queued (don't park as failed).
+      if (status === 401) {
+        await serviceOutbox.patch(intake.clientMutationId, { attempts: intake.attempts + 1 });
+        result.failed += 1;
+        result.errors.push({
+          clientMutationId: intake.clientMutationId,
+          provisionalRef: intake.provisionalRef,
+          error: 'Sesi berakhir — login lalu sync ulang',
+        });
+        continue;
+      }
+      const valErr = status >= 400 && status < 500;
       // Validation errors (e.g. parts exceed stock) need review — park, don't retry blindly
       if (valErr && !intake.orderId) {
         await serviceOutbox.patch(intake.clientMutationId, {

@@ -30,7 +30,12 @@ import Redis from 'ioredis';
  */
 @Injectable()
 export class AuthService {
-  private readonly refreshTokenPrefix = 'refresh_token:';
+  // IGDERP-241/D4: refresh tokens live in a per-user Redis HASH (field = token),
+  // so N devices stay logged in concurrently. Legacy single-slot keys
+  // (`refresh_token:<uid>`, pre-fix) are migrated on first refresh.
+  private readonly refreshTokenPrefix = 'refresh_tokens:';
+  private readonly legacyRefreshTokenPrefix = 'refresh_token:';
+  private readonly maxRefreshTokens = 5;
   private readonly resetTokenPrefix = 'reset_token:';
 
   constructor(
@@ -215,14 +220,21 @@ export class AuthService {
       this.configService.get<string>('jwt.refreshExpiresIn') || '7d';
 
     // Store refresh token in Redis (with error handling)
+    // IGDERP-241/D4: per-user HASH so concurrent devices don't evict each other
     const refreshTokenKey = `${this.refreshTokenPrefix}${user.id}`;
     try {
-      await this.redis.set(
+      await this.redis.hset(refreshTokenKey, refreshToken, String(Date.now()));
+      await this.redis.expire(
         refreshTokenKey,
-        refreshToken,
-        'EX',
         this.parseExpiration(refreshExpiresIn),
       );
+      // Prune oldest beyond the cap (keeps the hash bounded)
+      const all = await this.redis.hgetall(refreshTokenKey);
+      const entries = Object.entries(all).sort((a, b) => Number(a[1]) - Number(b[1]));
+      if (entries.length > this.maxRefreshTokens) {
+        const evict = entries.slice(0, entries.length - this.maxRefreshTokens).map(([t]) => t);
+        await this.redis.hdel(refreshTokenKey, ...evict);
+      }
     } catch (error) {
       // Log Redis error but don't fail login if Redis is unavailable
       console.warn('Redis unavailable, refresh token not stored:', error);
@@ -264,15 +276,36 @@ export class AuthService {
    * @returns New access token
    */
   async refreshToken(refreshToken: string) {
-    // Find user by refresh token in Redis
+    // Find user by refresh token in Redis (per-user hashes; N devices coexist)
     const keys = await this.redis.keys(`${this.refreshTokenPrefix}*`);
     let userId: string | null = null;
 
     for (const key of keys) {
-      const storedToken = await this.redis.get(key);
-      if (storedToken === refreshToken) {
+      if (await this.redis.hexists(key, refreshToken)) {
         userId = key.replace(this.refreshTokenPrefix, '');
         break;
+      }
+    }
+
+    // One-time migration: legacy single-slot key → hash (keeps old sessions alive)
+    if (!userId) {
+      const legacyKeys = await this.redis.keys(`${this.legacyRefreshTokenPrefix}*`);
+      for (const key of legacyKeys) {
+        const storedToken = await this.redis.get(key);
+        if (storedToken === refreshToken) {
+          userId = key.replace(this.legacyRefreshTokenPrefix, '');
+          try {
+            await this.redis.hset(
+              `${this.refreshTokenPrefix}${userId}`,
+              refreshToken,
+              String(Date.now()),
+            );
+            await this.redis.del(key);
+          } catch {
+            // migration is best-effort; the lookup below still succeeds this once
+          }
+          break;
+        }
       }
     }
 
@@ -336,8 +369,9 @@ export class AuthService {
    * @param userId - User ID
    */
   async logout(userId: string): Promise<void> {
-    const refreshTokenKey = `${this.refreshTokenPrefix}${userId}`;
-    await this.redis.del(refreshTokenKey);
+    // IGDERP-241/D4: drops the whole per-user hash (all devices, same as before)
+    await this.redis.del(`${this.refreshTokenPrefix}${userId}`);
+    await this.redis.del(`${this.legacyRefreshTokenPrefix}${userId}`);
   }
 
   /**

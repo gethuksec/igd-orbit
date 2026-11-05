@@ -1,4 +1,5 @@
 import { posOutbox } from '@/lib/offline-db';
+import { api } from './api';
 
 export interface SyncResult {
   synced: number;
@@ -11,35 +12,17 @@ export interface SyncResult {
  * IGDERP-239: push queued offline sales to the server.
  * Idempotent — server dedupes by clientMutationId, so retries are safe.
  * Only cash payloads are ever queued (FE gate), server accepts all methods.
+ * IGDERP-241/D4: goes through the `api` instance so an expired access token
+ * triggers silent refresh + retry instead of wrongly parking the sale as failed.
  */
 export async function syncPendingSales(): Promise<SyncResult> {
   const result: SyncResult = { synced: 0, failed: 0, errors: [], remapped: [] };
   const pending = (await posOutbox.list()).filter((p) => p.status === 'pending');
-  const token = localStorage.getItem('access_token');
 
   for (const sale of pending) {
     try {
-      const res = await fetch('/api/v1/pos/transactions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: 'Bearer ' + token,
-        },
-        body: JSON.stringify(sale.payload),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        const msg = Array.isArray(err?.message) ? err.message.join(', ') : err?.message || `HTTP ${res.status}`;
-        // 4xx validation (e.g. stock gone) needs cashier review — park it, don't retry blindly
-        if (res.status >= 400 && res.status < 500) {
-          await posOutbox.markFailed(sale.clientMutationId, msg);
-          result.failed += 1;
-          result.errors.push({ clientMutationId: sale.clientMutationId, provisionalNumber: sale.provisionalNumber, error: msg });
-          continue;
-        }
-        throw new Error(msg);
-      }
-      const data = await res.json();
+      const res = await api.post('/pos/transactions', sale.payload);
+      const data = res.data?.data || res.data;
       await posOutbox.remove(sale.clientMutationId);
       result.synced += 1;
       result.remapped.push({
@@ -56,13 +39,35 @@ export async function syncPendingSales(): Promise<SyncResult> {
         // remap cache is best-effort
       }
     } catch (e: any) {
+      const status = e?.response?.status;
+      const rawMsg = e?.response?.data?.message || e?.message || 'network error';
+      const msg = Array.isArray(rawMsg) ? rawMsg.join(', ') : rawMsg;
+      if (status === 401) {
+        // Session truly expired (silent refresh failed → login redirect fires
+        // from the interceptor). Keep queued, don't park as failed.
+        await posOutbox.bumpAttempts(sale.clientMutationId);
+        result.failed += 1;
+        result.errors.push({
+          clientMutationId: sale.clientMutationId,
+          provisionalNumber: sale.provisionalNumber,
+          error: 'Sesi berakhir — login lalu sync ulang',
+        });
+        continue;
+      }
+      // 4xx validation (e.g. stock gone) needs cashier review — park it, don't retry blindly
+      if (status >= 400 && status < 500) {
+        await posOutbox.markFailed(sale.clientMutationId, msg);
+        result.failed += 1;
+        result.errors.push({ clientMutationId: sale.clientMutationId, provisionalNumber: sale.provisionalNumber, error: msg });
+        continue;
+      }
       // network / 5xx — keep queued, bump attempts, try next time
       await posOutbox.bumpAttempts(sale.clientMutationId);
       result.failed += 1;
       result.errors.push({
         clientMutationId: sale.clientMutationId,
         provisionalNumber: sale.provisionalNumber,
-        error: e?.message || 'network error',
+        error: msg,
       });
     }
   }
