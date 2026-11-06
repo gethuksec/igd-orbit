@@ -20,6 +20,9 @@ export default function StockOpnameList() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
+  const [joinCode, setJoinCode] = useState('');
+  const [joinError, setJoinError] = useState<string | null>(null);
+  const [joining, setJoining] = useState(false);
   const { branchId, setBranchId } = useBranchFilter();
 
   const { data: opnames, isLoading, error, refetch } = useQuery({
@@ -105,6 +108,39 @@ export default function StockOpnameList() {
           Mulai Opname
         </Button>
       </BreadcrumbHeader>
+
+      {/* IGDERP-234 (OP2): join a counting session via its short code */}
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          const code = joinCode.trim();
+          if (!code) return;
+          setJoining(true);
+          setJoinError(null);
+          try {
+            const session = await inventoryService.getOpnameByCode(code);
+            navigate(`/inventory/opname/${session.id}/count`);
+          } catch {
+            setJoinError(`Kode "${code}" tidak ditemukan. Periksa kembali kode sesi dari koordinator.`);
+          } finally {
+            setJoining(false);
+          }
+        }}
+        className="bg-white rounded-xl shadow-md border border-gray-100 p-3 flex flex-wrap items-center gap-2"
+      >
+        <span className="text-sm font-bold text-gray-900 px-1">Gabung sesi hitung</span>
+        <input
+          value={joinCode}
+          onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+          placeholder="Kode sesi, mis. OPN-7K2QD"
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono uppercase outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+        />
+        <Button type="submit" disabled={joining || !joinCode.trim()}>
+          {joining ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ClipboardCheck className="w-4 h-4 mr-2" />}
+          Gabung
+        </Button>
+        {joinError && <span className="text-xs font-medium text-red-600">{joinError}</span>}
+      </form>
 
       {/* Error Message */}
       {error && (
@@ -240,7 +276,7 @@ export default function StockOpnameList() {
                     ? typeof opname.totalDiscrepancyValue === 'string'
                       ? parseFloat(opname.totalDiscrepancyValue)
                       : Number(opname.totalDiscrepancyValue)
-                    : 0;
+                    : null;
                   const countedItems = opname.items.filter((item) => item.physicalQuantity !== null).length;
                   const totalItems = opname.items.length;
 
@@ -252,6 +288,9 @@ export default function StockOpnameList() {
                     >
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="text-sm font-semibold text-gray-900">{opname.opnameNumber}</div>
+                        {opname.code && (
+                          <div className="text-[11px] font-mono text-gray-500">Kode: {opname.code}</div>
+                        )}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="text-sm text-gray-900">{opname.branch?.name || '-'}</div>
@@ -295,17 +334,21 @@ export default function StockOpnameList() {
                         )}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-right">
-                        <div
-                          className={`text-sm font-semibold ${
-                            totalDiscrepancyValue > 0
-                              ? 'text-green-600'
-                              : totalDiscrepancyValue < 0
-                                ? 'text-red-600'
-                                : 'text-gray-900'
-                          }`}
-                        >
-                          {formatCurrency(Math.abs(totalDiscrepancyValue))}
-                        </div>
+                        {totalDiscrepancyValue === null ? (
+                          <span className="text-sm text-gray-300 font-semibold">—</span>
+                        ) : (
+                          <div
+                            className={`text-sm font-semibold ${
+                              totalDiscrepancyValue > 0
+                                ? 'text-green-600'
+                                : totalDiscrepancyValue < 0
+                                  ? 'text-red-600'
+                                  : 'text-gray-900'
+                            }`}
+                          >
+                            {formatCurrency(Math.abs(totalDiscrepancyValue))}
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-center">
                         {opname.status === 'counting' ? (

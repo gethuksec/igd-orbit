@@ -898,6 +898,10 @@ model StockOpname {
   warehouse Warehouse         @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
   branch    Branch?           @relation(fields: [branchId], references: [id], onDelete: SetNull)
   items     StockOpnameItem[]
+  // IGDERP-234 (OP2): blind-count assignments, scan log, unknown-barcode exceptions
+  assignments OpnameAssignment[]
+  scans       OpnameScan[]
+  exceptions  OpnameException[]
 
   @@index([opnameNumber])
   @@index([code])
@@ -931,6 +935,62 @@ model StockOpnameItem {
   @@index([opnameId])
   @@index([productId])
   @@map("stock_opname_items")
+}
+
+// IGDERP-234 (OP2): per-user category assignments for blind multi-user count.
+// Addable mid-session. When a session has assignments, an assigned user only
+// sees products in their categories; users with no assignment see everything.
+model OpnameAssignment {
+  id         String   @id @default(uuid())
+  opnameId   String   @map("opname_id")
+  userId     String   @map("user_id") // User ID (counter)
+  categoryId String   @map("category_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  opname   StockOpname @relation(fields: [opnameId], references: [id], onDelete: Cascade)
+  category Category    @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@unique([opnameId, userId, categoryId])
+  @@index([opnameId])
+  @@index([userId])
+  @@map("opname_assignments")
+}
+
+// IGDERP-234 (OP2): append-only scan log. One row per count save per product;
+// revision increments per (opname, product). Items mirror the latest state so
+// review/export/approval keep reading StockOpnameItem unchanged.
+model OpnameScan {
+  id              String  @id @default(uuid())
+  opnameId        String  @map("opname_id")
+  productId       String  @map("product_id")
+  goodQuantity    Decimal @default(0) @map("good_quantity") @db.Decimal(15, 3)
+  damagedQuantity Decimal @default(0) @map("damaged_quantity") @db.Decimal(15, 3)
+  expiredQuantity Decimal @default(0) @map("expired_quantity") @db.Decimal(15, 3)
+  scannedBy       String  @map("scanned_by") // User ID
+  revision        Int     @default(1)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  opname  StockOpname @relation(fields: [opnameId], references: [id], onDelete: Cascade)
+  product Product     @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([opnameId, productId])
+  @@index([scannedBy])
+  @@map("opname_scans")
+}
+
+// IGDERP-234 (OP2): unknown-barcode scan attempts during blind count.
+// Logged for the coordinator; never creates a count line.
+model OpnameException {
+  id        String   @id @default(uuid())
+  opnameId  String   @map("opname_id")
+  barcode   String // raw scanned value
+  scannedBy String   @map("scanned_by") // User ID
+  createdAt DateTime @default(now()) @map("created_at")
+
+  opname StockOpname @relation(fields: [opnameId], references: [id], onDelete: Cascade)
+
+  @@index([opnameId])
+  @@map("opname_exceptions")
 }
 
 model StockIn {

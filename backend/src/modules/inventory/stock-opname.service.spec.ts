@@ -61,6 +61,11 @@ describe('StockOpnameService', () => {
       stockMovement: {
         create: jest.fn(),
       },
+      // IGDERP-234 (OP2): scan log inside recordCount tx
+      opnameScan: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn(),
+      },
     };
 
     prisma = {
@@ -73,7 +78,7 @@ describe('StockOpnameService', () => {
         update: jest.fn(),
       },
       productStock: {
-        findMany: jest.fn(),
+        findMany: jest.fn().mockResolvedValue([]),
         findUnique: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
@@ -86,6 +91,22 @@ describe('StockOpnameService', () => {
         update: jest.fn(),
       },
       stockMovement: { create: jest.fn() },
+      // IGDERP-234 (OP2): blind-count delegates (empty by default)
+      opnameAssignment: {
+        findMany: jest.fn().mockResolvedValue([]),
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn(),
+      },
+      opnameScan: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      opnameException: {
+        create: jest.fn(),
+        findMany: jest.fn().mockResolvedValue([]),
+        count: jest.fn().mockResolvedValue(0),
+      },
+      category: { findMany: jest.fn().mockResolvedValue([]) },
+      user: { findMany: jest.fn().mockResolvedValue([]) },
       $transaction: jest.fn(async (callback: any) => callback(tx)),
     };
 
@@ -187,7 +208,7 @@ describe('StockOpnameService', () => {
       prisma.stockOpname.findUnique.mockResolvedValueOnce(opname());
       prisma.productStock.findMany.mockResolvedValue([]);
 
-      await service.addItem('op-1', 'prod-1', 'user-1');
+      await service.addItem('op-1', 'prod-1', { id: 'user-1' });
 
       const createData = prisma.stockOpnameItem.create.mock.calls[0][0].data;
       expect(createData.productId).toBe('prod-1');
@@ -203,7 +224,7 @@ describe('StockOpnameService', () => {
       prisma.stockOpnameItem.create.mockResolvedValue({ id: 'item-new' });
       prisma.productStock.findMany.mockResolvedValue([]);
 
-      await service.addItem('op-1', 'prod-1', 'user-1');
+      await service.addItem('op-1', 'prod-1', { id: 'user-1' });
 
       expect(prisma.stockOpnameItem.create.mock.calls[0][0].data.systemQuantity.toString()).toBe('0');
     });
@@ -213,7 +234,7 @@ describe('StockOpnameService', () => {
       prisma.product.findFirst.mockResolvedValue(product);
       prisma.stockOpnameItem.findFirst.mockResolvedValue({ id: 'item-1' });
 
-      await expect(service.addItem('op-1', 'prod-1', 'user-1')).rejects.toThrow(
+      await expect(service.addItem('op-1', 'prod-1', { id: 'user-1' })).rejects.toThrow(
         BadRequestException,
       );
     });
@@ -221,7 +242,7 @@ describe('StockOpnameService', () => {
     it('rejects adding to a non-active opname', async () => {
       prisma.stockOpname.findUnique.mockResolvedValue(opname({ status: 'approved' }));
 
-      await expect(service.addItem('op-1', 'prod-1', 'user-1')).rejects.toThrow(
+      await expect(service.addItem('op-1', 'prod-1', { id: 'user-1' })).rejects.toThrow(
         BadRequestException,
       );
     });
@@ -230,7 +251,7 @@ describe('StockOpnameService', () => {
       prisma.stockOpname.findUnique.mockResolvedValue(opname());
       prisma.product.findFirst.mockResolvedValue(null);
 
-      await expect(service.addItem('op-1', 'prod-1', 'user-1')).rejects.toThrow(
+      await expect(service.addItem('op-1', 'prod-1', { id: 'user-1' })).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -823,6 +844,270 @@ describe('StockOpnameService', () => {
       await expect(assertNoFreezeOpname(prisma, null, 'x')).resolves.toBeUndefined();
       await expect(assertNoFreezeOpname(prisma, undefined, 'x')).resolves.toBeUndefined();
       expect(prisma.stockOpname.findFirst).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('blind count (IGDERP-234)', () => {
+    const blindItem = (overrides: any = {}) => ({
+      id: 'item-1',
+      productId: 'prod-1',
+      systemQuantity: new Decimal(10),
+      systemQuantityAtCount: new Decimal(9),
+      physicalQuantity: new Decimal(9),
+      discrepancy: new Decimal(-1),
+      discrepancyValue: new Decimal(-2500),
+      condition: 'good',
+      countedBy: 'user-1',
+      liveQuantity: new Decimal(8),
+      product: {
+        id: 'prod-1',
+        name: 'Indomie Goreng',
+        sku: 'SKU-0001',
+        barcode: '8991002101234',
+        categoryId: 'cat-1',
+        costPrice: new Decimal(2500),
+        category: { id: 'cat-1', name: 'Mie' },
+      },
+      ...overrides,
+    });
+
+    it('strips system/variance/live/cost for counter roles', async () => {
+      prisma.stockOpname.findUnique.mockResolvedValue(opname({ items: [blindItem()] }));
+      prisma.productStock.findMany.mockResolvedValue([]);
+
+      const result: any = await service.findById('op-1', { roles: ['SODO'] });
+
+      expect(result.items[0].systemQuantity).toBeUndefined();
+      expect(result.items[0].systemQuantityAtCount).toBeUndefined();
+      expect(result.items[0].discrepancy).toBeUndefined();
+      expect(result.items[0].discrepancyValue).toBeUndefined();
+      expect(result.items[0].liveQuantity).toBeUndefined();
+      expect(result.items[0].product.costPrice).toBeUndefined();
+      // header-level variance also stripped
+      expect(result.totalDiscrepancyValue).toBeUndefined();
+      // identity + own count stay visible
+      expect(result.items[0].physicalQuantity.toString()).toBe('9');
+      expect(result.items[0].product.barcode).toBe('8991002101234');
+    });
+
+    it('keeps the full view for SPV/CSO', async () => {
+      prisma.stockOpname.findUnique.mockResolvedValue(opname({ items: [blindItem()] }));
+      prisma.productStock.findMany.mockResolvedValue([]);
+
+      const result: any = await service.findById('op-1', { roles: ['SPV'] });
+
+      expect(result.items[0].systemQuantity.toString()).toBe('10');
+      expect(result.items[0].product.costPrice.toString()).toBe('2500');
+    });
+
+    it('scopes the count view to assigned categories, unassigned users see all', async () => {
+      const items = [
+        blindItem({ id: 'i1', productId: 'prod-1' }),
+        blindItem({
+          id: 'i2',
+          productId: 'prod-2',
+          product: {
+            id: 'prod-2', name: 'Aqua', sku: 'SKU-2', barcode: '8992',
+            categoryId: 'cat-2', category: { id: 'cat-2', name: 'Minum' },
+          },
+        }),
+      ];
+      prisma.stockOpname.findUnique.mockResolvedValue(opname({ items }));
+      prisma.productStock.findMany.mockResolvedValue([]);
+      prisma.opnameAssignment.findMany.mockResolvedValue([
+        { opnameId: 'op-1', userId: 'counter-1', categoryId: 'cat-1' },
+      ]);
+
+      const scoped: any = await service.getCountView('op-1', { id: 'counter-1', roles: ['SODO'] });
+      expect(scoped.items.map((i: any) => i.productId)).toEqual(['prod-1']);
+      expect(scoped.myCategoryIds).toEqual(['cat-1']);
+
+      const open: any = await service.getCountView('op-1', { id: 'counter-9', roles: ['SODO'] });
+      expect(open.items.map((i: any) => i.productId).sort()).toEqual(['prod-1', 'prod-2']);
+      expect(open.myCategoryIds).toBeNull();
+    });
+
+    it('resolveBarcode: unknown barcode is a 404 and creates no line', async () => {
+      prisma.stockOpname.findUnique.mockResolvedValue(
+        opname({ status: 'counting', items: [blindItem()] }),
+      );
+
+      await expect(service.resolveBarcode('op-1', '000-UNKNOWN', { id: 'u1' })).rejects.toThrow(
+        'UNKNOWN_BARCODE',
+      );
+      expect(prisma.stockOpnameItem.create).not.toHaveBeenCalled();
+    });
+
+    it('resolveBarcode: out-of-scope product is a 403', async () => {
+      prisma.stockOpname.findUnique.mockResolvedValue(
+        opname({ status: 'counting', items: [blindItem()] }),
+      );
+      prisma.opnameAssignment.findMany.mockResolvedValue([
+        { opnameId: 'op-1', userId: 'counter-1', categoryId: 'cat-9' },
+      ]);
+
+      await expect(
+        service.resolveBarcode('op-1', '8991002101234', { id: 'counter-1' }),
+      ).rejects.toThrow('OUT_OF_SCOPE');
+    });
+
+    it('resolveBarcode: in-scope product returns identity without system stock', async () => {
+      prisma.stockOpname.findUnique.mockResolvedValue(
+        opname({ status: 'counting', items: [blindItem()] }),
+      );
+
+      const result: any = await service.resolveBarcode('op-1', '8991002101234', { id: 'u1' });
+
+      expect(result.product.sku).toBe('SKU-0001');
+      expect(result.product).not.toHaveProperty('costPrice');
+      expect(result).not.toHaveProperty('systemQuantity');
+      expect(result.lines[0].condition).toBe('good');
+    });
+
+    it('recordCount fans a GOOD/RUSAK/KADALUARSA scan out to rows + one scan event', async () => {
+      prisma.stockOpname.findUnique.mockResolvedValue(
+        opname({
+          items: [
+            {
+              id: 'item-1',
+              productId: 'prod-1',
+              systemQuantity: new Decimal(10),
+              physicalQuantity: null,
+              condition: null,
+              product: { costPrice: new Decimal(2500) },
+            },
+          ],
+        }),
+      );
+      tx.productStock.findUnique.mockResolvedValue({ quantityAvailable: new Decimal(10) });
+      tx.stockOpnameItem.update.mockResolvedValue({});
+      tx.stockOpnameItem.create.mockResolvedValue({ id: 'item-2' });
+      tx.opnameScan.create.mockResolvedValue({ id: 'scan-1' });
+
+      await service.recordCount(
+        'op-1',
+        { items: [{ productId: 'prod-1', goodQuantity: 7, damagedQuantity: 2 }] },
+        'counter-1',
+      );
+
+      // good claims the snapshot row, damaged creates a second row
+      expect(tx.stockOpnameItem.create).toHaveBeenCalledTimes(1);
+      expect(tx.stockOpnameItem.update).toHaveBeenCalledTimes(2);
+      const scanData = tx.opnameScan.create.mock.calls[0][0].data;
+      expect(scanData.goodQuantity.toString()).toBe('7');
+      expect(scanData.damagedQuantity.toString()).toBe('2');
+      expect(scanData.expiredQuantity.toString()).toBe('0');
+      expect(scanData.scannedBy).toBe('counter-1');
+      expect(scanData.revision).toBe(1);
+    });
+
+    it('recordCount increments scan revision on recount', async () => {
+      prisma.stockOpname.findUnique.mockResolvedValue(
+        opname({
+          items: [
+            {
+              id: 'item-1',
+              productId: 'prod-1',
+              systemQuantity: new Decimal(10),
+              physicalQuantity: new Decimal(9),
+              condition: 'good',
+              product: { costPrice: new Decimal(2500) },
+            },
+          ],
+        }),
+      );
+      tx.productStock.findUnique.mockResolvedValue({ quantityAvailable: new Decimal(10) });
+      tx.stockOpnameItem.update.mockResolvedValue({});
+      tx.opnameScan.findFirst.mockResolvedValue({ revision: 2 });
+      tx.opnameScan.create.mockResolvedValue({ id: 'scan-3' });
+
+      await service.recordCount(
+        'op-1',
+        { items: [{ productId: 'prod-1', physicalQuantity: 8, condition: 'good', force: true }] },
+        'counter-1',
+      );
+
+      expect(tx.opnameScan.create.mock.calls[0][0].data.revision).toBe(3);
+    });
+
+    it('recordCount rejects a payload with no quantity at all', async () => {
+      prisma.stockOpname.findUnique.mockResolvedValue(
+        opname({ items: [{ id: 'item-1', productId: 'prod-1', product: {} }] }),
+      );
+
+      await expect(
+        service.recordCount('op-1', { items: [{ productId: 'prod-1' }] }, 'counter-1'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('assignments are addable mid-session and idempotent', async () => {
+      prisma.stockOpname.findUnique.mockResolvedValue(opname({ status: 'counting' }));
+      prisma.category.findMany.mockResolvedValue([{ id: 'cat-1' }]);
+      prisma.opnameAssignment.findFirst.mockResolvedValue(null);
+      prisma.opnameAssignment.create.mockResolvedValue({ id: 'a-1' });
+      prisma.opnameAssignment.findMany.mockResolvedValue([
+        { id: 'a-1', userId: 'counter-1', categoryId: 'cat-1' },
+      ]);
+
+      const roster = await service.addAssignments('op-1', { userId: 'counter-1', categoryIds: ['cat-1'] });
+
+      expect(prisma.opnameAssignment.create).toHaveBeenCalledTimes(1);
+      expect(roster).toHaveLength(1);
+
+      // second add skips the existing row
+      prisma.opnameAssignment.findFirst.mockResolvedValue({ id: 'a-1' });
+      await service.addAssignments('op-1', { userId: 'counter-1', categoryIds: ['cat-1'] });
+      expect(prisma.opnameAssignment.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('assignments reject unknown categories', async () => {
+      prisma.stockOpname.findUnique.mockResolvedValue(opname({ status: 'counting' }));
+      prisma.category.findMany.mockResolvedValue([{ id: 'cat-1' }]);
+
+      await expect(
+        service.addAssignments('op-1', { userId: 'counter-1', categoryIds: ['cat-1', 'cat-nope'] }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('exceptions are logged without creating count lines', async () => {
+      prisma.stockOpname.findUnique.mockResolvedValue(opname({ status: 'counting' }));
+      prisma.opnameException.create.mockResolvedValue({ id: 'ex-1' });
+
+      await service.logException('op-1', ' 000-UNKNOWN ', 'counter-1');
+
+      expect(prisma.opnameException.create).toHaveBeenCalledWith({
+        data: { opnameId: 'op-1', barcode: '000-UNKNOWN', scannedBy: 'counter-1' },
+      });
+      expect(prisma.stockOpnameItem.create).not.toHaveBeenCalled();
+      expect(tx.stockOpnameItem.create).not.toHaveBeenCalled();
+    });
+
+    it('progress reports totals plus per-counter breakdown', async () => {
+      prisma.stockOpname.findUnique.mockResolvedValue(
+        opname({
+          items: [
+            { productId: 'prod-1', physicalQuantity: new Decimal(9), condition: 'good', countedBy: 'counter-1' },
+            { productId: 'prod-1', physicalQuantity: new Decimal(2), condition: 'damaged', countedBy: 'counter-1' },
+            { productId: 'prod-2', physicalQuantity: null, condition: null, countedBy: null },
+          ],
+        }),
+      );
+      prisma.opnameScan.findMany.mockResolvedValue([
+        { scannedBy: 'counter-1', createdAt: new Date('2026-11-06T10:00:00Z') },
+      ]);
+      prisma.user.findMany.mockResolvedValue([{ id: 'counter-1', fullName: 'Andi', username: 'andi' }]);
+
+      const progress: any = await service.getProgress('op-1');
+
+      expect(progress.totals).toMatchObject({ rows: 3, countedRows: 2, remainingRows: 1, countedProducts: 1 });
+      expect(progress.byUser).toHaveLength(1);
+      expect(progress.byUser[0]).toMatchObject({
+        userId: 'counter-1',
+        displayName: 'Andi',
+        rows: 2,
+        products: 1,
+        quantity: 11,
+      });
     });
   });
 });

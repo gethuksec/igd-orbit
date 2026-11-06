@@ -19,6 +19,8 @@ import { StockOpnameService } from './stock-opname.service';
 import { StartOpnameDto } from './dto/start-opname.dto';
 import { RecordCountDto } from './dto/record-count.dto';
 import { AddOpnameItemDto } from './dto/add-opname-item.dto';
+import { AddAssignmentDto } from './dto/add-assignment.dto';
+import { LogExceptionDto } from './dto/log-exception.dto';
 
 @Controller('inventory/opname')
 @UseGuards(JwtAuthGuard)
@@ -45,21 +47,83 @@ export class StockOpnameController {
     if (!branchId) {
       branchIds = resolveBranchFilter(req, undefined).branchIds;
     }
-    return this.opnameService.findAll(branchId, status, branchIds);
+    // IGDERP-234 (OP2): blind list rows for counters.
+    return this.opnameService.findAll(branchId, status, branchIds, { roles: req.user.roles });
   }
 
   @Get('code/:code')
   @UseGuards(RolesGuard)
   @Roles('CSO', 'SPV', 'HS', 'ASA', 'SODO', 'CS', 'CR', 'TC', 'AS', 'SMO', 'AR', 'CMO', 'CFO', 'CHR', 'OWNER', 'SUPERADMIN')
-  async findByCode(@Param('code') code: string) {
-    return this.opnameService.findByCode(code);
+  async findByCode(@Param('code') code: string, @Request() req: any) {
+    return this.opnameService.findByCode(code, { roles: req.user.roles });
+  }
+
+  /** IGDERP-234 (OP2): counter-facing count view (scoped + blind). */
+  @Get(':id/count-view')
+  @UseGuards(RolesGuard)
+  @Roles('CSO', 'SPV', 'HS', 'ASA', 'SODO', 'CS', 'CR', 'TC', 'AS', 'SMO', 'AR', 'CMO', 'CFO', 'CHR', 'OWNER', 'SUPERADMIN')
+  async getCountView(@Param('id') id: string, @Request() req: any) {
+    return this.opnameService.getCountView(id, req.user);
+  }
+
+  /** IGDERP-234 (OP2): resolve a scanned barcode/SKU (identity only). */
+  @Get(':id/resolve')
+  @UseGuards(RolesGuard)
+  @Roles('HS', 'ASA', 'SODO', 'SPV', 'CSO')
+  async resolveBarcode(
+    @Param('id') id: string,
+    @Query('barcode') barcode: string,
+    @Request() req: any,
+  ) {
+    return this.opnameService.resolveBarcode(id, barcode, req.user);
+  }
+
+  /** IGDERP-234 (OP2): session progress — who counted what. */
+  @Get(':id/progress')
+  @UseGuards(RolesGuard)
+  @Roles('CSO', 'SPV', 'HS', 'ASA', 'SODO', 'CS', 'CR', 'TC', 'AS', 'SMO', 'AR', 'CMO', 'CFO', 'CHR', 'OWNER', 'SUPERADMIN')
+  async getProgress(@Param('id') id: string) {
+    return this.opnameService.getProgress(id);
+  }
+
+  /** IGDERP-234 (OP2): assignment roster. */
+  @Get(':id/assignments')
+  @UseGuards(RolesGuard)
+  @Roles('CSO', 'SPV', 'HS', 'ASA', 'SODO', 'CS', 'CR', 'TC', 'AS', 'SMO', 'AR', 'CMO', 'CFO', 'CHR', 'OWNER', 'SUPERADMIN')
+  async listAssignments(@Param('id') id: string) {
+    return this.opnameService.listAssignments(id);
+  }
+
+  /** IGDERP-234 (OP2): assign a counter to categories (addable mid-session). */
+  @Post(':id/assignments')
+  @UseGuards(RolesGuard)
+  @Roles('HS', 'SPV', 'CSO')
+  async addAssignments(@Param('id') id: string, @Body() dto: AddAssignmentDto) {
+    return this.opnameService.addAssignments(id, dto);
+  }
+
+  /** IGDERP-234 (OP2): unknown-barcode exception log. */
+  @Get(':id/exceptions')
+  @UseGuards(RolesGuard)
+  @Roles('HS', 'SPV', 'CSO')
+  async listExceptions(@Param('id') id: string) {
+    return this.opnameService.listExceptions(id);
+  }
+
+  /** IGDERP-234 (OP2): log an unknown-barcode scan (never a count line). */
+  @Post(':id/exceptions')
+  @UseGuards(RolesGuard)
+  @Roles('HS', 'ASA', 'SODO')
+  async logException(@Param('id') id: string, @Body() dto: LogExceptionDto, @Request() req: any) {
+    return this.opnameService.logException(id, dto.barcode, req.user.id);
   }
 
   @Get(':id')
   @UseGuards(RolesGuard)
   @Roles('CSO', 'SPV', 'HS', 'ASA', 'SODO', 'CS', 'CR', 'TC', 'AS', 'SMO', 'AR', 'CMO', 'CFO', 'CHR', 'OWNER', 'SUPERADMIN')
-  async findById(@Param('id') id: string) {
-    return this.opnameService.findById(id);
+  async findById(@Param('id') id: string, @Request() req: any) {
+    // IGDERP-234 (OP2): blind detail for counters.
+    return this.opnameService.findById(id, { roles: req.user.roles });
   }
 
   /** IGDERP-177: result document download (.xlsx). */
@@ -80,16 +144,16 @@ export class StockOpnameController {
   @Post(':id/items/add')
   @UseGuards(RolesGuard)
   @Roles('HS', 'ASA', 'SODO')
-  async addItem(@Param('id') id: string, @Body() dto: AddOpnameItemDto) {
-    return this.opnameService.addItem(id, dto.productId);
+  async addItem(@Param('id') id: string, @Body() dto: AddOpnameItemDto, @Request() req: any) {
+    return this.opnameService.addItem(id, dto.productId, req.user);
   }
 
   /** Draft model: remove a row from the ongoing opname (IGDERP-175: item id). */
   @Delete(':id/items/:itemId')
   @UseGuards(RolesGuard)
   @Roles('HS', 'ASA', 'SODO')
-  async removeItem(@Param('id') id: string, @Param('itemId') itemId: string) {
-    return this.opnameService.removeItem(id, itemId);
+  async removeItem(@Param('id') id: string, @Param('itemId') itemId: string, @Request() req: any) {
+    return this.opnameService.removeItem(id, itemId, req.user);
   }
 
   @Post(':id/items')
@@ -100,7 +164,7 @@ export class StockOpnameController {
     @Body() dto: RecordCountDto,
     @Request() req: any,
   ) {
-    return this.opnameService.recordCount(id, dto, req.user.id);
+    return this.opnameService.recordCount(id, dto, req.user.id, req.user.roles);
   }
 
   @Post(':id/cancel')

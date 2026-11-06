@@ -78,6 +78,9 @@ export interface StockOpname {
   notes?: string;
   createdAt: string;
   updatedAt: string;
+  /** IGDERP-234 (OP2): caller's assigned categories (null = whole session). */
+  myCategoryIds?: string[] | null;
+  assignments?: Array<{ id: string; userId: string; categoryId: string; category?: { id: string; name: string } }>;
 }
 
 export interface StockOpnameItem {
@@ -537,8 +540,11 @@ export const inventoryService = {
   async recordCount(opnameId: string, data: {
     items: Array<{
       productId: string;
-      physicalQuantity: number;
+      physicalQuantity?: number;
       condition?: 'good' | 'damaged' | 'expired';
+      goodQuantity?: number;
+      damagedQuantity?: number;
+      expiredQuantity?: number;
       notes?: string;
       countedBy?: string;
       force?: boolean;
@@ -546,6 +552,83 @@ export const inventoryService = {
   }): Promise<StockOpname> {
     try {
       const response = await api.post(`/inventory/opname/${opnameId}/items`, data);
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  /** IGDERP-234 (OP2): counter-facing count view (scoped + blind). */
+  async getCountView(opnameId: string): Promise<StockOpname> {
+    try {
+      const response = await api.get(`/inventory/opname/${opnameId}/count-view`);
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  /** IGDERP-234 (OP2): resolve a scanned barcode/SKU (identity only, never system stock). */
+  async resolveBarcode(opnameId: string, barcode: string): Promise<{
+    product: { id: string; name: string; sku: string; barcode: string | null; category: { id: string; name: string } | null };
+    lines: Array<{ itemId: string; condition: string; physicalQuantity: string | null; countedBy: string | null }>;
+  }> {
+    try {
+      const response = await api.get(`/inventory/opname/${opnameId}/resolve`, { params: { barcode } });
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  /** IGDERP-234 (OP2): session progress — who counted what. */
+  async getOpnameProgress(opnameId: string): Promise<{
+    totals: { rows: number; countedRows: number; remainingRows: number; products: number; countedProducts: number; scanEvents: number; exceptions: number };
+    byUser: Array<{ userId: string; displayName: string; rows: number; products: number; quantity: number; lastScanAt: string | null }>;
+    assignments: Array<{ id: string; userId: string; categoryId: string; category?: { id: string; name: string } }>;
+  }> {
+    try {
+      const response = await api.get(`/inventory/opname/${opnameId}/progress`);
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  /** IGDERP-234 (OP2): assignment roster. */
+  async listAssignments(opnameId: string): Promise<any[]> {
+    try {
+      const response = await api.get(`/inventory/opname/${opnameId}/assignments`);
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  /** IGDERP-234 (OP2): assign a counter to categories (addable mid-session). */
+  async addAssignments(opnameId: string, data: { userId: string; categoryIds: string[] }): Promise<any[]> {
+    try {
+      const response = await api.post(`/inventory/opname/${opnameId}/assignments`, data);
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  /** IGDERP-234 (OP2): log an unknown-barcode scan (never a count line). */
+  async logOpnameException(opnameId: string, barcode: string): Promise<any> {
+    try {
+      const response = await api.post(`/inventory/opname/${opnameId}/exceptions`, { barcode });
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  /** IGDERP-234 (OP2): unknown-barcode exception log (coordinator). */
+  async listOpnameExceptions(opnameId: string): Promise<any[]> {
+    try {
+      const response = await api.get(`/inventory/opname/${opnameId}/exceptions`);
       return response.data;
     } catch (error: any) {
       throw error;

@@ -3,13 +3,25 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services/prisma.service';
 import { StartOpnameDto } from './dto/start-opname.dto';
-import { RecordCountDto } from './dto/record-count.dto';
+import { RecordCountDto, OpnameItemDto } from './dto/record-count.dto';
+import { AddAssignmentDto } from './dto/add-assignment.dto';
 import { Decimal } from '@prisma/client/runtime/library';
 
 const ACTIVE_STATUSES = ['draft', 'counting'] as const;
+
+/**
+ * IGDERP-234 (OP2): roles that may see system/expected/variance on opname
+ * reads. Everyone else (counters: HS/ASA/SODO/…) gets a blind view —
+ * product identity + their saved physical counts only.
+ * Callers that pass no viewer (internal flows: export, approval) keep full.
+ */
+const FULL_VIEW_ROLES = ['SPV', 'CSO', 'OWNER', 'SUPERADMIN'];
+
+export type OpnameViewer = { id: string; roles?: string[] };
 
 type ActiveStatus = (typeof ACTIVE_STATUSES)[number];
 
@@ -81,6 +93,77 @@ export class StockOpnameService {
         `Cannot ${action} for opname with status: ${opname.status}`,
       );
     }
+  }
+
+  /**
+   * IGDERP-234 (OP2): blind-count enforcement. No viewer (internal callers)
+   * keeps full visibility; an explicit role list without a reviewer role is
+   * blind. Counters must never see system/expected/variance — not even via
+   * product costPrice (variance value is derivable from it).
+   */
+  private canSeeVariance(roles?: string[]): boolean {
+    if (!roles) return true;
+    return roles.some((r) => FULL_VIEW_ROLES.includes(r));
+  }
+
+  /** IGDERP-234 (OP2): strip system/expected/variance + cost from a loaded opname. */
+  private stripBlindView(opname: any) {
+    const { totalDiscrepancyValue, ...restOpname } = opname;
+    return {
+      ...restOpname,
+      items: (opname.items ?? []).map((i: any) => {
+        const {
+          systemQuantity,
+          systemQuantityAtCount,
+          discrepancy,
+          discrepancyValue,
+          liveQuantity,
+          ...safeItem
+        } = i;
+        const { costPrice, ...safeProduct } = i.product ?? {};
+        return { ...safeItem, product: safeProduct };
+      }),
+    };
+  }
+
+  /**
+   * IGDERP-234 (OP2): category scope for a counter. Null = whole session
+   * (no assignments yet, or this user has none — unassigned users keep full
+   * visibility so nobody is ever locked out of a count).
+   */
+  private async getUserScope(prisma: any, opnameId: string, userId: string): Promise<string[] | null> {
+    const all = await prisma.opnameAssignment.findMany({ where: { opnameId } });
+    if (!all || all.length === 0) return null;
+    const mine = all.filter((a: any) => a.userId === userId).map((a: any) => a.categoryId);
+    return mine.length > 0 ? mine : null;
+  }
+
+  /**
+   * IGDERP-234 (OP2): fan a count payload out to per-condition lines.
+   * Split quantities (GOOD/RUSAK/KADALUARSA) win when any is present;
+   * otherwise the legacy physicalQuantity + condition applies.
+   */
+  private expandCountLines(item: OpnameItemDto) {
+    const base = {
+      productId: item.productId,
+      notes: item.notes,
+      force: item.force,
+      countedBy: item.countedBy,
+    };
+    const splits = [
+      { condition: 'good', qty: item.goodQuantity },
+      { condition: 'damaged', qty: item.damagedQuantity },
+      { condition: 'expired', qty: item.expiredQuantity },
+    ].filter((s) => s.qty !== undefined && s.qty !== null);
+    if (splits.length > 0) {
+      return splits.map((s) => ({ ...base, physicalQuantity: s.qty as number, condition: s.condition as 'good' | 'damaged' | 'expired' }));
+    }
+    if (item.physicalQuantity === undefined || item.physicalQuantity === null) {
+      throw new BadRequestException(
+        `Product ${item.productId} has no quantity — send physicalQuantity or good/damaged/expired quantities`,
+      );
+    }
+    return [{ ...base, physicalQuantity: item.physicalQuantity, condition: item.condition }];
   }
 
   async startOpname(dto: StartOpnameDto, userId: string) {
@@ -209,7 +292,7 @@ export class StockOpnameService {
     });
   }
 
-  async findAll(branchId?: string, status?: string, branchIds?: string[]) {
+  async findAll(branchId?: string, status?: string, branchIds?: string[], viewer?: { roles?: string[] }) {
     const where: any = {};
 
     if (branchId) {
@@ -241,10 +324,13 @@ export class StockOpnameService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return Promise.all(opnames.map((o) => this.attachLiveQuantities(o)));
+    // IGDERP-234 (OP2): counters get blind list rows (no system/variance).
+    const blind = !this.canSeeVariance(viewer?.roles);
+    const withLive = await Promise.all(opnames.map((o) => this.attachLiveQuantities(o)));
+    return blind ? withLive.map((o) => this.stripBlindView(o)) : withLive;
   }
 
-  async findById(id: string) {
+  async findById(id: string, viewer?: { roles?: string[] }) {
     const opname = await this.prisma.stockOpname.findUnique({
       where: { id },
       include: {
@@ -266,14 +352,16 @@ export class StockOpnameService {
       throw new NotFoundException('Opname not found');
     }
 
-    return this.attachLiveQuantities(opname);
+    // IGDERP-234 (OP2): blind view for counters (API-level enforcement).
+    const withLive = await this.attachLiveQuantities(opname);
+    return this.canSeeVariance(viewer?.roles) ? withLive : this.stripBlindView(withLive);
   }
 
   /**
    * IGDERP-233 (OP1): join a session by its short code (Menu > Opname > Count > Code).
    * Blind-count clients use the id from here for subsequent calls.
    */
-  async findByCode(code: string) {
+  async findByCode(code: string, viewer?: { roles?: string[] }) {
     const normalized = code.trim().toUpperCase();
     const opname = await this.prisma.stockOpname.findFirst({
       where: { code: normalized },
@@ -284,7 +372,242 @@ export class StockOpnameService {
       throw new NotFoundException('Opname session not found for this code');
     }
 
-    return this.findById(opname.id);
+    return this.findById(opname.id, viewer);
+  }
+
+  /**
+   * IGDERP-234 (OP2): counter-facing count view — category-scoped to the
+   * caller's assignments and blind to system/expected/variance unless the
+   * caller holds a reviewer role. Manual refresh (draft model, no push).
+   */
+  async getCountView(opnameId: string, viewer: OpnameViewer) {
+    const opname: any = await this.findById(opnameId);
+    const scope = await this.getUserScope(this.prisma, opnameId, viewer.id);
+    const assignments = await this.prisma.opnameAssignment.findMany({
+      where: { opnameId },
+      include: { category: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    const items = scope
+      ? (opname.items ?? []).filter((i: any) => scope.includes(i.product?.categoryId))
+      : (opname.items ?? []);
+    const view = { ...opname, items, myCategoryIds: scope, assignments };
+    return this.canSeeVariance(viewer.roles) ? view : this.stripBlindView(view);
+  }
+
+  /**
+   * IGDERP-234 (OP2): resolve a scanned barcode/SKU to the in-scope opname
+   * line(s). Identity only — never system stock. Unknown barcodes are a 404
+   * (FE shows the exception popup and logs); lines outside the caller's
+   * assignment are a 403 with no log. Never creates a count line.
+   */
+  async resolveBarcode(opnameId: string, rawBarcode: string, viewer: OpnameViewer) {
+    const barcode = (rawBarcode ?? '').trim();
+    if (!barcode) {
+      throw new BadRequestException('Barcode is required');
+    }
+    const opname: any = await this.prisma.stockOpname.findUnique({
+      where: { id: opnameId },
+      include: {
+        items: { include: { product: { include: { category: true } } } },
+      },
+    });
+    if (!opname) {
+      throw new NotFoundException('Opname not found');
+    }
+    this.assertActive(opname, 'scan items in');
+
+    const upper = barcode.toUpperCase();
+    const candidates = (opname.items ?? []).filter(
+      (i: any) =>
+        i.product &&
+        (i.product.barcode === barcode ||
+          i.product.sku === barcode ||
+          (i.product.sku && i.product.sku.toUpperCase() === upper)),
+    );
+    if (candidates.length === 0) {
+      throw new NotFoundException('UNKNOWN_BARCODE');
+    }
+    const scope = await this.getUserScope(this.prisma, opnameId, viewer.id);
+    const inScope = scope
+      ? candidates.filter((i: any) => scope.includes(i.product.categoryId))
+      : candidates;
+    if (inScope.length === 0) {
+      throw new ForbiddenException('OUT_OF_SCOPE');
+    }
+    const product = inScope[0].product;
+    return {
+      product: {
+        id: product.id,
+        name: product.name,
+        sku: product.sku,
+        barcode: product.barcode,
+        category: product.category ? { id: product.category.id, name: product.category.name } : null,
+      },
+      lines: inScope.map((i: any) => ({
+        itemId: i.id,
+        condition: i.condition ?? 'good',
+        physicalQuantity: i.physicalQuantity === null || i.physicalQuantity === undefined
+          ? null
+          : i.physicalQuantity.toString(),
+        countedBy: i.countedBy ?? null,
+      })),
+    };
+  }
+
+  /**
+   * IGDERP-234 (OP2): assign a counter to categories. Addable mid-session;
+   * existing rows are kept (no duplicates). Returns the session roster.
+   */
+  async addAssignments(opnameId: string, dto: AddAssignmentDto) {
+    const opname = await this.prisma.stockOpname.findUnique({ where: { id: opnameId } });
+    if (!opname) {
+      throw new NotFoundException('Opname not found');
+    }
+    this.assertActive(opname, 'change assignments in');
+
+    const cats = await this.prisma.category.findMany({ where: { id: { in: dto.categoryIds } } });
+    if (cats.length !== dto.categoryIds.length) {
+      throw new BadRequestException('One or more categories do not exist');
+    }
+    for (const categoryId of dto.categoryIds) {
+      const existing = await this.prisma.opnameAssignment.findFirst({
+        where: { opnameId, userId: dto.userId, categoryId },
+      });
+      if (!existing) {
+        await this.prisma.opnameAssignment.create({ data: { opnameId, userId: dto.userId, categoryId } });
+      }
+    }
+    return this.listAssignments(opnameId);
+  }
+
+  async listAssignments(opnameId: string) {
+    const opname = await this.prisma.stockOpname.findUnique({
+      where: { id: opnameId },
+      select: { id: true },
+    });
+    if (!opname) {
+      throw new NotFoundException('Opname not found');
+    }
+    return this.prisma.opnameAssignment.findMany({
+      where: { opnameId },
+      include: { category: true },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  /**
+   * IGDERP-234 (OP2): log an unknown-barcode attempt for the coordinator.
+   * Never creates a count line.
+   */
+  async logException(opnameId: string, rawBarcode: string, userId: string) {
+    const opname = await this.prisma.stockOpname.findUnique({ where: { id: opnameId } });
+    if (!opname) {
+      throw new NotFoundException('Opname not found');
+    }
+    this.assertActive(opname, 'log exceptions in');
+    const barcode = (rawBarcode ?? '').trim().slice(0, 64);
+    if (!barcode) {
+      throw new BadRequestException('Barcode is required');
+    }
+    return this.prisma.opnameException.create({ data: { opnameId, barcode, scannedBy: userId } });
+  }
+
+  async listExceptions(opnameId: string) {
+    const opname = await this.prisma.stockOpname.findUnique({
+      where: { id: opnameId },
+      select: { id: true },
+    });
+    if (!opname) {
+      throw new NotFoundException('Opname not found');
+    }
+    return this.prisma.opnameException.findMany({
+      where: { opnameId },
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+    });
+  }
+
+  /**
+   * IGDERP-234 (OP2): session progress — who counted what. Served on demand
+   * (manual refresh / poll); there is deliberately no push channel — the
+   * draft model (IGDERP-92) keeps refresh manual.
+   */
+  async getProgress(opnameId: string) {
+    const opname: any = await this.prisma.stockOpname.findUnique({
+      where: { id: opnameId },
+      include: {
+        items: {
+          select: {
+            productId: true,
+            physicalQuantity: true,
+            condition: true,
+            countedBy: true,
+          },
+        },
+      },
+    });
+    if (!opname) {
+      throw new NotFoundException('Opname not found');
+    }
+    const [scans, assignments, exceptionsCount] = await Promise.all([
+      this.prisma.opnameScan.findMany({
+        where: { opnameId },
+        orderBy: { createdAt: 'desc' },
+        take: 500,
+      }),
+      this.listAssignments(opnameId),
+      this.prisma.opnameException.count({ where: { opnameId } }),
+    ]);
+
+    const items = opname.items ?? [];
+    const countedRows = items.filter(
+      (i: any) => i.physicalQuantity !== null && i.physicalQuantity !== undefined,
+    );
+    const countedProducts = new Set(countedRows.map((i: any) => i.productId));
+
+    const byUser = new Map<string, { rows: number; products: Set<string>; quantity: number }>();
+    for (const i of countedRows) {
+      const key = i.countedBy ?? 'unknown';
+      if (!byUser.has(key)) byUser.set(key, { rows: 0, products: new Set(), quantity: 0 });
+      const entry = byUser.get(key) as { rows: number; products: Set<string>; quantity: number };
+      entry.rows += 1;
+      entry.products.add(i.productId);
+      entry.quantity += Number(i.physicalQuantity);
+    }
+    const lastScanBy = new Map<string, Date>();
+    for (const s of scans) {
+      if (!lastScanBy.has(s.scannedBy)) lastScanBy.set(s.scannedBy, s.createdAt);
+    }
+    const knownIds = [...byUser.keys()].filter((k) => k !== 'unknown');
+    const users = knownIds.length > 0
+      ? await this.prisma.user.findMany({
+          where: { id: { in: knownIds } },
+          select: { id: true, fullName: true, username: true },
+        })
+      : [];
+    const nameById = new Map(users.map((u: any) => [u.id, u.fullName || u.username || u.id]));
+
+    return {
+      totals: {
+        rows: items.length,
+        countedRows: countedRows.length,
+        remainingRows: items.length - countedRows.length,
+        products: new Set(items.map((i: any) => i.productId)).size,
+        countedProducts: countedProducts.size,
+        scanEvents: scans.length,
+        exceptions: exceptionsCount,
+      },
+      byUser: [...byUser.entries()].map(([userId, e]) => ({
+        userId,
+        displayName: nameById.get(userId) ?? (userId === 'unknown' ? '-' : userId),
+        rows: e.rows,
+        products: e.products.size,
+        quantity: e.quantity,
+        lastScanAt: lastScanBy.get(userId) ?? null,
+      })),
+      assignments,
+    };
   }
 
   /**
@@ -355,7 +678,7 @@ export class StockOpnameService {
   }
 
   /** Draft model: add a product to an ongoing (draft/counting) opname. */
-  async addItem(opnameId: string, productId: string) {
+  async addItem(opnameId: string, productId: string, viewer?: OpnameViewer) {
     const opname = await this.prisma.stockOpname.findUnique({
       where: { id: opnameId },
     });
@@ -397,11 +720,12 @@ export class StockOpnameService {
       },
     });
 
-    return this.findById(opnameId);
+    // IGDERP-234 (OP2): counters get their scoped blind view back.
+    return viewer ? this.getCountView(opnameId, viewer) : this.findById(opnameId);
   }
 
   /** Draft model: remove a row from an ongoing (draft/counting) opname. IGDERP-175: item-id based (one row per product+condition). */
-  async removeItem(opnameId: string, itemId: string) {
+  async removeItem(opnameId: string, itemId: string, viewer?: OpnameViewer) {
     const opname = await this.prisma.stockOpname.findUnique({
       where: { id: opnameId },
     });
@@ -420,7 +744,8 @@ export class StockOpnameService {
 
     await this.prisma.stockOpnameItem.delete({ where: { id: item.id } });
 
-    return this.findById(opnameId);
+    // IGDERP-234 (OP2): counters get their scoped blind view back.
+    return viewer ? this.getCountView(opnameId, viewer) : this.findById(opnameId);
   }
 
   /** Cancel/void an ongoing opname, freeing the outlet for a new one. */
@@ -457,7 +782,7 @@ export class StockOpnameService {
     });
   }
 
-  async recordCount(opnameId: string, dto: RecordCountDto, userId: string) {
+  async recordCount(opnameId: string, dto: RecordCountDto, userId: string, userRoles?: string[]) {
     const opname = await this.prisma.stockOpname.findUnique({
       where: { id: opnameId },
       include: {
@@ -483,8 +808,26 @@ export class StockOpnameService {
       // re-scan of a counted row is a 409 (FE shows the reject modal),
       // a new condition creates a second row (service-level enforcement,
       // no migration — condition stays nullable).
-      for (const item of dto.items) {
-        const candidates = opname.items.filter((i) => i.productId === item.productId);
+      for (const raw of dto.items) {
+        // IGDERP-234 (OP2): one scan fans out to one row per non-zero
+        // condition (GOOD/RUSAK/KADALUARSA); legacy payloads yield one line.
+        const lines = this.expandCountLines(raw);
+        let goodQty = 0;
+        let damagedQty = 0;
+        let expiredQty = 0;
+        for (const split of lines) {
+          if (split.condition === 'damaged') damagedQty = split.physicalQuantity;
+          else if (split.condition === 'expired') expiredQty = split.physicalQuantity;
+          else goodQty = split.physicalQuantity;
+        }
+        // Rows for this product known so far (snapshot + rows created by
+        // earlier lines of this same scan).
+        const known: any[] = opname.items.filter((i: any) => i.productId === raw.productId);
+        for (const item of lines) {
+        // IGDERP-234 (OP2): in-memory mirror of this product's rows — split
+        // lines in one scan must see each other's writes (the tx snapshot
+        // above is stale after the first line creates/updates a row).
+        const candidates = known.filter((i) => i.productId === item.productId);
         const cond = item.condition || undefined;
 
         if (!cond && candidates.length > 1) {
@@ -552,6 +895,10 @@ export class StockOpnameService {
           // for the costPrice math below (create returns no includes).
           const sibling = candidates[0];
           if (sibling) opnameItem.product = sibling.product;
+          // IGDERP-234 (OP2): mirror the new row for later split lines.
+          opnameItem.condition = cond;
+          opnameItem.physicalQuantity = null;
+          known.push(opnameItem);
         }
 
         const systemQuantity = Number(opnameItem.systemQuantity);
@@ -586,25 +933,33 @@ export class StockOpnameService {
             countedBy: item.countedBy || userId,
           },
         });
+        // IGDERP-234 (OP2): mirror the write for later split lines.
+        opnameItem.physicalQuantity = new Decimal(physicalQuantity);
+        opnameItem.condition = item.condition;
+        opnameItem.countedBy = item.countedBy || userId;
       }
 
-      return tx.stockOpname.findUnique({
-        where: { id: opnameId },
-        include: {
-          items: {
-            include: {
-              product: {
-                include: {
-                  category: true,
-                  brand: true,
-                },
-              },
-            },
-          },
-          branch: true,
+      // IGDERP-234 (OP2): append-only scan event for this product.
+      const lastScan = await tx.opnameScan.findFirst({
+        where: { opnameId, productId: raw.productId },
+        orderBy: { revision: 'desc' },
+      });
+      await tx.opnameScan.create({
+        data: {
+          opnameId,
+          productId: raw.productId,
+          goodQuantity: new Decimal(goodQty),
+          damagedQuantity: new Decimal(damagedQty),
+          expiredQuantity: new Decimal(expiredQty),
+          scannedBy: raw.countedBy || userId,
+          revision: lastScan ? lastScan.revision + 1 : 1,
         },
       });
+    }
     });
+
+    // IGDERP-234 (OP2): counters get their scoped blind view back.
+    return this.getCountView(opnameId, { id: userId, roles: userRoles });
   }
 
   async completeOpname(opnameId: string, userId: string) {
