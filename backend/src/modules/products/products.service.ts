@@ -11,6 +11,31 @@ import { ProductTransformer, TransformedProduct } from './transformers/product.t
 import { Prisma } from '@prisma/client';
 import { randomBytes } from 'crypto';
 
+type CompareOp = 'gt' | 'lt' | 'eq';
+
+/** Apply a gt/lt/eq compare operator onto a Prisma numeric filter object. */
+function applyCompareOp(existing: any, op: CompareOp, value: number): any {
+  const next = existing && typeof existing === 'object' ? { ...existing } : {};
+  if (op === 'gt') next.gt = value;
+  else if (op === 'lt') next.lt = value;
+  else next.equals = value;
+  return next;
+}
+
+/** JS-side numeric comparison for aggregation-filter id matching. */
+function compareNumbers(actual: number, op: CompareOp, expected: number, float = false): boolean {
+  if (op === 'gt') return actual > expected;
+  if (op === 'lt') return actual < expected;
+  return float ? Math.abs(actual - expected) < 1e-9 : actual === expected;
+}
+
+/** Convert an age value in the given unit to days. */
+function toDays(value: number, unit: 'days' | 'months' | 'years'): number {
+  if (unit === 'months') return value * 30;
+  if (unit === 'years') return value * 365;
+  return value;
+}
+
 /**
  * Products Service
  * Handles product management operations
@@ -170,10 +195,26 @@ export class ProductsService {
       limit = 20,
       search,
       'filter[category]': filterCategory,
+      'filter[subCategory]': filterSubCategory,
       'filter[brand]': filterBrand,
+      'filter[color]': filterColor,
+      'filter[size]': filterSize,
+      'filter[unit]': filterUnit,
+      'filter[supplier]': filterSupplier,
       'filter[status]': filterStatus = 'active',
       'filter[minPrice]': filterMinPrice,
       'filter[maxPrice]': filterMaxPrice,
+      'filter[priceOp]': filterPriceOp,
+      'filter[priceValue]': filterPriceValue,
+      'filter[costOp]': filterCostOp,
+      'filter[costValue]': filterCostValue,
+      'filter[stockOp]': filterStockOp,
+      'filter[stockValue]': filterStockValue,
+      'filter[soldOp]': filterSoldOp,
+      'filter[soldValue]': filterSoldValue,
+      'filter[ageOp]': filterAgeOp,
+      'filter[ageValue]': filterAgeValue,
+      'filter[ageUnit]': filterAgeUnit = 'days',
       'filter[type]': filterType = 'all',
       sort = 'name',
       order = 'asc',
@@ -203,12 +244,33 @@ export class ProductsService {
       where.categoryId = filterCategory;
     }
 
+    // Sub-category filter
+    if (filterSubCategory) {
+      where.subCategoryId = filterSubCategory;
+    }
+
     // Brand filter
     if (filterBrand) {
       where.brandId = filterBrand;
     }
 
-    // Price range filter
+    // Color / size / unit filters
+    if (filterColor) {
+      where.colorId = filterColor;
+    }
+    if (filterSize) {
+      where.sizeId = filterSize;
+    }
+    if (filterUnit) {
+      where.unitId = filterUnit;
+    }
+
+    // Supplier filter
+    if (filterSupplier) {
+      where.supplierId = filterSupplier;
+    }
+
+    // Price range filter (legacy min/max on selling price)
     if (filterMinPrice !== undefined || filterMaxPrice !== undefined) {
       where.sellingPrice = {};
       if (filterMinPrice !== undefined) {
@@ -219,6 +281,16 @@ export class ProductsService {
       }
     }
 
+    // Selling-price compare filter (harga jual < / > / =)
+    if (filterPriceOp !== undefined && filterPriceValue !== undefined) {
+      where.sellingPrice = applyCompareOp(where.sellingPrice, filterPriceOp, filterPriceValue);
+    }
+
+    // Cost-price compare filter (harga modal < / > / =)
+    if (filterCostOp !== undefined && filterCostValue !== undefined) {
+      where.costPrice = applyCompareOp(where.costPrice, filterCostOp, filterCostValue);
+    }
+
     // Service/Product type filter
     if (filterType === 'service') {
       where.isService = true;
@@ -226,6 +298,32 @@ export class ProductsService {
       where.isService = false;
     }
     // If filterType === 'all', don't filter by isService
+
+    // Aggregation filters (perkiraan jumlah, total terjual, umur) resolve to an
+    // id-set first: groupBy cannot filter on the aggregate, so match ids in JS
+    // against the same base `where`, then constrain the main query.
+    const needsAggregation =
+      (filterStockOp !== undefined && filterStockValue !== undefined) ||
+      (filterSoldOp !== undefined && filterSoldValue !== undefined) ||
+      (filterAgeOp !== undefined && filterAgeValue !== undefined);
+    if (needsAggregation) {
+      const matchedIds = await this.matchAggregationFilters(where, {
+        stockOp: filterStockOp,
+        stockValue: filterStockValue,
+        soldOp: filterSoldOp,
+        soldValue: filterSoldValue,
+        ageOp: filterAgeOp,
+        ageValue: filterAgeValue,
+        ageUnit: filterAgeUnit,
+      });
+      if (matchedIds.length === 0) {
+        return {
+          data: [],
+          meta: { total: 0, page: pageNum, limit: limitNum, totalPages: 0 },
+        };
+      }
+      where.id = { in: matchedIds };
+    }
 
     // Build include object - optimize by selecting only needed fields
     const includeObj: Prisma.ProductInclude = {};
@@ -259,6 +357,16 @@ export class ProductsService {
     if (include.includes('color')) {
       includeObj.color = {
         select: { id: true, name: true },
+      };
+    }
+    if (include.includes('subCategory')) {
+      includeObj.subCategory = {
+        select: { id: true, code: true, name: true },
+      };
+    }
+    if (include.includes('supplier')) {
+      includeObj.supplier = {
+        select: { id: true, name: true, customerCode: true },
       };
     }
     if (include.includes('stock')) {
@@ -323,8 +431,9 @@ export class ProductsService {
     }
 
     try {
+      const annotations = await this.buildListAnnotations(products.map((p: any) => p.id));
       return {
-        data: ProductTransformer.transformMany(products, include.includes('stock')),
+        data: ProductTransformer.transformMany(products, include.includes('stock'), annotations),
         meta: {
           total,
           page: pageNum,
@@ -336,6 +445,126 @@ export class ProductsService {
       console.error('Error transforming products:', error);
       throw error;
     }
+  }
+
+  /**
+   * List-filter aggregation matching (perkiraan jumlah, total terjual, umur).
+   * Resolves each active aggregation filter to a matching product id-set
+   * scoped to the same base `where`, then intersects the sets.
+   */
+  private async matchAggregationFilters(
+    baseWhere: Prisma.ProductWhereInput,
+    filters: {
+      stockOp?: 'gt' | 'lt' | 'eq';
+      stockValue?: number;
+      soldOp?: 'gt' | 'lt' | 'eq';
+      soldValue?: number;
+      ageOp?: 'gt' | 'lt' | 'eq';
+      ageValue?: number;
+      ageUnit?: 'days' | 'months' | 'years';
+    },
+  ): Promise<string[]> {
+    let matched: Set<string> | null = null;
+    const intersect = (ids: string[]) => {
+      matched = matched === null ? new Set(ids) : new Set(ids.filter((id) => matched!.has(id)));
+    };
+
+    // Perkiraan jumlah: total quantityAvailable across all warehouses.
+    // Products without any stock row count as 0.
+    if (filters.stockOp !== undefined && filters.stockValue !== undefined) {
+      const sums = await this.prisma.productStock.groupBy({
+        by: ['productId'],
+        where: { product: baseWhere },
+        _sum: { quantityAvailable: true },
+      });
+      const sumById = new Map(sums.map((s) => [s.productId, Number(s._sum.quantityAvailable ?? 0)]));
+      const candidates = await this.prisma.product.findMany({
+        where: baseWhere,
+        select: { id: true },
+      });
+      intersect(
+        candidates
+          .map((c) => c.id)
+          .filter((id) => compareNumbers(sumById.get(id) ?? 0, filters.stockOp!, filters.stockValue!)),
+      );
+    }
+
+    // Total unit terjual: all-time sum of sales item quantities (never sold = 0)
+    if (filters.soldOp !== undefined && filters.soldValue !== undefined) {
+      const sums = await this.prisma.salesTransactionItem.groupBy({
+        by: ['productId'],
+        where: { product: baseWhere },
+        _sum: { quantity: true },
+      });
+      const soldById = new Map(sums.map((s) => [s.productId, Number(s._sum.quantity ?? 0)]));
+      const candidates = await this.prisma.product.findMany({
+        where: baseWhere,
+        select: { id: true },
+      });
+      intersect(
+        candidates
+          .map((c) => c.id)
+          .filter((id) => compareNumbers(soldById.get(id) ?? 0, filters.soldOp!, filters.soldValue!)),
+      );
+    }
+
+    // Umur produk: days since last restock (latest IN movement; falls back to
+    // product createdAt when the product was never restocked)
+    if (filters.ageOp !== undefined && filters.ageValue !== undefined) {
+      const days = toDays(filters.ageValue, filters.ageUnit ?? 'days');
+      const [candidates, lastIns] = await Promise.all([
+        this.prisma.product.findMany({ where: baseWhere, select: { id: true, createdAt: true } }),
+        this.prisma.stockMovement.groupBy({
+          by: ['productId'],
+          where: { movementType: 'IN', product: baseWhere },
+          _max: { createdAt: true },
+        }),
+      ]);
+      const lastInById = new Map(lastIns.map((r) => [r.productId, r._max.createdAt]));
+      const now = Date.now();
+      intersect(
+        candidates
+          .filter((c) => {
+            const last = lastInById.get(c.id) ?? c.createdAt;
+            const ageDays = (now - new Date(last).getTime()) / 86400000;
+            return compareNumbers(ageDays, filters.ageOp!, days, true);
+          })
+          .map((c) => c.id),
+      );
+    }
+
+    return matched === null ? [] : [...matched];
+  }
+
+  /**
+   * Build per-row list annotations (totalSold, lastRestockAt) for the current
+   * page. Rendered by the transformer so the FE table can show them.
+   */
+  private async buildListAnnotations(
+    productIds: string[],
+  ): Promise<Map<string, { totalSold: number; lastRestockAt: Date | null }>> {
+    const annotations = new Map<string, { totalSold: number; lastRestockAt: Date | null }>();
+    if (productIds.length === 0) return annotations;
+    const [soldSums, lastIns] = await Promise.all([
+      this.prisma.salesTransactionItem.groupBy({
+        by: ['productId'],
+        where: { productId: { in: productIds } },
+        _sum: { quantity: true },
+      }),
+      this.prisma.stockMovement.groupBy({
+        by: ['productId'],
+        where: { productId: { in: productIds }, movementType: 'IN' },
+        _max: { createdAt: true },
+      }),
+    ]);
+    for (const id of productIds) annotations.set(id, { totalSold: 0, lastRestockAt: null });
+    for (const s of soldSums) {
+      annotations.get(s.productId)!.totalSold = Number(s._sum.quantity ?? 0);
+    }
+    for (const r of lastIns) {
+      annotations.get(r.productId)!.lastRestockAt = r._max.createdAt;
+    }
+    return annotations;
   }
 
   /**

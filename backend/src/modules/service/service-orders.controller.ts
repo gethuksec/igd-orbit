@@ -64,9 +64,26 @@ export class ServiceOrdersController {
     @Query('status') status?: string,
     @Query('technicianId') technicianId?: string,
     @Query('search') search?: string,
+    @Query('code') code?: string,
+    @Query('customerId') customerId?: string,
+    @Query('penerima') penerima?: string,
+    @Query('deviceUnit') deviceUnit?: string,
+    @Query('partSearch') partSearch?: string,
+    @Query('serial') serial?: string,
+    @Query('receivedFrom') receivedFrom?: string,
+    @Query('receivedTo') receivedTo?: string,
   ) {
     const branchFilter = resolveBranchFilter(req, branchId);
-    return this.serviceOrdersService.findAll(branchFilter, status, technicianId, search);
+    return this.serviceOrdersService.findAll(branchFilter, status, technicianId, search, {
+      code,
+      customerId,
+      penerima,
+      deviceUnit,
+      partSearch,
+      serial,
+      receivedFrom,
+      receivedTo,
+    });
   }
 
   @Get('tags/suggest')

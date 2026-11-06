@@ -31,6 +31,14 @@ export const serviceOrdersService = {
     status?: string;
     branchId?: string;
     technicianId?: string;
+    code?: string;
+    customerId?: string;
+    penerima?: string;
+    deviceUnit?: string;
+    partSearch?: string;
+    serial?: string;
+    receivedFrom?: string;
+    receivedTo?: string;
   }): Promise<ServiceOrderListResponse> {
     const response = await api.get('/service-orders', { params });
     const raw = response.data;
@@ -95,6 +103,7 @@ export const serviceOrdersService = {
     photos?: string[];
     quotedPrice?: number;
     customerApprovedPrice?: number;
+    pickedUpBy?: string;
   }) {
     const response = await api.post(`/service-orders/${id}/status`, payload);
     return response.data.data || response.data;
@@ -164,6 +173,7 @@ export const serviceOrdersService = {
     amount: number;
     reference?: string;
     notes?: string;
+    pickedUpBy?: string;
   }) {
     const response = await api.post(`/service-orders/${id}/payment`, payload);
     return response.data.data || response.data;

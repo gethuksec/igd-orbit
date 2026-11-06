@@ -37,6 +37,17 @@ function formatIdDateTime(d: Date): string {
   return `${p(wib.getUTCDate())} ${ID_MONTHS[wib.getUTCMonth()]} ${wib.getUTCFullYear()} ${p(wib.getUTCHours())}:${p(wib.getUTCMinutes())}`;
 }
 
+export interface ServiceOrderListFilters {
+  customerId?: string;
+  code?: string;
+  penerima?: string;
+  deviceUnit?: string;
+  partSearch?: string;
+  serial?: string;
+  receivedFrom?: string;
+  receivedTo?: string;
+}
+
 @Injectable()
 export class ServiceOrdersService {
   constructor(
@@ -532,7 +543,13 @@ export class ServiceOrdersService {
     });
   }
 
-  async findAll(branchFilter?: BranchFilter, status?: string, technicianId?: string, search?: string) {
+  async findAll(
+    branchFilter?: BranchFilter,
+    status?: string,
+    technicianId?: string,
+    search?: string,
+    filters: ServiceOrderListFilters = {},
+  ) {
     const where: any = {};
 
     if (branchFilter?.branchId) {
@@ -549,6 +566,73 @@ export class ServiceOrdersService {
       where.assignedTechnicianId = technicianId;
     }
 
+    // Kode service: nomor service / nomor internal
+    const andClauses: any[] = [];
+    if (filters.code) {
+      const q = filters.code;
+      andClauses.push({
+        OR: [
+          { serviceNumber: { contains: q, mode: 'insensitive' } },
+          { internalNumber: { contains: q, mode: 'insensitive' } },
+        ],
+      });
+    }
+
+    // Customer (dipilih dari dropdown searchable)
+    if (filters.customerId) {
+      where.customerId = filters.customerId;
+    }
+
+    // Nama penerima/pengambil (diisi saat ready -> done)
+    if (filters.penerima) {
+      where.pickedUpBy = { contains: filters.penerima, mode: 'insensitive' };
+    }
+
+    // Nama unit perangkat
+    if (filters.deviceUnit) {
+      where.deviceUnit = { contains: filters.deviceUnit, mode: 'insensitive' };
+    }
+
+    // Barcode / nama produk / SKU sparepart yang dipakai di service
+    if (filters.partSearch) {
+      const q = filters.partSearch;
+      where.partsUsed = {
+        some: {
+          product: {
+            OR: [
+              { barcode: { contains: q, mode: 'insensitive' } },
+              { sku: { contains: q, mode: 'insensitive' } },
+              { name: { contains: q, mode: 'insensitive' } },
+            ],
+          },
+        },
+      };
+    }
+
+    // Serial number / IMEI perangkat
+    if (filters.serial) {
+      const q = filters.serial;
+      andClauses.push({
+        OR: [
+          { deviceSerial: { contains: q, mode: 'insensitive' } },
+          { deviceImei: { contains: q, mode: 'insensitive' } },
+        ],
+      });
+    }
+
+    // Tanggal terima (daterange)
+    if (filters.receivedFrom || filters.receivedTo) {
+      where.receivedDate = {};
+      if (filters.receivedFrom) {
+        where.receivedDate.gte = new Date(filters.receivedFrom);
+      }
+      if (filters.receivedTo) {
+        const to = new Date(filters.receivedTo);
+        to.setHours(23, 59, 59, 999);
+        where.receivedDate.lte = to;
+      }
+    }
+
     if (search) {
       const perWord = buildPerWordSearch(search, [
         'serviceNumber',
@@ -559,8 +643,11 @@ export class ServiceOrdersService {
         'deviceColor',
       ]);
       if (perWord) {
-        where.AND = perWord.AND;
+        andClauses.push(perWord);
       }
+    }
+    if (andClauses.length > 0) {
+      where.AND = andClauses;
     }
 
     return this.prisma.serviceOrder.findMany({
@@ -1071,6 +1158,11 @@ export class ServiceOrdersService {
       throw new BadRequestException('Alasan pembatalan wajib diisi');
     }
 
+    // List-filter pickup: ready -> done wajib mencatat nama pengambil/penerima perangkat
+    if (dto.status === 'done' && !dto.pickedUpBy?.trim()) {
+      throw new BadRequestException('Nama pengambil/penerima wajib diisi saat serah terima');
+    }
+
     // Fast-close guard (05 Nov flow): pending → done only with notes + zero charges
     if (serviceOrder.status === 'pending' && dto.status === 'done') {
       if (!dto.notes?.trim()) {
@@ -1124,6 +1216,7 @@ export class ServiceOrdersService {
       } else if (dto.status === 'done') {
         const doneAt = new Date();
         updateData.completedAt = doneAt;
+        updateData.pickedUpBy = dto.pickedUpBy!.trim();
         // IGDERP-185: wipe customer lock credential on handover
         updateData.devicePassword = null;
         updateData.deviceLockType = 'none';
@@ -1850,7 +1943,11 @@ export class ServiceOrdersService {
         try {
           finalOrder = await this.updateStatus(
             serviceOrderId,
-            { status: 'done', notes: `Terima pembayaran lunas via ${dto.paymentMethod}` },
+            {
+              status: 'done',
+              notes: `Terima pembayaran lunas via ${dto.paymentMethod}`,
+              pickedUpBy: dto.pickedUpBy,
+            },
             userId,
           );
         } catch (e: any) {

@@ -61,4 +61,8 @@ export class UpdateStatusDto {
   @IsString()
   @IsOptional()
   promoCode?: string; // Kode promo/diskon
+
+  @IsString()
+  @IsOptional()
+  pickedUpBy?: string; // Nama pengambil/penerima perangkat — wajib saat status -> done
 }
