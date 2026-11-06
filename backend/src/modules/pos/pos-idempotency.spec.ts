@@ -55,6 +55,7 @@ describe('PosService.createTransaction idempotency (IGDERP-239)', () => {
       salesTransaction: { findUnique: jest.fn() },
       warehouse: { findUnique: jest.fn(), findFirst: jest.fn() },
       product: { findMany: jest.fn() },
+      stockOpname: { findFirst: jest.fn().mockResolvedValue(null) },
       $transaction: jest.fn((fn: any) => fn(tx)),
     };
     service = new PosService(prisma);
