@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, unlinkSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { extname } from 'path';
 import { PrismaService } from '../../../shared/services/prisma.service';
+import { assertFileMagic } from '../../../shared/utils/file-magic';
 
 export const ATTACHMENT_ENTITY_TYPES = ['PURCHASE_ORDER', 'GOODS_RECEIPT'] as const;
 export const ATTACHMENT_DOC_TYPES = ['INVOICE', 'DELIVERY_NOTE', 'ORDER_CONFIRM', 'OTHER'] as const;
@@ -60,6 +61,7 @@ export class PurchaseAttachmentsService {
       if (f.size > 10 * 1024 * 1024) {
         throw new BadRequestException('Maksimal 10MB per file: ' + (f.originalname || `file-${i + 1}`));
       }
+      assertFileMagic(f.buffer, f.mimetype, f.originalname);
       const ext = (extname(f.originalname || '').toLowerCase() || '.pdf').replace(/[^a-z0-9.]/g, '') || '.pdf';
       const name = `${entityId}-${Date.now()}-${i}${ext}`;
       writeFileSync(join(dir, name), f.buffer);
