@@ -29,6 +29,23 @@ export default function ProductList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('active');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedSubCategory, setSelectedSubCategory] = useState<string>('');
+  const [selectedBrand, setSelectedBrand] = useState<string>('');
+  const [selectedColor, setSelectedColor] = useState<string>('');
+  const [selectedSize, setSelectedSize] = useState<string>('');
+  const [selectedUnit, setSelectedUnit] = useState<string>('');
+  const [selectedSupplier, setSelectedSupplier] = useState<string>('');
+  const [stockOp, setStockOp] = useState<string>('');
+  const [stockValue, setStockValue] = useState<string>('');
+  const [soldOp, setSoldOp] = useState<string>('');
+  const [soldValue, setSoldValue] = useState<string>('');
+  const [ageOp, setAgeOp] = useState<string>('');
+  const [ageValue, setAgeValue] = useState<string>('');
+  const [ageUnit, setAgeUnit] = useState<string>('');
+  const [costOp, setCostOp] = useState<string>('');
+  const [costValue, setCostValue] = useState<string>('');
+  const [priceOp, setPriceOp] = useState<string>('');
+  const [priceValue, setPriceValue] = useState<string>('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState<10 | 20 | 50 | 100>(20);
 
@@ -55,16 +72,81 @@ export default function ProductList() {
 
   const categories = categoriesData ? flattenCategories(Array.isArray(categoriesData) ? categoriesData : [categoriesData]) : [];
 
+  // Sub-categories of the selected category (or all sub-categories)
+  const treeCategories: any[] = Array.isArray(categoriesData)
+    ? categoriesData
+    : categoriesData
+      ? [categoriesData]
+      : [];
+  const allSubCategories = treeCategories.flatMap((c: any) =>
+    (c.children || c.subCategories || []).map((s: any) => ({ ...s, parentId: c.id, parentName: c.name })),
+  );
+  const subCategoryOptions = selectedCategory
+    ? allSubCategories.filter((s: any) => s.parentId === selectedCategory)
+    : allSubCategories;
+
+  // Searchable option fetchers for the filter popup (limit 20 per keystroke)
+  const fetchMasterOptions = (url: string, toLabel: (r: any) => string) => async (q: string) => {
+    const res = await api.get(url, { params: { search: q || undefined, limit: 20 } });
+    const rows = res.data.data || res.data || [];
+    return (Array.isArray(rows) ? rows : [])
+      .map((r: any) => ({ value: r.id, label: toLabel(r) }))
+      .filter((o: any) => o.value);
+  };
+  const fetchCategories = async (q: string) => {
+    const needle = (q || '').toLowerCase();
+    return categories
+      .filter((c: any) => !needle || c.name.toLowerCase().includes(needle))
+      .slice(0, 20)
+      .map((c: any) => ({ value: c.id, label: c.name }));
+  };
+  const fetchSubCategories = async (q: string) => {
+    const needle = (q || '').toLowerCase();
+    return subCategoryOptions
+      .filter((s: any) => !needle || s.name.toLowerCase().includes(needle))
+      .slice(0, 20)
+      .map((s: any) => ({ value: s.id, label: s.parentName ? `${s.name} (${s.parentName})` : s.name }));
+  };
+  const fetchBrands = fetchMasterOptions('/brands', (b: any) => b.name);
+  const fetchColors = fetchMasterOptions('/colors', (c: any) => c.name);
+  const fetchSizes = fetchMasterOptions('/sizes', (s: any) => s.name);
+  const fetchUnits = fetchMasterOptions('/units', (u: any) => u.name);
+  const fetchSuppliers = fetchMasterOptions(
+    '/suppliers',
+    (s: any) => (s.customerCode ? `${s.name} (${s.customerCode})` : s.name),
+  );
+
+  const filterParams = {
+    'filter[status]': selectedStatus,
+    'filter[category]': selectedCategory || undefined,
+    'filter[subCategory]': selectedSubCategory || undefined,
+    'filter[brand]': selectedBrand || undefined,
+    'filter[color]': selectedColor || undefined,
+    'filter[size]': selectedSize || undefined,
+    'filter[unit]': selectedUnit || undefined,
+    'filter[supplier]': selectedSupplier || undefined,
+    'filter[stockOp]': stockValue ? stockOp || 'gt' : undefined,
+    'filter[stockValue]': stockValue || undefined,
+    'filter[soldOp]': soldValue ? soldOp || 'gt' : undefined,
+    'filter[soldValue]': soldValue || undefined,
+    'filter[ageOp]': ageValue ? ageOp || 'gt' : undefined,
+    'filter[ageValue]': ageValue || undefined,
+    'filter[ageUnit]': ageValue ? ageUnit || 'days' : undefined,
+    'filter[costOp]': costValue ? costOp || 'gt' : undefined,
+    'filter[costValue]': costValue || undefined,
+    'filter[priceOp]': priceValue ? priceOp || 'gt' : undefined,
+    'filter[priceValue]': priceValue || undefined,
+  };
+
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['products', page, limit, searchTerm, selectedStatus, selectedCategory],
+    queryKey: ['products', page, limit, searchTerm, selectedStatus, filterParams],
     queryFn: async () => {
       const response = await api.get('/products', {
         params: {
           page,
           limit,
           search: searchTerm || undefined,
-          'filter[status]': selectedStatus,
-          'filter[category]': selectedCategory || undefined,
+          ...filterParams,
           include: 'category,brand,stock',
         },
       });
@@ -84,7 +166,7 @@ export default function ProductList() {
       refetch();
     }, 500);
     return () => clearTimeout(debounce);
-  }, [searchTerm, selectedStatus, selectedCategory]);
+  }, [searchTerm, selectedStatus, selectedCategory, selectedSubCategory, selectedBrand, selectedColor, selectedSize, selectedUnit, selectedSupplier, stockOp, stockValue, soldOp, soldValue, ageOp, ageValue, ageUnit, costOp, costValue, priceOp, priceValue]);
 
   const products = data?.data || [];
   const pagination = data?.meta || { page: 1, limit: 20, total: 0, totalPages: 1 };
@@ -285,6 +367,15 @@ export default function ProductList() {
       ),
     },
     {
+      key: 'sold',
+      header: 'Terjual',
+      cell: (product) => (
+        <span className="text-base font-bold text-foreground">
+          {(product as any).totalSold ?? 0}
+        </span>
+      ),
+    },
+    {
       key: 'category',
       header: 'Kategori',
       cell: (product) => (
@@ -398,27 +489,150 @@ export default function ProductList() {
           {
             key: 'category',
             label: 'Kategori',
-            type: 'select',
-            options: categories.map((cat: any) => ({ value: cat.id, label: cat.name })),
+            type: 'search-select',
+            fetchOptions: fetchCategories,
+            placeholder: 'Ketik untuk mencari kategori...',
+          },
+          {
+            key: 'subCategory',
+            label: 'Sub kategori',
+            type: 'search-select',
+            fetchOptions: fetchSubCategories,
+            placeholder: 'Ketik untuk mencari sub kategori...',
+          },
+          {
+            key: 'brand',
+            label: 'Brand',
+            type: 'search-select',
+            fetchOptions: fetchBrands,
+            placeholder: 'Ketik untuk mencari brand...',
+          },
+          {
+            key: 'color',
+            label: 'Warna',
+            type: 'search-select',
+            fetchOptions: fetchColors,
+            placeholder: 'Ketik untuk mencari warna...',
+          },
+          {
+            key: 'size',
+            label: 'Ukuran',
+            type: 'search-select',
+            fetchOptions: fetchSizes,
+            placeholder: 'Ketik untuk mencari ukuran...',
+          },
+          {
+            key: 'unit',
+            label: 'Satuan',
+            type: 'search-select',
+            fetchOptions: fetchUnits,
+            placeholder: 'Ketik untuk mencari satuan...',
+          },
+          {
+            key: 'supplier',
+            label: 'Supplier',
+            type: 'search-select',
+            fetchOptions: fetchSuppliers,
+            placeholder: 'Ketik untuk mencari supplier...',
+          },
+          {
+            key: 'stock',
+            label: 'Perkiraan jumlah',
+            type: 'number-compare',
+            placeholder: '0',
+          },
+          {
+            key: 'sold',
+            label: 'Total unit terjual',
+            type: 'number-compare',
+            placeholder: '0',
+          },
+          {
+            key: 'age',
+            label: 'Umur produk (dari restock)',
+            type: 'age',
+          },
+          {
+            key: 'cost',
+            label: 'Harga modal',
+            type: 'number-compare',
+            placeholder: 'Rp',
+          },
+          {
+            key: 'price',
+            label: 'Harga jual',
+            type: 'number-compare',
+            placeholder: 'Rp',
           },
         ]}
         values={{
           status: selectedStatus === 'all' ? '' : selectedStatus,
           category: selectedCategory,
+          subCategory: selectedSubCategory,
+          brand: selectedBrand,
+          color: selectedColor,
+          size: selectedSize,
+          unit: selectedUnit,
+          supplier: selectedSupplier,
+          stock: stockValue,
+          stockOp,
+          sold: soldValue,
+          soldOp,
+          age: ageValue,
+          ageOp,
+          ageUnit,
+          cost: costValue,
+          costOp,
+          price: priceValue,
+          priceOp,
         }}
         onFieldChange={(key, v) => {
-          if (key === 'status') {
-            setSelectedStatus((v || 'all') as any);
-            setPage(1);
-          }
-          if (key === 'category') {
-            setSelectedCategory(v || '');
-            setPage(1);
+          setPage(1);
+          switch (key) {
+            case 'status': setSelectedStatus(v || 'all'); break;
+            case 'category':
+              setSelectedCategory(v || '');
+              setSelectedSubCategory('');
+              break;
+            case 'subCategory': setSelectedSubCategory(v || ''); break;
+            case 'brand': setSelectedBrand(v || ''); break;
+            case 'color': setSelectedColor(v || ''); break;
+            case 'size': setSelectedSize(v || ''); break;
+            case 'unit': setSelectedUnit(v || ''); break;
+            case 'supplier': setSelectedSupplier(v || ''); break;
+            case 'stock': setStockValue(v || ''); break;
+            case 'stockOp': setStockOp(v || ''); break;
+            case 'sold': setSoldValue(v || ''); break;
+            case 'soldOp': setSoldOp(v || ''); break;
+            case 'age': setAgeValue(v || ''); break;
+            case 'ageOp': setAgeOp(v || ''); break;
+            case 'ageUnit': setAgeUnit(v || ''); break;
+            case 'cost': setCostValue(v || ''); break;
+            case 'costOp': setCostOp(v || ''); break;
+            case 'price': setPriceValue(v || ''); break;
+            case 'priceOp': setPriceOp(v || ''); break;
           }
         }}
         onReset={() => {
           setSelectedStatus('active');
           setSelectedCategory('');
+          setSelectedSubCategory('');
+          setSelectedBrand('');
+          setSelectedColor('');
+          setSelectedSize('');
+          setSelectedUnit('');
+          setSelectedSupplier('');
+          setStockOp('');
+          setStockValue('');
+          setSoldOp('');
+          setSoldValue('');
+          setAgeOp('');
+          setAgeValue('');
+          setAgeUnit('');
+          setCostOp('');
+          setCostValue('');
+          setPriceOp('');
+          setPriceValue('');
           setPage(1);
         }}
       />

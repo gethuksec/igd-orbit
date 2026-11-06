@@ -57,7 +57,7 @@ describe('ServiceOrdersService payment auto-done + void (IGDERP-171)', () => {
 
     const out: any = await service.processPayment(
       'so-1',
-      { paymentMethod: 'cash', amount: 1000000 } as any,
+      { paymentMethod: 'cash', amount: 1000000, pickedUpBy: 'Ahmad' } as any,
       'cs-1',
     );
 

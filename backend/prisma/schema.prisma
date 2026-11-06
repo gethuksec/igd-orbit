@@ -1206,6 +1206,7 @@ model ServiceOrder {
   customerNotes      String? @map("customer_notes") @db.Text
   internalNotes      String? @map("internal_notes") @db.Text
   cancellationReason String? @map("cancellation_reason") @db.Text
+  pickedUpBy         String? @map("picked_up_by") // Nama pengambil/penerima perangkat (diisi saat ready -> done)
 
   // Created by
   createdBy String   @map("created_by") // User ID

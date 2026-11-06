@@ -24,5 +24,9 @@ export class ProcessPaymentDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @IsString()
+  @IsOptional()
+  pickedUpBy?: string; // Nama pengambil — diteruskan ke auto-done saat pembayaran melunasi
 }
 

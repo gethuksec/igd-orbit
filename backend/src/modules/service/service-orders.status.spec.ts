@@ -119,7 +119,7 @@ describe('ServiceOrdersService.updateStatus — Smart Repair lifecycle (IGDERP-1
         ],
       };
       prisma.serviceOrder.findUnique.mockResolvedValue(withParts);
-      await service.updateStatus('so-1', { status: 'done' }, 'user-1');
+      await service.updateStatus('so-1', { status: 'done', pickedUpBy: 'Siti' }, 'user-1');
       expect(sales().createNoServiceFromParts).toHaveBeenCalledWith(
         expect.objectContaining({
           serviceOrderId: 'so-1',
@@ -132,19 +132,19 @@ describe('ServiceOrdersService.updateStatus — Smart Repair lifecycle (IGDERP-1
 
     it('does NOT create when order has no parts', async () => {
       prisma.serviceOrder.findUnique.mockResolvedValue({ ...order('ready'), partsUsed: [] });
-      await service.updateStatus('so-1', { status: 'done' }, 'user-1');
+      await service.updateStatus('so-1', { status: 'done', pickedUpBy: 'Siti' }, 'user-1');
       expect(sales().createNoServiceFromParts).not.toHaveBeenCalled();
     });
 
     it('does NOT create duplicate when POS faktur already exists (idempotent)', async () => {
-      sales().findByServiceOrderId.mockResolvedValue({ id: 'tx-1' });
+      sales().findByServiceOrderId.mockResolvedValue({ id: 'tx-1' } as any);
       prisma.serviceOrder.findUnique.mockResolvedValue({
         ...order('ready'),
         partsUsed: [
           { productId: 'prod-1', quantity: { toString: () => '1' }, unitPrice: { toString: () => '1000' }, product: { name: 'X' } },
         ],
       });
-      await service.updateStatus('so-1', { status: 'done' }, 'user-1');
+      await service.updateStatus('so-1', { status: 'done', pickedUpBy: 'Siti' }, 'user-1');
       expect(sales().createNoServiceFromParts).not.toHaveBeenCalled();
     });
   });
@@ -204,13 +204,23 @@ describe('ServiceOrdersService.updateStatus — Smart Repair lifecycle (IGDERP-1
       devicePassword: 'iv:enc',
       deviceLockType: 'pin',
     });
-    await service.updateStatus('so-1', { status: 'done', notes: 'unit diambil' }, 'user-1');
+    await service.updateStatus('so-1', { status: 'done', notes: 'unit diambil', pickedUpBy: 'Siti' }, 'user-1');
     const data = tx.serviceOrder.update.mock.calls[0][0].data;
     expect(data.status).toBe('done');
+    expect(data.pickedUpBy).toBe('Siti');
     expect(data.completedAt).toBeInstanceOf(Date);
     expect(data.warrantyExpiryDate).toBeInstanceOf(Date);
     expect(data.devicePassword).toBeNull();
     expect(data.deviceLockType).toBe('none');
+  });
+
+  it('rejects ready -> done without pickedUpBy (nama pengambil wajib)', async () => {
+    await expect(run('ready', { status: 'done', notes: 'unit diambil' })).rejects.toThrow(
+      /pengambil\/penerima wajib/,
+    );
+    await expect(
+      run('ready', { status: 'done', notes: 'unit diambil', pickedUpBy: '   ' }),
+    ).rejects.toThrow(/pengambil\/penerima wajib/);
   });
 
   it('rejects done -> done - INVALID: done is terminal', async () => {
@@ -254,7 +264,7 @@ describe('ServiceOrdersService.updateStatus — Smart Repair lifecycle (IGDERP-1
   describe('05 Nov flow — fast-close pending -> done + ready-cancel branch', () => {
     it('allows pending -> done with notes + zero charges: completedAt, no warranty, no invoice', async () => {
       prisma.serviceOrder.findUnique.mockResolvedValue({ ...order('pending'), partsUsed: [] });
-      await service.updateStatus('so-1', { status: 'done', notes: 'customer batal di meja CS' }, 'user-1');
+      await service.updateStatus('so-1', { status: 'done', notes: 'customer batal di meja CS', pickedUpBy: 'Budi' }, 'user-1');
       const data = tx.serviceOrder.update.mock.calls[0][0].data;
       expect(data.status).toBe('done');
       expect(data.completedAt).toBeInstanceOf(Date);
@@ -263,8 +273,8 @@ describe('ServiceOrdersService.updateStatus — Smart Repair lifecycle (IGDERP-1
     });
 
     it('rejects pending -> done without notes', async () => {
-      await expect(run('pending', { status: 'done' })).rejects.toThrow(/penutupan/);
-      await expect(run('pending', { status: 'done', notes: '   ' })).rejects.toThrow(/penutupan/);
+      await expect(run('pending', { status: 'done', pickedUpBy: 'Budi' })).rejects.toThrow(/penutupan/);
+      await expect(run('pending', { status: 'done', notes: '   ', pickedUpBy: 'Budi' })).rejects.toThrow(/penutupan/);
     });
 
     it('rejects pending -> done with parts or labor charged', async () => {
@@ -274,7 +284,7 @@ describe('ServiceOrdersService.updateStatus — Smart Repair lifecycle (IGDERP-1
         partsCost: { toString: () => '50000' },
       });
       await expect(
-        service.updateStatus('so-1', { status: 'done', notes: 'x' }, 'u'),
+        service.updateStatus('so-1', { status: 'done', notes: 'x', pickedUpBy: 'Budi' }, 'u'),
       ).rejects.toThrow(/tanpa barang dan jasa/);
 
       prisma.serviceOrder.findUnique.mockResolvedValue({
@@ -283,7 +293,7 @@ describe('ServiceOrdersService.updateStatus — Smart Repair lifecycle (IGDERP-1
         laborCost: { toString: () => '100000' },
       });
       await expect(
-        service.updateStatus('so-1', { status: 'done', notes: 'x' }, 'u'),
+        service.updateStatus('so-1', { status: 'done', notes: 'x', pickedUpBy: 'Budi' }, 'u'),
       ).rejects.toThrow(/tanpa barang dan jasa/);
     });
 

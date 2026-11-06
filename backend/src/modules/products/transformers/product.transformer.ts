@@ -105,6 +105,8 @@ export interface TransformedProduct {
   totalStock: number;
   stockStatus: 'in_stock' | 'low_stock' | 'out_of_stock';
   stockSummary?: StockSummary;
+  totalSold?: number; // All-time units sold (list annotation)
+  lastRestockAt?: Date | null; // Latest IN movement, null when never restocked
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
@@ -150,6 +152,7 @@ export class ProductTransformer {
   static transform(
     product: ProductWithRelations,
     includeStockSummary: boolean = false,
+    annotations?: Map<string, { totalSold: number; lastRestockAt: Date | null }>,
   ): TransformedProduct {
     // Calculate total stock across all branches
     const stocks = product.productStocks || [];
@@ -274,6 +277,8 @@ export class ProductTransformer {
       totalStock,
       stockStatus: this.getStockStatus(totalStock),
       stockSummary,
+      totalSold: annotations?.get(product.id)?.totalSold,
+      lastRestockAt: annotations?.get(product.id)?.lastRestockAt ?? null,
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
       deletedAt: product.deletedAt,
@@ -289,8 +294,9 @@ export class ProductTransformer {
   static transformMany(
     products: ProductWithRelations[],
     includeStockSummary: boolean = false,
+    annotations?: Map<string, { totalSold: number; lastRestockAt: Date | null }>,
   ): TransformedProduct[] {
-    return products.map((product) => this.transform(product, includeStockSummary));
+    return products.map((product) => this.transform(product, includeStockSummary, annotations));
   }
 }
 

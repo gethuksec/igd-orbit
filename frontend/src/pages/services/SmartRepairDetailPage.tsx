@@ -101,6 +101,7 @@ export default function SmartRepairDetailPage() {
   // 05 Nov flow: fast-close pending -> done (CS banks data, zero charges)
   const [openFastClose, setOpenFastClose] = useState(false);
   const [fastCloseNotes, setFastCloseNotes] = useState('');
+  const [fastClosePickedUp, setFastClosePickedUp] = useState('');
   const [openTeknisi, setOpenTeknisi] = useState(false);
   const [techId, setTechId] = useState('');
   const [openWaktu, setOpenWaktu] = useState(false);
@@ -124,6 +125,7 @@ export default function SmartRepairDetailPage() {
   const [bayarAmount, setBayarAmount] = useState('');
   const [bayarMethod, setBayarMethod] = useState('cash');
   const [bayarRef, setBayarRef] = useState('');
+  const [bayarPickedUp, setBayarPickedUp] = useState('');
 
   const { data: order, isLoading } = useQuery({
     queryKey: ['service-order', id],
@@ -221,7 +223,7 @@ export default function SmartRepairDetailPage() {
   });
 
   const statusMutation = useMutation({
-    mutationFn: (payload: { status: string; notes?: string }) =>
+    mutationFn: (payload: { status: string; notes?: string; pickedUpBy?: string }) =>
       serviceOrdersService.updateStatus(id!, payload),
     onSuccess: (_res, variables) => {
       toast.success(`Status berhasil diubah ke ${STATUS_LABELS[variables.status] || variables.status}`);
@@ -229,6 +231,7 @@ export default function SmartRepairDetailPage() {
       setCancelReason('');
       setOpenFastClose(false);
       setFastCloseNotes('');
+      setFastClosePickedUp('');
       queryClient.invalidateQueries({ queryKey: ['service-order', id] });
     },
     onError: (err: any) => toast.error(err.response?.data?.message || 'Gagal mengubah status'),
@@ -317,11 +320,11 @@ export default function SmartRepairDetailPage() {
   });
 
   const paymentMutation = useMutation({
-    mutationFn: (payload: { paymentMethod: 'cash' | 'transfer' | 'qris'; amount: number; reference?: string }) =>
+    mutationFn: (payload: { paymentMethod: 'cash' | 'transfer' | 'qris'; amount: number; reference?: string; pickedUpBy?: string }) =>
       serviceOrdersService.processPayment(id!, payload),
     onSuccess: async () => {
       toast.success('Pembayaran tercatat');
-      setOpenBayar(false); setBayarAmount(''); setBayarRef('');
+      setOpenBayar(false); setBayarAmount(''); setBayarRef(''); setBayarPickedUp('');
       await queryClient.invalidateQueries({ queryKey: ['service-order', id] });
       await queryClient.invalidateQueries({ queryKey: ['sr-pos-faktur', id] });
       // IGDERP-171: faktur opens in a new tab (service + POS when cross-sold)
@@ -451,7 +454,11 @@ export default function SmartRepairDetailPage() {
       toast.error('Alasan penutupan wajib diisi');
       return;
     }
-    statusMutation.mutate({ status: 'done', notes: fastCloseNotes.trim() });
+    if (!fastClosePickedUp.trim()) {
+      toast.error('Nama pengambil wajib diisi');
+      return;
+    }
+    statusMutation.mutate({ status: 'done', notes: fastCloseNotes.trim(), pickedUpBy: fastClosePickedUp.trim() });
   };
 
   // 05 Nov flow: aborted device picked up — closes ready-cancel
@@ -563,6 +570,12 @@ export default function SmartRepairDetailPage() {
               <div>
                 <Label className="text-sm text-gray-500">Kecamatan</Label>
                 <p className="font-semibold">{order.customerSubdistrict}</p>
+              </div>
+            )}
+            {(order as any).pickedUpBy && (
+              <div>
+                <Label className="text-sm text-gray-500">Pengambil</Label>
+                <p className="font-semibold">{(order as any).pickedUpBy}</p>
               </div>
             )}
           </div>
@@ -1197,6 +1210,14 @@ export default function SmartRepairDetailPage() {
               value={fastCloseNotes}
               onChange={(e) => setFastCloseNotes(e.target.value)}
             />
+            <Label className="text-sm text-gray-600">
+              Nama pengambil <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              placeholder="cth: nama customer / yang mengambil unit"
+              value={fastClosePickedUp}
+              onChange={(e) => setFastClosePickedUp(e.target.value)}
+            />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenFastClose(false)}>Kembali</Button>
@@ -1595,6 +1616,13 @@ export default function SmartRepairDetailPage() {
             <div><Label>Nominal (Rp)</Label><Input inputMode="numeric" value={bayarAmount ? Number(bayarAmount).toLocaleString('id-ID') : ''} onChange={(e) => setBayarAmount(e.target.value.replace(/\D/g, ''))} className="mt-1" /></div>
             <div><Label>Metode</Label><div className="mt-1 grid grid-cols-3 gap-2">{([['cash', 'Tunai'], ['transfer', 'Transfer'], ['qris', 'QRIS']] as const).map(([v, l]) => (<button key={v} type="button" onClick={() => setBayarMethod(v)} className={`rounded-lg border px-3 py-2 text-sm font-semibold ${bayarMethod === v ? 'border-primary bg-primary-50 text-primary-700' : 'border-gray-200 text-gray-600'}`}>{l}</button>))}</div></div>
             <div><Label>Referensi (opsional)</Label><Input value={bayarRef} onChange={(e) => setBayarRef(e.target.value)} placeholder="No. referensi transfer…" className="mt-1" /></div>
+            {(order as any)?.status === 'ready' && (
+              <div>
+                <Label>Nama pengambil <span className="text-red-500">*</span></Label>
+                <Input value={bayarPickedUp} onChange={(e) => setBayarPickedUp(e.target.value)} placeholder="Yang mengambil unit (wajib saat pelunasan)" className="mt-1" />
+                <p className="text-xs text-gray-500 mt-1">Pelunasan di status Ready langsung serah terima (Done).</p>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenBayar(false)}>Batal</Button>
@@ -1603,7 +1631,11 @@ export default function SmartRepairDetailPage() {
               onClick={() => {
                 const amount = Number(bayarAmount);
                 if (amount > sisaBayar) { toast.error(`Maksimal sisa pembayaran ${formatCurrency(sisaBayar)}`); return; }
-                paymentMutation.mutate({ paymentMethod: bayarMethod as any, amount, reference: bayarRef.trim() || undefined });
+                if ((order as any)?.status === 'ready' && amount >= sisaBayar && !bayarPickedUp.trim()) {
+                  toast.error('Nama pengambil wajib diisi saat serah terima');
+                  return;
+                }
+                paymentMutation.mutate({ paymentMethod: bayarMethod as any, amount, reference: bayarRef.trim() || undefined, pickedUpBy: bayarPickedUp.trim() || undefined });
               }}
             >
               Simpan Pembayaran

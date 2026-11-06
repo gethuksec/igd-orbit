@@ -13,12 +13,20 @@ export default function ServiceOrderList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [selectedTechnician, setSelectedTechnician] = useState<string>('ALL');
+  const [filterCode, setFilterCode] = useState('');
+  const [filterCustomerId, setFilterCustomerId] = useState('');
+  const [filterPenerima, setFilterPenerima] = useState('');
+  const [filterDeviceUnit, setFilterDeviceUnit] = useState('');
+  const [filterPartSearch, setFilterPartSearch] = useState('');
+  const [filterSerial, setFilterSerial] = useState('');
+  const [receivedFrom, setReceivedFrom] = useState('');
+  const [receivedTo, setReceivedTo] = useState('');
   const [page, setPage] = useState(1);
   const limit = 20;
   const { branchId, setBranchId } = useBranchFilter();
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['service-orders', page, searchTerm, selectedStatus, selectedTechnician, branchId],
+    queryKey: ['service-orders', page, searchTerm, selectedStatus, selectedTechnician, branchId, filterCode, filterCustomerId, filterPenerima, filterDeviceUnit, filterPartSearch, filterSerial, receivedFrom, receivedTo],
     queryFn: () =>
       serviceOrdersService.getAll({
         page,
@@ -27,6 +35,14 @@ export default function ServiceOrderList() {
         status: selectedStatus !== 'ALL' ? selectedStatus : undefined,
         branchId: branchId || undefined,
         technicianId: selectedTechnician !== 'ALL' ? selectedTechnician : undefined,
+        code: filterCode || undefined,
+        customerId: filterCustomerId || undefined,
+        penerima: filterPenerima || undefined,
+        deviceUnit: filterDeviceUnit || undefined,
+        partSearch: filterPartSearch || undefined,
+        serial: filterSerial || undefined,
+        receivedFrom: receivedFrom || undefined,
+        receivedTo: receivedTo || undefined,
       }),
   });
 
@@ -58,7 +74,34 @@ export default function ServiceOrderList() {
       refetch();
     }, 500);
     return () => clearTimeout(debounce);
-  }, [searchTerm, selectedStatus, selectedTechnician, refetch]);
+  }, [searchTerm, selectedStatus, selectedTechnician, filterCode, filterCustomerId, filterPenerima, filterDeviceUnit, filterPartSearch, filterSerial, receivedFrom, receivedTo, refetch]);
+
+  // Searchable customer dropdown (nama / kode)
+  const fetchCustomers = async (q: string) => {
+    const res = await api.get('/customers', { params: { search: q || undefined, limit: 20 } });
+    const rows = res.data.data || res.data || [];
+    return (Array.isArray(rows) ? rows : [])
+      .map((c: any) => ({
+        value: c.id,
+        label: c.customerCode ? `${c.name} (${c.customerCode})` : c.name,
+      }))
+      .filter((o: any) => o.value && o.label);
+  };
+
+  // Searchable technician dropdown (from the TC list already loaded)
+  const fetchTechnicians = async (q: string) => {
+    const needle = (q || '').toLowerCase();
+    return (technicians || [])
+      .filter((t: any) => {
+        if (!needle) return true;
+        return (
+          (t.fullName || '').toLowerCase().includes(needle) ||
+          (t.email || '').toLowerCase().includes(needle)
+        );
+      })
+      .slice(0, 20)
+      .map((t: any) => ({ value: t.id, label: t.fullName || t.email }));
+  };
 
   const orders = data?.data || [];
   const pagination = data?.meta || { page: 1, limit: 20, total: 0, totalPages: 1 };
@@ -116,6 +159,15 @@ export default function ServiceOrderList() {
       },
     },
     {
+      key: 'penerima',
+      header: 'Penerima',
+      cell: (order) => (
+        <div className="text-sm text-foreground">
+          {(order as any).pickedUpBy || <span className="text-muted-foreground">-</span>}
+        </div>
+      ),
+    },
+    {
       key: 'status',
       header: 'Status',
       cell: (order) => getStatusBadge(order.status),
@@ -151,6 +203,12 @@ export default function ServiceOrderList() {
         branchFilter={{ value: branchId, onChange: setBranchId, allowAll: true }}
         fields={[
           {
+            key: 'code',
+            label: 'Kode service',
+            type: 'input',
+            placeholder: 'cth. SRV-20261105',
+          },
+          {
             key: 'status',
             label: 'Status',
             type: 'select',
@@ -161,36 +219,92 @@ export default function ServiceOrderList() {
               { value: 'qc', label: 'QC' },
               { value: 'ready', label: 'Ready' },
               { value: 'done', label: 'Done' },
+              { value: 'ready-cancel', label: 'Ready-Cancel' },
               { value: 'cancelled', label: 'Cancelled' },
             ],
           },
           {
+            key: 'customer',
+            label: 'Customer',
+            type: 'search-select',
+            fetchOptions: fetchCustomers,
+            placeholder: 'Ketik nama / kode customer...',
+          },
+          {
             key: 'technician',
             label: 'Teknisi',
-            type: 'select',
-            options: (technicians || []).map((tech: any) => ({
-              value: tech.id,
-              label: tech.fullName || tech.email,
-            })),
+            type: 'search-select',
+            fetchOptions: fetchTechnicians,
+            placeholder: 'Ketik nama teknisi...',
+          },
+          {
+            key: 'penerima',
+            label: 'Nama penerima',
+            type: 'input',
+            placeholder: 'cth. Siti',
+          },
+          {
+            key: 'deviceUnit',
+            label: 'Nama unit',
+            type: 'input',
+            placeholder: 'cth. Samsung A52',
+          },
+          {
+            key: 'partSearch',
+            label: 'Barcode / nama produk / SKU',
+            type: 'input',
+            placeholder: 'Sparepart yang dipakai...',
+          },
+          {
+            key: 'serial',
+            label: 'Serial number',
+            type: 'input',
+            placeholder: 'cth. 358111234567890',
+          },
+          {
+            key: 'received',
+            label: 'Tanggal terima',
+            type: 'date-range',
           },
         ]}
         values={{
+          code: filterCode,
           status: selectedStatus === 'ALL' ? '' : selectedStatus,
+          customer: filterCustomerId,
           technician: selectedTechnician === 'ALL' ? '' : selectedTechnician,
+          penerima: filterPenerima,
+          deviceUnit: filterDeviceUnit,
+          partSearch: filterPartSearch,
+          serial: filterSerial,
+          receivedFrom,
+          receivedTo,
         }}
         onFieldChange={(key, v) => {
-          if (key === 'status') {
-            setSelectedStatus((v || 'ALL') as any);
-            setPage(1);
-          }
-          if (key === 'technician') {
-            setSelectedTechnician((v || 'ALL') as any);
-            setPage(1);
+          setPage(1);
+          switch (key) {
+            case 'code': setFilterCode(v); break;
+            case 'status': setSelectedStatus((v || 'ALL') as any); break;
+            case 'customer': setFilterCustomerId(v); break;
+            case 'technician': setSelectedTechnician((v || 'ALL') as any); break;
+            case 'penerima': setFilterPenerima(v); break;
+            case 'deviceUnit': setFilterDeviceUnit(v); break;
+            case 'partSearch': setFilterPartSearch(v); break;
+            case 'serial': setFilterSerial(v); break;
+            case 'receivedFrom': setReceivedFrom(v); break;
+            case 'receivedTo': setReceivedTo(v); break;
           }
         }}
         onReset={() => {
           setSelectedStatus('ALL');
           setSelectedTechnician('ALL');
+          setFilterCode('');
+          setFilterCustomerId('');
+          setFilterPenerima('');
+          setFilterDeviceUnit('');
+          setFilterPartSearch('');
+          setFilterSerial('');
+          setReceivedFrom('');
+          setReceivedTo('');
           setPage(1);
         }}
       />

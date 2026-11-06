@@ -44,7 +44,7 @@ describe('ServiceOrdersService lock credential lifecycle (IGDERP-185)', () => {
     );
     tx.serviceStatusHistory.create.mockResolvedValue({ id: 'h-1' });
 
-    await service.updateStatus('so-1', { status: 'done' } as any, 'u-1');
+    await service.updateStatus('so-1', { status: 'done', pickedUpBy: 'Siti' } as any, 'u-1');
 
     expect(tx.serviceOrder.update).toHaveBeenCalledWith(
       expect.objectContaining({
