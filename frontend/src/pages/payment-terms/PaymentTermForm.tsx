@@ -81,25 +81,25 @@ export default function PaymentTermForm() {
         </Button>
       </BreadcrumbHeader>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nama Termin <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Nama Termin <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <input
               type="text"
               required
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               placeholder="Contoh: Cash, 30 Hari, 60 Hari"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Jangka Waktu (hari) <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Jangka Waktu (hari) <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <input
               type="number"
@@ -107,29 +107,29 @@ export default function PaymentTermForm() {
               min={0}
               value={formData.days}
               onChange={(e) => setFormData(prev => ({ ...prev, days: parseInt(e.target.value) || 0 }))}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               placeholder="0 = Cash / COD"
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Masukkan 0 untuk pembayaran tunai / COD
             </p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => setFormData(prev => ({ ...prev, isActive: !prev.isActive }))}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isActive ? 'bg-green-500' : 'bg-gray-300'}`}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isActive ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}
               >
                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.isActive ? 'translate-x-6' : 'translate-x-1'}`} />
               </button>
-              <span className="text-sm text-gray-600">{formData.isActive ? 'Aktif' : 'Tidak Aktif'}</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">{formData.isActive ? 'Aktif' : 'Tidak Aktif'}</span>
             </div>
           </div>
 
-          <div className="flex gap-3 pt-4 border-t border-gray-100">
+          <div className="flex gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
             <Button
               type="button"
               variant="outline"

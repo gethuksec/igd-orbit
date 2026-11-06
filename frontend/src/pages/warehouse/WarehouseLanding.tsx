@@ -47,13 +47,13 @@ export default function WarehouseLanding() {
             <Link
               key={item.path}
               to={item.path}
-              className="bg-white rounded-xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-all duration-300 group"
+              className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6 hover:shadow-lg transition-all duration-300 group"
             >
               <div className={`p-4 bg-gradient-to-br ${item.color} rounded-xl mb-4 group-hover:scale-110 transition-transform`}>
                 <Icon className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">{item.title}</h3>
-              <p className="text-sm text-gray-600">{item.description}</p>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">{item.title}</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{item.description}</p>
             </Link>
           );
         })}

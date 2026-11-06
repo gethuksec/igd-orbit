@@ -223,13 +223,13 @@ export function UserFormModal({ open, user, onClose, onSaved }: UserFormModalPro
       <form onSubmit={handleSubmit} className="space-y-5 max-h-[75vh] overflow-y-auto pr-1">
         {/* Basic info */}
         <div className="space-y-3">
-          <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2">
-            <KeyRound className="w-4 h-4 text-primary-600" /> Informasi Dasar
+          <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+            <KeyRound className="w-4 h-4 text-primary-600 dark:text-primary-400" /> Informasi Dasar
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">
-                Nama Lengkap <span className="text-red-500">*</span>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                Nama Lengkap <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <input
                 type="text"
@@ -237,12 +237,12 @@ export function UserFormModal({ open, user, onClose, onSaved }: UserFormModalPro
                 onChange={(e) => setBasic({ ...basic, fullName: e.target.value })}
                 required
                 placeholder="Masukkan nama lengkap"
-                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                className="w-full px-3 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">
-                Email <span className="text-red-500">*</span>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                Email <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <input
                 type="email"
@@ -250,23 +250,23 @@ export function UserFormModal({ open, user, onClose, onSaved }: UserFormModalPro
                 onChange={(e) => setBasic({ ...basic, email: e.target.value })}
                 required
                 placeholder="user@example.com"
-                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                className="w-full px-3 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Telepon</label>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Telepon</label>
               <input
                 type="tel"
                 value={basic.phone}
                 onChange={(e) => setBasic({ ...basic, phone: e.target.value })}
                 placeholder="081234567890"
-                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                className="w-full px-3 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
               />
             </div>
             {!isEdit && (
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Password <span className="text-red-500">*</span>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                  Password <span className="text-red-500 dark:text-red-400">*</span>
                 </label>
                 <input
                   type="password"
@@ -274,16 +274,16 @@ export function UserFormModal({ open, user, onClose, onSaved }: UserFormModalPro
                   onChange={(e) => setBasic({ ...basic, password: e.target.value })}
                   minLength={6}
                   placeholder="Minimal 6 karakter"
-                  className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                  className="w-full px-3 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
                 />
               </div>
             )}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Status</label>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Status</label>
               <select
                 value={basic.isActive ? 'active' : 'inactive'}
                 onChange={(e) => setBasic({ ...basic, isActive: e.target.value === 'active' })}
-                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 bg-white text-sm"
+                className="w-full px-3 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-900 text-sm"
               >
                 <option value="active">Aktif</option>
                 <option value="inactive">Non-Aktif</option>
@@ -295,9 +295,9 @@ export function UserFormModal({ open, user, onClose, onSaved }: UserFormModalPro
                 id="canChangePassword"
                 checked={basic.canChangePassword}
                 onChange={(e) => setBasic({ ...basic, canChangePassword: e.target.checked })}
-                className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-primary-600 dark:text-primary-400 focus:ring-primary-500"
               />
-              <label htmlFor="canChangePassword" className="text-xs font-semibold text-gray-700 cursor-pointer">
+              <label htmlFor="canChangePassword" className="text-xs font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
                 Izinkan user mengubah password sendiri
               </label>
             </div>
@@ -307,23 +307,23 @@ export function UserFormModal({ open, user, onClose, onSaved }: UserFormModalPro
         {/* Penugasan Cabang & Role */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2">
-              <Plus className="w-4 h-4 text-primary-600" /> Penugasan Cabang &amp; Role
+            <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+              <Plus className="w-4 h-4 text-primary-600 dark:text-primary-400" /> Penugasan Cabang &amp; Role
             </h3>
             <button
               type="button"
               onClick={addRow}
-              className="text-xs font-semibold text-primary-600 hover:text-primary-700 border border-primary-300 rounded-lg px-2.5 py-1.5 hover:bg-primary-50"
+              className="text-xs font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 border border-primary-300 dark:border-primary-700 rounded-lg px-2.5 py-1.5 hover:bg-primary-50 dark:hover:bg-primary-950"
             >
               + Tambah Penugasan
             </button>
           </div>
-          <p className="text-[11px] text-gray-400">
+          <p className="text-[11px] text-gray-400 dark:text-gray-500">
             Satu user = banyak baris penugasan. Contoh: beri CS akses ke 2 outlet → tambah baris kedua dengan outlet lain.
           </p>
 
           {rows.length === 0 && (
-            <div className="text-center py-6 border border-dashed border-gray-300 rounded-lg text-sm text-gray-400">
+            <div className="text-center py-6 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-400 dark:text-gray-500">
               Belum ada penugasan — klik "+ Tambah Penugasan"
             </div>
           )}
@@ -334,10 +334,10 @@ export function UserFormModal({ open, user, onClose, onSaved }: UserFormModalPro
               const denySource = denySourceFor(row);
               const role = rolesData?.data.find((r) => r.id === row.roleId);
               return (
-                <div key={row.key} className="border border-gray-200 rounded-lg p-3 space-y-2">
+                <div key={row.key} className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 space-y-2">
                   <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-3 items-end">
                     <div>
-                      <label className="block text-[11px] font-semibold text-gray-500 mb-1">Role</label>
+                      <label className="block text-[11px] font-semibold text-gray-500 dark:text-gray-400 mb-1">Role</label>
                       <select
                         value={row.roleId}
                         onChange={(e) => {
@@ -345,7 +345,7 @@ export function UserFormModal({ open, user, onClose, onSaved }: UserFormModalPro
                           setExpandedDeny(null);
                         }}
                         disabled={superAdminRow}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm disabled:bg-gray-100 disabled:text-gray-500"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-sm disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-500 dark:disabled:text-gray-400"
                       >
                         <option value="">Pilih role...</option>
                         {rolesData?.data.map((r) => (
@@ -356,12 +356,12 @@ export function UserFormModal({ open, user, onClose, onSaved }: UserFormModalPro
                       </select>
                     </div>
                     <div>
-                      <label className="block text-[11px] font-semibold text-gray-500 mb-1">Outlet</label>
+                      <label className="block text-[11px] font-semibold text-gray-500 dark:text-gray-400 mb-1">Outlet</label>
                       <select
                         value={row.branchId}
                         onChange={(e) => updateRow(row.key, { branchId: e.target.value })}
                         disabled={superAdminRow}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm disabled:bg-gray-100 disabled:text-gray-500"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-sm disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-500 dark:disabled:text-gray-400"
                       >
                         <option value="">Pilih outlet...</option>
                         {branches?.map((b: any) => (
@@ -373,7 +373,7 @@ export function UserFormModal({ open, user, onClose, onSaved }: UserFormModalPro
                     </div>
                     <div className="flex items-center gap-1">
                       {superAdminRow && (
-                        <span className="text-[10px] bg-yellow-100 text-yellow-700 border border-yellow-200 px-2 py-0.5 rounded-md font-semibold flex items-center gap-1">
+                        <span className="text-[10px] bg-yellow-100 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800 px-2 py-0.5 rounded-md font-semibold flex items-center gap-1">
                           <Lock className="w-3 h-3" /> SUPERADMIN
                         </span>
                       )}
@@ -381,7 +381,7 @@ export function UserFormModal({ open, user, onClose, onSaved }: UserFormModalPro
                         <button
                           type="button"
                           onClick={() => removeRow(row.key)}
-                          className="p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 rounded-lg"
+                          className="p-1.5 text-gray-400 dark:text-gray-500 hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-600 dark:hover:text-red-400 rounded-lg"
                           title="Hapus penugasan"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -393,14 +393,14 @@ export function UserFormModal({ open, user, onClose, onSaved }: UserFormModalPro
                   {/* Deny chips */}
                   {!superAdminRow && (
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[11px] text-gray-500 font-medium">Ditolak (deny-only):</span>
+                      <span className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">Ditolak (deny-only):</span>
                       {row.denied.length === 0 && (
-                        <span className="text-[11px] text-gray-400">tidak ada</span>
+                        <span className="text-[11px] text-gray-400 dark:text-gray-500">tidak ada</span>
                       )}
                       {row.denied.map((k) => (
                         <span
                           key={k}
-                          className="bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded-md flex flex-col leading-tight"
+                          className="bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 px-2 py-0.5 rounded-md flex flex-col leading-tight"
                           title={k}
                         >
                           <span className="text-[11px] font-semibold">{labelForPermission(k)}</span>
@@ -411,7 +411,7 @@ export function UserFormModal({ open, user, onClose, onSaved }: UserFormModalPro
                         type="button"
                         onClick={() => setExpandedDeny(expandedDeny === row.key ? null : row.key)}
                         disabled={!row.roleId}
-                        className="text-[11px] text-red-500 hover:underline font-semibold disabled:text-gray-300 disabled:no-underline"
+                        className="text-[11px] text-red-500 dark:text-red-400 hover:underline font-semibold disabled:text-gray-300 dark:disabled:text-gray-600 disabled:no-underline"
                       >
                         + Atur
                       </button>
@@ -420,8 +420,8 @@ export function UserFormModal({ open, user, onClose, onSaved }: UserFormModalPro
 
                   {/* Feature grants (IGDERP-141): allowlisted enrollment, default off */}
                   {!superAdminRow && role && GRANT_FEATURES.some((f) => f.roleCodes.includes(role.code)) && (
-                    <div className="flex items-center gap-4 flex-wrap border-t border-dashed border-gray-200 pt-2">
-                      <span className="text-[11px] text-gray-500 font-medium">Hak tambahan:</span>
+                    <div className="flex items-center gap-4 flex-wrap border-t border-dashed border-gray-200 dark:border-gray-700 pt-2">
+                      <span className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">Hak tambahan:</span>
                       {GRANT_FEATURES.filter((f) => f.roleCodes.includes(role.code)).map((f) => {
                         const checked = f.keys.every((k) => row.granted.includes(k));
                         return (
@@ -436,8 +436,8 @@ export function UserFormModal({ open, user, onClose, onSaved }: UserFormModalPro
                               className="w-4 h-4 accent-primary-600"
                             />
                             <span className="flex flex-col leading-tight">
-                              <span className="text-xs font-medium text-gray-700">{f.label}</span>
-                              <span className="text-[10px] font-mono text-gray-400">{f.keys.join(', ')}</span>
+                              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{f.label}</span>
+                              <span className="text-[10px] font-mono text-gray-400 dark:text-gray-500">{f.keys.join(', ')}</span>
                             </span>
                           </label>
                         );
@@ -447,20 +447,20 @@ export function UserFormModal({ open, user, onClose, onSaved }: UserFormModalPro
 
                   {/* Deny picker */}
                   {expandedDeny === row.key && denySource && (
-                    <div className="border border-gray-200 bg-gray-50 rounded-lg p-3">
+                    <div className="border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-950 rounded-lg p-3">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-[11px] font-bold text-gray-600">
+                        <span className="text-[11px] font-bold text-gray-600 dark:text-gray-400">
                           Hak default role <span className="font-mono">{role?.code}</span> — centang untuk mencabut (deny-only)
                         </span>
                         <button
                           type="button"
                           onClick={() => setExpandedDeny(null)}
-                          className="text-gray-400 hover:text-gray-600"
+                          className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400"
                         >
                           <X className="w-4 h-4" />
                         </button>
                       </div>
-                      <p className="text-[11px] text-gray-400 mb-2">
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-2">
                         Hak yang dicabut tidak boleh melebihi default role. Mencabut hak di luar default → ditolak sistem (400).
                       </p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-1 max-h-52 overflow-y-auto">
@@ -470,7 +470,7 @@ export function UserFormModal({ open, user, onClose, onSaved }: UserFormModalPro
                             <label
                               key={k}
                               className={`flex items-center gap-2 py-1 px-2 rounded-md text-sm ${
-                                denied ? 'bg-red-50' : 'hover:bg-gray-100'
+                                denied ? 'bg-red-50 dark:bg-red-950' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
                               } cursor-pointer`}
                             >
                               <input
@@ -486,8 +486,8 @@ export function UserFormModal({ open, user, onClose, onSaved }: UserFormModalPro
                                 className="w-4 h-4 accent-red-600"
                               />
                               <span className="flex flex-col leading-tight min-w-0">
-                                <span className="text-xs text-gray-700 truncate">{labelForPermission(k)}</span>
-                                <span className="text-[10px] font-mono text-gray-400 truncate">{k}</span>
+                                <span className="text-xs text-gray-700 dark:text-gray-300 truncate">{labelForPermission(k)}</span>
+                                <span className="text-[10px] font-mono text-gray-400 dark:text-gray-500 truncate">{k}</span>
                               </span>
                             </label>
                           );
@@ -502,11 +502,11 @@ export function UserFormModal({ open, user, onClose, onSaved }: UserFormModalPro
         </div>
 
         {/* Actions */}
-        <div className="flex justify-end gap-2 pt-4 border-t border-gray-200">
+        <div className="flex justify-end gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-sm"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm"
           >
             Batal
           </button>

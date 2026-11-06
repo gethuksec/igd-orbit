@@ -74,7 +74,7 @@ export default function Profile() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 text-red-600 animate-spin" />
+        <Loader2 className="w-8 h-8 text-red-600 dark:text-red-400 animate-spin" />
       </div>
     );
   }
@@ -82,7 +82,7 @@ export default function Profile() {
   if (!user) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">User tidak ditemukan</p>
+        <p className="text-gray-500 dark:text-gray-400">User tidak ditemukan</p>
       </div>
     );
   }
@@ -93,16 +93,16 @@ export default function Profile() {
       <BreadcrumbHeader title="Profile Saya" subtitle="Kelola informasi profile Anda" />
 
       {/* Profile Card */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-6">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6 space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <User className="w-5 h-5" />
             Informasi Pribadi
           </h2>
           {!isEditing && (
             <button
               onClick={() => setIsEditing(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             >
               <Edit className="w-4 h-4" />
               Edit
@@ -113,7 +113,7 @@ export default function Profile() {
         <div className="space-y-4">
           {/* Email (Read-only) */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
               <Mail className="w-4 h-4" />
               Email
             </label>
@@ -121,15 +121,15 @@ export default function Profile() {
               type="email"
               value={formData.email}
               disabled
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 text-gray-600 cursor-not-allowed"
+              className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-950 text-gray-600 dark:text-gray-400 cursor-not-allowed"
             />
-            <p className="text-xs text-gray-500 mt-1">Email tidak dapat diubah</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Email tidak dapat diubah</p>
           </div>
 
           {/* Full Name */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Nama Lengkap <span className="text-red-500">*</span>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              Nama Lengkap <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             {isEditing ? (
               <input
@@ -137,11 +137,11 @@ export default function Profile() {
                 value={formData.fullName}
                 onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                 required
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all"
+                className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all"
                 placeholder="Masukkan nama lengkap"
               />
             ) : (
-              <div className="px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50">
+              <div className="px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-950">
                 {user.fullName || '-'}
               </div>
             )}
@@ -149,7 +149,7 @@ export default function Profile() {
 
           {/* Phone */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
               <Phone className="w-4 h-4" />
               Nomor Telepon
             </label>
@@ -158,11 +158,11 @@ export default function Profile() {
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all"
+                className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all"
                 placeholder="081234567890"
               />
             ) : (
-              <div className="px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50">
+              <div className="px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-950">
                 {user.phone || '-'}
               </div>
             )}
@@ -171,7 +171,7 @@ export default function Profile() {
           {/* Roles */}
           {user.roles && user.roles.length > 0 && (
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                 <Shield className="w-4 h-4" />
                 Roles
               </label>
@@ -189,7 +189,7 @@ export default function Profile() {
                     return (
                       <span
                         key={roleCode || userRoleOrCode}
-                        className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium"
+                        className="px-3 py-1 bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300 rounded-full text-sm font-medium"
                       >
                         {roleName}
                       </span>
@@ -197,7 +197,7 @@ export default function Profile() {
                   })
                 }
                 {(!user.roles || (Array.isArray(user.roles) && user.roles.length === 0)) && (
-                  <span className="text-sm text-gray-500 italic">Tidak ada role</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400 italic">Tidak ada role</span>
                 )}
               </div>
             </div>
@@ -205,11 +205,11 @@ export default function Profile() {
 
           {/* Created At */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
               <Calendar className="w-4 h-4" />
               Tanggal Bergabung
             </label>
-            <div className="px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50">
+            <div className="px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-950">
               {new Date(user.createdAt).toLocaleDateString('id-ID', {
                 year: 'numeric',
                 month: 'long',
@@ -221,7 +221,7 @@ export default function Profile() {
 
         {/* Save/Cancel Buttons */}
         {isEditing && (
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
             <button
               onClick={() => {
                 setIsEditing(false);
@@ -231,7 +231,7 @@ export default function Profile() {
                   email: user.email || '',
                 });
               }}
-              className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+              className="px-6 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-semibold"
             >
               Batal
             </button>
@@ -301,56 +301,56 @@ function PasswordChangeSection({ user, onPasswordChanged }: { user: any; onPassw
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-6">
-      <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+    <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6 space-y-6">
+      <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
         <Lock className="w-5 h-5" />
         {canChange ? 'Ubah Password' : 'Permintaan Ubah Password'}
       </h2>
       {canChange ? (
-        <p className="text-sm text-gray-600">Anda dapat mengubah password sendiri. Password akan langsung diterapkan.</p>
+        <p className="text-sm text-gray-600 dark:text-gray-400">Anda dapat mengubah password sendiri. Password akan langsung diterapkan.</p>
       ) : (
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-gray-600 dark:text-gray-400">
           Anda tidak diizinkan mengubah password sendiri. Isi form di bawah untuk mengirim permintaan ke atasan Anda.
         </p>
       )}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Password Saat Ini</label>
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Password Saat Ini</label>
           <input
             type="password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
             required
-            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all"
+            className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all"
             placeholder="Masukkan password saat ini"
           />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Password Baru</label>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Password Baru</label>
             <input
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               required
               minLength={8}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all"
+              className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all"
               placeholder="Minimal 8 karakter"
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Konfirmasi Password Baru</label>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Konfirmasi Password Baru</label>
             <input
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all"
+              className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all"
               placeholder="Ulangi password baru"
             />
           </div>
         </div>
-        <div className="text-xs text-gray-500 space-y-1">
+        <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
           <p>Password harus mengandung: minimal 8 karakter, huruf besar, huruf kecil, angka, dan karakter spesial</p>
         </div>
         <button

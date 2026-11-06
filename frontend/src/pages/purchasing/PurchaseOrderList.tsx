@@ -127,10 +127,10 @@ export default function PurchaseOrderList() {
 
   const statCards = [
     { label: 'Total PO', value: total, icon: FileText, color: 'text-foreground' },
-    { label: 'Pending', value: statusCounts.pending, icon: Clock, color: 'text-yellow-600' },
-    { label: 'Approved', value: statusCounts.approved, icon: CheckCircle, color: 'text-blue-600' },
-    { label: 'Received', value: statusCounts.received, icon: Package, color: 'text-green-600' },
-    { label: 'Rejected', value: statusCounts.rejected, icon: XCircle, color: 'text-red-600' },
+    { label: 'Pending', value: statusCounts.pending, icon: Clock, color: 'text-yellow-600 dark:text-yellow-400' },
+    { label: 'Approved', value: statusCounts.approved, icon: CheckCircle, color: 'text-blue-600 dark:text-blue-400' },
+    { label: 'Received', value: statusCounts.received, icon: Package, color: 'text-green-600 dark:text-green-400' },
+    { label: 'Rejected', value: statusCounts.rejected, icon: XCircle, color: 'text-red-600 dark:text-red-400' },
   ];
 
   return (
@@ -271,7 +271,7 @@ export default function PurchaseOrderList() {
                         {order.dueDate && (
                           <div
                             className={`text-xs ${
-                              order.isOverdue ? 'font-medium text-red-600' : 'text-muted-foreground'
+                              order.isOverdue ? 'font-medium text-red-600 dark:text-red-400' : 'text-muted-foreground'
                             }`}
                           >
                             Jatuh tempo: {formatDate(order.dueDate)}

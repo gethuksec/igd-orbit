@@ -53,7 +53,7 @@ export default function PurchaseReturnDetail() {
   if (isLoading) {
     return (
       <div className="flex justify-center py-24">
-        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+        <Loader2 className="w-8 h-8 animate-spin text-gray-400 dark:text-gray-500" />
       </div>
     );
   }
@@ -63,7 +63,7 @@ export default function PurchaseReturnDetail() {
       <div className="space-y-6">
         <BreadcrumbHeader title="Detail Retur Pembelian" />
         <Card>
-          <CardContent className="py-12 text-center text-gray-500">
+          <CardContent className="py-12 text-center text-gray-500 dark:text-gray-400">
             Retur tidak ditemukan.
             <div className="mt-4">
               <Button variant="outline" onClick={() => navigate('/purchasing/returns')}>
@@ -80,16 +80,16 @@ export default function PurchaseReturnDetail() {
     <div className="space-y-6">
       <BreadcrumbHeader title={ret.returnNumber}>
         <div className="flex items-center gap-3">
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 border border-gray-300 text-gray-700">
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">
             {ret.purchaseOrder ? 'Dari PO' : 'Manual (tanpa PO)'}
           </span>
           {ret.status === 'completed' ? (
-            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-green-50 border border-green-300 text-green-700">
+            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-green-50 dark:bg-green-950 border border-green-300 dark:border-green-700 text-green-700 dark:text-green-300">
               <CheckCircle2 className="w-3.5 h-3.5" />
               Selesai
             </span>
           ) : (
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 border border-amber-300 text-amber-700">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-950 border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300">
               Pending
             </span>
           )}
@@ -109,37 +109,37 @@ export default function PurchaseReturnDetail() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-6">
-            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Supplier</div>
+            <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Supplier</div>
             <div className="font-semibold mt-1">{ret.supplier?.name || '-'}</div>
-            <div className="text-xs text-gray-500 mt-0.5">{ret.supplier?.customerCode}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{ret.supplier?.customerCode}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">No. Invoice</div>
+            <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">No. Invoice</div>
             <div className="font-semibold mt-1">{ret.invoiceNumber || '-'}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Purchase Order</div>
+            <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Purchase Order</div>
             {ret.purchaseOrder ? (
               <Link
                 to={`/purchasing/po/${ret.purchaseOrder.id}`}
-                className="font-semibold mt-1 text-red-600 hover:underline block"
+                className="font-semibold mt-1 text-red-600 dark:text-red-400 hover:underline block"
               >
                 {ret.purchaseOrder.poNumber}
               </Link>
             ) : (
-              <div className="font-semibold mt-1 text-gray-400">— (manual)</div>
+              <div className="font-semibold mt-1 text-gray-400 dark:text-gray-500">— (manual)</div>
             )}
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Diproses oleh</div>
+            <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Diproses oleh</div>
             <div className="font-semibold mt-1">{ret.processedByUser?.fullName || '-'}</div>
-            <div className="text-xs text-gray-500 mt-0.5">{formatDate(ret.createdAt)}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{formatDate(ret.createdAt)}</div>
           </CardContent>
         </Card>
       </div>
@@ -150,16 +150,16 @@ export default function PurchaseReturnDetail() {
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           <div className="flex gap-4">
-            <div className="w-32 shrink-0 text-gray-500">Alasan retur</div>
+            <div className="w-32 shrink-0 text-gray-500 dark:text-gray-400">Alasan retur</div>
             <div>{ret.reason}</div>
           </div>
           <div className="flex gap-4">
-            <div className="w-32 shrink-0 text-gray-500">Catatan</div>
-            <div className={ret.notes ? '' : 'text-gray-400'}>{ret.notes || '—'}</div>
+            <div className="w-32 shrink-0 text-gray-500 dark:text-gray-400">Catatan</div>
+            <div className={ret.notes ? '' : 'text-gray-400 dark:text-gray-500'}>{ret.notes || '—'}</div>
           </div>
           {ret.status === 'completed' && (
             <div className="flex gap-4">
-              <div className="w-32 shrink-0 text-gray-500">Diselesaikan oleh</div>
+              <div className="w-32 shrink-0 text-gray-500 dark:text-gray-400">Diselesaikan oleh</div>
               <div>
                 {ret.completedByUser?.fullName || '-'}
                 {ret.completedAt ? ` · ${formatDate(ret.completedAt)}` : ''}
@@ -189,26 +189,26 @@ export default function PurchaseReturnDetail() {
                 <TableRow key={item.id}>
                   <TableCell>
                     <div className="font-medium">{item.product?.name || item.productId}</div>
-                    <div className="text-xs text-gray-500">{item.product?.sku}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">{item.product?.sku}</div>
                   </TableCell>
                   <TableCell className="text-right">{fmtQty(Number(item.quantity))}</TableCell>
                   <TableCell className="text-right">{formatCurrency(Number(item.unitPrice))}</TableCell>
                   <TableCell className="text-right font-medium">
                     {formatCurrency(Number(item.subtotal))}
                   </TableCell>
-                  <TableCell className="text-gray-500">{item.reason || '—'}</TableCell>
+                  <TableCell className="text-gray-500 dark:text-gray-400">{item.reason || '—'}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-          <div className="flex justify-end gap-10 mt-4 pt-4 border-t border-gray-100">
+          <div className="flex justify-end gap-10 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
             <div className="text-right">
-              <div className="text-xs text-gray-500">Total Qty</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Total Qty</div>
               <div className="text-lg font-bold">{fmtQty(Number(ret.totalQty))}</div>
             </div>
             <div className="text-right">
-              <div className="text-xs text-gray-500">Total Nilai (kredit supplier)</div>
-              <div className="text-lg font-bold text-red-600">{formatCurrency(Number(ret.totalValue))}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Total Nilai (kredit supplier)</div>
+              <div className="text-lg font-bold text-red-600 dark:text-red-400">{formatCurrency(Number(ret.totalValue))}</div>
             </div>
           </div>
         </CardContent>
@@ -220,13 +220,13 @@ export default function PurchaseReturnDetail() {
         </CardHeader>
         <CardContent>
           {ret.status === 'completed' ? (
-            <div className="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+            <div className="rounded-md border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950 px-4 py-3 text-sm text-green-800 dark:text-green-200">
               <span className="font-semibold">Retur selesai</span> — barang sudah dikirim kembali ke
               supplier. Central-bad berkurang {fmtQty(Number(ret.totalQty))} unit
               {ret.completedByUser?.fullName ? ` (oleh ${ret.completedByUser.fullName})` : ''}.
             </div>
           ) : (
-            <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <div className="rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
               <span className="font-semibold">Central-good:</span> −{fmtQty(Number(ret.totalQty))} unit ·{' '}
               <span className="font-semibold">Central-bad:</span> +{fmtQty(Number(ret.totalQty))} unit
               <div className="mt-1">

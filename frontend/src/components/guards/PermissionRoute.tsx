@@ -104,8 +104,8 @@ export default function PermissionRoute({
       return (
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
-            <Loader2 className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-4" />
-            <p className="text-gray-600">Checking access...</p>
+            <Loader2 className="w-8 h-8 text-gray-400 dark:text-gray-500 animate-spin mx-auto mb-4" />
+            <p className="text-gray-600 dark:text-gray-400">Checking access...</p>
           </div>
         </div>
       );
@@ -116,8 +116,8 @@ export default function PermissionRoute({
       return (
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
-            <Loader2 className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-4" />
-            <p className="text-gray-600">Checking access...</p>
+            <Loader2 className="w-8 h-8 text-gray-400 dark:text-gray-500 animate-spin mx-auto mb-4" />
+            <p className="text-gray-600 dark:text-gray-400">Checking access...</p>
           </div>
         </div>
       );

@@ -63,20 +63,20 @@ export default function StockOpnameForm() {
 
       <form onSubmit={handleSubmit} className="space-y-3">
         {/* Form */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <ClipboardCheck className="w-5 h-5 text-primary-600" />
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <ClipboardCheck className="w-5 h-5 text-primary-600 dark:text-primary-400" />
             Informasi Opname
           </h2>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Cabang <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Cabang <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <select
                 value={formData.branchId}
                 onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 required
               >
                 <option value="">Pilih Cabang</option>
@@ -88,29 +88,29 @@ export default function StockOpnameForm() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tanggal Opname <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Tanggal Opname <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Calendar className="h-5 w-5 text-gray-400" />
+                  <Calendar className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                 </div>
                 <input
                   type="date"
                   value={formData.opnameDate}
                   onChange={(e) => setFormData({ ...formData, opnameDate: e.target.value })}
-                  className="w-full pl-12 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full pl-12 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   required
                 />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Catatan</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Catatan</label>
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 rows={3}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="Tambahkan catatan untuk opname ini..."
               />
             </div>
@@ -118,9 +118,9 @@ export default function StockOpnameForm() {
         </div>
 
         {/* Info */}
-        <div className="bg-blue-50 border-l-4 border-blue-500 rounded-xl shadow-md p-6">
-          <h3 className="text-lg font-bold text-blue-900 mb-2">Informasi</h3>
-          <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
+        <div className="bg-blue-50 dark:bg-blue-950 border-l-4 border-blue-500 rounded-xl shadow-md p-6">
+          <h3 className="text-lg font-bold text-blue-900 dark:text-blue-100 mb-2">Informasi</h3>
+          <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1 list-disc list-inside">
             <li>Stock opname akan membuat daftar semua produk dengan stok di cabang yang dipilih</li>
             <li>Setelah dibuat, Anda akan diarahkan ke halaman perhitungan untuk mencatat stok fisik</li>
             <li>Pastikan tidak ada opname aktif untuk cabang yang sama</li>
@@ -132,7 +132,7 @@ export default function StockOpnameForm() {
           <button
             type="button"
             onClick={() => navigate('/inventory/opname')}
-            className="px-6 py-3 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           >
             Batal
           </button>

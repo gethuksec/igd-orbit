@@ -27,7 +27,7 @@ export default function ServiceTypeDetail() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
+        <Loader2 className="w-8 h-8 text-primary-600 dark:text-primary-400 animate-spin" />
       </div>
     );
   }
@@ -35,10 +35,10 @@ export default function ServiceTypeDetail() {
   if (!serviceType) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">Layanan tidak ditemukan</p>
+        <p className="text-gray-500 dark:text-gray-400">Layanan tidak ditemukan</p>
         <button
           onClick={() => navigate("/service-types")}
-          className="mt-4 text-primary-600 hover:text-primary-700"
+          className="mt-4 text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
         >
           Kembali ke daftar layanan
         </button>
@@ -89,34 +89,34 @@ export default function ServiceTypeDetail() {
         <div className="space-y-4">
           <Card>
             <CardHeader className="flex flex-row items-center gap-2">
-              <Wrench className="w-5 h-5 text-primary-600" />
+              <Wrench className="w-5 h-5 text-primary-600 dark:text-primary-400" />
               <CardTitle>Informasi Layanan</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <p className="text-xs text-gray-500 mb-1">Kode Layanan</p>
-                <p className="text-sm font-semibold text-gray-900 font-mono">{serviceType.code}</p>
+              <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Kode Layanan</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 font-mono">{serviceType.code}</p>
               </div>
 
-              <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <p className="text-xs text-gray-500 mb-1">Nama Layanan</p>
-                <p className="text-sm font-semibold text-gray-900">{serviceType.name}</p>
+              <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Nama Layanan</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{serviceType.name}</p>
               </div>
 
               {serviceType.description && (
-                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-xs text-gray-500 mb-1">Deskripsi</p>
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{serviceType.description}</p>
+                <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Deskripsi</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{serviceType.description}</p>
                 </div>
               )}
 
-              <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <p className="text-xs text-gray-500 mb-1">Status</p>
+              <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Status</p>
                 <span
                   className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
                     serviceType.isActive
-                      ? "bg-green-100 text-green-800"
-                      : "bg-gray-100 text-gray-800"
+                      ? "bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200"
+                      : "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200"
                   }`}
                 >
                   {serviceType.isActive ? "Aktif" : "Tidak Aktif"}
@@ -127,45 +127,45 @@ export default function ServiceTypeDetail() {
 
           <Card>
             <CardHeader className="flex flex-row items-center gap-2">
-              <DollarSign className="w-5 h-5 text-primary-600" />
+              <DollarSign className="w-5 h-5 text-primary-600 dark:text-primary-400" />
               <CardTitle>Informasi Harga</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="p-3 bg-gradient-to-br from-primary-50 to-primary-100 rounded-lg border border-primary-200">
-                <p className="text-xs text-primary-600 mb-1">Harga Dasar</p>
-                <p className="text-lg font-bold text-primary-900">{formatPrice(serviceType.basePrice)}</p>
+              <div className="p-3 bg-gradient-to-br from-primary-50 dark:from-primary-950 to-primary-100 dark:to-primary-950 rounded-lg border border-primary-200 dark:border-primary-800">
+                <p className="text-xs text-primary-600 dark:text-primary-400 mb-1">Harga Dasar</p>
+                <p className="text-lg font-bold text-primary-900 dark:text-primary-100">{formatPrice(serviceType.basePrice)}</p>
               </div>
 
               {serviceType.minPrice && (
-                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-xs text-gray-500 mb-1">Harga Minimum</p>
-                  <p className="text-sm font-semibold text-gray-900">{formatPrice(serviceType.minPrice)}</p>
+                <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Harga Minimum</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{formatPrice(serviceType.minPrice)}</p>
                 </div>
               )}
 
               {serviceType.maxPrice && (
-                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-xs text-gray-500 mb-1">Harga Maksimum</p>
-                  <p className="text-sm font-semibold text-gray-900">{formatPrice(serviceType.maxPrice)}</p>
+                <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Harga Maksimum</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{formatPrice(serviceType.maxPrice)}</p>
                 </div>
               )}
 
               {serviceType.minPrice && serviceType.maxPrice && (
-                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-xs text-blue-600 mb-1">Rentang Harga</p>
-                  <p className="text-sm font-bold text-blue-900">
+                <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">Rentang Harga</p>
+                  <p className="text-sm font-bold text-blue-900 dark:text-blue-100">
                     {formatPrice(serviceType.minPrice)} - {formatPrice(serviceType.maxPrice)}
                   </p>
                 </div>
               )}
 
               {(serviceType as any).tierPricing && Object.keys((serviceType as any).tierPricing).length > 0 && (
-                <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
-                  <p className="text-xs text-amber-600 mb-1">Harga per Tier</p>
+                <div className="p-3 bg-amber-50 dark:bg-amber-950 rounded-lg border border-amber-200 dark:border-amber-800">
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mb-1">Harga per Tier</p>
                   {(customerTiers as any[]).filter((t: any) => (serviceType as any).tierPricing[t.id] != null).map((t: any) => (
                     <div key={t.id} className="flex justify-between text-sm py-0.5">
-                      <span className="text-gray-600">{t.name}</span>
-                      <span className="font-semibold text-gray-900">{formatPrice((serviceType as any).tierPricing[t.id])}</span>
+                      <span className="text-gray-600 dark:text-gray-400">{t.name}</span>
+                      <span className="font-semibold text-gray-900 dark:text-gray-100">{formatPrice((serviceType as any).tierPricing[t.id])}</span>
                     </div>
                   ))}
                 </div>
@@ -178,19 +178,19 @@ export default function ServiceTypeDetail() {
         <div className="space-y-4">
           <Card>
             <CardHeader className="flex flex-row items-center gap-2">
-              <Clock className="w-5 h-5 text-primary-600" />
+              <Clock className="w-5 h-5 text-primary-600 dark:text-primary-400" />
               <CardTitle>SLA (Service Level Agreement)</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border border-blue-200">
-                <p className="text-xs text-blue-600 mb-1">Waktu Pengerjaan</p>
-                <p className="text-2xl font-bold text-blue-900">{formatSLA(serviceType.slaHours)}</p>
-                <p className="text-xs text-blue-600 mt-1">({Number(serviceType.slaHours)} jam)</p>
+              <div className="p-4 bg-gradient-to-br from-blue-50 dark:from-blue-950 to-blue-100 dark:to-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">Waktu Pengerjaan</p>
+                <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{formatSLA(serviceType.slaHours)}</p>
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">({Number(serviceType.slaHours)} jam)</p>
               </div>
               {serviceType.durationHours != null && (
-                <div className="mt-3 p-4 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg border border-emerald-200">
-                  <p className="text-xs text-emerald-600 mb-1">Estimasi Durasi</p>
-                  <p className="text-2xl font-bold text-emerald-900">{Number(serviceType.durationHours)} jam</p>
+                <div className="mt-3 p-4 bg-gradient-to-br from-emerald-50 dark:from-emerald-950 to-emerald-100 dark:to-emerald-950 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 mb-1">Estimasi Durasi</p>
+                  <p className="text-2xl font-bold text-emerald-900 dark:text-emerald-100">{Number(serviceType.durationHours)} jam</p>
                 </div>
               )}
             </CardContent>
@@ -198,27 +198,27 @@ export default function ServiceTypeDetail() {
 
           <Card>
             <CardHeader className="flex flex-row items-center gap-2">
-              <Package className="w-5 h-5 text-primary-600" />
+              <Package className="w-5 h-5 text-primary-600 dark:text-primary-400" />
               <CardTitle>Statistik</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <p className="text-xs text-gray-500 mb-1">Total Service Order</p>
-                <p className="text-2xl font-bold text-gray-900">{serviceType.serviceOrderCount || 0}</p>
-                <p className="text-xs text-gray-500 mt-1">Menggunakan layanan ini</p>
+              <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Service Order</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{serviceType.serviceOrderCount || 0}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Menggunakan layanan ini</p>
               </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center gap-2">
-              <Calendar className="w-5 h-5 text-primary-600" />
+              <Calendar className="w-5 h-5 text-primary-600 dark:text-primary-400" />
               <CardTitle>Informasi Tambahan</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Dibuat</span>
-                <span className="font-semibold text-gray-900">
+                <span className="text-gray-500 dark:text-gray-400">Dibuat</span>
+                <span className="font-semibold text-gray-900 dark:text-gray-100">
                   {new Date(serviceType.createdAt).toLocaleDateString("id-ID", {
                     year: "numeric",
                     month: "long",
@@ -229,8 +229,8 @@ export default function ServiceTypeDetail() {
                 </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Diupdate</span>
-                <span className="font-semibold text-gray-900">
+                <span className="text-gray-500 dark:text-gray-400">Diupdate</span>
+                <span className="font-semibold text-gray-900 dark:text-gray-100">
                   {new Date(serviceType.updatedAt).toLocaleDateString("id-ID", {
                     year: "numeric",
                     month: "long",

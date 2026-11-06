@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/shared/ThemeToggle';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,9 +44,9 @@ export default function POSLayout({ children }: POSLayoutProps) {
   const initial = user?.fullName?.charAt(0).toUpperCase() || 'A';
 
   return (
-    <div className="h-dvh bg-gray-50 w-full overflow-x-hidden flex flex-col">
+    <div className="h-dvh bg-gray-50 dark:bg-gray-950 w-full overflow-x-hidden flex flex-col">
       {/* Minimal Header — logo left, account right */}
-      <header className="sticky top-0 z-30 bg-white border-b border-border shadow-sm">
+      <header className="sticky top-0 z-30 bg-white dark:bg-gray-900 border-b border-border shadow-sm">
         <div className="flex items-center justify-between h-14 px-4">
           {/* Left: Logo */}
           <div className="flex items-center gap-3">
@@ -55,6 +56,7 @@ export default function POSLayout({ children }: POSLayoutProps) {
 
           {/* Right: Notifications + Account */}
           <div className="flex items-center gap-3 flex-shrink-0">
+            <ThemeToggle />
             {/* Notifications */}
             <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
               <Bell className="w-5 h-5" />
@@ -92,7 +94,7 @@ export default function POSLayout({ children }: POSLayoutProps) {
                   Pengaturan
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">
+                <DropdownMenuItem onClick={handleLogout} className="text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400">
                   <LogOut className="w-4 h-4 mr-2" />
                   Keluar
                 </DropdownMenuItem>

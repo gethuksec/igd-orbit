@@ -53,15 +53,15 @@ export default function MyServiceOrders() {
 
   const getStatusBadge = (status: string) => {
     const s = status?.toUpperCase();
-    let classes = 'bg-gray-100 text-gray-800 border-gray-200';
+    let classes = 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700';
     if (s === 'PENDING' || s === 'DIAGNOSED' || s === 'QUOTED' || s === 'APPROVED')
-      classes = 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      classes = 'bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800';
     else if (s === 'IN-PROGRESS' || s === 'IN_PROGRESS' || s === 'QC')
-      classes = 'bg-blue-100 text-blue-800 border-blue-200';
+      classes = 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-800';
     else if (s === 'COMPLETED')
-      classes = 'bg-green-100 text-green-800 border-green-200';
+      classes = 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800';
     else if (s === 'CANCELLED')
-      classes = 'bg-red-100 text-red-800 border-red-200';
+      classes = 'bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800';
     return (
       <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${classes}`}>
         {status}
@@ -77,7 +77,7 @@ export default function MyServiceOrders() {
         <div>
           <Link
             to={`/service-orders/${order.id}`}
-            className="text-sm font-semibold text-primary-600 hover:text-primary-700"
+            className="text-sm font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
           >
             {order.serviceNumber}
           </Link>
@@ -121,8 +121,8 @@ export default function MyServiceOrders() {
       <BreadcrumbHeader title="Service Saya" subtitle="Daftar service order yang sedang ditangani oleh kamu sebagai teknisi" />
 
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
-          <p className="text-red-800 font-medium">
+        <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
+          <p className="text-red-800 dark:text-red-200 font-medium">
             {(error as Error).message || 'Terjadi kesalahan saat memuat data service.'}
           </p>
         </div>
@@ -180,8 +180,8 @@ export default function MyServiceOrders() {
 
       {/* Pagination */}
       {!isLoading && orders.length > 0 && pagination.totalPages > 1 && (
-        <div className="bg-white px-6 py-4 rounded-xl border border-gray-200 flex items-center justify-between">
-          <div className="text-sm text-gray-700">
+        <div className="bg-white dark:bg-gray-900 px-6 py-4 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <div className="text-sm text-gray-700 dark:text-gray-300">
             Menampilkan {orders.length} dari{' '}
             <span className="font-semibold">{pagination.total}</span> service
           </div>

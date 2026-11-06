@@ -20,6 +20,7 @@ import {
 } from './pages/dashboard';
 import { InstallPrompt } from './components/InstallPrompt';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { useThemeStore } from './stores/themeStore';
 import { initAnalytics } from './utils/analytics';
 // Master Data
 import ProductList from './pages/products/ProductList';
@@ -182,6 +183,7 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  const resolvedTheme = useThemeStore((s) => s.resolved);
   useEffect(() => {
     // Initialize Google Analytics if measurement ID is provided
     const gaId = import.meta.env.VITE_GA_MEASUREMENT_ID;
@@ -1911,7 +1913,7 @@ function App() {
           </Routes>
           <InstallPrompt />
         </BrowserRouter>
-        <Toaster position="top-right" />
+        <Toaster position="top-right" theme={resolvedTheme} />
       </QueryClientProvider>
     </HelmetProvider>
   );

@@ -65,7 +65,7 @@ export default function TagCombobox({
         {value.map((t) => (
           <span
             key={t}
-            className="flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[11px] text-amber-800"
+            className="flex items-center gap-1 rounded bg-amber-100 dark:bg-amber-950 px-1.5 py-0.5 text-[11px] text-amber-800 dark:text-amber-200"
           >
             {t}
             <button
@@ -100,7 +100,7 @@ export default function TagCombobox({
         />
       </div>
       {open && (merged.length > 0 || canAdd) && (
-        <div className="absolute left-0 right-0 top-full z-30 mt-1 max-h-40 overflow-auto rounded-md border bg-white shadow">
+        <div className="absolute left-0 right-0 top-full z-30 mt-1 max-h-40 overflow-auto rounded-md border bg-white dark:bg-gray-900 shadow">
           {merged.map((s) => (
             <button
               key={s}

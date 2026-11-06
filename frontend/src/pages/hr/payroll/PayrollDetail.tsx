@@ -118,9 +118,9 @@ export default function PayrollDetail() {
   if (isLoading) {
     return (
       <div className="w-full space-y-6">
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-12 text-center">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-12 text-center">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-          <p className="mt-4 text-gray-600">Memuat data...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Memuat data...</p>
         </div>
       </div>
     );
@@ -129,10 +129,10 @@ export default function PayrollDetail() {
   if (error || !payroll) {
     return (
       <div className="w-full space-y-6">
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-12 text-center">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-red-600">Gagal memuat data payroll</p>
-          <Link to="/hr/payroll" className="mt-4 text-primary-600 hover:underline">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-12 text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 dark:text-red-400 mx-auto mb-4" />
+          <p className="text-red-600 dark:text-red-400">Gagal memuat data payroll</p>
+          <Link to="/hr/payroll" className="mt-4 text-primary-600 dark:text-primary-400 hover:underline">
             Kembali ke daftar
           </Link>
         </div>
@@ -144,28 +144,28 @@ export default function PayrollDetail() {
     switch (status) {
       case 'draft':
         return (
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-gray-100 text-gray-800">
+          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200">
             <Clock className="w-4 h-4" />
             Draft
           </span>
         );
       case 'approved':
         return (
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-primary-100 text-primary-800">
+          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-primary-100 dark:bg-primary-950 text-primary-800 dark:text-primary-200">
             <CheckCircle className="w-4 h-4" />
             Approved
           </span>
         );
       case 'paid':
         return (
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-primary-100 text-primary-800">
+          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-primary-100 dark:bg-primary-950 text-primary-800 dark:text-primary-200">
             <DollarSign className="w-4 h-4" />
             Paid
           </span>
         );
       case 'cancelled':
         return (
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-red-100 text-red-800">
+          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-200">
             <XCircle className="w-4 h-4" />
             Cancelled
           </span>
@@ -184,7 +184,7 @@ export default function PayrollDetail() {
               <button
                 onClick={() => approveMutation.mutate()}
                 disabled={approveMutation.isPending}
-                className="px-4 py-2 bg-white text-primary-600 rounded-lg font-semibold hover:bg-primary-50 transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 rounded-lg font-semibold hover:bg-primary-50 dark:hover:bg-primary-950 transition-colors disabled:opacity-50"
               >
                 {approveMutation.isPending 
                   ? 'Menyetujui...' 
@@ -196,7 +196,7 @@ export default function PayrollDetail() {
               </button>
             )}
             {payroll.status === 'draft' && payroll.approvedBy && !payroll.approvedBy2 && (
-              <span className="px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg text-sm font-semibold">
+              <span className="px-4 py-2 bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-200 rounded-lg text-sm font-semibold">
                 Menunggu Approval CFO
               </span>
             )}
@@ -213,7 +213,7 @@ export default function PayrollDetail() {
               <button
                 onClick={() => processMutation.mutate()}
                 disabled={processMutation.isPending}
-                className="px-4 py-2 bg-white text-primary-600 rounded-lg font-semibold hover:bg-primary-50 transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 rounded-lg font-semibold hover:bg-primary-50 dark:hover:bg-primary-950 transition-colors disabled:opacity-50"
               >
                 {processMutation.isPending ? 'Memproses...' : 'Process Payment'}
               </button>
@@ -221,7 +221,7 @@ export default function PayrollDetail() {
             {payroll.status === 'paid' && (
               <Link
                 to={`/hr/payroll/${id}/payslip`}
-                className="px-4 py-2 bg-white text-primary-600 rounded-lg font-semibold hover:bg-primary-50 transition-colors flex items-center gap-2"
+                className="px-4 py-2 bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 rounded-lg font-semibold hover:bg-primary-50 dark:hover:bg-primary-950 transition-colors flex items-center gap-2"
               >
                 <FileText className="w-4 h-4" />
                 Lihat Payslip
@@ -232,124 +232,124 @@ export default function PayrollDetail() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <p className="text-sm text-gray-600 mb-1">Total Earnings</p>
-          <p className="text-2xl font-bold text-primary-600">{formatCurrency(payroll.totalEarnings)}</p>
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Earnings</p>
+          <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">{formatCurrency(payroll.totalEarnings)}</p>
         </div>
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <p className="text-sm text-gray-600 mb-1">Total Deductions</p>
-          <p className="text-2xl font-bold text-red-600">{formatCurrency(payroll.totalDeductions)}</p>
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Deductions</p>
+          <p className="text-2xl font-bold text-red-600 dark:text-red-400">{formatCurrency(payroll.totalDeductions)}</p>
         </div>
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <p className="text-sm text-gray-600 mb-1">Nett Salary</p>
-          <p className="text-3xl font-bold text-gray-900">{formatCurrency(payroll.nettSalary)}</p>
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Nett Salary</p>
+          <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">{formatCurrency(payroll.nettSalary)}</p>
         </div>
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <p className="text-sm text-gray-600 mb-1">Status</p>
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Status</p>
           <div className="mt-1">{getStatusBadge(payroll.status)}</div>
         </div>
       </div>
 
       {/* Employee & Period Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Informasi Karyawan</h2>
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Informasi Karyawan</h2>
           <div className="space-y-3">
             <div>
-              <p className="text-sm text-gray-600">Nama</p>
-              <p className="text-base font-semibold text-gray-900">
+              <p className="text-sm text-gray-600 dark:text-gray-400">Nama</p>
+              <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
                 {payroll.employee?.user?.fullName || 'N/A'}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Employee Code</p>
-              <p className="text-base font-semibold text-gray-900">{payroll.employee?.employeeCode || 'N/A'}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Employee Code</p>
+              <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{payroll.employee?.employeeCode || 'N/A'}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Periode</h2>
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Periode</h2>
           <div className="space-y-3">
             <div>
-              <p className="text-sm text-gray-600">Bulan & Tahun</p>
-              <p className="text-base font-semibold text-gray-900">
+              <p className="text-sm text-gray-600 dark:text-gray-400">Bulan & Tahun</p>
+              <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
                 {new Date(2000, payroll.periodMonth - 1).toLocaleString('id-ID', { month: 'long' })}{' '}
                 {payroll.periodYear}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Payroll Number</p>
-              <p className="text-base font-mono font-semibold text-gray-900">{payroll.payrollNumber}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Payroll Number</p>
+              <p className="text-base font-mono font-semibold text-gray-900 dark:text-gray-100">{payroll.payrollNumber}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Attendance Summary */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-        <h2 className="text-lg font-bold text-gray-900 mb-4">Ringkasan Absensi</h2>
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Ringkasan Absensi</h2>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div>
-            <p className="text-sm text-gray-600">Hari Kerja</p>
-            <p className="text-xl font-bold text-gray-900">{payroll.attendanceDays}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Hari Kerja</p>
+            <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{payroll.attendanceDays}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-600">Terlambat</p>
-            <p className="text-xl font-bold text-red-600">{payroll.lateCount}x</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Terlambat</p>
+            <p className="text-xl font-bold text-red-600 dark:text-red-400">{payroll.lateCount}x</p>
           </div>
           <div>
-            <p className="text-sm text-gray-600">Pulang Cepat</p>
-            <p className="text-xl font-bold text-orange-600">{payroll.earlyLeaveCount}x</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Pulang Cepat</p>
+            <p className="text-xl font-bold text-orange-600 dark:text-orange-400">{payroll.earlyLeaveCount}x</p>
           </div>
           <div>
-            <p className="text-sm text-gray-600">Absen</p>
-            <p className="text-xl font-bold text-red-600">{payroll.absenceCount}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Absen</p>
+            <p className="text-xl font-bold text-red-600 dark:text-red-400">{payroll.absenceCount}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-600">Overtime</p>
-            <p className="text-xl font-bold text-primary-600">{payroll.overtimeHours} jam</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Overtime</p>
+            <p className="text-xl font-bold text-primary-600 dark:text-primary-400">{payroll.overtimeHours} jam</p>
           </div>
         </div>
       </div>
 
       {/* Payroll Components */}
       {payroll.components && payroll.components.length > 0 && (
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Komponen Payroll</h2>
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Komponen Payroll</h2>
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-gray-50 dark:bg-gray-950 border-b border-gray-200 dark:border-gray-700">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Tipe</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Nama</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase">Jumlah</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Taxable</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Tipe</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Nama</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Jumlah</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Taxable</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {payroll.components.map((component) => (
                   <tr key={component.id}>
                     <td className="px-4 py-3">
                       <span
                         className={`px-2 py-1 rounded text-xs font-semibold ${
                           component.componentType === 'earning'
-                            ? 'bg-primary-100 text-primary-800'
-                            : 'bg-red-100 text-red-800'
+                            ? 'bg-primary-100 dark:bg-primary-950 text-primary-800 dark:text-primary-200'
+                            : 'bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-200'
                         }`}
                       >
                         {component.componentType === 'earning' ? 'Earning' : 'Deduction'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm font-semibold text-gray-900">{component.componentName}</td>
-                    <td className="px-4 py-3 text-right text-sm font-semibold text-gray-900">
+                    <td className="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-gray-100">{component.componentName}</td>
+                    <td className="px-4 py-3 text-right text-sm font-semibold text-gray-900 dark:text-gray-100">
                       {formatCurrency(component.amount)}
                     </td>
                     <td className="px-4 py-3">
                       {component.isTaxable ? (
-                        <span className="text-xs text-gray-600">Yes</span>
+                        <span className="text-xs text-gray-600 dark:text-gray-400">Yes</span>
                       ) : (
-                        <span className="text-xs text-gray-400">No</span>
+                        <span className="text-xs text-gray-400 dark:text-gray-500">No</span>
                       )}
                     </td>
                   </tr>
@@ -362,9 +362,9 @@ export default function PayrollDetail() {
 
       {/* Notes */}
       {payroll.notes && (
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Catatan</h2>
-          <p className="text-base text-gray-900">{payroll.notes}</p>
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Catatan</h2>
+          <p className="text-base text-gray-900 dark:text-gray-100">{payroll.notes}</p>
         </div>
       )}
 
@@ -380,18 +380,18 @@ export default function PayrollDetail() {
       >
         <div className="space-y-4">
           <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
-              <AlertCircle className="w-5 h-5 text-red-600" />
+            <div className="flex-shrink-0 p-2 bg-red-100 dark:bg-red-950 rounded-full">
+              <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
             </div>
             <div className="flex-1">
-              <p className="text-sm text-gray-700 mb-2">
+              <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
                 Apakah Anda yakin ingin membatalkan payroll <strong>{payroll?.payrollNumber}</strong>?
               </p>
-              <p className="text-xs text-gray-500 mb-4">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
                 Tindakan ini akan mengubah status payroll menjadi cancelled. Hanya payroll dengan status draft yang dapat dibatalkan.
               </p>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   Alasan Pembatalan (Opsional)
                 </label>
                 <textarea
@@ -399,7 +399,7 @@ export default function PayrollDetail() {
                   onChange={(e) => setCancelReason(e.target.value)}
                   placeholder="Masukkan alasan pembatalan..."
                   rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
                 />
               </div>
             </div>
@@ -410,7 +410,7 @@ export default function PayrollDetail() {
                 setCancelModalOpen(false);
                 setCancelReason('');
               }}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
               Batal
             </button>

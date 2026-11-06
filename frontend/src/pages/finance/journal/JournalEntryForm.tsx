@@ -213,7 +213,7 @@ export default function JournalEntryForm() {
   if (loadingEntry) {
     return (
       <div className="w-full flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-16 h-16 text-primary-600 animate-spin" />
+        <Loader2 className="w-16 h-16 text-primary-600 dark:text-primary-400 animate-spin" />
       </div>
     );
   }
@@ -229,27 +229,27 @@ export default function JournalEntryForm() {
 
       <form onSubmit={handleSubmit} className="space-y-3">
         {/* Entry Information */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <ReceiptText className="w-5 h-5 text-primary-600" />
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <ReceiptText className="w-5 h-5 text-primary-600 dark:text-primary-400" />
             Informasi Jurnal
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tanggal <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Tanggal <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <input
                 type="date"
                 value={formData.entry_date}
                 onChange={(e) => setFormData({ ...formData, entry_date: e.target.value })}
                 required
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tipe <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Tipe <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <select
                 value={formData.entry_type}
@@ -258,15 +258,15 @@ export default function JournalEntryForm() {
                 }
                 required
                 disabled={isEdit}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-800"
               >
                 <option value="manual">Manual</option>
                 <option value="auto">Auto</option>
               </select>
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Deskripsi <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Deskripsi <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <input
                 type="text"
@@ -274,27 +274,27 @@ export default function JournalEntryForm() {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 required
                 placeholder="Masukkan deskripsi jurnal..."
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Catatan</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Catatan</label>
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 rows={3}
                 placeholder="Tambahkan catatan (opsional)..."
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
           </div>
         </div>
 
         {/* Journal Lines */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-primary-600" />
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-primary-600 dark:text-primary-400" />
               Journal Lines ({lines.length})
             </h2>
             <button
@@ -308,38 +308,38 @@ export default function JournalEntryForm() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gradient-to-r from-gray-50 via-gray-50 to-gray-100">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gradient-to-r from-gray-50 dark:from-gray-900 via-gray-50 dark:via-gray-900 to-gray-100 dark:to-gray-800">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">
                     Account
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">
                     Deskripsi
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">
+                  <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">
                     Debit
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">
+                  <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">
                     Credit
                   </th>
-                  <th className="px-4 py-3 text-center text-xs font-bold text-gray-700 uppercase">
+                  <th className="px-4 py-3 text-center text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-100">
+              <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-800">
                 {lines.map((line, index) => {
                   const selectedAccount = transactionAccounts.find(
                     (acc) => acc.id === line.account_id,
                   );
                   return (
-                    <tr key={index} className="hover:bg-gray-50">
+                    <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                       <td className="px-4 py-3">
                         <div className="relative">
                           <div className="relative">
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                              <Search className="h-4 w-4 text-gray-400" />
+                              <Search className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                             </div>
                             <input
                               type="text"
@@ -356,11 +356,11 @@ export default function JournalEntryForm() {
                                 setShowAccountDropdown({ ...showAccountDropdown, [index]: true })
                               }
                               placeholder="Cari akun..."
-                              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                             />
                           </div>
                           {showAccountDropdown[index] && filteredAccounts(index).length > 0 && (
-                            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                               {filteredAccounts(index).map((account) => (
                                 <button
                                   key={account.id}
@@ -371,10 +371,10 @@ export default function JournalEntryForm() {
                                     setAccountSearch({ ...accountSearch, [index]: '' });
                                     setShowAccountDropdown({ ...showAccountDropdown, [index]: false });
                                   }}
-                                  className="w-full px-4 py-2 text-left hover:bg-primary-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                                  className="w-full px-4 py-2 text-left hover:bg-primary-50 dark:hover:bg-primary-950 border-b border-gray-100 dark:border-gray-800 last:border-b-0 transition-colors"
                                 >
-                                  <div className="font-medium text-gray-900">{account.name}</div>
-                                  <div className="text-xs text-gray-500 font-mono">
+                                  <div className="font-medium text-gray-900 dark:text-gray-100">{account.name}</div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400 font-mono">
                                     {account.code} - {account.accountType}
                                   </div>
                                 </button>
@@ -391,7 +391,7 @@ export default function JournalEntryForm() {
                             updateLine(index, 'line_description', e.target.value)
                           }
                           placeholder="Deskripsi baris..."
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                         />
                       </td>
                       <td className="px-4 py-3">
@@ -404,7 +404,7 @@ export default function JournalEntryForm() {
                           min="0"
                           step="0.01"
                           placeholder="0"
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-right"
+                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-right"
                         />
                       </td>
                       <td className="px-4 py-3">
@@ -417,7 +417,7 @@ export default function JournalEntryForm() {
                           min="0"
                           step="0.01"
                           placeholder="0"
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-right"
+                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-right"
                         />
                       </td>
                       <td className="px-4 py-3 text-center">
@@ -425,7 +425,7 @@ export default function JournalEntryForm() {
                           <button
                             type="button"
                             onClick={() => removeLine(index)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg transition-colors"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -434,17 +434,17 @@ export default function JournalEntryForm() {
                     </tr>
                   );
                 })}
-                <tr className="bg-gradient-to-r from-gray-50 to-gray-100 font-bold">
+                <tr className="bg-gradient-to-r from-gray-50 dark:from-gray-900 to-gray-100 dark:to-gray-800 font-bold">
                   <td colSpan={2} className="px-4 py-3 text-right">
-                    <span className="text-gray-900">Total:</span>
+                    <span className="text-gray-900 dark:text-gray-100">Total:</span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <span className={`text-gray-900 ${!isBalanced() ? 'text-red-600' : ''}`}>
+                    <span className={`text-gray-900 ${!isBalanced() ? 'text-red-600 dark:text-red-400' : ''}`}>
                       {formatCurrency(totalDebit)}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <span className={`text-gray-900 ${!isBalanced() ? 'text-red-600' : ''}`}>
+                    <span className={`text-gray-900 ${!isBalanced() ? 'text-red-600 dark:text-red-400' : ''}`}>
                       {formatCurrency(totalCredit)}
                     </span>
                   </td>
@@ -457,7 +457,7 @@ export default function JournalEntryForm() {
           {/* Balance Status */}
           <div className="mt-4 p-4 rounded-lg border-2">
             {isBalanced() ? (
-              <div className="flex items-center gap-2 text-green-700 bg-green-50 border-green-200">
+              <div className="flex items-center gap-2 text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
                 <CheckCircle className="w-5 h-5" />
                 <span className="font-semibold">Jurnal seimbang</span>
                 <span className="ml-auto">
@@ -465,7 +465,7 @@ export default function JournalEntryForm() {
                 </span>
               </div>
             ) : (
-              <div className="flex items-center gap-2 text-red-700 bg-red-50 border-red-200">
+              <div className="flex items-center gap-2 text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800">
                 <AlertCircle className="w-5 h-5" />
                 <span className="font-semibold">Jurnal tidak seimbang!</span>
                 <span className="ml-auto">
@@ -478,12 +478,12 @@ export default function JournalEntryForm() {
         </div>
 
         {/* Actions */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
           <div className="flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={() => navigate('/finance/journal')}
-              className="px-6 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+              className="px-6 py-2.5 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-semibold"
             >
               Batal
             </button>

@@ -163,8 +163,8 @@ export default function WarehouseList() {
         <span
           className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${
             wh.isActive
-              ? "bg-green-100 text-green-800 border-green-200"
-              : "bg-gray-100 text-gray-800 border-gray-200"
+              ? "bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800"
+              : "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700"
           }`}
         >
           {wh.isActive ? "Aktif" : "Tidak Aktif"}
@@ -192,8 +192,8 @@ export default function WarehouseList() {
       </BreadcrumbHeader>
 
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
-          <p className="text-red-800 font-medium">
+        <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
+          <p className="text-red-800 dark:text-red-200 font-medium">
             {(error as Error).message || "Terjadi kesalahan"}
           </p>
         </div>
@@ -219,7 +219,7 @@ export default function WarehouseList() {
           iconBg="from-green-500 to-green-600"
           label="Gudang Aktif"
           value={isLoading ? "-" : activeCount}
-          badge={{ text: "Active", className: "bg-green-100 text-green-800" }}
+          badge={{ text: "Active", className: "bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200" }}
         />
       </div>
 
@@ -299,7 +299,7 @@ export default function WarehouseList() {
             <Button
               variant="ghost"
               size="sm"
-              className="text-red-600 hover:bg-red-50"
+              className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950"
               title="Hapus"
               onClick={() => {
                 setWarehouseToDelete({ id: wh.id, name: wh.name });
@@ -313,7 +313,7 @@ export default function WarehouseList() {
       />
 
       {!isLoading && warehouses.length > 0 && (
-        <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 rounded-lg border border-gray-200">
+        <div className="bg-gradient-to-r from-gray-50 dark:from-gray-900 to-gray-100 dark:to-gray-800 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
               Menampilkan{" "}
@@ -377,17 +377,17 @@ export default function WarehouseList() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
+              <div className="flex-shrink-0 p-2 bg-red-100 dark:bg-red-950 rounded-full">
+                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
               </div>
               <div className="flex-1">
-                <p className="text-sm text-gray-700 mb-2">
+                <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
                   Apakah Anda yakin ingin menghapus gudang <strong>{warehouseToDelete?.name}</strong>?
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   Tindakan ini akan melakukan soft delete. Data tidak akan muncul di daftar, tetapi masih tersimpan di database.
                 </p>
-                <p className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                <p className="mt-2 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
                   Gudang yang memiliki stok, pergerakan stok, transfer, opname, atau transaksi tidak dapat dihapus — pesan error dari server akan ditampilkan apa adanya.
                 </p>
               </div>
@@ -399,7 +399,7 @@ export default function WarehouseList() {
                   setWarehouseToDelete(null);
                 }}
                 disabled={deleteMutation.isPending}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors"
               >
                 Batal
               </button>

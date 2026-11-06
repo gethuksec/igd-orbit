@@ -57,11 +57,11 @@ export default function ServiceSearch({ onSearch, isLoading, error }: ServiceSea
               setLocalError('');
             }}
             onKeyPress={handleKeyPress}
-            className={`bg-white/95 text-gray-900 placeholder:text-red-300/90 border-2 ${displayError ? 'border-yellow-300 ring-2 ring-yellow-300/60' : 'border-white/70 focus:border-white focus:ring-2 focus:ring-white/80'} shadow-lg`}
+            className={`bg-white/95 text-gray-900 placeholder:text-red-300/90 border-2 ${displayError ? 'border-yellow-300 dark:border-yellow-700 ring-2 ring-yellow-300/60' : 'border-white/70 focus:border-white focus:ring-2 focus:ring-white/80'} shadow-lg`}
             disabled={isLoading}
           />
           {displayError && (
-            <p className="mt-1 text-sm text-red-500">{displayError}</p>
+            <p className="mt-1 text-sm text-red-500 dark:text-red-400">{displayError}</p>
           )}
         </div>
         <button

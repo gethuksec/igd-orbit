@@ -78,7 +78,7 @@ function TierPriceCell({
       {tiers.map((t) => (
         <div key={t.id} className="text-[11px] leading-5 text-muted-foreground flex items-center justify-end gap-1.5">
           <span>{t.name}</span>
-          <span className="font-semibold text-red-600 font-mono" data-testid={`tier-price-${t.id}`}>
+          <span className="font-semibold text-red-600 dark:text-red-400 font-mono" data-testid={`tier-price-${t.id}`}>
             {formatCurrency(tierValue(t))}
           </span>
         </div>
@@ -141,11 +141,11 @@ function StockQtyCell({ stock }: { stock: any }) {
             }}
           >
             {/* dotted underline = hoverable affordance (QA R2: no visual cue) */}
-            <span className={`text-base font-bold underline decoration-dotted underline-offset-4 ${isLow ? 'text-red-600' : 'text-foreground'}`}>
+            <span className={`text-base font-bold underline decoration-dotted underline-offset-4 ${isLow ? 'text-red-600 dark:text-red-400' : 'text-foreground'}`}>
               {stock.quantityAvailable || 0}
             </span>
             {isLow && (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-red-100 text-red-800 border border-red-200">
+              <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-200 border border-red-200 dark:border-red-800">
                 <AlertTriangle className="w-3 h-3 mr-1" />
                 Rendah
               </span>
@@ -312,8 +312,8 @@ export default function StockList() {
       <BreadcrumbHeader title="Manajemen Stok" subtitle="Kelola stok produk per cabang" />
 
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
-          <p className="text-red-800 font-medium">{(error as Error).message || 'Terjadi kesalahan'}</p>
+        <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
+          <p className="text-red-800 dark:text-red-200 font-medium">{(error as Error).message || 'Terjadi kesalahan'}</p>
         </div>
       )}
 
@@ -350,18 +350,18 @@ export default function StockList() {
             label="Stok Rendah"
             value={isLoading ? '-' : lowStockCount}
             subtitle="Perlu restock — klik untuk filter"
-            badge={{ text: 'Alert', className: 'bg-yellow-100 text-yellow-800' }}
+            badge={{ text: 'Alert', className: 'bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-200' }}
           />
         </div>
       </div>
 
       {stockStatus && (
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800 border border-yellow-200">
+          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-800">
             Filter: {stockStatus === 'low' ? 'Stok rendah' : stockStatus}
             <button
               aria-label="Reset filter status"
-              className="ml-1 hover:text-yellow-900"
+              className="ml-1 hover:text-yellow-900 dark:hover:text-yellow-100"
               onClick={() => setStockStatus(undefined)}
             >
               <X className="w-3 h-3" />
@@ -424,11 +424,11 @@ export default function StockList() {
 
       {/* Pagination */}
       {!isLoading && stocks.length > 0 && pagination.totalPages > 1 && (
-        <div className="bg-white px-6 py-4 rounded-xl border border-gray-200 flex items-center justify-between">
-          <div className="text-sm text-gray-700">
+        <div className="bg-white dark:bg-gray-900 px-6 py-4 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <div className="text-sm text-gray-700 dark:text-gray-300">
             Menampilkan {stocks.length} dari{' '}
             <span className="font-semibold">{pagination.total}</span> stok
-            <span className="ml-2 text-gray-500">
+            <span className="ml-2 text-gray-500 dark:text-gray-400">
               (Halaman {pagination.page} dari {pagination.totalPages})
             </span>
           </div>

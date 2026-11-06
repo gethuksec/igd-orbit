@@ -135,8 +135,8 @@ export default function DeviceTypeList() {
         <span
           className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${
             item.isActive
-              ? "bg-green-100 text-green-800 border-green-200"
-              : "bg-gray-100 text-gray-800 border-gray-200"
+              ? "bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800"
+              : "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700"
           }`}
         >
           {item.isActive ? "Aktif" : "Tidak Aktif"}
@@ -159,7 +159,7 @@ export default function DeviceTypeList() {
     <div className="w-full space-y-3">
       <BreadcrumbHeader title="Tipe Perangkat" subtitle="Master tipe perangkat untuk form Smart Repair">
         {hasPermission('service.checkpoint.create') && (
-          <Button onClick={openCreateModal} className="flex items-center gap-2 bg-white text-primary-600 border border-gray-200 hover:bg-primary-50">
+          <Button onClick={openCreateModal} className="flex items-center gap-2 bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 border border-gray-200 dark:border-gray-700 hover:bg-primary-50 dark:hover:bg-primary-950">
             <Plus className="w-5 h-5" />
             <span>Tambah Tipe</span>
           </Button>
@@ -167,14 +167,14 @@ export default function DeviceTypeList() {
       </BreadcrumbHeader>
 
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
-          <p className="text-red-800 font-medium">{(error as Error).message || "Terjadi kesalahan"}</p>
+        <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
+          <p className="text-red-800 dark:text-red-200 font-medium">{(error as Error).message || "Terjadi kesalahan"}</p>
         </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <StatCard icon={<Smartphone className="w-6 h-6 text-white" />} iconBg="from-primary-500 to-primary-600" label="Total Tipe" value={isLoading ? "-" : pagination.total} subtitle="Semua tipe terdaftar" />
-        <StatCard icon={<Smartphone className="w-6 h-6 text-white" />} iconBg="from-green-500 to-green-600" label="Tipe Aktif" value={isLoading ? "-" : activeCount} badge={{ text: "Active", className: "bg-green-100 text-green-800" }} />
+        <StatCard icon={<Smartphone className="w-6 h-6 text-white" />} iconBg="from-green-500 to-green-600" label="Tipe Aktif" value={isLoading ? "-" : activeCount} badge={{ text: "Active", className: "bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200" }} />
         <StatCard icon={<Smartphone className="w-6 h-6 text-white" />} iconBg="from-gray-500 to-gray-600" label="Tipe Non-Aktif" value={isLoading ? "-" : inactiveCount} />
       </div>
 
@@ -224,7 +224,7 @@ export default function DeviceTypeList() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-red-600 hover:bg-red-50"
+                className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950"
                 title="Hapus"
                 onClick={() => {
                   setItemToDelete({ id: item.id, name: item.name });
@@ -239,7 +239,7 @@ export default function DeviceTypeList() {
       />
 
       {!isLoading && items.length > 0 && (
-        <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 rounded-lg border border-gray-200">
+        <div className="bg-gradient-to-r from-gray-50 dark:from-gray-900 to-gray-100 dark:to-gray-800 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
               Menampilkan <span className="font-bold text-foreground">{items.length}</span> dari <span className="font-bold text-foreground">{pagination.total}</span> tipe
@@ -266,38 +266,38 @@ export default function DeviceTypeList() {
           </DialogHeader>
           <form onSubmit={handleFormSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nama Tipe <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Nama Tipe <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <input
                 type="text" required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="Contoh: Smartwatch, Desktop..."
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Urutan</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Urutan</label>
               <input
                 type="number" min="0"
                 value={formData.sortOrder}
                 onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) || 0 })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="0 (otomatis = urutan terakhir)"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setFormData((prev) => ({ ...prev, isActive: !prev.isActive }))}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isActive ? 'bg-green-500' : 'bg-gray-300'}`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isActive ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}
                 >
                   <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.isActive ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
-                <span className="text-sm text-gray-600">{formData.isActive ? 'Aktif' : 'Tidak Aktif'}</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">{formData.isActive ? 'Aktif' : 'Tidak Aktif'}</span>
               </div>
             </div>
             <div className="flex justify-end gap-2">
@@ -317,8 +317,8 @@ export default function DeviceTypeList() {
             <DialogTitle>Hapus Tipe Perangkat</DialogTitle>
           </DialogHeader>
           <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
-            <p className="text-sm text-gray-600">
+            <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+            <p className="text-sm text-gray-600 dark:text-gray-400">
               Hapus <b>{itemToDelete?.name}</b>? Tipe yang dipakai service order tidak bisa dihapus — nonaktifkan saja.
             </p>
           </div>

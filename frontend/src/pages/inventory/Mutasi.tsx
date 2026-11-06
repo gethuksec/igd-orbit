@@ -277,15 +277,15 @@ export default function Mutasi() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* ── Header: Informasi Mutasi ── */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Warehouse className="w-5 h-5 text-primary-600" />
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <Warehouse className="w-5 h-5 text-primary-600 dark:text-primary-400" />
             Informasi Mutasi
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label className="block text-sm font-medium text-gray-700 mb-2">
-                Gudang Asal <span className="text-red-500">*</span>
+              <Label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Gudang Asal <span className="text-red-500 dark:text-red-400">*</span>
               </Label>
               <Popover open={srcOpen} onOpenChange={setSrcOpen}>
                 <PopoverTrigger asChild>
@@ -293,12 +293,12 @@ export default function Mutasi() {
                     type="button"
                     role="combobox"
                     aria-expanded={srcOpen}
-                    className="flex h-10 w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-left focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="flex h-10 w-full items-center justify-between rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-left focus:outline-none focus:ring-2 focus:ring-primary-500"
                   >
-                    <span className={selectedFrom ? 'truncate text-gray-900' : 'text-gray-400'}>
+                    <span className={selectedFrom ? 'truncate text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}>
                       {selectedFrom ? warehouseLabel(selectedFrom) : 'Pilih Gudang Asal'}
                     </span>
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-gray-400" />
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-gray-400 dark:text-gray-500" />
                   </button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[400px] p-0" align="start">
@@ -331,8 +331,8 @@ export default function Mutasi() {
               </Popover>
             </div>
             <div>
-              <Label className="block text-sm font-medium text-gray-700 mb-2">
-                Gudang Tujuan <span className="text-red-500">*</span>
+              <Label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Gudang Tujuan <span className="text-red-500 dark:text-red-400">*</span>
               </Label>
               <Popover open={destOpen} onOpenChange={setDestOpen}>
                 <PopoverTrigger asChild>
@@ -340,12 +340,12 @@ export default function Mutasi() {
                     type="button"
                     role="combobox"
                     aria-expanded={destOpen}
-                    className="flex h-10 w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-left focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="flex h-10 w-full items-center justify-between rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-left focus:outline-none focus:ring-2 focus:ring-primary-500"
                   >
-                    <span className={selectedTo ? 'truncate text-gray-900' : 'text-gray-400'}>
+                    <span className={selectedTo ? 'truncate text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}>
                       {selectedTo ? warehouseLabel(selectedTo) : 'Pilih Gudang Tujuan'}
                     </span>
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-gray-400" />
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-gray-400 dark:text-gray-500" />
                   </button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[400px] p-0" align="start">
@@ -382,7 +382,7 @@ export default function Mutasi() {
           </div>
 
           <div className="mt-4">
-            <Label className="block text-sm font-medium text-gray-700 mb-2">Catatan</Label>
+            <Label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Catatan</Label>
             <Input
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -392,14 +392,14 @@ export default function Mutasi() {
         </div>
 
         {/* ── Product picker ── */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Package className="w-5 h-5 text-primary-600" />
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <Package className="w-5 h-5 text-primary-600 dark:text-primary-400" />
             Tambah Produk
           </h2>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400" />
+              <Search className="h-5 w-5 text-gray-400 dark:text-gray-500" />
             </div>
             <Input
               value={productSearch}
@@ -413,16 +413,16 @@ export default function Mutasi() {
               className="pl-10"
             />
             {productSearch.trim().length >= 2 && productResults.length > 0 && (
-              <div className="absolute z-20 mt-2 w-full border border-gray-200 rounded-lg bg-white shadow-lg max-h-60 overflow-y-auto">
+              <div className="absolute z-20 mt-2 w-full border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 shadow-lg max-h-60 overflow-y-auto">
                 {productResults.map((p) => (
                   <button
                     key={p.id}
                     type="button"
                     onClick={() => handleSelectProduct(p)}
-                    className="w-full px-4 py-3 text-left hover:bg-primary-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                    className="w-full px-4 py-3 text-left hover:bg-primary-50 dark:hover:bg-primary-950 border-b border-gray-100 dark:border-gray-800 last:border-b-0 transition-colors"
                   >
-                    <div className="font-medium text-gray-900">{p.name}</div>
-                    <div className="text-sm text-gray-500">
+                    <div className="font-medium text-gray-900 dark:text-gray-100">{p.name}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
                       SKU: {p.sku}
                       {p.barcode ? ` • Barcode: ${p.barcode}` : ''}
                     </div>
@@ -430,8 +430,8 @@ export default function Mutasi() {
                       <span
                         className={
                           p.availableQuantity > 0
-                            ? 'text-emerald-600'
-                            : 'text-red-500'
+                            ? 'text-emerald-600 dark:text-emerald-400'
+                            : 'text-red-500 dark:text-red-400'
                         }
                       >
                         Stok tersedia: {p.availableQuantity}
@@ -446,33 +446,33 @@ export default function Mutasi() {
 
         {/* ── Lines table ── */}
         {items.length > 0 && (
-          <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Daftar Produk</h2>
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Daftar Produk</h2>
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+                <thead className="bg-gradient-to-r from-gray-50 dark:from-gray-900 to-gray-100 dark:to-gray-800 border-b border-gray-200 dark:border-gray-700">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Produk</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase w-24">Stok Asal</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase w-24">Stok Tujuan</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase w-24">Qty</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase w-32">Satuan</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase w-14"></th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Produk</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase w-24">Stok Asal</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase w-24">Stok Tujuan</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase w-24">Qty</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase w-32">Satuan</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase w-14"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                   {items.map((line) => (
-                    <tr key={line.productId} className="hover:bg-gray-50">
+                    <tr key={line.productId} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                       <td className="px-4 py-3">
-                        <div className="text-sm font-medium text-gray-900">{line.name}</div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{line.name}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
                           SKU: {line.sku}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
+                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
                         {line.availableQuantity}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
+                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
                         {toWarehouseId ? (destStock[line.productId] ?? '—') : '—'}
                       </td>
                       <td className="px-4 py-3">
@@ -489,12 +489,12 @@ export default function Mutasi() {
                           className="w-24"
                         />
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{line.unitName || '-'}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{line.unitName || '-'}</td>
                       <td className="px-4 py-3 text-right">
                         <button
                           type="button"
                           onClick={() => removeLine(line.productId)}
-                          className="text-gray-400 hover:text-red-500 transition-colors"
+                          className="text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -506,18 +506,18 @@ export default function Mutasi() {
             </div>
 
             {/* ── Summary + submit ── */}
-            <div className="mt-6 pt-4 border-t border-gray-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div className="text-sm text-gray-600">
+            <div className="mt-6 pt-4 border-t border-gray-100 dark:border-gray-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold text-gray-800">
+                  <span className="font-semibold text-gray-800 dark:text-gray-200">
                     {selectedFrom ? warehouseLabel(selectedFrom) : '-'}
                   </span>
-                  <ArrowRight className="w-4 h-4 text-gray-400" />
-                  <span className="font-semibold text-gray-800">
+                  <ArrowRight className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                  <span className="font-semibold text-gray-800 dark:text-gray-200">
                     {selectedTo ? warehouseLabel(selectedTo) : '-'}
                   </span>
                 </div>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-gray-400 dark:text-gray-500">
                   Total {totalQty} unit • {items.length} produk
                 </span>
               </div>

@@ -68,30 +68,30 @@ export default function StockMovementHistory() {
   const getMovementIcon = (type: string) => {
     switch (type) {
       case 'IN':
-        return <ArrowUp className="w-4 h-4 text-green-600" />;
+        return <ArrowUp className="w-4 h-4 text-green-600 dark:text-green-400" />;
       case 'OUT':
-        return <ArrowDown className="w-4 h-4 text-red-600" />;
+        return <ArrowDown className="w-4 h-4 text-red-600 dark:text-red-400" />;
       case 'TRANSFER':
-        return <ArrowRightLeft className="w-4 h-4 text-blue-600" />;
+        return <ArrowRightLeft className="w-4 h-4 text-blue-600 dark:text-blue-400" />;
       case 'ADJUSTMENT':
-        return <Package className="w-4 h-4 text-yellow-600" />;
+        return <Package className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />;
       default:
-        return <Package className="w-4 h-4 text-gray-600" />;
+        return <Package className="w-4 h-4 text-gray-600 dark:text-gray-400" />;
     }
   };
 
   const getMovementColor = (type: string) => {
     switch (type) {
       case 'IN':
-        return 'text-green-600 bg-green-50';
+        return 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950';
       case 'OUT':
-        return 'text-red-600 bg-red-50';
+        return 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950';
       case 'TRANSFER':
-        return 'text-blue-600 bg-blue-50';
+        return 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950';
       case 'ADJUSTMENT':
-        return 'text-yellow-600 bg-yellow-50';
+        return 'text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-950';
       default:
-        return 'text-gray-600 bg-gray-50';
+        return 'text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-950';
     }
   };
 
@@ -139,19 +139,19 @@ export default function StockMovementHistory() {
 
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
-          <p className="text-red-800 font-medium">{(error as Error).message || 'Terjadi kesalahan'}</p>
+        <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
+          <p className="text-red-800 dark:text-red-200 font-medium">{(error as Error).message || 'Terjadi kesalahan'}</p>
         </div>
       )}
 
       {/* IGDERP-90 mode toggle: global (no product required) vs detail (barcode + name required) */}
       <div className="flex flex-wrap items-center gap-2 px-1">
-        <div className="inline-flex rounded-lg border border-gray-200 bg-white p-0.5 text-sm">
+        <div className="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-0.5 text-sm">
           {(['global', 'detail'] as const).map((m) => (
             <button
               key={m}
               className={`px-3 py-1.5 rounded-md font-medium transition-colors ${
-                mode === m ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-600 hover:text-foreground'
+                mode === m ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-foreground'
               }`}
               onClick={() => {
                 setMode(m);
@@ -238,51 +238,51 @@ export default function StockMovementHistory() {
       />
 
       {/* Movements Table */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gradient-to-r from-gray-50 via-gray-50 to-gray-100">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gradient-to-r from-gray-50 dark:from-gray-900 via-gray-50 dark:via-gray-900 to-gray-100 dark:to-gray-800">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                   Tanggal
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                   Produk
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                   Cabang
                 </th>
                 {/* IGDERP-194: warehouse column */}
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                   Gudang
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                   Tipe
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                   Sebelum
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                   Perubahan
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                   Sesudah
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                   Referensi
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                   Catatan
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-100">
+            <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-800">
               {isLoading ? (
                 <tr>
                   <td colSpan={10} className="px-4 py-16 text-center">
                     <div className="flex flex-col items-center gap-4">
-                      <Loader2 className="w-16 h-16 text-primary-600 animate-spin" />
-                      <p className="text-gray-600 font-semibold text-lg">Memuat data perpindahan...</p>
+                      <Loader2 className="w-16 h-16 text-primary-600 dark:text-primary-400 animate-spin" />
+                      <p className="text-gray-600 dark:text-gray-400 font-semibold text-lg">Memuat data perpindahan...</p>
                     </div>
                   </td>
                 </tr>
@@ -290,10 +290,10 @@ export default function StockMovementHistory() {
                 <tr>
                   <td colSpan={10} className="px-4 py-16 text-center">
                     <div className="flex flex-col items-center gap-4">
-                      <div className="p-4 bg-gray-100 rounded-full">
-                        <Package className="w-16 h-16 text-gray-400" />
+                      <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-full">
+                        <Package className="w-16 h-16 text-gray-400 dark:text-gray-500" />
                       </div>
-                      <p className="text-gray-600 font-semibold text-lg">Tidak ada perpindahan ditemukan</p>
+                      <p className="text-gray-600 dark:text-gray-400 font-semibold text-lg">Tidak ada perpindahan ditemukan</p>
                     </div>
                   </td>
                 </tr>
@@ -304,17 +304,17 @@ export default function StockMovementHistory() {
                   return (
                     <tr
                       key={movement.id}
-                      className="hover:bg-gradient-to-r hover:from-gray-50 hover:to-white transition-all duration-200 border-b border-gray-100"
+                      className="hover:bg-gradient-to-r hover:from-gray-50 dark:hover:from-gray-900 hover:to-white dark:hover:to-gray-900 transition-all duration-200 border-b border-gray-100 dark:border-gray-800"
                     >
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
+                        <div className="text-sm text-gray-900 dark:text-gray-100">
                           {new Date(movement.createdAt).toLocaleDateString('id-ID', {
                             day: '2-digit',
                             month: 'short',
                             year: 'numeric',
                           })}
                         </div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
                           {new Date(movement.createdAt).toLocaleTimeString('id-ID', {
                             hour: '2-digit',
                             minute: '2-digit',
@@ -322,17 +322,17 @@ export default function StockMovementHistory() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                           {movement.product?.name || '-'}
                         </div>
-                        <div className="text-xs text-gray-500">SKU: {movement.product?.sku || '-'}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">SKU: {movement.product?.sku || '-'}</div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{movement.branch?.name || '-'}</div>
+                        <div className="text-sm text-gray-900 dark:text-gray-100">{movement.branch?.name || '-'}</div>
                       </td>
                       {/* IGDERP-194 */}
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{movement.warehouse?.name || '-'}</div>
+                        <div className="text-sm text-gray-900 dark:text-gray-100">{movement.warehouse?.name || '-'}</div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span
@@ -345,7 +345,7 @@ export default function StockMovementHistory() {
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-right">
-                        <div className="text-sm font-semibold text-gray-900">
+                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                           {movement.quantityBefore || 0}
                         </div>
                       </td>
@@ -353,10 +353,10 @@ export default function StockMovementHistory() {
                         <div
                           className={`text-sm font-semibold flex items-center justify-end gap-1 ${
                             movement.quantityChange > 0
-                              ? 'text-green-600'
+                              ? 'text-green-600 dark:text-green-400'
                               : movement.quantityChange < 0
-                                ? 'text-red-600'
-                                : 'text-gray-900'
+                                ? 'text-red-600 dark:text-red-400'
+                                : 'text-gray-900 dark:text-gray-100'
                           }`}
                         >
                           {movement.quantityChange > 0 ? (
@@ -369,7 +369,7 @@ export default function StockMovementHistory() {
                         </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-right">
-                        <div className="text-sm font-semibold text-gray-900">
+                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                           {movement.quantityAfter || 0}
                         </div>
                       </td>
@@ -377,16 +377,16 @@ export default function StockMovementHistory() {
                         {referenceLink ? (
                           <Link
                             to={referenceLink}
-                            className="text-sm text-primary-600 hover:text-primary-700 hover:underline"
+                            className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 hover:underline"
                           >
                             {movement.referenceType}
                           </Link>
                         ) : (
-                          <span className="text-sm text-gray-500">{movement.referenceType || '-'}</span>
+                          <span className="text-sm text-gray-500 dark:text-gray-400">{movement.referenceType || '-'}</span>
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="text-sm text-gray-900 max-w-xs truncate" title={displayNotes}>
+                        <div className="text-sm text-gray-900 dark:text-gray-100 max-w-xs truncate" title={displayNotes}>
                           {displayNotes}
                         </div>
                       </td>
@@ -400,12 +400,12 @@ export default function StockMovementHistory() {
 
         {/* Pagination */}
         {!isLoading && movements.length > 0 && (
-          <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 border-t border-gray-200">
+          <div className="bg-gradient-to-r from-gray-50 dark:from-gray-900 to-gray-100 dark:to-gray-800 px-4 py-3 border-t border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-600">
-                Menampilkan <span className="font-bold text-gray-900">{movements.length}</span> dari{' '}
-                <span className="font-bold text-gray-900">{pagination.total}</span> perpindahan
-                <span className="ml-2 text-gray-500">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                Menampilkan <span className="font-bold text-gray-900 dark:text-gray-100">{movements.length}</span> dari{' '}
+                <span className="font-bold text-gray-900 dark:text-gray-100">{pagination.total}</span> perpindahan
+                <span className="ml-2 text-gray-500 dark:text-gray-400">
                   (Halaman {pagination.page} dari {pagination.totalPages})
                 </span>
               </div>
@@ -413,14 +413,14 @@ export default function StockMovementHistory() {
                 <button
                   onClick={() => setPage(page - 1)}
                   disabled={page === 1}
-                  className="px-5 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-white hover:border-primary-500 hover:text-primary-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                  className="px-5 py-2.5 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-white dark:hover:bg-gray-800 hover:border-primary-500 hover:text-primary-600 dark:hover:text-primary-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
                 >
                   Sebelumnya
                 </button>
                 <button
                   onClick={() => setPage(page + 1)}
                   disabled={page >= pagination.totalPages}
-                  className="px-5 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-white hover:border-primary-500 hover:text-primary-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                  className="px-5 py-2.5 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-white dark:hover:bg-gray-800 hover:border-primary-500 hover:text-primary-600 dark:hover:text-primary-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
                 >
                   Selanjutnya
                 </button>

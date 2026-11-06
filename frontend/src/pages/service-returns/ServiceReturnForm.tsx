@@ -175,13 +175,13 @@ export default function ServiceReturnForm() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Service Order Selection */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-4">
-          <h2 className="text-xl font-bold text-gray-900 border-b-2 border-gray-100 pb-3">Pilih Service Order</h2>
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6 space-y-4">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 border-b-2 border-gray-100 dark:border-gray-800 pb-3">Pilih Service Order</h2>
 
           {!serviceOrderIdFromUrl ? (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Service Order <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Service Order <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <select
                 value={selectedServiceOrderId}
@@ -189,7 +189,7 @@ export default function ServiceReturnForm() {
                   setSelectedServiceOrderId(e.target.value);
                   setFormData((prev) => ({ ...prev, serviceOrderId: e.target.value }));
                 }}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+                className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
                 required
               >
                 <option value="">Pilih Service Order</option>
@@ -211,27 +211,27 @@ export default function ServiceReturnForm() {
                 )}
               </select>
               {availableOrders.length === 0 && deliveredOrders?.data && deliveredOrders.data.length > 0 && (
-                <p className="text-sm text-amber-600 mt-2">
+                <p className="text-sm text-amber-600 dark:text-amber-400 mt-2">
                   Semua service order yang delivered sudah memiliki retur aktif. Hanya service order dengan retur yang ditolak yang bisa di-retur ulang.
                 </p>
               )}
             </div>
           ) : (
-            <div className="bg-gray-50 p-4 rounded-lg">
+            <div className="bg-gray-50 dark:bg-gray-950 p-4 rounded-lg">
               {loadingServiceOrder ? (
                 <div className="flex items-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="text-sm text-gray-600">Memuat data service order...</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Memuat data service order...</span>
                 </div>
               ) : serviceOrder ? (
                 <>
                   {hasActiveReturnForSelectedOrder && (
-                    <div className="mb-4 bg-red-50 border-l-4 border-red-500 rounded-lg p-4">
+                    <div className="mb-4 bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4">
                       <div className="flex items-start gap-3">
-                        <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                        <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
                         <div>
-                          <h3 className="text-sm font-bold text-red-900">Service Order Sudah Memiliki Retur Aktif</h3>
-                          <p className="text-sm text-red-700 mt-1">
+                          <h3 className="text-sm font-bold text-red-900 dark:text-red-100">Service Order Sudah Memiliki Retur Aktif</h3>
+                          <p className="text-sm text-red-700 dark:text-red-300 mt-1">
                             Service order ini sudah memiliki retur yang aktif. Harap resolve atau reject retur yang ada terlebih dahulu sebelum membuat retur baru.
                           </p>
                         </div>
@@ -240,23 +240,23 @@ export default function ServiceReturnForm() {
                   )}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">Service Number:</span>
-                      <span className="text-sm text-gray-900">{serviceOrder.serviceNumber}</span>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Service Number:</span>
+                      <span className="text-sm text-gray-900 dark:text-gray-100">{serviceOrder.serviceNumber}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">Customer:</span>
-                      <span className="text-sm text-gray-900">{serviceOrder.customerName}</span>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Customer:</span>
+                      <span className="text-sm text-gray-900 dark:text-gray-100">{serviceOrder.customerName}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">Device:</span>
-                      <span className="text-sm text-gray-900">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Device:</span>
+                      <span className="text-sm text-gray-900 dark:text-gray-100">
                         {serviceOrder.deviceType} {serviceOrder.deviceUnit}
                       </span>
                     </div>
                     {serviceOrder.deliveredAt && (
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-700">Delivered:</span>
-                        <span className="text-sm text-gray-900">
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Delivered:</span>
+                        <span className="text-sm text-gray-900 dark:text-gray-100">
                           {new Date(serviceOrder.deliveredAt).toLocaleDateString('id-ID')}
                         </span>
                       </div>
@@ -264,7 +264,7 @@ export default function ServiceReturnForm() {
                   </div>
                 </>
               ) : (
-                <p className="text-sm text-red-600">Service order tidak ditemukan</p>
+                <p className="text-sm text-red-600 dark:text-red-400">Service order tidak ditemukan</p>
               )}
             </div>
           )}
@@ -273,18 +273,18 @@ export default function ServiceReturnForm() {
           {serviceOrder && (
             <div className="flex flex-wrap gap-2 mt-4">
               {isWithin30Days ? (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-800 rounded-full text-xs font-semibold border border-green-200">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 rounded-full text-xs font-semibold border border-green-200 dark:border-green-800">
                   <CheckCircle2 className="w-4 h-4" />
                   Masih dalam 30 hari
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-100 text-red-800 rounded-full text-xs font-semibold border border-red-200">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-200 rounded-full text-xs font-semibold border border-red-200 dark:border-red-800">
                   <AlertCircle className="w-4 h-4" />
                   Sudah melewati 30 hari
                 </span>
               )}
               {isWithinWarranty && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-100 text-primary-800 rounded-full text-xs font-semibold border border-primary-200">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-100 dark:bg-primary-950 text-primary-800 dark:text-primary-200 rounded-full text-xs font-semibold border border-primary-200 dark:border-primary-800">
                   <Clock className="w-4 h-4" />
                   Masih dalam warranty
                 </span>
@@ -294,13 +294,13 @@ export default function ServiceReturnForm() {
         </div>
 
         {/* Return Type */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-4">
-          <h2 className="text-xl font-bold text-gray-900 border-b-2 border-gray-100 pb-3">Jenis Retur</h2>
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6 space-y-4">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 border-b-2 border-gray-100 dark:border-gray-800 pb-3">Jenis Retur</h2>
           <div className="grid grid-cols-2 gap-3">
             {(['re-service', 'complaint', 'warranty', 'combination'] as const).map((type) => (
               <label
                 key={type}
-                className="flex items-center gap-3 p-4 border-2 border-gray-200 rounded-xl cursor-pointer hover:bg-primary-50 hover:border-primary-300 transition-all"
+                className="flex items-center gap-3 p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-950 hover:border-primary-300 dark:hover:border-primary-700 transition-all"
               >
                 <input
                   type="radio"
@@ -314,9 +314,9 @@ export default function ServiceReturnForm() {
                       customerComplaint: type === 're-service' ? '' : prev.customerComplaint,
                     }))
                   }
-                  className="w-5 h-5 text-primary-600 focus:ring-primary-500"
+                  className="w-5 h-5 text-primary-600 dark:text-primary-400 focus:ring-primary-500"
                 />
-                <span className="text-sm font-medium text-gray-900">
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                   {type === 're-service' && 'Re-Service'}
                   {type === 'complaint' && 'Complaint'}
                   {type === 'warranty' && 'Warranty'}
@@ -328,17 +328,17 @@ export default function ServiceReturnForm() {
         </div>
 
         {/* Return Reason */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-4">
-          <h2 className="text-xl font-bold text-gray-900 border-b-2 border-gray-100 pb-3">Alasan Retur</h2>
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6 space-y-4">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 border-b-2 border-gray-100 dark:border-gray-800 pb-3">Alasan Retur</h2>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Return Reason <span className="text-red-500">*</span>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              Return Reason <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <textarea
               value={formData.returnReason}
               onChange={(e) => setFormData((prev) => ({ ...prev, returnReason: e.target.value }))}
               rows={4}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+              className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
               placeholder="Jelaskan alasan retur..."
               required
             />
@@ -347,11 +347,11 @@ export default function ServiceReturnForm() {
 
         {/* Customer Complaint */}
         {requiresComplaint && (
-          <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-4">
-            <h2 className="text-xl font-bold text-gray-900 border-b-2 border-gray-100 pb-3">Komplain Customer</h2>
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6 space-y-4">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 border-b-2 border-gray-100 dark:border-gray-800 pb-3">Komplain Customer</h2>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Customer Complaint <span className="text-red-500">*</span>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Customer Complaint <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <textarea
                 value={formData.customerComplaint}
@@ -359,7 +359,7 @@ export default function ServiceReturnForm() {
                   setFormData((prev) => ({ ...prev, customerComplaint: e.target.value }))
                 }
                 rows={4}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+                className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
                 placeholder="Detail komplain customer..."
                 required
               />
@@ -369,12 +369,12 @@ export default function ServiceReturnForm() {
 
         {/* Warning if outside return period */}
         {serviceOrder && !isWithin30Days && (
-          <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
+          <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
             <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+              <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
               <div>
-                <h3 className="text-sm font-bold text-red-900">Periode Retur Telah Berakhir</h3>
-                <p className="text-sm text-red-700 mt-1">
+                <h3 className="text-sm font-bold text-red-900 dark:text-red-100">Periode Retur Telah Berakhir</h3>
+                <p className="text-sm text-red-700 dark:text-red-300 mt-1">
                   Service order ini sudah melewati 30 hari dari tanggal delivery. Retur tidak dapat
                   dibuat.
                 </p>
@@ -384,11 +384,11 @@ export default function ServiceReturnForm() {
         )}
 
         {/* Actions */}
-        <div className="flex items-center justify-end gap-3 bg-white rounded-xl shadow-md border border-gray-100 p-6">
+        <div className="flex items-center justify-end gap-3 bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
           <button
             type="button"
             onClick={() => navigate('/service-returns')}
-            className="px-6 py-3 text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-50 font-semibold transition-all"
+            className="px-6 py-3 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 font-semibold transition-all"
           >
             Batal
           </button>

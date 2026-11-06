@@ -176,7 +176,7 @@ export default function CustomerList() {
             {customer.name.charAt(0).toUpperCase()}
           </div>
           <div>
-            <div className="text-base font-semibold text-foreground hover:text-primary-600 transition-colors">
+            <div className="text-base font-semibold text-foreground hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
               {customer.name}
             </div>
             <div className="text-xs text-muted-foreground mt-1 font-mono">{customer.customerCode}</div>
@@ -193,18 +193,18 @@ export default function CustomerList() {
       cell: (customer) => (
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center gap-2 text-sm text-foreground">
-            <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <Phone className="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
             <span>{customer.phone}</span>
           </div>
           {customer.alternatePhone && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              <Phone className="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
               <span className="truncate max-w-xs">{customer.alternatePhone}</span>
             </div>
           )}
           {customer.email && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              <Mail className="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" />
               <span className="truncate max-w-xs">{customer.email}</span>
             </div>
           )}
@@ -260,7 +260,7 @@ export default function CustomerList() {
         </Button>
         <Button
           onClick={() => setShowFormModal(true)}
-          className="flex items-center gap-2 bg-white text-primary-600 border border-gray-200 hover:bg-primary-50"
+          className="flex items-center gap-2 bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 border border-gray-200 dark:border-gray-700 hover:bg-primary-50 dark:hover:bg-primary-950"
         >
           <Plus className="w-5 h-5" />
           <span>Tambah Pelanggan</span>
@@ -268,12 +268,12 @@ export default function CustomerList() {
       </BreadcrumbHeader>
 
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
-          <p className="text-red-800 font-medium">
+        <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
+          <p className="text-red-800 dark:text-red-200 font-medium">
             {(error as any).response?.data?.message || (error as Error).message || 'Terjadi kesalahan'}
           </p>
           {(error as any).response?.data?.requiredRoles && (
-            <p className="text-red-700 text-sm mt-1">
+            <p className="text-red-700 dark:text-red-300 text-sm mt-1">
               Required roles: {(error as any).response.data.requiredRoles.join(', ')}
             </p>
           )}
@@ -367,7 +367,7 @@ export default function CustomerList() {
             <Button
               variant="ghost"
               size="sm"
-              className="text-red-600 hover:bg-red-50"
+              className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950"
               onClick={() => {
                 setCustomerToDelete({ id: customer.id, name: customer.name });
                 setDeleteModalOpen(true);
@@ -382,7 +382,7 @@ export default function CustomerList() {
 
       {/* Pagination */}
       {!isLoading && customers.length > 0 && (
-        <div className="bg-white px-6 py-4 rounded-xl border border-gray-200 flex items-center justify-between gap-3">
+        <div className="bg-white dark:bg-gray-900 px-6 py-4 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-between gap-3">
           <RowsPerPageSelect
             value={limit}
             options={[10, 20, 50, 100]}
@@ -391,10 +391,10 @@ export default function CustomerList() {
               setPage(1);
             }}
           />
-          <div className="text-sm text-gray-700">
+          <div className="text-sm text-gray-700 dark:text-gray-300">
             Menampilkan {customers.length} dari{' '}
             <span className="font-semibold">{pagination.total}</span> pelanggan
-            <span className="ml-2 text-gray-500">
+            <span className="ml-2 text-gray-500 dark:text-gray-400">
               (Halaman {pagination.page} dari {pagination.totalPages})
             </span>
           </div>
@@ -409,7 +409,7 @@ export default function CustomerList() {
             </Button>
             {getPageNumbers(pagination.page, pagination.totalPages).map((n, i) =>
               n === '...' ? (
-                <span key={`e${i}`} className="px-1 text-gray-400">
+                <span key={`e${i}`} className="px-1 text-gray-400 dark:text-gray-500">
                   …
                 </span>
               ) : (
@@ -452,7 +452,7 @@ export default function CustomerList() {
           </DialogHeader>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Pilih File CSV</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Pilih File CSV</label>
             <input
               type="file"
               accept=".csv"
@@ -460,14 +460,14 @@ export default function CustomerList() {
                 const file = e.target.files?.[0];
                 if (file) setImportFile(file);
               }}
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+              className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 dark:file:bg-primary-950 file:text-primary-700 dark:file:text-primary-300 hover:file:bg-primary-100 dark:hover:file:bg-primary-950"
             />
-            <p className="text-xs text-gray-500 mt-2">Format: CSV dengan header sesuai template</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Format: CSV dengan header sesuai template</p>
           </div>
           {importFile && (
-            <div className="p-3 bg-gray-50 rounded-lg">
+            <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg">
               <p className="text-sm font-medium">{importFile.name}</p>
-              <p className="text-xs text-gray-500">{(importFile.size / 1024).toFixed(2)} KB</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{(importFile.size / 1024).toFixed(2)} KB</p>
             </div>
           )}
           <div className="flex gap-2">
@@ -515,14 +515,14 @@ export default function CustomerList() {
           </DialogHeader>
         <div className="space-y-4">
           <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
-              <AlertTriangle className="w-5 h-5 text-red-600" />
+            <div className="flex-shrink-0 p-2 bg-red-100 dark:bg-red-950 rounded-full">
+              <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
             </div>
             <div className="flex-1">
-              <p className="text-sm text-gray-700 mb-2">
+              <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
                 Apakah Anda yakin ingin menghapus pelanggan <strong>{customerToDelete?.name}</strong>?
               </p>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 Tindakan ini akan melakukan soft delete. Data pelanggan tidak akan muncul di daftar, tetapi masih tersimpan di database.
               </p>
             </div>
@@ -530,7 +530,7 @@ export default function CustomerList() {
           <div className="flex gap-3 pt-2">
             <button
               onClick={() => { setDeleteModalOpen(false); setCustomerToDelete(null); }}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors"
               disabled={deleteMutation.isPending}
             >
               Batal

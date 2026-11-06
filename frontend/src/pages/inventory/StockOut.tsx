@@ -302,17 +302,17 @@ export default function StockOut() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* ── Header: Informasi Stok Keluar ── */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <ArrowUpFromLine className="w-5 h-5 text-primary-600" />
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <ArrowUpFromLine className="w-5 h-5 text-primary-600 dark:text-primary-400" />
             Informasi Stok Keluar
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-              <Label className="block text-sm font-medium text-gray-700 mb-2">
+              <Label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Outlet
                 {selectedWarehouse?.scope !== 'SYSTEM' && (
-                  <span className="text-red-500"> *</span>
+                  <span className="text-red-500 dark:text-red-400"> *</span>
                 )}
               </Label>
               <Select
@@ -332,14 +332,14 @@ export default function StockOut() {
                 ))}
               </Select>
               {selectedWarehouse?.scope === 'SYSTEM' && (
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   Central Bad Stock tidak memerlukan outlet.
                 </p>
               )}
             </div>
             <div>
-              <Label className="block text-sm font-medium text-gray-700 mb-2">
-                Gudang Sumber <span className="text-red-500">*</span>
+              <Label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Gudang Sumber <span className="text-red-500 dark:text-red-400">*</span>
               </Label>
               <Select
                 value={warehouseId}
@@ -356,7 +356,7 @@ export default function StockOut() {
               </Select>
             </div>
             <div>
-              <Label className="block text-sm font-medium text-gray-700 mb-2">Tanggal</Label>
+              <Label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tanggal</Label>
               <Input
                 type="date"
                 value={documentDate}
@@ -365,8 +365,8 @@ export default function StockOut() {
             </div>
           </div>
           <div className="mt-4">
-            <Label className="block text-sm font-medium text-gray-700 mb-2">
-              Alasan <span className="text-red-500">*</span>
+            <Label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Alasan <span className="text-red-500 dark:text-red-400">*</span>
             </Label>
             <Input
               value={reason}
@@ -378,14 +378,14 @@ export default function StockOut() {
         </div>
 
         {/* ── Product picker ── */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <PackageMinus className="w-5 h-5 text-primary-600" />
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <PackageMinus className="w-5 h-5 text-primary-600 dark:text-primary-400" />
             Tambah Produk
           </h2>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400" />
+              <Search className="h-5 w-5 text-gray-400 dark:text-gray-500" />
             </div>
             <Input
               value={productSearch}
@@ -394,28 +394,28 @@ export default function StockOut() {
               className="pl-10"
             />
             {productSearch.trim().length >= 2 && productResults.length > 0 && (
-              <div className="absolute z-20 mt-2 w-full border border-gray-200 rounded-lg bg-white shadow-lg max-h-60 overflow-y-auto">
+              <div className="absolute z-20 mt-2 w-full border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 shadow-lg max-h-60 overflow-y-auto">
                 {productResults.map((p) => (
                   <button
                     key={p.id}
                     type="button"
                     onClick={() => handleSelectProduct(p)}
-                    className="w-full px-4 py-3 text-left hover:bg-primary-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                    className="w-full px-4 py-3 text-left hover:bg-primary-50 dark:hover:bg-primary-950 border-b border-gray-100 dark:border-gray-800 last:border-b-0 transition-colors"
                   >
-                    <div className="font-medium text-gray-900">{p.name}</div>
-                    <div className="text-sm text-gray-500">
+                    <div className="font-medium text-gray-900 dark:text-gray-100">{p.name}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
                       SKU: {p.sku}
                       {p.barcode ? ` • Barcode: ${p.barcode}` : ''}
                     </div>
                     <div className="text-xs mt-1">
-                      <span className="text-primary-600">
+                      <span className="text-primary-600 dark:text-primary-400">
                         HJM: {formatCurrency(p.minSellingPrice ?? p.sellingPrice)}
                       </span>
                       <span
                         className={
                           p.availableQuantity > 0
-                            ? 'text-emerald-600 ml-3'
-                            : 'text-red-500 ml-3'
+                            ? 'text-emerald-600 dark:text-emerald-400 ml-3'
+                            : 'text-red-500 dark:text-red-400 ml-3'
                         }
                       >
                         Stok tersedia: {p.availableQuantity}
@@ -430,36 +430,36 @@ export default function StockOut() {
 
         {/* ── Lines table ── */}
         {items.length > 0 && (
-          <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Daftar Produk</h2>
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Daftar Produk</h2>
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+                <thead className="bg-gradient-to-r from-gray-50 dark:from-gray-900 to-gray-100 dark:to-gray-800 border-b border-gray-200 dark:border-gray-700">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Produk</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase w-24">Stok</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase w-24">Qty</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase w-32">Satuan</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase w-40">Nilai Stok</th>
-                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">Total</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase w-14"></th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Produk</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase w-24">Stok</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase w-24">Qty</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase w-32">Satuan</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase w-40">Nilai Stok</th>
+                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Total</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase w-14"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                   {items.map((line) => (
-                    <tr key={line.productId} className="hover:bg-gray-50">
+                    <tr key={line.productId} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                       <td className="px-4 py-3">
-                        <div className="text-sm font-medium text-gray-900">{line.name}</div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{line.name}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
                           SKU: {line.sku}
                           {line.barcode ? ` • Barcode: ${line.barcode}` : ''}
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="text-sm font-semibold text-gray-700">
+                        <div className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                           {line.availableQuantity}
                         </div>
-                        <div className="text-xs text-gray-400">tersedia</div>
+                        <div className="text-xs text-gray-400 dark:text-gray-500">tersedia</div>
                       </td>
                       <td className="px-4 py-3">
                         <Input
@@ -510,7 +510,7 @@ export default function StockOut() {
                         />
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <div className="text-sm font-semibold text-gray-900">
+                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                           {formatCurrency(line.quantity * line.stockValue)}
                         </div>
                       </td>
@@ -519,7 +519,7 @@ export default function StockOut() {
                           type="button"
                           variant="ghost"
                           size="sm"
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950"
                           onClick={() => removeLine(line.productId)}
                         >
                           <Trash2 className="w-4 h-4" />
@@ -531,8 +531,8 @@ export default function StockOut() {
               </table>
             </div>
             <div className="mt-4 flex items-center justify-end gap-2 text-sm">
-              <span className="text-gray-600">Total Nilai:</span>
-              <span className="text-lg font-bold text-gray-900">{formatCurrency(totalValue)}</span>
+              <span className="text-gray-600 dark:text-gray-400">Total Nilai:</span>
+              <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{formatCurrency(totalValue)}</span>
             </div>
           </div>
         )}
@@ -564,39 +564,39 @@ export default function StockOut() {
       </form>
 
       {/* ── Recent documents ── */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-        <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-          <History className="w-5 h-5 text-primary-600" />
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+          <History className="w-5 h-5 text-primary-600 dark:text-primary-400" />
           Riwayat Stok Keluar
         </h2>
         {recentDocs.data.length === 0 ? (
-          <p className="text-sm text-gray-500">Belum ada dokumen stok keluar.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Belum ada dokumen stok keluar.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+              <thead className="bg-gradient-to-r from-gray-50 dark:from-gray-900 to-gray-100 dark:to-gray-800 border-b border-gray-200 dark:border-gray-700">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">No. Dokumen</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Tanggal</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Outlet</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Gudang</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Alasan</th>
-                  <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">Total Nilai</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">No. Dokumen</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Tanggal</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Outlet</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Gudang</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Alasan</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Total Nilai</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {recentDocs.data.map((doc) => (
-                  <tr key={doc.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{doc.documentNumber}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
+                  <tr key={doc.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">{doc.documentNumber}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
                       {new Date(doc.documentDate).toLocaleDateString('id-ID')}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
+                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
                       {doc.outlet?.name || 'Central Bad Stock'}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{doc.warehouse?.name || '-'}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600 max-w-[220px] truncate">{doc.reason}</td>
-                    <td className="px-4 py-3 text-sm font-semibold text-gray-900 text-right">
+                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{doc.warehouse?.name || '-'}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 max-w-[220px] truncate">{doc.reason}</td>
+                    <td className="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-gray-100 text-right">
                       {formatCurrency(doc.totalValue)}
                     </td>
                   </tr>

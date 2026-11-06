@@ -90,7 +90,7 @@ export default function AIChatbot() {
 
       {/* Chat Modal */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 w-96 h-[600px] bg-white rounded-lg shadow-2xl flex flex-col z-50 border border-gray-200">
+        <div className="fixed bottom-6 right-6 w-96 h-[600px] bg-white dark:bg-gray-900 rounded-lg shadow-2xl flex flex-col z-50 border border-gray-200 dark:border-gray-700">
           {/* Header */}
           <div className="bg-gradient-to-r from-primary-700 to-primary-600 text-white p-4 rounded-t-lg flex items-center justify-between">
             <div>
@@ -120,7 +120,7 @@ export default function AIChatbot() {
                   className={`max-w-[80%] rounded-lg p-3 shadow-sm ${
                     message.role === 'user'
                       ? 'bg-gradient-to-r from-primary-600 to-primary-500 text-white'
-                      : 'bg-gray-100 text-gray-900'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
                   }`}
                 >
                   <p className="text-sm whitespace-pre-wrap">{message.content}</p>
@@ -135,7 +135,7 @@ export default function AIChatbot() {
             ))}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-gray-100 rounded-lg p-3">
+                <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3">
                   <Loader2 className="w-4 h-4 animate-spin" />
                 </div>
               </div>
@@ -162,7 +162,7 @@ export default function AIChatbot() {
                 <Send className="w-4 h-4" />
               </Button>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
               Ask about products, services, branches, or track your order
             </p>
           </div>

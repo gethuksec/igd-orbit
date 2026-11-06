@@ -460,14 +460,14 @@ export default function PurchaseOrderForm() {
       <BreadcrumbHeader title={isEdit ? 'Edit Purchase Order' : 'Buat Purchase Order'} />
 
       {isRejectedEdit && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+        <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950 p-4 text-sm text-red-800 dark:text-red-200">
           PO ditolak
           {existingPO?.rejectionReason ? `: ${existingPO.rejectionReason}` : ''} — perbaiki lalu Simpan
           untuk mengajukan ulang.
         </div>
       )}
       {isPostApprovalEdit && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+        <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950 p-4 text-sm text-amber-800 dark:text-amber-200">
           PO sudah di-approve. Perubahan setelah approve dicatat di log audit dan wajib disertai alasan
           (lihat kolom Alasan Revisi di bawah).
         </div>
@@ -732,8 +732,8 @@ export default function PurchaseOrderForm() {
                                 margin < 0
                                   ? 'font-semibold text-destructive'
                                   : margin < 10
-                                    ? 'font-semibold text-amber-600'
-                                    : 'font-semibold text-green-600'
+                                    ? 'font-semibold text-amber-600 dark:text-amber-400'
+                                    : 'font-semibold text-green-600 dark:text-green-400'
                               }
                             >
                               {margin.toFixed(1)}%
@@ -749,7 +749,7 @@ export default function PurchaseOrderForm() {
                                   type="button"
                                   variant="ghost"
                                   size="icon"
-                                  className="text-green-600 hover:text-green-700"
+                                  className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300"
                                   onClick={() => saveEdit(index)}
                                 >
                                   <Check />
@@ -808,7 +808,7 @@ export default function PurchaseOrderForm() {
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-muted-foreground">Discount</span>
                   <span className="flex items-center gap-2">
-                    <span className="text-red-600 font-semibold">−</span>
+                    <span className="text-red-600 dark:text-red-400 font-semibold">−</span>
                     <Input
                       type="text"
                       inputMode="numeric"
@@ -930,7 +930,7 @@ export default function PurchaseOrderForm() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
               <Label className="block text-sm font-medium mb-2">
-                Nama Produk <span className="text-red-500">*</span>
+                Nama Produk <span className="text-red-500 dark:text-red-400">*</span>
               </Label>
               <Input
                 value={qaForm.name}
@@ -940,7 +940,7 @@ export default function PurchaseOrderForm() {
             </div>
             <div>
               <Label className="block text-sm font-medium mb-2">
-                Kategori <span className="text-red-500">*</span>
+                Kategori <span className="text-red-500 dark:text-red-400">*</span>
               </Label>
               <select
                 value={qaForm.categoryId}
@@ -957,7 +957,7 @@ export default function PurchaseOrderForm() {
             </div>
             <div>
               <Label className="block text-sm font-medium mb-2">
-                Harga Jual <span className="text-red-500">*</span>
+                Harga Jual <span className="text-red-500 dark:text-red-400">*</span>
               </Label>
               <Input
                 type="number"

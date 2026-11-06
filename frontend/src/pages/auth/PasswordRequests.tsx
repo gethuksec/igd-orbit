@@ -39,7 +39,7 @@ export default function PasswordRequests() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
+        <Loader2 className="w-8 h-8 text-primary-500 dark:text-primary-400 animate-spin" />
       </div>
     );
   }
@@ -50,30 +50,30 @@ export default function PasswordRequests() {
 
       {/* Requests List */}
       {(!requests || requests.length === 0) ? (
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-12 text-center">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-12 text-center">
           <Shield className="w-16 h-16 text-green-100 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">Tidak Ada Permintaan</h3>
-          <p className="text-gray-500">Semua permintaan perubahan password telah diproses</p>
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Tidak Ada Permintaan</h3>
+          <p className="text-gray-500 dark:text-gray-400">Semua permintaan perubahan password telah diproses</p>
         </div>
       ) : (
         <div className="space-y-4">
           {requests.map((req: any) => (
-            <div key={req.id} className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+            <div key={req.id} className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-4">
-                  <div className="p-3 bg-amber-50 rounded-lg">
-                    <Clock className="w-6 h-6 text-amber-500" />
+                  <div className="p-3 bg-amber-50 dark:bg-amber-950 rounded-lg">
+                    <Clock className="w-6 h-6 text-amber-500 dark:text-amber-400" />
                   </div>
                   <div>
                     <div className="flex items-center gap-3">
-                      <User className="w-4 h-4 text-gray-400" />
-                      <span className="font-semibold text-gray-900">{req.user?.fullName || 'Unknown'}</span>
+                      <User className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                      <span className="font-semibold text-gray-900 dark:text-gray-100">{req.user?.fullName || 'Unknown'}</span>
                     </div>
                     <div className="flex items-center gap-3 mt-1">
-                      <Mail className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm text-gray-600">{req.user?.email || req.userId}</span>
+                      <Mail className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                      <span className="text-sm text-gray-600 dark:text-gray-400">{req.user?.email || req.userId}</span>
                     </div>
-                    <p className="text-xs text-gray-400 mt-2">
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
                       Diminta pada: {new Date(req.requestedAt).toLocaleString('id-ID')}
                     </p>
                   </div>
@@ -81,7 +81,7 @@ export default function PasswordRequests() {
                 <div className="flex gap-2">
                   <Button
                     size="sm"
-                    className="bg-green-50 text-green-700 hover:bg-green-100 font-semibold"
+                    className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-950 font-semibold"
                     onClick={() => approveMutation.mutate(req.id)}
                     disabled={approveMutation.isPending}
                   >
@@ -95,7 +95,7 @@ export default function PasswordRequests() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="bg-red-50 text-red-700 hover:bg-red-100 font-semibold"
+                    className="bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-950 font-semibold"
                     onClick={() => rejectMutation.mutate(req.id)}
                     disabled={rejectMutation.isPending}
                   >

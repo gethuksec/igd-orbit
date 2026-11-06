@@ -8,3 +8,4 @@ export type { FilterField } from './FilterToolbar';
 export { RowsPerPageSelect } from './RowsPerPageSelect';
 export { MenuItem } from './MenuItem';
 export { MenuGroup } from './MenuGroup';
+export { ThemeToggle } from './ThemeToggle';

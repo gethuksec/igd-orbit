@@ -213,13 +213,13 @@ export default function PurchaseOrderDetail() {
               </Button>
             </div>
             {menuOpen && (
-              <div className="absolute right-0 z-50 mt-1 min-w-40 overflow-hidden rounded-lg border bg-white py-1 shadow">
+              <div className="absolute right-0 z-50 mt-1 min-w-40 overflow-hidden rounded-lg border bg-white dark:bg-gray-900 py-1 shadow">
                 {dropdownItems.map((item) => (
                   <button
                     key={item.label}
                     type="button"
                     className={`block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-muted ${
-                      item.destructive ? 'font-semibold text-red-600' : 'text-gray-700'
+                      item.destructive ? 'font-semibold text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'
                     }`}
                     onClick={() => {
                       setMenuOpen(false);
@@ -409,8 +409,8 @@ export default function PurchaseOrderDetail() {
       >
         <div className="space-y-4">
           <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 p-2 bg-blue-100 rounded-full">
-              <CheckCircle className="w-5 h-5 text-blue-600" />
+            <div className="flex-shrink-0 p-2 bg-blue-100 dark:bg-blue-950 rounded-full">
+              <CheckCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div className="flex-1">
               <p>
@@ -465,8 +465,8 @@ export default function PurchaseOrderDetail() {
       >
         <div className="space-y-4">
           <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
-              <XCircle className="w-5 h-5 text-red-600" />
+            <div className="flex-shrink-0 p-2 bg-red-100 dark:bg-red-950 rounded-full">
+              <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
             </div>
             <div className="flex-1">
               <p>

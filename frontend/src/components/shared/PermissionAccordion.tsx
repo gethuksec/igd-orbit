@@ -68,7 +68,7 @@ function Section({
   if (node.key && (!node.children || node.children.length === 0)) {
     const checked = checkedSet.has(node.key);
     return (
-      <div className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-gray-50 group">
+      <div className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 group">
         <Checkbox
           id={`perm-${node.key}`}
           checked={checked}
@@ -82,7 +82,7 @@ function Section({
         />
         <Label
           htmlFor={`perm-${node.key}`}
-          className="text-sm cursor-pointer flex-1 group-hover:text-primary-700 transition-colors"
+          className="text-sm cursor-pointer flex-1 group-hover:text-primary-700 dark:group-hover:text-primary-300 transition-colors"
         >
           {node.label}
         </Label>
@@ -97,27 +97,27 @@ function Section({
     const hasAny = checked > 0;
 
     return (
-      <div className={depth === 0 ? 'border border-gray-200 rounded-lg overflow-hidden' : ''}>
+      <div className={depth === 0 ? 'border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden' : ''}>
         {/* Clickable header */}
         <button
           type="button"
           onClick={() => setExpanded(!expanded)}
           className={`w-full flex items-center gap-2 px-3 py-2.5 text-left transition-colors ${
             depth === 0
-              ? 'bg-gray-50 hover:bg-gray-100 font-semibold text-gray-800'
-              : 'hover:bg-gray-50 font-medium text-gray-700'
-          } ${hasAny ? 'text-primary-800' : ''}`}
+              ? 'bg-gray-50 dark:bg-gray-950 hover:bg-gray-100 dark:hover:bg-gray-800 font-semibold text-gray-800 dark:text-gray-200'
+              : 'hover:bg-gray-50 dark:hover:bg-gray-800 font-medium text-gray-700 dark:text-gray-300'
+          } ${hasAny ? 'text-primary-800 dark:text-primary-200' : ''}`}
         >
           {expanded ? (
-            <ChevronDown className="w-4 h-4 shrink-0 text-gray-400" />
+            <ChevronDown className="w-4 h-4 shrink-0 text-gray-400 dark:text-gray-500" />
           ) : (
-            <ChevronRight className="w-4 h-4 shrink-0 text-gray-400" />
+            <ChevronRight className="w-4 h-4 shrink-0 text-gray-400 dark:text-gray-500" />
           )}
           <span className="flex-1 text-sm">{node.label}</span>
           <span className={`text-xs px-2 py-0.5 rounded-full ${
             hasAny
-              ? 'bg-primary-100 text-primary-700'
-              : 'bg-gray-100 text-gray-500'
+              ? 'bg-primary-100 dark:bg-primary-950 text-primary-700 dark:text-primary-300'
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
           }`}>
             {checked}/{total}
           </span>

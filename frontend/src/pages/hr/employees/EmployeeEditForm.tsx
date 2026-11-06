@@ -125,9 +125,9 @@ export default function EmployeeEditForm() {
   if (isLoading) {
     return (
       <div className="w-full space-y-6">
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-12 text-center">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-12 text-center">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-          <p className="mt-4 text-gray-600">Memuat data...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Memuat data...</p>
         </div>
       </div>
     );
@@ -136,10 +136,10 @@ export default function EmployeeEditForm() {
   if (!user || !user.employee) {
     return (
       <div className="w-full space-y-6">
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-12 text-center">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-red-600">Karyawan tidak ditemukan</p>
-          <Link to="/hr/employees" className="mt-4 text-primary-600 hover:underline">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-12 text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 dark:text-red-400 mx-auto mb-4" />
+          <p className="text-red-600 dark:text-red-400">Karyawan tidak ditemukan</p>
+          <Link to="/hr/employees" className="mt-4 text-primary-600 dark:text-primary-400 hover:underline">
             Kembali ke daftar
           </Link>
         </div>
@@ -153,59 +153,59 @@ export default function EmployeeEditForm() {
       <BreadcrumbHeader title="Edit Karyawan" subtitle="Perbarui informasi karyawan" />
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6 space-y-6">
         {/* Personal Information */}
         <div>
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Informasi Pribadi</h2>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Informasi Pribadi</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Nama Lengkap <span className="text-red-500">*</span>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Nama Lengkap <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <input
                 type="text"
                 value={formData.fullName}
                 onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                 className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                  errors.fullName ? 'border-red-300' : 'border-gray-300'
+                  errors.fullName ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-600'
                 }`}
                 required
               />
-              {errors.fullName && <p className="mt-1 text-sm text-red-600">{errors.fullName}</p>}
+              {errors.fullName && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.fullName}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Email <span className="text-red-500">*</span>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Email <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <input
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                  errors.email ? 'border-red-300' : 'border-gray-300'
+                  errors.email ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-600'
                 }`}
                 required
               />
-              {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+              {errors.email && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.email}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Telepon</label>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Telepon</label>
               <input
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Status</label>
               <select
                 value={formData.isActive ? 'true' : 'false'}
                 onChange={(e) => setFormData({ ...formData, isActive: e.target.value === 'true' })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="true">Aktif</option>
                 <option value="false">Tidak Aktif</option>
@@ -216,31 +216,31 @@ export default function EmployeeEditForm() {
 
         {/* Employee Information */}
         <div>
-          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
             <Briefcase className="w-5 h-5" />
             Informasi Karyawan
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Employee Code</label>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Employee Code</label>
               <input
                 type="text"
                 value={formData.employeeCode}
                 onChange={(e) => setFormData({ ...formData, employeeCode: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono"
                 placeholder="EMP-0001"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                 <Building2 className="w-4 h-4" />
                 Cabang
               </label>
               <select
                 value={formData.branchId}
                 onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="">Pilih Cabang (Opsional)</option>
                 {availableBranches?.map((branch: any) => (
@@ -252,11 +252,11 @@ export default function EmployeeEditForm() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Departemen</label>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Departemen</label>
               <select
                 value={formData.departmentId}
                 onChange={(e) => setFormData({ ...formData, departmentId: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="">Pilih Departemen</option>
                 {departments?.map((dept: any) => (
@@ -268,18 +268,18 @@ export default function EmployeeEditForm() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Posisi</label>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Posisi</label>
               <input
                 type="text"
                 value={formData.position}
                 onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="e.g., Manager, Staff"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
                 Tanggal Masuk
               </label>
@@ -287,16 +287,16 @@ export default function EmployeeEditForm() {
                 type="date"
                 value={formData.hireDate}
                 onChange={(e) => setFormData({ ...formData, hireDate: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Tipe Karyawan</label>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Tipe Karyawan</label>
               <select
                 value={formData.employmentType}
                 onChange={(e) => setFormData({ ...formData, employmentType: e.target.value as 'PKWT' | 'PKWTT' | '' })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="">Pilih Tipe</option>
                 <option value="PKWT">PKWT (Kontrak)</option>
@@ -306,7 +306,7 @@ export default function EmployeeEditForm() {
 
             {formData.employmentType === 'PKWT' && (
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
                   Tanggal Berakhir Kontrak
                 </label>
@@ -314,7 +314,7 @@ export default function EmployeeEditForm() {
                   type="date"
                   value={formData.endDate || ''}
                   onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
               </div>
             )}
@@ -323,33 +323,33 @@ export default function EmployeeEditForm() {
 
         {/* Compensation */}
         <div>
-          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
             <DollarSign className="w-5 h-5" />
             Kompensasi
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Gaji Pokok</label>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Gaji Pokok</label>
               <input
                 type="number"
                 value={formData.basicSalary}
                 onChange={(e) => setFormData({ ...formData, basicSalary: parseFloat(e.target.value) || 0 })}
                 min="0"
                 step="0.01"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="0"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Tarif Per Jam</label>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Tarif Per Jam</label>
               <input
                 type="number"
                 value={formData.hourlyRate}
                 onChange={(e) => setFormData({ ...formData, hourlyRate: parseFloat(e.target.value) || 0 })}
                 min="0"
                 step="0.01"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="0"
               />
             </div>
@@ -358,35 +358,35 @@ export default function EmployeeEditForm() {
 
         {/* Bank & Tax Information */}
         <div>
-          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
             <Banknote className="w-5 h-5" />
             Informasi Bank & Pajak
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Rekening Bank</label>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Rekening Bank</label>
               <input
                 type="text"
                 value={formData.bankAccount}
                 onChange={(e) => setFormData({ ...formData, bankAccount: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="1234567890"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Nama Bank</label>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Nama Bank</label>
               <input
                 type="text"
                 value={formData.bankName}
                 onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="e.g., Bank Mandiri"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                 <FileText className="w-4 h-4" />
                 NPWP
               </label>
@@ -394,18 +394,18 @@ export default function EmployeeEditForm() {
                 type="text"
                 value={formData.taxId}
                 onChange={(e) => setFormData({ ...formData, taxId: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="12.345.678.9-012.345"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Nomor BPJS</label>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Nomor BPJS</label>
               <input
                 type="text"
                 value={formData.bpjsNumber}
                 onChange={(e) => setFormData({ ...formData, bpjsNumber: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="1234567890123456"
               />
             </div>
@@ -413,10 +413,10 @@ export default function EmployeeEditForm() {
         </div>
 
         {/* Actions */}
-        <div className="flex gap-3 pt-4 border-t border-gray-200">
+        <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
           <Link
             to={`/hr/employees/${id}`}
-            className="flex-1 px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 text-center"
+            className="flex-1 px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-center"
           >
             Batal
           </Link>

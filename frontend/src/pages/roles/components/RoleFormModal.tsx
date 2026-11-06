@@ -83,10 +83,10 @@ export function RoleFormModal({ open, role, onClose }: RoleFormModalProps) {
   return (
     <Modal open={open} onClose={onClose} title={isEdit ? 'Edit Role' : 'Tambah Role Baru'} size="md">
       {isSuperAdminRole && (
-        <div className="rounded-xl border-2 border-yellow-200 bg-yellow-50 p-4 mb-4 text-center">
+        <div className="rounded-xl border-2 border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950 p-4 mb-4 text-center">
           <Lock className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-          <h3 className="text-sm font-semibold text-yellow-700 mb-1">Role SUPERADMIN Terkunci Penuh</h3>
-          <p className="text-xs text-yellow-600">
+          <h3 className="text-sm font-semibold text-yellow-700 dark:text-yellow-300 mb-1">Role SUPERADMIN Terkunci Penuh</h3>
+          <p className="text-xs text-yellow-600 dark:text-yellow-400">
             SUPERADMIN memiliki akses penuh ke seluruh sistem. Data dan hak aksesnya tidak dapat diubah.
           </p>
         </div>
@@ -95,8 +95,8 @@ export function RoleFormModal({ open, role, onClose }: RoleFormModalProps) {
       <form onSubmit={(e) => handleSubmit(e)} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Kode Role <span className="text-red-500">*</span>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              Kode Role <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <input
               type="text"
@@ -106,19 +106,19 @@ export function RoleFormModal({ open, role, onClose }: RoleFormModalProps) {
               disabled={isEdit || isSuperAdminRole}
               pattern="[A-Z0-9_]+"
               placeholder="CR, HS, SPV, etc"
-              className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all font-mono text-sm disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+              className="w-full px-3 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all font-mono text-sm disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-500 dark:disabled:text-gray-400 disabled:cursor-not-allowed"
             />
             {isEdit && (
-              <p className="text-xs text-gray-500 mt-1">Kode tidak bisa diubah setelah role dibuat</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Kode tidak bisa diubah setelah role dibuat</p>
             )}
             {!isEdit && (
-              <p className="text-xs text-gray-500 mt-1">Hanya huruf besar, angka, dan underscore</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Hanya huruf besar, angka, dan underscore</p>
             )}
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Nama Role <span className="text-red-500">*</span>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              Nama Role <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <input
               type="text"
@@ -127,20 +127,20 @@ export function RoleFormModal({ open, role, onClose }: RoleFormModalProps) {
               required
               disabled={isSuperAdminRole}
               placeholder="Cashier, Head of Store, etc"
-              className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+              className="w-full px-3 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-500 dark:disabled:text-gray-400 disabled:cursor-not-allowed"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Level Hierarki <span className="text-red-500">*</span>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              Level Hierarki <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <select
               value={formData.level}
               onChange={(e) => setFormData({ ...formData, level: parseInt(e.target.value) })}
               required
               disabled={isSuperAdminRole}
-              className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all bg-white text-sm disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+              className="w-full px-3 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all bg-white dark:bg-gray-900 text-sm disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-500 dark:disabled:text-gray-400 disabled:cursor-not-allowed"
             >
               <option value={0}>0 - SUPERADMIN</option>
               <option value={1}>1 - OWNER</option>
@@ -154,12 +154,12 @@ export function RoleFormModal({ open, role, onClose }: RoleFormModalProps) {
 
           {isEdit && (
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Status</label>
               <select
                 value={formData.isActive ? 'active' : 'inactive'}
                 onChange={(e) => setFormData({ ...formData, isActive: e.target.value === 'active' })}
                 disabled={isSuperAdminRole}
-                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all bg-white text-sm disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+                className="w-full px-3 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all bg-white dark:bg-gray-900 text-sm disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-500 dark:disabled:text-gray-400 disabled:cursor-not-allowed"
               >
                 <option value="active">Aktif</option>
                 <option value="inactive">Non-Aktif</option>
@@ -169,23 +169,23 @@ export function RoleFormModal({ open, role, onClose }: RoleFormModalProps) {
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Deskripsi</label>
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Deskripsi</label>
           <textarea
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             rows={3}
             disabled={isSuperAdminRole}
             placeholder="Deskripsi role dan tanggung jawabnya..."
-            className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+            className="w-full px-3 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-500 dark:disabled:text-gray-400 disabled:cursor-not-allowed"
           />
         </div>
 
         {!isSuperAdminRole && (
-          <div className="rounded-lg border border-purple-200 bg-purple-50 p-3">
+          <div className="rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950 p-3">
             <div className="flex items-start gap-2">
-              <KeyRound className="w-4 h-4 text-purple-600 mt-0.5 shrink-0" />
+              <KeyRound className="w-4 h-4 text-purple-600 dark:text-purple-400 mt-0.5 shrink-0" />
               <div className="flex-1">
-                <p className="text-xs text-purple-800">
+                <p className="text-xs text-purple-800 dark:text-purple-200">
                   <b>Default Permissions:</b>{' '}
                   {isEdit ? (
                     <>
@@ -193,7 +193,7 @@ export function RoleFormModal({ open, role, onClose }: RoleFormModalProps) {
                       <button
                         type="button"
                         onClick={openPermissionPage}
-                        className="font-semibold text-purple-700 underline underline-offset-2 hover:text-purple-900"
+                        className="font-semibold text-purple-700 dark:text-purple-300 underline underline-offset-2 hover:text-purple-900 dark:hover:text-purple-100"
                       >
                         Kelola Hak Default →
                       </button>
@@ -207,14 +207,14 @@ export function RoleFormModal({ open, role, onClose }: RoleFormModalProps) {
           </div>
         )}
 
-        <div className="flex justify-end gap-2 pt-4 border-t border-gray-200 flex-wrap">
+        <div className="flex justify-end gap-2 pt-4 border-t border-gray-200 dark:border-gray-700 flex-wrap">
           {!isSuperAdminRole && (
             <>
               {isEdit ? (
                 <button
                   type="button"
                   onClick={openPermissionPage}
-                  className="px-3 py-2 text-xs font-semibold text-purple-700 border border-purple-300 rounded-lg hover:bg-purple-50"
+                  className="px-3 py-2 text-xs font-semibold text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-950"
                 >
                   Kelola Hak Default →
                 </button>
@@ -223,7 +223,7 @@ export function RoleFormModal({ open, role, onClose }: RoleFormModalProps) {
                   type="button"
                   onClick={(e) => handleSubmit(e, true)}
                   disabled={mutation.isPending}
-                  className="px-3 py-2 text-xs font-semibold text-purple-700 border border-purple-300 rounded-lg hover:bg-purple-50 disabled:opacity-50"
+                  className="px-3 py-2 text-xs font-semibold text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-950 disabled:opacity-50"
                 >
                   Simpan &amp; Kelola Hak Default →
                 </button>

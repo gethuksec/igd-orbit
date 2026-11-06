@@ -132,8 +132,8 @@ export default function ServiceCheckpointList() {
         <span
           className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${
             item.isActive
-              ? "bg-green-100 text-green-800 border-green-200"
-              : "bg-gray-100 text-gray-800 border-gray-200"
+              ? "bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800"
+              : "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700"
           }`}
         >
           {item.isActive ? "Aktif" : "Tidak Aktif"}
@@ -156,7 +156,7 @@ export default function ServiceCheckpointList() {
     <div className="w-full space-y-3">
       <BreadcrumbHeader title="Manajemen Kelengkapan" subtitle="Kelola checklist kelengkapan untuk form servis">
         {hasPermission('service.checkpoint.create') && (
-          <Button onClick={openCreateModal} className="flex items-center gap-2 bg-white text-primary-600 border border-gray-200 hover:bg-primary-50">
+          <Button onClick={openCreateModal} className="flex items-center gap-2 bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 border border-gray-200 dark:border-gray-700 hover:bg-primary-50 dark:hover:bg-primary-950">
             <Plus className="w-5 h-5" />
             <span>Tambah Kelengkapan</span>
           </Button>
@@ -164,14 +164,14 @@ export default function ServiceCheckpointList() {
       </BreadcrumbHeader>
 
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
-          <p className="text-red-800 font-medium">{(error as Error).message || "Terjadi kesalahan"}</p>
+        <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
+          <p className="text-red-800 dark:text-red-200 font-medium">{(error as Error).message || "Terjadi kesalahan"}</p>
         </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <StatCard icon={<ClipboardCheck className="w-6 h-6 text-white" />} iconBg="from-primary-500 to-primary-600" label="Total Item" value={isLoading ? "-" : pagination.total} subtitle="Semua kelengkapan terdaftar" />
-        <StatCard icon={<ClipboardCheck className="w-6 h-6 text-white" />} iconBg="from-green-500 to-green-600" label="Item Aktif" value={isLoading ? "-" : activeCount} badge={{ text: "Active", className: "bg-green-100 text-green-800" }} />
+        <StatCard icon={<ClipboardCheck className="w-6 h-6 text-white" />} iconBg="from-green-500 to-green-600" label="Item Aktif" value={isLoading ? "-" : activeCount} badge={{ text: "Active", className: "bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200" }} />
         <StatCard icon={<ClipboardCheck className="w-6 h-6 text-white" />} iconBg="from-gray-500 to-gray-600" label="Item Non-Aktif" value={isLoading ? "-" : inactiveCount} />
       </div>
 
@@ -221,7 +221,7 @@ export default function ServiceCheckpointList() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-red-600 hover:bg-red-50"
+                className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950"
                 title="Hapus"
                 onClick={() => {
                   setItemToDelete({ id: item.id, name: item.name });
@@ -236,7 +236,7 @@ export default function ServiceCheckpointList() {
       />
 
       {!isLoading && items.length > 0 && (
-        <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 rounded-lg border border-gray-200">
+        <div className="bg-gradient-to-r from-gray-50 dark:from-gray-900 to-gray-100 dark:to-gray-800 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
               Menampilkan <span className="font-bold text-foreground">{items.length}</span> dari <span className="font-bold text-foreground">{pagination.total}</span> kelengkapan
@@ -263,47 +263,47 @@ export default function ServiceCheckpointList() {
           </DialogHeader>
           <form onSubmit={handleFormSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nama Item <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Nama Item <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <input
                 type="text" required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="Contoh: Slot SIM, Speaker, LCD..."
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Urutan</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Urutan</label>
               <input
                 type="number" min="0"
                 value={formData.sortOrder}
                 onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) || 0 })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="0 (otomatis = urutan terakhir)"
               />
-              <p className="text-xs text-gray-400 mt-1">Kosongkan untuk urutan otomatis (terakhir).</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Kosongkan untuk urutan otomatis (terakhir).</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setFormData((prev) => ({ ...prev, isActive: !prev.isActive }))}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isActive ? 'bg-green-500' : 'bg-gray-300'}`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isActive ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}
                 >
                   <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.isActive ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
-                <span className="text-sm text-gray-600">{formData.isActive ? 'Aktif' : 'Tidak Aktif'}</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">{formData.isActive ? 'Aktif' : 'Tidak Aktif'}</span>
               </div>
-              <p className="text-xs text-gray-400 mt-1">Item aktif otomatis muncul di form Smart Repair.</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Item aktif otomatis muncul di form Smart Repair.</p>
             </div>
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => { setFormModalOpen(false); setEditingItem(null); setFormData({ name: "", isActive: true, sortOrder: 0 }); }}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors"
                 disabled={saveMutation.isPending}
               >Batal</button>
               <button
@@ -335,14 +335,14 @@ export default function ServiceCheckpointList() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
+              <div className="flex-shrink-0 p-2 bg-red-100 dark:bg-red-950 rounded-full">
+                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
               </div>
               <div className="flex-1">
-                <p className="text-sm text-gray-700 mb-2">
+                <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
                   Apakah Anda yakin ingin menghapus kelengkapan <strong>{itemToDelete?.name}</strong>?
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   Data akan dihapus permanen. Service order lama tetap menyimpan snapshot kelengkapan masing-masing.
                 </p>
               </div>
@@ -351,7 +351,7 @@ export default function ServiceCheckpointList() {
               <button
                 onClick={() => { setDeleteModalOpen(false); setItemToDelete(null); }}
                 disabled={deleteMutation.isPending}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors"
               >Batal</button>
               <button
                 onClick={() => { if (itemToDelete) deleteMutation.mutate(itemToDelete.id); }}

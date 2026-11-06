@@ -89,7 +89,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-accent-50 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 dark:from-primary-950 via-white to-accent-50 flex items-center justify-center p-6">
       <div className="max-w-md w-full">
         {/* Logo & Title */}
         <div className="text-center mb-8">
@@ -98,18 +98,18 @@ export default function Login() {
             alt="IGD Ponsel"
             className="h-16 w-auto mx-auto mb-4 object-contain"
           />
-          <h1 className="text-3xl font-display font-bold text-gray-900">IGD Ponsel</h1>
-          <p className="text-gray-600 mt-2">Login karyawan untuk mengakses dashboard internal</p>
+          <h1 className="text-3xl font-display font-bold text-gray-900 dark:text-gray-100">IGD Ponsel</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">Login karyawan untuk mengakses dashboard internal</p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-8">
           {/* Session expired banner (from ?expired=1 set by the 401 interceptor) */}
           {sessionExpired && (
-            <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div className="mb-4 p-4 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
-                <p className="text-sm font-medium text-amber-800">
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
                   Sesi berakhir, silakan login kembali
                 </p>
               </div>
@@ -118,10 +118,10 @@ export default function Login() {
 
           {/* Error Message */}
           {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="mb-4 p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
-                <p className="text-sm font-medium text-red-800">{error}</p>
+                <p className="text-sm font-medium text-red-800 dark:text-red-200">{error}</p>
               </div>
             </div>
           )}
@@ -129,16 +129,16 @@ export default function Login() {
           <form onSubmit={handleLogin} className="space-y-6">
             {/* Email Input */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Email</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
+                  <Mail className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                 </div>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                   placeholder="admin@igd.com"
                   required
                 />
@@ -147,16 +147,16 @@ export default function Login() {
 
             {/* Password Input */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Password</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
+                  <Lock className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                 </div>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                   placeholder="••••••••"
                   required
                 />
@@ -168,9 +168,9 @@ export default function Login() {
               <label className="flex items-center">
                 <input
                   type="checkbox"
-                  className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                  className="w-4 h-4 text-primary-600 dark:text-primary-400 border-gray-300 dark:border-gray-600 rounded focus:ring-primary-500"
                 />
-                <span className="ml-2 text-sm text-gray-600">Ingat saya</span>
+                <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Ingat saya</span>
               </label>
             </div>
 
@@ -198,18 +198,18 @@ export default function Login() {
               {/* Divider */}
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200"></div>
+                  <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">Atau gunakan kredensial demo</span>
+                  <span className="px-2 bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400">Atau gunakan kredensial demo</span>
                 </div>
               </div>
 
               {/* Demo Credentials - bootstrap accounts only */}
               <div className="space-y-4">
                 {/* Tier 0 - Super Admin */}
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-300">
-                  <p className="text-xs font-bold text-purple-900 mb-3 flex items-center gap-2">
+                <div className="bg-gradient-to-br from-purple-50 dark:from-purple-950 to-purple-100 dark:to-purple-950 rounded-lg p-4 border border-purple-300 dark:border-purple-700">
+                  <p className="text-xs font-bold text-purple-900 dark:text-purple-100 mb-3 flex items-center gap-2">
                     <span className="w-2 h-2 bg-purple-600 rounded-full animate-pulse"></span>
                     🟣 TIER 0 - SUPER ADMIN (Password: SuperAdmin@1234)
                   </p>
@@ -220,17 +220,17 @@ export default function Login() {
                         setEmail('superadmin@igdgroup.com');
                         setPassword('SuperAdmin@1234');
                       }}
-                      className="text-left px-3 py-2 bg-white hover:bg-purple-50 border border-purple-300 rounded-lg transition-all"
+                      className="text-left px-3 py-2 bg-white dark:bg-gray-900 hover:bg-purple-50 dark:hover:bg-purple-950 border border-purple-300 dark:border-purple-700 rounded-lg transition-all"
                     >
-                      <p className="font-semibold text-purple-800">👑 Super Administrator (Full Access)</p>
-                      <p className="text-gray-600">superadmin@igdgroup.com</p>
+                      <p className="font-semibold text-purple-800 dark:text-purple-200">👑 Super Administrator (Full Access)</p>
+                      <p className="text-gray-600 dark:text-gray-400">superadmin@igdgroup.com</p>
                     </button>
                   </div>
                 </div>
 
                 {/* Tier 1 - Executive */}
-                <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-4 border border-red-200">
-                  <p className="text-xs font-bold text-red-800 mb-3 flex items-center gap-2">
+                <div className="bg-gradient-to-br from-red-50 dark:from-red-950 to-red-100 dark:to-red-950 rounded-lg p-4 border border-red-200 dark:border-red-800">
+                  <p className="text-xs font-bold text-red-800 dark:text-red-200 mb-3 flex items-center gap-2">
                     <span className="w-2 h-2 bg-red-500 rounded-full"></span>
                     🔴 TIER 1 - EXECUTIVE (Password: Owner@1234)
                   </p>
@@ -241,10 +241,10 @@ export default function Login() {
                         setEmail('owner@igdgroup.com');
                         setPassword('Owner@1234');
                       }}
-                      className="text-left px-3 py-2 bg-white hover:bg-red-50 border border-red-200 rounded-lg transition-all"
+                      className="text-left px-3 py-2 bg-white dark:bg-gray-900 hover:bg-red-50 dark:hover:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg transition-all"
                     >
-                      <p className="font-semibold text-red-700">👑 Owner (Semua Cabang)</p>
-                      <p className="text-gray-600">owner@igdgroup.com</p>
+                      <p className="font-semibold text-red-700 dark:text-red-300">👑 Owner (Semua Cabang)</p>
+                      <p className="text-gray-600 dark:text-gray-400">owner@igdgroup.com</p>
                     </button>
                   </div>
                 </div>
@@ -254,11 +254,11 @@ export default function Login() {
         </div>
 
         {/* Footer */}
-        <div className="mt-6 flex flex-col items-center gap-3 text-xs text-gray-500">
+        <div className="mt-6 flex flex-col items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
           <button
             type="button"
             onClick={() => navigate('/')}
-            className="inline-flex items-center text-primary-600 hover:text-primary-700 font-semibold"
+            className="inline-flex items-center text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-semibold"
           >
             ← Kembali ke halaman utama
           </button>

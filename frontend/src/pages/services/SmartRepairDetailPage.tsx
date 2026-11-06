@@ -59,14 +59,14 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_PILL: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  diagnosed: 'bg-blue-100 text-blue-800 border-blue-200',
-  'in-progress': 'bg-blue-100 text-blue-800 border-blue-200',
-  qc: 'bg-amber-100 text-amber-800 border-amber-200',
-  ready: 'bg-blue-100 text-blue-800 border-blue-200',
-  done: 'bg-green-100 text-green-800 border-green-200',
-  cancelled: 'bg-red-100 text-red-800 border-red-200',
-  'ready-cancel': 'bg-orange-100 text-orange-800 border-orange-200',
+  pending: 'bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800',
+  diagnosed: 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-800',
+  'in-progress': 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-800',
+  qc: 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-800',
+  ready: 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-800',
+  done: 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800',
+  cancelled: 'bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800',
+  'ready-cancel': 'bg-orange-100 dark:bg-orange-950 text-orange-800 dark:text-orange-200 border-orange-200 dark:border-orange-800',
 };
 
 const SR_FLOW = ['pending', 'diagnosed', 'in-progress', 'qc', 'ready', 'done'] as const;
@@ -86,9 +86,9 @@ const compact = (v?: string | number | null) =>
   v !== undefined && v !== null && v !== '' ? Number(v).toLocaleString('id-ID') : '—';
 
 function StatusIcon({ done, current }: { done: boolean; current: boolean }) {
-  if (done) return <CheckCircle2 className="w-6 h-6 text-green-500" />;
-  if (current) return <Clock className="w-6 h-6 text-blue-500 animate-pulse" />;
-  return <Circle className="w-6 h-6 text-gray-300" />;
+  if (done) return <CheckCircle2 className="w-6 h-6 text-green-500 dark:text-green-400" />;
+  if (current) return <Clock className="w-6 h-6 text-blue-500 dark:text-blue-400 animate-pulse" />;
+  return <Circle className="w-6 h-6 text-gray-300 dark:text-gray-600" />;
 }
 
 export default function SmartRepairDetailPage() {
@@ -360,8 +360,8 @@ export default function SmartRepairDetailPage() {
     onError: (err: any) => toast.error(err.response?.data?.message || 'Gagal mengunggah foto'),
   });
 
-  if (isLoading) return <div className="p-10 text-center text-gray-500">Memuat…</div>;
-  if (!order) return <div className="p-10 text-center text-gray-500">Service order tidak ditemukan</div>;
+  if (isLoading) return <div className="p-10 text-center text-gray-500 dark:text-gray-400">Memuat…</div>;
+  if (!order) return <div className="p-10 text-center text-gray-500 dark:text-gray-400">Service order tidak ditemukan</div>;
 
   const status = String(order.status || 'pending').toLowerCase();
   const history: any[] = Array.isArray(order.statusHistory) ? order.statusHistory : [];
@@ -480,16 +480,16 @@ export default function SmartRepairDetailPage() {
       </BreadcrumbHeader>
 
       {/* ─── Section A1: Informasi Service ─── */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-4">
         <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-gradient-to-br from-green-500 to-green-600 rounded-lg">
               <Wrench className="w-5 h-5 text-white" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900">Informasi Service</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Informasi Service</h2>
           </div>
           <Badge
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border ${STATUS_PILL[status] || 'bg-gray-100 text-gray-800 border-gray-200'}`}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border ${STATUS_PILL[status] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700'}`}
           >
             <Clock className="w-4 h-4" />
             <span className="uppercase">{STATUS_LABELS[status] || status}</span>
@@ -497,45 +497,45 @@ export default function SmartRepairDetailPage() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="lg:col-span-4 mb-1">
-            <Label className="text-sm text-gray-500">Keluhan</Label>
+            <Label className="text-sm text-gray-500 dark:text-gray-400">Keluhan</Label>
             <p className="text-sm">{order.complaint || '—'}</p>
           </div>
           <div>
-            <Label className="text-sm text-gray-500">Estimasi Biaya</Label>
+            <Label className="text-sm text-gray-500 dark:text-gray-400">Estimasi Biaya</Label>
             <p className="font-bold text-lg">{formatCurrency(totalFee)}</p>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               {paidSoFar > 0 ? `Uang muka ${formatCurrency(paidSoFar)} · ` : ''}Sisa {formatCurrency(sisaBayar)}
               {isPaid ? ' · Lunas' : ''}
             </p>
           </div>
           <div>
-            <Label className="text-sm text-gray-500">Tanggal Masuk</Label>
+            <Label className="text-sm text-gray-500 dark:text-gray-400">Tanggal Masuk</Label>
             <p className="font-bold text-lg">{formatDateTime(order.receivedDate || order.createdAt)}</p>
-            <p className="text-xs text-gray-500">{formatTime(order.receivedDate || order.createdAt)}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{formatTime(order.receivedDate || order.createdAt)}</p>
           </div>
           <div>
-            <Label className="text-sm text-gray-500">Estimasi Selesai</Label>
-            <p className={`font-semibold ${isOverdue ? 'text-red-600' : ''}`}>
+            <Label className="text-sm text-gray-500 dark:text-gray-400">Estimasi Selesai</Label>
+            <p className={`font-semibold ${isOverdue ? 'text-red-600 dark:text-red-400' : ''}`}>
               {order.slaDueDate ? formatDateTime(order.slaDueDate) : formatDateTime(order.promisedDate)}
               {isOverdue ? ' · Terlambat' : ''}
             </p>
-            <p className="text-xs text-gray-500">{order.slaDueDate ? formatTime(order.slaDueDate) : ''}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{order.slaDueDate ? formatTime(order.slaDueDate) : ''}</p>
           </div>
           <div>
-            <Label className="text-sm text-gray-500">Teknisi</Label>
+            <Label className="text-sm text-gray-500 dark:text-gray-400">Teknisi</Label>
             <p className="font-semibold">{order.assignedTechnician?.fullName || 'Belum di-assign'}</p>
           </div>
           <div>
-            <Label className="text-sm text-gray-500">Garansi</Label>
+            <Label className="text-sm text-gray-500 dark:text-gray-400">Garansi</Label>
             <p className="font-semibold">{warrantyInfo.label}</p>
-            {warrantyInfo.sub ? <p className="text-xs text-gray-500">{warrantyInfo.sub}</p> : null}
+            {warrantyInfo.sub ? <p className="text-xs text-gray-500 dark:text-gray-400">{warrantyInfo.sub}</p> : null}
           </div>
           <div>
-            <Label className="text-sm text-gray-500">Outlet</Label>
+            <Label className="text-sm text-gray-500 dark:text-gray-400">Outlet</Label>
             <p className="font-semibold">{order.branch?.name || '—'}</p>
           </div>
           <div>
-            <Label className="text-sm text-gray-500">Gudang Service</Label>
+            <Label className="text-sm text-gray-500 dark:text-gray-400">Gudang Service</Label>
             <p className="font-semibold">{(order as any).warehouse?.name || '—'}</p>
           </div>
         </div>
@@ -543,55 +543,55 @@ export default function SmartRepairDetailPage() {
 
       {/* ─── Section A2: Customer + Perangkat ─── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-4">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg">
               <UserIcon className="w-5 h-5 text-white" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900">Informasi Customer</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Informasi Customer</h2>
           </div>
           <div className="flex gap-6 flex-wrap">
             <div>
-              <Label className="text-sm text-gray-500">Nama</Label>
+              <Label className="text-sm text-gray-500 dark:text-gray-400">Nama</Label>
               <p className="font-semibold">{order.customerName}</p>
             </div>
             <div>
-              <Label className="text-sm text-gray-500">No. HP</Label>
-              <p className="font-semibold text-primary-600">{order.customerPhone}</p>
+              <Label className="text-sm text-gray-500 dark:text-gray-400">No. HP</Label>
+              <p className="font-semibold text-primary-600 dark:text-primary-400">{order.customerPhone}</p>
             </div>
             {order.customerSubdistrict && (
               <div>
-                <Label className="text-sm text-gray-500">Kecamatan</Label>
+                <Label className="text-sm text-gray-500 dark:text-gray-400">Kecamatan</Label>
                 <p className="font-semibold">{order.customerSubdistrict}</p>
               </div>
             )}
           </div>
         </div>
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-4">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg">
               <Package className="w-5 h-5 text-white" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900">Informasi Perangkat</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Informasi Perangkat</h2>
           </div>
           <div className="flex gap-6 flex-wrap">
             <div>
-              <Label className="text-sm text-gray-500">Jenis</Label>
+              <Label className="text-sm text-gray-500 dark:text-gray-400">Jenis</Label>
               <p className="font-semibold capitalize">{order.deviceType || '—'}</p>
             </div>
             <div>
-              <Label className="text-sm text-gray-500">Unit</Label>
+              <Label className="text-sm text-gray-500 dark:text-gray-400">Unit</Label>
               <p className="font-semibold">{order.deviceUnit || '—'}</p>
             </div>
             <div>
-              <Label className="text-sm text-gray-500">Serial</Label>
+              <Label className="text-sm text-gray-500 dark:text-gray-400">Serial</Label>
               <p className="font-semibold font-mono text-sm">{order.deviceSerial || '—'}</p>
             </div>
             <div>
-              <Label className="text-sm text-gray-500">Kunci layar</Label>
+              <Label className="text-sm text-gray-500 dark:text-gray-400">Kunci layar</Label>
               {(order as any).deviceLockType && (order as any).deviceLockType !== 'none' ? (
                 <p className="flex items-center gap-2">
-                  <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
+                  <Badge variant="outline" className="border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
                     Ada ({(LOCK_TYPE_LABELS as any)[(order as any).deviceLockType] || (order as any).deviceLockType})
                   </Badge>
                   <Button variant="outline" size="sm" className="h-7 text-xs" onClick={openLockViewer}>
@@ -599,7 +599,7 @@ export default function SmartRepairDetailPage() {
                   </Button>
                 </p>
               ) : (
-                <p className="font-semibold text-gray-400">Tidak ada</p>
+                <p className="font-semibold text-gray-400 dark:text-gray-500">Tidak ada</p>
               )}
             </div>
           </div>
@@ -608,20 +608,20 @@ export default function SmartRepairDetailPage() {
 
       {/* ─── Section A2b: Kelengkapan ─── */}
       {Array.isArray((order as any).completenessItems) && (order as any).completenessItems.length > 0 && (
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-4">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg">
               <CheckCircle2 className="w-5 h-5 text-white" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900">Kelengkapan</h2>
-            <span className="text-sm text-gray-500">({(order as any).completenessItems.filter((x: any) => x.checked).length}/{(order as any).completenessItems.length} ada)</span>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Kelengkapan</h2>
+            <span className="text-sm text-gray-500 dark:text-gray-400">({(order as any).completenessItems.filter((x: any) => x.checked).length}/{(order as any).completenessItems.length} ada)</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {(order as any).completenessItems.map((item: any, i: number) => (
               <div key={`${item.name}-${i}`} className="flex items-center gap-2 text-sm">
-                {item.checked ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <Circle className="w-4 h-4 text-gray-300 shrink-0" />}
-                <span className={item.checked ? 'font-medium' : 'text-gray-400'}>{item.name}</span>
-                {item.checked && item.conditionNote && <span className="text-xs text-gray-500">· {item.conditionNote}</span>}
+                {item.checked ? <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" /> : <Circle className="w-4 h-4 text-gray-300 dark:text-gray-600 shrink-0" />}
+                <span className={item.checked ? 'font-medium' : 'text-gray-400 dark:text-gray-500'}>{item.name}</span>
+                {item.checked && item.conditionNote && <span className="text-xs text-gray-500 dark:text-gray-400">· {item.conditionNote}</span>}
               </div>
             ))}
           </div>
@@ -629,35 +629,35 @@ export default function SmartRepairDetailPage() {
       )}
 
       {/* ─── Section A3: Layanan & Barang ─── */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-4">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg">
             <Info className="w-5 h-5 text-white" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900">Layanan & Barang</h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Layanan & Barang</h2>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          <div className="border border-gray-100 rounded-xl overflow-hidden">
-            <div className="px-3 py-2 bg-gray-50 border-b border-gray-100 text-sm font-bold text-gray-700">Layanan</div>
+          <div className="border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden">
+            <div className="px-3 py-2 bg-gray-50 dark:bg-gray-950 border-b border-gray-100 dark:border-gray-800 text-sm font-bold text-gray-700 dark:text-gray-300">Layanan</div>
             <div className="p-2">
               {(order.layanan || []).length > 0 ? (
                 <div>
                   {(order.layanan as any[]).map((l, li) => (
                     <div
                       key={l.id}
-                      className="border-b border-dashed border-gray-100 last:border-b-0"
+                      className="border-b border-dashed border-gray-100 dark:border-gray-800 last:border-b-0"
                     >
                       <div className="flex items-center gap-2 px-2 py-2">
-                        <span className="font-semibold text-sm flex-1">{l.name}{(l.notes ? String(l.notes).split(',').map((t) => t.trim()).filter(Boolean) : []).map((t) => <span key={t} className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-normal text-amber-800">🏷 {t}</span>)}</span>
-                        <span className="text-xs text-gray-600 font-mono whitespace-nowrap">
+                        <span className="font-semibold text-sm flex-1">{l.name}{(l.notes ? String(l.notes).split(',').map((t) => t.trim()).filter(Boolean) : []).map((t) => <span key={t} className="ml-2 rounded bg-amber-100 dark:bg-amber-950 px-1.5 py-0.5 text-[10px] font-normal text-amber-800 dark:text-amber-200">🏷 {t}</span>)}</span>
+                        <span className="text-xs text-gray-600 dark:text-gray-400 font-mono whitespace-nowrap">
                           SLA {formatSLA(Number(l.slaHours))}
                         </span>
                         {layananEta[li] && (
-                          <span className={`text-xs whitespace-nowrap ${isOverdue && !frozen ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
+                          <span className={`text-xs whitespace-nowrap ${isOverdue && !frozen ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-500 dark:text-gray-400'}`}>
                             ETA {layananEta[li]}
                           </span>
                         )}
-                        <span className="text-xs text-gray-600 whitespace-nowrap">
+                        <span className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
                           {formatCurrency(Number(l.estimatedCost || 0))}
                         </span>
                         {status === 'ready' && !isCancelled && (
@@ -666,7 +666,7 @@ export default function SmartRepairDetailPage() {
                             title="Edit tag final"
                             onClick={() => setEditingTags({ id: l.id, tags: String(l.notes || '').split(',').map((t: string) => t.trim()).filter(Boolean) })}
                           >
-                            <Pencil className="h-4 w-4 text-amber-600" />
+                            <Pencil className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                           </button>
                         )}
                         {status === 'in-progress' && !isCancelled && (order.layanan as any[]).length > 1 && (
@@ -675,7 +675,7 @@ export default function SmartRepairDetailPage() {
                             title="Hapus layanan"
                             onClick={() => { if (window.confirm(`Hapus layanan ${l.name}? Tercatat di timeline.`)) removeLayananMutation.mutate(l.id); }}
                           >
-                            <Trash2 className="h-4 w-4 text-red-500" />
+                            <Trash2 className="h-4 w-4 text-red-500 dark:text-red-400" />
                           </button>
                         )}
                       </div>
@@ -691,37 +691,37 @@ export default function SmartRepairDetailPage() {
                       )}
                     </div>
                   ))}
-                  <div className="flex items-center justify-end gap-2 px-2 py-2 border-t border-gray-100 text-sm">
-                    <span className="text-gray-500 font-semibold">Total Layanan:</span>
-                    <span className="font-extrabold text-primary-600">
+                  <div className="flex items-center justify-end gap-2 px-2 py-2 border-t border-gray-100 dark:border-gray-800 text-sm">
+                    <span className="text-gray-500 dark:text-gray-400 font-semibold">Total Layanan:</span>
+                    <span className="font-extrabold text-primary-600 dark:text-primary-400">
                       {formatCurrency(
                         (order.layanan as any[]).reduce((s, l) => s + Number(l.estimatedCost || 0), 0),
                       )}
                     </span>
                   </div>
                   {status === 'in-progress' && !isCancelled && (
-                    <div className="mt-2 border-t border-dashed border-gray-200 pt-2">
-                      <p className="px-2 text-xs text-gray-400">Tambah layanan via menu Aksi Status.</p>
+                    <div className="mt-2 border-t border-dashed border-gray-200 dark:border-gray-700 pt-2">
+                      <p className="px-2 text-xs text-gray-400 dark:text-gray-500">Tambah layanan via menu Aksi Status.</p>
                     </div>
                   )}
                 </div>
               ) : order.serviceType ? (
-                <div className="flex items-center gap-2 px-2 py-2 border-b border-dashed border-gray-100">
+                <div className="flex items-center gap-2 px-2 py-2 border-b border-dashed border-gray-100 dark:border-gray-800">
                   <span className="font-semibold text-sm flex-1">{order.serviceType.name}</span>
-                  <span className="text-xs text-gray-600 font-mono">SLA {formatSLA(Number(order.serviceType.slaHours))}</span>
+                  <span className="text-xs text-gray-600 dark:text-gray-400 font-mono">SLA {formatSLA(Number(order.serviceType.slaHours))}</span>
                 </div>
               ) : (
-                <div className="p-2 text-sm text-gray-500">Belum ada layanan</div>
+                <div className="p-2 text-sm text-gray-500 dark:text-gray-400">Belum ada layanan</div>
               )}
             </div>
           </div>
-          <div className="border border-gray-100 rounded-xl overflow-hidden">
-            <div className="px-3 py-2 bg-gray-50 border-b border-gray-100 text-sm font-bold text-gray-700">
+          <div className="border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden">
+            <div className="px-3 py-2 bg-gray-50 dark:bg-gray-950 border-b border-gray-100 dark:border-gray-800 text-sm font-bold text-gray-700 dark:text-gray-300">
               Barang — faktur POS (No Service)
             </div>
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-xs uppercase text-gray-500 bg-gray-50 border-b border-gray-100">
+                <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-950 border-b border-gray-100 dark:border-gray-800">
                   <th className="text-left px-3 py-2 font-semibold">Barang</th>
                   <th className="text-left px-2 py-2 font-semibold">Gudang</th>
                   <th className="text-center px-2 py-2 font-semibold w-12">Qty</th>
@@ -738,11 +738,11 @@ export default function SmartRepairDetailPage() {
                       <p className="font-semibold">{p.product?.name || '—'}</p>
                     </td>
                     <td className="px-2 py-2">
-                      <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[11px] text-blue-700 whitespace-nowrap">{p.warehouse?.name || '—'}</span>
+                      <span className="rounded bg-blue-50 dark:bg-blue-950 px-1.5 py-0.5 text-[11px] text-blue-700 dark:text-blue-300 whitespace-nowrap">{p.warehouse?.name || '—'}</span>
                     </td>
                     <td className="text-center py-2">{Number(p.quantity)}</td>
                     <td className="text-right py-2">{compact(p.unitPrice)}</td>
-                    <td className="text-center py-2 text-gray-600">
+                    <td className="text-center py-2 text-gray-600 dark:text-gray-400">
                       {p.warrantyDays ? `${Number(p.warrantyDays)} hari` : '—'}
                     </td>
                     <td className="text-right py-2 font-semibold">{compact(p.totalPrice)}</td>
@@ -753,7 +753,7 @@ export default function SmartRepairDetailPage() {
                           title="Hapus barang (stok kembali ke gudang sumber)"
                           onClick={() => { if (window.confirm(`Hapus ${p.product?.name || 'barang'}? Stok dikembalikan ke ${p.warehouse?.name || 'gudang sumber'} dan tercatat di timeline.`)) removePartMutation.mutate(p.id); }}
                         >
-                          <Trash2 className="h-4 w-4 text-red-500" />
+                          <Trash2 className="h-4 w-4 text-red-500 dark:text-red-400" />
                         </button>
                       </td>
                     )}
@@ -761,7 +761,7 @@ export default function SmartRepairDetailPage() {
                 ))}
                 {partRows.length === 0 && (
                   <tr>
-                    <td colSpan={!frozen ? 7 : 6} className="px-3 py-4 text-center text-gray-400">
+                    <td colSpan={!frozen ? 7 : 6} className="px-3 py-4 text-center text-gray-400 dark:text-gray-500">
                       Belum ada barang
                     </td>
                   </tr>
@@ -769,9 +769,9 @@ export default function SmartRepairDetailPage() {
               </tbody>
               {partRows.length > 0 && (
                 <tfoot>
-                  <tr className="bg-gray-50">
+                  <tr className="bg-gray-50 dark:bg-gray-950">
                     <td colSpan={!frozen ? 6 : 5} className="px-3 py-2 text-right font-bold">Subtotal:</td>
-                    <td className="px-3 py-2 text-right font-extrabold text-primary-600">
+                    <td className="px-3 py-2 text-right font-extrabold text-primary-600 dark:text-primary-400">
                       {formatCurrency(subtotalParts)}
                     </td>
                   </tr>
@@ -779,15 +779,15 @@ export default function SmartRepairDetailPage() {
               )}
             </table>
             {posFaktur && (
-              <div className="mt-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-sm">
-                <span className="text-gray-600">Faktur POS No Service:</span>
+              <div className="mt-2 px-3 py-2 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg flex items-center gap-2 text-sm">
+                <span className="text-gray-600 dark:text-gray-400">Faktur POS No Service:</span>
                 <Link
                   to={`/sales/transactions/${posFaktur.id}`}
-                  className="font-semibold text-green-700 hover:underline"
+                  className="font-semibold text-green-700 dark:text-green-300 hover:underline"
                 >
                   {posFaktur.transactionNumber}
                 </Link>
-                <span className="text-xs text-gray-500">({posFaktur.paymentStatus})</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">({posFaktur.paymentStatus})</span>
                 <div className="ml-auto flex gap-2">
                   {waFakturLink && (
                     <Button
@@ -815,8 +815,8 @@ export default function SmartRepairDetailPage() {
             )}
             {/* IGDERP-171: paid service-only order — faktur actions without POS link */}
             {isPaid && !posFaktur && (
-              <div className="mt-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-sm">
-                <span className="text-gray-600">Lunas — faktur siap dibagikan:</span>
+              <div className="mt-2 px-3 py-2 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg flex items-center gap-2 text-sm">
+                <span className="text-gray-600 dark:text-gray-400">Lunas — faktur siap dibagikan:</span>
                 <div className="ml-auto flex gap-2">
                   {waFakturLink && (
                     <Button
@@ -842,23 +842,23 @@ export default function SmartRepairDetailPage() {
       </div>
 
       {/* ─── Section A4: Dokumentasi per tahap ─── */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-4">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg">
             <Camera className="w-5 h-5 text-white" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900">Dokumentasi</h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Dokumentasi</h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {(['intake', 'diagnosis', 'repair', 'completed'] as const).map((stage) => {
             const stagePhotos = ((order as any).photos || []).filter((ph: any) => ph.photoType === stage);
             const canUpload = stage === 'completed' ? !isCancelled : !frozen;
             return (
-              <div key={stage} className="border border-gray-100 rounded-xl overflow-hidden">
-                <div className="px-3 py-2 bg-gray-50 border-b border-gray-100 text-sm font-bold text-gray-700 capitalize flex items-center justify-between">
+              <div key={stage} className="border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden">
+                <div className="px-3 py-2 bg-gray-50 dark:bg-gray-950 border-b border-gray-100 dark:border-gray-800 text-sm font-bold text-gray-700 dark:text-gray-300 capitalize flex items-center justify-between">
                   {stage}
                   {canUpload && (
-                    <label className="text-xs font-semibold text-primary-600 hover:underline cursor-pointer">
+                    <label className="text-xs font-semibold text-primary-600 dark:text-primary-400 hover:underline cursor-pointer">
                       + Foto
                       <input
                         type="file" accept="image/*" multiple className="hidden"
@@ -872,10 +872,10 @@ export default function SmartRepairDetailPage() {
                   )}
                 </div>
                 <div className="p-2 grid grid-cols-3 gap-2">
-                  {stagePhotos.length === 0 && <div className="col-span-3 p-2 text-xs text-gray-400">Belum ada foto</div>}
+                  {stagePhotos.length === 0 && <div className="col-span-3 p-2 text-xs text-gray-400 dark:text-gray-500">Belum ada foto</div>}
                   {stagePhotos.map((ph: any) => (
                     <a key={ph.id} href={ph.photoUrl} target="_blank" rel="noreferrer" title={ph.description || stage}>
-                      <img src={ph.photoUrl} alt={`${stage} photo`} className="h-16 w-full object-cover rounded-md border border-gray-100" loading="lazy" />
+                      <img src={ph.photoUrl} alt={`${stage} photo`} className="h-16 w-full object-cover rounded-md border border-gray-100 dark:border-gray-800" loading="lazy" />
                     </a>
                   ))}
                 </div>
@@ -885,20 +885,20 @@ export default function SmartRepairDetailPage() {
         </div>
       </div>
 
-      <div className="h-px bg-gray-100 my-1" />
+      <div className="h-px bg-gray-100 dark:bg-gray-800 my-1" />
 
       {/* ─── Section B: Aksi + Timeline ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         {/* Aksi Status */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
-          <p className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-gray-400" /> Aksi Status
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-4">
+          <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-gray-400 dark:text-gray-500" /> Aksi Status
           </p>
           {/* IGDERP-136 bugfix: order batal = semua aksi nonaktif (dropdown disembunyikan) */}
           {!isCancelled && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="w-full justify-between border-red-200 text-red-700 bg-red-50 hover:bg-red-100">
+              <Button variant="outline" className="w-full justify-between border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950 hover:bg-red-100 dark:hover:bg-red-950">
                 Aksi Status <span className="opacity-70">▾</span>
               </Button>
             </DropdownMenuTrigger>
@@ -973,7 +973,7 @@ export default function SmartRepairDetailPage() {
               {/* IGDERP-171: void mistaken payment — approver asserted server-side */}
               {status === 'done' && isPaid && !isCancelled && (
                 <DropdownMenuItem
-                  className="text-red-600 font-semibold"
+                  className="text-red-600 dark:text-red-400 font-semibold"
                   onClick={() => { setVoidReason(''); setOpenVoid(true); }}
                 >
                   Void pembayaran
@@ -1007,7 +1007,7 @@ export default function SmartRepairDetailPage() {
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    className="text-red-600 font-semibold"
+                    className="text-red-600 dark:text-red-400 font-semibold"
                     onClick={() => setOpenCancel(true)}
                   >
                     Batal
@@ -1017,10 +1017,10 @@ export default function SmartRepairDetailPage() {
             </DropdownMenuContent>
           </DropdownMenu>
           )}
-          <p className="text-xs text-gray-500 mt-4 flex items-center gap-2">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-4 flex items-center gap-2">
             <Phone className="w-3 h-3" />
             {waLink ? (
-              <a href={waLink} target="_blank" rel="noreferrer" className="text-green-700 font-semibold hover:underline">
+              <a href={waLink} target="_blank" rel="noreferrer" className="text-green-700 dark:text-green-300 font-semibold hover:underline">
                 {order.customerPhone} (WA)
               </a>
             ) : order.customerPhone}
@@ -1028,7 +1028,7 @@ export default function SmartRepairDetailPage() {
         </div>
 
         {/* Timeline */}
-        <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
+        <div className="lg:col-span-2 bg-white dark:bg-gray-900 rounded-lg shadow-md p-6">
           <h3 className="text-lg font-semibold mb-6">Service Status Timeline</h3>
           <div className="space-y-6">
             {SR_FLOW.map((s, idx) => {
@@ -1042,18 +1042,18 @@ export default function SmartRepairDetailPage() {
                 <div key={s} className={`flex gap-4 ${((skipped && idx > 0) || (currentIndex >= 0 && idx > currentIndex)) ? 'opacity-60' : ''}`}>
                   <div className="flex flex-col items-center">
                     <StatusIcon done={done} current={current} />
-                    {idx < SR_FLOW.length - 1 && <div className={`w-0.5 flex-1 mt-2 ${done ? 'bg-green-500' : 'bg-gray-200'}`} />}
+                    {idx < SR_FLOW.length - 1 && <div className={`w-0.5 flex-1 mt-2 ${done ? 'bg-green-500' : 'bg-gray-200 dark:bg-gray-700'}`} />}
                   </div>
                   <div className="flex-1 pb-6">
-                    <div className={`font-medium ${done ? 'text-green-700' : current ? 'text-blue-700' : 'text-gray-400'}`}>
+                    <div className={`font-medium ${done ? 'text-green-700 dark:text-green-300' : current ? 'text-blue-700 dark:text-blue-300' : 'text-gray-400 dark:text-gray-500'}`}>
                       {label}
                     </div>
                     {entry ? (
                       <>
-                        <div className="text-sm text-gray-500 mt-1">
+                        <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                           {formatDateTime(entry.createdAt)}, {formatTime(entry.createdAt)}
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                           <span className="font-semibold">Oleh: </span>
                           {entry.changedByUser?.fullName || entry.changedByUser?.email || '—'}
                           {s === 'in-progress' && status === 'in-progress' && (
@@ -1062,7 +1062,7 @@ export default function SmartRepairDetailPage() {
                               <button
                                 type="button"
                                 onClick={openTeknisiModal}
-                                className="text-primary-600 font-semibold hover:underline"
+                                className="text-primary-600 dark:text-primary-400 font-semibold hover:underline"
                               >
                                 Ubah teknisi
                               </button>
@@ -1070,16 +1070,16 @@ export default function SmartRepairDetailPage() {
                           )}
                         </div>
                         {entry.notes && (
-                          <div className="text-xs text-gray-600 mt-2 p-2 bg-gray-50 rounded border border-gray-200">
+                          <div className="text-xs text-gray-600 dark:text-gray-400 mt-2 p-2 bg-gray-50 dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-700">
                             <span className="font-semibold">Catatan: </span>
                             {entry.notes}
                           </div>
                         )}
                         {entries.slice(1).map((e: any) => e.notes && (
-                          <div key={e.id} className="text-xs text-gray-600 mt-2 p-2 bg-gray-50 rounded border border-gray-200">
+                          <div key={e.id} className="text-xs text-gray-600 dark:text-gray-400 mt-2 p-2 bg-gray-50 dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-700">
                             <span className="font-semibold">Catatan: </span>
                             {e.notes}
-                            <div className="text-gray-400 mt-1">
+                            <div className="text-gray-400 dark:text-gray-500 mt-1">
                               {formatDateTime(e.createdAt)}, {formatTime(e.createdAt)}
                               {e.changedByUser ? ` · ${e.changedByUser.fullName || e.changedByUser.email}` : ''}
                             </div>
@@ -1088,13 +1088,13 @@ export default function SmartRepairDetailPage() {
                       </>
                     ) : (
                       !current && (
-                        <div className="text-xs text-gray-400 mt-1">
+                        <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                           {s === 'qc' ? 'Pemeriksaan kualitas — siap diambil bila lolos' : s === 'ready' ? 'Selesai dikerjakan — siap diambil customer' : s === 'done' ? 'Sudah diambil / diserahkan ke customer' : ''}
                         </div>
                       )
                     )}
                     {current && (
-                      <div className="text-sm text-blue-600 mt-1 font-medium">Current Status</div>
+                      <div className="text-sm text-blue-600 dark:text-blue-400 mt-1 font-medium">Current Status</div>
                     )}
                   </div>
                 </div>
@@ -1103,18 +1103,18 @@ export default function SmartRepairDetailPage() {
             {status === 'ready-cancel' && (
               <div className="flex gap-4">
                 <div className="flex flex-col items-center">
-                  <Circle className="w-6 h-6 text-orange-500" />
+                  <Circle className="w-6 h-6 text-orange-500 dark:text-orange-400" />
                 </div>
                 <div className="flex-1">
-                  <div className="font-medium text-orange-700">Ready Cancel — unit dikembalikan, menunggu diambil</div>
-                  <div className="text-sm text-gray-500 mt-1">
+                  <div className="font-medium text-orange-700 dark:text-orange-300">Ready Cancel — unit dikembalikan, menunggu diambil</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                     {formatDateTime(order.readyAt)}, {formatTime(order.readyAt)}
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     <span className="font-semibold">Oleh: </span>{historyByStage.get('ready-cancel')?.[0]?.changedByUser?.fullName || '—'}
                   </div>
                   {historyByStage.get('ready-cancel')?.[0]?.notes && (
-                    <div className="text-xs text-gray-600 mt-2 p-2 bg-gray-50 rounded border border-gray-200">
+                    <div className="text-xs text-gray-600 dark:text-gray-400 mt-2 p-2 bg-gray-50 dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-700">
                       <span className="font-semibold">Catatan: </span>
                       {historyByStage.get('ready-cancel')?.[0]?.notes}
                     </div>
@@ -1125,18 +1125,18 @@ export default function SmartRepairDetailPage() {
             {isCancelled && (
               <div className="flex gap-4">
                 <div className="flex flex-col items-center">
-                  <Circle className="w-6 h-6 text-red-500" />
+                  <Circle className="w-6 h-6 text-red-500 dark:text-red-400" />
                 </div>
                 <div className="flex-1">
-                  <div className="font-medium text-red-700">Cancel</div>
-                  <div className="text-sm text-gray-500 mt-1">
+                  <div className="font-medium text-red-700 dark:text-red-300">Cancel</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                     {formatDateTime(order.cancelledAt)}, {formatTime(order.cancelledAt)}
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     <span className="font-semibold">Oleh: </span>{historyByStage.get('cancelled')?.[0]?.changedByUser?.fullName || '—'}
                   </div>
                   {historyByStage.get('cancelled')?.[0]?.notes && (
-                    <div className="text-xs text-gray-600 mt-2 p-2 bg-gray-50 rounded border border-gray-200">
+                    <div className="text-xs text-gray-600 dark:text-gray-400 mt-2 p-2 bg-gray-50 dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-700">
                       <span className="font-semibold">Catatan: </span>
                       {historyByStage.get('cancelled')?.[0]?.notes}
                     </div>
@@ -1152,11 +1152,11 @@ export default function SmartRepairDetailPage() {
       <Dialog open={openCancel} onOpenChange={setOpenCancel}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-red-700">Batal Service</DialogTitle>
+            <DialogTitle className="text-red-700 dark:text-red-300">Batal Service</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
-            <Label className="text-sm text-gray-600">
-              Alasan pembatalan <span className="text-red-500">*</span>
+            <Label className="text-sm text-gray-600 dark:text-gray-400">
+              Alasan pembatalan <span className="text-red-500 dark:text-red-400">*</span>
             </Label>
             <Textarea
               rows={3}
@@ -1186,10 +1186,10 @@ export default function SmartRepairDetailPage() {
           <DialogHeader>
             <DialogTitle>Tutup Langsung</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-gray-600">Customer menolak service di meja CS — data tetap dibank, tanpa barang dan jasa.</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Customer menolak service di meja CS — data tetap dibank, tanpa barang dan jasa.</p>
           <div className="space-y-2">
-            <Label className="text-sm text-gray-600">
-              Alasan penutupan <span className="text-red-500">*</span>
+            <Label className="text-sm text-gray-600 dark:text-gray-400">
+              Alasan penutupan <span className="text-red-500 dark:text-red-400">*</span>
             </Label>
             <Textarea
               rows={3}
@@ -1214,7 +1214,7 @@ export default function SmartRepairDetailPage() {
             <DialogTitle>Ubah Teknisi</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
-            <Label className="text-sm text-gray-600">Teknisi</Label>
+            <Label className="text-sm text-gray-600 dark:text-gray-400">Teknisi</Label>
             <Select value={techId} onValueChange={setTechId} className="w-full">
               <option value="">Pilih teknisi</option>
               {(technicians as any[]).map((t) => (
@@ -1242,7 +1242,7 @@ export default function SmartRepairDetailPage() {
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1">
-              <Label className="text-sm text-gray-600">Layanan</Label>
+              <Label className="text-sm text-gray-600 dark:text-gray-400">Layanan</Label>
               <Select
                 value={waktuLayanan}
                 onValueChange={setWaktuLayanan}
@@ -1262,8 +1262,8 @@ export default function SmartRepairDetailPage() {
               </Select>
             </div>
             <div className="space-y-1">
-              <Label className="text-sm text-gray-600">
-                Alasan <span className="text-red-500">*</span>
+              <Label className="text-sm text-gray-600 dark:text-gray-400">
+                Alasan <span className="text-red-500 dark:text-red-400">*</span>
               </Label>
               <Textarea
                 value={waktuAlasan}
@@ -1273,8 +1273,8 @@ export default function SmartRepairDetailPage() {
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-sm text-gray-600">
-                Estimasi Baru <span className="text-red-500">*</span>
+              <Label className="text-sm text-gray-600 dark:text-gray-400">
+                Estimasi Baru <span className="text-red-500 dark:text-red-400">*</span>
               </Label>
               <Input
                 type="datetime-local"
@@ -1319,12 +1319,12 @@ export default function SmartRepairDetailPage() {
                 placeholder="Cari produk (nama/barcode)"
               />
               {barangSearch.length >= 2 && barangResults.length > 0 && (
-                <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-auto">
+                <div className="absolute z-20 mt-1 w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-48 overflow-auto">
                   {(barangResults as any[]).map((p) => (
                     <button
                       key={p.id}
                       type="button"
-                      className="w-full text-left px-3 py-2 hover:bg-gray-50 flex items-center justify-between gap-2"
+                      className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-between gap-2"
                       onClick={() => {
                         setBarangRows((rows) => [
                           ...rows,
@@ -1341,7 +1341,7 @@ export default function SmartRepairDetailPage() {
                       }}
                     >
                       <span className="text-sm font-medium">{p.name || p.sku}</span>
-                      <span className="text-xs text-gray-500">{formatCurrency(p.sellingPrice || p.price || 0)}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">{formatCurrency(p.sellingPrice || p.price || 0)}</span>
                     </button>
                   ))}
                 </div>
@@ -1349,10 +1349,10 @@ export default function SmartRepairDetailPage() {
             </div>
 
             {barangRows.length > 0 && (
-              <div className="border border-gray-200 rounded-xl overflow-hidden">
+              <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="text-xs uppercase text-gray-500 bg-gray-50 border-b border-gray-100">
+                    <tr className="text-xs uppercase text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-950 border-b border-gray-100 dark:border-gray-800">
                       <th className="text-left px-3 py-2 font-semibold">Barang</th>
                       <th className="text-left px-2 py-2 font-semibold">Gudang</th>
                       <th className="text-center px-2 py-2 font-semibold w-16">Qty</th>
@@ -1427,7 +1427,7 @@ export default function SmartRepairDetailPage() {
                         <td className="text-center">
                           <button
                             type="button"
-                            className="text-red-500 hover:text-red-700"
+                            className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
                             onClick={() => setBarangRows((rows) => rows.filter((_, i) => i !== idx))}
                           >
                             <Trash2 className="w-4 h-4" />
@@ -1437,9 +1437,9 @@ export default function SmartRepairDetailPage() {
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr className="bg-gray-50">
+                    <tr className="bg-gray-50 dark:bg-gray-950">
                       <td colSpan={4} className="px-3 py-2 text-right font-bold">Subtotal:</td>
-                      <td className="px-3 py-2 text-right font-extrabold text-primary-600">
+                      <td className="px-3 py-2 text-right font-extrabold text-primary-600 dark:text-primary-400">
                         {formatCurrency(
                           barangRows.reduce((s, r) => s + (Number(r.quantity) || 0) * (Number(r.price) || 0), 0),
                         )}
@@ -1479,7 +1479,7 @@ export default function SmartRepairDetailPage() {
           <DialogHeader><DialogTitle>Tambah Layanan</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label><span className="text-red-500">*</span> Layanan</Label>
+              <Label><span className="text-red-500 dark:text-red-400">*</span> Layanan</Label>
               <Select value={layananModalPick} onValueChange={setLayananModalPick} className="mt-1">
                 <option value="">Pilih layanan</option>
                 {(serviceTypes as any[])
@@ -1571,7 +1571,7 @@ export default function SmartRepairDetailPage() {
             <p className="text-sm text-muted-foreground">
               Order kembali ke Ready dan pembayaran dibuka ulang untuk koreksi. Butuh peran approver.
             </p>
-            <div><Label>Alasan void <span className="text-red-500">*</span></Label><Input value={voidReason} onChange={(e) => setVoidReason(e.target.value)} placeholder="Mis. salah input metode…" className="mt-1" /></div>
+            <div><Label>Alasan void <span className="text-red-500 dark:text-red-400">*</span></Label><Input value={voidReason} onChange={(e) => setVoidReason(e.target.value)} placeholder="Mis. salah input metode…" className="mt-1" /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenVoid(false)}>Batal</Button>
@@ -1593,7 +1593,7 @@ export default function SmartRepairDetailPage() {
               Total {formatCurrency(totalFee)} · Sudah masuk {formatCurrency(paidSoFar)} · <b>Sisa {formatCurrency(sisaBayar)}</b>
             </div>
             <div><Label>Nominal (Rp)</Label><Input inputMode="numeric" value={bayarAmount ? Number(bayarAmount).toLocaleString('id-ID') : ''} onChange={(e) => setBayarAmount(e.target.value.replace(/\D/g, ''))} className="mt-1" /></div>
-            <div><Label>Metode</Label><div className="mt-1 grid grid-cols-3 gap-2">{([['cash', 'Tunai'], ['transfer', 'Transfer'], ['qris', 'QRIS']] as const).map(([v, l]) => (<button key={v} type="button" onClick={() => setBayarMethod(v)} className={`rounded-lg border px-3 py-2 text-sm font-semibold ${bayarMethod === v ? 'border-primary bg-primary-50 text-primary-700' : 'border-gray-200 text-gray-600'}`}>{l}</button>))}</div></div>
+            <div><Label>Metode</Label><div className="mt-1 grid grid-cols-3 gap-2">{([['cash', 'Tunai'], ['transfer', 'Transfer'], ['qris', 'QRIS']] as const).map(([v, l]) => (<button key={v} type="button" onClick={() => setBayarMethod(v)} className={`rounded-lg border px-3 py-2 text-sm font-semibold ${bayarMethod === v ? 'border-primary bg-primary-50 dark:bg-primary-950 text-primary-700 dark:text-primary-300' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>{l}</button>))}</div></div>
             <div><Label>Referensi (opsional)</Label><Input value={bayarRef} onChange={(e) => setBayarRef(e.target.value)} placeholder="No. referensi transfer…" className="mt-1" /></div>
           </div>
           <DialogFooter>

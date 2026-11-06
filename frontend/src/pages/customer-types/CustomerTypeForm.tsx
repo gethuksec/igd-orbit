@@ -62,7 +62,7 @@ export default function CustomerTypeForm() {
   if (loadingCustomerType) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
+        <Loader2 className="w-8 h-8 text-primary-600 dark:text-primary-400 animate-spin" />
       </div>
     );
   }
@@ -78,51 +78,51 @@ export default function CustomerTypeForm() {
       </BreadcrumbHeader>
 
       {/* Form Card */}
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 overflow-hidden">
         <div className="p-4">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg">
               <Tag className="w-5 h-5 text-white" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900">Informasi Tipe Customer</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Informasi Tipe Customer</h2>
           </div>
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nama Tipe Customer <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Nama Tipe Customer <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <input
                 type="text"
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="Nama tipe customer"
               />
             </div>
             {isEdit && customerType?.code && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Kode Tipe Customer
                 </label>
                 <input
                   type="text"
                   value={customerType.code}
                   disabled
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-950 text-gray-500 dark:text-gray-400 cursor-not-allowed"
                   placeholder="Kode tipe customer (auto-generated)"
                 />
-                <p className="text-xs text-gray-500 mt-1">Kode tipe customer dibuat otomatis dan tidak dapat diubah</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Kode tipe customer dibuat otomatis dan tidak dapat diubah</p>
               </div>
             )}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Status
               </label>
               <select
                 value={formData.isActive ? "active" : "inactive"}
                 onChange={(e) => setFormData({ ...formData, isActive: e.target.value === "active" })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="active">Aktif</option>
                 <option value="inactive">Tidak Aktif</option>
@@ -132,11 +132,11 @@ export default function CustomerTypeForm() {
         </div>
 
         {/* Actions */}
-        <div className="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-end gap-3">
+        <div className="p-4 bg-gray-50 dark:bg-gray-950 border-t border-gray-200 dark:border-gray-700 flex items-center justify-end gap-3">
           <button
             type="button"
             onClick={() => navigate("/customer-types")}
-            className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           >
             Batal
           </button>

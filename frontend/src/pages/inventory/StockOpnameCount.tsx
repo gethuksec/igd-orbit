@@ -514,8 +514,8 @@ export default function StockOpnameCount() {
     return (
       <div className="w-full flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-16 h-16 text-primary-600 animate-spin" />
-          <p className="text-gray-600 font-semibold text-lg">Memuat data opname...</p>
+          <Loader2 className="w-16 h-16 text-primary-600 dark:text-primary-400 animate-spin" />
+          <p className="text-gray-600 dark:text-gray-400 font-semibold text-lg">Memuat data opname...</p>
         </div>
       </div>
     );
@@ -527,13 +527,13 @@ export default function StockOpnameCount() {
         title="Catat Hasil Perhitungan"
         subtitle={`${opname.opnameNumber} · ${opname.branch?.name || 'Cabang'} · ${new Date(opname.opnameDate).toLocaleDateString('id-ID')}`}
       >
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 border border-red-200 px-3 py-1 text-xs font-bold text-red-700">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 px-3 py-1 text-xs font-bold text-red-700 dark:text-red-300">
           ● COUNTING
         </span>
         <button
           onClick={() => refetch()}
           disabled={isFetching}
-          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50"
         >
           <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
           Muat Ulang
@@ -548,25 +548,25 @@ export default function StockOpnameCount() {
       </BreadcrumbHeader>
 
       {/* IGDERP-176: autosave status bar — draft durability + save-lock state */}
-      <div className="flex items-center gap-2 rounded-lg border border-dashed border-gray-300 bg-gray-50 px-3 py-1.5 text-xs text-gray-500">
+      <div className="flex items-center gap-2 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-950 px-3 py-1.5 text-xs text-gray-500 dark:text-gray-400">
         <span
           className={`inline-block w-2 h-2 rounded-full ${unsavedCount > 0 ? 'bg-amber-500' : 'bg-green-500'}`}
         />
         {recordMutation.isPending ? (
-          <span className="inline-flex items-center gap-1.5 font-semibold text-gray-700">
+          <span className="inline-flex items-center gap-1.5 font-semibold text-gray-700 dark:text-gray-300">
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
             Menyimpan… tombol Simpan terkunci
           </span>
         ) : unsavedCount > 0 ? (
           <span>
-            <b className="text-gray-800">Draft tersimpan otomatis</b>
+            <b className="text-gray-800 dark:text-gray-200">Draft tersimpan otomatis</b>
             {lastSavedAt &&
               ` · terakhir ${new Date(lastSavedAt).toLocaleTimeString('id-ID')}`} ·{' '}
             {unsavedCount} perubahan belum disimpan
           </span>
         ) : (
           <span>
-            <b className="text-gray-800">Draft tersimpan otomatis</b>
+            <b className="text-gray-800 dark:text-gray-200">Draft tersimpan otomatis</b>
             {lastSavedAt &&
               ` · terakhir ${new Date(lastSavedAt).toLocaleTimeString('id-ID')}`} · semua
             perubahan sudah disimpan
@@ -575,46 +575,46 @@ export default function StockOpnameCount() {
       </div>
 
       {/* Progress */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-bold text-gray-900">Progress Perhitungan</span>
-          <span className="text-xs text-gray-500">
-            <b className="text-primary-600">{countedItems}</b> dari {totalItems} item dihitung ·{' '}
-            <b className="text-gray-900">{myCounted > 0 || othersCounted > 0 ? (myCounted > 0 ? 1 : 0) + (othersCounted > 0 ? 1 : 0) : 0}</b> petugas
+          <span className="text-sm font-bold text-gray-900 dark:text-gray-100">Progress Perhitungan</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            <b className="text-primary-600 dark:text-primary-400">{countedItems}</b> dari {totalItems} item dihitung ·{' '}
+            <b className="text-gray-900 dark:text-gray-100">{myCounted > 0 || othersCounted > 0 ? (myCounted > 0 ? 1 : 0) + (othersCounted > 0 ? 1 : 0) : 0}</b> petugas
           </span>
         </div>
-        <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+        <div className="h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-primary-600 to-primary-500 rounded-full transition-all"
             style={{ width: `${progressPct}%` }}
           />
         </div>
-        <div className="flex flex-wrap gap-4 mt-2.5 text-xs text-gray-500">
+        <div className="flex flex-wrap gap-4 mt-2.5 text-xs text-gray-500 dark:text-gray-400">
           {myCounted > 0 && (
             <span>
-              <b className="text-gray-900">Anda ({me.name || 'Saya'}):</b> {myCounted} item
+              <b className="text-gray-900 dark:text-gray-100">Anda ({me.name || 'Saya'}):</b> {myCounted} item
             </span>
           )}
           {othersCounted > 0 && (
             <span>
-              <b className="text-gray-900">Petugas lain:</b> {othersCounted} item
+              <b className="text-gray-900 dark:text-gray-100">Petugas lain:</b> {othersCounted} item
             </span>
           )}
           {remaining > 0 && (
-            <span className="rounded-full bg-red-50 border border-red-200 px-2.5 py-0.5 font-semibold text-red-700">
+            <span className="rounded-full bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 px-2.5 py-0.5 font-semibold text-red-700 dark:text-red-300">
               {remaining} item belum dihitung
             </span>
           )}
           <span>
-            Total selisih: <b className="text-gray-900">{formatCurrency(totalDiscrepancyValue)}</b>
+            Total selisih: <b className="text-gray-900 dark:text-gray-100">{formatCurrency(totalDiscrepancyValue)}</b>
           </span>
         </div>
       </div>
 
       {/* Scan box */}
-      <form onSubmit={handleScanSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 relative">
-        <div className="flex items-center gap-3 rounded-lg border-2 border-primary-600 bg-white px-4 shadow-[0_0_0_4px_rgba(220,38,38,0.08)]">
-          <ScanBarcode className="w-5 h-5 text-primary-600" />
+      <form onSubmit={handleScanSubmit} className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-3 relative">
+        <div className="flex items-center gap-3 rounded-lg border-2 border-primary-600 bg-white dark:bg-gray-900 px-4 shadow-[0_0_0_4px_rgba(220,38,38,0.08)]">
+          <ScanBarcode className="w-5 h-5 text-primary-600 dark:text-primary-400" />
           <input
             ref={scanInputRef}
             autoFocus
@@ -623,26 +623,26 @@ export default function StockOpnameCount() {
             placeholder="Scan barcode, atau ketik nama/SKU lalu tekan Enter…"
             className="flex-1 border-none outline-none py-3 text-base bg-transparent"
           />
-          <kbd className="hidden sm:inline-block rounded border border-gray-300 border-b-2 bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600">
+          <kbd className="hidden sm:inline-block rounded border border-gray-300 dark:border-gray-600 border-b-2 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 text-xs font-semibold text-gray-600 dark:text-gray-400">
             Enter
           </kbd>
         </div>
         {scanMatches.length > 0 && (
-          <div className="absolute z-30 left-3 right-3 mt-2 border border-gray-200 rounded-lg bg-white shadow-lg max-h-64 overflow-y-auto">
+          <div className="absolute z-30 left-3 right-3 mt-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 shadow-lg max-h-64 overflow-y-auto">
             {scanMatches.map((m) => (
               <button
                 key={m.id}
                 type="button"
                 onClick={() => pickScanMatch(m)}
-                className="w-full px-4 py-3 text-left hover:bg-primary-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                className="w-full px-4 py-3 text-left hover:bg-primary-50 dark:hover:bg-primary-950 border-b border-gray-100 dark:border-gray-800 last:border-b-0 transition-colors"
               >
-                <div className="font-medium text-gray-900 flex items-center gap-2">
+                <div className="font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
                   {m.product?.name || '-'}
-                  <span className="text-[10px] rounded-full bg-gray-100 px-2 py-0.5 font-bold text-gray-500">
+                  <span className="text-[10px] rounded-full bg-gray-100 dark:bg-gray-800 px-2 py-0.5 font-bold text-gray-500 dark:text-gray-400">
                     {toNumber(m.liveQuantity)} stok
                   </span>
                 </div>
-                <div className="text-sm text-gray-500">
+                <div className="text-sm text-gray-500 dark:text-gray-400">
                   SKU: {m.product?.sku || '-'}
                   {m.product?.barcode ? ` • Barcode: ${m.product.barcode}` : ''}
                 </div>
@@ -650,9 +650,9 @@ export default function StockOpnameCount() {
             ))}
           </div>
         )}
-        <p className="text-[11px] text-gray-400 mt-2 px-1">
+        <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-2 px-1">
           Scanner USB (keyboard-wedge) langsung berfungsi — scan atau ketik → item muncul di kartu atas → isi jumlah →{' '}
-          <b className="text-primary-600">Enter</b> → otomatis lanjut ke item berikutnya.
+          <b className="text-primary-600 dark:text-primary-400">Enter</b> → otomatis lanjut ke item berikutnya.
         </p>
         {/* IGDERP-175 (QA R2 23 Sep): last scan result stays in the DOM */}
         {scanNotice && (
@@ -663,10 +663,10 @@ export default function StockOpnameCount() {
             data-kind={scanNotice.kind}
             className={`mt-2 px-3 py-2 rounded-lg text-xs font-medium ${
               scanNotice.kind === 'mismatch'
-                ? 'bg-red-50 border border-red-200 text-red-700'
+                ? 'bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300'
                 : scanNotice.kind === 'double'
-                  ? 'bg-amber-50 border border-amber-200 text-amber-700'
-                  : 'bg-green-50 border border-green-200 text-green-700'
+                  ? 'bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300'
+                  : 'bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
             }`}
           >
             {scanNotice.kind === 'mismatch' ? '🔍 ' : scanNotice.kind === 'double' ? '⚠️ ' : '✅ '}
@@ -677,39 +677,39 @@ export default function StockOpnameCount() {
 
       {/* Scanned item card */}
       {activeItem && (
-        <div className="rounded-xl border-2 border-primary-600 bg-red-50 p-4 shadow-[0_0_0_4px_rgba(220,38,38,0.08)]">
+        <div className="rounded-xl border-2 border-primary-600 bg-red-50 dark:bg-red-950 p-4 shadow-[0_0_0_4px_rgba(220,38,38,0.08)]">
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex-1 min-w-[200px]">
-              <div className="font-bold text-gray-900 flex items-center gap-2">
+              <div className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                 {activeItem.product?.name || '-'}
-                <span className="rounded-full bg-red-100 border border-red-200 px-2 py-0.5 text-[10px] font-bold text-red-700">
+                <span className="rounded-full bg-red-100 dark:bg-red-950 border border-red-200 dark:border-red-800 px-2 py-0.5 text-[10px] font-bold text-red-700 dark:text-red-300">
                   BARU DI-SCAN
                 </span>
               </div>
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-gray-500 dark:text-gray-400">
                 SKU: {activeItem.product?.sku || '-'}
                 {activeItem.product?.barcode ? ` · Barcode: ${activeItem.product.barcode}` : ''}
               </div>
             </div>
             <div className="text-center">
-              <div className="text-[10px] uppercase tracking-wide text-gray-500">
-                Stok Sistem <span className="text-green-600 font-semibold">● LIVE</span>
+              <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                Stok Sistem <span className="text-green-600 dark:text-green-400 font-semibold">● LIVE</span>
               </div>
-              <div className="text-2xl font-extrabold text-gray-900">
+              <div className="text-2xl font-extrabold text-gray-900 dark:text-gray-100">
                 {toNumber(activeItem.liveQuantity)}
               </div>
             </div>
             {/* IGDERP-175 step 1: condition first — no default */}
             <div className="text-center">
               <div
-                className={`text-[10px] uppercase tracking-wide font-bold ${activeCond ? 'text-gray-500' : 'text-primary-600'}`}
+                className={`text-[10px] uppercase tracking-wide font-bold ${activeCond ? 'text-gray-500 dark:text-gray-400' : 'text-primary-600 dark:text-primary-400'}`}
               >
                 1 · Kondisi {activeCond ? '✓' : 'dulu'}
               </div>
               <select
                 value={activeCond}
                 onChange={(e) => pickCondition(e.target.value as Condition | '')}
-                className={`h-11 rounded-lg border-2 bg-white px-3 text-sm ${activeCond ? 'border-gray-300' : 'border-primary-600'}`}
+                className={`h-11 rounded-lg border-2 bg-white px-3 text-sm ${activeCond ? 'border-gray-300 dark:border-gray-600' : 'border-primary-600'}`}
               >
                 <option value="">— Pilih —</option>
                 <option value="good">Baik</option>
@@ -719,7 +719,7 @@ export default function StockOpnameCount() {
             </div>
             {/* IGDERP-175 step 2: qty locked until condition chosen */}
             <div className="text-center">
-              <div className="text-[10px] uppercase tracking-wide text-gray-500">
+              <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
                 2 · Jumlah {activeCond ? '' : '(terkunci)'}
               </div>
               <input
@@ -737,15 +737,15 @@ export default function StockOpnameCount() {
                 }}
                 placeholder={activeCond ? 'Jumlah' : '—'}
                 className={`w-28 h-11 rounded-lg border-2 px-3 text-xl font-bold text-center outline-none ${
-                  activeCond ? 'border-primary-600 bg-white' : 'border-gray-300 bg-gray-100 text-gray-400'
+                  activeCond ? 'border-primary-600 bg-white dark:bg-gray-900' : 'border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500'
                 }`}
               />
               {activeCond &&
                 counts[activeItem.id] !== undefined &&
                 counts[activeItem.id] !== '' && (
-                  <div className="text-[11px] mt-1 text-gray-500">
+                  <div className="text-[11px] mt-1 text-gray-500 dark:text-gray-400">
                     selisih{' '}
-                    <b className={toNumber(counts[activeItem.id]) - toNumber(activeItem.liveQuantity) < 0 ? 'text-red-600' : 'text-green-600'}>
+                    <b className={toNumber(counts[activeItem.id]) - toNumber(activeItem.liveQuantity) < 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}>
                       {toNumber(counts[activeItem.id]) - toNumber(activeItem.liveQuantity) > 0 ? '+' : ''}
                       {toNumber(counts[activeItem.id]) - toNumber(activeItem.liveQuantity)}
                     </b>
@@ -762,7 +762,7 @@ export default function StockOpnameCount() {
             </button>
             <button
               onClick={() => setActiveItemId(null)}
-              className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              className="rounded-lg p-2 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-400"
               title="Tutup"
             >
               <X className="w-4 h-4" />
@@ -770,7 +770,7 @@ export default function StockOpnameCount() {
           </div>
           {/* IGDERP-175: different condition already counted → this save creates a second row */}
           {diffCounted.length > 0 && (
-            <div className="mt-2 text-xs text-blue-800 bg-blue-50 border border-blue-200 rounded-lg px-3 py-1.5">
+            <div className="mt-2 text-xs text-blue-800 dark:text-blue-200 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg px-3 py-1.5">
               Sudah ada:{' '}
               {diffCounted
                 .map((r) => `${condLabel(r.condition || 'good')} ${toNumber(r.physicalQuantity)}`)
@@ -867,7 +867,7 @@ export default function StockOpnameCount() {
             value={bigNote}
             onChange={(e) => setBigNote(e.target.value)}
             placeholder="Catatan (opsional)"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500"
+            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm outline-none focus:border-primary-500"
           />
           <div className="flex justify-end gap-2">
             <Button variant="outline" size="sm" onClick={() => setBigSave(null)}>
@@ -890,25 +890,25 @@ export default function StockOpnameCount() {
       </Dialog>
 
       {/* Grid */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="flex items-center justify-between px-4 pt-3 pb-1">
-          <span className="text-sm font-bold text-gray-900">Daftar Item ({totalItems})</span>
+          <span className="text-sm font-bold text-gray-900 dark:text-gray-100">Daftar Item ({totalItems})</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-gray-50 dark:bg-gray-950 border-b border-gray-200 dark:border-gray-700">
               <tr>
-                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-700 uppercase">Produk</th>
-                <th className="px-4 py-2.5 text-right text-[11px] font-bold text-gray-700 uppercase">
-                  Stok Sistem <span className="text-green-600">● live</span>
+                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase">Produk</th>
+                <th className="px-4 py-2.5 text-right text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase">
+                  Stok Sistem <span className="text-green-600 dark:text-green-400">● live</span>
                 </th>
-                <th className="px-4 py-2.5 text-right text-[11px] font-bold text-gray-700 uppercase">Stok Fisik</th>
-                <th className="px-4 py-2.5 text-right text-[11px] font-bold text-gray-700 uppercase">Selisih</th>
-                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-700 uppercase">Kondisi</th>
-                <th className="px-4 py-2.5 text-center text-[11px] font-bold text-gray-700 uppercase">Status</th>
+                <th className="px-4 py-2.5 text-right text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase">Stok Fisik</th>
+                <th className="px-4 py-2.5 text-right text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase">Selisih</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase">Kondisi</th>
+                <th className="px-4 py-2.5 text-center text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {opname.items.map((item) => {
                 const liveQty = toNumber(item.liveQuantity);
                 const physRaw = counts[item.id];
@@ -923,23 +923,23 @@ export default function StockOpnameCount() {
                   <tr
                     key={item.id}
                     id={`opname-row-${item.id}`}
-                    className={`${isActive ? 'bg-red-50' : 'hover:bg-gray-50'} ${isLarge && counted ? 'bg-yellow-50' : ''}`}
+                    className={`${isActive ? 'bg-red-50 dark:bg-red-950' : 'hover:bg-gray-50 dark:hover:bg-gray-800'} ${isLarge && counted ? 'bg-yellow-50 dark:bg-yellow-950' : ''}`}
                   >
                     <td className="px-4 py-2.5">
-                      <div className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
-                        {counted && <span className="text-green-600">✓</span>}
+                      <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
+                        {counted && <span className="text-green-600 dark:text-green-400">✓</span>}
                         {item.product?.name || '-'}
                       </div>
-                      <div className="text-[11px] text-gray-400">
+                      <div className="text-[11px] text-gray-400 dark:text-gray-500">
                         SKU: {item.product?.sku || '-'}
                         {isActive && (
-                          <span className="ml-2 rounded-full bg-red-100 border border-red-200 px-2 py-0.5 text-[10px] font-bold text-red-700">
+                          <span className="ml-2 rounded-full bg-red-100 dark:bg-red-950 border border-red-200 dark:border-red-800 px-2 py-0.5 text-[10px] font-bold text-red-700 dark:text-red-300">
                             BELUM DISIMPAN
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-2.5 text-right text-sm font-bold text-gray-900">{liveQty}</td>
+                    <td className="px-4 py-2.5 text-right text-sm font-bold text-gray-900 dark:text-gray-100">{liveQty}</td>
                     <td className="px-4 py-2.5 text-right">
                       <input
                         type="number"
@@ -948,7 +948,7 @@ export default function StockOpnameCount() {
                         onChange={(e) => setCounts({ ...counts, [item.id]: e.target.value })}
                         placeholder="—"
                         className={`w-20 rounded-lg border px-2 py-1 text-sm text-right outline-none ${
-                          isActive ? 'border-primary-600 bg-white' : 'border-gray-300 bg-white focus:border-primary-500'
+                          isActive ? 'border-primary-600 bg-white dark:bg-gray-900' : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 focus:border-primary-500'
                         }`}
                       />
                     </td>
@@ -957,20 +957,20 @@ export default function StockOpnameCount() {
                         <>
                           <div
                             className={`text-sm font-bold ${
-                              discrepancy > 0 ? 'text-green-600' : discrepancy < 0 ? 'text-red-600' : 'text-gray-400'
+                              discrepancy > 0 ? 'text-green-600 dark:text-green-400' : discrepancy < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-400 dark:text-gray-500'
                             }`}
                           >
                             {discrepancy > 0 ? '+' : ''}
                             {discrepancy} ({pct.toFixed(1)}%)
                           </div>
                           {isLarge && (
-                            <div className="text-[10px] text-yellow-600 font-semibold flex items-center justify-end gap-0.5">
+                            <div className="text-[10px] text-yellow-600 dark:text-yellow-400 font-semibold flex items-center justify-end gap-0.5">
                               <AlertTriangle className="w-3 h-3" /> &gt; 5%
                             </div>
                           )}
                         </>
                       ) : (
-                        <span className="text-gray-300 font-semibold">—</span>
+                        <span className="text-gray-300 dark:text-gray-600 font-semibold">—</span>
                       )}
                     </td>
                     <td className="px-4 py-2.5">
@@ -979,7 +979,7 @@ export default function StockOpnameCount() {
                         onChange={(e) =>
                           setConditions({ ...conditions, [item.id]: e.target.value as Condition })
                         }
-                        className="rounded-lg border border-gray-300 bg-white px-1.5 py-1 text-xs"
+                        className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-1.5 py-1 text-xs"
                       >
                         <option value="good">Baik</option>
                         <option value="damaged">Rusak</option>
@@ -990,23 +990,23 @@ export default function StockOpnameCount() {
                       <div className="flex items-center justify-center gap-1.5">
                         {counted ? (
                           <>
-                            <span className="text-[11px] text-gray-400">
+                            <span className="text-[11px] text-gray-400 dark:text-gray-500">
                               ✓ {item.countedBy === me.id ? 'Anda' : 'Petugas lain'}
                             </span>
                             {item.notes && (
-                              <span title={item.notes} className="text-[11px] text-gray-400 cursor-help">
+                              <span title={item.notes} className="text-[11px] text-gray-400 dark:text-gray-500 cursor-help">
                                 📝
                               </span>
                             )}
                           </>
                         ) : (
-                          <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[10px] font-bold text-gray-500">
+                          <span className="rounded-full bg-gray-100 dark:bg-gray-800 px-2.5 py-0.5 text-[10px] font-bold text-gray-500 dark:text-gray-400">
                             BELUM DIHITUNG
                           </span>
                         )}
                         <button
                           onClick={() => handleRemove(item)}
-                          className="rounded p-1 text-gray-300 hover:bg-red-50 hover:text-red-600"
+                          className="rounded p-1 text-gray-300 dark:text-gray-600 hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-600 dark:hover:text-red-400"
                           title="Hapus dari opname"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -1019,7 +1019,7 @@ export default function StockOpnameCount() {
             </tbody>
           </table>
         </div>
-        <div className="px-4 py-2 text-[11px] text-gray-400">
+        <div className="px-4 py-2 text-[11px] text-gray-400 dark:text-gray-500">
           Stok Sistem = stok saat ini (live); berubah jika ada transaksi POS selama SO berjalan. Baris kuning = selisih &gt; 5%.
         </div>
       </div>
@@ -1028,7 +1028,7 @@ export default function StockOpnameCount() {
       <div className="flex flex-wrap items-center gap-2.5 pb-2">
         <Link
           to={`/inventory/opname/${id}`}
-          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
         >
           <ArrowLeft className="w-4 h-4" />
           Kembali ke Detail
@@ -1037,7 +1037,7 @@ export default function StockOpnameCount() {
         <button
           onClick={handleCancel}
           disabled={cancelMutation.isPending}
-          className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-lg border border-red-200 dark:border-red-800 bg-white dark:bg-gray-900 px-4 py-2.5 text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 disabled:opacity-50"
         >
           <X className="w-4 h-4" />
           Batalkan SO
@@ -1045,7 +1045,7 @@ export default function StockOpnameCount() {
         <button
           onClick={handleSaveAll}
           disabled={recordMutation.isPending}
-          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-4 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50"
         >
           <Save className="w-4 h-4" />
           {recordMutation.isPending ? 'Menyimpan…' : 'Draft SO'}
@@ -1072,13 +1072,13 @@ export default function StockOpnameCount() {
             </DialogDescription>
           </DialogHeader>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
             <input
               autoFocus
               value={addSearch}
               onChange={(e) => setAddSearch(e.target.value)}
               placeholder="Cari nama produk / SKU / barcode..."
-              className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 pl-9 pr-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
             />
           </div>
           <AddProductResults
@@ -1118,23 +1118,23 @@ function AddProductResults({
   const list: any[] = data || [];
 
   if (!search.trim()) {
-    return <p className="text-sm text-gray-400 py-4 text-center">Ketik untuk mencari produk…</p>;
+    return <p className="text-sm text-gray-400 dark:text-gray-500 py-4 text-center">Ketik untuk mencari produk…</p>;
   }
 
   if (isLoading) {
     return (
       <div className="flex justify-center py-6">
-        <Loader2 className="w-6 h-6 text-primary-600 animate-spin" />
+        <Loader2 className="w-6 h-6 text-primary-600 dark:text-primary-400 animate-spin" />
       </div>
     );
   }
 
   if (list.length === 0) {
-    return <p className="text-sm text-gray-400 py-4 text-center">Produk tidak ditemukan</p>;
+    return <p className="text-sm text-gray-400 dark:text-gray-500 py-4 text-center">Produk tidak ditemukan</p>;
   }
 
   return (
-    <div className="max-h-72 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100">
+    <div className="max-h-72 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg divide-y divide-gray-100 dark:divide-gray-800">
       {list.map((p: any) => {
         const already = existingIds.has(p.id);
         return (
@@ -1147,13 +1147,13 @@ function AddProductResults({
             }`}
           >
             <span>
-              <span className="font-semibold text-gray-900 block">{p.name}</span>
-              <span className="text-[11px] text-gray-400">
+              <span className="font-semibold text-gray-900 dark:text-gray-100 block">{p.name}</span>
+              <span className="text-[11px] text-gray-400 dark:text-gray-500">
                 SKU: {p.sku}
                 {p.barcode ? ` · ${p.barcode}` : ''}
               </span>
             </span>
-            <span className="text-[11px] font-semibold text-primary-600 shrink-0">
+            <span className="text-[11px] font-semibold text-primary-600 dark:text-primary-400 shrink-0">
               {already ? 'Sudah ada' : '+ Tambah'}
             </span>
           </button>

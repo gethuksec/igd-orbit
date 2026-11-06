@@ -61,8 +61,8 @@ export default function StockOpnameDetail() {
     return (
       <div className="w-full flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-16 h-16 text-primary-600 animate-spin" />
-          <p className="text-gray-600 font-semibold text-lg">Memuat data opname...</p>
+          <Loader2 className="w-16 h-16 text-primary-600 dark:text-primary-400 animate-spin" />
+          <p className="text-gray-600 dark:text-gray-400 font-semibold text-lg">Memuat data opname...</p>
         </div>
       </div>
     );
@@ -71,8 +71,8 @@ export default function StockOpnameDetail() {
   if (error || !opname) {
     return (
       <div className="w-full space-y-3">
-        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
-          <p className="text-red-800 font-medium">
+        <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
+          <p className="text-red-800 dark:text-red-200 font-medium">
             {(error as Error)?.message || 'Opname tidak ditemukan'}
           </p>
         </div>
@@ -98,17 +98,17 @@ export default function StockOpnameDetail() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'draft':
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700';
       case 'counting':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-800';
       case 'completed':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return 'bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800';
       case 'approved':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800';
       case 'cancelled':
-        return 'bg-red-50 text-red-700 border-red-200';
+        return 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700';
     }
   };
 
@@ -210,76 +210,76 @@ export default function StockOpnameDetail() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600">Total Item</span>
-            <Package className="w-5 h-5 text-primary-600" />
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Item</span>
+            <Package className="w-5 h-5 text-primary-600 dark:text-primary-400" />
           </div>
-          <h3 className="text-2xl font-bold text-gray-900">{totalItems}</h3>
-          <p className="text-xs text-gray-500 mt-1">
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{totalItems}</h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
             {countedItems} sudah dihitung ({Math.round((countedItems / totalItems) * 100)}%)
           </p>
         </div>
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600">Nilai Discrepancy</span>
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Nilai Discrepancy</span>
             {totalDiscrepancyValue > 0 ? (
-              <TrendingUp className="w-5 h-5 text-green-600" />
+              <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
             ) : totalDiscrepancyValue < 0 ? (
-              <TrendingDown className="w-5 h-5 text-red-600" />
+              <TrendingDown className="w-5 h-5 text-red-600 dark:text-red-400" />
             ) : (
-              <CheckCircle className="w-5 h-5 text-gray-600" />
+              <CheckCircle className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             )}
           </div>
           <h3
             className={`text-2xl font-bold ${
               totalDiscrepancyValue > 0
-                ? 'text-green-600'
+                ? 'text-green-600 dark:text-green-400'
                 : totalDiscrepancyValue < 0
-                  ? 'text-red-600'
-                  : 'text-gray-900'
+                  ? 'text-red-600 dark:text-red-400'
+                  : 'text-gray-900 dark:text-gray-100'
             }`}
           >
             {/* IGDERP-193: signed netto (header = sum of signed rows) */}
             {totalDiscrepancyValue > 0 ? '+' : totalDiscrepancyValue < 0 ? '−' : ''}
             {formatCurrency(Math.abs(totalDiscrepancyValue))}
           </h3>
-          <p className="text-xs text-gray-500 mt-1">Netto semua item · dasar harga beli</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Netto semua item · dasar harga beli</p>
         </div>
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600">Item dengan Discrepancy</span>
-            <AlertTriangle className="w-5 h-5 text-yellow-600" />
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Item dengan Discrepancy</span>
+            <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
           </div>
-          <h3 className="text-2xl font-bold text-gray-900">
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
             {opname.items.filter((item) => Number(item.discrepancy || 0) !== 0).length}
           </h3>
         </div>
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600">Discrepancy {'>'} 5%</span>
-            <AlertTriangle className="w-5 h-5 text-red-600" />
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Discrepancy {'>'} 5%</span>
+            <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
           </div>
-          <h3 className="text-2xl font-bold text-red-600">{itemsWithLargeDiscrepancy.length}</h3>
-          <p className="text-xs text-gray-500 mt-1">Perlu investigasi</p>
+          <h3 className="text-2xl font-bold text-red-600 dark:text-red-400">{itemsWithLargeDiscrepancy.length}</h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Perlu investigasi</p>
         </div>
       </div>
 
       {/* Opname Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <ClipboardCheck className="w-5 h-5 text-primary-600" />
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <ClipboardCheck className="w-5 h-5 text-primary-600 dark:text-primary-400" />
             Informasi Opname
           </h2>
           <div className="space-y-3">
             <div>
-              <p className="text-sm text-gray-600">Cabang</p>
-              <p className="text-base font-semibold text-gray-900">{opname.branch?.name || '-'}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Cabang</p>
+              <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{opname.branch?.name || '-'}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Tanggal Opname</p>
-              <p className="text-base font-semibold text-gray-900">
+              <p className="text-sm text-gray-600 dark:text-gray-400">Tanggal Opname</p>
+              <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
                 {new Date(opname.opnameDate).toLocaleDateString('id-ID', {
                   day: '2-digit',
                   month: 'long',
@@ -289,36 +289,36 @@ export default function StockOpnameDetail() {
             </div>
             {opname.completedAt && (
               <div>
-                <p className="text-sm text-gray-600">Selesai Pada</p>
-                <p className="text-base font-semibold text-gray-900">
+                <p className="text-sm text-gray-600 dark:text-gray-400">Selesai Pada</p>
+                <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
                   {new Date(opname.completedAt).toLocaleString('id-ID')}
                 </p>
               </div>
             )}
             {opname.approvedAt && (
               <div>
-                <p className="text-sm text-gray-600">Disetujui Pada</p>
-                <p className="text-base font-semibold text-gray-900">
+                <p className="text-sm text-gray-600 dark:text-gray-400">Disetujui Pada</p>
+                <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
                   {new Date(opname.approvedAt).toLocaleString('id-ID')}
                 </p>
               </div>
             )}
             {opname.notes && (
               <div>
-                <p className="text-sm text-gray-600">Catatan</p>
-                <p className="text-base text-gray-900">{opname.notes}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Catatan</p>
+                <p className="text-base text-gray-900 dark:text-gray-100">{opname.notes}</p>
               </div>
             )}
           </div>
         </div>
 
         {itemsWithLargeDiscrepancy.length > 0 && (
-          <div className="bg-yellow-50 border-l-4 border-yellow-500 rounded-xl shadow-md p-6">
+          <div className="bg-yellow-50 dark:bg-yellow-950 border-l-4 border-yellow-500 rounded-xl shadow-md p-6">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="w-6 h-6 text-yellow-600 mt-1" />
+              <AlertTriangle className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mt-1" />
               <div>
-                <h3 className="text-lg font-bold text-yellow-900 mb-2">Peringatan</h3>
-                <p className="text-sm text-yellow-800">
+                <h3 className="text-lg font-bold text-yellow-900 dark:text-yellow-100 mb-2">Peringatan</h3>
+                <p className="text-sm text-yellow-800 dark:text-yellow-200">
                   Terdapat {itemsWithLargeDiscrepancy.length} item dengan discrepancy lebih dari 5%. Harap
                   lakukan investigasi sebelum menyetujui opname ini.
                 </p>
@@ -329,19 +329,19 @@ export default function StockOpnameDetail() {
       </div>
 
       {/* Items List */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <Package className="w-5 h-5 text-primary-600" />
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+            <Package className="w-5 h-5 text-primary-600 dark:text-primary-400" />
             Daftar Item
           </h2>
           <div className="flex items-center gap-2">
             {/* IGDERP-177: variance analytics filter */}
-            <span className="text-xs text-gray-500">tampilkan:</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">tampilkan:</span>
             <select
               value={varianceFilter}
               onChange={(e) => setVarianceFilter(e.target.value as 'all' | 'diff' | 'big')}
-              className="h-8 rounded-md border border-gray-300 bg-white px-2 text-xs"
+              className="h-8 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-2 text-xs"
             >
               <option value="all">semua</option>
               <option value="diff">selisih saja</option>
@@ -360,22 +360,22 @@ export default function StockOpnameDetail() {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+            <thead className="bg-gradient-to-r from-gray-50 dark:from-gray-900 to-gray-100 dark:to-gray-800 border-b border-gray-200 dark:border-gray-700">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Produk</th>
-                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">Stok Sistem</th>
-                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Produk</th>
+                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Stok Sistem</th>
+                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">
                   Stok Fisik
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">Discrepancy</th>
-                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">
+                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Discrepancy</th>
+                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">
                   Nilai Discrepancy
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Kondisi</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Catatan</th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Kondisi</th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Catatan</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {visibleItems.map((item) => {
                 const systemQty = Number(item.systemQuantity);
                 const physicalQty = Number(item.physicalQuantity || 0);
@@ -389,36 +389,36 @@ export default function StockOpnameDetail() {
                   <tr
                     key={item.id}
                     className={`hover:bg-gray-50 ${
-                      isLargeDiscrepancy ? 'bg-yellow-50' : isNotCounted ? 'bg-gray-50' : ''
+                      isLargeDiscrepancy ? 'bg-yellow-50 dark:bg-yellow-950' : isNotCounted ? 'bg-gray-50 dark:bg-gray-950' : ''
                     }`}
                   >
                     <td className="px-4 py-3">
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {item.product?.name || '-'}
                       </div>
-                      <div className="text-xs text-gray-500">SKU: {item.product?.sku || '-'}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">SKU: {item.product?.sku || '-'}</div>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <div className="text-sm font-semibold text-gray-900">{systemQty}</div>
+                      <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{systemQty}</div>
                     </td>
                     <td className="px-4 py-3 text-right">
                       {isNotCounted ? (
-                        <span className="text-sm text-gray-400 italic">Belum dihitung</span>
+                        <span className="text-sm text-gray-400 dark:text-gray-500 italic">Belum dihitung</span>
                       ) : (
-                        <div className="text-sm font-semibold text-gray-900">{physicalQty}</div>
+                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{physicalQty}</div>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
                       {isNotCounted ? (
-                        <span className="text-sm text-gray-400">-</span>
+                        <span className="text-sm text-gray-400 dark:text-gray-500">-</span>
                       ) : (
                         <div
                           className={`text-sm font-semibold ${
                             discrepancy > 0
-                              ? 'text-green-600'
+                              ? 'text-green-600 dark:text-green-400'
                               : discrepancy < 0
-                                ? 'text-red-600'
-                                : 'text-gray-900'
+                                ? 'text-red-600 dark:text-red-400'
+                                : 'text-gray-900 dark:text-gray-100'
                           }`}
                         >
                           {discrepancy > 0 ? '+' : ''}
@@ -428,15 +428,15 @@ export default function StockOpnameDetail() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       {isNotCounted ? (
-                        <span className="text-sm text-gray-400">-</span>
+                        <span className="text-sm text-gray-400 dark:text-gray-500">-</span>
                       ) : (
                         <div
                           className={`text-sm font-semibold ${
                             discrepancyValue > 0
-                              ? 'text-green-600'
+                              ? 'text-green-600 dark:text-green-400'
                               : discrepancyValue < 0
-                                ? 'text-red-600'
-                                : 'text-gray-900'
+                                ? 'text-red-600 dark:text-red-400'
+                                : 'text-gray-900 dark:text-gray-100'
                           }`}
                         >
                           {/* IGDERP-193: signed row nominal (matches netto header) */}
@@ -447,15 +447,15 @@ export default function StockOpnameDetail() {
                     </td>
                     <td className="px-4 py-3">
                       {isNotCounted ? (
-                        <span className="text-sm text-gray-400">-</span>
+                        <span className="text-sm text-gray-400 dark:text-gray-500">-</span>
                       ) : (
                         <span
                           className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${
                             item.condition === 'damaged'
-                              ? 'bg-red-100 text-red-800'
+                              ? 'bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-200'
                               : item.condition === 'expired'
-                                ? 'bg-orange-100 text-orange-800'
-                                : 'bg-green-100 text-green-800'
+                                ? 'bg-orange-100 dark:bg-orange-950 text-orange-800 dark:text-orange-200'
+                                : 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200'
                           }`}
                         >
                           {item.condition === 'damaged'
@@ -467,7 +467,7 @@ export default function StockOpnameDetail() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="text-sm text-gray-900">{item.notes || '-'}</div>
+                      <div className="text-sm text-gray-900 dark:text-gray-100">{item.notes || '-'}</div>
                     </td>
                   </tr>
                 );

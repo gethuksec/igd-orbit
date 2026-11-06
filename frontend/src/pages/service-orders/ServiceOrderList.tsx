@@ -65,15 +65,15 @@ export default function ServiceOrderList() {
 
   const getStatusBadge = (status: string) => {
     const s = String(status || '').toLowerCase();
-    let classes = 'bg-gray-100 text-gray-800 border-gray-200';
+    let classes = 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700';
     if (['pending', 'diagnosed', 'quoted', 'approved'].includes(s))
-      classes = 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      classes = 'bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800';
     else if (['in-progress', 'qc'].includes(s))
-      classes = 'bg-blue-100 text-blue-800 border-blue-200';
+      classes = 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-800';
     else if (['completed', 'delivered'].includes(s))
-      classes = 'bg-green-100 text-green-800 border-green-200';
+      classes = 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800';
     else if (s === 'cancelled')
-      classes = 'bg-red-100 text-red-800 border-red-200';
+      classes = 'bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800';
     return (
       <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${classes}`}>
         {status}
@@ -88,7 +88,7 @@ export default function ServiceOrderList() {
       cell: (order) => (
         <Link
           to={`/service-orders/${order.id}`}
-          className="text-sm font-semibold text-primary-600 hover:text-primary-700 hover:underline transition-colors"
+          className="text-sm font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 hover:underline transition-colors"
         >
           {order.serviceNumber}
         </Link>
@@ -104,7 +104,7 @@ export default function ServiceOrderList() {
         return (
           <div>
             {customerId ? (
-              <Link to={`/customers/${customerId}`} className="text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors hover:underline">
+              <Link to={`/customers/${customerId}`} className="text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors hover:underline">
                 {customerName}
               </Link>
             ) : (
@@ -139,8 +139,8 @@ export default function ServiceOrderList() {
       />
 
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
-          <p className="text-red-800 font-medium">{(error as Error).message || 'Terjadi kesalahan'}</p>
+        <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
+          <p className="text-red-800 dark:text-red-200 font-medium">{(error as Error).message || 'Terjadi kesalahan'}</p>
         </div>
       )}
 
@@ -220,11 +220,11 @@ export default function ServiceOrderList() {
 
       {/* Pagination */}
       {!isLoading && orders.length > 0 && pagination.totalPages > 1 && (
-        <div className="bg-white px-6 py-4 rounded-xl border border-gray-200 flex items-center justify-between">
-          <div className="text-sm text-gray-700">
+        <div className="bg-white dark:bg-gray-900 px-6 py-4 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <div className="text-sm text-gray-700 dark:text-gray-300">
             Menampilkan {orders.length} dari{' '}
             <span className="font-semibold">{pagination.total}</span> service order
-            <span className="ml-2 text-gray-500">
+            <span className="ml-2 text-gray-500 dark:text-gray-400">
               (Halaman {pagination.page} dari {pagination.totalPages})
             </span>
           </div>

@@ -72,7 +72,7 @@ export default function CustomerDetail() {
   const depositBalance = Number((customer as any)?.depositBalance || 0);
 
   const getTierColor = (tier: { code: string; name: string } | null | string) => {
-    if (!tier) return 'bg-gray-100 text-gray-700 border-gray-300';
+    if (!tier) return 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600';
     const tierCode = typeof tier === 'string' ? tier : tier.code?.toUpperCase();
     switch (tierCode) {
       case 'PLATINUM':
@@ -104,7 +104,7 @@ export default function CustomerDetail() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
+        <Loader2 className="w-8 h-8 text-primary-600 dark:text-primary-400 animate-spin" />
       </div>
     );
   }
@@ -112,14 +112,14 @@ export default function CustomerDetail() {
   if (error) {
     return (
       <div className="w-full text-center py-12">
-        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm max-w-md mx-auto">
-          <p className="text-red-800 font-medium">
+        <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4 shadow-sm max-w-md mx-auto">
+          <p className="text-red-800 dark:text-red-200 font-medium">
             {(error as Error).message || 'Terjadi kesalahan saat memuat data pelanggan'}
           </p>
         </div>
         <button
           onClick={() => navigate('/customers')}
-          className="mt-4 text-primary-600 hover:text-primary-700 font-medium"
+          className="mt-4 text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium"
         >
           Kembali ke daftar pelanggan
         </button>
@@ -130,10 +130,10 @@ export default function CustomerDetail() {
   if (!customer) {
     return (
       <div className="w-full text-center py-12">
-        <p className="text-gray-600 text-lg">Pelanggan tidak ditemukan</p>
+        <p className="text-gray-600 dark:text-gray-400 text-lg">Pelanggan tidak ditemukan</p>
         <button
           onClick={() => navigate('/customers')}
-          className="mt-4 text-primary-600 hover:text-primary-700 font-medium"
+          className="mt-4 text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium"
         >
           Kembali ke daftar pelanggan
         </button>
@@ -146,12 +146,12 @@ export default function CustomerDetail() {
   return (
     <div className="w-full space-y-4">
       {/* Compact Header */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate('/customers')}
-              className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
@@ -160,10 +160,10 @@ export default function CustomerDetail() {
                 {customer.name.charAt(0).toUpperCase()}
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">{customer.name}</h1>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{customer.name}</h1>
                 <div className="flex items-center gap-3 mt-1">
-                  <span className="text-sm text-gray-500 font-mono">{customer.customerCode}</span>
-                  <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded">
+                  <span className="text-sm text-gray-500 dark:text-gray-400 font-mono">{customer.customerCode}</span>
+                  <span className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded">
                     {customer.customerType === 'retail' ? 'Retail' : customer.customerType === 'wholesale' ? 'Wholesale' : 'Corporate'}
                   </span>
                   <span
@@ -274,33 +274,33 @@ export default function CustomerDetail() {
           </div>
 
           {/* Deposit — Saldo & Riwayat */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <Wallet className="w-5 h-5 text-primary-600" />
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+              <Wallet className="w-5 h-5 text-primary-600 dark:text-primary-400" />
               Saldo Deposit
-              <span className="ml-auto text-xs font-medium text-gray-400">Pencatatan kredit customer — bukan wallet</span>
+              <span className="ml-auto text-xs font-medium text-gray-400 dark:text-gray-500">Pencatatan kredit customer — bukan wallet</span>
             </h2>
 
-            <div className="border border-red-100 bg-gradient-to-br from-white to-red-50 rounded-xl p-4 flex flex-wrap items-end justify-between gap-3">
+            <div className="border border-red-100 bg-gradient-to-br from-white dark:from-gray-900 to-red-50 dark:to-red-950 rounded-xl p-4 flex flex-wrap items-end justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold text-red-700">Saldo tersedia</p>
-                <p className="text-3xl font-extrabold text-red-800 tracking-tight mt-1">
+                <p className="text-xs font-semibold text-red-700 dark:text-red-300">Saldo tersedia</p>
+                <p className="text-3xl font-extrabold text-red-800 dark:text-red-200 tracking-tight mt-1">
                   {depositBalance.toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 })}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">Terakhir diperbarui: {depositEntries.length > 0 ? new Date(depositEntries[0].createdAt).toLocaleString('id-ID') : '-'}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Terakhir diperbarui: {depositEntries.length > 0 ? new Date(depositEntries[0].createdAt).toLocaleString('id-ID') : '-'}</p>
               </div>
               <div className="text-right">
-                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-green-800 bg-green-50 border border-green-200 rounded-full px-3 py-1">
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-green-800 dark:text-green-200 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-full px-3 py-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-500" /> Tersedia untuk POS
                 </span>
-                <p className="text-[11px] text-red-700 mt-1.5">Dicatat di sistem · uang riil tidak ditampung</p>
+                <p className="text-[11px] text-red-700 dark:text-red-300 mt-1.5">Dicatat di sistem · uang riil tidak ditampung</p>
               </div>
             </div>
 
             {/* Deposit ledger */}
             <div className="mt-5">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-bold text-gray-900">Riwayat Deposit</p>
+                <p className="text-sm font-bold text-gray-900 dark:text-gray-100">Riwayat Deposit</p>
                 <div className="flex items-center gap-1.5">
                   {(['all', 'in', 'out'] as const).map((f) => (
                     <button
@@ -308,8 +308,8 @@ export default function CustomerDetail() {
                       onClick={() => setDepositFilter(f)}
                       className={`px-2.5 py-1 rounded-md text-xs font-semibold border transition-colors ${
                         depositFilter === f
-                          ? 'text-primary-600 bg-primary-50 border-red-200'
-                          : 'text-gray-500 border-gray-200 bg-white hover:bg-gray-50'
+                          ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950 border-red-200 dark:border-red-800'
+                          : 'text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800'
                       }`}
                     >
                       {f === 'all' ? 'Semua' : f === 'in' ? 'Masuk' : 'Keluar'}
@@ -319,7 +319,7 @@ export default function CustomerDetail() {
               </div>
 
               {filteredDeposits.length === 0 ? (
-                <div className="text-center py-8 text-gray-400">
+                <div className="text-center py-8 text-gray-400 dark:text-gray-500">
                   <Wallet className="w-8 h-8 mx-auto mb-2 opacity-30" />
                   <p className="text-sm font-medium">Belum ada riwayat deposit</p>
                 </div>
@@ -327,7 +327,7 @@ export default function CustomerDetail() {
                 <div className="overflow-x-auto -mx-5 px-5">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-gray-200 text-left text-[11px] uppercase tracking-wider text-gray-500">
+                      <tr className="border-b border-gray-200 dark:border-gray-700 text-left text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">
                         <th className="py-2 pr-3 font-bold">Tanggal</th>
                         <th className="py-2 pr-3 font-bold">Jenis</th>
                         <th className="py-2 pr-3 font-bold">Referensi</th>
@@ -338,25 +338,25 @@ export default function CustomerDetail() {
                     </thead>
                     <tbody>
                       {filteredDeposits.slice(0, 5).map((d: any) => (
-                        <tr key={d.id} className="border-b border-gray-100 last:border-0">
-                          <td className="py-2.5 pr-3 text-gray-500 whitespace-nowrap">
+                        <tr key={d.id} className="border-b border-gray-100 dark:border-gray-800 last:border-0">
+                          <td className="py-2.5 pr-3 text-gray-500 dark:text-gray-400 whitespace-nowrap">
                             <span className="inline-flex items-center gap-1.5">
                               {d.amount > 0 ? (
-                                <ArrowDownLeft className="w-3.5 h-3.5 text-green-600" />
+                                <ArrowDownLeft className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
                               ) : (
-                                <ArrowUpRight className="w-3.5 h-3.5 text-orange-500" />
+                                <ArrowUpRight className="w-3.5 h-3.5 text-orange-500 dark:text-orange-400" />
                               )}
                               {new Date(d.createdAt).toLocaleDateString('id-ID')}
                             </span>
                           </td>
                           <td className="py-2.5 pr-3">
-                            <span className={`text-xs font-semibold ${d.amount > 0 ? 'text-green-700' : 'text-orange-700'}`}>
+                            <span className={`text-xs font-semibold ${d.amount > 0 ? 'text-green-700 dark:text-green-300' : 'text-orange-700 dark:text-orange-300'}`}>
                               {d.type === 'return_credit' ? 'Kredit retur' : d.type === 'payment_used' ? 'Dipakai' : d.type === 'refund' ? 'Refund' : d.type}
                             </span>
                           </td>
-                          <td className="py-2.5 pr-3 text-blue-600 font-mono text-xs whitespace-nowrap">{d.referenceId ? d.referenceId.slice(0, 8) : '-'}</td>
-                          <td className="py-2.5 pr-3 text-gray-600">{d.notes || '-'}</td>
-                          <td className={`py-2.5 pr-3 text-right font-bold whitespace-nowrap ${d.amount > 0 ? 'text-green-700' : 'text-orange-700'}`}>
+                          <td className="py-2.5 pr-3 text-blue-600 dark:text-blue-400 font-mono text-xs whitespace-nowrap">{d.referenceId ? d.referenceId.slice(0, 8) : '-'}</td>
+                          <td className="py-2.5 pr-3 text-gray-600 dark:text-gray-400">{d.notes || '-'}</td>
+                          <td className={`py-2.5 pr-3 text-right font-bold whitespace-nowrap ${d.amount > 0 ? 'text-green-700 dark:text-green-300' : 'text-orange-700 dark:text-orange-300'}`}>
                             {d.amount > 0 ? '+' : '−'} {Math.abs(d.amount).toLocaleString('id-ID')}
                           </td>
                           <td className="py-2.5 text-right font-semibold whitespace-nowrap">
@@ -366,10 +366,10 @@ export default function CustomerDetail() {
                       ))}
                     </tbody>
                   </table>
-                  <div className="flex items-center justify-between pt-3 text-xs text-gray-500">
+                  <div className="flex items-center justify-between pt-3 text-xs text-gray-500 dark:text-gray-400">
                     <span>Saldo dihitung dari seluruh ledger, bukan hanya baris yang ditampilkan.</span>
                     {(depositHistory?.meta?.total ?? 0) > 5 && (
-                      <span className="font-semibold text-primary-600">{(depositHistory?.meta?.total ?? 0)} entri · riwayat lengkap menyusul</span>
+                      <span className="font-semibold text-primary-600 dark:text-primary-400">{(depositHistory?.meta?.total ?? 0)} entri · riwayat lengkap menyusul</span>
                     )}
                   </div>
                 </div>
@@ -378,18 +378,18 @@ export default function CustomerDetail() {
           </div>
 
           {/* Contact Info - Compact with Quick Actions */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <Users className="w-5 h-5 text-primary-600" />
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+              <Users className="w-5 h-5 text-primary-600 dark:text-primary-400" />
               Kontak
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                <Phone className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+              <div className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-950 rounded-lg">
+                <Phone className="w-4 h-4 text-gray-500 dark:text-gray-400 mt-0.5 flex-shrink-0" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs text-gray-500 mb-1">Telepon</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Telepon</p>
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-gray-900">{customer.phone}</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{customer.phone}</p>
                     <button
                       onClick={() => {
                         const phoneNumber = customer.phone.replace(/[^0-9]/g, '');
@@ -403,17 +403,17 @@ export default function CustomerDetail() {
                     </button>
                   </div>
                   {customerData.alternatePhone && (
-                    <p className="text-xs text-gray-600 mt-1">Alt: {customerData.alternatePhone}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Alt: {customerData.alternatePhone}</p>
                   )}
                 </div>
               </div>
               {customer.email && (
-                <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                  <Mail className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+                <div className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-950 rounded-lg">
+                  <Mail className="w-4 h-4 text-gray-500 dark:text-gray-400 mt-0.5 flex-shrink-0" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs text-gray-500 mb-1">Email</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Email</p>
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-gray-900 break-all">{customer.email}</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 break-all">{customer.email}</p>
                       <a
                         href={`mailto:${customer.email}?subject=Halo ${customer.name}`}
                         className="p-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
@@ -426,13 +426,13 @@ export default function CustomerDetail() {
                 </div>
               )}
               {customer.address && (
-                <div className="md:col-span-2 flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                  <MapPin className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+                <div className="md:col-span-2 flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-950 rounded-lg">
+                  <MapPin className="w-4 h-4 text-gray-500 dark:text-gray-400 mt-0.5 flex-shrink-0" />
                   <div className="min-w-0">
-                    <p className="text-xs text-gray-500 mb-1">Alamat</p>
-                    <p className="text-sm font-semibold text-gray-900">{customer.address}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Alamat</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{customer.address}</p>
                     {(customerData.city || customerData.province) && (
-                      <p className="text-xs text-gray-600 mt-1">
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                         {[customerData.city, customerData.province, customerData.postalCode].filter(Boolean).join(', ')}
                       </p>
                     )}
@@ -443,11 +443,11 @@ export default function CustomerDetail() {
 
             {/* Quick Actions */}
             <div className="border-t pt-4 mt-4">
-              <p className="text-xs font-semibold text-gray-700 mb-3 uppercase tracking-wide">Quick Actions</p>
+              <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">Quick Actions</p>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => navigate(`/services/smart-repair?customerId=${id}`)}
-                  className="flex items-center gap-2 px-3 py-2 bg-green-50 text-green-700 rounded-lg font-medium hover:bg-green-100 transition-all border border-green-200 text-sm"
+                  className="flex items-center gap-2 px-3 py-2 bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 rounded-lg font-medium hover:bg-green-100 dark:hover:bg-green-950 transition-all border border-green-200 dark:border-green-800 text-sm"
                   title="Buat Service Order dengan data customer ini"
                 >
                   <Wrench className="w-4 h-4" />
@@ -455,7 +455,7 @@ export default function CustomerDetail() {
                 </button>
                 <button
                   onClick={() => navigate(`/pos?customerId=${id}`)}
-                  className="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg font-medium hover:bg-blue-100 transition-all border border-blue-200 text-sm"
+                  className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 rounded-lg font-medium hover:bg-blue-100 dark:hover:bg-blue-950 transition-all border border-blue-200 dark:border-blue-800 text-sm"
                   title="Buat Penjualan dengan data customer ini"
                 >
                   <Plus className="w-4 h-4" />
@@ -467,16 +467,16 @@ export default function CustomerDetail() {
 
           {/* Personal & Identity - Compact */}
           {(customerData.dateOfBirth || customerData.gender || customerData.religion || customerData.idType || customerData.idNumber) && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-primary-600" />
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                 Data Pribadi & Identitas
               </h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {customerData.dateOfBirth && (
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-xs text-gray-500 mb-1">Tanggal Lahir</p>
-                    <p className="text-sm font-semibold text-gray-900">
+                  <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Tanggal Lahir</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                       {new Date(customerData.dateOfBirth).toLocaleDateString('id-ID', {
                         year: 'numeric',
                         month: 'short',
@@ -486,23 +486,23 @@ export default function CustomerDetail() {
                   </div>
                 )}
                 {customerData.gender && (
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-xs text-gray-500 mb-1">Jenis Kelamin</p>
-                    <p className="text-sm font-semibold text-gray-900">{customerData.gender === 'L' ? 'Laki-laki' : 'Perempuan'}</p>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Jenis Kelamin</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{customerData.gender === 'L' ? 'Laki-laki' : 'Perempuan'}</p>
                   </div>
                 )}
                 {customerData.religion && (
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-xs text-gray-500 mb-1">Agama</p>
-                    <p className="text-sm font-semibold text-gray-900">{customerData.religion}</p>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Agama</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{customerData.religion}</p>
                   </div>
                 )}
                 {customerData.idType && (
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-xs text-gray-500 mb-1">Jenis Identitas</p>
-                    <p className="text-sm font-semibold text-gray-900">{customerData.idType}</p>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Jenis Identitas</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{customerData.idType}</p>
                     {customerData.idNumber && (
-                      <p className="text-xs text-gray-600 mt-1 font-mono">{customerData.idNumber}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 font-mono">{customerData.idNumber}</p>
                     )}
                   </div>
                 )}
@@ -512,40 +512,40 @@ export default function CustomerDetail() {
 
           {/* Tax Info - Compact */}
           {(customerData.taxId || customerData.taxName || customerData.taxIdType) && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <Building2 className="w-5 h-5 text-primary-600" />
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                 Data Pajak
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {customerData.taxName && (
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-xs text-gray-500 mb-1">Nama (Pajak)</p>
-                    <p className="text-sm font-semibold text-gray-900">{customerData.taxName}</p>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Nama (Pajak)</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{customerData.taxName}</p>
                   </div>
                 )}
                 {customerData.taxIdType && (
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-xs text-gray-500 mb-1">Jenis Identitas Pajak</p>
-                    <p className="text-sm font-semibold text-gray-900">{customerData.taxIdType}</p>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Jenis Identitas Pajak</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{customerData.taxIdType}</p>
                   </div>
                 )}
                 {customerData.taxId && (
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-xs text-gray-500 mb-1">No NPWP/KTP</p>
-                    <p className="text-sm font-semibold text-gray-900 font-mono">{customerData.taxId}</p>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">No NPWP/KTP</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 font-mono">{customerData.taxId}</p>
                   </div>
                 )}
                 {customerData.idTKU && (
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-xs text-gray-500 mb-1">IDTKU</p>
-                    <p className="text-sm font-semibold text-gray-900">{customerData.idTKU}</p>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">IDTKU</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{customerData.idTKU}</p>
                   </div>
                 )}
                 {customerData.taxAddress && (
-                  <div className="md:col-span-2 p-3 bg-gray-50 rounded-lg">
-                    <p className="text-xs text-gray-500 mb-1">Alamat (Pajak)</p>
-                    <p className="text-sm font-semibold text-gray-900">{customerData.taxAddress}</p>
+                  <div className="md:col-span-2 p-3 bg-gray-50 dark:bg-gray-950 rounded-lg">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Alamat (Pajak)</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{customerData.taxAddress}</p>
                   </div>
                 )}
               </div>
@@ -553,21 +553,21 @@ export default function CustomerDetail() {
           )}
 
           {/* Transaction History - Compact */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <ShoppingCart className="w-5 h-5 text-primary-600" />
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+              <ShoppingCart className="w-5 h-5 text-primary-600 dark:text-primary-400" />
               Riwayat Transaksi
             </h2>
             {transactions?.data && transactions.data.length > 0 ? (
               <div className="space-y-2">
                 {transactions.data.map((transaction: any) => (
-                  <div key={transaction.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
+                  <div key={transaction.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         {transaction.type === 'sales' ? (
                           <Link
                             to={`/sales/transactions/${transaction.id}`}
-                            className="text-sm font-semibold text-primary-600 hover:text-primary-700 hover:underline transition-colors"
+                            className="text-sm font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 hover:underline transition-colors"
                             title="Lihat detail transaksi penjualan"
                           >
                             {transaction.referenceNumber || '-'}
@@ -575,7 +575,7 @@ export default function CustomerDetail() {
                         ) : (
                           <Link
                             to={`/service-orders/${transaction.id}`}
-                            className="text-sm font-semibold text-primary-600 hover:text-primary-700 hover:underline transition-colors"
+                            className="text-sm font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 hover:underline transition-colors"
                             title="Lihat detail service order"
                           >
                             {transaction.referenceNumber || '-'}
@@ -583,21 +583,21 @@ export default function CustomerDetail() {
                         )}
                         <span className={`px-2 py-0.5 text-xs rounded-full ${
                           transaction.type === 'sales' 
-                            ? 'bg-blue-100 text-blue-700' 
-                            : 'bg-green-100 text-green-700'
+                            ? 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300' 
+                            : 'bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300'
                         }`}>
                           {transaction.type === 'sales' ? 'Penjualan' : 'Service'}
                         </span>
                         {(transaction.status === 'void' || transaction.status === 'cancelled') && (
-                          <span className="px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-700">
+                          <span className="px-2 py-0.5 text-xs rounded-full bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300">
                             Retur
                           </span>
                         )}
                         {transaction.branch && (
-                          <span className="text-xs text-gray-500">({transaction.branch.name})</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">({transaction.branch.name})</span>
                         )}
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                         {transaction.createdAt ? new Date(transaction.createdAt).toLocaleDateString('id-ID', {
                           year: 'numeric',
                           month: 'short',
@@ -609,28 +609,28 @@ export default function CustomerDetail() {
                       <div className="flex items-center gap-2 mt-1">
                         <span className={`text-xs px-2 py-0.5 rounded ${
                           transaction.paymentStatus === 'paid' 
-                            ? 'bg-green-100 text-green-700' 
+                            ? 'bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300' 
                             : transaction.paymentStatus === 'partial'
-                            ? 'bg-yellow-100 text-yellow-700'
+                            ? 'bg-yellow-100 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-300'
                             : transaction.paymentStatus === 'refunded'
-                            ? 'bg-orange-100 text-orange-700'
-                            : 'bg-gray-100 text-gray-700'
+                            ? 'bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-300'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
                         }`}>
                           {transaction.paymentStatus === 'paid' ? 'Lunas' : transaction.paymentStatus === 'partial' ? 'Cicilan' : transaction.paymentStatus === 'refunded' ? 'Refund' : 'Belum Bayar'}
                         </span>
                         <span className={`text-xs px-2 py-0.5 rounded ${
                           transaction.status === 'void' || transaction.status === 'cancelled'
-                            ? 'bg-red-100 text-red-700'
+                            ? 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300'
                             : transaction.status === 'completed'
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-gray-100 text-gray-700'
+                            ? 'bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
                         }`}>
                           {transaction.status === 'void' ? 'Void' : transaction.status === 'cancelled' ? 'Dibatalkan' : transaction.status === 'completed' ? 'Selesai' : transaction.status}
                         </span>
                       </div>
                     </div>
                     <div className="text-right ml-4">
-                      <p className="text-sm font-bold text-primary-600">
+                      <p className="text-sm font-bold text-primary-600 dark:text-primary-400">
                         Rp {transaction.totalAmount ? transaction.totalAmount.toLocaleString('id-ID') : '0'}
                       </p>
                     </div>
@@ -638,7 +638,7 @@ export default function CustomerDetail() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 text-gray-400">
+              <div className="text-center py-8 text-gray-400 dark:text-gray-500">
                 <ShoppingCart className="w-10 h-10 mx-auto mb-2 opacity-30" />
                 <p className="text-sm font-medium">Belum ada transaksi</p>
               </div>
@@ -649,36 +649,36 @@ export default function CustomerDetail() {
         {/* Sidebar - Compact */}
         <div className="space-y-4">
           {/* Customer Stats - More Interesting */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <Users className="w-5 h-5 text-primary-600" />
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+              <Users className="w-5 h-5 text-primary-600 dark:text-primary-400" />
               Informasi
             </h2>
             <div className="space-y-3">
-              <div className="p-3 bg-gradient-to-br from-primary-50 to-primary-100 rounded-lg border border-primary-200">
-                <p className="text-xs text-primary-600 mb-1">Kode Pelanggan</p>
-                <p className="text-base font-bold text-primary-900 font-mono">
+              <div className="p-3 bg-gradient-to-br from-primary-50 dark:from-primary-950 to-primary-100 dark:to-primary-950 rounded-lg border border-primary-200 dark:border-primary-800">
+                <p className="text-xs text-primary-600 dark:text-primary-400 mb-1">Kode Pelanggan</p>
+                <p className="text-base font-bold text-primary-900 dark:text-primary-100 font-mono">
                   {customer.customerCode || '-'}
                 </p>
               </div>
-              <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <p className="text-xs text-gray-500 mb-1">Jenis Pelanggan</p>
-                <p className="text-sm font-semibold text-gray-900">
+              <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Jenis Pelanggan</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                   {customer.customerType === 'retail' ? 'Retail' : customer.customerType === 'wholesale' ? 'Wholesale' : 'Corporate'}
                 </p>
               </div>
               {customerData.preferredBranch && (
-                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-xs text-gray-500 mb-1">Cabang Preferensi</p>
-                  <p className="text-sm font-semibold text-gray-900">
+                <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Cabang Preferensi</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                     {customerData.preferredBranch.name || '-'}
                   </p>
                 </div>
               )}
               {customerData.createdAt && (
-                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-xs text-gray-500 mb-1">Terdaftar Sejak</p>
-                  <p className="text-sm font-semibold text-gray-900">
+                <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Terdaftar Sejak</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                     {new Date(customerData.createdAt).toLocaleDateString('id-ID', {
                       year: 'numeric',
                       month: 'long',
@@ -692,12 +692,12 @@ export default function CustomerDetail() {
 
           {/* Notes - Compact */}
           {customerData.notes && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-              <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-primary-600" />
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                 Keterangan
               </h2>
-              <p className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 p-3 rounded-lg border border-gray-200">
+              <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap bg-gray-50 dark:bg-gray-950 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
                 {customerData.notes}
               </p>
             </div>

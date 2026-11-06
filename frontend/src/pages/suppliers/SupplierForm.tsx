@@ -151,7 +151,7 @@ export default function SupplierForm() {
   if (loadingSupplier) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
+        <Loader2 className="w-8 h-8 text-primary-600 dark:text-primary-400 animate-spin" />
       </div>
     );
   }
@@ -173,8 +173,8 @@ export default function SupplierForm() {
       </BreadcrumbHeader>
 
       {/* Tabs */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-        <div className="border-b border-gray-200">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 overflow-hidden">
+        <div className="border-b border-gray-200 dark:border-gray-700">
           <div className="flex overflow-x-auto">
             {tabs.map((tab) => {
               const Icon = tab.icon;
@@ -184,8 +184,8 @@ export default function SupplierForm() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-6 py-4 font-semibold transition-all whitespace-nowrap ${
                     activeTab === tab.id
-                      ? 'text-primary-600 border-b-2 border-primary-600 bg-primary-50'
-                      : 'text-gray-600 hover:text-primary-600 hover:bg-gray-50'
+                      ? 'text-primary-600 dark:text-primary-400 border-b-2 border-primary-600 bg-primary-50 dark:bg-primary-950'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800'
                   }`}
                 >
                   <Icon className="w-5 h-5" />
@@ -203,8 +203,8 @@ export default function SupplierForm() {
             <div className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">
-                    Nama Supplier <span className="text-red-500">*</span>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">
+                    Nama Supplier <span className="text-red-500 dark:text-red-400">*</span>
                   </label>
                   <Input
                     type="text"
@@ -216,7 +216,7 @@ export default function SupplierForm() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">
                     Contact Person
                   </label>
                   <Input
@@ -228,12 +228,12 @@ export default function SupplierForm() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">
-                    Telepon <span className="text-red-500">*</span>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">
+                    Telepon <span className="text-red-500 dark:text-red-400">*</span>
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <Phone className="h-5 w-5 text-gray-400" />
+                      <Phone className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                     </div>
                     <Input
                       type="tel"
@@ -247,10 +247,10 @@ export default function SupplierForm() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">No HP (Alternate)</label>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">No HP (Alternate)</label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <Phone className="h-5 w-5 text-gray-400" />
+                      <Phone className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                     </div>
                     <Input
                       type="tel"
@@ -263,10 +263,10 @@ export default function SupplierForm() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">Email</label>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">Email</label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <Mail className="h-5 w-5 text-gray-400" />
+                      <Mail className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                     </div>
                     <Input
                       type="email"
@@ -286,10 +286,10 @@ export default function SupplierForm() {
             <div className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="lg:col-span-2">
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">Alamat</label>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">Alamat</label>
                   <div className="relative">
                     <div className="absolute top-4 left-4 pointer-events-none">
-                      <MapPin className="h-5 w-5 text-gray-400" />
+                      <MapPin className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                     </div>
                     <Textarea
                       value={formData.address}
@@ -302,7 +302,7 @@ export default function SupplierForm() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">Kecamatan</label>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">Kecamatan</label>
                   <Input
                     type="text"
                     value={formData.subdistrict}
@@ -312,7 +312,7 @@ export default function SupplierForm() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">Kota</label>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">Kota</label>
                   <Input
                     type="text"
                     value={formData.city}
@@ -322,7 +322,7 @@ export default function SupplierForm() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">Provinsi</label>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">Provinsi</label>
                   <Input
                     type="text"
                     value={formData.province}
@@ -332,7 +332,7 @@ export default function SupplierForm() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">Kode Pos</label>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">Kode Pos</label>
                   <Input
                     type="text"
                     value={formData.postalCode}
@@ -342,7 +342,7 @@ export default function SupplierForm() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">Negara</label>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">Negara</label>
                   <Input
                     type="text"
                     value={formData.country}
@@ -359,7 +359,7 @@ export default function SupplierForm() {
             <div className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">Jenis Identitas</label>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">Jenis Identitas</label>
                   <Select
                     value={formData.idType}
                     onChange={(e) => setFormData({ ...formData, idType: e.target.value })}
@@ -373,7 +373,7 @@ export default function SupplierForm() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">Nomor Identitas</label>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">Nomor Identitas</label>
                   <Input
                     type="text"
                     value={formData.idNumber}
@@ -383,7 +383,7 @@ export default function SupplierForm() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">Nama (Pajak)</label>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">Nama (Pajak)</label>
                   <Input
                     type="text"
                     value={formData.taxName}
@@ -393,7 +393,7 @@ export default function SupplierForm() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">Jenis Identitas Pajak</label>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">Jenis Identitas Pajak</label>
                   <Select
                     value={formData.taxIdType}
                     onChange={(e) => setFormData({ ...formData, taxIdType: e.target.value })}
@@ -405,7 +405,7 @@ export default function SupplierForm() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">No NPWP/KTP</label>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">No NPWP/KTP</label>
                   <Input
                     type="text"
                     value={formData.taxId}
@@ -415,7 +415,7 @@ export default function SupplierForm() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">IDTKU</label>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">IDTKU</label>
                   <Input
                     type="text"
                     value={formData.idTKU}
@@ -425,7 +425,7 @@ export default function SupplierForm() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">Detail Transaksi Pajak</label>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">Detail Transaksi Pajak</label>
                   <Input
                     type="text"
                     value={formData.taxTransactionDetail}
@@ -435,10 +435,10 @@ export default function SupplierForm() {
                 </div>
 
                 <div className="lg:col-span-2">
-                  <label className="block text-sm font-bold text-gray-700 mb-2.5">Alamat (Pajak)</label>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">Alamat (Pajak)</label>
                   <div className="relative">
                     <div className="absolute top-4 left-4 pointer-events-none">
-                      <MapPin className="h-5 w-5 text-gray-400" />
+                      <MapPin className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                     </div>
                     <Textarea
                       value={formData.taxAddress}
@@ -455,11 +455,11 @@ export default function SupplierForm() {
 
           {/* Notes in Identity Tab */}
           {activeTab === 'identity' && (
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <label className="block text-sm font-bold text-gray-700 mb-2.5">Keterangan</label>
+            <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">Keterangan</label>
               <div className="relative">
                 <div className="absolute top-4 left-4 pointer-events-none">
-                  <FileText className="h-5 w-5 text-gray-400" />
+                  <FileText className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                 </div>
                 <Textarea
                   value={formData.notes}
@@ -473,7 +473,7 @@ export default function SupplierForm() {
           )}
 
           {/* Form Actions */}
-          <div className="mt-8 pt-6 border-t border-gray-200 flex items-center justify-end gap-4">
+          <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 flex items-center justify-end gap-4">
             <Button
               type="button"
               variant="outline"

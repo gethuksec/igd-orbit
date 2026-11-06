@@ -39,7 +39,7 @@ interface RequirePermissionProps {
  * @example
  * <RequirePermission 
  *   permission="sales.pos.delete"
- *   fallback={<span className="text-gray-400">No permission</span>}
+ *   fallback={<span className="text-gray-400 dark:text-gray-500">No permission</span>}
  * >
  *   <Button variant="danger">Delete</Button>
  * </RequirePermission>

@@ -136,47 +136,47 @@ export default function DepartmentList() {
         onReset={() => {}}
       />
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         {isLoading ? (
           <div className="flex justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+            <Loader2 className="w-8 h-8 animate-spin text-primary-600 dark:text-primary-400" />
           </div>
         ) : (
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-gray-50 dark:bg-gray-950 border-b border-gray-200 dark:border-gray-700">
               <tr>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Kode</th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Nama</th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Cabang</th>
-                <th className="text-center px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Jml Karyawan</th>
-                <th className="text-center px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Status</th>
-                <th className="text-right px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Aksi</th>
+                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Kode</th>
+                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Nama</th>
+                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Cabang</th>
+                <th className="text-center px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Jml Karyawan</th>
+                <th className="text-center px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Status</th>
+                <th className="text-right px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {data?.data?.map((dept) => (
-              <tr key={dept.id} className="hover:bg-gray-50">
-              <td className="px-6 py-4 text-sm font-mono text-gray-500">{dept.code}</td>
-              <td className="px-6 py-4 text-sm font-medium text-gray-900">{dept.name}</td>
-              <td className="px-6 py-4 text-sm text-gray-500">{dept.branch?.name || "-"}</td>
-                  <td className="px-6 py-4 text-sm text-center text-gray-500">{dept._count?.employees || 0}</td>
+              <tr key={dept.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+              <td className="px-6 py-4 text-sm font-mono text-gray-500 dark:text-gray-400">{dept.code}</td>
+              <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">{dept.name}</td>
+              <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{dept.branch?.name || "-"}</td>
+                  <td className="px-6 py-4 text-sm text-center text-gray-500 dark:text-gray-400">{dept._count?.employees || 0}</td>
                   <td className="px-6 py-4 text-center">
                     <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                      dept.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                      dept.isActive ? "bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300" : "bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300"
                     }`}>
                       {dept.isActive ? "Aktif" : "Nonaktif"}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <button onClick={() => openEdit(dept)} className="p-1 hover:bg-gray-100 rounded">
-                        <Pencil className="w-4 h-4 text-gray-500" />
+                      <button onClick={() => openEdit(dept)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded">
+                        <Pencil className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                       </button>
                       <button
                         onClick={() => { if (confirm("Nonaktifkan departemen ini?")) deleteMutation.mutate(dept.id); }}
-                        className="p-1 hover:bg-red-50 rounded"
+                        className="p-1 hover:bg-red-50 dark:hover:bg-red-950 rounded"
                       >
-                        <Trash2 className="w-4 h-4 text-red-500" />
+                        <Trash2 className="w-4 h-4 text-red-500 dark:text-red-400" />
                       </button>
                     </div>
                   </td>
@@ -184,7 +184,7 @@ export default function DepartmentList() {
               ))}
               {(!data?.data || data.data.length === 0) && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                     Belum ada data departemen
                   </td>
                 </tr>
@@ -197,7 +197,7 @@ export default function DepartmentList() {
       {data?.meta && data.meta.totalPages > 1 && (
         <div className="flex justify-center gap-2">
           <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Prev</Button>
-          <span className="px-4 py-2 text-sm text-gray-600">{data.meta.page} / {data.meta.totalPages}</span>
+          <span className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">{data.meta.page} / {data.meta.totalPages}</span>
           <Button variant="outline" size="sm" disabled={page >= data.meta.totalPages} onClick={() => setPage((p) => p + 1)}>Next</Button>
         </div>
       )}
@@ -211,7 +211,7 @@ export default function DepartmentList() {
               required
               value={form.code}
               onChange={(e) => setForm({ ...form, code: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 font-mono"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 font-mono"
               placeholder="Contoh: FIN, SALES, TECH"
             />
           </div>
@@ -222,7 +222,7 @@ export default function DepartmentList() {
               required
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500"
               placeholder="Contoh: Sales & Marketing, Finance"
             />
           </div>
@@ -232,7 +232,7 @@ export default function DepartmentList() {
               id="isActive"
               checked={form.isActive}
               onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-              className="rounded border-gray-300"
+              className="rounded border-gray-300 dark:border-gray-600"
             />
             <label htmlFor="isActive" className="text-sm">Aktif</label>
           </div>

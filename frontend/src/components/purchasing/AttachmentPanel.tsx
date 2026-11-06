@@ -80,17 +80,17 @@ export default function AttachmentPanel({
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+    <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
       <div className="flex items-center gap-2 mb-4">
-        <Paperclip className="w-5 h-5 text-gray-600" />
-        <h2 className="text-lg font-bold text-gray-900">{title}</h2>
+        <Paperclip className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+        <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{title}</h2>
       </div>
 
       <div className="flex flex-wrap gap-2 mb-3">
         <select
           value={docType}
           onChange={(e) => setDocType(e.target.value)}
-          className="px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500"
+          className="px-3 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500"
         >
           {DOC_TYPES.map((t) => (
             <option key={t} value={t}>
@@ -101,7 +101,7 @@ export default function AttachmentPanel({
         <button
           onClick={() => fileRef.current?.click()}
           disabled={uploadMutation.isPending}
-          className="px-4 py-2 bg-white text-primary-600 border border-gray-200 rounded-lg font-semibold hover:bg-primary-50 transition-colors disabled:opacity-50"
+          className="px-4 py-2 bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 border border-gray-200 dark:border-gray-700 rounded-lg font-semibold hover:bg-primary-50 dark:hover:bg-primary-950 transition-colors disabled:opacity-50"
         >
           + Unggah (PDF/JPG/PNG, ≤10MB)
         </button>
@@ -117,32 +117,32 @@ export default function AttachmentPanel({
 
       {isLoading ? (
         <div className="flex justify-center py-6">
-          <Loader2 className="w-6 h-6 text-primary-600 animate-spin" />
+          <Loader2 className="w-6 h-6 text-primary-600 dark:text-primary-400 animate-spin" />
         </div>
       ) : attachments.length === 0 ? (
-        <p className="text-sm text-gray-500 py-4">Belum ada lampiran.</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 py-4">Belum ada lampiran.</p>
       ) : (
         <div className="space-y-2">
           {attachments.map((att: Attachment) => (
             <div
               key={att.id}
-              className="flex items-center gap-3 p-3 border border-gray-100 rounded-lg bg-gray-50"
+              className="flex items-center gap-3 p-3 border border-gray-100 dark:border-gray-800 rounded-lg bg-gray-50 dark:bg-gray-950"
             >
               {att.mimeType === 'application/pdf' ? (
-                <FileText className="w-5 h-5 text-red-500 flex-none" />
+                <FileText className="w-5 h-5 text-red-500 dark:text-red-400 flex-none" />
               ) : (
-                <ImageIcon className="w-5 h-5 text-gray-600 flex-none" />
+                <ImageIcon className="w-5 h-5 text-gray-600 dark:text-gray-400 flex-none" />
               )}
               <div className="flex-1 min-w-0">
                 <a
                   href={att.filePath}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block text-sm font-semibold text-gray-900 truncate hover:text-primary-600"
+                  className="block text-sm font-semibold text-gray-900 dark:text-gray-100 truncate hover:text-primary-600 dark:hover:text-primary-400"
                 >
                   {att.fileName}
                 </a>
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-gray-500 dark:text-gray-400">
                   {DOC_TYPE_LABEL[att.documentType] || att.documentType} ·{' '}
                   {(att.fileSize / 1024 / 1024).toFixed(2)} MB ·{' '}
                   {new Date(att.createdAt).toLocaleDateString('id-ID')}
@@ -151,7 +151,7 @@ export default function AttachmentPanel({
               <button
                 onClick={() => deleteMutation.mutate(att.id)}
                 disabled={deleteMutation.isPending}
-                className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                 title="Hapus lampiran"
               >
                 <Trash2 className="w-4 h-4" />

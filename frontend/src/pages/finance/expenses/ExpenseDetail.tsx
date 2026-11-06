@@ -76,15 +76,15 @@ export default function ExpenseDetail() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return 'bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800';
       case 'approved':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800';
       case 'rejected':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800';
       case 'paid':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-800';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700';
     }
   };
 
@@ -106,9 +106,9 @@ export default function ExpenseDetail() {
   if (isLoading) {
     return (
       <div className="w-full space-y-3">
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-16 text-center">
-          <Loader2 className="w-16 h-16 text-primary-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600 font-semibold text-lg">Memuat detail pengeluaran...</p>
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-16 text-center">
+          <Loader2 className="w-16 h-16 text-primary-600 dark:text-primary-400 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600 dark:text-gray-400 font-semibold text-lg">Memuat detail pengeluaran...</p>
         </div>
       </div>
     );
@@ -117,14 +117,14 @@ export default function ExpenseDetail() {
   if (error || !expense) {
     return (
       <div className="w-full space-y-3">
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-16 text-center">
-          <Wallet className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600 font-semibold text-lg">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-16 text-center">
+          <Wallet className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+          <p className="text-gray-600 dark:text-gray-400 font-semibold text-lg">
             {(error as Error)?.message || 'Pengeluaran tidak ditemukan'}
           </p>
           <Link
             to="/finance/expenses"
-            className="mt-4 inline-flex items-center gap-2 text-primary-600 hover:text-primary-700"
+            className="mt-4 inline-flex items-center gap-2 text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
           >
             <ArrowLeft className="w-4 h-4" />
             Kembali ke Pengeluaran
@@ -210,17 +210,17 @@ export default function ExpenseDetail() {
       </BreadcrumbHeader>
 
       {/* Expense Information */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Nomor Pengeluaran</label>
-            <div className="text-base font-mono font-semibold text-gray-900 bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nomor Pengeluaran</label>
+            <div className="text-base font-mono font-semibold text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-950 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700">
               {expense.expenseNumber}
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Tanggal</label>
-            <div className="text-base text-gray-900 bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tanggal</label>
+            <div className="text-base text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-950 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700">
               {new Date(expense.expenseDate).toLocaleDateString('id-ID', {
                 day: '2-digit',
                 month: 'long',
@@ -229,13 +229,13 @@ export default function ExpenseDetail() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Kategori</label>
-            <div className="text-base text-gray-900 bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Kategori</label>
+            <div className="text-base text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-950 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700">
               {expense.expenseCategory}
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
             <span
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold border ${getStatusColor(
                 expense.status,
@@ -252,29 +252,29 @@ export default function ExpenseDetail() {
             </span>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Jumlah</label>
-            <div className="text-base font-semibold text-gray-900 bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Jumlah</label>
+            <div className="text-base font-semibold text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-950 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700">
               {formatCurrency(expense.amount)}
             </div>
           </div>
           {expense.taxAmount && expense.taxAmount > 0 && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Pajak</label>
-              <div className="text-base text-gray-900 bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Pajak</label>
+              <div className="text-base text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-950 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700">
                 {formatCurrency(expense.taxAmount)}
               </div>
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Total</label>
-            <div className="text-lg font-bold text-primary-600 bg-primary-50 px-4 py-2 rounded-lg border border-primary-200">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Total</label>
+            <div className="text-lg font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950 px-4 py-2 rounded-lg border border-primary-200 dark:border-primary-800">
               {formatCurrency(expense.totalAmount)}
             </div>
           </div>
           {expense.paymentMethod && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Metode Pembayaran</label>
-              <div className="text-base text-gray-900 bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Metode Pembayaran</label>
+              <div className="text-base text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-950 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700">
                 {expense.paymentMethod === 'cash'
                   ? 'Cash'
                   : expense.paymentMethod === 'transfer'
@@ -284,23 +284,23 @@ export default function ExpenseDetail() {
             </div>
           )}
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Deskripsi</label>
-            <div className="text-base text-gray-900 bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Deskripsi</label>
+            <div className="text-base text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-950 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700">
               {expense.description}
             </div>
           </div>
           {expense.notes && (
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Catatan</label>
-              <div className="text-base text-gray-900 bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Catatan</label>
+              <div className="text-base text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-950 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700">
                 {expense.notes}
               </div>
             </div>
           )}
           {expense.rejectionReason && (
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Alasan Penolakan</label>
-              <div className="text-base text-red-900 bg-red-50 px-4 py-2 rounded-lg border border-red-200">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Alasan Penolakan</label>
+              <div className="text-base text-red-900 dark:text-red-100 bg-red-50 dark:bg-red-950 px-4 py-2 rounded-lg border border-red-200 dark:border-red-800">
                 {expense.rejectionReason}
               </div>
             </div>
@@ -309,42 +309,42 @@ export default function ExpenseDetail() {
       </div>
 
       {/* Metadata */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-        <h3 className="text-xl font-bold text-gray-900 mb-4">Metadata</h3>
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+        <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Metadata</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
           <div>
-            <span className="text-gray-600">Dibuat:</span>
-            <span className="ml-2 text-gray-900">
+            <span className="text-gray-600 dark:text-gray-400">Dibuat:</span>
+            <span className="ml-2 text-gray-900 dark:text-gray-100">
               {new Date(expense.createdAt).toLocaleString('id-ID')}
             </span>
           </div>
           {expense.approvedAt && (
             <div>
-              <span className="text-gray-600">Disetujui:</span>
-              <span className="ml-2 text-gray-900">
+              <span className="text-gray-600 dark:text-gray-400">Disetujui:</span>
+              <span className="ml-2 text-gray-900 dark:text-gray-100">
                 {new Date(expense.approvedAt).toLocaleString('id-ID')}
               </span>
             </div>
           )}
           {expense.rejectedAt && (
             <div>
-              <span className="text-gray-600">Ditolak:</span>
-              <span className="ml-2 text-gray-900">
+              <span className="text-gray-600 dark:text-gray-400">Ditolak:</span>
+              <span className="ml-2 text-gray-900 dark:text-gray-100">
                 {new Date(expense.rejectedAt).toLocaleString('id-ID')}
               </span>
             </div>
           )}
           {expense.paidAt && (
             <div>
-              <span className="text-gray-600">Dibayar:</span>
-              <span className="ml-2 text-gray-900">
+              <span className="text-gray-600 dark:text-gray-400">Dibayar:</span>
+              <span className="ml-2 text-gray-900 dark:text-gray-100">
                 {new Date(expense.paidAt).toLocaleString('id-ID')}
               </span>
             </div>
           )}
           <div>
-            <span className="text-gray-600">Diperbarui:</span>
-            <span className="ml-2 text-gray-900">
+            <span className="text-gray-600 dark:text-gray-400">Diperbarui:</span>
+            <span className="ml-2 text-gray-900 dark:text-gray-100">
               {new Date(expense.updatedAt).toLocaleString('id-ID')}
             </span>
           </div>

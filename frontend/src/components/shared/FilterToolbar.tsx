@@ -214,14 +214,14 @@ export function FilterToolbar({
           {activeFields.map((field) => (
             <span
               key={field.key}
-              className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-2.5 py-0.5 text-xs font-medium text-primary-700"
+              className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-2.5 py-0.5 text-xs font-medium text-primary-700 dark:text-primary-300"
             >
               {field.label}: {getFieldSummary(field, values, branchName)}
               <button
                 type="button"
                 aria-label={`Hapus filter ${field.label}`}
                 onClick={() => removeChip(field)}
-                className="text-primary-600 hover:text-primary-800"
+                className="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-200"
               >
                 <X className="h-3 w-3" />
               </button>

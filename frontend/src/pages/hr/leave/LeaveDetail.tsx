@@ -71,9 +71,9 @@ export default function LeaveDetail() {
   if (isLoading) {
     return (
       <div className="w-full space-y-6">
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-12 text-center">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-12 text-center">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-          <p className="mt-4 text-gray-600">Memuat data...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Memuat data...</p>
         </div>
       </div>
     );
@@ -82,10 +82,10 @@ export default function LeaveDetail() {
   if (error || !leaveRequest) {
     return (
       <div className="w-full space-y-6">
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-12 text-center">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-red-600">Gagal memuat data cuti</p>
-          <Link to="/hr/leave" className="mt-4 text-green-600 hover:underline">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-12 text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 dark:text-red-400 mx-auto mb-4" />
+          <p className="text-red-600 dark:text-red-400">Gagal memuat data cuti</p>
+          <Link to="/hr/leave" className="mt-4 text-green-600 dark:text-green-400 hover:underline">
             Kembali ke daftar
           </Link>
         </div>
@@ -97,28 +97,28 @@ export default function LeaveDetail() {
     switch (status) {
       case 'pending':
         return (
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-yellow-100 text-yellow-800">
+          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-200">
             <Clock className="w-4 h-4" />
             Pending
           </span>
         );
       case 'approved':
         return (
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">
+          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200">
             <CheckCircle className="w-4 h-4" />
             Approved
           </span>
         );
       case 'rejected':
         return (
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-red-100 text-red-800">
+          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-200">
             <XCircle className="w-4 h-4" />
             Rejected
           </span>
         );
       case 'cancelled':
         return (
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-gray-100 text-gray-800">
+          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200">
             <XCircle className="w-4 h-4" />
             Cancelled
           </span>
@@ -151,7 +151,7 @@ export default function LeaveDetail() {
             {canApprove && leaveRequest.status === 'pending' && (
               <button
                 onClick={() => setShowApproveModal(true)}
-                className="px-4 py-2 bg-white text-green-600 rounded-lg font-semibold hover:bg-green-50 transition-colors"
+                className="px-4 py-2 bg-white dark:bg-gray-900 text-green-600 dark:text-green-400 rounded-lg font-semibold hover:bg-green-50 dark:hover:bg-green-950 transition-colors"
               >
                 Approve
               </button>
@@ -159,7 +159,7 @@ export default function LeaveDetail() {
             {canReject && leaveRequest.status === 'pending' && (
               <button
                 onClick={() => setShowRejectModal(true)}
-                className="px-4 py-2 bg-white text-red-600 rounded-lg font-semibold hover:bg-red-50 transition-colors"
+                className="px-4 py-2 bg-white dark:bg-gray-900 text-red-600 dark:text-red-400 rounded-lg font-semibold hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
               >
                 Reject
               </button>
@@ -170,42 +170,42 @@ export default function LeaveDetail() {
       {/* Info Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Employee Info */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Informasi Karyawan</h2>
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Informasi Karyawan</h2>
           <div className="space-y-3">
             <div>
-              <p className="text-sm text-gray-600">Nama</p>
-              <p className="text-base font-semibold text-gray-900">
+              <p className="text-sm text-gray-600 dark:text-gray-400">Nama</p>
+              <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
                 {leaveRequest.employee?.user?.fullName || 'N/A'}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Employee Code</p>
-              <p className="text-base font-semibold text-gray-900">{leaveRequest.employee?.employeeCode || 'N/A'}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Employee Code</p>
+              <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{leaveRequest.employee?.employeeCode || 'N/A'}</p>
             </div>
           </div>
         </div>
 
         {/* Leave Info */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Informasi Cuti</h2>
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Informasi Cuti</h2>
           <div className="space-y-3">
             <div>
-              <p className="text-sm text-gray-600">Tipe Cuti</p>
-              <p className="text-base font-semibold text-gray-900">{getLeaveTypeLabel(leaveRequest.leaveType)}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Tipe Cuti</p>
+              <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{getLeaveTypeLabel(leaveRequest.leaveType)}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Periode</p>
-              <p className="text-base font-semibold text-gray-900">
+              <p className="text-sm text-gray-600 dark:text-gray-400">Periode</p>
+              <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
                 {formatDate(leaveRequest.startDate)} - {formatDate(leaveRequest.endDate)}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Total Hari</p>
-              <p className="text-base font-semibold text-gray-900">{leaveRequest.totalDays} hari</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Total Hari</p>
+              <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{leaveRequest.totalDays} hari</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Status</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Status</p>
               <div className="mt-1">{getStatusBadge(leaveRequest.status)}</div>
             </div>
           </div>
@@ -213,34 +213,34 @@ export default function LeaveDetail() {
       </div>
 
       {/* Reason */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-        <h2 className="text-lg font-bold text-gray-900 mb-4">Alasan</h2>
-        <p className="text-base text-gray-900">{leaveRequest.reason}</p>
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Alasan</h2>
+        <p className="text-base text-gray-900 dark:text-gray-100">{leaveRequest.reason}</p>
       </div>
 
       {/* Approval/Rejection Info */}
       {(leaveRequest.approvedAt || leaveRequest.rejectedAt) && (
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             {leaveRequest.approvedAt ? 'Informasi Persetujuan' : 'Informasi Penolakan'}
           </h2>
           <div className="space-y-3">
             {leaveRequest.approvedAt && (
               <div>
-                <p className="text-sm text-gray-600">Disetujui pada</p>
-                <p className="text-base font-semibold text-gray-900">{formatDate(leaveRequest.approvedAt)}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Disetujui pada</p>
+                <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{formatDate(leaveRequest.approvedAt)}</p>
               </div>
             )}
             {leaveRequest.rejectedAt && (
               <>
                 <div>
-                  <p className="text-sm text-gray-600">Ditolak pada</p>
-                  <p className="text-base font-semibold text-gray-900">{formatDate(leaveRequest.rejectedAt)}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Ditolak pada</p>
+                  <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{formatDate(leaveRequest.rejectedAt)}</p>
                 </div>
                 {leaveRequest.rejectionReason && (
                   <div>
-                    <p className="text-sm text-gray-600">Alasan Penolakan</p>
-                    <p className="text-base text-gray-900">{leaveRequest.rejectionReason}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Alasan Penolakan</p>
+                    <p className="text-base text-gray-900 dark:text-gray-100">{leaveRequest.rejectionReason}</p>
                   </div>
                 )}
               </>
@@ -252,23 +252,23 @@ export default function LeaveDetail() {
       {/* Approve Modal */}
       {showApproveModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Approve Cuti</h3>
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-md w-full p-6">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Approve Cuti</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Catatan (Opsional)</label>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Catatan (Opsional)</label>
                 <textarea
                   value={approveNotes}
                   onChange={(e) => setApproveNotes(e.target.value)}
                   rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   placeholder="Tambahkan catatan..."
                 />
               </div>
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowApproveModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg font-semibold hover:bg-gray-50"
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg font-semibold hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
                   Batal
                 </button>
@@ -288,24 +288,24 @@ export default function LeaveDetail() {
       {/* Reject Modal */}
       {showRejectModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Reject Cuti</h3>
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-md w-full p-6">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Reject Cuti</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Alasan Penolakan *</label>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Alasan Penolakan *</label>
                 <textarea
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}
                   rows={3}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                   placeholder="Masukkan alasan penolakan..."
                 />
               </div>
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowRejectModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg font-semibold hover:bg-gray-50"
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg font-semibold hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
                   Batal
                 </button>

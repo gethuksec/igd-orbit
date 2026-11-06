@@ -755,13 +755,13 @@ export default function POSTransaksi() {
   // ── Render ──
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col bg-gray-50">
+    <div className="flex-1 min-h-0 flex flex-col bg-gray-50 dark:bg-gray-950">
       {/* ═══ Top Alert Banner ═══ */}
-      <div className="bg-orange-50 border-b border-orange-200 px-4 py-2 text-center text-sm text-orange-800">
+      <div className="bg-orange-50 dark:bg-orange-950 border-b border-orange-200 dark:border-orange-800 px-4 py-2 text-center text-sm text-orange-800 dark:text-orange-200">
         Inputkan data lalu tekan tombol <strong>Simpan</strong> untuk menyimpan
         {/* IGDERP-244: catalog freshness + manual refresh (online) */}
         {catalog && (
-          <span className="ml-2 text-orange-700">
+          <span className="ml-2 text-orange-700 dark:text-orange-300">
             • Katalog {new Date(catalog.cachedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
             <button
               className="ml-1 underline disabled:no-underline disabled:opacity-50"
@@ -776,18 +776,18 @@ export default function POSTransaksi() {
       </div>
       {/* IGDERP-239: offline mode + pending-queue banners */}
       {!isOnline && (
-        <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-2 text-center text-sm text-yellow-800">
+        <div className="bg-yellow-50 dark:bg-yellow-950 border-b border-yellow-200 dark:border-yellow-800 px-4 py-2 text-center text-sm text-yellow-800 dark:text-yellow-200">
           Mode offline — Tunai saja. Penjualan akan diantre dan tersinkron otomatis saat online.
           {/* IGDERP-244: catalog freshness — search/scan/dropdown read this offline copy */}
           {catalog && (
-            <span className="ml-2 text-yellow-700">
+            <span className="ml-2 text-yellow-700 dark:text-yellow-300">
               Katalog per {new Date(catalog.cachedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
             </span>
           )}
         </div>
       )}
       {pendingCount > 0 && (
-        <div className="bg-blue-50 border-b border-blue-200 px-4 py-2 text-sm text-blue-800">
+        <div className="bg-blue-50 dark:bg-blue-950 border-b border-blue-200 dark:border-blue-800 px-4 py-2 text-sm text-blue-800 dark:text-blue-200">
           <div className="flex items-center justify-center gap-3">
             <button className="underline font-medium" onClick={() => setShowQueue((v) => !v)}>
               {pendingCount} transaksi offline menunggu sync {showQueue ? '▴' : '▾'}
@@ -798,11 +798,11 @@ export default function POSTransaksi() {
           </div>
           {/* IGDERP-241 (D5): print-from-queue while items wait */}
           {showQueue && (
-            <div className="max-w-xl mx-auto mt-2 text-left bg-white border border-blue-200 rounded">
+            <div className="max-w-xl mx-auto mt-2 text-left bg-white dark:bg-gray-900 border border-blue-200 dark:border-blue-800 rounded">
               {pendingSales.map((s) => (
                 <div key={s.clientMutationId} className="flex items-center justify-between gap-2 px-3 py-1.5 border-b border-blue-100 last:border-0 text-xs">
                   <span className="font-mono">{s.provisionalNumber}</span>
-                  <span className="text-gray-500">{new Date(s.createdAt).toLocaleString('id-ID')}</span>
+                  <span className="text-gray-500 dark:text-gray-400">{new Date(s.createdAt).toLocaleString('id-ID')}</span>
                   <a href={`/pos/offline-receipt/${s.clientMutationId}`} target="_blank" rel="noreferrer">
                     <Button size="sm" variant="outline">Cetak</Button>
                   </a>
@@ -817,8 +817,8 @@ export default function POSTransaksi() {
         {/* ═══ Header Section ═══ */}
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Pencatatan Transaksi Penjualan</h1>
-            <label className="flex items-center gap-2 mt-1 text-xs text-gray-600 cursor-pointer">
+            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Pencatatan Transaksi Penjualan</h1>
+            <label className="flex items-center gap-2 mt-1 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
               <Checkbox
                 checked={form.manualFaktur}
                 onCheckedChange={(v) => setForm((prev) => ({ ...prev, manualFaktur: Boolean(v) }))}
@@ -827,14 +827,14 @@ export default function POSTransaksi() {
             </label>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="text-xs border-primary text-primary hover:bg-primary-50">
+            <Button variant="outline" size="sm" className="text-xs border-primary text-primary hover:bg-primary-50 dark:hover:bg-primary-950">
               <Copy className="w-3.5 h-3.5 mr-1" />
               Duplikasi Penjualan
             </Button>
             <Button
               variant="outline"
               size="sm"
-              className="text-xs border-primary text-primary hover:bg-primary-50"
+              className="text-xs border-primary text-primary hover:bg-primary-50 dark:hover:bg-primary-950"
               onClick={() => saveTransaction('held')}
             >
               <FileText className="w-3.5 h-3.5 mr-1" />
@@ -848,19 +848,19 @@ export default function POSTransaksi() {
         </div>
 
         {/* ═══ Form Grid ═══ */}
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-4">
+        <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm mb-4">
           <div className="p-4">
             {/* Row 1 */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-3">
               {/* Outlet Penjual */}
               <div>
-                <Label className="text-xs font-medium text-gray-700 mb-1 block">
-                  <span className="text-red-500">*</span> Outlet Penjual
+                <Label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                  <span className="text-red-500 dark:text-red-400">*</span> Outlet Penjual
                 </Label>
                 <select
                   value={form.outletPenjual}
                   onChange={(e) => handleOutletChange(e.target.value)}
-                  className="w-full h-9 border border-gray-300 rounded-md px-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary bg-white"
+                  className="w-full h-9 border border-gray-300 dark:border-gray-600 rounded-md px-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary bg-white dark:bg-gray-900"
                 >
                   <option value="">Please select</option>
                   {branches.map((b: any) => (
@@ -871,27 +871,27 @@ export default function POSTransaksi() {
 
               {/* Termin */}
               <div>
-                <Label className="text-xs font-medium text-gray-700 mb-1 block">
-                  <span className="text-red-500">*</span> Termin
+                <Label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                  <span className="text-red-500 dark:text-red-400">*</span> Termin
                 </Label>
                 <div className="flex items-center gap-1">
                   <select
                     value={form.termin}
                     onChange={(e) => setForm((prev) => ({ ...prev, termin: e.target.value }))}
-                    className="flex-1 h-9 border border-gray-300 rounded-md px-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary bg-white"
+                    className="flex-1 h-9 border border-gray-300 dark:border-gray-600 rounded-md px-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary bg-white dark:bg-gray-900"
                   >
                     <option value="Tunai">Tunai</option>
                     {paymentTerms.map((pt: any) => (
                       <option key={pt.id} value={pt.name}>{pt.name}</option>
                     ))}
                   </select>
-                  <Info className="w-4 h-4 text-gray-400 shrink-0 cursor-help" />
+                  <Info className="w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0 cursor-help" />
                 </div>
               </div>
 
               {/* Jatuh Tempo */}
               <div>
-                <Label className="text-xs font-medium text-gray-700 mb-1 block">Tanggal Jatuh Tempo</Label>
+                <Label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">Tanggal Jatuh Tempo</Label>
                 <Input
                   type="date"
                   value={form.tanggalJatuhTempo}
@@ -902,33 +902,33 @@ export default function POSTransaksi() {
 
               {/* Sales */}
               <div>
-                <Label className="text-xs font-medium text-gray-700 mb-1 block">
-                  <span className="text-red-500">*</span> Sales
+                <Label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                  <span className="text-red-500 dark:text-red-400">*</span> Sales
                 </Label>
                 <div className="flex items-center gap-1">
                   <select
                     value={form.sales}
                     onChange={(e) => setForm((prev) => ({ ...prev, sales: e.target.value }))}
-                    className="flex-1 h-9 border border-gray-300 rounded-md px-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary bg-white"
+                    className="flex-1 h-9 border border-gray-300 dark:border-gray-600 rounded-md px-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary bg-white dark:bg-gray-900"
                   >
                     <option value="">Please select</option>
                     {salesPersons.map((sp: any) => (
                       <option key={sp.id} value={sp.id}>{sp.fullName}</option>
                     ))}
                   </select>
-                  <Info className="w-4 h-4 text-gray-400 shrink-0 cursor-help" />
+                  <Info className="w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0 cursor-help" />
                 </div>
               </div>
 
               {/* Tipe Customer */}
               <div>
-                <Label className="text-xs font-medium text-gray-700 mb-1 block">
-                  <span className="text-red-500">*</span> Tipe Customer
+                <Label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                  <span className="text-red-500 dark:text-red-400">*</span> Tipe Customer
                 </Label>
                 <select
                   value={form.tipeCustomer}
                   onChange={(e) => setForm((prev) => ({ ...prev, tipeCustomer: e.target.value }))}
-                  className="w-full h-9 border border-gray-300 rounded-md px-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary bg-white"
+                  className="w-full h-9 border border-gray-300 dark:border-gray-600 rounded-md px-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary bg-white dark:bg-gray-900"
                 >
                   <option value="">Please select</option>
                   {customerTypes.map((st: any) => (
@@ -942,13 +942,13 @@ export default function POSTransaksi() {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
               {/* Gudang */}
               <div>
-                <Label className="text-xs font-medium text-gray-700 mb-1 block">
-                  <span className="text-red-500">*</span> Gudang
+                <Label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                  <span className="text-red-500 dark:text-red-400">*</span> Gudang
                 </Label>
                 <select
                   value={form.gudang}
                   onChange={(e) => setForm((prev) => ({ ...prev, gudang: e.target.value }))}
-                  className="w-full h-9 border border-gray-300 rounded-md px-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary bg-white"
+                  className="w-full h-9 border border-gray-300 dark:border-gray-600 rounded-md px-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary bg-white dark:bg-gray-900"
                   disabled={!form.outletPenjual}
                 >
                   <option value="">{form.outletPenjual ? 'Pilih Gudang' : 'Tentukan Outlet Penjual'}</option>
@@ -960,8 +960,8 @@ export default function POSTransaksi() {
 
               {/* Tanggal Faktur */}
               <div>
-                <Label className="text-xs font-medium text-gray-700 mb-1 block">
-                  <span className="text-red-500">*</span> Tanggal Faktur
+                <Label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                  <span className="text-red-500 dark:text-red-400">*</span> Tanggal Faktur
                 </Label>
                 <Input
                   type="date"
@@ -973,8 +973,8 @@ export default function POSTransaksi() {
 
               {/* Pelanggan */}
               <div className="relative" ref={customerRef}>
-                <Label className="text-xs font-medium text-gray-700 mb-1 block">
-                  <span className="text-red-500">*</span> Pelanggan
+                <Label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                  <span className="text-red-500 dark:text-red-400">*</span> Pelanggan
                 </Label>
                 <div className="flex items-center gap-1">
                   <div className="relative flex-1">
@@ -988,20 +988,20 @@ export default function POSTransaksi() {
                       placeholder="Cari pelanggan..."
                       className="h-9 text-sm pr-8"
                     />
-                    <Search className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Search className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                   </div>
-                  <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-950 flex items-center justify-center shrink-0">
                     <User className="w-4 h-4 text-primary" />
                   </div>
                 </div>
                 {/* Customer results dropdown */}
                 {showCustomerResults && customerResults.length > 0 && (
-                  <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                  <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                     {customerResults.map((c: any) => (
                       <button
                         key={c.id}
                         type="button"
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-primary-50 border-b border-gray-100 last:border-0"
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-primary-50 dark:hover:bg-primary-950 border-b border-gray-100 dark:border-gray-800 last:border-0"
                         onClick={() => {
                           setForm((prev) => ({ ...prev, pelanggan: c.name || c.fullName, pelangganId: c.id }));
                           setCustomerSearch(c.name || c.fullName);
@@ -1009,21 +1009,21 @@ export default function POSTransaksi() {
                         }}
                       >
                         <div className="font-medium">{c.name || c.fullName}</div>
-                        <div className="text-xs text-gray-500">{c.phone || c.email || ''}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">{c.phone || c.email || ''}</div>
                       </button>
                     ))}
                   </div>
                 )}
                 {/* Checkboxes below pelanggan */}
                 <div className="flex items-center gap-4 mt-1.5">
-                  <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
+                  <label className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
                     <Checkbox
                       checked={form.transferOutlet}
                       onCheckedChange={(v) => setForm((prev) => ({ ...prev, transferOutlet: Boolean(v) }))}
                     />
                     Transfer Outlet
                   </label>
-                  <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
+                  <label className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
                     <Checkbox
                       checked={form.barangDikirim}
                       onCheckedChange={(v) => setForm((prev) => ({ ...prev, barangDikirim: Boolean(v) }))}
@@ -1031,7 +1031,7 @@ export default function POSTransaksi() {
                     Barang Dikirim
                   </label>
                   {form.pelangganId && posDepositBalance !== undefined && (
-                    <span className="ml-auto text-xs font-semibold text-red-700 bg-red-50 border border-red-100 rounded-md px-2 py-0.5">
+                    <span className="ml-auto text-xs font-semibold text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950 border border-red-100 rounded-md px-2 py-0.5">
                       Saldo Deposit: {formatCurrency(posDepositBalance)}
                     </span>
                   )}
@@ -1045,29 +1045,29 @@ export default function POSTransaksi() {
         </div>
 
         {/* ═══ Product Search Bar ═══ */}
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-4">
+        <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm mb-4">
           <div className="p-4 pb-0">
             <div className="relative">
               <Input
                 value={quickSearch}
                 onChange={(e) => setQuickSearch(e.target.value)}
                 placeholder="Qty + spasi + Scan Barcode atau Ketik Nama Barang"
-                className="h-10 text-sm pr-10 border-primary-200 focus:border-primary"
+                className="h-10 text-sm pr-10 border-primary-200 dark:border-primary-800 focus:border-primary"
               />
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
             </div>
             {/* Quick search results */}
             {quickSearch.length >= 2 && quickResults.length > 0 && (
-              <div className="border border-gray-200 rounded-lg mt-1 max-h-48 overflow-y-auto shadow-lg">
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg mt-1 max-h-48 overflow-y-auto shadow-lg">
                 {quickResults.map((p: any, i: number) => (
                   <button
                     key={p.id || i}
                     type="button"
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-primary-50 border-b border-gray-100 last:border-0"
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-primary-50 dark:hover:bg-primary-950 border-b border-gray-100 dark:border-gray-800 last:border-0"
                     onClick={() => handleQuickSearchSelect(p)}
                   >
                     <div className="font-medium">{p.name || p.productName}</div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
                       {p.barcode && `Barcode: ${p.barcode}`}
                       {p.sku && ` | SKU: ${p.sku}`}
                       {p.price && ` | Rp ${formatCurrency(p.price)}`}
@@ -1081,13 +1081,13 @@ export default function POSTransaksi() {
           {/* ═══ Daftar Barang Table ═══ */}
           <div className="p-4">
             <div className="flex items-center justify-between mb-2">
-              <h2 className="text-sm font-bold text-gray-800">Daftar Barang</h2>
+              <h2 className="text-sm font-bold text-gray-800 dark:text-gray-200">Daftar Barang</h2>
               <div className="flex items-center gap-4">
-                <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
+                <label className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
                   <Checkbox />
                   Tampilkan Data Bahan
                 </label>
-                <button className="text-xs text-primary hover:text-primary-800 underline flex items-center gap-1">
+                <button className="text-xs text-primary hover:text-primary-800 dark:hover:text-primary-200 underline flex items-center gap-1">
                   <FileText className="w-3.5 h-3.5" />
                   Isi Table via Excel
                 </button>
@@ -1095,40 +1095,40 @@ export default function POSTransaksi() {
             </div>
 
             {/* Scrollable Table */}
-            <div className="overflow-x-auto border border-gray-200 rounded-lg">
+            <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
+                  <tr className="bg-gray-50 dark:bg-gray-950 border-b border-gray-200 dark:border-gray-700">
                     <th className="w-10 px-2 py-2 text-center"></th>
-                    <th className="w-10 px-2 py-2 text-center text-xs font-semibold text-gray-600">No</th>
-                    <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600 min-w-[250px]">
-                      <span className="text-red-500">*</span> Barcode / Nama Produk / Kode Ref
+                    <th className="w-10 px-2 py-2 text-center text-xs font-semibold text-gray-600 dark:text-gray-400">No</th>
+                    <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 min-w-[250px]">
+                      <span className="text-red-500 dark:text-red-400">*</span> Barcode / Nama Produk / Kode Ref
                     </th>
-                    <th className="w-20 px-2 py-2 text-center text-xs font-semibold text-gray-600">
-                      <span className="text-red-500">*</span> Jumlah
+                    <th className="w-20 px-2 py-2 text-center text-xs font-semibold text-gray-600 dark:text-gray-400">
+                      <span className="text-red-500 dark:text-red-400">*</span> Jumlah
                     </th>
-                    <th className="w-28 px-2 py-2 text-right text-xs font-semibold text-gray-600">@Harga</th>
-                    <th className="w-24 px-2 py-2 text-right text-xs font-semibold text-gray-600">@Diskon</th>
-                    <th className="w-28 px-2 py-2 text-right text-xs font-semibold text-gray-600">Total</th>
+                    <th className="w-28 px-2 py-2 text-right text-xs font-semibold text-gray-600 dark:text-gray-400">@Harga</th>
+                    <th className="w-24 px-2 py-2 text-right text-xs font-semibold text-gray-600 dark:text-gray-400">@Diskon</th>
+                    <th className="w-28 px-2 py-2 text-right text-xs font-semibold text-gray-600 dark:text-gray-400">Total</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((row, i) => (
-                    <tr key={row.id} className="border-b border-gray-100 hover:bg-gray-50/50">
+                    <tr key={row.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
                       {/* Delete button */}
                       <td className="px-2 py-1.5 text-center">
                         {(row.productName || row.barcode) && (
                           <button
                             onClick={() => removeRow(i)}
-                            className="w-6 h-6 rounded-full bg-red-50 hover:bg-red-100 flex items-center justify-center"
+                            className="w-6 h-6 rounded-full bg-red-50 dark:bg-red-950 hover:bg-red-100 dark:hover:bg-red-950 flex items-center justify-center"
                           >
-                            <Trash2 className="w-3 h-3 text-red-500" />
+                            <Trash2 className="w-3 h-3 text-red-500 dark:text-red-400" />
                           </button>
                         )}
                       </td>
 
                       {/* Row number */}
-                      <td className="px-2 py-1.5 text-center text-xs text-gray-500">{i + 1}</td>
+                      <td className="px-2 py-1.5 text-center text-xs text-gray-500 dark:text-gray-400">{i + 1}</td>
 
                       {/* Product field */}
                       <td className="px-2 py-1.5">
@@ -1143,18 +1143,18 @@ export default function POSTransaksi() {
                             }}
                             onFocus={() => setFocusedRowIndex(i)}
                             placeholder="Cari produk..."
-                            className="flex-1 h-8 px-2 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-primary focus:border-primary"
+                            className="flex-1 h-8 px-2 border border-gray-300 dark:border-gray-600 rounded text-xs focus:ring-2 focus:ring-primary focus:border-primary"
                           />
                           {/* Product search results dropdown per row */}
                           {focusedRowIndex === i && productSearchState.rowId === row.id && productSearchState.query.length >= 2 && productResults.length > 0 && (
-                            <div className="absolute z-50 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-40 overflow-y-auto"
+                            <div className="absolute z-50 mt-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-40 overflow-y-auto"
                               style={{ top: '100%', left: 0, right: 0 }}
                             >
                               {productResults.map((p: any, pi: number) => (
                                 <button
                                   key={p.id || pi}
                                   type="button"
-                                  className="w-full text-left px-2 py-1.5 text-xs hover:bg-primary-50 border-b border-gray-100 last:border-0"
+                                  className="w-full text-left px-2 py-1.5 text-xs hover:bg-primary-50 dark:hover:bg-primary-950 border-b border-gray-100 dark:border-gray-800 last:border-0"
                                   onClick={() => {
                                     addProductToRow(i, p, rows[i].quantity || 1);
                                     setProductSearchState({ rowId: '', query: '' });
@@ -1162,16 +1162,16 @@ export default function POSTransaksi() {
                                   }}
                                 >
                                   {p.name || p.productName}
-                                  <span className="text-gray-400 ml-1">{p.barcode || p.sku || ''}</span>
+                                  <span className="text-gray-400 dark:text-gray-500 ml-1">{p.barcode || p.sku || ''}</span>
                                 </button>
                               ))}
                             </div>
                           )}
-                          <button className="w-6 h-6 rounded bg-primary-50 hover:bg-primary-100 flex items-center justify-center shrink-0">
+                          <button className="w-6 h-6 rounded bg-primary-50 dark:bg-primary-950 hover:bg-primary-100 dark:hover:bg-primary-950 flex items-center justify-center shrink-0">
                             <Search className="w-3 h-3 text-primary" />
                           </button>
-                          <button className="w-6 h-6 rounded bg-gray-50 hover:bg-gray-100 flex items-center justify-center shrink-0">
-                            <Pencil className="w-3 h-3 text-gray-500" />
+                          <button className="w-6 h-6 rounded bg-gray-50 dark:bg-gray-950 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center shrink-0">
+                            <Pencil className="w-3 h-3 text-gray-500 dark:text-gray-400" />
                           </button>
                         </div>
                       </td>
@@ -1183,7 +1183,7 @@ export default function POSTransaksi() {
                           min="0"
                           value={row.quantity || ''}
                           onChange={(e) => updateRow(i, 'quantity', parseInt(e.target.value) || 0)}
-                          className="w-full h-8 px-2 border border-gray-300 rounded text-xs text-center focus:ring-2 focus:ring-primary focus:border-primary"
+                          className="w-full h-8 px-2 border border-gray-300 dark:border-gray-600 rounded text-xs text-center focus:ring-2 focus:ring-primary focus:border-primary"
                         />
                       </td>
 
@@ -1194,7 +1194,7 @@ export default function POSTransaksi() {
                           min="0"
                           value={row.price || ''}
                           onChange={(e) => updateRow(i, 'price', parseInt(e.target.value) || 0)}
-                          className="w-full h-8 px-2 border border-gray-300 rounded text-xs text-right focus:ring-2 focus:ring-primary focus:border-primary"
+                          className="w-full h-8 px-2 border border-gray-300 dark:border-gray-600 rounded text-xs text-right focus:ring-2 focus:ring-primary focus:border-primary"
                         />
                       </td>
 
@@ -1205,12 +1205,12 @@ export default function POSTransaksi() {
                           min="0"
                           value={row.discount || ''}
                           onChange={(e) => updateRow(i, 'discount', parseInt(e.target.value) || 0)}
-                          className="w-full h-8 px-2 border border-gray-300 rounded text-xs text-right focus:ring-2 focus:ring-primary focus:border-primary"
+                          className="w-full h-8 px-2 border border-gray-300 dark:border-gray-600 rounded text-xs text-right focus:ring-2 focus:ring-primary focus:border-primary"
                         />
                       </td>
 
                       {/* Total */}
-                      <td className="px-2 py-1.5 text-right text-xs font-medium text-gray-800">
+                      <td className="px-2 py-1.5 text-right text-xs font-medium text-gray-800 dark:text-gray-200">
                         {formatCurrency(row.total)}
                       </td>
                     </tr>
@@ -1238,9 +1238,9 @@ export default function POSTransaksi() {
         {/* ═══ Bottom Section: Notes + Summary ═══ */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           {/* Notes */}
-          <div className="md:col-span-2 bg-white rounded-lg border border-gray-200 shadow-sm p-4 space-y-4">
+          <div className="md:col-span-2 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-4 space-y-4">
             <div>
-              <Label className="text-xs font-medium text-gray-700 mb-2 block">Catatan Internal</Label>
+              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 block">Catatan Internal</Label>
               <Textarea
                 value={form.keterangan}
                 onChange={(e) => setForm((prev) => ({ ...prev, keterangan: e.target.value }))}
@@ -1249,7 +1249,7 @@ export default function POSTransaksi() {
               />
             </div>
             <div>
-              <Label className="text-xs font-medium text-gray-700 mb-2 block">Catatan Struk</Label>
+              <Label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 block">Catatan Struk</Label>
               <Textarea
                 value={form.keteranganStruk}
                 onChange={(e) => setForm((prev) => ({ ...prev, keteranganStruk: e.target.value }))}
@@ -1260,27 +1260,27 @@ export default function POSTransaksi() {
           </div>
 
           {/* Summary */}
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-4">
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Total Qty :</span>
+                <span className="text-gray-600 dark:text-gray-400">Total Qty :</span>
                 <span className="font-semibold">{totalQty}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Sub Total :</span>
+                <span className="text-gray-600 dark:text-gray-400">Sub Total :</span>
                 <span className="font-semibold">{formatCurrency(subTotal)}</span>
               </div>
               <hr className="my-2" />
               {/* T21: payment method — only Tunai enabled for now */}
               {/* IGDERP-239: offline forces Tunai (transfer/e-wallet/kartu need online) */}
               <div className="flex items-center justify-between gap-2">
-                <Label className="text-xs font-medium text-gray-700">Metode Bayar</Label>
+                <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Metode Bayar</Label>
                 <select
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value as any)}
                   disabled={!isOnline}
                   title={!isOnline ? 'Offline: Tunai saja' : undefined}
-                  className="h-8 border border-gray-300 rounded-md px-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary bg-white disabled:bg-gray-100"
+                  className="h-8 border border-gray-300 dark:border-gray-600 rounded-md px-2 text-sm focus:ring-2 focus:ring-primary focus:border-primary bg-white dark:bg-gray-900 disabled:bg-gray-100 dark:disabled:bg-gray-800"
                 >
                   {Object.entries(PAYMENT_LABELS).map(([key, label]) => (
                     <option key={key} value={key} disabled={key !== 'cash'}>{label}</option>
@@ -1288,7 +1288,7 @@ export default function POSTransaksi() {
                 </select>
               </div>
               {!isOnline && (
-                <p className="text-[11px] text-yellow-700">Offline: pembayaran Tunai saja — opsi lain aktif lagi saat online.</p>
+                <p className="text-[11px] text-yellow-700 dark:text-yellow-300">Offline: pembayaran Tunai saja — opsi lain aktif lagi saat online.</p>
               )}
               <div className="flex justify-between text-base font-bold">
                 <span>Total :</span>

@@ -110,7 +110,7 @@ export default function ReturDialog({
             </div>
             <div className="mt-2 flex justify-between border-t border-dashed pt-2 text-sm">
               <span>Total faktur</span>
-              <span className="font-bold text-primary-600">{formatCurrency(total)}</span>
+              <span className="font-bold text-primary-600 dark:text-primary-400">{formatCurrency(total)}</span>
             </div>
           </div>
 

@@ -50,17 +50,17 @@ export default function StockOpnameList() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'draft':
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700';
       case 'counting':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-800';
       case 'completed':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return 'bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800';
       case 'approved':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800';
       case 'cancelled':
-        return 'bg-red-50 text-red-700 border-red-200';
+        return 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700';
     }
   };
 
@@ -108,40 +108,40 @@ export default function StockOpnameList() {
 
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
-          <p className="text-red-800 font-medium">{(error as Error).message || 'Terjadi kesalahan'}</p>
+        <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
+          <p className="text-red-800 dark:text-red-200 font-medium">{(error as Error).message || 'Terjadi kesalahan'}</p>
         </div>
       )}
 
       {/* Status Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4 hover:shadow-lg transition-all">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-4 hover:shadow-lg transition-all">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600">Draft</span>
-            <Clock className="w-4 h-4 text-gray-600" />
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Draft</span>
+            <Clock className="w-4 h-4 text-gray-600 dark:text-gray-400" />
           </div>
-          <h3 className="text-2xl font-bold text-gray-900">{statusCounts.draft}</h3>
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{statusCounts.draft}</h3>
         </div>
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4 hover:shadow-lg transition-all">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-4 hover:shadow-lg transition-all">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600">Sedang Dihitung</span>
-            <ClipboardCheck className="w-4 h-4 text-blue-600" />
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Sedang Dihitung</span>
+            <ClipboardCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           </div>
-          <h3 className="text-2xl font-bold text-gray-900">{statusCounts.counting}</h3>
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{statusCounts.counting}</h3>
         </div>
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4 hover:shadow-lg transition-all">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-4 hover:shadow-lg transition-all">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600">Selesai</span>
-            <AlertTriangle className="w-4 h-4 text-yellow-600" />
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Selesai</span>
+            <AlertTriangle className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
           </div>
-          <h3 className="text-2xl font-bold text-gray-900">{statusCounts.completed}</h3>
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{statusCounts.completed}</h3>
         </div>
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4 hover:shadow-lg transition-all">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-4 hover:shadow-lg transition-all">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600">Disetujui</span>
-            <CheckCircle className="w-4 h-4 text-green-600" />
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Disetujui</span>
+            <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
           </div>
-          <h3 className="text-2xl font-bold text-gray-900">{statusCounts.approved}</h3>
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{statusCounts.approved}</h3>
         </div>
       </div>
 
@@ -179,41 +179,41 @@ export default function StockOpnameList() {
       />
 
       {/* Opnames Table */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gradient-to-r from-gray-50 via-gray-50 to-gray-100">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gradient-to-r from-gray-50 dark:from-gray-900 via-gray-50 dark:via-gray-900 to-gray-100 dark:to-gray-800">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                   Nomor Opname
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                   Cabang
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                   Tanggal
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                   Total Item
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                   Nilai Discrepancy
                 </th>
-                <th className="px-4 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-center text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                   Aksi
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-100">
+            <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-800">
               {isLoading ? (
                 <tr>
                   <td colSpan={7} className="px-4 py-16 text-center">
                     <div className="flex flex-col items-center gap-4">
-                      <Loader2 className="w-16 h-16 text-primary-600 animate-spin" />
-                      <p className="text-gray-600 font-semibold text-lg">Memuat data opname...</p>
+                      <Loader2 className="w-16 h-16 text-primary-600 dark:text-primary-400 animate-spin" />
+                      <p className="text-gray-600 dark:text-gray-400 font-semibold text-lg">Memuat data opname...</p>
                     </div>
                   </td>
                 </tr>
@@ -221,10 +221,10 @@ export default function StockOpnameList() {
                 <tr>
                   <td colSpan={7} className="px-4 py-16 text-center">
                     <div className="flex flex-col items-center gap-4">
-                      <div className="p-4 bg-gray-100 rounded-full">
-                        <ClipboardCheck className="w-16 h-16 text-gray-400" />
+                      <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-full">
+                        <ClipboardCheck className="w-16 h-16 text-gray-400 dark:text-gray-500" />
                       </div>
-                      <p className="text-gray-600 font-semibold text-lg">Tidak ada opname ditemukan</p>
+                      <p className="text-gray-600 dark:text-gray-400 font-semibold text-lg">Tidak ada opname ditemukan</p>
                       <Link
                         to="/inventory/opname/new"
                         className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
@@ -247,17 +247,17 @@ export default function StockOpnameList() {
                   return (
                     <tr
                       key={opname.id}
-                      className="hover:bg-gradient-to-r hover:from-gray-50 hover:to-white transition-all duration-200 border-b border-gray-100 cursor-pointer"
+                      className="hover:bg-gradient-to-r hover:from-gray-50 dark:hover:from-gray-900 hover:to-white dark:hover:to-gray-900 transition-all duration-200 border-b border-gray-100 dark:border-gray-800 cursor-pointer"
                       onClick={() => navigate(`/inventory/opname/${opname.id}`)}
                     >
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="text-sm font-semibold text-gray-900">{opname.opnameNumber}</div>
+                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{opname.opnameNumber}</div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{opname.branch?.name || '-'}</div>
+                        <div className="text-sm text-gray-900 dark:text-gray-100">{opname.branch?.name || '-'}</div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
+                        <div className="text-sm text-gray-900 dark:text-gray-100">
                           {new Date(opname.opnameDate).toLocaleDateString('id-ID', {
                             day: '2-digit',
                             month: 'short',
@@ -275,12 +275,12 @@ export default function StockOpnameList() {
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-right">
-                        <div className="text-sm font-semibold text-gray-900">
+                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                           {countedItems} / {totalItems}
                         </div>
                         {opname.status === 'counting' && (
                           <>
-                            <div className="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden ml-auto mt-1">
+                            <div className="w-20 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden ml-auto mt-1">
                               <div
                                 className="h-full bg-blue-500 rounded-full"
                                 style={{
@@ -288,7 +288,7 @@ export default function StockOpnameList() {
                                 }}
                               />
                             </div>
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
                               {Math.round((countedItems / totalItems) * 100)}% selesai
                             </div>
                           </>
@@ -298,10 +298,10 @@ export default function StockOpnameList() {
                         <div
                           className={`text-sm font-semibold ${
                             totalDiscrepancyValue > 0
-                              ? 'text-green-600'
+                              ? 'text-green-600 dark:text-green-400'
                               : totalDiscrepancyValue < 0
-                                ? 'text-red-600'
-                                : 'text-gray-900'
+                                ? 'text-red-600 dark:text-red-400'
+                                : 'text-gray-900 dark:text-gray-100'
                           }`}
                         >
                           {formatCurrency(Math.abs(totalDiscrepancyValue))}

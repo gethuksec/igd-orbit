@@ -152,8 +152,8 @@ export default function CategoryList() {
         <span
           className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${
             category.isActive
-              ? "bg-green-100 text-green-800 border-green-200"
-              : "bg-gray-100 text-gray-800 border-gray-200"
+              ? "bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800"
+              : "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700"
           }`}
         >
           {category.isActive ? "Aktif" : "Tidak Aktif"}
@@ -167,7 +167,7 @@ export default function CategoryList() {
       <BreadcrumbHeader title="Manajemen Kategori" subtitle="Kelola kategori produk">
         <Button
           onClick={openCreateModal}
-          className="flex items-center gap-2 bg-white text-primary-600 border border-gray-200 hover:bg-primary-50"
+          className="flex items-center gap-2 bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 border border-gray-200 dark:border-gray-700 hover:bg-primary-50 dark:hover:bg-primary-950"
         >
           <Plus className="w-5 h-5" />
           <span>Tambah Kategori</span>
@@ -175,8 +175,8 @@ export default function CategoryList() {
       </BreadcrumbHeader>
 
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
-          <p className="text-red-800 font-medium">
+        <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
+          <p className="text-red-800 dark:text-red-200 font-medium">
             {(error as Error).message || "Terjadi kesalahan"}
           </p>
         </div>
@@ -202,7 +202,7 @@ export default function CategoryList() {
           iconBg="from-blue-500 to-blue-600"
           label="Kategori Aktif"
           value={isLoading ? "-" : activeCount}
-          badge={{ text: "Active", className: "bg-green-100 text-green-800" }}
+          badge={{ text: "Active", className: "bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200" }}
         />
       </div>
 
@@ -262,7 +262,7 @@ export default function CategoryList() {
             <Button
               variant="ghost"
               size="sm"
-              className="text-red-600 hover:bg-red-50"
+              className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950"
               title="Hapus"
               onClick={(e) => {
                 e.stopPropagation();
@@ -277,7 +277,7 @@ export default function CategoryList() {
       />
 
       {!isLoading && categories.length > 0 && (
-        <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 rounded-lg border border-gray-200">
+        <div className="bg-gradient-to-r from-gray-50 dark:from-gray-900 to-gray-100 dark:to-gray-800 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
               Menampilkan{" "}
@@ -332,43 +332,43 @@ export default function CategoryList() {
           </DialogHeader>
         <form onSubmit={handleFormSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nama Kategori <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Nama Kategori <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <input
               type="text"
               required
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               placeholder="Nama kategori"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Deskripsi
             </label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               placeholder="Deskripsi kategori (opsional)"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Status
             </label>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setFormData(prev => ({ ...prev, isActive: !prev.isActive }))}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isActive ? 'bg-green-500' : 'bg-gray-300'}`}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isActive ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}
               >
                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.isActive ? 'translate-x-6' : 'translate-x-1'}`} />
               </button>
-              <span className="text-sm text-gray-600">{formData.isActive ? 'Aktif' : 'Tidak Aktif'}</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">{formData.isActive ? 'Aktif' : 'Tidak Aktif'}</span>
             </div>
           </div>
           <div className="flex gap-3 pt-2">
@@ -379,7 +379,7 @@ export default function CategoryList() {
                 setEditingCategory(null);
                 setFormData({ name: "", description: "", isActive: true });
               }}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors"
               disabled={saveMutation.isPending}
             >
               Batal
@@ -422,14 +422,14 @@ export default function CategoryList() {
           </DialogHeader>
         <div className="space-y-4">
           <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
-              <AlertTriangle className="w-5 h-5 text-red-600" />
+            <div className="flex-shrink-0 p-2 bg-red-100 dark:bg-red-950 rounded-full">
+              <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
             </div>
             <div className="flex-1">
-              <p className="text-sm text-gray-700 mb-2">
+              <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
                 Apakah Anda yakin ingin menghapus kategori <strong>{categoryToDelete?.name}</strong>?
               </p>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 Tindakan ini akan menghapus kategori secara permanen. Pastikan kategori tidak memiliki
                 produk atau subkategori yang terkait.
               </p>
@@ -441,7 +441,7 @@ export default function CategoryList() {
                 setDeleteModalOpen(false);
                 setCategoryToDelete(null);
               }}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors"
               disabled={deleteMutation.isPending}
             >
               Batal

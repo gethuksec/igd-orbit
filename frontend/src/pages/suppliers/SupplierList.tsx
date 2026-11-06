@@ -197,8 +197,8 @@ export default function SupplierList() {
         <span
           className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${
             supplier.isActive
-              ? "bg-green-100 text-green-800 border-green-200"
-              : "bg-gray-100 text-gray-800 border-gray-200"
+              ? "bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800"
+              : "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700"
           }`}
         >
           {supplier.isActive ? "Aktif" : "Tidak Aktif"}
@@ -229,7 +229,7 @@ export default function SupplierList() {
       <BreadcrumbHeader title="Manajemen Pemasok" subtitle="Kelola data pemasok dan vendor">
         <Button
           onClick={openCreateModal}
-          className="flex items-center gap-2 bg-white text-primary-600 border border-gray-200 hover:bg-primary-50"
+          className="flex items-center gap-2 bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 border border-gray-200 dark:border-gray-700 hover:bg-primary-50 dark:hover:bg-primary-950"
         >
           <Plus className="w-5 h-5" />
           <span>Tambah Pemasok</span>
@@ -237,8 +237,8 @@ export default function SupplierList() {
       </BreadcrumbHeader>
 
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
-          <p className="text-red-800 font-medium">
+        <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
+          <p className="text-red-800 dark:text-red-200 font-medium">
             {(error as Error).message || "Terjadi kesalahan"}
           </p>
         </div>
@@ -264,7 +264,7 @@ export default function SupplierList() {
           iconBg="from-green-500 to-green-600"
           label="Pemasok Aktif"
           value={isLoading ? "-" : activeCount}
-          badge={{ text: "Active", className: "bg-green-100 text-green-800" }}
+          badge={{ text: "Active", className: "bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200" }}
         />
       </div>
 
@@ -324,7 +324,7 @@ export default function SupplierList() {
             <Button
               variant="ghost"
               size="sm"
-              className="text-red-600 hover:bg-red-50"
+              className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950"
               onClick={() => {
                 setSupplierToDelete({ id: supplier.id, name: supplier.name });
                 setDeleteModalOpen(true);
@@ -338,7 +338,7 @@ export default function SupplierList() {
       />
 
       {!isLoading && suppliers.length > 0 && (
-        <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 rounded-lg border border-gray-200">
+        <div className="bg-gradient-to-r from-gray-50 dark:from-gray-900 to-gray-100 dark:to-gray-800 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
               Menampilkan{" "}
@@ -390,7 +390,7 @@ export default function SupplierList() {
         <form onSubmit={handleFormSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1">
-              Nama Pemasok <span className="text-red-500">*</span>
+              Nama Pemasok <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <Input
               type="text"
@@ -413,7 +413,7 @@ export default function SupplierList() {
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">
-              Telepon <span className="text-red-500">*</span>
+              Telepon <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <Input
               type="tel"
@@ -471,8 +471,8 @@ export default function SupplierList() {
           </DialogHeader>
         <div className="space-y-4">
           <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
-              <AlertTriangle className="w-5 h-5 text-red-600" />
+            <div className="flex-shrink-0 p-2 bg-red-100 dark:bg-red-950 rounded-full">
+              <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
             </div>
             <div className="flex-1">
               <p className="text-sm text-muted-foreground mb-2">

@@ -164,11 +164,11 @@ export default function PayrollCalculationForm() {
       <BreadcrumbHeader title="Hitung Payroll" subtitle="Formulir perhitungan payroll karyawan" />
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6 space-y-6">
         {/* Employee Selection */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Karyawan <span className="text-red-500">*</span>
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            Karyawan <span className="text-red-500 dark:text-red-400">*</span>
           </label>
           <select
             multiple
@@ -180,7 +180,7 @@ export default function PayrollCalculationForm() {
             required
             size={5}
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-              errors.employee_ids ? 'border-red-300' : 'border-gray-300'
+              errors.employee_ids ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-600'
             }`}
           >
             {isLoadingEmployees ? (
@@ -202,10 +202,10 @@ export default function PayrollCalculationForm() {
               })
             )}
           </select>
-          <p className="mt-1 text-xs text-gray-500">Gunakan Ctrl/Cmd + Click untuk memilih multiple karyawan</p>
-          {errors.employee_ids && <p className="mt-1 text-sm text-red-600">{errors.employee_ids}</p>}
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Gunakan Ctrl/Cmd + Click untuk memilih multiple karyawan</p>
+          {errors.employee_ids && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.employee_ids}</p>}
           {formData.employee_ids.length > 0 && (
-            <p className="mt-2 text-sm text-gray-700">
+            <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
               <span className="font-semibold">{formData.employee_ids.length}</span> karyawan dipilih
             </p>
           )}
@@ -214,15 +214,15 @@ export default function PayrollCalculationForm() {
         {/* Period */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Bulan <span className="text-red-500">*</span>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              Bulan <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <select
               value={formData.period_month}
               onChange={(e) => setFormData({ ...formData, period_month: parseInt(e.target.value) })}
               required
               className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                errors.period_month ? 'border-red-300' : 'border-gray-300'
+                errors.period_month ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-600'
               }`}
             >
               {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
@@ -231,12 +231,12 @@ export default function PayrollCalculationForm() {
                 </option>
               ))}
             </select>
-            {errors.period_month && <p className="mt-1 text-sm text-red-600">{errors.period_month}</p>}
+            {errors.period_month && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.period_month}</p>}
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Tahun <span className="text-red-500">*</span>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              Tahun <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <input
               type="number"
@@ -246,17 +246,17 @@ export default function PayrollCalculationForm() {
               max="2100"
               required
               className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                errors.period_year ? 'border-red-300' : 'border-gray-300'
+                errors.period_year ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-600'
               }`}
             />
-            {errors.period_year && <p className="mt-1 text-sm text-red-600">{errors.period_year}</p>}
+            {errors.period_year && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.period_year}</p>}
           </div>
         </div>
 
         {/* Components */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <label className="block text-sm font-semibold text-gray-700">Komponen Payroll (Opsional)</label>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">Komponen Payroll (Opsional)</label>
             <button
               type="button"
               onClick={addComponent}
@@ -270,13 +270,13 @@ export default function PayrollCalculationForm() {
           {components.length > 0 && (
             <div className="space-y-4">
               {components.map((component, index) => (
-                <div key={index} className="border border-gray-200 rounded-lg p-4 space-y-4">
+                <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-4">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-semibold text-gray-900">Komponen #{index + 1}</h4>
+                    <h4 className="font-semibold text-gray-900 dark:text-gray-100">Komponen #{index + 1}</h4>
                     <button
                       type="button"
                       onClick={() => removeComponent(index)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                      className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -284,13 +284,13 @@ export default function PayrollCalculationForm() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Tipe</label>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Tipe</label>
                       <select
                         value={component.component_type}
                         onChange={(e) =>
                           updateComponent(index, 'component_type', e.target.value as 'earning' | 'deduction')
                         }
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       >
                         <option value="earning">Earning</option>
                         <option value="deduction">Deduction</option>
@@ -298,8 +298,8 @@ export default function PayrollCalculationForm() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Nama Komponen <span className="text-red-500">*</span>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        Nama Komponen <span className="text-red-500 dark:text-red-400">*</span>
                       </label>
                       <input
                         type="text"
@@ -307,17 +307,17 @@ export default function PayrollCalculationForm() {
                         onChange={(e) => updateComponent(index, 'component_name', e.target.value)}
                         placeholder="e.g., Tunjangan, Potongan"
                         className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                          errors[`component_${index}_name`] ? 'border-red-300' : 'border-gray-300'
+                          errors[`component_${index}_name`] ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-600'
                         }`}
                       />
                       {errors[`component_${index}_name`] && (
-                        <p className="mt-1 text-sm text-red-600">{errors[`component_${index}_name`]}</p>
+                        <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors[`component_${index}_name`]}</p>
                       )}
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Jumlah <span className="text-red-500">*</span>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        Jumlah <span className="text-red-500 dark:text-red-400">*</span>
                       </label>
                       <input
                         type="number"
@@ -327,20 +327,20 @@ export default function PayrollCalculationForm() {
                         step="0.01"
                         placeholder="0"
                         className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                          errors[`component_${index}_amount`] ? 'border-red-300' : 'border-gray-300'
+                          errors[`component_${index}_amount`] ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-600'
                         }`}
                       />
                       {errors[`component_${index}_amount`] && (
-                        <p className="mt-1 text-sm text-red-600">{errors[`component_${index}_amount`]}</p>
+                        <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors[`component_${index}_amount`]}</p>
                       )}
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Taxable</label>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Taxable</label>
                       <select
                         value={component.is_taxable ? 'true' : 'false'}
                         onChange={(e) => updateComponent(index, 'is_taxable', e.target.value === 'true')}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       >
                         <option value="true">Yes</option>
                         <option value="false">No</option>
@@ -349,13 +349,13 @@ export default function PayrollCalculationForm() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Catatan (Opsional)</label>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Catatan (Opsional)</label>
                     <textarea
                       value={component.notes || ''}
                       onChange={(e) => updateComponent(index, 'notes', e.target.value)}
                       rows={2}
                       placeholder="Tambahkan catatan..."
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                   </div>
                 </div>
@@ -365,18 +365,18 @@ export default function PayrollCalculationForm() {
 
           {/* Summary */}
           {components.length > 0 && (
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg space-y-2">
+            <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-950 rounded-lg space-y-2">
               <div className="flex justify-between">
-                <span className="text-sm font-semibold text-gray-700">Total Earnings:</span>
-                <span className="text-sm font-bold text-green-600">{formatCurrency(totalEarnings)}</span>
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Total Earnings:</span>
+                <span className="text-sm font-bold text-green-600 dark:text-green-400">{formatCurrency(totalEarnings)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm font-semibold text-gray-700">Total Deductions:</span>
-                <span className="text-sm font-bold text-red-600">{formatCurrency(totalDeductions)}</span>
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Total Deductions:</span>
+                <span className="text-sm font-bold text-red-600 dark:text-red-400">{formatCurrency(totalDeductions)}</span>
               </div>
-              <div className="flex justify-between pt-2 border-t border-gray-200">
-                <span className="text-base font-bold text-gray-900">Net:</span>
-                <span className="text-base font-bold text-gray-900">
+              <div className="flex justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
+                <span className="text-base font-bold text-gray-900 dark:text-gray-100">Net:</span>
+                <span className="text-base font-bold text-gray-900 dark:text-gray-100">
                   {formatCurrency(totalEarnings - totalDeductions)}
                 </span>
               </div>
@@ -385,10 +385,10 @@ export default function PayrollCalculationForm() {
         </div>
 
         {/* Actions */}
-        <div className="flex gap-3 pt-4 border-t border-gray-200">
+        <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
           <Link
             to="/hr/payroll"
-            className="flex-1 px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 text-center"
+            className="flex-1 px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-center"
           >
             Batal
           </Link>

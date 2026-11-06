@@ -132,7 +132,7 @@ export default function UserList() {
             {user.fullName?.charAt(0).toUpperCase() || '?'}
           </div>
           <div>
-            <div className="text-sm font-semibold text-foreground hover:text-primary-600 transition-colors">
+            <div className="text-sm font-semibold text-foreground hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
               {user.fullName}
             </div>
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
@@ -167,7 +167,7 @@ export default function UserList() {
               return (
                 <span
                   key={role.id}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary-50 text-primary-700 border border-primary-100 rounded-md text-xs font-medium"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary-50 dark:bg-primary-950 text-primary-700 dark:text-primary-300 border border-primary-100 rounded-md text-xs font-medium"
                 >
                   <Shield className="w-3 h-3" />
                   {roleName}
@@ -184,12 +184,12 @@ export default function UserList() {
       header: 'Status',
       cell: (user) =>
         user.isActive ? (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-100 text-green-700 border border-green-200 rounded-lg text-xs font-semibold">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 rounded-lg text-xs font-semibold">
             <CheckCircle className="w-3 h-3" />
             Aktif
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-50 text-red-600 border border-red-200 rounded-lg text-xs font-semibold">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg text-xs font-semibold">
             <XCircle className="w-3 h-3" />
             Dibanned
           </span>
@@ -223,7 +223,7 @@ export default function UserList() {
     <div className="space-y-6">
       <BreadcrumbHeader title="Manajemen Pengguna" subtitle="Kelola pengguna dan akses sistem">
         <RequirePermission permission="users.create" fallbackRoles={['SUPERADMIN', 'CHR']}>
-          <Button size="sm" className="bg-white text-primary-600 hover:bg-primary-50 font-semibold" onClick={() => setFormModal({ open: true, user: null })}>
+          <Button size="sm" className="bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950 font-semibold" onClick={() => setFormModal({ open: true, user: null })}>
             <Plus className="w-4 h-4" />
             Tambah Pengguna
           </Button>
@@ -290,7 +290,7 @@ export default function UserList() {
         onSort={handleSort}
         actions={(user) => (
           <>
-            <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-50" title="Lihat Detail">
+            <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950" title="Lihat Detail">
               <Link to={`/users/${user.id}`}>
                 <Eye className="w-4 h-4" />
               </Link>
@@ -299,7 +299,7 @@ export default function UserList() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-amber-600 hover:bg-amber-50"
+                className="h-8 w-8 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950"
                 title="Reaktivasi"
                 disabled={reactivateMutation.isPending}
                 onClick={() => reactivateMutation.mutate(user.id)}
@@ -311,7 +311,7 @@ export default function UserList() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-green-600 hover:bg-green-50"
+                className="h-8 w-8 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950"
                 title="Edit"
                 onClick={() => setFormModal({ open: true, user })}
               >
@@ -322,7 +322,7 @@ export default function UserList() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-red-600 hover:bg-red-50"
+                className="h-8 w-8 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950"
                 title="Hapus"
                 onClick={() => {
                   setUserToDelete({ id: user.id, fullName: user.fullName });
@@ -387,14 +387,14 @@ export default function UserList() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
+              <div className="flex-shrink-0 p-2 bg-red-100 dark:bg-red-950 rounded-full">
+                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
               </div>
               <div className="flex-1">
-                <p className="text-sm text-gray-700 mb-2">
+                <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
                   Apakah Anda yakin ingin menghapus pengguna <strong>{userToDelete?.fullName}</strong>?
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   Tindakan ini tidak dapat dibatalkan. Semua data pengguna akan dihapus secara permanen.
                 </p>
               </div>

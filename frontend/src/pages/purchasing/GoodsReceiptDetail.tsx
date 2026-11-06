@@ -295,13 +295,13 @@ export default function GoodsReceiptDetail() {
                 )}
               </div>
               {menuOpen && (
-                <div className="absolute right-0 z-50 mt-1 min-w-40 overflow-hidden rounded-lg border bg-white py-1 shadow">
+                <div className="absolute right-0 z-50 mt-1 min-w-40 overflow-hidden rounded-lg border bg-white dark:bg-gray-900 py-1 shadow">
                   {items.map((item) => (
                     <button
                       key={item.label}
                       type="button"
                       className={`block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-muted ${
-                        item.destructive ? 'font-semibold text-red-600' : 'text-gray-700'
+                        item.destructive ? 'font-semibold text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'
                       }`}
                       onClick={() => {
                         setMenuOpen(false);
@@ -320,10 +320,10 @@ export default function GoodsReceiptDetail() {
       </BreadcrumbHeader>
 
       {gr.status === 'revisit' && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+        <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-xl p-4 text-sm text-amber-800 dark:text-amber-200">
           <b>Revisit:</b> GR dikembalikan ke tim penerimaan (SODO). Periksa &amp; simpan ulang
           kuantitas penerimaan, lalu GR kembali ke status <b>Received</b> untuk approval.
-          {gr.revisitReason && <div className="mt-1 text-amber-700">Alasan: “{gr.revisitReason}”</div>}
+          {gr.revisitReason && <div className="mt-1 text-amber-700 dark:text-amber-300">Alasan: “{gr.revisitReason}”</div>}
         </div>
       )}
 
@@ -400,7 +400,7 @@ export default function GoodsReceiptDetail() {
               {gr.items?.map((item: any) => {
                 const v = rowValue(item);
                 return (
-                  <TableRow key={item.id} className={v.isMismatch ? 'bg-amber-50/50' : ''}>
+                  <TableRow key={item.id} className={v.isMismatch ? 'bg-amber-50/50 dark:bg-amber-950/50' : ''}>
                     <TableCell>
                       <div className="font-semibold">{item.product?.name || 'N/A'}</div>
                       <div className="text-sm text-muted-foreground">{item.product?.sku}</div>
@@ -450,7 +450,7 @@ export default function GoodsReceiptDetail() {
                         <span className="text-destructive font-semibold">{v.rejected}</span>
                       )}
                     </TableCell>
-                    <TableCell><span className="text-green-600 font-semibold">{v.accepted}</span></TableCell>
+                    <TableCell><span className="text-green-600 dark:text-green-400 font-semibold">{v.accepted}</span></TableCell>
                     <TableCell>
                       {v.ordered === null ? (
                         <span className="text-sm text-muted-foreground">-</span>
@@ -514,9 +514,9 @@ export default function GoodsReceiptDetail() {
                   </div>
                   <div className="flex items-center gap-3 flex-none">
                     {job.status === 'printed' ? (
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Sudah Cetak</Badge>
+                      <Badge variant="outline" className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800">Sudah Cetak</Badge>
                     ) : (
-                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Pending</Badge>
+                      <Badge variant="outline" className="bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800">Pending</Badge>
                     )}
                     <span className="text-xs text-muted-foreground w-28 text-right truncate">
                       {job.printedByUser?.fullName || '—'}
@@ -619,7 +619,7 @@ export default function GoodsReceiptDetail() {
           {revisitReason === 'Lainnya' && (
             <div>
               <label className="text-sm font-semibold">
-                Catatan <span className="text-red-600">*</span>
+                Catatan <span className="text-red-600 dark:text-red-400">*</span>
               </label>
               <Textarea
                 value={revisitNote}

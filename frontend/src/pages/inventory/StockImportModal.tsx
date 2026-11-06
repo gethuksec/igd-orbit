@@ -85,12 +85,12 @@ function SearchPicker({
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
-          className="flex h-10 w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-left focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex h-10 w-full items-center justify-between rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-left focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <span className={selected ? 'truncate text-gray-900' : 'text-gray-400'}>
+          <span className={selected ? 'truncate text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}>
             {selected ? selected.label : placeholder}
           </span>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-gray-400" />
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-gray-400 dark:text-gray-500" />
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-[400px] p-0" align="start">
@@ -259,7 +259,7 @@ export default function StockImportModal({
       <DialogContent className="w-[75vw] max-w-[75vw] h-[80vh] max-h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <FileSpreadsheet className="w-5 h-5 text-primary-600" />
+            <FileSpreadsheet className="w-5 h-5 text-primary-600 dark:text-primary-400" />
             Import Excel {title}
           </DialogTitle>
         </DialogHeader>
@@ -269,8 +269,8 @@ export default function StockImportModal({
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label className="block text-sm font-medium text-gray-700 mb-2">
-                    Outlet <span className="text-red-500">*</span>
+                  <Label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Outlet <span className="text-red-500 dark:text-red-400">*</span>
                   </Label>
                   <SearchPicker
                     items={(branches as any[]).map((b: any) => ({ id: b.id, label: `${b.name} (${b.code})` }))}
@@ -287,8 +287,8 @@ export default function StockImportModal({
                   />
                 </div>
                 <div>
-                  <Label className="block text-sm font-medium text-gray-700 mb-2">
-                    Gudang <span className="text-red-500">*</span>
+                  <Label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Gudang <span className="text-red-500 dark:text-red-400">*</span>
                   </Label>
                   <SearchPicker
                     items={(warehouses as any[]).map((w: any) => ({ id: w.id, label: `${w.name} (${w.code})` }))}
@@ -305,27 +305,27 @@ export default function StockImportModal({
               </div>
 
               <div>
-                <Label className="block text-sm font-medium text-gray-700 mb-2">
-                  Mode import <span className="text-red-500">*</span>
+                <Label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Mode import <span className="text-red-500 dark:text-red-400">*</span>
                 </Label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setMode('TAMBAH')}
-                    className={`rounded-lg border p-3 text-left text-sm ${mode === 'TAMBAH' ? 'border-primary-600 bg-primary-50 ring-1 ring-primary-600' : 'border-gray-300 bg-white'}`}
+                    className={`rounded-lg border p-3 text-left text-sm ${mode === 'TAMBAH' ? 'border-primary-600 bg-primary-50 dark:bg-primary-950 ring-1 ring-primary-600' : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900'}`}
                   >
-                    <span className="font-semibold text-gray-900">TAMBAH</span>
-                    <span className="block text-xs text-gray-500 mt-1">
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">TAMBAH</span>
+                    <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
                       Menambah ke stok saat ini (aman untuk stok berjalan).
                     </span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setMode('REPLACE')}
-                    className={`rounded-lg border p-3 text-left text-sm ${mode === 'REPLACE' ? 'border-primary-600 bg-primary-50 ring-1 ring-primary-600' : 'border-gray-300 bg-white'}`}
+                    className={`rounded-lg border p-3 text-left text-sm ${mode === 'REPLACE' ? 'border-primary-600 bg-primary-50 dark:bg-primary-950 ring-1 ring-primary-600' : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900'}`}
                   >
-                    <span className="font-semibold text-gray-900">REPLACE</span>
-                    <span className="block text-xs text-gray-500 mt-1">
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">REPLACE</span>
+                    <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
                       {kind === 'in'
                         ? 'Menyetel SKU di file ke qty file (hanya SKU tersebut).'
                         : 'Mengurangi setiap SKU ke qty file (selisihnya saja).'}
@@ -335,7 +335,7 @@ export default function StockImportModal({
               </div>
 
               <div>
-                <Label className="block text-sm font-medium text-gray-700 mb-2">
+                <Label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Alasan / catatan dokumen (opsional)
                 </Label>
                 <Input
@@ -347,7 +347,7 @@ export default function StockImportModal({
 
               {kind === 'in' && (
                 <div>
-                  <Label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     No. PO / Invoice Supplier (opsional)
                   </Label>
                   <Input
@@ -363,7 +363,7 @@ export default function StockImportModal({
                   {busyFile ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
                   Unduh Template
                 </Button>
-                <label className="flex items-center gap-2 rounded-lg border border-dashed border-gray-300 px-3 py-2 text-sm text-gray-600 cursor-pointer hover:border-primary-500">
+                <label className="flex items-center gap-2 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer hover:border-primary-500">
                   <Upload className="w-4 h-4" />
                   {file ? file.name : 'Pilih file .xlsx'}
                   <input
@@ -374,7 +374,7 @@ export default function StockImportModal({
                   />
                 </label>
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 Template dan hasil export memakai kolom yang sama — file export bisa langsung diimport kembali.
                 File tidak disimpan di server, hanya datanya yang diproses.
               </p>
@@ -384,28 +384,28 @@ export default function StockImportModal({
           {step === 2 && preview && (
             <>
               <div className="flex flex-wrap gap-2 text-xs">
-                <span className="rounded-full bg-green-100 text-green-800 px-3 py-1 font-medium">
+                <span className="rounded-full bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 px-3 py-1 font-medium">
                   Valid: {preview.validCount}
                 </span>
                 {preview.errorCount > 0 && (
-                  <span className="rounded-full bg-red-100 text-red-800 px-3 py-1 font-medium">
+                  <span className="rounded-full bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-200 px-3 py-1 font-medium">
                     Error: {preview.errorCount}
                   </span>
                 )}
                 {(preview.overQtyCount || 0) > 0 && (
-                  <span className="rounded-full bg-amber-100 text-amber-800 px-3 py-1 font-medium">
+                  <span className="rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-200 px-3 py-1 font-medium">
                     Melebihi stok: {preview.overQtyCount} (dilewati saat konfirmasi)
                   </span>
                 )}
                 {(preview.mergedCount || 0) > 0 && (
-                  <span className="rounded-full bg-blue-100 text-blue-800 px-3 py-1 font-medium">
+                  <span className="rounded-full bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 px-3 py-1 font-medium">
                     Digabung: {preview.mergedCount} (SKU ganda dijumlah)
                   </span>
                 )}
               </div>
-              <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50 text-left text-xs text-gray-500">
+                  <thead className="bg-gray-50 dark:bg-gray-950 text-left text-xs text-gray-500 dark:text-gray-400">
                     <tr>
                       <th className="px-3 py-2">Baris</th>
                       <th className="px-3 py-2">SKU</th>
@@ -415,32 +415,32 @@ export default function StockImportModal({
                       <th className="px-3 py-2">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                     {preview.rows.map((r, i) => {
                       const bad = r.errors.length > 0;
                       const warn = !bad && r.overQty;
                       return (
-                        <tr key={i} className={bad ? 'bg-red-50' : warn ? 'bg-amber-50' : ''}>
-                          <td className="px-3 py-2 text-gray-500">{r.rowNumbers.join(', ')}</td>
+                        <tr key={i} className={bad ? 'bg-red-50 dark:bg-red-950' : warn ? 'bg-amber-50 dark:bg-amber-950' : ''}>
+                          <td className="px-3 py-2 text-gray-500 dark:text-gray-400">{r.rowNumbers.join(', ')}</td>
                           <td className="px-3 py-2 font-mono text-xs">{r.sku || r.barcode || '—'}</td>
                           <td className="px-3 py-2">
                             {r.productName || '—'}
-                            {r.merged && <span className="ml-2 text-[11px] text-blue-600">(gabungan)</span>}
+                            {r.merged && <span className="ml-2 text-[11px] text-blue-600 dark:text-blue-400">(gabungan)</span>}
                           </td>
                           <td className="px-3 py-2 text-right">{r.quantity ?? '—'}</td>
                           {kind === 'out' && <td className="px-3 py-2 text-right">{r.available ?? '—'}</td>}
                           <td className="px-3 py-2">
                             {bad ? (
-                              <span className="flex items-start gap-1 text-xs text-red-700">
+                              <span className="flex items-start gap-1 text-xs text-red-700 dark:text-red-300">
                                 <XCircle className="w-4 h-4 shrink-0 mt-0.5" />
                                 <span>{r.errors.join('; ')}</span>
                               </span>
                             ) : warn ? (
-                              <span className="flex items-center gap-1 text-xs text-amber-700">
+                              <span className="flex items-center gap-1 text-xs text-amber-700 dark:text-amber-300">
                                 <AlertTriangle className="w-4 h-4" /> Melebihi stok — dilewati
                               </span>
                             ) : (
-                              <span className="flex items-center gap-1 text-xs text-green-700">
+                              <span className="flex items-center gap-1 text-xs text-green-700 dark:text-green-300">
                                 <CheckCircle2 className="w-4 h-4" /> Valid
                               </span>
                             )}
@@ -453,15 +453,15 @@ export default function StockImportModal({
               </div>
 
               {confirmBox && (
-                <div className="rounded-lg border border-primary-300 bg-primary-50 p-4 text-sm">
-                  <p className="font-semibold text-gray-900">
+                <div className="rounded-lg border border-primary-300 dark:border-primary-700 bg-primary-50 dark:bg-primary-950 p-4 text-sm">
+                  <p className="font-semibold text-gray-900 dark:text-gray-100">
                     Konfirmasi import {mode} — {validRows.length} baris valid
                     {kind === 'out' && (preview.overQtyCount || 0) > 0
                       ? `, ${preview.overQtyCount} baris dilewati (melebihi stok)`
                       : ''}
                     ?
                   </p>
-                  <p className="text-xs text-gray-600 mt-1">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                     {mode === 'TAMBAH'
                       ? 'Stok bertambah sesuai qty file.'
                       : kind === 'in'
@@ -491,24 +491,24 @@ export default function StockImportModal({
 
           {step === 3 && result && (
             <>
-              <div className="rounded-lg border border-green-300 bg-green-50 p-4 text-sm">
-                <p className="font-semibold text-green-900 flex items-center gap-2">
+              <div className="rounded-lg border border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-950 p-4 text-sm">
+                <p className="font-semibold text-green-900 dark:text-green-100 flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5" />
                   Import selesai — dokumen {(result.doc as any)?.documentNumber || ''}
                 </p>
-                <p className="text-xs text-green-800 mt-1">
+                <p className="text-xs text-green-800 dark:text-green-200 mt-1">
                   Tercatat di log import. Riwayat per barang masuk ke pergerakan stok.
                 </p>
               </div>
               {skipped.length > 0 && (
                 <div>
-                  <p className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-amber-600" />
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                     {skipped.length} baris dilewati (melebihi stok)
                   </p>
-                  <div className="border border-amber-200 rounded-lg overflow-hidden">
+                  <div className="border border-amber-200 dark:border-amber-800 rounded-lg overflow-hidden">
                     <table className="w-full text-sm">
-                      <thead className="bg-amber-50 text-left text-xs text-amber-800">
+                      <thead className="bg-amber-50 dark:bg-amber-950 text-left text-xs text-amber-800 dark:text-amber-200">
                         <tr>
                           <th className="px-3 py-2">Produk</th>
                           <th className="px-3 py-2 text-right">Minta</th>
@@ -520,18 +520,18 @@ export default function StockImportModal({
                         {skipped.map((s: any, i: number) => {
                           const src = (preview?.rows || []).find((r) => r.productId === s.productId);
                           return (
-                            <tr key={i} className="bg-amber-50/50">
+                            <tr key={i} className="bg-amber-50/50 dark:bg-amber-950/50">
                               <td className="px-3 py-2 text-xs">
-                                <span className="font-medium text-gray-900">
+                                <span className="font-medium text-gray-900 dark:text-gray-100">
                                   {src?.productName || s.productId}
                                 </span>
-                                <span className="block font-mono text-gray-500">
+                                <span className="block font-mono text-gray-500 dark:text-gray-400">
                                   {src?.sku || src?.barcode || ''}
                                 </span>
                               </td>
                               <td className="px-3 py-2 text-right">{s.requested}</td>
                               <td className="px-3 py-2 text-right">{s.available}</td>
-                              <td className="px-3 py-2 text-xs text-gray-600">{s.reason}</td>
+                              <td className="px-3 py-2 text-xs text-gray-600 dark:text-gray-400">{s.reason}</td>
                             </tr>
                           );
                         })}

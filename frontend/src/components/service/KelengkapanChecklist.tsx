@@ -60,12 +60,12 @@ export default function KelengkapanChecklist({ items, onChange }: KelengkapanChe
   const checkedCount = allRows.filter((r) => r.checked).length;
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
+    <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
       <div className="flex items-center justify-between mb-3">
-        <label className="text-xs font-medium text-gray-700 flex items-center gap-1.5">
+        <label className="text-xs font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
           <CheckSquare className="w-3.5 h-3.5 text-primary" />
           Kelengkapan
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-gray-400 dark:text-gray-500">
             ({checkedCount}/{allRows.length} tercentang)
           </span>
         </label>
@@ -73,7 +73,7 @@ export default function KelengkapanChecklist({ items, onChange }: KelengkapanChe
           type="button"
           variant="outline"
           size="sm"
-          className="text-xs border-primary text-primary hover:bg-primary-50"
+          className="text-xs border-primary text-primary hover:bg-primary-50 dark:hover:bg-primary-950"
           onClick={() => setShowAdd((v) => !v)}
         >
           <Plus className="w-3.5 h-3.5 mr-1" />
@@ -83,7 +83,7 @@ export default function KelengkapanChecklist({ items, onChange }: KelengkapanChe
 
       {/* Inline add form */}
       {showAdd && (
-        <div className="flex items-center gap-2 mb-3 p-2 bg-primary-50/50 rounded-lg">
+        <div className="flex items-center gap-2 mb-3 p-2 bg-primary-50/50 dark:bg-primary-950/50 rounded-lg">
           <Input
             value={newItemName}
             onChange={(e) => setNewItemName(e.target.value)}
@@ -114,9 +114,9 @@ export default function KelengkapanChecklist({ items, onChange }: KelengkapanChe
               type="checkbox"
               checked={row.checked}
               onChange={(e) => updateItem(i, { checked: e.target.checked })}
-              className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary shrink-0"
+              className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-primary focus:ring-primary shrink-0"
             />
-            <span className="text-sm text-gray-800 w-32 shrink-0 truncate" title={row.name}>
+            <span className="text-sm text-gray-800 dark:text-gray-200 w-32 shrink-0 truncate" title={row.name}>
               {row.name}
             </span>
             <Input
@@ -129,15 +129,15 @@ export default function KelengkapanChecklist({ items, onChange }: KelengkapanChe
               <button
                 type="button"
                 onClick={() => removeItem(i)}
-                className="w-5 h-5 rounded-full bg-red-50 hover:bg-red-100 flex items-center justify-center shrink-0"
+                className="w-5 h-5 rounded-full bg-red-50 dark:bg-red-950 hover:bg-red-100 dark:hover:bg-red-950 flex items-center justify-center shrink-0"
               >
-                <X className="w-3 h-3 text-red-500" />
+                <X className="w-3 h-3 text-red-500 dark:text-red-400" />
               </button>
             )}
           </div>
         ))}
         {allRows.length === 0 && (
-          <p className="text-xs text-gray-400 col-span-2">Tidak ada item kelengkapan.</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 col-span-2">Tidak ada item kelengkapan.</p>
         )}
       </div>
     </div>

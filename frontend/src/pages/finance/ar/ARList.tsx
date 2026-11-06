@@ -50,48 +50,48 @@ export default function ARList() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-4">
           <div className="flex items-center gap-2 mb-2">
-            <DollarSign className="w-5 h-5 text-primary-600" />
-            <span className="text-sm font-medium text-gray-600">Total Outstanding</span>
+            <DollarSign className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Outstanding</span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">
+          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
             {isLoading ? '-' : formatCurrency(totalOutstanding)}
           </p>
         </div>
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-4">
           <div className="flex items-center gap-2 mb-2">
-            <TrendingUp className="w-5 h-5 text-green-600" />
-            <span className="text-sm font-medium text-gray-600">Current</span>
+            <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Current</span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">
+          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
             {isLoading ? '-' : formatCurrency(totalCurrent)}
           </p>
         </div>
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-4">
           <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="w-5 h-5 text-yellow-600" />
-            <span className="text-sm font-medium text-gray-600">30 Days</span>
+            <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">30 Days</span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">
+          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
             {isLoading ? '-' : formatCurrency(totalDays30)}
           </p>
         </div>
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-4">
           <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="w-5 h-5 text-orange-600" />
-            <span className="text-sm font-medium text-gray-600">60 Days</span>
+            <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">60 Days</span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">
+          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
             {isLoading ? '-' : formatCurrency(totalDays60)}
           </p>
         </div>
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-4">
           <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="w-5 h-5 text-red-600" />
-            <span className="text-sm font-medium text-gray-600">90+ Days</span>
+            <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">90+ Days</span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">
+          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
             {isLoading ? '-' : formatCurrency(totalDays90Plus)}
           </p>
         </div>
@@ -124,41 +124,41 @@ export default function ARList() {
       />
 
       {/* Aging Report Table */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gradient-to-r from-gray-50 via-gray-50 to-gray-100">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gradient-to-r from-gray-50 dark:from-gray-900 via-gray-50 dark:via-gray-900 to-gray-100 dark:to-gray-800">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">
                   Customer
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">
+                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">
                   Total Outstanding
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">
+                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">
                   Current
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">
+                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">
                   30 Days
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">
+                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">
                   60 Days
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">
+                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">
                   90+ Days
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">
+                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-100">
+            <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-800">
               {isLoading ? (
                 <tr>
                   <td colSpan={7} className="px-4 py-16 text-center">
                     <div className="flex flex-col items-center gap-4">
-                      <Loader2 className="w-16 h-16 text-primary-600 animate-spin" />
-                      <p className="text-gray-600 font-semibold text-lg">Memuat aging report...</p>
+                      <Loader2 className="w-16 h-16 text-primary-600 dark:text-primary-400 animate-spin" />
+                      <p className="text-gray-600 dark:text-gray-400 font-semibold text-lg">Memuat aging report...</p>
                     </div>
                   </td>
                 </tr>
@@ -166,8 +166,8 @@ export default function ARList() {
                 <tr>
                   <td colSpan={7} className="px-4 py-16 text-center">
                     <div className="flex flex-col items-center gap-4">
-                      <Receipt className="w-16 h-16 text-gray-400" />
-                      <p className="text-gray-600 font-semibold text-lg">
+                      <Receipt className="w-16 h-16 text-gray-400 dark:text-gray-500" />
+                      <p className="text-gray-600 dark:text-gray-400 font-semibold text-lg">
                         Tidak ada piutang ditemukan
                       </p>
                     </div>
@@ -177,43 +177,43 @@ export default function ARList() {
                 filteredReport.map((item: ARAgingReport) => (
                   <tr
                     key={item.customerId}
-                    className="hover:bg-gradient-to-r hover:from-gray-50 hover:to-white transition-all duration-200 border-b border-gray-100"
+                    className="hover:bg-gradient-to-r hover:from-gray-50 dark:hover:from-gray-900 hover:to-white dark:hover:to-gray-900 transition-all duration-200 border-b border-gray-100 dark:border-gray-800"
                   >
                     <td className="px-4 py-3">
-                      <div className="text-sm font-semibold text-gray-900">{item.customerName}</div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{item.customerName}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
                         {item.items.length} invoice{item.items.length > 1 ? 's' : ''}
                       </div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-right">
-                      <div className="text-sm font-bold text-gray-900">
+                      <div className="text-sm font-bold text-gray-900 dark:text-gray-100">
                         {formatCurrency(item.totalOutstanding)}
                       </div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-right">
-                      <div className="text-sm font-semibold text-green-600">
+                      <div className="text-sm font-semibold text-green-600 dark:text-green-400">
                         {formatCurrency(item.current)}
                       </div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-right">
-                      <div className="text-sm font-semibold text-yellow-600">
+                      <div className="text-sm font-semibold text-yellow-600 dark:text-yellow-400">
                         {formatCurrency(item.days30)}
                       </div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-right">
-                      <div className="text-sm font-semibold text-orange-600">
+                      <div className="text-sm font-semibold text-orange-600 dark:text-orange-400">
                         {formatCurrency(item.days60)}
                       </div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-right">
-                      <div className="text-sm font-semibold text-red-600">
+                      <div className="text-sm font-semibold text-red-600 dark:text-red-400">
                         {formatCurrency(item.days90Plus)}
                       </div>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-right">
                       <Link
                         to={`/finance/ar/${item.customerId}`}
-                        className="inline-flex items-center gap-1 text-primary-600 hover:text-primary-700 hover:underline"
+                        className="inline-flex items-center gap-1 text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 hover:underline"
                       >
                         <Eye className="w-4 h-4" />
                         <span>Detail</span>
@@ -224,25 +224,25 @@ export default function ARList() {
               )}
             </tbody>
             {!isLoading && filteredReport.length > 0 && (
-              <tfoot className="bg-gradient-to-r from-gray-50 to-gray-100 font-bold">
+              <tfoot className="bg-gradient-to-r from-gray-50 dark:from-gray-900 to-gray-100 dark:to-gray-800 font-bold">
                 <tr>
                   <td className="px-4 py-3 text-left">
-                    <span className="text-gray-900">Total:</span>
+                    <span className="text-gray-900 dark:text-gray-100">Total:</span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <span className="text-gray-900">{formatCurrency(totalOutstanding)}</span>
+                    <span className="text-gray-900 dark:text-gray-100">{formatCurrency(totalOutstanding)}</span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <span className="text-green-600">{formatCurrency(totalCurrent)}</span>
+                    <span className="text-green-600 dark:text-green-400">{formatCurrency(totalCurrent)}</span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <span className="text-yellow-600">{formatCurrency(totalDays30)}</span>
+                    <span className="text-yellow-600 dark:text-yellow-400">{formatCurrency(totalDays30)}</span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <span className="text-orange-600">{formatCurrency(totalDays60)}</span>
+                    <span className="text-orange-600 dark:text-orange-400">{formatCurrency(totalDays60)}</span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <span className="text-red-600">{formatCurrency(totalDays90Plus)}</span>
+                    <span className="text-red-600 dark:text-red-400">{formatCurrency(totalDays90Plus)}</span>
                   </td>
                   <td className="px-4 py-3"></td>
                 </tr>

@@ -118,12 +118,12 @@ export default function RoleList() {
             <Shield className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-sm font-semibold text-foreground hover:text-primary-600 transition-colors">
+            <div className="text-sm font-semibold text-foreground hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
               {role.name}
             </div>
             <div className="text-xs text-muted-foreground mt-0.5 font-mono">{role.code}</div>
             {role.isSystemRole && (
-              <div className="text-xs text-primary-600 mt-0.5 font-medium">System Role</div>
+              <div className="text-xs text-primary-600 dark:text-primary-400 mt-0.5 font-medium">System Role</div>
             )}
           </div>
         </Link>
@@ -168,12 +168,12 @@ export default function RoleList() {
       header: 'Status',
       cell: (role) =>
         role.isActive ? (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-100 text-green-700 border border-green-200 rounded-lg text-xs font-semibold">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 rounded-lg text-xs font-semibold">
             <CheckCircle className="w-3 h-3" />
             Aktif
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 text-gray-600 border border-gray-200 rounded-lg text-xs font-semibold">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg text-xs font-semibold">
             <XCircle className="w-3 h-3" />
             Non-Aktif
           </span>
@@ -194,7 +194,7 @@ export default function RoleList() {
           Lihat Hierarki
         </Button>
         <RequirePermission permission="roles.create" fallbackRoles={['SUPERADMIN']}>
-          <Button size="sm" className="bg-white text-primary-600 hover:bg-primary-50 font-semibold" onClick={() => setFormModal({ open: true, role: null })}>
+          <Button size="sm" className="bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950 font-semibold" onClick={() => setFormModal({ open: true, role: null })}>
             <Plus className="w-4 h-4" />
             Tambah Role
           </Button>
@@ -246,7 +246,7 @@ export default function RoleList() {
         emptyIcon={<Shield className="w-16 h-16" />}
         actions={(role) => (
           <>
-            <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-50" title="Lihat Detail">
+            <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950" title="Lihat Detail">
               <Link to={`/roles/${role.id}`}>
                 <Eye className="w-4 h-4" />
               </Link>
@@ -255,7 +255,7 @@ export default function RoleList() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-green-600 hover:bg-green-50"
+                className="h-8 w-8 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950"
                 title="Edit"
                 onClick={() => setFormModal({ open: true, role })}
               >
@@ -267,7 +267,7 @@ export default function RoleList() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-red-600 hover:bg-red-50"
+                  className="h-8 w-8 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950"
                   title="Hapus"
                   onClick={() => {
                     setRoleToDelete({ id: role.id, name: role.name });
@@ -333,14 +333,14 @@ export default function RoleList() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
+              <div className="flex-shrink-0 p-2 bg-red-100 dark:bg-red-950 rounded-full">
+                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
               </div>
               <div className="flex-1">
-                <p className="text-sm text-gray-700 mb-2">
+                <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
                   Apakah Anda yakin ingin menghapus role <strong>{roleToDelete?.name}</strong>?
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   Tindakan ini tidak dapat dibatalkan. Semua data role akan dihapus secara permanen.
                 </p>
               </div>
@@ -381,7 +381,7 @@ export default function RoleList() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Network className="w-5 h-5 text-primary-600" />
+              <Network className="w-5 h-5 text-primary-600 dark:text-primary-400" />
               Role Hierarchy
             </DialogTitle>
             <DialogDescription>

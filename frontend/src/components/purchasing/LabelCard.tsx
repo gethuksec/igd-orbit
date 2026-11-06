@@ -61,7 +61,7 @@ export function LabelCard({
 
   const card = (
     <div
-      className="label-card flex flex-col items-center justify-between bg-white border border-dashed border-gray-300 overflow-hidden text-black"
+      className="label-card flex flex-col items-center justify-between bg-white dark:bg-gray-900 border border-dashed border-gray-300 dark:border-gray-600 overflow-hidden text-black"
       style={{
         width: `${settings.labelWidthMm}mm`,
         height: `${settings.labelHeightMm}mm`,
@@ -77,7 +77,7 @@ export function LabelCard({
         </div>
       )}
       {settings.showSku && (
-        <div className="leading-none text-gray-600" style={{ fontSize: '6pt' }}>
+        <div className="leading-none text-gray-600 dark:text-gray-400" style={{ fontSize: '6pt' }}>
           {data.sku}
         </div>
       )}

@@ -35,19 +35,19 @@ import {
 const PAGE_SIZE = 20;
 
 const STATUS_STYLES: Record<string, string> = {
-  SUBMITTED: 'bg-amber-100 text-amber-800 hover:bg-amber-100',
-  APPROVED: 'bg-blue-100 text-blue-800 hover:bg-blue-100',
-  WAITING_FOR_PO: 'bg-violet-100 text-violet-800 hover:bg-violet-100',
-  CHECKOUT: 'bg-indigo-100 text-indigo-800 hover:bg-indigo-100',
-  KEEP_RESERVED: 'bg-teal-100 text-teal-800 hover:bg-teal-100',
-  IN_TRANSIT: 'bg-orange-100 text-orange-800 hover:bg-orange-100',
-  RECEIVED: 'bg-emerald-100 text-emerald-800 hover:bg-emerald-100',
-  REJECTED: 'bg-red-100 text-red-700 hover:bg-red-100',
-  CANCELLED: 'bg-gray-100 text-gray-600 hover:bg-gray-100',
+  SUBMITTED: 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-950',
+  APPROVED: 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 hover:bg-blue-100 dark:hover:bg-blue-950',
+  WAITING_FOR_PO: 'bg-violet-100 dark:bg-violet-950 text-violet-800 dark:text-violet-200 hover:bg-violet-100 dark:hover:bg-violet-950',
+  CHECKOUT: 'bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-200 hover:bg-indigo-100 dark:hover:bg-indigo-950',
+  KEEP_RESERVED: 'bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-200 hover:bg-teal-100 dark:hover:bg-teal-950',
+  IN_TRANSIT: 'bg-orange-100 dark:bg-orange-950 text-orange-800 dark:text-orange-200 hover:bg-orange-100 dark:hover:bg-orange-950',
+  RECEIVED: 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-100 dark:hover:bg-emerald-950',
+  REJECTED: 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-950',
+  CANCELLED: 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800',
 };
 
 export const statusBadge = (status: string) => (
-  <Badge className={STATUS_STYLES[status] || 'bg-gray-100 text-gray-600'}>
+  <Badge className={STATUS_STYLES[status] || 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}>
     {SR_STATUS_LABEL[status] || status}
   </Badge>
 );
@@ -89,7 +89,7 @@ function IntakeLinksCard() {
     return (
       <Card>
         <CardContent className="p-4">
-          <p className="text-sm text-gray-500">Memuat link outlet…</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Memuat link outlet…</p>
         </CardContent>
       </Card>
     );
@@ -101,17 +101,17 @@ function IntakeLinksCard() {
       <CardContent className="p-4 space-y-2.5">
         <div>
           <div className="text-sm font-bold">Link Form Permintaan per Outlet</div>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
             Bagikan ke ASA/CS masing-masing outlet — form terbuka tanpa login.
           </p>
         </div>
         {(links.data as IntakeLink[]).map((l) => {
           const url = l.intakeToken ? `${window.location.origin}/r/${l.intakeToken}` : '';
           return (
-            <div key={l.branchId} className="flex flex-col sm:flex-row sm:items-center gap-2 rounded-lg border border-gray-100 p-2.5">
+            <div key={l.branchId} className="flex flex-col sm:flex-row sm:items-center gap-2 rounded-lg border border-gray-100 dark:border-gray-800 p-2.5">
               <div className="sm:w-44 shrink-0">
                 <div className="text-sm font-semibold">{l.branchName}</div>
-                <div className="text-xs text-gray-500">{l.branchCode}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">{l.branchCode}</div>
               </div>
               {url ? (
                 <>
@@ -126,7 +126,7 @@ function IntakeLinksCard() {
                   </div>
                 </>
               ) : (
-                <p className="text-xs text-amber-700">Belum ada token — hubungi admin.</p>
+                <p className="text-xs text-amber-700 dark:text-amber-300">Belum ada token — hubungi admin.</p>
               )}
             </div>
           );
@@ -197,41 +197,41 @@ function DetailDrawer({ id, onClose }: { id: string | null; onClose: () => void 
         <SheetHeader>
           <SheetTitle>{doc?.requestNumber || '…'}</SheetTitle>
           {doc && (
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               {fmtDate(doc.createdAt)} • {doc.outlet ? `${doc.outlet.name} (${doc.outlet.code})` : '-'}
             </p>
           )}
         </SheetHeader>
 
-        {detail.isLoading && <p className="text-sm text-gray-500 mt-6">Memuat detail…</p>}
-        {detail.isError && <p className="text-sm text-red-600 mt-6">Gagal memuat detail.</p>}
+        {detail.isLoading && <p className="text-sm text-gray-500 dark:text-gray-400 mt-6">Memuat detail…</p>}
+        {detail.isError && <p className="text-sm text-red-600 dark:text-red-400 mt-6">Gagal memuat detail.</p>}
 
         {doc && (
           <div className="mt-4 space-y-5 pb-6">
             <div>{statusBadge(doc.status)}</div>
 
             <div>
-              <h4 className="text-xs uppercase tracking-wide text-gray-500 font-bold mb-2">Pengaju</h4>
+              <h4 className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 font-bold mb-2">Pengaju</h4>
               <div className="text-sm space-y-1">
-                <div className="flex justify-between"><span className="text-gray-500">Nama</span><b>{doc.staffName}</b></div>
+                <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Nama</span><b>{doc.staffName}</b></div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Tipe customer</span>
+                  <span className="text-gray-500 dark:text-gray-400">Tipe customer</span>
                   <b>{doc.customerType === 'MEMBER' ? `Member${doc.memberRef ? ` (${doc.memberRef})` : ''}` : 'User'}</b>
                 </div>
                 {doc.poNumber && (
-                  <div className="flex justify-between"><span className="text-gray-500">No. PO</span><b>{doc.poNumber}</b></div>
+                  <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">No. PO</span><b>{doc.poNumber}</b></div>
                 )}
                 {doc.cancelReason && (
-                  <div className="flex justify-between gap-4"><span className="text-gray-500 shrink-0">Alasan</span><b className="text-right">{doc.cancelReason}</b></div>
+                  <div className="flex justify-between gap-4"><span className="text-gray-500 dark:text-gray-400 shrink-0">Alasan</span><b className="text-right">{doc.cancelReason}</b></div>
                 )}
               </div>
             </div>
 
             <div>
-              <h4 className="text-xs uppercase tracking-wide text-gray-500 font-bold mb-2">
+              <h4 className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 font-bold mb-2">
                 Barang ({doc.items?.length || 0} jenis)
               </h4>
-              <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -248,7 +248,7 @@ function DetailDrawer({ id, onClose }: { id: string | null; onClose: () => void 
                         <TableCell>
                           {it.productName}
                           {it.listing === 'NEW' && (
-                            <Badge className="ml-2 bg-amber-100 text-amber-800 hover:bg-amber-100 text-[11px]">Baru</Badge>
+                            <Badge className="ml-2 bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-950 text-[11px]">Baru</Badge>
                           )}
                         </TableCell>
                         <TableCell className="text-[13px]">{it.categoryName}</TableCell>
@@ -263,7 +263,7 @@ function DetailDrawer({ id, onClose }: { id: string | null; onClose: () => void 
             {showPo && canApprove && (
               <div>
                 <Label className="text-sm font-semibold">
-                  Nomor PO <span className="font-normal text-gray-500">(dibuat manual di Purchasing)</span>
+                  Nomor PO <span className="font-normal text-gray-500 dark:text-gray-400">(dibuat manual di Purchasing)</span>
                 </Label>
                 <div className="flex gap-2 mt-1.5">
                   <Input
@@ -282,7 +282,7 @@ function DetailDrawer({ id, onClose }: { id: string | null; onClose: () => void 
               <div className="flex gap-2">
                 <Button
                   variant="outline"
-                  className="flex-1 border-red-200 text-red-700 hover:bg-red-50"
+                  className="flex-1 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950"
                   onClick={() => setReasonMode(true)}
                 >
                   Tolak
@@ -301,7 +301,7 @@ function DetailDrawer({ id, onClose }: { id: string | null; onClose: () => void 
               <div className="flex gap-2">
                 <Button
                   variant="outline"
-                  className="flex-1 border-red-200 text-red-700 hover:bg-red-50"
+                  className="flex-1 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950"
                   onClick={() => setReasonMode(true)}
                 >
                   Batalkan
@@ -329,7 +329,7 @@ function DetailDrawer({ id, onClose }: { id: string | null; onClose: () => void 
             {canApprove && reasonMode && !TERMINAL.has(doc.status) && (
               <div className="space-y-2">
                 <Label className="text-sm font-semibold">
-                  Alasan {doc.status === 'SUBMITTED' ? 'penolakan' : 'pembatalan'} <span className="text-red-600">*</span>
+                  Alasan {doc.status === 'SUBMITTED' ? 'penolakan' : 'pembatalan'} <span className="text-red-600 dark:text-red-400">*</span>
                 </Label>
                 <Textarea
                   placeholder="Wajib diisi…"
@@ -361,7 +361,7 @@ function DetailDrawer({ id, onClose }: { id: string | null; onClose: () => void 
             )}
 
             {TERMINAL.has(doc.status) && (
-              <p className="text-[13px] text-gray-500 text-center">
+              <p className="text-[13px] text-gray-500 dark:text-gray-400 text-center">
                 Request {SR_STATUS_LABEL[doc.status]?.toLowerCase()} — tidak ada aksi tersisa.
               </p>
             )}
@@ -419,20 +419,20 @@ export default function StockRequestList() {
       <div className="flex gap-3">
         <Card className="min-w-[150px] border-red-100">
           <CardContent className="p-4">
-            <div className="text-2xl font-extrabold text-red-600">{stats.data?.waiting ?? '…'}</div>
-            <div className="text-xs text-gray-500">Menunggu diperiksa</div>
+            <div className="text-2xl font-extrabold text-red-600 dark:text-red-400">{stats.data?.waiting ?? '…'}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">Menunggu diperiksa</div>
           </CardContent>
         </Card>
         <Card className="min-w-[150px]">
           <CardContent className="p-4">
             <div className="text-2xl font-extrabold">{stats.data?.inProgress ?? '…'}</div>
-            <div className="text-xs text-gray-500">Dalam proses</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">Dalam proses</div>
           </CardContent>
         </Card>
         <Card className="min-w-[150px]">
           <CardContent className="p-4">
             <div className="text-2xl font-extrabold">{stats.data?.receivedThisMonth ?? '…'}</div>
-            <div className="text-xs text-gray-500">Diterima bulan ini</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">Diterima bulan ini</div>
           </CardContent>
         </Card>
       </div>
@@ -450,7 +450,7 @@ export default function StockRequestList() {
           }}
         />
         <select
-          className="min-h-[42px] px-3 border border-gray-300 rounded-md bg-white text-sm"
+          className="min-h-[42px] px-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-900 text-sm"
           value={status}
           onChange={(e) => {
             setStatus(e.target.value);
@@ -463,7 +463,7 @@ export default function StockRequestList() {
           ))}
         </select>
         <select
-          className="min-h-[42px] px-3 border border-gray-300 rounded-md bg-white text-sm"
+          className="min-h-[42px] px-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-900 text-sm"
           value={branchId}
           onChange={(e) => {
             setBranchId(e.target.value);
@@ -477,11 +477,11 @@ export default function StockRequestList() {
         </select>
       </div>
 
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
         {list.isLoading ? (
-          <p className="text-sm text-gray-500">Memuat request…</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Memuat request…</p>
         ) : docs.length === 0 ? (
-          <p className="text-sm text-gray-500">Belum ada request stok.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Belum ada request stok.</p>
         ) : (
           <>
             <Table>
@@ -496,19 +496,19 @@ export default function StockRequestList() {
               </TableHeader>
               <TableBody>
                 {docs.map((d) => (
-                  <TableRow key={d.id} className="cursor-pointer hover:bg-gray-50" onClick={() => setOpenId(d.id)}>
+                  <TableRow key={d.id} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800" onClick={() => setOpenId(d.id)}>
                     <TableCell>
                       <span className="font-bold whitespace-nowrap">{d.requestNumber}</span>
-                      <div className="text-xs text-gray-500">{fmtDate(d.createdAt)}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">{fmtDate(d.createdAt)}</div>
                     </TableCell>
                     <TableCell>
                       {d.outlet ? `${d.outlet.name} (${d.outlet.code})` : '-'}
-                      <div className="text-xs text-gray-500">{d.staffName} • {d.customerType === 'MEMBER' ? 'Member' : 'User'}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">{d.staffName} • {d.customerType === 'MEMBER' ? 'Member' : 'User'}</div>
                     </TableCell>
                     <TableCell>{d.itemCount ?? d.items?.length ?? '-'}</TableCell>
                     <TableCell>
                       {statusBadge(d.status)}
-                      {d.poNumber && <div className="text-xs text-gray-500 mt-1">{d.poNumber}</div>}
+                      {d.poNumber && <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{d.poNumber}</div>}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setOpenId(d.id); }}>
@@ -521,7 +521,7 @@ export default function StockRequestList() {
             </Table>
             {meta && meta.totalPages > 1 && (
               <div className="flex items-center justify-between mt-4">
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
                   Hal {meta.page} dari {meta.totalPages} ({meta.total} request)
                 </p>
                 <div className="flex gap-2">

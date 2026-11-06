@@ -103,31 +103,31 @@ export default function PettyCashFundForm() {
 
       <form onSubmit={handleSubmit} className="space-y-3">
         {/* Fund Information */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <CreditCard className="w-5 h-5 text-primary-600" />
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <CreditCard className="w-5 h-5 text-primary-600 dark:text-primary-400" />
             Informasi Fund
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Nomor Fund</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nomor Fund</label>
               <input
                 type="text"
                 value={formData.fund_number}
                 onChange={(e) => setFormData({ ...formData, fund_number: e.target.value })}
                 placeholder="Auto-generate jika kosong"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Cabang <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Cabang <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <select
                 value={formData.branch_id}
                 onChange={(e) => setFormData({ ...formData, branch_id: e.target.value })}
                 required
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="">Pilih Cabang</option>
                 {availableBranches.map((branch) => (
@@ -138,8 +138,8 @@ export default function PettyCashFundForm() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Opening Balance <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Opening Balance <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <input
                 type="number"
@@ -151,21 +151,21 @@ export default function PettyCashFundForm() {
                 min="0"
                 step="0.01"
                 placeholder="0"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
               {formData.opening_balance > 0 && (
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {formatCurrency(formData.opening_balance)}
                 </p>
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Custodian <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Custodian <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-gray-400" />
+                  <Search className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                 </div>
                 <input
                   type="text"
@@ -180,10 +180,10 @@ export default function PettyCashFundForm() {
                   }}
                   onFocus={() => setShowCustodianDropdown(true)}
                   placeholder="Cari custodian..."
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
                 {showCustodianDropdown && filteredCustodians.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                     {filteredCustodians.map((user: any) => (
                       <button
                         key={user.id}
@@ -194,10 +194,10 @@ export default function PettyCashFundForm() {
                           setCustodianSearch('');
                           setShowCustodianDropdown(false);
                         }}
-                        className="w-full px-4 py-2 text-left hover:bg-primary-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                        className="w-full px-4 py-2 text-left hover:bg-primary-50 dark:hover:bg-primary-950 border-b border-gray-100 dark:border-gray-800 last:border-b-0 transition-colors"
                       >
-                        <div className="font-medium text-gray-900">{user.name}</div>
-                        <div className="text-xs text-gray-500">
+                        <div className="font-medium text-gray-900 dark:text-gray-100">{user.name}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
                           {user.email || user.username} - {user.role?.name || '-'}
                         </div>
                       </button>
@@ -207,37 +207,37 @@ export default function PettyCashFundForm() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Periode Mulai <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Periode Mulai <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <input
                 type="date"
                 value={formData.period_start}
                 onChange={(e) => setFormData({ ...formData, period_start: e.target.value })}
                 required
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Periode Akhir</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Periode Akhir</label>
               <input
                 type="date"
                 value={formData.period_end}
                 onChange={(e) => setFormData({ ...formData, period_end: e.target.value })}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
-              <p className="text-xs text-gray-500 mt-1">Kosongkan jika tidak ada batas akhir</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Kosongkan jika tidak ada batas akhir</p>
             </div>
           </div>
         </div>
 
         {/* Actions */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
           <div className="flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={() => navigate('/finance/petty-cash')}
-              className="px-6 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+              className="px-6 py-2.5 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-semibold"
             >
               Batal
             </button>

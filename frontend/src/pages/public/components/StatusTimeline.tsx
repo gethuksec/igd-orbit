@@ -59,7 +59,7 @@ export default function StatusTimeline({ currentStatus, statusHistory }: StatusT
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
+    <div className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6">
       <h3 className="text-lg font-semibold mb-6">Service Status Timeline</h3>
       <div className="space-y-6">
         {statusOrder.map((status, index) => {
@@ -73,16 +73,16 @@ export default function StatusTimeline({ currentStatus, statusHistory }: StatusT
               {/* Timeline Line */}
               <div className="flex flex-col items-center">
                 {isCompleted ? (
-                  <CheckCircle2 className="w-6 h-6 text-green-500" />
+                  <CheckCircle2 className="w-6 h-6 text-green-500 dark:text-green-400" />
                 ) : isCurrent ? (
-                  <Clock className="w-6 h-6 text-blue-500 animate-pulse" />
+                  <Clock className="w-6 h-6 text-blue-500 dark:text-blue-400 animate-pulse" />
                 ) : (
-                  <Circle className="w-6 h-6 text-gray-300" />
+                  <Circle className="w-6 h-6 text-gray-300 dark:text-gray-600" />
                 )}
                 {index < statusOrder.length - 1 && (
                   <div
                     className={`w-0.5 flex-1 mt-2 ${
-                      isCompleted ? 'bg-green-500' : 'bg-gray-200'
+                      isCompleted ? 'bg-green-500' : 'bg-gray-200 dark:bg-gray-700'
                     }`}
                   />
                 )}
@@ -93,16 +93,16 @@ export default function StatusTimeline({ currentStatus, statusHistory }: StatusT
                 <div
                   className={`font-medium ${
                     isCompleted
-                      ? 'text-green-700'
+                      ? 'text-green-700 dark:text-green-300'
                       : isCurrent
-                      ? 'text-blue-700'
-                      : 'text-gray-400'
+                      ? 'text-blue-700 dark:text-blue-300'
+                      : 'text-gray-400 dark:text-gray-500'
                   }`}
                 >
                   {statusLabels[status] || status}
                 </div>
                 {statusDate && (
-                  <div className="text-sm text-gray-500 mt-1">
+                  <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                     {formatDate(statusDate)}
                   </div>
                 )}
@@ -112,7 +112,7 @@ export default function StatusTimeline({ currentStatus, statusHistory }: StatusT
                   if (history?.changedByUser) {
                     const user = history.changedByUser;
                     return (
-                      <div className="text-xs text-gray-500 mt-1">
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                         <span className="font-semibold">Oleh: </span>
                         {user.fullName || user.email || 'Unknown'}
                       </div>
@@ -124,14 +124,14 @@ export default function StatusTimeline({ currentStatus, statusHistory }: StatusT
                 {(() => {
                   const history = statusHistory.find((h) => h.status === status);
                   return history?.notes ? (
-                    <div className="text-xs text-gray-600 mt-2 p-2 bg-gray-50 rounded border border-gray-200">
+                    <div className="text-xs text-gray-600 dark:text-gray-400 mt-2 p-2 bg-gray-50 dark:bg-gray-950 rounded border border-gray-200 dark:border-gray-700">
                       <span className="font-semibold">Catatan: </span>
                       {history.notes}
                     </div>
                   ) : null;
                 })()}
                 {isCurrent && (
-                  <div className="text-sm text-blue-600 mt-1 font-medium">
+                  <div className="text-sm text-blue-600 dark:text-blue-400 mt-1 font-medium">
                     Current Status
                   </div>
                 )}

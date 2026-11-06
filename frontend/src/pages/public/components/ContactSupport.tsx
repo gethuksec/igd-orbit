@@ -27,7 +27,7 @@ export default function ContactSupport({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
+    <div className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6">
       <h3 className="text-lg font-semibold mb-4">Need Help?</h3>
       <div className="space-y-3">
         <Button
@@ -49,7 +49,7 @@ export default function ContactSupport({
         )}
         {branchAddress && (
           <div className="pt-3 border-t">
-            <div className="flex items-start gap-2 text-sm text-gray-600">
+            <div className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
               <MapPin className="w-4 h-4 mt-0.5" />
               <div>
                 <div className="font-medium">{branchName || 'Branch'}</div>

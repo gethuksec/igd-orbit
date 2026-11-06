@@ -24,7 +24,7 @@ export default function ProductShowcase({ limit = 8, showViewAll = true }: Produ
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[...Array(limit)].map((_, i) => (
-          <div key={i} className="bg-gray-200 animate-pulse rounded-lg h-64" />
+          <div key={i} className="bg-gray-200 dark:bg-gray-700 animate-pulse rounded-lg h-64" />
         ))}
       </div>
     );
@@ -33,7 +33,7 @@ export default function ProductShowcase({ limit = 8, showViewAll = true }: Produ
   if (!products || products.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-600">No products available at the moment.</p>
+        <p className="text-gray-600 dark:text-gray-400">No products available at the moment.</p>
       </div>
     );
   }
@@ -44,10 +44,10 @@ export default function ProductShowcase({ limit = 8, showViewAll = true }: Produ
         {products.map((product) => (
           <div
             key={product.id}
-            className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow group"
+            className="bg-white dark:bg-gray-900 rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow group"
           >
             {/* Product Image */}
-            <div className="aspect-square bg-gray-100 relative overflow-hidden">
+            <div className="aspect-square bg-gray-100 dark:bg-gray-800 relative overflow-hidden">
               {product.images && product.images.length > 0 ? (
                 <img
                   src={product.images[0] as string}
@@ -55,7 +55,7 @@ export default function ProductShowcase({ limit = 8, showViewAll = true }: Produ
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500">
                   <ShoppingCart className="w-16 h-16" />
                 </div>
               )}
@@ -71,11 +71,11 @@ export default function ProductShowcase({ limit = 8, showViewAll = true }: Produ
               )}
               <h3 className="font-semibold text-lg mb-2 line-clamp-2">{product.name}</h3>
               {product.category && (
-                <p className="text-sm text-gray-500 mb-2">{product.category.name}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{product.category.name}</p>
               )}
               <div className="flex items-center justify-between mt-4">
                 <div>
-                  <p className="text-2xl font-bold text-blue-600">
+                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                     {formatCurrency(product.sellingPrice)}
                   </p>
                 </div>
@@ -100,7 +100,7 @@ export default function ProductShowcase({ limit = 8, showViewAll = true }: Produ
           onClick={() => setSelectedProduct(null)}
         >
           <div
-            className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            className="bg-white dark:bg-gray-900 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6">
@@ -117,7 +117,7 @@ export default function ProductShowcase({ limit = 8, showViewAll = true }: Produ
 
               <div className="grid md:grid-cols-2 gap-6">
                 {/* Image */}
-                <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                <div className="aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
                   {selectedProduct.images && selectedProduct.images.length > 0 ? (
                     <img
                       src={selectedProduct.images[0] as string}
@@ -126,7 +126,7 @@ export default function ProductShowcase({ limit = 8, showViewAll = true }: Produ
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <ShoppingCart className="w-24 h-24 text-gray-400" />
+                      <ShoppingCart className="w-24 h-24 text-gray-400 dark:text-gray-500" />
                     </div>
                   )}
                 </div>
@@ -135,24 +135,24 @@ export default function ProductShowcase({ limit = 8, showViewAll = true }: Produ
                 <div>
                   <div className="space-y-4">
                     <div>
-                      <p className="text-sm text-gray-500">SKU</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">SKU</p>
                       <p className="font-medium">{selectedProduct.sku}</p>
                     </div>
                     {selectedProduct.brand && (
                       <div>
-                        <p className="text-sm text-gray-500">Brand</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Brand</p>
                         <p className="font-medium">{selectedProduct.brand.name}</p>
                       </div>
                     )}
                     {selectedProduct.category && (
                       <div>
-                        <p className="text-sm text-gray-500">Category</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Category</p>
                         <p className="font-medium">{selectedProduct.category.name}</p>
                       </div>
                     )}
                     <div>
-                      <p className="text-sm text-gray-500">Price</p>
-                      <p className="text-2xl font-bold text-blue-600">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Price</p>
+                      <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                         {formatCurrency(selectedProduct.sellingPrice)}
                       </p>
                     </div>

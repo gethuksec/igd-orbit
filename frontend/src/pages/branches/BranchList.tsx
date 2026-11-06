@@ -176,7 +176,7 @@ export default function BranchList() {
       header: 'Lokasi',
       cell: (branch) => (
         <div className="flex items-start gap-2 max-w-md">
-          <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+          <MapPin className="w-4 h-4 text-gray-400 dark:text-gray-500 mt-0.5 flex-shrink-0" />
           <div className="text-sm text-muted-foreground">
             {branch.address && <div>{branch.address}</div>}
             <div className="text-xs text-muted-foreground mt-0.5">
@@ -214,8 +214,8 @@ export default function BranchList() {
         <span
           className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${
             branch.isActive
-              ? 'bg-green-100 text-green-800 border-green-200'
-              : 'bg-gray-100 text-gray-800 border-gray-200'
+              ? 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800'
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700'
           }`}
         >
           {branch.isActive ? 'Aktif' : 'Tidak Aktif'}
@@ -235,7 +235,7 @@ export default function BranchList() {
       <BreadcrumbHeader title="Manajemen Cabang" subtitle="Kelola cabang dan lokasi">
         <Button
           onClick={openCreateModal}
-          className="flex items-center gap-2 bg-white text-primary-600 border border-gray-200 hover:bg-primary-50"
+          className="flex items-center gap-2 bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 border border-gray-200 dark:border-gray-700 hover:bg-primary-50 dark:hover:bg-primary-950"
         >
           <Plus className="w-5 h-5" />
           <span>Tambah Cabang</span>
@@ -243,8 +243,8 @@ export default function BranchList() {
       </BreadcrumbHeader>
 
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
-          <p className="text-red-800 font-medium">{(error as Error).message || 'Terjadi kesalahan'}</p>
+        <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
+          <p className="text-red-800 dark:text-red-200 font-medium">{(error as Error).message || 'Terjadi kesalahan'}</p>
         </div>
       )}
 
@@ -268,7 +268,7 @@ export default function BranchList() {
           iconBg="from-green-500 to-green-600"
           label="Cabang Aktif"
           value={isLoading ? '-' : activeCount}
-          badge={{ text: 'Active', className: 'bg-green-100 text-green-800' }}
+          badge={{ text: 'Active', className: 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200' }}
         />
       </div>
 
@@ -327,7 +327,7 @@ export default function BranchList() {
             <Button
               variant="ghost"
               size="sm"
-              className="text-red-600 hover:bg-red-50"
+              className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950"
               onClick={() => {
                 setBranchToDelete({ id: branch.id, name: branch.name });
                 setDeleteModalOpen(true);
@@ -342,8 +342,8 @@ export default function BranchList() {
 
       {/* Pagination */}
       {pagination.totalPages > 1 && (
-        <div className="bg-white px-6 py-4 rounded-xl border border-gray-200 flex items-center justify-between">
-          <div className="text-sm text-gray-700">
+        <div className="bg-white dark:bg-gray-900 px-6 py-4 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <div className="text-sm text-gray-700 dark:text-gray-300">
             Menampilkan {(page - 1) * limit + 1} - {Math.min(page * limit, pagination.total)} dari{' '}
             {pagination.total} cabang
           </div>
@@ -351,14 +351,14 @@ export default function BranchList() {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Sebelumnya
             </button>
             <button
               onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
               disabled={page === pagination.totalPages}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Selanjutnya
             </button>
@@ -379,8 +379,8 @@ export default function BranchList() {
       >
         <form onSubmit={handleFormSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nama Cabang <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Nama Cabang <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <Input
               type="text"
@@ -391,7 +391,7 @@ export default function BranchList() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Kode Cabang
             </label>
             <Input
@@ -403,7 +403,7 @@ export default function BranchList() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Telepon
               </label>
               <Input
@@ -414,7 +414,7 @@ export default function BranchList() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Email
               </label>
               <Input
@@ -426,20 +426,20 @@ export default function BranchList() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Alamat
             </label>
             <textarea
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
               rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               placeholder="Alamat lengkap (opsional)"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Kota
               </label>
               <Input
@@ -450,7 +450,7 @@ export default function BranchList() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Provinsi
               </label>
               <Input
@@ -462,16 +462,16 @@ export default function BranchList() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setFormData(prev => ({ ...prev, isActive: !prev.isActive }))}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isActive ? 'bg-green-500' : 'bg-gray-300'}`}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isActive ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}
               >
                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.isActive ? 'translate-x-6' : 'translate-x-1'}`} />
               </button>
-              <span className="text-sm text-gray-600">{formData.isActive ? 'Aktif' : 'Tidak Aktif'}</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">{formData.isActive ? 'Aktif' : 'Tidak Aktif'}</span>
             </div>
           </div>
           <div className="flex gap-3 pt-2">
@@ -482,7 +482,7 @@ export default function BranchList() {
                 setEditingBranch(null);
                 setFormData(defaultForm);
               }}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors"
               disabled={isPending}
             >
               Batal
@@ -515,12 +515,12 @@ export default function BranchList() {
         title="Hapus Cabang"
       >
         <div className="space-y-4">
-          <div className="flex items-center gap-3 p-4 bg-red-50 rounded-lg border border-red-200">
-            <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0" />
-            <p className="text-sm text-red-800">
+          <div className="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-950 rounded-lg border border-red-200 dark:border-red-800">
+            <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0" />
+            <p className="text-sm text-red-800 dark:text-red-200">
               Apakah Anda yakin ingin menghapus cabang <strong>{branchToDelete?.name}</strong>?
               <br />
-              <span className="text-xs text-red-600 mt-1 block">
+              <span className="text-xs text-red-600 dark:text-red-400 mt-1 block">
                 Tindakan ini tidak dapat dibatalkan. Cabang akan dinonaktifkan.
               </span>
             </p>
@@ -531,7 +531,7 @@ export default function BranchList() {
                 setDeleteModalOpen(false);
                 setBranchToDelete(null);
               }}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
             >
               Batal
             </button>

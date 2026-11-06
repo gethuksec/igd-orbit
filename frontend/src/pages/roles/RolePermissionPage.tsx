@@ -87,7 +87,7 @@ export default function RolePermissionPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
+        <Loader2 className="w-8 h-8 text-primary-500 dark:text-primary-400 animate-spin" />
       </div>
     );
   }
@@ -121,12 +121,12 @@ export default function RolePermissionPage() {
       </BreadcrumbHeader>
 
       {isSuperAdminRole && (
-        <div className="rounded-xl border-2 border-yellow-200 bg-yellow-50 p-5">
+        <div className="rounded-xl border-2 border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950 p-5">
           <div className="flex items-start gap-3">
             <Lock className="w-6 h-6 text-yellow-400 shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-semibold text-yellow-700">Hak SUPERADMIN Terkunci</h3>
-              <p className="text-sm text-yellow-600 mt-1">
+              <h3 className="font-semibold text-yellow-700 dark:text-yellow-300">Hak SUPERADMIN Terkunci</h3>
+              <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-1">
                 SUPERADMIN memiliki akses penuh ke seluruh sistem. Hak defaultnya tidak dapat diubah —
                 daftar di bawah hanya untuk referensi.
               </p>
@@ -136,20 +136,20 @@ export default function RolePermissionPage() {
       )}
 
       {!canEdit && !isSuperAdminRole && (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
+        <div className="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950 p-4 text-sm text-blue-800 dark:text-blue-200">
           Anda memiliki akses lihat saja — hubungi SUPERADMIN untuk mengubah hak default role ini.
         </div>
       )}
 
       {/* Search */}
       <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Cari hak akses… (nama atau kode)"
-          className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+          className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
         />
       </div>
 
@@ -158,10 +158,10 @@ export default function RolePermissionPage() {
         {filteredGroups.map(({ group, keys }) => {
           const groupSelected = keys.filter((k) => effectiveSelected.includes(k)).length;
           return (
-            <div key={group} className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
+            <div key={group} className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold uppercase text-gray-500">{group}</span>
-                <span className="text-[11px] text-gray-400">
+                <span className="text-xs font-bold uppercase text-gray-500 dark:text-gray-400">{group}</span>
+                <span className="text-[11px] text-gray-400 dark:text-gray-500">
                   {groupSelected} dipilih
                 </span>
               </div>
@@ -172,7 +172,7 @@ export default function RolePermissionPage() {
                     <label
                       key={key}
                       className={`flex items-center gap-2.5 py-1.5 px-2 rounded-md ${
-                        canEdit ? 'cursor-pointer hover:bg-gray-50' : 'cursor-default'
+                        canEdit ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800' : 'cursor-default'
                       }`}
                     >
                       <Checkbox
@@ -182,8 +182,8 @@ export default function RolePermissionPage() {
                         className="data-[state=checked]:bg-primary-600 shrink-0"
                       />
                       <span className="flex flex-col leading-tight min-w-0">
-                        <span className="text-sm text-gray-700 truncate">{labelForPermission(key)}</span>
-                        <span className="text-[10px] font-mono text-gray-400 truncate">{key}</span>
+                        <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{labelForPermission(key)}</span>
+                        <span className="text-[10px] font-mono text-gray-400 dark:text-gray-500 truncate">{key}</span>
                       </span>
                     </label>
                   );
@@ -193,16 +193,16 @@ export default function RolePermissionPage() {
           );
         })}
         {filteredGroups.length === 0 && (
-          <div className="col-span-full text-center py-10 text-sm text-gray-400">
+          <div className="col-span-full text-center py-10 text-sm text-gray-400 dark:text-gray-500">
             Tidak ada hak yang cocok dengan pencarian "{search}"
           </div>
         )}
       </div>
 
       {!isSuperAdminRole && (
-        <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-lg p-3 max-w-2xl">
-          <span className="text-blue-600 text-xs mt-0.5">ℹ️</span>
-          <p className="text-xs text-blue-800">
+        <div className="flex items-start gap-2 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 max-w-2xl">
+          <span className="text-blue-600 dark:text-blue-400 text-xs mt-0.5">ℹ️</span>
+          <p className="text-xs text-blue-800 dark:text-blue-200">
             <b>Alur saat membuat role baru:</b> tombol di modal menjadi <b>"Simpan &amp; Kelola Hak Default →"</b> — role
             disimpan dulu (kode/nama/level), lalu otomatis diarahkan ke halaman ini. Perubahan hak hanya bisa dilakukan
             setelah role tersimpan.

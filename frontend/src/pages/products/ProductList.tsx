@@ -194,17 +194,17 @@ export default function ProductList() {
           <div className="min-w-0 max-w-[200px]">
             <div className="flex items-center gap-2 min-w-0">
               <div className="group/tooltip relative min-w-0">
-                <Link to={`/products/${product.id}`} className="block truncate text-base font-semibold text-foreground hover:text-primary-600 transition-colors cursor-default">
+                <Link to={`/products/${product.id}`} className="block truncate text-base font-semibold text-foreground hover:text-primary-600 dark:hover:text-primary-400 transition-colors cursor-default">
                   {product.name}
                 </Link>
-                <div className="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 shadow-lg rounded-lg p-3 text-gray-900 text-xs whitespace-normal break-words max-w-[280px] z-50 hidden group-hover/tooltip:block pointer-events-none">
+                <div className="absolute bottom-full left-0 mb-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-lg rounded-lg p-3 text-gray-900 dark:text-gray-100 text-xs whitespace-normal break-words max-w-[280px] z-50 hidden group-hover/tooltip:block pointer-events-none">
                   <p className="font-semibold text-sm mb-1.5">{product.name}</p>
-                  <p className="text-gray-500 mb-0.5">Harga Min. {formatCurrency(product.costPrice)}</p>
-                  <p className="text-gray-500">Stok: {(product as any).stockSummary?.totalAvailable ?? (product as any).totalStock ?? 0}</p>
+                  <p className="text-gray-500 dark:text-gray-400 mb-0.5">Harga Min. {formatCurrency(product.costPrice)}</p>
+                  <p className="text-gray-500 dark:text-gray-400">Stok: {(product as any).stockSummary?.totalAvailable ?? (product as any).totalStock ?? 0}</p>
                 </div>
               </div>
               {(product as any).isService && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-200">
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-200 border border-purple-200 dark:border-purple-800">
                   Jasa
                 </span>
               )}
@@ -224,7 +224,7 @@ export default function ProductList() {
         <div className="flex flex-col">
           <span className="font-semibold text-foreground">{formatCurrency(product.sellingPrice)}</span>
           {(product as any).minSellingPrice ? (
-            <span className="text-xs text-red-600">{formatCurrency((product as any).minSellingPrice)}</span>
+            <span className="text-xs text-red-600 dark:text-red-400">{formatCurrency((product as any).minSellingPrice)}</span>
           ) : (
             <span className="text-xs text-muted-foreground">-</span>
           )}
@@ -241,7 +241,7 @@ export default function ProductList() {
               <span
                 className={`text-base font-bold cursor-help ${
                   ((product as any).totalStock || 0) < ((product as any).minStock || 0)
-                    ? 'text-red-600'
+                    ? 'text-red-600 dark:text-red-400'
                     : 'text-foreground'
                 }`}
               >
@@ -253,12 +253,12 @@ export default function ProductList() {
                   const branchStock = branch.available - branch.reserved;
                   return (
                     <div key={branch.branchId} className="flex justify-between items-center py-1">
-                      <span className="text-gray-300">{branch.branchName}:</span>
+                      <span className="text-gray-300 dark:text-gray-600">{branch.branchName}:</span>
                       <span className="font-semibold">{branchStock}</span>
                     </div>
                   );
                 })}
-                <div className="mt-2 pt-2 border-t border-gray-700 text-gray-400 text-xs">
+                <div className="mt-2 pt-2 border-t border-gray-700 text-gray-400 dark:text-gray-500 text-xs">
                   Tersedia: {(product as any).stockSummary.totalAvailable || 0} |
                   Reserved: {(product as any).stockSummary.totalReserved || 0}
                 </div>
@@ -268,7 +268,7 @@ export default function ProductList() {
             <span
               className={`text-base font-bold ${
                 ((product as any).totalStock || 0) < ((product as any).minStock || 0)
-                  ? 'text-red-600'
+                  ? 'text-red-600 dark:text-red-400'
                   : 'text-foreground'
               }`}
             >
@@ -276,7 +276,7 @@ export default function ProductList() {
             </span>
           )}
           {((product as any).totalStock || 0) < ((product as any).minStock || 0) && (
-            <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-red-100 text-red-800 border border-red-200">
+            <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-200 border border-red-200 dark:border-red-800">
               <AlertTriangle className="w-3 h-3 mr-1" />
               Rendah
             </span>
@@ -288,7 +288,7 @@ export default function ProductList() {
       key: 'category',
       header: 'Kategori',
       cell: (product) => (
-        <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-200">
+        <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700">
           {product.category?.name || product.categoryId}
         </span>
       ),
@@ -332,7 +332,7 @@ export default function ProductList() {
           Export
         </Button>
         <Link to="/products/new">
-          <Button className="flex items-center gap-2 bg-white text-primary-600 border border-gray-200 hover:bg-primary-50">
+          <Button className="flex items-center gap-2 bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 border border-gray-200 dark:border-gray-700 hover:bg-primary-50 dark:hover:bg-primary-950">
             <Plus className="w-5 h-5" />
             <span>Tambah Produk</span>
           </Button>
@@ -340,10 +340,10 @@ export default function ProductList() {
       </BreadcrumbHeader>
 
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
+        <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-            <p className="text-red-800 font-medium">{(error as Error).message || 'Terjadi kesalahan'}</p>
+            <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+            <p className="text-red-800 dark:text-red-200 font-medium">{(error as Error).message || 'Terjadi kesalahan'}</p>
           </div>
         </div>
       )}
@@ -369,7 +369,7 @@ export default function ProductList() {
           label="Stok Rendah"
           value={isLoading ? '-' : lowStockCount}
           subtitle="Perlu restock segera"
-          badge={{ text: 'Alert', className: 'bg-yellow-100 text-yellow-800' }}
+          badge={{ text: 'Alert', className: 'bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-200' }}
         />
         <StatCard
           icon={<CheckCircle2 className="w-6 h-6 text-white" />}
@@ -377,7 +377,7 @@ export default function ProductList() {
           label="Produk Aktif"
           value={isLoading ? '-' : activeCount}
           subtitle="Sedang aktif dijual"
-          badge={{ text: 'Active', className: 'bg-green-100 text-green-800' }}
+          badge={{ text: 'Active', className: 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200' }}
         />
       </div>
 
@@ -445,7 +445,7 @@ export default function ProductList() {
             <Button
               variant="ghost"
               size="sm"
-              className="text-red-600 hover:bg-red-50"
+              className="text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950"
               onClick={() => {
                 setProductToDelete({ id: product.id, name: product.name });
                 setDeleteModalOpen(true);
@@ -460,17 +460,17 @@ export default function ProductList() {
 
       {/* Pagination */}
       {!isLoading && products.length > 0 && pagination.totalPages > 1 && (
-        <div className="bg-white px-6 py-4 rounded-xl border border-gray-200 flex items-center justify-between">
-          <div className="text-sm text-gray-700">
+        <div className="bg-white dark:bg-gray-900 px-6 py-4 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <div className="text-sm text-gray-700 dark:text-gray-300">
             Menampilkan {products.length} dari{' '}
             <span className="font-semibold">{pagination.total}</span> produk
-            <span className="ml-2 text-gray-500">
+            <span className="ml-2 text-gray-500 dark:text-gray-400">
               (Halaman {pagination.page} dari {pagination.totalPages})
             </span>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-600 whitespace-nowrap">Per Hal:</label>
+              <label className="text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">Per Hal:</label>
               <select
                 value={limit}
                 onChange={(e) => {
@@ -488,14 +488,14 @@ export default function ProductList() {
             <button
               onClick={() => setPage(page - 1)}
               disabled={page === 1}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Sebelumnya
             </button>
             <button
               onClick={() => setPage(page + 1)}
               disabled={page >= pagination.totalPages}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Selanjutnya
             </button>
@@ -510,16 +510,16 @@ export default function ProductList() {
           onClick={() => setShowImportModal(false)}
         >
           <div
-            className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md"
+            className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 w-full max-w-md"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Import Produk</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Import Produk</h3>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => { setShowImportModal(false); setImportFile(null); }}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400 transition-colors"
               >
                 <X className="w-5 h-5" />
               </Button>
@@ -534,14 +534,14 @@ export default function ProductList() {
                     const file = e.target.files?.[0];
                     if (file) setImportFile(file);
                   }}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                  className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 dark:file:bg-primary-950 file:text-primary-700 dark:file:text-primary-300 hover:file:bg-primary-100 dark:hover:file:bg-primary-950"
                 />
-                <p className="text-xs text-gray-500 mt-2">Format: CSV dengan header sesuai template.</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Format: CSV dengan header sesuai template.</p>
               </div>
               {importFile && (
-                <div className="p-3 bg-gray-50 rounded-lg">
+                <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg">
                   <p className="text-sm font-medium">{importFile.name}</p>
-                  <p className="text-xs text-gray-500">{(importFile.size / 1024).toFixed(2)} KB</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{(importFile.size / 1024).toFixed(2)} KB</p>
                 </div>
               )}
               <div className="flex gap-2">
@@ -587,14 +587,14 @@ export default function ProductList() {
           </DialogHeader>
         <div className="space-y-4">
           <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
-              <AlertTriangle className="w-5 h-5 text-red-600" />
+            <div className="flex-shrink-0 p-2 bg-red-100 dark:bg-red-950 rounded-full">
+              <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
             </div>
             <div className="flex-1">
-              <p className="text-sm text-gray-700 mb-2">
+              <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
                 Apakah Anda yakin ingin menghapus produk <strong>{productToDelete?.name}</strong>?
               </p>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 Tindakan ini akan melakukan soft delete. Data produk tidak akan muncul di daftar, tetapi masih tersimpan di database.
               </p>
             </div>
@@ -603,7 +603,7 @@ export default function ProductList() {
             <button
               onClick={() => { setDeleteModalOpen(false); setProductToDelete(null); }}
               disabled={deleteMutation.isPending}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors"
             >
               Batal
             </button>

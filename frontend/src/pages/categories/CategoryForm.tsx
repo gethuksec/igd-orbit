@@ -75,7 +75,7 @@ export default function CategoryForm() {
   if (loadingCategory) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
+        <Loader2 className="w-8 h-8 text-primary-600 dark:text-primary-400 animate-spin" />
       </div>
     );
   }
@@ -91,63 +91,63 @@ export default function CategoryForm() {
       </BreadcrumbHeader>
 
       {/* Form Card */}
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 overflow-hidden">
         <div className="p-4">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg">
               <Tag className="w-5 h-5 text-white" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900">Informasi Kategori</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Informasi Kategori</h2>
           </div>
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nama Kategori <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Nama Kategori <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <input
                 type="text"
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="Nama kategori"
               />
             </div>
             {isEdit && category?.code && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Kode Kategori
                 </label>
                 <input
                   type="text"
                   value={category.code}
                   disabled
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-950 text-gray-500 dark:text-gray-400 cursor-not-allowed"
                   placeholder="Kode kategori (auto-generated)"
                 />
-                <p className="text-xs text-gray-500 mt-1">Kode kategori dibuat otomatis dan tidak dapat diubah</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Kode kategori dibuat otomatis dan tidak dapat diubah</p>
               </div>
             )}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Deskripsi
               </label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="Deskripsi kategori"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Status
               </label>
               <select
                 value={formData.isActive ? 'active' : 'inactive'}
                 onChange={(e) => setFormData({ ...formData, isActive: e.target.value === 'active' })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="active">Aktif</option>
                 <option value="inactive">Tidak Aktif</option>
@@ -158,25 +158,25 @@ export default function CategoryForm() {
 
         {/* Margin per Tier */}
         {customerTiers && Array.isArray(customerTiers) && customerTiers.length > 0 && (
-          <div className="p-4 border-t border-gray-200">
+          <div className="p-4 border-t border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg">
                 <DollarSign className="w-5 h-5 text-white" />
               </div>
-              <h2 className="text-xl font-bold text-gray-900">Margin per Tier</h2>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Margin per Tier</h2>
             </div>
             <div className="space-y-3">
-              <p className="text-sm text-gray-500 mb-3">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
                 Margin tambahan untuk setiap tier customer. Harga tier = Harga Jual + Margin.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {customerTiers.map((tier: any) => (
                   <div key={tier.id}>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Margin {tier.name}
                     </label>
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-500 text-sm">Rp</span>
+                      <span className="text-gray-500 dark:text-gray-400 text-sm">Rp</span>
                       <input
                         type="number"
                         value={formData.tierMargins[tier.id] || ''}
@@ -189,7 +189,7 @@ export default function CategoryForm() {
                             },
                           })
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                         placeholder="0"
                         min="0"
                         step="1000"
@@ -203,11 +203,11 @@ export default function CategoryForm() {
         )}
 
         {/* Actions */}
-        <div className="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-end gap-3">
+        <div className="p-4 bg-gray-50 dark:bg-gray-950 border-t border-gray-200 dark:border-gray-700 flex items-center justify-end gap-3">
           <button
             type="button"
             onClick={() => navigate('/categories')}
-            className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           >
             Batal
           </button>

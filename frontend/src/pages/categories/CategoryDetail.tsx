@@ -20,7 +20,7 @@ export default function CategoryDetail() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
+        <Loader2 className="w-8 h-8 text-primary-600 dark:text-primary-400 animate-spin" />
       </div>
     );
   }
@@ -28,10 +28,10 @@ export default function CategoryDetail() {
   if (!category) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">Kategori tidak ditemukan</p>
+        <p className="text-gray-500 dark:text-gray-400">Kategori tidak ditemukan</p>
         <button
           onClick={() => navigate("/categories")}
-          className="mt-4 text-primary-600 hover:text-primary-700"
+          className="mt-4 text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
         >
           Kembali ke daftar kategori
         </button>
@@ -67,36 +67,36 @@ export default function CategoryDetail() {
         <div className="space-y-4">
           <Card>
             <CardHeader className="flex flex-row items-center gap-2">
-              <Tag className="w-5 h-5 text-primary-600" />
+              <Tag className="w-5 h-5 text-primary-600 dark:text-primary-400" />
               <CardTitle>Informasi Kategori</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <p className="text-xs text-gray-500 mb-1">Nama Kategori</p>
-                <p className="text-sm font-semibold text-gray-900">{category.name}</p>
+              <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Nama Kategori</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{category.name}</p>
               </div>
 
               {category.code && (
-                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-xs text-gray-500 mb-1">Kode Kategori</p>
-                  <p className="text-sm font-semibold text-gray-900 font-mono">{category.code}</p>
+                <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Kode Kategori</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 font-mono">{category.code}</p>
                 </div>
               )}
 
               {category.description && (
-                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-xs text-gray-500 mb-1">Deskripsi</p>
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{category.description}</p>
+                <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Deskripsi</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{category.description}</p>
                 </div>
               )}
 
-              <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <p className="text-xs text-gray-500 mb-1">Status</p>
+              <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Status</p>
                 <span
                   className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
                     category.isActive
-                      ? "bg-green-100 text-green-800"
-                      : "bg-gray-100 text-gray-800"
+                      ? "bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200"
+                      : "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200"
                   }`}
                 >
                   {category.isActive ? "Aktif" : "Tidak Aktif"}
@@ -109,15 +109,15 @@ export default function CategoryDetail() {
           {category.parentCategory && (
             <Card>
               <CardHeader className="flex flex-row items-center gap-2">
-                <FolderTree className="w-5 h-5 text-primary-600" />
+                <FolderTree className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                 <CardTitle>Kategori Induk</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-xs text-blue-600 mb-1">Nama Kategori Induk</p>
-                  <p className="text-sm font-semibold text-blue-900">{category.parentCategory.name}</p>
+                <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">Nama Kategori Induk</p>
+                  <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">{category.parentCategory.name}</p>
                   {category.parentCategory.code && (
-                    <p className="text-xs text-blue-600 mt-1 font-mono">{category.parentCategory.code}</p>
+                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 font-mono">{category.parentCategory.code}</p>
                   )}
                 </div>
               </CardContent>
@@ -129,21 +129,21 @@ export default function CategoryDetail() {
         <div className="space-y-4">
           <Card>
             <CardHeader className="flex flex-row items-center gap-2">
-              <Package className="w-5 h-5 text-primary-600" />
+              <Package className="w-5 h-5 text-primary-600 dark:text-primary-400" />
               <CardTitle>Statistik</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="p-3 bg-gradient-to-br from-primary-50 to-primary-100 rounded-lg border border-primary-200">
-                <p className="text-xs text-primary-600 mb-1">Total Produk</p>
-                <p className="text-2xl font-bold text-primary-900">{category.productCount || 0}</p>
-                <p className="text-xs text-primary-600 mt-1">Produk dalam kategori ini</p>
+              <div className="p-3 bg-gradient-to-br from-primary-50 dark:from-primary-950 to-primary-100 dark:to-primary-950 rounded-lg border border-primary-200 dark:border-primary-800">
+                <p className="text-xs text-primary-600 dark:text-primary-400 mb-1">Total Produk</p>
+                <p className="text-2xl font-bold text-primary-900 dark:text-primary-100">{category.productCount || 0}</p>
+                <p className="text-xs text-primary-600 dark:text-primary-400 mt-1">Produk dalam kategori ini</p>
               </div>
 
               {category.childCategories && category.childCategories.length > 0 && (
-                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-xs text-gray-500 mb-1">Sub Kategori</p>
-                  <p className="text-2xl font-bold text-gray-900">{category.childCategories.length}</p>
-                  <p className="text-xs text-gray-500 mt-1">Kategori di bawah ini</p>
+                <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Sub Kategori</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{category.childCategories.length}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Kategori di bawah ini</p>
                 </div>
               )}
             </CardContent>
@@ -151,13 +151,13 @@ export default function CategoryDetail() {
 
           <Card>
             <CardHeader className="flex flex-row items-center gap-2">
-              <Calendar className="w-5 h-5 text-primary-600" />
+              <Calendar className="w-5 h-5 text-primary-600 dark:text-primary-400" />
               <CardTitle>Informasi Tambahan</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Dibuat</span>
-                <span className="font-semibold text-gray-900">
+                <span className="text-gray-500 dark:text-gray-400">Dibuat</span>
+                <span className="font-semibold text-gray-900 dark:text-gray-100">
                   {new Date(category.createdAt).toLocaleDateString("id-ID", {
                     year: "numeric",
                     month: "long",
@@ -168,8 +168,8 @@ export default function CategoryDetail() {
                 </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Diupdate</span>
-                <span className="font-semibold text-gray-900">
+                <span className="text-gray-500 dark:text-gray-400">Diupdate</span>
+                <span className="font-semibold text-gray-900 dark:text-gray-100">
                   {new Date(category.updatedAt).toLocaleDateString("id-ID", {
                     year: "numeric",
                     month: "long",

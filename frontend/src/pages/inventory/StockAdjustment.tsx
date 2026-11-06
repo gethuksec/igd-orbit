@@ -125,15 +125,15 @@ export default function StockAdjustment() {
 
       <form onSubmit={handleSubmit} className="space-y-3">
         {/* Product & Branch Selection */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Package className="w-5 h-5 text-primary-600" />
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <Package className="w-5 h-5 text-primary-600 dark:text-primary-400" />
             Pilih Produk & Cabang
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Produk <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Produk <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <div className="relative">
                 <input
@@ -153,10 +153,10 @@ export default function StockAdjustment() {
                     }, 200);
                   }}
                   placeholder="Cari produk (nama atau SKU)..."
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
                 {productSearch.length > 2 && !formData.productId && productsData?.data && (
-                  <div className="absolute z-50 w-full mt-1 border border-gray-200 rounded-lg bg-white shadow-lg max-h-60 overflow-y-auto">
+                  <div className="absolute z-50 w-full mt-1 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 shadow-lg max-h-60 overflow-y-auto">
                     {productsData.data.map((product: any) => (
                       <button
                         key={product.id}
@@ -166,29 +166,29 @@ export default function StockAdjustment() {
                           setFormData({ ...formData, productId: product.id });
                           setProductSearch(product.name);
                         }}
-                        className="w-full px-4 py-2 text-left hover:bg-primary-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                        className="w-full px-4 py-2 text-left hover:bg-primary-50 dark:hover:bg-primary-950 border-b border-gray-100 dark:border-gray-800 last:border-b-0 transition-colors"
                       >
-                        <div className="font-medium text-gray-900">{product.name}</div>
-                        <div className="text-sm text-gray-500">SKU: {product.sku}</div>
+                        <div className="font-medium text-gray-900 dark:text-gray-100">{product.name}</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">SKU: {product.sku}</div>
                       </button>
                     ))}
                   </div>
                 )}
               </div>
               {selectedProduct && (
-                <div className="mt-2 text-sm text-gray-600">
+                <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                   Dipilih: <span className="font-semibold">{selectedProduct.name}</span>
                 </div>
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Cabang <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Cabang <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <select
                 value={formData.branchId}
                 onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 required
               >
                 <option value="">Pilih Cabang</option>
@@ -203,15 +203,15 @@ export default function StockAdjustment() {
         </div>
 
         {/* Adjustment Details */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 text-primary-600" />
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-primary-600 dark:text-primary-400" />
             Detail Penyesuaian
           </h2>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tipe Penyesuaian <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Tipe Penyesuaian <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <select
                 value={formData.type}
@@ -221,7 +221,7 @@ export default function StockAdjustment() {
                     type: e.target.value as 'IN' | 'OUT' | 'DAMAGE' | 'FOUND' | 'CORRECTION',
                   })
                 }
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 required
               >
                 <option value="IN">Stok Masuk (IN)</option>
@@ -232,8 +232,8 @@ export default function StockAdjustment() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Jumlah <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Jumlah <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <input
                 type="number"
@@ -242,50 +242,50 @@ export default function StockAdjustment() {
                 onChange={(e) =>
                   setFormData({ ...formData, quantityChange: parseInt(e.target.value) || 1 })
                 }
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Alasan <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Alasan <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <input
                 type="text"
                 value={formData.reason}
                 onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
                 placeholder="Contoh: Stok ditemukan di gudang, Stok rusak, dll"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Catatan</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Catatan</label>
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 rows={3}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="Tambahkan catatan tambahan..."
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Batch Number</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Batch Number</label>
                 <input
                   type="text"
                   value={formData.batchNumber}
                   onChange={(e) => setFormData({ ...formData, batchNumber: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Serial Number</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Serial Number</label>
                 <input
                   type="text"
                   value={formData.serialNumber}
                   onChange={(e) => setFormData({ ...formData, serialNumber: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -294,38 +294,38 @@ export default function StockAdjustment() {
 
         {/* Stock Preview */}
         {formData.productId && formData.branchId && (
-          <div className="bg-blue-50 border-l-4 border-blue-500 rounded-xl shadow-md p-6">
-            <h3 className="text-lg font-bold text-blue-900 mb-4 flex items-center gap-2">
+          <div className="bg-blue-50 dark:bg-blue-950 border-l-4 border-blue-500 rounded-xl shadow-md p-6">
+            <h3 className="text-lg font-bold text-blue-900 dark:text-blue-100 mb-4 flex items-center gap-2">
               <Package className="w-5 h-5" />
               Preview Stok
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <p className="text-sm text-blue-700 mb-1">Stok Saat Ini</p>
-                <p className="text-2xl font-bold text-blue-900">{currentStockQty}</p>
+                <p className="text-sm text-blue-700 dark:text-blue-300 mb-1">Stok Saat Ini</p>
+                <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{currentStockQty}</p>
               </div>
               <div className="flex items-center justify-center">
                 {formData.type === 'OUT' || formData.type === 'DAMAGE' ? (
-                  <TrendingDown className="w-8 h-8 text-red-600" />
+                  <TrendingDown className="w-8 h-8 text-red-600 dark:text-red-400" />
                 ) : (
-                  <TrendingUp className="w-8 h-8 text-green-600" />
+                  <TrendingUp className="w-8 h-8 text-green-600 dark:text-green-400" />
                 )}
-                <span className="ml-2 text-lg font-semibold text-blue-900">
+                <span className="ml-2 text-lg font-semibold text-blue-900 dark:text-blue-100">
                   {formData.type === 'OUT' || formData.type === 'DAMAGE' ? '-' : '+'}
                   {formData.quantityChange}
                 </span>
               </div>
               <div>
-                <p className="text-sm text-blue-700 mb-1">Stok Setelah Penyesuaian</p>
+                <p className="text-sm text-blue-700 dark:text-blue-300 mb-1">Stok Setelah Penyesuaian</p>
                 <p
                   className={`text-2xl font-bold ${
-                    newStockQty < 0 ? 'text-red-600' : 'text-green-600'
+                    newStockQty < 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
                   }`}
                 >
                   {newStockQty < 0 ? 0 : newStockQty}
                 </p>
                 {newStockQty < 0 && (
-                  <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-1 flex items-center gap-1">
                     <AlertCircle className="w-3 h-3" />
                     Stok tidak boleh negatif
                   </p>
@@ -340,7 +340,7 @@ export default function StockAdjustment() {
           <button
             type="button"
             onClick={() => navigate('/inventory/stock')}
-            className="px-6 py-3 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           >
             Batal
           </button>

@@ -181,7 +181,7 @@ export default function BarcodeSetting() {
               <LabelCard data={SAMPLE_LABEL} settings={form} scale={2.5} />
             </div>
             {!form.configured && (
-              <p className="text-xs text-amber-600">
+              <p className="text-xs text-amber-600 dark:text-amber-400">
                 Belum dikonfigurasi — memakai default (40×30mm, thermal).
               </p>
             )}

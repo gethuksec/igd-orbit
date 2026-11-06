@@ -49,7 +49,7 @@ export default function UserDetail() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
+        <Loader2 className="w-8 h-8 text-primary-500 dark:text-primary-400 animate-spin" />
       </div>
     );
   }
@@ -75,7 +75,7 @@ export default function UserDetail() {
           </Link>
         </Button>
         <RequirePermission permission="users.update" fallbackRoles={['SUPERADMIN', 'CHR']}>
-          <Button size="sm" className="bg-white text-primary-600 hover:bg-primary-50 font-semibold" onClick={() => navigate(`/users?edit=${user.id}`)}>
+          <Button size="sm" className="bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950 font-semibold" onClick={() => navigate(`/users?edit=${user.id}`)}>
             <Edit className="w-4 h-4" />
             Edit User
           </Button>
@@ -94,22 +94,22 @@ export default function UserDetail() {
       </BreadcrumbHeader>
 
       {/* User Info Card */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
         <div className="flex items-start gap-6">
           <div className="flex-shrink-0 h-20 w-20 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white font-bold text-3xl shadow-md">
             {user.fullName.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 space-y-4">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">{user.fullName}</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{user.fullName}</h2>
               <div className="flex items-center gap-2 mt-2">
                 {user.isActive ? (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 border border-green-200 rounded-lg text-sm font-semibold">
+                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 rounded-lg text-sm font-semibold">
                     <CheckCircle className="w-4 h-4" />
                     Aktif
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-600 border border-gray-200 rounded-lg text-sm font-semibold">
+                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-semibold">
                     <XCircle className="w-4 h-4" />
                     Non-Aktif
                   </span>
@@ -122,7 +122,7 @@ export default function UserDetail() {
                 <Mail className="w-5 h-5 text-muted-foreground" />
                 <div>
                   <p className="text-sm text-muted-foreground">Email</p>
-                  <p className="text-base font-medium text-gray-900">{user.email}</p>
+                  <p className="text-base font-medium text-gray-900 dark:text-gray-100">{user.email}</p>
                 </div>
               </div>
               {user.phone && (
@@ -130,7 +130,7 @@ export default function UserDetail() {
                   <Phone className="w-5 h-5 text-muted-foreground" />
                   <div>
                     <p className="text-sm text-muted-foreground">Telepon</p>
-                    <p className="text-base font-medium text-gray-900">{user.phone}</p>
+                    <p className="text-base font-medium text-gray-900 dark:text-gray-100">{user.phone}</p>
                   </div>
                 </div>
               )}
@@ -138,7 +138,7 @@ export default function UserDetail() {
                 <Calendar className="w-5 h-5 text-muted-foreground" />
                 <div>
                   <p className="text-sm text-muted-foreground">Tanggal Dibuat</p>
-                  <p className="text-base font-medium text-gray-900">
+                  <p className="text-base font-medium text-gray-900 dark:text-gray-100">
                     {new Date(user.createdAt).toLocaleDateString('id-ID', {
                       year: 'numeric',
                       month: 'long',
@@ -153,13 +153,13 @@ export default function UserDetail() {
       </div>
 
       {/* Roles Section — read-only (edit via modal) */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <Shield className="w-5 h-5 text-primary-600" />
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+            <Shield className="w-5 h-5 text-primary-600 dark:text-primary-400" />
             Penugasan Cabang &amp; Role
           </h2>
-          <span className="text-xs text-gray-400">klik Edit User untuk mengubah</span>
+          <span className="text-xs text-gray-400 dark:text-gray-500">klik Edit User untuk mengubah</span>
         </div>
 
         {user.roles && user.roles.length > 0 ? (
@@ -172,15 +172,15 @@ export default function UserDetail() {
               const grants: string[] = (userRole as any).grantedPermissions || [];
 
               return (
-                <div key={userRole.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                <div key={userRole.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <Shield className="w-4 h-4 text-primary-600" />
-                        <p className="font-semibold text-gray-900">{roleName}</p>
-                        <span className="text-xs font-mono text-gray-400">{roleCode}</span>
+                        <Shield className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+                        <p className="font-semibold text-gray-900 dark:text-gray-100">{roleName}</p>
+                        <span className="text-xs font-mono text-gray-400 dark:text-gray-500">{roleCode}</span>
                         {userRole.isPrimary && (
-                          <span className="text-[10px] bg-gray-100 text-gray-600 border border-gray-200 px-2 py-0.5 rounded-md font-semibold">
+                          <span className="text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 px-2 py-0.5 rounded-md font-semibold">
                             Primary
                           </span>
                         )}
@@ -195,11 +195,11 @@ export default function UserDetail() {
                   </div>
                   {denies.length > 0 && (
                     <div className="mt-2 flex items-center gap-2 flex-wrap">
-                      <span className="text-[11px] text-gray-500 font-medium">Ditolak (deny-only):</span>
+                      <span className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">Ditolak (deny-only):</span>
                       {denies.map((k) => (
                         <span
                           key={k}
-                          className="bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded-md flex flex-col leading-tight"
+                          className="bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 px-2 py-0.5 rounded-md flex flex-col leading-tight"
                           title={k}
                         >
                           <span className="text-[11px] font-semibold">{labelForPermission(k)}</span>
@@ -210,15 +210,15 @@ export default function UserDetail() {
                   )}
                   {grants.length > 0 && (
                     <div className="mt-2 flex items-center gap-2 flex-wrap">
-                      <span className="text-[11px] text-gray-500 font-medium">Hak tambahan:</span>
+                      <span className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">Hak tambahan:</span>
                       {grants.map((k) => (
                         <span
                           key={k}
-                          className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md flex flex-col leading-tight"
+                          className="bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-md flex flex-col leading-tight"
                           title={k}
                         >
                           <span className="text-[11px] font-semibold">{labelForPermission(k)}</span>
-                          <span className="text-[10px] font-mono text-emerald-500">{k}</span>
+                          <span className="text-[10px] font-mono text-emerald-500 dark:text-emerald-400">{k}</span>
                         </span>
                       ))}
                     </div>
@@ -248,14 +248,14 @@ export default function UserDetail() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
+              <div className="flex-shrink-0 p-2 bg-red-100 dark:bg-red-950 rounded-full">
+                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
               </div>
               <div className="flex-1">
-                <p className="text-sm text-gray-700 mb-2">
+                <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
                   Apakah Anda yakin ingin menghapus pengguna <strong>{user.fullName}</strong>?
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   Tindakan ini tidak dapat dibatalkan. Semua data pengguna akan dihapus secara permanen.
                 </p>
               </div>

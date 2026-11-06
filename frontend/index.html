@@ -7,6 +7,15 @@
     <meta name="theme-color" content="#dc2626" />
     <link rel="manifest" href="/manifest.json" />
     <title>IGD Group - Sistem ERP</title>
+    <script>
+      // IGDERP-257: apply saved/OS theme before first paint (no white flash).
+      try {
+        var t = localStorage.getItem('igd-theme') || 'auto';
+        var dark = t === 'dark' || (t !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+        if (dark) document.documentElement.classList.add('dark');
+        document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>
