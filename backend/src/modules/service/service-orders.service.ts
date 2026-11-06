@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services/prisma.service';
 import { assertNoFreezeOpname } from '../inventory/opname-freeze.guard';
+import { assertFileMagic } from '../../shared/utils/file-magic';
 import { BranchFilter } from '../../common/branch-access.util';
 import { CreateServiceOrderDto } from './dto/create-service-order.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
@@ -1747,6 +1748,7 @@ export class ServiceOrdersService {
       if (f.size > 1024 * 1024) {
         throw new BadRequestException('Maksimal 1MB per foto: ' + (f.originalname || `file-${i + 1}`));
       }
+      assertFileMagic(f.buffer, f.mimetype, f.originalname);
       const ext = (extname(f.originalname || '').toLowerCase() || '.jpg').replace(/[^a-z0-9.]/g, '') || '.jpg';
       const name = `${serviceOrderId}-${Date.now()}-${i}${ext}`;
       writeFileSync(join(dir, name), f.buffer);

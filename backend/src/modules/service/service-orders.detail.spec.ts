@@ -126,6 +126,15 @@ describe('ServiceOrdersService detail round — internalNotes, removeLayanan', (
     await expect(
       service.uploadPhotoFiles('so-1', [{ ...file, size: 2 * 1024 * 1024 }], 'repair', undefined, 'u'),
     ).rejects.toThrow('Maksimal 1MB');
+    await expect(
+      service.uploadPhotoFiles(
+        'so-1',
+        [{ ...file, buffer: Buffer.from('this is plain text, not an image') }],
+        'repair',
+        undefined,
+        'u',
+      ),
+    ).rejects.toThrow('Isi file tidak sesuai tipe');
   });
 
   it('addTime note uses DD MMM YYYY HH:mm WIB (UTC+7 eksplisit)', async () => {
