@@ -66,6 +66,13 @@ describe('StockOpnameService', () => {
         findFirst: jest.fn().mockResolvedValue(null),
         create: jest.fn(),
       },
+      // IGDERP-236 (OP4): correction + approval rows inside tx
+      opnameCorrection: {
+        create: jest.fn(),
+      },
+      opnameApproval: {
+        create: jest.fn(),
+      },
     };
 
     prisma = {
@@ -107,6 +114,24 @@ describe('StockOpnameService', () => {
       },
       category: { findMany: jest.fn().mockResolvedValue([]) },
       user: { findMany: jest.fn().mockResolvedValue([]) },
+      // IGDERP-236 (OP4): approver setting + outlet role holders
+      opnameApproverSetting: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        findUnique: jest.fn().mockResolvedValue(null),
+        findMany: jest.fn().mockResolvedValue([]),
+        create: jest.fn(),
+        update: jest.fn(),
+        delete: jest.fn(),
+      },
+      userBranch: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      opnameApproval: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      opnameCorrection: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
       $transaction: jest.fn(async (callback: any) => callback(tx)),
     };
 
@@ -258,16 +283,18 @@ describe('StockOpnameService', () => {
   });
 
   describe('removeItem (draft model)', () => {
-    it('removes an existing item', async () => {
+    it('removes an existing uncounted item via soft delete', async () => {
       prisma.stockOpname.findUnique.mockResolvedValue(opname());
-      prisma.stockOpnameItem.findFirst.mockResolvedValue({ id: 'item-1' });
+      prisma.stockOpnameItem.findFirst.mockResolvedValue({ id: 'item-1', physicalQuantity: null });
       prisma.productStock.findMany.mockResolvedValue([]);
 
       await service.removeItem('op-1', 'prod-1');
 
-      expect(prisma.stockOpnameItem.delete).toHaveBeenCalledWith({
+      expect(prisma.stockOpnameItem.update).toHaveBeenCalledWith({
         where: { id: 'item-1' },
+        data: { deletedAt: expect.any(Date) },
       });
+      expect(prisma.stockOpnameItem.delete).not.toHaveBeenCalled();
     });
 
     it('rejects removal of a product not in the opname', async () => {
@@ -453,7 +480,7 @@ describe('StockOpnameService', () => {
 
       await service.recordCount(
         'op-1',
-        { items: [{ productId: 'prod-1', physicalQuantity: 11, condition: 'good', force: true }] },
+        { items: [{ productId: 'prod-1', physicalQuantity: 11, condition: 'good', force: true, correctionReason: 'salah baca label' }] },
         'user-2',
       );
 
@@ -1023,7 +1050,7 @@ describe('StockOpnameService', () => {
 
       await service.recordCount(
         'op-1',
-        { items: [{ productId: 'prod-1', physicalQuantity: 8, condition: 'good', force: true }] },
+        { items: [{ productId: 'prod-1', physicalQuantity: 8, condition: 'good', force: true, correctionReason: 'hitung ulang' }] },
         'counter-1',
       );
 
@@ -1235,6 +1262,209 @@ describe('StockOpnameService', () => {
       expect(blind.cocok[0].movements).toBeUndefined();
       expect(blind.cocok[0].physical).toBe(10);
       expect(blind.summary.totalVarianceValue).toBeUndefined();
+    });
+  });
+
+  describe('approval + corrections + soft delete (IGDERP-236)', () => {
+    const completedOpname = (overrides: any = {}) => opname({
+      status: 'completed',
+      branchId: 'branch-1',
+      approverId: 'spv-1',
+      items: [
+        {
+          id: 'item-1',
+          productId: 'prod-1',
+          systemQuantity: new Decimal(10),
+          physicalQuantity: new Decimal(8),
+          systemQuantityAtCount: new Decimal(10),
+          condition: 'good',
+          product: { costPrice: new Decimal(2500) },
+        },
+      ],
+      ...overrides,
+    });
+
+    beforeEach(() => {
+      tx.productStock.findUnique.mockResolvedValue({
+        quantityAvailable: new Decimal(10),
+        quantityDamaged: new Decimal(0),
+      });
+      tx.productStock.update.mockResolvedValue({});
+      tx.stockMovement.create.mockResolvedValue({});
+      tx.stockOpname.update.mockResolvedValue({ id: 'op-1', status: 'approved' });
+    });
+
+    it('assigned approver approves and writes the approval log', async () => {
+      prisma.stockOpname.findUnique.mockResolvedValue(completedOpname());
+
+      await service.approveOpname('op-1', 'spv-1', ['SPV']);
+
+      expect(tx.opnameApproval.create).toHaveBeenCalledWith({
+        data: { opnameId: 'op-1', approverId: 'spv-1', decision: 'APPROVED', note: null },
+      });
+      expect(tx.stockOpname.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'op-1' } }),
+      );
+    });
+
+    it('non-approver approve is a 403 and posts nothing', async () => {
+      prisma.stockOpname.findUnique.mockResolvedValue(completedOpname());
+
+      await expect(service.approveOpname('op-1', 'spv-2', ['SPV'])).rejects.toThrow(
+        'Hanya approver yang ditetapkan',
+      );
+      expect(tx.productStock.update).not.toHaveBeenCalled();
+      expect(tx.opnameApproval.create).not.toHaveBeenCalled();
+    });
+
+    it('OWNER bypasses the assignment and approves', async () => {
+      prisma.stockOpname.findUnique.mockResolvedValue(completedOpname());
+
+      await service.approveOpname('op-1', 'owner-1', ['OWNER']);
+
+      expect(tx.opnameApproval.create).toHaveBeenCalled();
+    });
+
+    it('legacy session without approver keeps the role gate (SPV passes)', async () => {
+      prisma.stockOpname.findUnique.mockResolvedValue(completedOpname({ approverId: null }));
+
+      await service.approveOpname('op-1', 'spv-9', ['SPV']);
+
+      expect(tx.opnameApproval.create).toHaveBeenCalled();
+    });
+
+    it('force without a reason on a counted row is a 400 and writes no correction', async () => {
+      prisma.stockOpname.findUnique.mockResolvedValue(
+        opname({
+          items: [
+            {
+              id: 'item-1',
+              productId: 'prod-1',
+              systemQuantity: new Decimal(10),
+              physicalQuantity: new Decimal(8),
+              condition: 'good',
+              product: { costPrice: new Decimal(100) },
+            },
+          ],
+        }),
+      );
+
+      await expect(
+        service.recordCount(
+          'op-1',
+          { items: [{ productId: 'prod-1', physicalQuantity: 9, condition: 'good', force: true }] },
+          'counter-1',
+        ),
+      ).rejects.toThrow('correction reason is required');
+      expect(tx.opnameCorrection.create).not.toHaveBeenCalled();
+    });
+
+    it('force with a reason writes a correction with old/new values', async () => {
+      prisma.stockOpname.findUnique.mockResolvedValue(
+        opname({
+          items: [
+            {
+              id: 'item-1',
+              productId: 'prod-1',
+              systemQuantity: new Decimal(10),
+              physicalQuantity: new Decimal(8),
+              condition: 'good',
+              product: { costPrice: new Decimal(100) },
+            },
+          ],
+        }),
+      );
+      tx.productStock.findUnique.mockResolvedValue({ quantityAvailable: new Decimal(10) });
+      tx.stockOpnameItem.update.mockResolvedValue({});
+
+      await service.recordCount(
+        'op-1',
+        {
+          items: [
+            {
+              productId: 'prod-1',
+              physicalQuantity: 9,
+              condition: 'good',
+              force: true,
+              correctionReason: 'salah hitung baris 2',
+            },
+          ],
+        },
+        'counter-1',
+      );
+
+      expect(tx.opnameCorrection.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          opnameId: 'op-1',
+          productId: 'prod-1',
+          condition: 'good',
+          reason: 'salah hitung baris 2',
+          correctedBy: 'counter-1',
+        }),
+      });
+      const data = tx.opnameCorrection.create.mock.calls[0][0].data;
+      expect(data.oldQuantity.toString()).toBe('8');
+      expect(data.newQuantity.toString()).toBe('9');
+    });
+
+    it('removing a counted row is rejected (no hard delete)', async () => {
+      prisma.stockOpname.findUnique.mockResolvedValue(opname());
+      prisma.stockOpnameItem.findFirst.mockResolvedValue({
+        id: 'item-1',
+        physicalQuantity: new Decimal(5),
+      });
+
+      await expect(service.removeItem('op-1', 'item-1')).rejects.toThrow(
+        'tidak bisa dihapus',
+      );
+      expect(prisma.stockOpnameItem.update).not.toHaveBeenCalled();
+    });
+
+    it('approver setting: override wins over the default role', async () => {
+      prisma.opnameApproverSetting.findUnique.mockResolvedValue({ outletId: 'b-1', userId: 'spv-override' });
+
+      await expect(service.resolveOutletApprover('b-1')).resolves.toBe('spv-override');
+      expect(prisma.userBranch.findMany).not.toHaveBeenCalled();
+    });
+
+    it('approver setting: falls back to the first holder of the default role', async () => {
+      prisma.opnameApproverSetting.findUnique.mockResolvedValue(null);
+      prisma.opnameApproverSetting.findFirst.mockResolvedValue({ outletId: null, role: 'SPV' });
+      prisma.opnameApproverSetting.findMany.mockResolvedValue([]);
+      prisma.userBranch.findMany.mockResolvedValue([
+        { userId: 'spv-a', user: { id: 'spv-a' } },
+      ]);
+
+      await expect(service.resolveOutletApprover('b-1')).resolves.toBe('spv-a');
+    });
+
+    it('startOpname pre-fills the approver from the setting when omitted', async () => {
+      prisma.warehouse.findUnique.mockResolvedValue(warehouse);
+      prisma.stockOpname.findFirst.mockResolvedValue(null);
+      prisma.opnameApproverSetting.findUnique.mockResolvedValue({ outletId: 'branch-1', userId: 'spv-prefill' });
+      prisma.productStock.findMany.mockResolvedValue([]);
+      tx.stockOpname.create.mockResolvedValue({ id: 'op-1' });
+      tx.stockOpname.update.mockResolvedValue({ id: 'op-1', status: 'counting' });
+
+      await service.startOpname({ warehouseId: 'wh-outlet-1', opnameDate: '2026-11-06' }, 'user-1');
+
+      expect(tx.stockOpname.create.mock.calls[0][0].data.approverId).toBe('spv-prefill');
+    });
+
+    it('startOpname keeps an explicit approver over the setting', async () => {
+      prisma.warehouse.findUnique.mockResolvedValue(warehouse);
+      prisma.stockOpname.findFirst.mockResolvedValue(null);
+      prisma.productStock.findMany.mockResolvedValue([]);
+      tx.stockOpname.create.mockResolvedValue({ id: 'op-1' });
+      tx.stockOpname.update.mockResolvedValue({ id: 'op-1', status: 'counting' });
+
+      await service.startOpname(
+        { warehouseId: 'wh-outlet-1', opnameDate: '2026-11-06', approverId: 'mgr-explicit' },
+        'user-1',
+      );
+
+      expect(tx.stockOpname.create.mock.calls[0][0].data.approverId).toBe('mgr-explicit');
+      expect(prisma.opnameApproverSetting.findUnique).not.toHaveBeenCalled();
     });
   });
 });

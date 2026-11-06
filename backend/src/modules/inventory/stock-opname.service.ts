@@ -9,6 +9,7 @@ import { PrismaService } from '../../shared/services/prisma.service';
 import { StartOpnameDto } from './dto/start-opname.dto';
 import { RecordCountDto, OpnameItemDto } from './dto/record-count.dto';
 import { AddAssignmentDto } from './dto/add-assignment.dto';
+import { UpsertApproverSettingDto } from './dto/upsert-approver-setting.dto';
 import { Decimal } from '@prisma/client/runtime/library';
 
 const ACTIVE_STATUSES = ['draft', 'counting'] as const;
@@ -148,6 +149,7 @@ export class StockOpnameService {
       productId: item.productId,
       notes: item.notes,
       force: item.force,
+      correctionReason: item.correctionReason,
       countedBy: item.countedBy,
     };
     const splits = [
@@ -198,6 +200,11 @@ export class StockOpnameService {
 
     const effectiveBranchId = warehouse.outletId;
 
+    // IGDERP-236 (OP4): approver pre-fill from the General setting
+    // (per-outlet person override, else first holder of the default role).
+    // Explicit approverId from the start form always wins.
+    const resolvedApproverId = approverId ?? (await this.resolveOutletApprover(effectiveBranchId));
+
     // One active opname (draft/counting) per warehouse/outlet
     const activeOpname = await this.prisma.stockOpname.findFirst({
       where: {
@@ -237,7 +244,7 @@ export class StockOpnameService {
           opnameNumber: this.generateOpnameNumber(),
           code,
           opnameType,
-          approverId: approverId ?? null,
+          approverId: resolvedApproverId ?? null,
           warehouseId: warehouse.id,
           branchId: effectiveBranchId,
           opnameDate: new Date(opnameDate),
@@ -256,6 +263,7 @@ export class StockOpnameService {
         },
         include: {
           items: {
+            where: { deletedAt: null },
             include: {
               product: {
                 include: {
@@ -277,6 +285,7 @@ export class StockOpnameService {
         },
         include: {
           items: {
+            where: { deletedAt: null },
             include: {
               product: {
                 include: {
@@ -310,6 +319,7 @@ export class StockOpnameService {
       where,
       include: {
         items: {
+          where: { deletedAt: null },
           include: {
             product: {
               include: {
@@ -335,6 +345,7 @@ export class StockOpnameService {
       where: { id },
       include: {
         items: {
+          where: { deletedAt: null },
           include: {
             product: {
               include: {
@@ -409,7 +420,7 @@ export class StockOpnameService {
     const opname: any = await this.prisma.stockOpname.findUnique({
       where: { id: opnameId },
       include: {
-        items: { include: { product: { include: { category: true } } } },
+        items: { where: { deletedAt: null }, include: { product: { include: { category: true } } } },
       },
     });
     if (!opname) {
@@ -529,6 +540,160 @@ export class StockOpnameService {
   }
 
   /**
+   * IGDERP-236 (OP4): Stock Opname approver setting (Administrator → General).
+   * Global default = role code (default 'SPV'); per-outlet person override wins.
+   */
+  async getApproverSetting() {
+    const [global, overrides] = await Promise.all([
+      this.prisma.opnameApproverSetting.findFirst({ where: { outletId: null } }),
+      this.prisma.opnameApproverSetting.findMany({
+        where: { NOT: { outletId: null } },
+        orderBy: { updatedAt: 'desc' },
+      }),
+    ]);
+    return {
+      defaultRole: global?.role ?? 'MGR',
+      overrides: (overrides ?? []).map((o: any) => ({ outletId: o.outletId, userId: o.userId })),
+    };
+  }
+
+  async upsertApproverSetting(dto: UpsertApproverSettingDto, updatedBy: string) {
+    if (!dto.outletId) {
+      const role = (dto.role ?? '').trim().toUpperCase();
+      if (!role) throw new BadRequestException('Role is required for the global default');
+      const existing = await this.prisma.opnameApproverSetting.findFirst({ where: { outletId: null } });
+      if (existing) {
+        return this.prisma.opnameApproverSetting.update({
+          where: { id: existing.id },
+          data: { role, updatedBy },
+        });
+      }
+      return this.prisma.opnameApproverSetting.create({
+        data: { outletId: null, role, updatedBy },
+      });
+    }
+    if (dto.userId === null || dto.userId === undefined || dto.userId === '') {
+      const existing = await this.prisma.opnameApproverSetting.findUnique({
+        where: { outletId: dto.outletId },
+      });
+      if (existing) {
+        await this.prisma.opnameApproverSetting.delete({ where: { id: existing.id } });
+      }
+      return { outletId: dto.outletId, userId: null };
+    }
+    const existing = await this.prisma.opnameApproverSetting.findUnique({
+      where: { outletId: dto.outletId },
+    });
+    if (existing) {
+      return this.prisma.opnameApproverSetting.update({
+        where: { id: existing.id },
+        data: { userId: dto.userId, updatedBy },
+      });
+    }
+    return this.prisma.opnameApproverSetting.create({
+      data: { outletId: dto.outletId, userId: dto.userId, updatedBy },
+    });
+  }
+
+  /**
+   * IGDERP-236 (OP4): resolve the effective approver for an outlet —
+   * person override first, else the first active holder of the default role
+   * at that outlet, else null (legacy sessions fall back to role gates).
+   */
+  async resolveOutletApprover(outletId: string | null | undefined): Promise<string | null> {
+    if (!outletId) return null;
+    const override = await this.prisma.opnameApproverSetting.findUnique({
+      where: { outletId },
+    });
+    if (override?.userId) return override.userId;
+    const setting = await this.getApproverSetting();
+    const holders: any[] = await this.prisma.userBranch.findMany({
+      where: {
+        branchId: outletId,
+        role: { code: setting.defaultRole },
+        user: { isActive: true, deletedAt: null },
+      },
+      include: { user: { select: { id: true, createdAt: true } } },
+      orderBy: { user: { createdAt: 'asc' } },
+    });
+    return holders[0]?.user?.id ?? holders[0]?.userId ?? null;
+  }
+
+  /**
+   * IGDERP-236 (OP4): approver candidates for the start form — holders of
+   * the default role at the outlet plus the override person (if any).
+   * The session start pre-fills from this and is reassignable within it.
+   */
+  async getApproverCandidates(outletId: string) {
+    const setting = await this.getApproverSetting();
+    const [holders, override] = await Promise.all([
+      this.prisma.userBranch.findMany({
+        where: {
+          branchId: outletId,
+          role: { code: setting.defaultRole },
+          user: { isActive: true, deletedAt: null },
+        },
+        include: {
+          user: { select: { id: true, fullName: true, username: true } },
+        },
+        orderBy: { user: { createdAt: 'asc' } },
+      }),
+      this.prisma.opnameApproverSetting.findUnique({ where: { outletId } }),
+    ]);
+    const candidates = new Map<string, any>();
+    for (const h of holders ?? []) {
+      const u = h.user ?? { id: h.userId };
+      candidates.set(u.id, {
+        id: u.id,
+        displayName: u.fullName || u.username || u.id,
+      });
+    }
+    if (override?.userId && !candidates.has(override.userId)) {
+      const u: any = await this.prisma.user.findUnique({
+        where: { id: override.userId },
+        select: { id: true, fullName: true, username: true },
+      });
+      if (u) candidates.set(u.id, { id: u.id, displayName: u.fullName || u.username || u.id });
+    }
+    const list = [...candidates.values()];
+    return {
+      defaultRole: setting.defaultRole,
+      defaultUserId: override?.userId ?? list[0]?.id ?? null,
+      candidates: list,
+    };
+  }
+
+  async listApprovals(opnameId: string) {
+    const opname = await this.prisma.stockOpname.findUnique({
+      where: { id: opnameId },
+      select: { id: true },
+    });
+    if (!opname) {
+      throw new NotFoundException('Opname not found');
+    }
+    return this.prisma.opnameApproval.findMany({
+      where: { opnameId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async listCorrections(opnameId: string) {
+    const opname = await this.prisma.stockOpname.findUnique({
+      where: { id: opnameId },
+      select: { id: true },
+    });
+    if (!opname) {
+      throw new NotFoundException('Opname not found');
+    }
+    return this.prisma.opnameCorrection.findMany({
+      where: { opnameId },
+      include: { product: { select: { id: true, name: true, sku: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 500,
+    });
+  }
+
+  /**
    * IGDERP-234 (OP2): session progress — who counted what. Served on demand
    * (manual refresh / poll); there is deliberately no push channel — the
    * draft model (IGDERP-92) keeps refresh manual.
@@ -538,6 +703,7 @@ export class StockOpnameService {
       where: { id: opnameId },
       include: {
         items: {
+          where: { deletedAt: null },
           select: {
             productId: true,
             physicalQuantity: true,
@@ -622,7 +788,7 @@ export class StockOpnameService {
     const opname: any = await this.prisma.stockOpname.findUnique({
       where: { id: opnameId },
       include: {
-        items: { include: { product: { include: { category: true } } } },
+        items: { where: { deletedAt: null }, include: { product: { include: { category: true } } } },
         movements: { orderBy: { createdAt: 'asc' } },
         branch: true,
       },
@@ -843,7 +1009,7 @@ export class StockOpnameService {
     }
 
     const existing = await this.prisma.stockOpnameItem.findFirst({
-      where: { opnameId, productId },
+      where: { opnameId, productId, deletedAt: null },
     });
     if (existing) {
       throw new BadRequestException('Product is already in this opname');
@@ -883,13 +1049,25 @@ export class StockOpnameService {
     this.assertActive(opname, 'remove items from');
 
     const item = await this.prisma.stockOpnameItem.findFirst({
-      where: { id: itemId, opnameId },
+      where: { id: itemId, opnameId, deletedAt: null },
     });
     if (!item) {
       throw new NotFoundException('Opname item not found');
     }
 
-    await this.prisma.stockOpnameItem.delete({ where: { id: item.id } });
+    // IGDERP-236 (OP4): no hard delete on opname data — counted rows are
+    // preserved (use a correction with reason instead); only uncounted
+    // placeholder rows may be removed, and only as a soft delete.
+    if (item.physicalQuantity !== null && item.physicalQuantity !== undefined) {
+      throw new BadRequestException(
+        'Baris yang sudah dihitung tidak bisa dihapus — gunakan koreksi dengan alasan',
+      );
+    }
+
+    await this.prisma.stockOpnameItem.update({
+      where: { id: item.id },
+      data: { deletedAt: new Date() },
+    });
 
     // IGDERP-234 (OP2): counters get their scoped blind view back.
     return viewer ? this.getCountView(opnameId, viewer) : this.findById(opnameId);
@@ -915,6 +1093,7 @@ export class StockOpnameService {
       },
       include: {
         items: {
+          where: { deletedAt: null },
           include: {
             product: {
               include: {
@@ -934,6 +1113,7 @@ export class StockOpnameService {
       where: { id: opnameId },
       include: {
         items: {
+          where: { deletedAt: null },
           include: {
             product: true,
           },
@@ -1003,18 +1183,25 @@ export class StockOpnameService {
           );
         }
 
-        if (
-          opnameItem &&
+        // IGDERP-236 (OP4): overwriting a counted row is a correction —
+        // it needs force plus a mandatory reason (append-only history).
+        const wasCounted =
+          !!opnameItem &&
           opnameItem.physicalQuantity !== null &&
-          opnameItem.physicalQuantity !== undefined &&
-          !item.force
-        ) {
+          opnameItem.physicalQuantity !== undefined;
+        if (opnameItem && wasCounted && !item.force) {
           // Scan-flow double-submit guard. Explicit corrections (table edit
           // via Draft SO) send force:true and overwrite instead.
           throw new ConflictException(
             `Product ${item.productId} already counted${cond ? ` with condition ${cond}` : ''}`,
           );
         }
+        if (opnameItem && wasCounted && item.force && !item.correctionReason?.trim()) {
+          throw new BadRequestException(
+            `Product ${item.productId} is already counted — a correction reason is required`,
+          );
+        }
+        const correctionOld = wasCounted && item.force ? Number(opnameItem.physicalQuantity) : null;
 
         if (!opnameItem) {
           // Different-condition second row: snapshot live stock at creation,
@@ -1084,6 +1271,20 @@ export class StockOpnameService {
         opnameItem.physicalQuantity = new Decimal(physicalQuantity);
         opnameItem.condition = item.condition;
         opnameItem.countedBy = item.countedBy || userId;
+        // IGDERP-236 (OP4): correction history — old/new preserved, never overwritten.
+        if (correctionOld !== null) {
+          await tx.opnameCorrection.create({
+            data: {
+              opnameId,
+              productId: item.productId,
+              condition: item.condition ?? null,
+              oldQuantity: new Decimal(correctionOld),
+              newQuantity: new Decimal(physicalQuantity),
+              reason: item.correctionReason!.trim(),
+              correctedBy: userId,
+            },
+          });
+        }
       }
 
       // IGDERP-234 (OP2): append-only scan event for this product.
@@ -1113,7 +1314,7 @@ export class StockOpnameService {
     const opname = await this.prisma.stockOpname.findUnique({
       where: { id: opnameId },
       include: {
-        items: true,
+        items: { where: { deletedAt: null } },
       },
     });
 
@@ -1149,6 +1350,7 @@ export class StockOpnameService {
       },
       include: {
         items: {
+          where: { deletedAt: null },
           include: {
             product: {
               include: {
@@ -1179,11 +1381,12 @@ export class StockOpnameService {
    * quantity_available into quantity_damaged, even when the quantity
    * discrepancy is zero.
    */
-  async approveOpname(opnameId: string, userId: string) {
+  async approveOpname(opnameId: string, userId: string, userRoles?: string[], note?: string) {
     const opname = await this.prisma.stockOpname.findUnique({
       where: { id: opnameId },
       include: {
         items: {
+          where: { deletedAt: null },
           include: {
             product: true,
           },
@@ -1198,6 +1401,15 @@ export class StockOpnameService {
 
     if (opname.status !== 'completed') {
       throw new BadRequestException(`Cannot approve opname with status: ${opname.status}`);
+    }
+
+    // IGDERP-236 (OP4): approver enforcement — the assigned approver (or an
+    // OWNER/SUPERADMIN override) approves. Sessions without any resolvable
+    // approver keep the legacy SPV/CSO role gate from the controller.
+    const assignedApprover = opname.approverId ?? (await this.resolveOutletApprover(opname.branchId));
+    const isSuper = (userRoles ?? []).some((r) => r === 'OWNER' || r === 'SUPERADMIN');
+    if (assignedApprover && userId !== assignedApprover && !isSuper) {
+      throw new ForbiddenException('Hanya approver yang ditetapkan untuk sesi ini yang dapat menyetujui');
     }
 
     return await this.prisma.$transaction(async (tx) => {
@@ -1281,6 +1493,15 @@ export class StockOpnameService {
       }
 
       // Update opname status
+      // IGDERP-236 (OP4): append-only approval log — stock moves only here.
+      await tx.opnameApproval.create({
+        data: {
+          opnameId,
+          approverId: userId,
+          decision: 'APPROVED',
+          note: note ?? null,
+        },
+      });
       return tx.stockOpname.update({
         where: { id: opnameId },
         data: {
@@ -1290,6 +1511,7 @@ export class StockOpnameService {
         },
         include: {
           items: {
+            where: { deletedAt: null },
             include: {
               product: {
                 include: {

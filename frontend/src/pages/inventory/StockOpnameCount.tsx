@@ -89,6 +89,12 @@ export default function StockOpnameCount() {
   // IGDERP-175 + OP2: unknown-barcode mismatch popup (explicit dialog + BE log)
   const [mismatchQuery, setMismatchQuery] = useState<string | null>(null);
   const [scopeNotice, setScopeNotice] = useState<string | null>(null);
+  // IGDERP-236 (OP4): correction reason dialog (force-overwrite needs a reason)
+  const [reasonDialog, setReasonDialog] = useState<{
+    lines: Array<{ productId: string; physicalQuantity?: number; condition?: Condition; goodQuantity?: number; damagedQuantity?: number; expiredQuantity?: number; notes?: string; force?: boolean }>;
+    context: string;
+  } | null>(null);
+  const [reasonInput, setReasonInput] = useState('');
   const [scanNotice, setScanNotice] = useState<{ kind: 'found' | 'mismatch' | 'double' | 'scope'; text: string } | null>(null);
 
   // OP2: scoped blind count view (never system stock for counters)
@@ -422,12 +428,30 @@ export default function StockOpnameCount() {
     );
   };
 
-  const saveGridRow = (item: any) => {
+  const saveGridRow = (item: any, reason?: string) => {
     if (recordMutation.isPending) return;
     const q = counts[item.id];
     const parsed = q !== undefined && q !== '' ? parseInt(q, 10) : NaN;
     if (Number.isNaN(parsed) || parsed < 0) {
       toast.error('Masukkan jumlah yang valid');
+      return;
+    }
+    const serverCounted = item.physicalQuantity !== null && item.physicalQuantity !== undefined;
+    // IGDERP-236 (OP4): overwriting a counted row needs a reason
+    if (serverCounted && !reason) {
+      setReasonInput('');
+      setReasonDialog({
+        lines: [
+          {
+            productId: item.productId,
+            physicalQuantity: parsed,
+            condition: (conditions[item.id] || item.condition || 'good') as Condition,
+            notes: (notes[item.id] || item.notes) || undefined,
+            force: true,
+          },
+        ],
+        context: `"${item.product?.name || '-'}" sudah tercatat (${item.physicalQuantity}) — isi alasan koreksi untuk mengubah.`,
+      });
       return;
     }
     recordMutation.mutate({
@@ -438,12 +462,13 @@ export default function StockOpnameCount() {
           condition: (conditions[item.id] || item.condition || 'good') as Condition,
           notes: (notes[item.id] || item.notes) || undefined,
           force: true,
+          ...(reason ? { correctionReason: reason } : {}),
         },
       ],
     });
   };
 
-  const handleSaveAll = () => {
+  const handleSaveAll = (reason?: string) => {
     if (!opname || recordMutation.isPending) return;
     const itemsToSave = opname.items
       .filter((i) => counts[i.id] !== undefined && counts[i.id] !== '')
@@ -458,7 +483,24 @@ export default function StockOpnameCount() {
       toast.error('Belum ada hasil perhitungan untuk disimpan');
       return;
     }
-    recordMutation.mutate({ items: itemsToSave });
+    // IGDERP-236 (OP4): bulk overwrite of counted rows needs one reason
+    const touchesCounted = itemsToSave.some((l) => {
+      const row = opname.items.find(
+        (i) => i.productId === l.productId && (i.condition || 'good') === (l.condition || 'good'),
+      );
+      return row && row.physicalQuantity !== null && row.physicalQuantity !== undefined;
+    });
+    if (touchesCounted && !reason) {
+      setReasonInput('');
+      setReasonDialog({
+        lines: itemsToSave,
+        context: 'Sebagian baris sudah tercatat — isi satu alasan koreksi untuk seluruh penyimpanan ini.',
+      });
+      return;
+    }
+    recordMutation.mutate({
+      items: itemsToSave.map((l) => (reason ? { ...l, correctionReason: reason } : l)),
+    });
   };
 
   const handleCancel = () => {
@@ -871,6 +913,42 @@ export default function StockOpnameCount() {
         </DialogContent>
       </Dialog>
 
+      {/* IGDERP-236 (OP4): correction reason dialog — overwrites need a reason */}
+      <Dialog open={reasonDialog !== null} onOpenChange={(o) => !o && setReasonDialog(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>📝 Alasan koreksi</DialogTitle>
+            <DialogDescription>{reasonDialog?.context}</DialogDescription>
+          </DialogHeader>
+          <input
+            value={reasonInput}
+            onChange={(e) => setReasonInput(e.target.value)}
+            placeholder="mis. salah baca label, hitung ulang…"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500"
+          />
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => setReasonDialog(null)}>
+              Batal
+            </Button>
+            <Button
+              size="sm"
+              disabled={!reasonInput.trim() || recordMutation.isPending}
+              onClick={() => {
+                if (!reasonDialog || !reasonInput.trim()) return;
+                const lines = reasonDialog.lines;
+                const reason = reasonInput.trim();
+                setReasonDialog(null);
+                recordMutation.mutate({
+                  items: lines.map((l) => ({ ...l, correctionReason: reason })),
+                });
+              }}
+            >
+              Simpan koreksi
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Grid — blind browse/edit (no system stock, no variance) */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="flex items-center justify-between px-4 pt-3 pb-1">
@@ -1006,7 +1084,7 @@ export default function StockOpnameCount() {
           Batalkan SO
         </button>
         <button
-          onClick={handleSaveAll}
+          onClick={() => handleSaveAll()}
           disabled={recordMutation.isPending}
           className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
         >

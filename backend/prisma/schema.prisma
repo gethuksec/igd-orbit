@@ -904,6 +904,9 @@ model StockOpname {
   exceptions  OpnameException[]
   // IGDERP-235 (OP3): auto-captured inventory movements while an OPEN session runs
   movements   OpnameMovement[]
+  // IGDERP-236 (OP4): approval log + correction history (append-only)
+  approvals   OpnameApproval[]
+  corrections OpnameCorrection[]
 
   @@index([opnameNumber])
   @@index([code])
@@ -927,6 +930,8 @@ model StockOpnameItem {
   condition        String? // 'good', 'damaged', 'expired'
   notes            String?  @db.Text
   countedBy        String?  @map("counted_by") // User ID
+  // IGDERP-236 (OP4): soft delete — counted rows are never hard-deleted
+  deletedAt        DateTime? @map("deleted_at")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
@@ -1015,6 +1020,56 @@ model OpnameMovement {
   @@index([opnameId, productId])
   @@index([createdAt])
   @@map("opname_movements")
+}
+
+// IGDERP-236 (OP4): approval decisions (append-only). Stock moves only here.
+model OpnameApproval {
+  id         String   @id @default(uuid())
+  opnameId   String   @map("opname_id")
+  approverId String   @map("approver_id") // User ID that approved
+  decision   String   @default("APPROVED") @map("decision")
+  note       String?  @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  opname StockOpname @relation(fields: [opnameId], references: [id], onDelete: Cascade)
+
+  @@index([opnameId])
+  @@map("opname_approvals")
+}
+
+// IGDERP-236 (OP4): recount corrections (append-only). Overwriting a counted
+// row requires force + mandatory reason; old/new values are preserved.
+model OpnameCorrection {
+  id           String   @id @default(uuid())
+  opnameId     String   @map("opname_id")
+  productId    String   @map("product_id")
+  condition    String? // corrected row's condition
+  oldQuantity  Decimal? @map("old_quantity") @db.Decimal(15, 3)
+  newQuantity  Decimal  @map("new_quantity") @db.Decimal(15, 3)
+  reason       String   @db.Text
+  correctedBy  String   @map("corrected_by") // User ID
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  opname  StockOpname @relation(fields: [opnameId], references: [id], onDelete: Cascade)
+  product Product     @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([opnameId, productId])
+  @@map("opname_corrections")
+}
+
+// IGDERP-236 (OP4): Stock Opname approver setting (Administrator → General).
+// outletId null = global default (role code, default 'MGR'); otherwise a
+// per-outlet person override (userId, null clears back to the default).
+model OpnameApproverSetting {
+  id        String   @id @default(uuid())
+  outletId  String?  @unique @map("outlet_id")
+  role      String? // global default approver role code
+  userId    String?  @map("user_id") // per-outlet person override
+  updatedBy String?  @map("updated_by") // User ID
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("opname_approver_settings")
 }
 
 model StockIn {

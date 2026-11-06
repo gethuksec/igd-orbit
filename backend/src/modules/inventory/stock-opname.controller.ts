@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Delete,
   Body,
   Param,
@@ -21,6 +22,7 @@ import { RecordCountDto } from './dto/record-count.dto';
 import { AddOpnameItemDto } from './dto/add-opname-item.dto';
 import { AddAssignmentDto } from './dto/add-assignment.dto';
 import { LogExceptionDto } from './dto/log-exception.dto';
+import { UpsertApproverSettingDto } from './dto/upsert-approver-setting.dto';
 
 @Controller('inventory/opname')
 @UseGuards(JwtAuthGuard)
@@ -56,6 +58,32 @@ export class StockOpnameController {
   @Roles('CSO', 'SPV', 'HS', 'ASA', 'SODO', 'CS', 'CR', 'TC', 'AS', 'SMO', 'AR', 'CMO', 'CFO', 'CHR', 'OWNER', 'SUPERADMIN')
   async findByCode(@Param('code') code: string, @Request() req: any) {
     return this.opnameService.findByCode(code, { roles: req.user.roles });
+  }
+
+  // IGDERP-236 (OP4): single-segment statics must stay above ':id' or Express
+  // matches them as an id. (Same reason 'code/:code' lives up here.)
+  /** Approver setting (Administrator → General). */
+  @Get('approver-setting')
+  @UseGuards(RolesGuard)
+  @Roles('CSO', 'SPV', 'HS', 'ASA', 'SODO', 'CS', 'CR', 'TC', 'AS', 'SMO', 'AR', 'CMO', 'CFO', 'CHR', 'OWNER', 'SUPERADMIN')
+  async getApproverSetting() {
+    return this.opnameService.getApproverSetting();
+  }
+
+  /** Update the approver setting (global role or per-outlet person). */
+  @Put('approver-setting')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'SUPERADMIN')
+  async upsertApproverSetting(@Body() dto: UpsertApproverSettingDto, @Request() req: any) {
+    return this.opnameService.upsertApproverSetting(dto, req.user.id);
+  }
+
+  /** Approver candidates for an outlet (start-form prefill). */
+  @Get('approver-candidates')
+  @UseGuards(RolesGuard)
+  @Roles('HS', 'SPV', 'CSO', 'OWNER', 'SUPERADMIN')
+  async getApproverCandidates(@Query('outletId') outletId: string) {
+    return this.opnameService.getApproverCandidates(outletId);
   }
 
   /** IGDERP-234 (OP2): counter-facing count view (scoped + blind). */
@@ -192,7 +220,24 @@ export class StockOpnameController {
   @Post(':id/approve')
   @UseGuards(RolesGuard)
   @Roles('SPV', 'CSO')
-  async approveOpname(@Param('id') id: string, @Request() req: any) {
-    return this.opnameService.approveOpname(id, req.user.id);
+  async approveOpname(@Param('id') id: string, @Request() req: any, @Body() body?: { note?: string }) {
+    // IGDERP-236 (OP4): assigned-approver enforcement happens in the service (403).
+    return this.opnameService.approveOpname(id, req.user.id, req.user.roles, body?.note);
+  }
+
+  /** IGDERP-236 (OP4): approval history (append-only). */
+  @Get(':id/approvals')
+  @UseGuards(RolesGuard)
+  @Roles('HS', 'SPV', 'CSO', 'OWNER', 'SUPERADMIN')
+  async listApprovals(@Param('id') id: string) {
+    return this.opnameService.listApprovals(id);
+  }
+
+  /** IGDERP-236 (OP4): correction history (append-only). */
+  @Get(':id/corrections')
+  @UseGuards(RolesGuard)
+  @Roles('HS', 'SPV', 'CSO', 'OWNER', 'SUPERADMIN')
+  async listCorrections(@Param('id') id: string) {
+    return this.opnameService.listCorrections(id);
   }
 }

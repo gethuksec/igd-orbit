@@ -139,6 +139,7 @@ import PurchaseReturnDetail from './pages/purchasing/PurchaseReturnDetail';
 import LabelPrintSheet from './pages/purchasing/LabelPrintSheet';
 import BarcodeSetting from './pages/admin/BarcodeSetting';
 import ServiceApprovalSettings from './pages/admin/ServiceApprovalSettings';
+import GeneralSettings from './pages/admin/GeneralSettings';
 import GoodsReceiptList from './pages/purchasing/GoodsReceiptList';
 import GoodsReceiptDetail from './pages/purchasing/GoodsReceiptDetail';
 import GoodsReceiptForm from './pages/purchasing/GoodsReceiptForm';
@@ -1796,7 +1797,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <PlaceholderPage title="General" description="Pengaturan umum aplikasi" />
+                    <GeneralSettings />
                   </DashboardLayout>
                 </ProtectedRoute>
               }

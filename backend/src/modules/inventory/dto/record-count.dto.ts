@@ -52,6 +52,13 @@ export class OpnameItemDto {
   @IsOptional()
   force?: boolean;
 
+  /**
+   * IGDERP-236 (OP4): mandatory reason when force overwrites an already
+   * counted row — stored in the append-only correction history.
+   */
+  @IsOptional()
+  correctionReason?: string;
+
   @IsUUID()
   @IsOptional()
   countedBy?: string;

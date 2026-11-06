@@ -37,6 +37,20 @@ export default function StockOpnameDetail() {
     review?.selisih?.[0] ?? review?.cocok?.[0] ?? review?.belumDihitung?.[0];
   const hasVariance = !!reviewProbe && 'variance' in reviewProbe;
 
+  // IGDERP-236 (OP4): approval + correction history (role-gated; hidden on 403)
+  const { data: approvals } = useQuery({
+    queryKey: ['inventory-opname-approvals', id],
+    queryFn: () => inventoryService.listOpnameApprovals(id!),
+    enabled: !!id,
+    retry: false,
+  });
+  const { data: corrections } = useQuery({
+    queryKey: ['inventory-opname-corrections', id],
+    queryFn: () => inventoryService.listOpnameCorrections(id!),
+    enabled: !!id,
+    retry: false,
+  });
+
   const completeMutation = useMutation({
     mutationFn: () => inventoryService.completeOpname(id!),
     onSuccess: () => {
@@ -358,6 +372,43 @@ export default function StockOpnameDetail() {
         )}
       </div>
 
+      {/* D2 timeline — IGDERP-236 (OP4): counting → review → approval → posting */}
+      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Alur Persetujuan</h2>
+        <OpnameTimeline opname={opname} approvals={approvals} />
+        {approvals && approvals.length > 0 && (
+          <div className="mt-4 border-t border-gray-100 pt-3">
+            <div className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-1.5">
+              Riwayat persetujuan
+            </div>
+            <div className="space-y-1">
+              {approvals.map((a: any) => (
+                <div key={a.id} className="text-xs text-gray-600">
+                  ✓ {a.decision} · {new Date(a.createdAt).toLocaleString('id-ID')}
+                  {a.note ? ` — ${a.note}` : ''}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {corrections && corrections.length > 0 && (
+          <div className="mt-4 border-t border-gray-100 pt-3">
+            <div className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-1.5">
+              Riwayat koreksi ({corrections.length})
+            </div>
+            <div className="space-y-1 max-h-48 overflow-y-auto">
+              {corrections.slice(0, 30).map((c: any) => (
+                <div key={c.id} className="text-xs text-gray-600">
+                  {c.product?.name || c.productId}: {c.oldQuantity ?? '—'} → <b>{c.newQuantity}</b>
+                  {c.condition ? ` (${c.condition})` : ''} · “{c.reason}” ·{' '}
+                  {new Date(c.createdAt).toLocaleString('id-ID')}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Hasil — IGDERP-235 (OP3): C2 variance-first review */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-5">
         <div className="flex items-center justify-between">
@@ -514,6 +565,51 @@ export default function StockOpnameDetail() {
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * IGDERP-236 (OP4): D2 timeline — counting → review → approval → posting.
+ * Review = completed (counted, awaiting approval); posting rides the approval
+ * transaction, so approval + posting share the approved stamp (CLOSED).
+ */
+function OpnameTimeline({ opname, approvals }: { opname: any; approvals?: any[] }) {
+  const order = ['draft', 'counting', 'completed', 'approved', 'cancelled'];
+  const stageIdx = Math.max(0, order.indexOf(opname.status));
+  const approvedAt = opname.approvedAt || approvals?.[0]?.createdAt || null;
+  const stages = [
+    { key: 'counting', label: 'Pencacahan', at: opname.createdAt, done: stageIdx >= 1 },
+    { key: 'review', label: 'Review', at: opname.completedAt, done: stageIdx >= 2 && opname.status !== 'cancelled' },
+    { key: 'approval', label: 'Persetujuan', at: opname.approvedAt, done: opname.status === 'approved' },
+    { key: 'posting', label: 'Posting stok', at: approvedAt, done: opname.status === 'approved' },
+  ];
+  return (
+    <ol className="flex flex-col sm:flex-row gap-2">
+      {stages.map((s, i) => (
+        <li
+          key={s.key}
+          className={`flex-1 rounded-xl border px-3 py-2 ${
+            s.done ? 'border-green-300 bg-green-50' : i === stages.findIndex((x) => !x.done) && opname.status !== 'cancelled' && opname.status !== 'approved'
+              ? 'border-primary-400 bg-red-50'
+              : 'border-gray-200 bg-gray-50'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <span
+              className={`inline-flex w-5 h-5 items-center justify-center rounded-full text-[11px] font-bold text-white ${
+                s.done ? 'bg-green-600' : 'bg-gray-400'
+              }`}
+            >
+              {s.done ? '✓' : i + 1}
+            </span>
+            <span className="text-xs font-bold text-gray-900">{s.label}</span>
+          </div>
+          <div className="mt-0.5 text-[11px] text-gray-500">
+            {s.at ? new Date(s.at).toLocaleString('id-ID') : '—'}
+          </div>
+        </li>
+      ))}
+    </ol>
   );
 }
 

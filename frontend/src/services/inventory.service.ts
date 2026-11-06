@@ -548,6 +548,7 @@ export const inventoryService = {
       notes?: string;
       countedBy?: string;
       force?: boolean;
+      correctionReason?: string;
     }>;
   }): Promise<StockOpname> {
     try {
@@ -652,9 +653,63 @@ export const inventoryService = {
     return response.data;
   },
 
-  async approveOpname(id: string): Promise<StockOpname> {
+  async approveOpname(id: string, note?: string): Promise<StockOpname> {
     try {
-      const response = await api.post(`/inventory/opname/${id}/approve`);
+      const response = await api.post(`/inventory/opname/${id}/approve`, note ? { note } : {});
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  /** IGDERP-236 (OP4): approval history (append-only). */
+  async listOpnameApprovals(opnameId: string): Promise<any[]> {
+    try {
+      const response = await api.get(`/inventory/opname/${opnameId}/approvals`);
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  /** IGDERP-236 (OP4): correction history (append-only). */
+  async listOpnameCorrections(opnameId: string): Promise<any[]> {
+    try {
+      const response = await api.get(`/inventory/opname/${opnameId}/corrections`);
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  /** IGDERP-236 (OP4): approver setting (Administrator → General). */
+  async getApproverSetting(): Promise<{ defaultRole: string; overrides: Array<{ outletId: string; userId: string }> }> {
+    try {
+      const response = await api.get('/inventory/opname/approver-setting');
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  /** IGDERP-236 (OP4): update the approver setting. */
+  async upsertApproverSetting(data: { outletId?: string; role?: string; userId?: string | null }): Promise<any> {
+    try {
+      const response = await api.put('/inventory/opname/approver-setting', data);
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  /** IGDERP-236 (OP4): approver candidates for an outlet (start-form prefill). */
+  async getApproverCandidates(outletId: string): Promise<{
+    defaultRole: string;
+    defaultUserId: string | null;
+    candidates: Array<{ id: string; displayName: string }>;
+  }> {
+    try {
+      const response = await api.get('/inventory/opname/approver-candidates', { params: { outletId } });
       return response.data;
     } catch (error: any) {
       throw error;
