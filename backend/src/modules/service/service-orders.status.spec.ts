@@ -251,6 +251,87 @@ describe('ServiceOrdersService.updateStatus — Smart Repair lifecycle (IGDERP-1
     await expect(run('done', { status: 'cancelled', notes: 'x' })).rejects.toThrow(BadRequestException);
   });
 
+  describe('05 Nov flow — fast-close pending -> done + ready-cancel branch', () => {
+    it('allows pending -> done with notes + zero charges: completedAt, no warranty, no invoice', async () => {
+      prisma.serviceOrder.findUnique.mockResolvedValue({ ...order('pending'), partsUsed: [] });
+      await service.updateStatus('so-1', { status: 'done', notes: 'customer batal di meja CS' }, 'user-1');
+      const data = tx.serviceOrder.update.mock.calls[0][0].data;
+      expect(data.status).toBe('done');
+      expect(data.completedAt).toBeInstanceOf(Date);
+      expect(data.warrantyExpiryDate).toBeUndefined();
+      expect(salesMock.createNoServiceFromParts).not.toHaveBeenCalled();
+    });
+
+    it('rejects pending -> done without notes', async () => {
+      await expect(run('pending', { status: 'done' })).rejects.toThrow(/penutupan/);
+      await expect(run('pending', { status: 'done', notes: '   ' })).rejects.toThrow(/penutupan/);
+    });
+
+    it('rejects pending -> done with parts or labor charged', async () => {
+      prisma.serviceOrder.findUnique.mockResolvedValue({
+        ...order('pending'),
+        partsUsed: [{ productId: 'p1', quantity: { toString: () => '1' } }],
+        partsCost: { toString: () => '50000' },
+      });
+      await expect(
+        service.updateStatus('so-1', { status: 'done', notes: 'x' }, 'u'),
+      ).rejects.toThrow(/tanpa barang dan jasa/);
+
+      prisma.serviceOrder.findUnique.mockResolvedValue({
+        ...order('pending'),
+        partsUsed: [],
+        laborCost: { toString: () => '100000' },
+      });
+      await expect(
+        service.updateStatus('so-1', { status: 'done', notes: 'x' }, 'u'),
+      ).rejects.toThrow(/tanpa barang dan jasa/);
+    });
+
+    it('allows diagnosed/in-progress -> ready-cancel with reason; stamps readyAt + cancellationReason', async () => {
+      await run('diagnosed', { status: 'ready-cancel', notes: 'customer batal, unit dikembalikan' });
+      const data = tx.serviceOrder.update.mock.calls[0][0].data;
+      expect(data.status).toBe('ready-cancel');
+      expect(data.readyAt).toBeInstanceOf(Date);
+      expect(data.cancellationReason).toContain('customer batal');
+
+      tx.serviceOrder.update.mockClear();
+      await run('in-progress', { status: 'ready-cancel', notes: 'batal tengah jalan' });
+      expect(tx.serviceOrder.update.mock.calls[0][0].data.status).toBe('ready-cancel');
+    });
+
+    it('rejects ready-cancel without reason', async () => {
+      await expect(run('diagnosed', { status: 'ready-cancel' })).rejects.toThrow(
+        /Alasan pembatalan wajib/,
+      );
+      await expect(run('in-progress', { status: 'ready-cancel', notes: '   ' })).rejects.toThrow(
+        /Alasan pembatalan wajib/,
+      );
+    });
+
+    it('allows ready-cancel -> cancelled pickup close without new notes, no double stock restore', async () => {
+      prisma.serviceOrder.findUnique.mockResolvedValue({
+        ...order('ready-cancel'),
+        serviceNumber: 'SRV-TEST-2',
+        partsUsed: [],
+      });
+      await service.updateStatus('so-1', { status: 'cancelled' }, 'user-1');
+      const data = tx.serviceOrder.update.mock.calls[0][0].data;
+      expect(data.status).toBe('cancelled');
+      expect(data.cancelledAt).toBeInstanceOf(Date);
+      // no parts → no restore history rows beyond the main one
+      const historyCalls = tx.serviceStatusHistory.create.mock.calls.filter(
+        (c: any) => String(c[0].data.notes || '').includes('Stok kembali'),
+      );
+      expect(historyCalls).toHaveLength(0);
+    });
+
+    it('rejects ready-cancel from qc/ready/done (wrong direction)', async () => {
+      await expect(run('qc', { status: 'ready-cancel', notes: 'x' })).rejects.toThrow(BadRequestException);
+      await expect(run('ready', { status: 'ready-cancel', notes: 'x' })).rejects.toThrow(BadRequestException);
+      await expect(run('done', { status: 'ready-cancel', notes: 'x' })).rejects.toThrow(BadRequestException);
+    });
+  });
+
   it('throws NotFound when order missing', async () => {
     prisma.serviceOrder.findUnique.mockResolvedValue(null);
     await expect(service.updateStatus('nope', { status: 'ready' }, 'u')).rejects.toThrow(

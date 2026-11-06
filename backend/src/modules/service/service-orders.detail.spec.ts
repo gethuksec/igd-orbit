@@ -100,6 +100,9 @@ describe('ServiceOrdersService detail round — internalNotes, removeLayanan', (
     await expect(mockRemove('done', rows).service.removeLayanan('so-1', 'r1', 'u')).rejects.toThrow(
       'Cannot remove layanan from service order with status: done',
     );
+    await expect(mockRemove('ready-cancel', rows).service.removeLayanan('so-1', 'r1', 'u')).rejects.toThrow(
+      'Cannot remove layanan from service order with status: ready-cancel',
+    );
     await expect(mockRemove('in-progress', rows).service.removeLayanan('so-1', 'nope', 'u')).rejects.toThrow(
       'Layanan tidak ditemukan pada service order ini',
     );

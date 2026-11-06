@@ -55,6 +55,7 @@ const STATUS_LABELS: Record<string, string> = {
   ready: 'Ready',
   done: 'Done',
   cancelled: 'Cancel',
+  'ready-cancel': 'Ready Cancel',
 };
 
 const STATUS_PILL: Record<string, string> = {
@@ -65,6 +66,7 @@ const STATUS_PILL: Record<string, string> = {
   ready: 'bg-blue-100 text-blue-800 border-blue-200',
   done: 'bg-green-100 text-green-800 border-green-200',
   cancelled: 'bg-red-100 text-red-800 border-red-200',
+  'ready-cancel': 'bg-orange-100 text-orange-800 border-orange-200',
 };
 
 const SR_FLOW = ['pending', 'diagnosed', 'in-progress', 'qc', 'ready', 'done'] as const;
@@ -96,6 +98,9 @@ export default function SmartRepairDetailPage() {
 
   const [openCancel, setOpenCancel] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
+  // 05 Nov flow: fast-close pending -> done (CS banks data, zero charges)
+  const [openFastClose, setOpenFastClose] = useState(false);
+  const [fastCloseNotes, setFastCloseNotes] = useState('');
   const [openTeknisi, setOpenTeknisi] = useState(false);
   const [techId, setTechId] = useState('');
   const [openWaktu, setOpenWaktu] = useState(false);
@@ -222,6 +227,8 @@ export default function SmartRepairDetailPage() {
       toast.success(`Status berhasil diubah ke ${STATUS_LABELS[variables.status] || variables.status}`);
       setOpenCancel(false);
       setCancelReason('');
+      setOpenFastClose(false);
+      setFastCloseNotes('');
       queryClient.invalidateQueries({ queryKey: ['service-order', id] });
     },
     onError: (err: any) => toast.error(err.response?.data?.message || 'Gagal mengubah status'),
@@ -427,6 +434,29 @@ export default function SmartRepairDetailPage() {
       return;
     }
     statusMutation.mutate({ status: 'cancelled', notes: cancelReason.trim() });
+  };
+
+  // 05 Nov flow: abort mid-service — device returned unfixed, awaiting pickup
+  const handleReadyCancel = () => {
+    if (!cancelReason.trim()) {
+      toast.error('Alasan pembatalan wajib diisi');
+      return;
+    }
+    statusMutation.mutate({ status: 'ready-cancel', notes: cancelReason.trim() });
+  };
+
+  // 05 Nov flow: fast-close at CS desk (zero charges enforced server-side)
+  const handleFastClose = () => {
+    if (!fastCloseNotes.trim()) {
+      toast.error('Alasan penutupan wajib diisi');
+      return;
+    }
+    statusMutation.mutate({ status: 'done', notes: fastCloseNotes.trim() });
+  };
+
+  // 05 Nov flow: aborted device picked up — closes ready-cancel
+  const handlePickupClose = () => {
+    statusMutation.mutate({ status: 'cancelled' });
   };
 
   const openTeknisiModal = () => {
@@ -954,6 +984,24 @@ export default function SmartRepairDetailPage() {
                   Tambah Barang
                 </DropdownMenuItem>
               )}
+              {/* 05 Nov flow: fast-close at CS desk (pending -> done) */}
+              {status === 'pending' && !isCancelled && (
+                <DropdownMenuItem
+                  className="font-semibold"
+                  onClick={() => { setFastCloseNotes(''); setOpenFastClose(true); }}
+                >
+                  Tutup Langsung (Done)
+                </DropdownMenuItem>
+              )}
+              {/* 05 Nov flow: aborted device picked up (ready-cancel -> cancelled) */}
+              {status === 'ready-cancel' && !isCancelled && (
+                <DropdownMenuItem
+                  className="font-semibold"
+                  onClick={handlePickupClose}
+                >
+                  Unit Diambil — Tutup
+                </DropdownMenuItem>
+              )}
               {/* IGDERP-168: cancel blocked once QC starts */}
               {['pending', 'diagnosed', 'in-progress'].includes(status ?? '') && !isCancelled && (
                 <>
@@ -1052,6 +1100,28 @@ export default function SmartRepairDetailPage() {
                 </div>
               );
             })}
+            {status === 'ready-cancel' && (
+              <div className="flex gap-4">
+                <div className="flex flex-col items-center">
+                  <Circle className="w-6 h-6 text-orange-500" />
+                </div>
+                <div className="flex-1">
+                  <div className="font-medium text-orange-700">Ready Cancel — unit dikembalikan, menunggu diambil</div>
+                  <div className="text-sm text-gray-500 mt-1">
+                    {formatDateTime(order.readyAt)}, {formatTime(order.readyAt)}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    <span className="font-semibold">Oleh: </span>{historyByStage.get('ready-cancel')?.[0]?.changedByUser?.fullName || '—'}
+                  </div>
+                  {historyByStage.get('ready-cancel')?.[0]?.notes && (
+                    <div className="text-xs text-gray-600 mt-2 p-2 bg-gray-50 rounded border border-gray-200">
+                      <span className="font-semibold">Catatan: </span>
+                      {historyByStage.get('ready-cancel')?.[0]?.notes}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
             {isCancelled && (
               <div className="flex gap-4">
                 <div className="flex flex-col items-center">
@@ -1097,8 +1167,41 @@ export default function SmartRepairDetailPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenCancel(false)}>Kembali</Button>
+            {/* 05 Nov flow: abort returns device unfixed (diagnosed/in-progress -> ready-cancel) */}
+            {['diagnosed', 'in-progress'].includes(status ?? '') && (
+              <Button className="bg-orange-600 hover:bg-orange-700" disabled={statusMutation.isPending} onClick={handleReadyCancel}>
+                Batal — Unit Siap Diambil
+              </Button>
+            )}
             <Button className="bg-red-600 hover:bg-red-700" disabled={statusMutation.isPending} onClick={handleCancel}>
               Batalkan Service
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Fast-close modal (pending -> done, alasan wajib) ─── */}
+      <Dialog open={openFastClose} onOpenChange={setOpenFastClose}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Tutup Langsung</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600">Customer menolak service di meja CS — data tetap dibank, tanpa barang dan jasa.</p>
+          <div className="space-y-2">
+            <Label className="text-sm text-gray-600">
+              Alasan penutupan <span className="text-red-500">*</span>
+            </Label>
+            <Textarea
+              rows={3}
+              placeholder="cth: customer tidak jadi service setelah info estimasi"
+              value={fastCloseNotes}
+              onChange={(e) => setFastCloseNotes(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenFastClose(false)}>Kembali</Button>
+            <Button disabled={statusMutation.isPending} onClick={handleFastClose}>
+              Tutup Order
             </Button>
           </DialogFooter>
         </DialogContent>

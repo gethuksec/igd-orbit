@@ -996,7 +996,7 @@ export class ServiceOrdersService {
     if (!serviceOrder) {
       throw new NotFoundException('Service order tidak ditemukan');
     }
-    if (['done', 'cancelled'].includes(serviceOrder.status)) {
+    if (['done', 'cancelled', 'ready-cancel'].includes(serviceOrder.status)) {
       throw new BadRequestException(
         `Cannot remove layanan from service order with status: ${serviceOrder.status}`,
       );
@@ -1038,13 +1038,17 @@ export class ServiceOrdersService {
 
     // Validate status transition
     // Smart Repair lifecycle (IGDERP-168, proposal B): pending(Receive) → diagnosed → in-progress → qc → ready → done.
+    // Fast-close (05 Nov flow): pending → done — customer rejects at CS desk, CS banks data (notes + zero charges).
+    // Abort-to-pickup (05 Nov flow): diagnosed/in-progress → ready-cancel → cancelled (device returned unfixed;
+    // ready = fixed awaiting pickup vs ready-cancel = aborted awaiting pickup).
     // Cancel allowed from pending/diagnosed/in-progress only — blocked once QC starts. Legacy chain removed.
     const validTransitions: Record<string, string[]> = {
-      pending: ['diagnosed', 'cancelled'],
-      diagnosed: ['in-progress', 'cancelled'],
-      'in-progress': ['qc', 'cancelled'],
+      pending: ['diagnosed', 'cancelled', 'done'],
+      diagnosed: ['in-progress', 'cancelled', 'ready-cancel'],
+      'in-progress': ['qc', 'cancelled', 'ready-cancel'],
       qc: ['ready', 'in-progress'], // pass → ready, fail → back to in-progress
       ready: ['done'],
+      'ready-cancel': ['cancelled'], // pickup closes the abort case
       done: [],
       cancelled: [],
     };
@@ -1056,9 +1060,29 @@ export class ServiceOrdersService {
       );
     }
 
-    // LOCK §5.2: cancel requires a mandatory reason
-    if (dto.status === 'cancelled' && !dto.notes?.trim()) {
+    // LOCK §5.2: cancel requires a mandatory reason (extends to ready-cancel abort;
+    // the ready-cancel → cancelled pickup close reuses the banked reason, notes optional)
+    if (
+      (dto.status === 'cancelled' || dto.status === 'ready-cancel') &&
+      !(dto.status === 'cancelled' && serviceOrder.status === 'ready-cancel') &&
+      !dto.notes?.trim()
+    ) {
       throw new BadRequestException('Alasan pembatalan wajib diisi');
+    }
+
+    // Fast-close guard (05 Nov flow): pending → done only with notes + zero charges
+    if (serviceOrder.status === 'pending' && dto.status === 'done') {
+      if (!dto.notes?.trim()) {
+        throw new BadRequestException('Alasan penutupan wajib diisi');
+      }
+      const fastParts = (serviceOrder as any).partsUsed?.length || 0;
+      if (
+        fastParts > 0 ||
+        Number((serviceOrder as any).partsCost || 0) > 0 ||
+        Number((serviceOrder as any).laborCost || 0) > 0
+      ) {
+        throw new BadRequestException('Fast-close hanya untuk order tanpa barang dan jasa');
+      }
     }
 
     // IGDERP-168: no per-status field guards — QC pass/fail is the qc → ready / qc → in-progress transition
@@ -1092,16 +1116,24 @@ export class ServiceOrdersService {
         updateData.startedAt = new Date();
       } else if (dto.status === 'ready') {
         updateData.readyAt = new Date();
+      } else if (dto.status === 'ready-cancel') {
+        // Abort-to-pickup: device ready for customer to take back unfixed
+        updateData.readyAt = new Date();
+        updateData.cancellationReason = dto.notes?.trim() || null;
       } else if (dto.status === 'done') {
         const doneAt = new Date();
         updateData.completedAt = doneAt;
         // IGDERP-185: wipe customer lock credential on handover
         updateData.devicePassword = null;
         updateData.deviceLockType = 'none';
-        // IGDERP-168: warranty starts at handover (replaces legacy deliverService calc)
-        updateData.warrantyExpiryDate = new Date(doneAt.getTime() + Number(serviceOrder.warrantyDays ?? 30) * 86400000);
+        // IGDERP-168: warranty starts at handover (replaces legacy deliverService calc).
+        // Fast-close (pending → done) did no work → no warranty.
+        if (serviceOrder.status !== 'pending') {
+          updateData.warrantyExpiryDate = new Date(doneAt.getTime() + Number(serviceOrder.warrantyDays ?? 30) * 86400000);
+        }
       } else if (dto.status === 'cancelled') {
         updateData.cancelledAt = new Date();
+        if (dto.notes?.trim()) updateData.cancellationReason = dto.notes.trim();
       }
 
       const updated = await tx.serviceOrder.update({
@@ -1126,8 +1158,12 @@ export class ServiceOrdersService {
         },
       });
 
-      // IGDERP-136 bugfix: cancel mengembalikan stok tiap barang ke gudang sumber + log
-      if (dto.status === 'cancelled') {
+      // IGDERP-136 bugfix: cancel mengembalikan stok tiap barang ke gudang sumber + log.
+      // Abort path restores at ready-cancel; the ready-cancel → cancelled pickup close skips it (already restored).
+      const restoresStock =
+        dto.status === 'ready-cancel' ||
+        (dto.status === 'cancelled' && serviceOrder.status !== 'ready-cancel');
+      if (restoresStock) {
         const cancelReason = dto.notes?.trim() || 'tanpa alasan';
         const restored: string[] = [];
         for (const part of serviceOrder.partsUsed || []) {
@@ -1159,7 +1195,7 @@ export class ServiceOrdersService {
               quantityAfter: new Decimal(after),
               batchNumber: (part as any).batchNumber,
               serialNumber: (part as any).serialNumber,
-              notes: `Stock returned — service ${(serviceOrder as any).serviceNumber} cancelled (${cancelReason})`,
+              notes: `Stock returned — service ${(serviceOrder as any).serviceNumber} ${dto.status} (${cancelReason})`,
               createdBy: userId,
             },
           });
@@ -1169,7 +1205,7 @@ export class ServiceOrdersService {
           await tx.serviceStatusHistory.create({
             data: {
               serviceOrderId,
-              status: 'cancelled',
+              status: dto.status,
               previousStatus: serviceOrder.status,
               notes: `Stok kembali ke gudang (batal: ${cancelReason}): ${restored.join('; ')}`,
               changedBy: userId,
@@ -1245,7 +1281,7 @@ export class ServiceOrdersService {
       throw new NotFoundException('Service order not found');
     }
 
-    if (serviceOrder.status === 'done' || serviceOrder.status === 'cancelled') {
+    if (['done', 'cancelled', 'ready-cancel'].includes(serviceOrder.status)) {
       throw new BadRequestException(
         `Cannot add parts to service order with status: ${serviceOrder.status}`,
       );
@@ -1415,7 +1451,7 @@ export class ServiceOrdersService {
       throw new NotFoundException('Service order not found');
     }
 
-    if (serviceOrder.status === 'done' || serviceOrder.status === 'cancelled') {
+    if (['done', 'cancelled', 'ready-cancel'].includes(serviceOrder.status)) {
       throw new BadRequestException(
         `Cannot remove parts from service order with status: ${serviceOrder.status}`,
       );
