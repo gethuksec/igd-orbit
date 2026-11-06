@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Edit, Eye, Wrench } from 'lucide-react';
 import { serviceOrdersService } from '../../services/service-orders.service';
+import { usersService } from '../../services/users.service';
 import { useBranchFilter } from '@/components/branch/BranchFilter';
 import { api } from '@/services/api';
 import { BreadcrumbHeader, DataTable, FilterToolbar } from '@/components/shared';
@@ -16,6 +17,7 @@ export default function ServiceOrderList() {
   const [filterCode, setFilterCode] = useState('');
   const [filterCustomerId, setFilterCustomerId] = useState('');
   const [filterPenerima, setFilterPenerima] = useState('');
+  const [filterReceivedBy, setFilterReceivedBy] = useState('');
   const [filterDeviceUnit, setFilterDeviceUnit] = useState('');
   const [filterPartSearch, setFilterPartSearch] = useState('');
   const [filterSerial, setFilterSerial] = useState('');
@@ -26,7 +28,7 @@ export default function ServiceOrderList() {
   const { branchId, setBranchId } = useBranchFilter();
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['service-orders', page, searchTerm, selectedStatus, selectedTechnician, branchId, filterCode, filterCustomerId, filterPenerima, filterDeviceUnit, filterPartSearch, filterSerial, receivedFrom, receivedTo],
+    queryKey: ['service-orders', page, searchTerm, selectedStatus, selectedTechnician, branchId, filterCode, filterCustomerId, filterPenerima, filterReceivedBy, filterDeviceUnit, filterPartSearch, filterSerial, receivedFrom, receivedTo],
     queryFn: () =>
       serviceOrdersService.getAll({
         page,
@@ -38,6 +40,7 @@ export default function ServiceOrderList() {
         code: filterCode || undefined,
         customerId: filterCustomerId || undefined,
         penerima: filterPenerima || undefined,
+        createdBy: filterReceivedBy || undefined,
         deviceUnit: filterDeviceUnit || undefined,
         partSearch: filterPartSearch || undefined,
         serial: filterSerial || undefined,
@@ -74,7 +77,7 @@ export default function ServiceOrderList() {
       refetch();
     }, 500);
     return () => clearTimeout(debounce);
-  }, [searchTerm, selectedStatus, selectedTechnician, filterCode, filterCustomerId, filterPenerima, filterDeviceUnit, filterPartSearch, filterSerial, receivedFrom, receivedTo, refetch]);
+  }, [searchTerm, selectedStatus, selectedTechnician, filterCode, filterCustomerId, filterPenerima, filterReceivedBy, filterDeviceUnit, filterPartSearch, filterSerial, receivedFrom, receivedTo, refetch]);
 
   // Searchable customer dropdown (nama / kode)
   const fetchCustomers = async (q: string) => {
@@ -85,6 +88,15 @@ export default function ServiceOrderList() {
         value: c.id,
         label: c.customerCode ? `${c.name} (${c.customerCode})` : c.name,
       }))
+      .filter((o: any) => o.value && o.label);
+  };
+
+  // Searchable user dropdown (penerima awal = CS pembuat order)
+  const fetchUsers = async (q: string) => {
+    const res = await usersService.getAll({ search: q || undefined, limit: 20 });
+    const rows = (res as any).data || [];
+    return (Array.isArray(rows) ? rows : [])
+      .map((u: any) => ({ value: u.id, label: u.fullName || u.email }))
       .filter((o: any) => o.value && o.label);
   };
 
@@ -244,6 +256,13 @@ export default function ServiceOrderList() {
             placeholder: 'cth. Siti',
           },
           {
+            key: 'receivedBy',
+            label: 'Diterima oleh (CS)',
+            type: 'search-select',
+            fetchOptions: fetchUsers,
+            placeholder: 'Ketik nama CS...',
+          },
+          {
             key: 'deviceUnit',
             label: 'Nama unit',
             type: 'input',
@@ -273,6 +292,7 @@ export default function ServiceOrderList() {
           customer: filterCustomerId,
           technician: selectedTechnician === 'ALL' ? '' : selectedTechnician,
           penerima: filterPenerima,
+          receivedBy: filterReceivedBy,
           deviceUnit: filterDeviceUnit,
           partSearch: filterPartSearch,
           serial: filterSerial,
@@ -287,6 +307,7 @@ export default function ServiceOrderList() {
             case 'customer': setFilterCustomerId(v); break;
             case 'technician': setSelectedTechnician((v || 'ALL') as any); break;
             case 'penerima': setFilterPenerima(v); break;
+            case 'receivedBy': setFilterReceivedBy(v); break;
             case 'deviceUnit': setFilterDeviceUnit(v); break;
             case 'partSearch': setFilterPartSearch(v); break;
             case 'serial': setFilterSerial(v); break;
@@ -300,6 +321,7 @@ export default function ServiceOrderList() {
           setFilterCode('');
           setFilterCustomerId('');
           setFilterPenerima('');
+          setFilterReceivedBy('');
           setFilterDeviceUnit('');
           setFilterPartSearch('');
           setFilterSerial('');
