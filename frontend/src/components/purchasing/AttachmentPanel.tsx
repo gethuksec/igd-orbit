@@ -19,6 +19,7 @@ interface Attachment {
   documentType: string;
   fileName: string;
   filePath: string;
+  contentUrl?: string; // IGDERP-254: signed bytes URL — always prefer over filePath
   fileSize: number;
   mimeType: string;
   uploadedBy: string;
@@ -135,7 +136,7 @@ export default function AttachmentPanel({
               )}
               <div className="flex-1 min-w-0">
                 <a
-                  href={att.filePath}
+                  href={att.contentUrl || att.filePath}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block text-sm font-semibold text-gray-900 truncate hover:text-primary-600"

@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PrismaService } from '../../shared/services/prisma.service';
+import { StorageService } from '../../shared/services/storage.service';
+import { FileTokenService } from '../../shared/services/file-token.service';
 import { ServiceOrdersService } from './service-orders.service';
 import { ServiceOrdersController } from './service-orders.controller';
 import { ServiceTypesService } from './service-types.service';
@@ -12,7 +14,7 @@ import { ApprovalSettingsModule } from '../approval-settings/approval-settings.m
 
 @Module({
   imports: [FinanceModule, SalesModule, ApprovalSettingsModule],
-  providers: [PrismaService, ServiceOrdersService, ServiceTypesService, ServiceReturnsService],
+  providers: [PrismaService, StorageService, FileTokenService, ServiceOrdersService, ServiceTypesService, ServiceReturnsService],
   controllers: [ServiceOrdersController, ServiceTypesController, ServiceReturnsController],
   exports: [ServiceOrdersService, ServiceTypesService, ServiceReturnsService],
 })

@@ -8,6 +8,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services/prisma.service';
 import { assertNoFreezeOpname } from '../inventory/opname-freeze.guard';
+import { StorageService } from '../../shared/services/storage.service';
+import { FileTokenService } from '../../shared/services/file-token.service';
 import { assertFileMagic } from '../../shared/utils/file-magic';
 import { BranchFilter } from '../../common/branch-access.util';
 import { CreateServiceOrderDto } from './dto/create-service-order.dto';
@@ -22,8 +24,7 @@ import { UploadPhotosDto } from './dto/upload-photos.dto';
 import { encryptPassword, decryptPassword } from './utils/password-encryption.util';
 import { validateDeviceLock } from './utils/device-lock.util';
 import { ApprovalSettingsService } from '../approval-settings/approval-settings.service';
-import { writeFileSync, mkdirSync, existsSync } from 'fs';
-import { join, extname } from 'path';
+import { extname } from 'path';
 import { Decimal } from '@prisma/client/runtime/library';
 import { ProcessPaymentDto } from './dto/payment.dto';
 import { VoidPaymentDto } from './dto/void-payment.dto';
@@ -60,6 +61,10 @@ export class ServiceOrdersService {
     @Optional()
     private approvalSettingsService?: ApprovalSettingsService,
   ) {}
+  // IGDERP-254: direct instances (not DI) so existing `new Service(...)`
+  // specs keep working; stateless, reads env per call.
+  private readonly storage = new StorageService();
+  private readonly fileTokens = new FileTokenService();
 
   /**
    * Calculate tax amount based on tax flags (E-BE2)
@@ -739,6 +744,14 @@ export class ServiceOrdersService {
     } else if (!includePassword) {
       // Don't expose password
       serviceOrder.devicePassword = null;
+    }
+
+    // IGDERP-254: signed bytes URLs — frontend must use these, never photoUrl.
+    if (Array.isArray((serviceOrder as any).photos)) {
+      (serviceOrder as any).photos = (serviceOrder as any).photos.map((p: any) => ({
+        ...p,
+        contentUrl: this.fileTokens.contentUrl('service-photo', p.id),
+      }));
     }
 
     return serviceOrder;
@@ -1738,8 +1751,6 @@ export class ServiceOrdersService {
     if (['done', 'cancelled'].includes(serviceOrder.status) && photoType !== 'completed') {
       throw new BadRequestException('Dokumentasi tahap ini hanya dapat ditambah sebelum serah terima');
     }
-    const dir = join(process.cwd(), 'uploads', 'service-photos');
-    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
     const saved: Array<{ url: string }> = [];
     for (const [i, f] of files.entries()) {
       if (!f.mimetype || !f.mimetype.startsWith('image/')) {
@@ -1751,8 +1762,7 @@ export class ServiceOrdersService {
       assertFileMagic(f.buffer, f.mimetype, f.originalname);
       const ext = (extname(f.originalname || '').toLowerCase() || '.jpg').replace(/[^a-z0-9.]/g, '') || '.jpg';
       const name = `${serviceOrderId}-${Date.now()}-${i}${ext}`;
-      writeFileSync(join(dir, name), f.buffer);
-      saved.push({ url: `/uploads/service-photos/${name}` });
+      saved.push({ url: this.storage.save('service-photos', name, f.buffer) });
     }
     return this.prisma.$transaction(async (tx) => {
       const photos = await Promise.all(

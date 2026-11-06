@@ -887,8 +887,8 @@ export default function SmartRepairDetailPage() {
                 <div className="p-2 grid grid-cols-3 gap-2">
                   {stagePhotos.length === 0 && <div className="col-span-3 p-2 text-xs text-gray-400">Belum ada foto</div>}
                   {stagePhotos.map((ph: any) => (
-                    <a key={ph.id} href={ph.photoUrl} target="_blank" rel="noreferrer" title={ph.description || stage}>
-                      <img src={ph.photoUrl} alt={`${stage} photo`} className="h-16 w-full object-cover rounded-md border border-gray-100" loading="lazy" />
+                    <a key={ph.id} href={ph.contentUrl || ph.photoUrl} target="_blank" rel="noreferrer" title={ph.description || stage}>
+                      <img src={ph.contentUrl || ph.photoUrl} alt={`${stage} photo`} className="h-16 w-full object-cover rounded-md border border-gray-100" loading="lazy" />
                     </a>
                   ))}
                 </div>
