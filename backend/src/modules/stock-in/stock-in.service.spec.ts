@@ -15,6 +15,7 @@ describe('StockInService', () => {
     unit: { findMany: jest.Mock };
     stockIn: { create: jest.Mock; update: jest.Mock; findUnique: jest.Mock; findMany: jest.Mock; count: jest.Mock };
     customerTier: { findMany: jest.Mock };
+    stockOpname: { findFirst: jest.Mock };
     $transaction: jest.Mock;
   };
   let tx: {
@@ -97,6 +98,7 @@ describe('StockInService', () => {
         count: jest.fn().mockResolvedValue(0),
       },
       customerTier: { findMany: jest.fn().mockResolvedValue([]) },
+      stockOpname: { findFirst: jest.fn().mockResolvedValue(null) },
       $transaction: jest.fn(async (callback: any) => callback(tx)),
     };
 

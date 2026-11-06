@@ -155,6 +155,7 @@ describe('ServiceOrdersService detail round — internalNotes, removeLayanan', (
     const tx = {
       serviceOrder: { update: jest.fn().mockResolvedValue({ id: 'so-1' }) },
       serviceStatusHistory: { create: jest.fn((args: any) => { created.push(args.data); return Promise.resolve(args.data); }) },
+      stockOpname: { findFirst: jest.fn().mockResolvedValue(null) },
       productStock: {
         findUnique: jest.fn().mockResolvedValue({ quantityAvailable: new (require('@prisma/client/runtime/library').Decimal)(10) }),
         update: jest.fn((args: any) => { stockQty = Number(args.data.quantityAvailable); return Promise.resolve({}); }),

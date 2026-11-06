@@ -48,6 +48,7 @@ describe('StockInService import (IGDERP-97)', () => {
     };
     prisma = {
       branch: { findUnique: jest.fn().mockResolvedValue(outlet) },
+      stockOpname: { findFirst: jest.fn().mockResolvedValue(null) },
       warehouse: { findUnique: jest.fn().mockResolvedValue(goodWarehouse) },
       product: { findMany: jest.fn().mockResolvedValue([product]) },
       stockImportLog: { create: jest.fn().mockImplementation(async (a: any) => ({ id: 'log-1', ...a.data })) },

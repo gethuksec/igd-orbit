@@ -7,6 +7,7 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services/prisma.service';
+import { assertNoFreezeOpname } from '../inventory/opname-freeze.guard';
 import { BranchFilter } from '../../common/branch-access.util';
 import { CreateServiceOrderDto } from './dto/create-service-order.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
@@ -1169,6 +1170,8 @@ export class ServiceOrdersService {
         for (const part of serviceOrder.partsUsed || []) {
           const restoreWarehouseId = (part as any).warehouseId || (serviceOrder as any).warehouseId;
           if (!restoreWarehouseId) continue;
+          // IGDERP-233 (OP1): strict FREEZE — cancel-restore also mutates stock
+          await assertNoFreezeOpname(tx, restoreWarehouseId, 'restore service parts');
           const stock = await tx.productStock.findUnique({
             where: {
               productId_warehouseId: { productId: part.productId, warehouseId: restoreWarehouseId },
@@ -1381,6 +1384,8 @@ export class ServiceOrdersService {
 
         // Deduct from inventory ONLY if purchase type is 'internal'
         if (purchaseType === 'internal') {
+          // IGDERP-233 (OP1): strict FREEZE — internal parts deduct stock
+          await assertNoFreezeOpname(tx, partWarehouseId, 'use service parts');
           const quantityBefore = Number(stock.quantityAvailable);
           const quantityAfter = quantityBefore - part.quantity;
 

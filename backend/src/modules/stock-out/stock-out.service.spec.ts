@@ -13,6 +13,7 @@ describe('StockOutService', () => {
     product: { findMany: jest.Mock };
     unit: { findMany: jest.Mock };
     productStock: { findMany: jest.Mock };
+    stockOpname: { findFirst: jest.Mock };
     stockOut: { create: jest.Mock; update: jest.Mock; findUnique: jest.Mock; findMany: jest.Mock; count: jest.Mock };
     $transaction: jest.Mock;
   };
@@ -101,6 +102,7 @@ describe('StockOutService', () => {
       product: { findMany: jest.fn().mockResolvedValue([product]) },
       unit: { findMany: jest.fn().mockResolvedValue([unit]) },
       productStock: { findMany: jest.fn().mockResolvedValue([]) },
+      stockOpname: { findFirst: jest.fn().mockResolvedValue(null) },
       stockOut: {
         create: jest.fn(),
         update: jest.fn(),

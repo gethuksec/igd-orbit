@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services/prisma.service';
+import { assertNoFreezeOpname } from '../inventory/opname-freeze.guard';
 import {
   CreateTransferStockDto,
   TransferStockItemDto,
@@ -123,6 +124,10 @@ export class TransferStockService {
     }
     const toWarehouse = dest;
     const toOutletId = dest.outletId;
+
+    // IGDERP-233 (OP1): strict FREEZE — transfers blocked while a FREEZE opname covers either side
+    await assertNoFreezeOpname(this.prisma, fromWarehouse.id, 'transfer stock');
+    await assertNoFreezeOpname(this.prisma, toWarehouse.id, 'transfer stock');
 
     // ── Products + snapshots ──
     const productIds = lines.map((l) => l.productId);

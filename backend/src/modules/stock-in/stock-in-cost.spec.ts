@@ -65,6 +65,7 @@ describe('StockInService cost layer (IGDERP-182 thin)', () => {
       unit: { findMany: jest.fn().mockResolvedValue([{ id: 'unit-1', name: 'pcs' }]) },
       stockIn: { create: jest.fn(), update: jest.fn(), findUnique: jest.fn(), findMany: jest.fn(), count: jest.fn() },
       customerTier: { findMany: jest.fn().mockResolvedValue([]) },
+      stockOpname: { findFirst: jest.fn().mockResolvedValue(null) },
       $transaction: jest.fn().mockImplementation(async (cb: any) => cb(tx)),
     };
     const module: TestingModule = await Test.createTestingModule({

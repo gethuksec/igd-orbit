@@ -14,6 +14,7 @@ describe('Warehouse-scoped stock persistence (integration boundary)', () => {
       count: jest.Mock;
       create: jest.Mock;
     };
+    stockOpname: { findFirst: jest.Mock };
     customerTier: { findMany: jest.Mock };
     stockMovement: { groupBy: jest.Mock };
     $transaction: jest.Mock;
@@ -43,6 +44,7 @@ describe('Warehouse-scoped stock persistence (integration boundary)', () => {
       },
       customerTier: { findMany: jest.fn().mockResolvedValue([]) },
       stockMovement: { groupBy: jest.fn().mockResolvedValue([]) },
+      stockOpname: { findFirst: jest.fn().mockResolvedValue(null) },
       $transaction: jest.fn(async (callback) => callback(transactionClient)),
     };
 
