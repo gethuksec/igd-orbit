@@ -1,5 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../../shared/services/prisma.service';
+import { StorageService } from '../../shared/services/storage.service';
+import { FileTokenService } from '../../shared/services/file-token.service';
 import { ApprovalSettingsModule } from '../approval-settings/approval-settings.module';
 import { LabelPrintingModule } from '../label-printing/label-printing.module';
 import { PurchaseOrdersService } from './services/purchase-orders.service';
@@ -18,7 +20,7 @@ import { FinanceModule } from '../finance/finance.module';
     ApprovalSettingsModule,
     LabelPrintingModule,
   ],
-  providers: [PrismaService, PurchaseOrdersService, GoodsReceiptsService, PurchaseAttachmentsService, PurchaseReturnsService],
+  providers: [PrismaService, StorageService, FileTokenService, PurchaseOrdersService, GoodsReceiptsService, PurchaseAttachmentsService, PurchaseReturnsService],
   controllers: [PurchaseOrdersController, GoodsReceiptsController, PurchaseAttachmentsController, PurchaseReturnsController],
   exports: [PurchaseOrdersService, GoodsReceiptsService, PurchaseAttachmentsService, PurchaseReturnsService],
 })

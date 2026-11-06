@@ -1,8 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import { join } from 'path';
-import { existsSync, mkdirSync } from 'fs';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
@@ -14,10 +12,9 @@ async function bootstrap(): Promise<void> {
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],
   });
 
-  // IGDERP-136 detail round: serve uploaded service photos (volume-backed ./uploads)
-  const uploadsDir = join(process.cwd(), 'uploads');
-  if (!existsSync(uploadsDir)) mkdirSync(uploadsDir, { recursive: true });
-  app.useStaticAssets(uploadsDir, { prefix: '/uploads/' });
+  // IGDERP-254: no static /uploads serve — private files go through
+  // signed GET /api/v1/files/:kind/:id (FilesController), static URLs were
+  // unauthenticated. StorageService creates dirs on demand.
 
   // Enable CORS for frontend
   app.enableCors({
