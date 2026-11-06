@@ -4,6 +4,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services';
 import { assertNoFreezeOpname } from '../inventory/opname-freeze.guard';
+import { recordOpenOpnameMovements } from '../inventory/opname-movement.recorder';
+import type { OpenMovementEntry } from '../inventory/opname-movement.recorder';
 import { CreatePosTransactionDto } from './dto/create-pos-transaction.dto';
 import { randomBytes } from 'crypto';
 
@@ -151,6 +153,8 @@ export class PosService {
       }
 
       // Deduct stock + create OUT/SALE movement (mirror sales-transactions.service.ts)
+      // IGDERP-235 (OP3): collect outlet movements for OPEN opname sessions
+      const openMovements: OpenMovementEntry[] = [];
       for (const item of dto.items) {
         const product = productMap.get(item.productId)!;
         const stock = product.productStocks[0];
@@ -186,7 +190,18 @@ export class PosService {
             createdBy: userId,
           },
         });
+
+        openMovements.push({
+          warehouseId: stock.warehouseId,
+          productId: item.productId,
+          quantityChange: -item.quantity,
+          movementType: 'SOLD',
+          referenceType: 'SALE',
+          referenceId: transaction.id,
+          createdBy: userId,
+        });
       }
+      await recordOpenOpnameMovements(tx, openMovements);
 
       // Handle payment if provided
       if (dto.payment) {

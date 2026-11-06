@@ -118,6 +118,14 @@ export class StockOpnameController {
     return this.opnameService.logException(id, dto.barcode, req.user.id);
   }
 
+  /** IGDERP-235 (OP3): variance review (selisih-first for the C2 layout). */
+  @Get(':id/review')
+  @UseGuards(RolesGuard)
+  @Roles('CSO', 'SPV', 'HS', 'ASA', 'SODO', 'CS', 'CR', 'TC', 'AS', 'SMO', 'AR', 'CMO', 'CFO', 'CHR', 'OWNER', 'SUPERADMIN')
+  async getReview(@Param('id') id: string, @Request() req: any) {
+    return this.opnameService.getReview(id, { roles: req.user.roles });
+  }
+
   @Get(':id')
   @UseGuards(RolesGuard)
   @Roles('CSO', 'SPV', 'HS', 'ASA', 'SODO', 'CS', 'CR', 'TC', 'AS', 'SMO', 'AR', 'CMO', 'CFO', 'CHR', 'OWNER', 'SUPERADMIN')

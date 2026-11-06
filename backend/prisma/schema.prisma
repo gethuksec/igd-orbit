@@ -902,6 +902,8 @@ model StockOpname {
   assignments OpnameAssignment[]
   scans       OpnameScan[]
   exceptions  OpnameException[]
+  // IGDERP-235 (OP3): auto-captured inventory movements while an OPEN session runs
+  movements   OpnameMovement[]
 
   @@index([opnameNumber])
   @@index([code])
@@ -991,6 +993,28 @@ model OpnameException {
 
   @@index([opnameId])
   @@map("opname_exceptions")
+}
+
+// IGDERP-235 (OP3): inventory movements auto-captured while an OPEN session
+// runs on an outlet warehouse (sales, returns, stock-in/out, transfers,
+// adjustments, service parts). Expected(stock) = Snapshot + Σ movements.
+model OpnameMovement {
+  id             String  @id @default(uuid())
+  opnameId       String  @map("opname_id")
+  productId      String  @map("product_id")
+  movementType   String  @map("movement_type") // SOLD | RETURN | INBOUND | TRANSFER | ADJUSTMENT
+  quantityChange Decimal @map("quantity_change") @db.Decimal(15, 3) // signed: sales negative, inbound positive
+  referenceType  String? @map("reference_type") // SALE | SALES_RETURN | STOCK_IN | STOCK_OUT | TRANSFER | MUTASI | SERVICE | ADJUSTMENT
+  referenceId    String? @map("reference_id") // source document id/number
+  createdBy      String? @map("created_by") // User ID
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  opname  StockOpname @relation(fields: [opnameId], references: [id], onDelete: Cascade)
+  product Product     @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([opnameId, productId])
+  @@index([createdAt])
+  @@map("opname_movements")
 }
 
 model StockIn {

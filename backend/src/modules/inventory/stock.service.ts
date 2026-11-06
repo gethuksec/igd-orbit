@@ -5,6 +5,7 @@ import { ListStockDto } from './dto/list-stock.dto';
 import { ListMovementsDto } from './dto/list-movements.dto';
 import { Decimal } from '@prisma/client/runtime/library';
 import { assertNoFreezeOpname } from './opname-freeze.guard';
+import { recordOpenOpnameMovements } from './opname-movement.recorder';
 
 @Injectable()
 export class StockService {
@@ -317,6 +318,18 @@ export class StockService {
           createdBy: userId,
         },
       });
+
+      // IGDERP-235 (OP3): capture for OPEN opname sessions on this outlet
+      await recordOpenOpnameMovements(tx, [
+        {
+          warehouseId: warehouse.id,
+          productId,
+          quantityChange: actualQuantityChange,
+          movementType: 'ADJUSTMENT',
+          referenceType: 'ADJUSTMENT',
+          createdBy: userId,
+        },
+      ]);
 
       return updatedStock;
     });

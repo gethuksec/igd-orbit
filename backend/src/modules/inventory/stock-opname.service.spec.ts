@@ -1110,4 +1110,131 @@ describe('StockOpnameService', () => {
       });
     });
   });
+
+  describe('variance review (IGDERP-235)', () => {
+    const reviewRow = (overrides: any = {}) => ({
+      id: 'item-1',
+      productId: 'prod-1',
+      systemQuantity: new Decimal(10),
+      physicalQuantity: new Decimal(8),
+      condition: 'good',
+      countedBy: 'counter-1',
+      createdAt: new Date('2026-11-06T08:00:00Z'),
+      product: { id: 'prod-1', name: 'Indomie', sku: 'SKU-1', barcode: 'B1', costPrice: new Decimal(2500) },
+      ...overrides,
+    });
+    const reviewOpname = (overrides: any = {}) => opname({
+      opnameType: 'FREEZE',
+      items: [],
+      movements: [],
+      ...overrides,
+    });
+
+    it('FREEZE: variance = physical − snapshot, value = variance × cost', async () => {
+      prisma.stockOpname.findUnique.mockResolvedValue(reviewOpname({ items: [reviewRow()] }));
+
+      const review: any = await service.getReview('op-1', { roles: ['SPV'] });
+
+      expect(review.selisih).toHaveLength(1);
+      expect(review.selisih[0]).toMatchObject({
+        productId: 'prod-1',
+        snapshot: 10,
+        expected: 10,
+        physical: 8,
+        variance: -2,
+        varianceValue: -5000,
+      });
+      expect(review.summary).toMatchObject({ products: 1, selisih: 1, cocok: 0, belumDihitung: 0 });
+    });
+
+    it('OPEN: a SOLD movement shifts expected so the sale is not variance', async () => {
+      prisma.stockOpname.findUnique.mockResolvedValue(
+        reviewOpname({
+          opnameType: 'OPEN',
+          items: [reviewRow()],
+          movements: [
+            {
+              id: 'm-1',
+              productId: 'prod-1',
+              movementType: 'SOLD',
+              quantityChange: new Decimal(-2),
+              createdAt: new Date('2026-11-06T09:00:00Z'),
+            },
+          ],
+        }),
+      );
+
+      const review: any = await service.getReview('op-1', { roles: ['SPV'] });
+
+      // snapshot 10, sold 2 → expected 8, counted 8 → cocok
+      expect(review.cocok).toHaveLength(1);
+      expect(review.selisih).toHaveLength(0);
+      expect(review.cocok[0]).toMatchObject({ expected: 8, physical: 8, variance: 0, movementTotal: -2 });
+    });
+
+    it('OPEN: movements before the product baseline are ignored', async () => {
+      prisma.stockOpname.findUnique.mockResolvedValue(
+        reviewOpname({
+          opnameType: 'OPEN',
+          items: [reviewRow()],
+          movements: [
+            {
+              id: 'm-0',
+              productId: 'prod-1',
+              movementType: 'SOLD',
+              quantityChange: new Decimal(-5),
+              createdAt: new Date('2026-11-06T07:00:00Z'),
+            },
+          ],
+        }),
+      );
+
+      const review: any = await service.getReview('op-1', { roles: ['SPV'] });
+
+      expect(review.selisih[0]).toMatchObject({ expected: 10, variance: -2, movementTotal: 0 });
+    });
+
+    it('aggregates condition rows with a good/damaged/expired breakdown', async () => {
+      prisma.stockOpname.findUnique.mockResolvedValue(
+        reviewOpname({
+          items: [
+            reviewRow({ id: 'i-1', physicalQuantity: new Decimal(7), condition: 'good' }),
+            reviewRow({ id: 'i-2', physicalQuantity: new Decimal(2), condition: 'damaged' }),
+            reviewRow({ id: 'i-3', physicalQuantity: null, condition: null }),
+          ],
+        }),
+      );
+
+      const review: any = await service.getReview('op-1', { roles: ['SPV'] });
+
+      expect(review.selisih[0]).toMatchObject({
+        physical: 9,
+        variance: -1,
+        breakdown: { good: 7, damaged: 2, expired: 0 },
+      });
+    });
+
+    it('groups uncounted products as belumDihitung and strips variance for counters', async () => {
+      prisma.stockOpname.findUnique.mockResolvedValue(
+        reviewOpname({
+          items: [
+            reviewRow({ id: 'i-1', productId: 'prod-1', physicalQuantity: new Decimal(10) }),
+            reviewRow({ id: 'i-2', productId: 'prod-2', physicalQuantity: null, condition: null }),
+          ],
+        }),
+      );
+
+      const full: any = await service.getReview('op-1', { roles: ['SPV'] });
+      expect(full.cocok).toHaveLength(1);
+      expect(full.belumDihitung).toHaveLength(1);
+
+      const blind: any = await service.getReview('op-1', { roles: ['SODO'] });
+      expect(blind.cocok[0].variance).toBeUndefined();
+      expect(blind.cocok[0].snapshot).toBeUndefined();
+      expect(blind.cocok[0].expected).toBeUndefined();
+      expect(blind.cocok[0].movements).toBeUndefined();
+      expect(blind.cocok[0].physical).toBe(10);
+      expect(blind.summary.totalVarianceValue).toBeUndefined();
+    });
+  });
 });

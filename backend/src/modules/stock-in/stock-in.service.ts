@@ -5,6 +5,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services/prisma.service';
 import { assertNoFreezeOpname } from '../inventory/opname-freeze.guard';
+import { recordOpenOpnameMovements } from '../inventory/opname-movement.recorder';
+import type { OpenMovementEntry } from '../inventory/opname-movement.recorder';
 import { CreateStockInDto, StockInItemDto } from './dto/create-stock-in.dto';
 import { ConfirmImportDto } from './dto/confirm-import.dto';
 import {
@@ -215,6 +217,8 @@ export class StockInService {
       });
 
       // Per-line stock increment + StockMovement IN rows
+      // IGDERP-235 (OP3): collect outlet movements for OPEN opname sessions
+      const openMovements: OpenMovementEntry[] = [];
       for (const line of resolvedLines) {
         let stock = await tx.productStock.findUnique({
           where: {
@@ -269,7 +273,18 @@ export class StockInService {
             createdBy: userId,
           },
         });
+
+        openMovements.push({
+          warehouseId: warehouse.id,
+          productId: line.productId,
+          quantityChange: line.quantity,
+          movementType: 'INBOUND',
+          referenceType: 'STOCK_IN',
+          referenceId: stockIn.id,
+          createdBy: userId,
+        });
       }
+      await recordOpenOpnameMovements(tx, openMovements);
 
       const totalValue = resolvedLines.reduce(
         (sum, line) => sum.add(new Decimal(line.quantity).mul(new Decimal(line.stockValue))),
@@ -660,6 +675,8 @@ export class StockInService {
         include: { items: true },
       });
 
+      // IGDERP-235 (OP3): collect outlet movements for OPEN opname sessions
+      const replaceMovements: OpenMovementEntry[] = [];
       for (const line of resolved) {
         const stock = await tx.productStock.findUnique({
           where: {
@@ -703,7 +720,18 @@ export class StockInService {
             createdBy: userId,
           },
         });
+
+        replaceMovements.push({
+          warehouseId: warehouse.id,
+          productId: line.productId,
+          quantityChange: quantityAfter - quantityBefore,
+          movementType: 'INBOUND',
+          referenceType: 'STOCK_IN',
+          referenceId: stockIn.id,
+          createdBy: userId,
+        });
       }
+      await recordOpenOpnameMovements(tx, replaceMovements);
 
       const totalValue = resolved.reduce(
         (sum, line) => sum.add(new Decimal(line.quantity).mul(new Decimal(line.stockValue))),

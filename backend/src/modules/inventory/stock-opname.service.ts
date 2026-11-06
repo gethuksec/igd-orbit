@@ -611,6 +611,141 @@ export class StockOpnameService {
   }
 
   /**
+   * IGDERP-235 (OP3): variance review.
+   * FREEZE: Variance = Physical − Snapshot.
+   * OPEN: Expected = Snapshot + Σ movements (since the product's earliest
+   * row), Variance = Physical − Expected. Variance Value = Variance × cost.
+   * Products are aggregated across condition rows with a good/damaged/expired
+   * breakdown; groups come out selisih-first for the C2 layout.
+   */
+  async getReview(opnameId: string, viewer?: { roles?: string[] }) {
+    const opname: any = await this.prisma.stockOpname.findUnique({
+      where: { id: opnameId },
+      include: {
+        items: { include: { product: { include: { category: true } } } },
+        movements: { orderBy: { createdAt: 'asc' } },
+        branch: true,
+      },
+    });
+    if (!opname) {
+      throw new NotFoundException('Opname not found');
+    }
+
+    const isOpen = opname.opnameType === 'OPEN';
+    const byProduct = new Map<string, any[]>();
+    for (const i of opname.items ?? []) {
+      const list = byProduct.get(i.productId) ?? [];
+      list.push(i);
+      byProduct.set(i.productId, list);
+    }
+
+    const products: any[] = [];
+    for (const [productId, rows] of byProduct) {
+      const ordered = [...rows].sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      );
+      const baseline = new Date(ordered[0].createdAt).getTime();
+      const snapshot = Number(ordered[0].systemQuantity);
+      const movs = (opname.movements ?? []).filter(
+        (m: any) => m.productId === productId && new Date(m.createdAt).getTime() >= baseline,
+      );
+      const movementTotal = movs.reduce((s: number, m: any) => s + Number(m.quantityChange), 0);
+      const expected = isOpen ? snapshot + movementTotal : snapshot;
+
+      const countedRows = rows.filter(
+        (r: any) => r.physicalQuantity !== null && r.physicalQuantity !== undefined,
+      );
+      const physical = countedRows.length > 0
+        ? countedRows.reduce((s: number, r: any) => s + Number(r.physicalQuantity), 0)
+        : null;
+      const breakdown = { good: 0, damaged: 0, expired: 0 };
+      for (const r of countedRows) {
+        const cond = r.condition ?? 'good';
+        if (cond === 'damaged') breakdown.damaged += Number(r.physicalQuantity);
+        else if (cond === 'expired') breakdown.expired += Number(r.physicalQuantity);
+        else breakdown.good += Number(r.physicalQuantity);
+      }
+      const variance = physical === null ? null : physical - expected;
+      const costPrice = Number(ordered[0].product?.costPrice ?? 0);
+      const varianceValue = variance === null ? null : variance * costPrice;
+      const countedBy = [...new Set(countedRows.map((r: any) => r.countedBy).filter(Boolean))];
+
+      const { costPrice: _cost, ...safeProduct } = ordered[0].product ?? {};
+      products.push({
+        productId,
+        product: safeProduct,
+        snapshot,
+        expected,
+        physical,
+        breakdown,
+        variance,
+        varianceValue,
+        movementTotal,
+        movements: movs.map((m: any) => ({
+          id: m.id,
+          movementType: m.movementType,
+          quantityChange: m.quantityChange?.toString?.() ?? m.quantityChange,
+          referenceType: m.referenceType ?? null,
+          referenceId: m.referenceId ?? null,
+          createdAt: m.createdAt,
+        })),
+        countedBy,
+        rows: rows.map((r: any) => ({
+          itemId: r.id,
+          condition: r.condition ?? 'good',
+          physicalQuantity: r.physicalQuantity === null || r.physicalQuantity === undefined
+            ? null
+            : r.physicalQuantity.toString(),
+          countedBy: r.countedBy ?? null,
+        })),
+      });
+    }
+
+    const selisih = products.filter((p) => p.variance !== null && p.variance !== 0);
+    const cocok = products.filter((p) => p.variance === 0);
+    const belumDihitung = products.filter((p) => p.variance === null);
+    const review = {
+      id: opname.id,
+      opnameNumber: opname.opnameNumber,
+      code: opname.code,
+      opnameType: opname.opnameType,
+      status: opname.status,
+      warehouseId: opname.warehouseId,
+      branch: opname.branch,
+      opnameDate: opname.opnameDate,
+      summary: {
+        products: products.length,
+        countedProducts: selisih.length + cocok.length,
+        selisih: selisih.length,
+        cocok: cocok.length,
+        belumDihitung: belumDihitung.length,
+        totalVarianceValue: selisih.reduce((s, p) => s + (p.varianceValue ?? 0), 0),
+        movementCount: (opname.movements ?? []).length,
+      },
+      selisih,
+      cocok,
+      belumDihitung,
+    };
+    return this.canSeeVariance(viewer?.roles) ? review : this.stripBlindReview(review);
+  }
+
+  /** IGDERP-235 (OP3): review without system/expected/variance for counters. */
+  private stripBlindReview(review: any) {
+    const stripProduct = (p: any) => {
+      const { snapshot, expected, variance, varianceValue, movementTotal, movements, ...rest } = p;
+      return rest;
+    };
+    const { totalVarianceValue, movementCount, ...safeSummary } = review.summary;
+    return {
+      ...review,
+      summary: safeSummary,
+      selisih: review.selisih.map(stripProduct),
+      cocok: review.cocok.map(stripProduct),
+      belumDihitung: review.belumDihitung.map(stripProduct),
+    };
+  }
+
+  /**
    * IGDERP-177 — result document export (.xlsx, ExcelJS).
    * Header meta + variance summary + one row per counted line
    * (one row per product+condition after IGDERP-175).
@@ -619,6 +754,16 @@ export class StockOpnameService {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const ExcelJS = require('exceljs');
     const opname: any = await this.findById(id);
+
+    // IGDERP-235 (OP3): OPEN sessions show Expected (= snapshot + movements)
+    // alongside system/physical so the sheet matches the C2 review math.
+    let expectedByProduct: Map<string, number> | null = null;
+    if (opname.opnameType === 'OPEN') {
+      const review: any = await this.getReview(id);
+      expectedByProduct = new Map(
+        [...review.selisih, ...review.cocok, ...review.belumDihitung].map((p: any) => [p.productId, p.expected]),
+      );
+    }
 
     const wb = new ExcelJS.Workbook();
     wb.creator = 'IGD-ERP';
@@ -629,6 +774,7 @@ export class StockOpnameService {
       { header: 'SKU', key: 'sku', width: 16 },
       { header: 'Barcode', key: 'barcode', width: 20 },
       { header: 'Stok Sistem', key: 'system', width: 13 },
+      ...(expectedByProduct ? [{ header: 'Expected', key: 'expected', width: 13 }] : []),
       { header: 'Stok Fisik', key: 'physical', width: 13 },
       { header: 'Selisih', key: 'discrepancy', width: 12 },
       { header: 'Selisih %', key: 'pct', width: 11 },
@@ -663,6 +809,7 @@ export class StockOpnameService {
         sku: item.product?.sku || '-',
         barcode: item.product?.barcode || '-',
         system: sys,
+        ...(expectedByProduct ? { expected: expectedByProduct.get(item.productId) ?? null } : {}),
         physical: phys,
         discrepancy: diff,
         pct: pct === null ? null : Math.round(pct * 10) / 10,

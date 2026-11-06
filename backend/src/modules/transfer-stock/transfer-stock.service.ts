@@ -5,6 +5,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services/prisma.service';
 import { assertNoFreezeOpname } from '../inventory/opname-freeze.guard';
+import { recordOpenOpnameMovements } from '../inventory/opname-movement.recorder';
+import type { OpenMovementEntry } from '../inventory/opname-movement.recorder';
 import {
   CreateTransferStockDto,
   TransferStockItemDto,
@@ -178,6 +180,8 @@ export class TransferStockService {
       });
 
       // Per-line: source OUT + destination IN + StockMovement rows
+      // IGDERP-235 (OP3): collect outlet movements for OPEN opname sessions
+      const openMovements: OpenMovementEntry[] = [];
       for (const line of resolvedLines) {
         // ── Source OUT ──
         const srcStock = await tx.productStock.findUnique({
@@ -220,6 +224,16 @@ export class TransferStockService {
             notes: `Transfer: ${documentNumber} - ${fromWarehouse.name} → ${toWarehouse.name}`,
             createdBy: userId,
           },
+        });
+
+        openMovements.push({
+          warehouseId: fromWarehouse.id,
+          productId: line.productId,
+          quantityChange: -line.quantity,
+          movementType: 'TRANSFER',
+          referenceType: 'TRANSFER',
+          referenceId: transfer.id,
+          createdBy: userId,
         });
 
         // ── Destination IN (create row when missing) ──
@@ -272,7 +286,18 @@ export class TransferStockService {
             createdBy: userId,
           },
         });
+
+        openMovements.push({
+          warehouseId: toWarehouse.id,
+          productId: line.productId,
+          quantityChange: line.quantity,
+          movementType: 'TRANSFER',
+          referenceType: 'TRANSFER',
+          referenceId: transfer.id,
+          createdBy: userId,
+        });
       }
+      await recordOpenOpnameMovements(tx, openMovements);
 
       const doc = await tx.stockTransfer.findUnique({
         where: { id: transfer.id },

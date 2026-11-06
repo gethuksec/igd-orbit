@@ -9,6 +9,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services';
 import { assertNoFreezeOpname } from '../inventory/opname-freeze.guard';
+import { recordOpenOpnameMovements } from '../inventory/opname-movement.recorder';
+import type { OpenMovementEntry } from '../inventory/opname-movement.recorder';
 import { BranchFilter } from '../../common/branch-access.util';
 import { CreateSalesTransactionDto, VoidTransactionDto, HoldTransactionDto } from './dto';
 import { CustomersService } from '../customers/customers.service';
@@ -376,6 +378,8 @@ export class SalesTransactionsService {
 
       // Create transaction items
       const items = [];
+      // IGDERP-235 (OP3): collect outlet movements for OPEN opname sessions
+      const openMovements: OpenMovementEntry[] = [];
       for (const itemDto of createDto.items) {
         const product = products.find((p) => p.id === itemDto.productId)!;
 
@@ -447,7 +451,18 @@ export class SalesTransactionsService {
             createdBy: userId,
           },
         });
+
+        openMovements.push({
+          warehouseId: stock.warehouseId,
+          productId: itemDto.productId,
+          quantityChange: -itemDto.quantity,
+          movementType: 'SOLD',
+          referenceType: 'SALE',
+          referenceId: transaction.id,
+          createdBy: userId,
+        });
       }
+      await recordOpenOpnameMovements(tx, openMovements);
 
       // Create deposit payment record
       await tx.payment.create({
@@ -808,6 +823,8 @@ export class SalesTransactionsService {
       });
 
       // Reverse stock movements and restore stock
+      // IGDERP-235 (OP3): voids move available → damaged; capture for OPEN sessions
+      const voidMovements: OpenMovementEntry[] = [];
       for (const item of transaction.items) {
         // Find stock movement for this item
         const stockMovement = await tx.stockMovement.findFirst({
@@ -885,9 +902,20 @@ export class SalesTransactionsService {
                 notes: `Void transaction ${transaction.transactionNumber} - stock moved to damaged`,
               },
             });
+
+            voidMovements.push({
+              warehouseId: stock.warehouseId,
+              productId: item.productId,
+              quantityChange: -item.quantity.toNumber(),
+              movementType: 'ADJUSTMENT',
+              referenceType: 'VOID',
+              referenceId: transactionId,
+              createdBy: userId,
+            });
           }
         }
       }
+      await recordOpenOpnameMovements(tx, voidMovements);
 
       // Update customer statistics if customer exists
       if (transaction.customerId) {

@@ -661,6 +661,26 @@ export const inventoryService = {
     }
   },
 
+  /** IGDERP-235 (OP3): variance review (selisih-first for the C2 layout). */
+  async getOpnameReview(opnameId: string): Promise<{
+    id: string;
+    opnameNumber: string;
+    code?: string;
+    opnameType?: string;
+    status: string;
+    summary: { products: number; countedProducts: number; selisih: number; cocok: number; belumDihitung: number; totalVarianceValue?: number; movementCount?: number };
+    selisih: any[];
+    cocok: any[];
+    belumDihitung: any[];
+  }> {
+    try {
+      const response = await api.get(`/inventory/opname/${opnameId}/review`);
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
   /** Draft model: add a product to the ongoing opname. */
   async addOpnameItem(opnameId: string, productId: string): Promise<StockOpname> {
     try {

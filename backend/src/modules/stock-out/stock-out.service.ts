@@ -5,6 +5,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services/prisma.service';
 import { assertNoFreezeOpname } from '../inventory/opname-freeze.guard';
+import { recordOpenOpnameMovements } from '../inventory/opname-movement.recorder';
+import type { OpenMovementEntry } from '../inventory/opname-movement.recorder';
 import { CreateStockOutDto, StockOutItemDto } from './dto/create-stock-out.dto';
 import { ConfirmImportDto } from './dto/confirm-import.dto';
 import {
@@ -193,6 +195,8 @@ export class StockOutService {
       });
 
       // Per-line stock decrement + StockMovement OUT rows
+      // IGDERP-235 (OP3): collect outlet movements for OPEN opname sessions
+      const openMovements: OpenMovementEntry[] = [];
       for (const line of resolvedLines) {
         const stock = await tx.productStock.findUnique({
           where: {
@@ -238,7 +242,18 @@ export class StockOutService {
             createdBy: userId,
           },
         });
+
+        openMovements.push({
+          warehouseId: warehouse.id,
+          productId: line.productId,
+          quantityChange: -line.quantity,
+          movementType: 'ADJUSTMENT',
+          referenceType: 'STOCK_OUT',
+          referenceId: stockOut.id,
+          createdBy: userId,
+        });
       }
+      await recordOpenOpnameMovements(tx, openMovements);
 
       const totalValue = resolvedLines.reduce(
         (sum, line) => sum.add(new Decimal(line.quantity).mul(new Decimal(line.stockValue))),
@@ -702,6 +717,8 @@ export class StockOutService {
         include: { items: true },
       });
 
+      // IGDERP-235 (OP3): collect outlet movements for OPEN opname sessions
+      const replaceMovements: OpenMovementEntry[] = [];
       for (const line of resolved) {
         const stock = await tx.productStock.findUnique({
           where: {
@@ -747,7 +764,18 @@ export class StockOutService {
             createdBy: userId,
           },
         });
+
+        replaceMovements.push({
+          warehouseId: warehouse.id,
+          productId: line.productId,
+          quantityChange: -removeQty,
+          movementType: 'ADJUSTMENT',
+          referenceType: 'STOCK_OUT',
+          referenceId: stockOut.id,
+          createdBy: userId,
+        });
       }
+      await recordOpenOpnameMovements(tx, replaceMovements);
 
       const items = await tx.stockOutItem.findMany({ where: { stockOutId: stockOut.id } });
       const totalValue = items.reduce(
