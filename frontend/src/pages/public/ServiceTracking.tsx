@@ -38,7 +38,7 @@ export default function ServiceTracking() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 dark:from-gray-900 via-white to-gray-50 dark:to-gray-950">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 dark:from-gray-900 via-white dark:via-gray-900 to-gray-50 dark:to-gray-950">
       {/* Header with Branding */}
       <header className="bg-gradient-to-r from-[#b9051f] via-[#e11b22] to-[#b9051f] text-white shadow-lg">
         <div className="container mx-auto px-4 py-6">

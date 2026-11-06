@@ -89,14 +89,14 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 dark:from-primary-950 via-white to-accent-50 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 dark:from-primary-950 via-white dark:via-gray-900 to-accent-50 dark:to-gray-950 flex items-center justify-center p-6">
       <div className="max-w-md w-full">
         {/* Logo & Title */}
         <div className="text-center mb-8">
           <img
             src="/logo/igd-1.jpg"
             alt="IGD Ponsel"
-            className="h-16 w-auto mx-auto mb-4 object-contain"
+            className="h-16 w-auto mx-auto mb-4 object-contain rounded-xl bg-white p-1.5 shadow-md"
           />
           <h1 className="text-3xl font-display font-bold text-gray-900 dark:text-gray-100">IGD Ponsel</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">Login karyawan untuk mengakses dashboard internal</p>

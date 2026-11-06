@@ -253,7 +253,7 @@ export default function LandingPage() {
         </section>
 
         {/* Why Choose Us - Enhanced */}
-        <section className="py-20 bg-gradient-to-br from-primary-50 dark:from-primary-950 via-white to-accent-50">
+        <section className="py-20 bg-gradient-to-br from-primary-50 dark:from-primary-950 via-white dark:via-gray-900 to-accent-50 dark:to-gray-950">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
               <h2 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">Mengapa Memilih Kami?</h2>
