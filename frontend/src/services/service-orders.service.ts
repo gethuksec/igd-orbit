@@ -9,6 +9,9 @@ export interface ServiceOrder {
   customerPhone?: string;
   customer?: { id: string; name: string; phone: string };
   status: string;
+  pickedUpBy?: string;
+  createdBy?: string;
+  creator?: { id: string; fullName: string; email: string } | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -34,6 +37,7 @@ export const serviceOrdersService = {
     code?: string;
     customerId?: string;
     penerima?: string;
+    createdBy?: string;
     deviceUnit?: string;
     partSearch?: string;
     serial?: string;

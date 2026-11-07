@@ -578,6 +578,10 @@ export default function SmartRepairDetailPage() {
                 <p className="font-semibold">{(order as any).pickedUpBy}</p>
               </div>
             )}
+            <div>
+              <Label className="text-sm text-gray-500">Diterima oleh</Label>
+              <p className="font-semibold">{(order as any).creator?.fullName || '—'}</p>
+            </div>
           </div>
         </div>
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">

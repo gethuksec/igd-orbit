@@ -40,9 +40,10 @@ function formatIdDateTime(d: Date): string {
 }
 
 export interface ServiceOrderListFilters {
-  customerId?: string;
   code?: string;
+  customerId?: string;
   penerima?: string;
+  createdBy?: string;
   deviceUnit?: string;
   partSearch?: string;
   serial?: string;
@@ -599,6 +600,11 @@ export class ServiceOrdersService {
       where.deviceUnit = { contains: filters.deviceUnit, mode: 'insensitive' };
     }
 
+    // Penerima awal: user (CS) yang membuat service order
+    if (filters.createdBy) {
+      where.createdBy = filters.createdBy;
+    }
+
     // Barcode / nama produk / SKU sparepart yang dipakai di service
     if (filters.partSearch) {
       const q = filters.partSearch;
@@ -656,7 +662,7 @@ export class ServiceOrdersService {
       where.AND = andClauses;
     }
 
-    return this.prisma.serviceOrder.findMany({
+    const orders = await this.prisma.serviceOrder.findMany({
       where,
       include: {
         branch: true,
@@ -682,6 +688,29 @@ export class ServiceOrdersService {
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    return this.attachCreators(orders);
+  }
+
+  /**
+   * Attach creator (penerima awal / CS pembuat order) names to service orders.
+   * Lookup-based instead of a Prisma relation: live rows contain created_by ids
+   * with no matching user, which would break an FK constraint.
+   */
+  private async attachCreators<T extends { createdBy?: string | null }>(orders: T[]) {
+    const ids = [...new Set(orders.map((o) => o.createdBy).filter((v): v is string => !!v))];
+    if (ids.length === 0) {
+      return orders.map((o) => ({ ...o, creator: null }));
+    }
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, fullName: true, email: true },
+    });
+    const byId = new Map(users.map((u) => [u.id, u]));
+    return orders.map((o) => ({
+      ...o,
+      creator: (o.createdBy && byId.get(o.createdBy)) || null,
+    }));
   }
 
   async findById(id: string, includePassword = false) {
@@ -754,7 +783,8 @@ export class ServiceOrdersService {
       }));
     }
 
-    return serviceOrder;
+    const [withCreator] = await this.attachCreators([serviceOrder]);
+    return withCreator;
   }
 
   async update(id: string, dto: Partial<CreateServiceOrderDto>, _userId: string) {

@@ -8,10 +8,12 @@ describe('ServiceOrdersService — list filters', () => {
   beforeEach(() => {
     prisma = {
       serviceOrder: { findMany: jest.fn(() => Promise.resolve([])) },
+      user: { findMany: jest.fn(() => Promise.resolve([])) },
     };
     service = new ServiceOrdersService(prisma, undefined, undefined, undefined);
     jest.clearAllMocks();
     prisma.serviceOrder.findMany.mockResolvedValue([]);
+    prisma.user.findMany.mockResolvedValue([]);
   });
 
   const lastWhere = () => {
@@ -83,6 +85,30 @@ describe('ServiceOrdersService — list filters', () => {
     expect(and).toBeDefined();
     expect(JSON.stringify(and)).toContain('Ahmad');
     expect(JSON.stringify(and)).toContain('customerName');
+  });
+
+  it('maps createdBy to exact user-id match (penerima awal)', async () => {
+    await service.findAll(undefined, undefined, undefined, undefined, { createdBy: 'user-cs-1' });
+    expect(lastWhere().createdBy).toBe('user-cs-1');
+  });
+
+  it('attaches creator names to rows (null when user missing)', async () => {
+    prisma.serviceOrder.findMany.mockResolvedValue([
+      { id: 'so-1', createdBy: 'user-cs-1' },
+      { id: 'so-2', createdBy: 'ghost-id' },
+      { id: 'so-3', createdBy: null },
+    ]);
+    prisma.user.findMany.mockResolvedValue([
+      { id: 'user-cs-1', fullName: 'CS Andi', email: 'andi@x.id' },
+    ]);
+    const rows: any[] = await service.findAll(undefined, undefined, undefined, undefined, {});
+    expect(prisma.user.findMany).toHaveBeenCalledWith({
+      where: { id: { in: ['user-cs-1', 'ghost-id'] } },
+      select: { id: true, fullName: true, email: true },
+    });
+    expect(rows[0].creator).toEqual({ id: 'user-cs-1', fullName: 'CS Andi', email: 'andi@x.id' });
+    expect(rows[1].creator).toBeNull();
+    expect(rows[2].creator).toBeNull();
   });
 
   it('maps receivedFrom/receivedTo to receivedDate range (to is end-of-day)', async () => {
