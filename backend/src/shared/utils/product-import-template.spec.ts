@@ -106,4 +106,28 @@ describe('product template contract', () => {
     const rows = await parseProductImportBuffer(buf);
     expect(rows.map((r: any) => r.barcode)).toEqual(['B-1', 'B-2']);
   });
+
+  it('preserves empty stock cells for required-numeric validation', async () => {
+    const row = Array(PRODUCT_IMPORT_HEADERS.length).fill('');
+    row[0] = 'B-1';
+    row[1] = 'Produk A';
+    row[9] = 100;
+    row[13] = 50;
+    // stock cells left empty -> raw '' (service flags required-numeric error)
+    const buf = await toBuffer(PRODUCT_IMPORT_HEADERS, [row]);
+    const rows = await parseProductImportBuffer(buf);
+    expect(rows[0].stocksRaw[PRODUCT_IMPORT_HEADERS[19]]).toBe('');
+  });
+
+  it('keeps non-numeric stock raw values untouched', async () => {
+    const row = Array(PRODUCT_IMPORT_HEADERS.length).fill('');
+    row[0] = 'B-1';
+    row[1] = 'Produk A';
+    row[9] = 100;
+    row[13] = 50;
+    row[19] = 'abc';
+    const buf = await toBuffer(PRODUCT_IMPORT_HEADERS, [row]);
+    const rows = await parseProductImportBuffer(buf);
+    expect(rows[0].stocksRaw[PRODUCT_IMPORT_HEADERS[19]]).toBe('abc');
+  });
 });

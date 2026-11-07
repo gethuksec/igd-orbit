@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsEnum,
   IsIn,
   IsInt,
   IsNotEmpty,
@@ -10,6 +11,15 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+
+/**
+ * Duplicate handling for import confirm: `overwrite` updates the existing
+ * record, `skip` leaves it untouched (counted as skipped).
+ */
+export enum ImportDuplicateMode {
+  Overwrite = 'overwrite',
+  Skip = 'skip',
+}
 
 /**
  * One validated customer preview row for import confirm.
@@ -74,4 +84,8 @@ export class ConfirmCustomerImportDto {
   @ValidateNested({ each: true })
   @Type(() => ConfirmCustomerImportRowDto)
   rows!: ConfirmCustomerImportRowDto[];
+
+  @IsOptional()
+  @IsEnum(ImportDuplicateMode, { message: 'duplicateMode must be either overwrite or skip' })
+  duplicateMode?: 'overwrite' | 'skip' = ImportDuplicateMode.Overwrite;
 }

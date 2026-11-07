@@ -1686,8 +1686,10 @@ export class CustomersService {
   /**
    * Confirm a previewed import. Rows matching an existing customer
    * (by customerCode exact match when provided, else phone exact match)
-   * go through update(); the rest go through create() (auto-generates
-   * customerCode when empty). Per-row failures are reported, never thrown.
+   * go through update() — unless duplicateMode is 'skip', in which case
+   * they are left untouched and counted as skipped. The rest go through
+   * create() (auto-generates customerCode when empty). Per-row failures
+   * are reported, never thrown.
    */
   async confirmCustomerImport(
     dto: ConfirmCustomerImportDto,
@@ -1695,6 +1697,7 @@ export class CustomersService {
   ): Promise<{
     created: number;
     updated: number;
+    skipped: number;
     failed: number;
     errors: Array<{ row: number; error: string }>;
     customerIds: string[];
@@ -1705,9 +1708,11 @@ export class CustomersService {
 
     let created = 0;
     let updated = 0;
+    let skipped = 0;
     let failed = 0;
     const errors: Array<{ row: number; error: string }> = [];
     const customerIds: string[] = [];
+    const duplicateMode = dto.duplicateMode ?? 'overwrite';
 
     for (const row of dto.rows) {
       try {
@@ -1765,6 +1770,10 @@ export class CustomersService {
         }
 
         if (existing) {
+          if (duplicateMode === 'skip') {
+            skipped++;
+            continue;
+          }
           const { customerCode: _omit, ...updateData } = data;
           const result = await this.update(existing.id, updateData, userId);
           updated++;
@@ -1783,7 +1792,7 @@ export class CustomersService {
       }
     }
 
-    return { created, updated, failed, errors, customerIds };
+    return { created, updated, skipped, failed, errors, customerIds };
   }
 }
 

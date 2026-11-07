@@ -2008,19 +2008,26 @@ export class ProductsService {
         }
       }
 
-      // Per-warehouse opening stocks — unknown warehouse names skipped
+      // Per-warehouse opening stocks — every template stock column is
+      // required numeric >= 0; unknown warehouse names are row errors.
       const stocks: Array<{ warehouseId: string; warehouseName: string; quantity: number }> = [];
       for (const label of PRODUCT_STOCK_LABELS as string[]) {
         const wh = warehouseMap.get(label.toLowerCase());
-        if (!wh) continue;
-        const qtyRaw = raw.stocksRaw[label];
-        if (qtyRaw === '' || qtyRaw === null || qtyRaw === undefined) continue;
-        const qty = parseProductImportNumber(qtyRaw);
-        if (qty === null || qty < 0) {
-          errors.push(`Stok '${label}' harus berupa angka >= 0`);
+        if (!wh) {
+          errors.push(`Gudang '${label}' tidak ditemukan`);
           continue;
         }
-        if (qty > 0) stocks.push({ warehouseId: wh.id, warehouseName: wh.name, quantity: qty });
+        const qtyRaw = raw.stocksRaw[label];
+        if (qtyRaw === '' || qtyRaw === null || qtyRaw === undefined) {
+          errors.push(`Stok '${label}' wajib diisi angka >= 0`);
+          continue;
+        }
+        const qty = parseProductImportNumber(qtyRaw);
+        if (qty === null || qty < 0) {
+          errors.push(`Stok '${label}' wajib diisi angka >= 0`);
+          continue;
+        }
+        stocks.push({ warehouseId: wh.id, warehouseName: wh.name, quantity: qty });
       }
 
       // Identity check (read-only): barcode first, then name insensitive
@@ -2077,20 +2084,32 @@ export class ProductsService {
   }
 
   /**
-   * Confirm a previewed product import — creates/updates products via the
+   * Confirm a previewed product XLSX import — creates/updates products via the
    * existing create()/update() paths, then upserts per-warehouse stocks.
+   * Stocks are re-validated here the same way as preview (every template
+   * stock column required numeric >= 0); any violation fails that row before
+   * any write for it (never partial). duplicateMode 'skip' leaves existing
+   * products (barcode→name) untouched and counts them as skipped.
    */
   async confirmProductImport(
-    dto: { fileName: string; rows: any[] },
+    dto: { fileName: string; rows: any[]; duplicateMode?: 'overwrite' | 'skip' },
     userId: string,
   ): Promise<{
     created: number;
     updated: number;
+    skipped: number;
     failed: number;
     errors: Array<{ row: string; error: string }>;
     productIds: string[];
   }> {
-    const result = { created: 0, updated: 0, failed: 0, errors: [] as Array<{ row: string; error: string }>, productIds: [] as string[] };
+    const { PRODUCT_STOCK_LABELS: CONFIRM_STOCK_LABELS } = require('../../shared/utils/product-import-template');
+    const warehouses = await this.prisma.warehouse.findMany();
+    const warehouseByName = new Map(
+      (warehouses as any[]).map((w) => [String(w.name).toLowerCase(), w]),
+    );
+    const warehouseById = new Map((warehouses as any[]).map((w) => [w.id, w]));
+    const duplicateMode = dto.duplicateMode ?? 'overwrite';
+    const result = { created: 0, updated: 0, skipped: 0, failed: 0, errors: [] as Array<{ row: string; error: string }>, productIds: [] as string[] };
 
     for (const row of dto.rows) {
       const label = row.rowNumbers ? `baris ${row.rowNumbers.join(',')}` : `produk '${row.name}'`;
@@ -2098,6 +2117,41 @@ export class ProductsService {
         if (!row.name) throw new BadRequestException('Nama produk wajib diisi');
         if (!row.sellingPrice || row.sellingPrice <= 0) throw new BadRequestException('Harga Reguler wajib > 0');
         if (!row.costPrice || row.costPrice <= 0) throw new BadRequestException('Harga Modal wajib > 0');
+
+        // Identity: barcode first, then name insensitive
+        let existing: any = null;
+        if (row.barcode) {
+          existing = await this.prisma.product.findFirst({
+            where: { barcode: row.barcode, deletedAt: null },
+          });
+        }
+        if (!existing) {
+          existing = await this.prisma.product.findFirst({
+            where: { name: { equals: row.name, mode: 'insensitive' }, deletedAt: null },
+          });
+        }
+        if (existing && duplicateMode === 'skip') {
+          result.skipped++;
+          continue;
+        }
+
+        // Re-validate opening stocks the same way as preview (before any
+        // write for this row): every template stock column required numeric
+        // >= 0 against the current warehouse list.
+        for (const s of row.stocks || []) {
+          if (!s || !warehouseById.get(s.warehouseId)) {
+            throw new BadRequestException(`Gudang tidak dikenal (id: ${s?.warehouseId})`);
+          }
+        }
+        const stocksByWarehouse = new Map((row.stocks || []).map((s: any) => [s?.warehouseId, s]));
+        for (const stockLabel of CONFIRM_STOCK_LABELS as string[]) {
+          const wh = warehouseByName.get(stockLabel.toLowerCase());
+          if (!wh) throw new BadRequestException(`Gudang '${stockLabel}' tidak ditemukan`);
+          const qty = (stocksByWarehouse.get(wh.id) as any)?.quantity;
+          if (typeof qty !== 'number' || !Number.isFinite(qty) || qty < 0) {
+            throw new BadRequestException(`Stok '${stockLabel}' wajib diisi angka >= 0`);
+          }
+        }
 
         // Resolve category (id wins; else find-or-auto-create by name)
         let categoryId: string | undefined = row.categoryId || undefined;
@@ -2147,19 +2201,6 @@ export class ProductsService {
           trackSerial: row.trackSerial || false,
           memberPricing: row.memberPricing && Object.keys(row.memberPricing).length > 0 ? row.memberPricing : undefined,
         };
-
-        // Identity: barcode first, then name insensitive
-        let existing: any = null;
-        if (productData.barcode) {
-          existing = await this.prisma.product.findFirst({
-            where: { barcode: productData.barcode, deletedAt: null },
-          });
-        }
-        if (!existing) {
-          existing = await this.prisma.product.findFirst({
-            where: { name: { equals: productData.name, mode: 'insensitive' }, deletedAt: null },
-          });
-        }
 
         let productId: string;
         if (existing) {

@@ -190,7 +190,7 @@ describe('CustomersService customer XLSX import', () => {
         },
         'user-1',
       );
-      expect(res).toMatchObject({ created: 1, updated: 0, failed: 0 });
+      expect(res).toMatchObject({ created: 1, updated: 0, skipped: 0, failed: 0 });
       expect(res.customerIds).toHaveLength(1);
       expect(prisma.customer.create).toHaveBeenCalled();
     });
@@ -219,7 +219,7 @@ describe('CustomersService customer XLSX import', () => {
         },
         'user-1',
       );
-      expect(res).toMatchObject({ created: 0, updated: 1, failed: 0 });
+      expect(res).toMatchObject({ created: 0, updated: 1, skipped: 0, failed: 0 });
       expect(res.customerIds).toEqual(['cust-1']);
       expect(prisma.customer.create).not.toHaveBeenCalled();
     });
@@ -269,9 +269,65 @@ describe('CustomersService customer XLSX import', () => {
         },
         'user-1',
       );
-      expect(res).toMatchObject({ created: 1, updated: 0, failed: 1 });
+      expect(res).toMatchObject({ created: 1, updated: 0, skipped: 0, failed: 1 });
       expect(res.errors).toHaveLength(1);
       expect(res.errors[0].row).toBe(3);
+    });
+
+    it('skips the existing customer in skip mode (no update)', async () => {
+      prisma.customer.findFirst.mockResolvedValue({
+        id: 'cust-1',
+        phone: '081234567890',
+      });
+      const res = await service.confirmCustomerImport(
+        {
+          fileName: 'import.xlsx',
+          duplicateMode: 'skip',
+          rows: [
+            {
+              rowNumbers: [2],
+              name: 'Budi Baru',
+              phone: '081234567890',
+              customerType: 'retail',
+            },
+          ],
+        },
+        'user-1',
+      );
+      expect(res).toMatchObject({ created: 0, updated: 0, skipped: 1, failed: 0 });
+      expect(res.customerIds).toEqual([]);
+      expect(prisma.customer.update).not.toHaveBeenCalled();
+      expect(prisma.customer.create).not.toHaveBeenCalled();
+    });
+
+    it('overwrites the existing customer in overwrite mode', async () => {
+      prisma.customer.findFirst.mockResolvedValue({
+        id: 'cust-1',
+        phone: '081234567890',
+      });
+      prisma.customer.findUnique.mockImplementation(async ({ where }: any) => {
+        if (where.id === 'cust-1') return { id: 'cust-1', phone: '081234567890' };
+        return null;
+      });
+      mockUpdateOk('cust-1', '081234567890');
+      const res = await service.confirmCustomerImport(
+        {
+          fileName: 'import.xlsx',
+          duplicateMode: 'overwrite',
+          rows: [
+            {
+              rowNumbers: [2],
+              name: 'Budi Baru',
+              phone: '081234567890',
+              customerType: 'retail',
+            },
+          ],
+        },
+        'user-1',
+      );
+      expect(res).toMatchObject({ created: 0, updated: 1, skipped: 0, failed: 0 });
+      expect(res.customerIds).toEqual(['cust-1']);
+      expect(prisma.customer.update).toHaveBeenCalled();
     });
 
     it('throws on empty rows', async () => {

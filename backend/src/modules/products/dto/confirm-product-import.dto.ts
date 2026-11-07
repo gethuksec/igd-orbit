@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
+  IsEnum,
   IsNotEmpty,
   IsNumber,
   IsObject,
@@ -23,6 +24,15 @@ export class ConfirmProductStockDto {
   @IsNumber({}, { message: 'Quantity must be a number' })
   @Min(0, { message: 'Quantity must be >= 0' })
   quantity!: number;
+}
+
+/**
+ * Duplicate handling for import confirm: `overwrite` updates the existing
+ * product, `skip` leaves it untouched (counted as skipped).
+ */
+export enum ImportDuplicateMode {
+  Overwrite = 'overwrite',
+  Skip = 'skip',
 }
 
 /**
@@ -118,4 +128,8 @@ export class ConfirmProductImportDto {
   @ValidateNested({ each: true })
   @Type(() => ConfirmProductImportRowDto)
   rows!: ConfirmProductImportRowDto[];
+
+  @IsOptional()
+  @IsEnum(ImportDuplicateMode, { message: 'duplicateMode must be either overwrite or skip' })
+  duplicateMode?: 'overwrite' | 'skip' = ImportDuplicateMode.Overwrite;
 }

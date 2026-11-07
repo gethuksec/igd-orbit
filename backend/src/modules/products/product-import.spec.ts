@@ -25,7 +25,7 @@ jest.mock('@prisma/client', () => {
 });
 
 const ExcelJS = require('exceljs');
-const { PRODUCT_IMPORT_HEADERS } = require('../../shared/utils/product-import-template');
+const { PRODUCT_IMPORT_HEADERS, PRODUCT_STOCK_LABELS } = require('../../shared/utils/product-import-template');
 
 async function xlsx(headers: string[], rows: any[][]): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
@@ -35,7 +35,8 @@ async function xlsx(headers: string[], rows: any[][]): Promise<Buffer> {
   return (await wb.xlsx.writeBuffer()) as Buffer;
 }
 
-/** Full 29-col row with defaults; overrides by header label. */
+/** Full 29-col row with defaults; overrides by header label. All 10 stock
+ * columns default to 0 (required numeric >= 0). */
 function fullRow(over: Record<string, any> = {}): any[] {
   const base: Record<string, any> = {
     Barcode: 'B-001',
@@ -58,6 +59,9 @@ function fullRow(over: Record<string, any> = {}): any[] {
     Silver: 2,
     User: 0,
   };
+  for (const label of PRODUCT_STOCK_LABELS as string[]) {
+    if (!(label in over)) base[label] = 0;
+  }
   const row = PRODUCT_IMPORT_HEADERS.map((h: string) => base[h] ?? over[h] ?? '');
   for (const [k, v] of Object.entries(over)) {
     const i = PRODUCT_IMPORT_HEADERS.indexOf(k);
@@ -76,9 +80,9 @@ describe('ProductsService — XLSX product import', () => {
     prisma.unit.findMany.mockResolvedValue([{ id: 'unit-1', name: 'Pcs' }]);
     prisma.size.findMany.mockResolvedValue([{ id: 'size-1', name: 'M' }]);
     prisma.color.findMany.mockResolvedValue([{ id: 'color-1', name: 'Hitam' }]);
-    prisma.warehouse.findMany.mockResolvedValue([
-      { id: 'wh-1', name: 'Stok IGD Kalisat - Spare Part' },
-    ]);
+    prisma.warehouse.findMany.mockResolvedValue(
+      PRODUCT_STOCK_LABELS.map((l: string, i: number) => ({ id: `wh-${i}`, name: l })),
+    );
     prisma.customer.findMany.mockResolvedValue([{ id: 'sup-1', name: 'Supplier Y' }]);
     prisma.category.findUnique.mockResolvedValue({ id: 'cat-1', name: 'Spare Part' });
     prisma.brand.findUnique.mockResolvedValue({ id: 'brand-1', name: 'Merek X' });
@@ -163,9 +167,13 @@ describe('ProductsService — XLSX product import', () => {
         silver: { discount: 2 },
         user: { discount: 0 },
       });
-      expect(r.stocks).toEqual([
-        { warehouseId: 'wh-1', warehouseName: 'Stok IGD Kalisat - Spare Part', quantity: 10 },
-      ]);
+      expect(r.stocks).toHaveLength(10);
+      expect(r.stocks).toEqual(
+        expect.arrayContaining([
+          { warehouseId: 'wh-0', warehouseName: PRODUCT_STOCK_LABELS[0], quantity: 10 },
+        ]),
+      );
+      expect(r.stocks.filter((s: any) => s.quantity === 0)).toHaveLength(9);
       // READ-ONLY: no writes of any kind
       expect(prisma.product.create).not.toHaveBeenCalled();
       expect(prisma.product.update).not.toHaveBeenCalled();
@@ -186,9 +194,50 @@ describe('ProductsService — XLSX product import', () => {
       expect(errs).toMatch(/Satuan/);
       expect(out.rows[0].supplierId).toBeUndefined(); // unknown supplier -> null, no error
     });
+
+    it('flags empty stock cells as required-numeric errors', async () => {
+      const buf = await xlsx(PRODUCT_IMPORT_HEADERS, [
+        fullRow({ [PRODUCT_STOCK_LABELS[0]]: '' }),
+      ]);
+      const out = await service.previewProductImport(buf);
+      expect(out.validCount).toBe(0);
+      expect(out.errorCount).toBe(1);
+      expect(out.rows[0].errors).toHaveLength(1);
+      expect(out.rows[0].errors[0]).toBe(`Stok '${PRODUCT_STOCK_LABELS[0]}' wajib diisi angka >= 0`);
+    });
+
+    it('flags non-numeric and negative stock cells', async () => {
+      const buf = await xlsx(PRODUCT_IMPORT_HEADERS, [
+        fullRow({ [PRODUCT_STOCK_LABELS[0]]: 'abc', [PRODUCT_STOCK_LABELS[1]]: -3 }),
+      ]);
+      const out = await service.previewProductImport(buf);
+      expect(out.validCount).toBe(0);
+      expect(out.errorCount).toBe(1);
+      expect(out.rows[0].errors).toHaveLength(2);
+      expect(out.rows[0].errors[0]).toBe(`Stok '${PRODUCT_STOCK_LABELS[0]}' wajib diisi angka >= 0`);
+      expect(out.rows[0].errors[1]).toBe(`Stok '${PRODUCT_STOCK_LABELS[1]}' wajib diisi angka >= 0`);
+    });
+
+    it('flags unknown warehouse names instead of skipping them', async () => {
+      prisma.warehouse.findMany.mockResolvedValue([{ id: 'wh-x', name: 'Gudang Lain' }]);
+      const buf = await xlsx(PRODUCT_IMPORT_HEADERS, [fullRow()]);
+      const out = await service.previewProductImport(buf);
+      expect(out.validCount).toBe(0);
+      expect(out.errorCount).toBe(1);
+      expect(out.rows[0].errors).toHaveLength(10);
+      expect(out.rows[0].errors[0]).toBe(`Gudang '${PRODUCT_STOCK_LABELS[0]}' tidak ditemukan`);
+      expect(prisma.product.create).not.toHaveBeenCalled();
+    });
   });
 
   describe('confirmProductImport', () => {
+    /** 10-entry stocks covering every template warehouse (default 0). */
+    const fullStocks = (over: Record<string, number> = {}) =>
+      (PRODUCT_STOCK_LABELS as string[]).map((_: string, i: number) => ({
+        warehouseId: `wh-${i}`,
+        quantity: over[`wh-${i}`] ?? 0,
+      }));
+
     it('creates a new product (auto SKU, grade passthrough) + upserts stocks', async () => {
       const out = await service.confirmProductImport(
         {
@@ -208,13 +257,13 @@ describe('ProductsService — XLSX product import', () => {
               isService: false,
               trackSerial: false,
               memberPricing: { platinum: { discount: 5 } },
-              stocks: [{ warehouseId: 'wh-1', quantity: 10 }],
+              stocks: fullStocks({ 'wh-0': 10 }),
             },
           ],
         },
         'user-1',
       );
-      expect(out).toMatchObject({ created: 1, updated: 0, failed: 0 });
+      expect(out).toMatchObject({ created: 1, updated: 0, skipped: 0, failed: 0 });
       expect(out.productIds).toEqual(['prod-new']);
       expect(prisma.product.create).toHaveBeenCalledTimes(1);
       const data = prisma.product.create.mock.calls[0][0].data;
@@ -222,8 +271,8 @@ describe('ProductsService — XLSX product import', () => {
       expect(data.sku).toMatch(/^PROD-/); // auto-generated SKU
       expect(prisma.productStock.upsert).toHaveBeenCalledTimes(1);
       expect(prisma.productStock.upsert).toHaveBeenCalledWith({
-        where: { productId_warehouseId: { productId: 'prod-new', warehouseId: 'wh-1' } },
-        create: { productId: 'prod-new', warehouseId: 'wh-1', quantityAvailable: 10 },
+        where: { productId_warehouseId: { productId: 'prod-new', warehouseId: 'wh-0' } },
+        create: { productId: 'prod-new', warehouseId: 'wh-0', quantityAvailable: 10 },
         update: { quantityAvailable: 10 },
       });
     });
@@ -246,13 +295,13 @@ describe('ProductsService — XLSX product import', () => {
               categoryId: 'cat-1',
               sellingPrice: 160000,
               costPrice: 110000,
-              stocks: [],
+              stocks: fullStocks(),
             },
           ],
         },
         'user-1',
       );
-      expect(out).toMatchObject({ created: 0, updated: 1, failed: 0 });
+      expect(out).toMatchObject({ created: 0, updated: 1, skipped: 0, failed: 0 });
       expect(prisma.product.create).not.toHaveBeenCalled();
       expect(prisma.product.update).toHaveBeenCalledTimes(1);
       expect(prisma.productStock.upsert).not.toHaveBeenCalled();
@@ -270,7 +319,7 @@ describe('ProductsService — XLSX product import', () => {
               categoryName: 'Kategori Baru',
               sellingPrice: 50000,
               costPrice: 30000,
-              stocks: [],
+              stocks: fullStocks(),
             },
           ],
         },
@@ -278,6 +327,109 @@ describe('ProductsService — XLSX product import', () => {
       );
       expect(out).toMatchObject({ created: 1, failed: 0 });
       expect(prisma.category.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('fails the row with no writes when a stock entry is missing', async () => {
+      const out = await service.confirmProductImport(
+        {
+          fileName: 'f.xlsx',
+          rows: [
+            {
+              rowNumbers: [2],
+              name: 'Produk C',
+              categoryId: 'cat-1',
+              sellingPrice: 50000,
+              costPrice: 30000,
+              stocks: [],
+            },
+          ],
+        },
+        'user-1',
+      );
+      expect(out).toMatchObject({ created: 0, updated: 0, failed: 1 });
+      expect(out.errors[0].error).toMatch(/wajib diisi angka >= 0/);
+      expect(prisma.product.create).not.toHaveBeenCalled();
+      expect(prisma.product.update).not.toHaveBeenCalled();
+      expect(prisma.productStock.upsert).not.toHaveBeenCalled();
+    });
+
+    it('fails the row with no writes when a stock quantity is negative', async () => {
+      const out = await service.confirmProductImport(
+        {
+          fileName: 'f.xlsx',
+          rows: [
+            {
+              rowNumbers: [2],
+              name: 'Produk D',
+              categoryId: 'cat-1',
+              sellingPrice: 50000,
+              costPrice: 30000,
+              stocks: fullStocks({ 'wh-1': -5 }),
+            },
+          ],
+        },
+        'user-1',
+      );
+      expect(out).toMatchObject({ created: 0, updated: 0, failed: 1 });
+      expect(out.errors[0].error).toMatch(/wajib diisi angka >= 0/);
+      expect(prisma.product.create).not.toHaveBeenCalled();
+      expect(prisma.productStock.upsert).not.toHaveBeenCalled();
+    });
+
+    it("skips the existing product in skip mode (no update, no stock upsert)", async () => {
+      prisma.product.findFirst.mockResolvedValue({ id: 'prod-1' });
+      const out = await service.confirmProductImport(
+        {
+          fileName: 'f.xlsx',
+          duplicateMode: 'skip',
+          rows: [
+            {
+              rowNumbers: [2],
+              barcode: 'B-001',
+              name: 'Produk A',
+              categoryId: 'cat-1',
+              sellingPrice: 150000,
+              costPrice: 100000,
+              stocks: fullStocks({ 'wh-0': 10 }),
+            },
+          ],
+        },
+        'user-1',
+      );
+      expect(out).toMatchObject({ created: 0, updated: 0, skipped: 1, failed: 0 });
+      expect(out.productIds).toEqual([]);
+      expect(prisma.product.update).not.toHaveBeenCalled();
+      expect(prisma.product.create).not.toHaveBeenCalled();
+      expect(prisma.productStock.upsert).not.toHaveBeenCalled();
+    });
+
+    it("overwrites the existing product in overwrite mode", async () => {
+      prisma.product.findFirst.mockResolvedValue({ id: 'prod-1' });
+      prisma.product.findUnique.mockImplementation(async ({ where }: any) =>
+        where.id === 'prod-1'
+          ? { id: 'prod-1', sku: 'PROD-1', barcode: 'B-001', sellingPrice: 150000 }
+          : null,
+      );
+      const out = await service.confirmProductImport(
+        {
+          fileName: 'f.xlsx',
+          duplicateMode: 'overwrite',
+          rows: [
+            {
+              rowNumbers: [2],
+              barcode: 'B-001',
+              name: 'Produk A Baru',
+              categoryId: 'cat-1',
+              sellingPrice: 160000,
+              costPrice: 110000,
+              stocks: fullStocks(),
+            },
+          ],
+        },
+        'user-1',
+      );
+      expect(out).toMatchObject({ created: 0, updated: 1, skipped: 0, failed: 0 });
+      expect(prisma.product.update).toHaveBeenCalledTimes(1);
     });
   });
 });
