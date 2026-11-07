@@ -88,18 +88,21 @@ export class StockRequestsService {
   async searchIntakeProducts(token: string, query?: string, limit = 15) {
     const branch = await this.requireBranchByToken(token);
     const q = (query || '').trim();
-    if (!q) return [];
     const take = Math.min(Math.max(limit || 15, 1), 30);
+    // Empty query (field focused, nothing typed): return top active products
+    // so the intake form can show a default dropdown.
     const products = await this.prisma.product.findMany({
-      where: {
-        isActive: true,
-        deletedAt: null,
-        OR: [
-          { name: { contains: q, mode: 'insensitive' } },
-          { sku: { contains: q, mode: 'insensitive' } },
-          { barcode: { contains: q, mode: 'insensitive' } },
-        ],
-      },
+      where: q
+        ? {
+            isActive: true,
+            deletedAt: null,
+            OR: [
+              { name: { contains: q, mode: 'insensitive' } },
+              { sku: { contains: q, mode: 'insensitive' } },
+              { barcode: { contains: q, mode: 'insensitive' } },
+            ],
+          }
+        : { isActive: true, deletedAt: null },
       select: {
         id: true,
         name: true,
