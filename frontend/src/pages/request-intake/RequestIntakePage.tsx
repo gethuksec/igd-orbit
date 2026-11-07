@@ -628,7 +628,7 @@ export default function RequestIntakePage() {
         </div>
 
         <div className="mt-6 flex justify-center">
-          <Badge variant="secondary" className="text-[11px] text-gray-400">IGD-Orbit • Request Stok</Badge>
+          <Badge variant="secondary" className="text-[11px] text-gray-400">ORBIT • Request Stok</Badge>
         </div>
       </div>
 

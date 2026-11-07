@@ -10,9 +10,9 @@ interface SEOHeadProps {
 }
 
 export default function SEOHead({
-  title = 'IGD Group - Electronics Retail & Service',
-  description = 'IGD Group provides quality electronics retail and professional device repair services. Track your service, browse products, and get expert assistance.',
-  keywords = 'electronics, handphone repair, device service, smartphone, laptop repair, IGD Group',
+  title = 'ORBIT - Electronics Retail & Service',
+  description = 'ORBIT by IGD Group provides quality electronics retail and professional device repair services. Track your service, browse products, and get expert assistance.',
+  keywords = 'electronics, handphone repair, device service, smartphone, laptop repair, ORBIT, IGD Group',
   image = '/og-image.jpg',
   url = window.location.href,
   type = 'website',
@@ -45,7 +45,7 @@ export default function SEOHead({
         {JSON.stringify({
           '@context': 'https://schema.org',
           '@type': 'LocalBusiness',
-          name: 'IGD Group',
+          name: 'ORBIT',
           description: description,
           url: url,
           image: image,

@@ -57,7 +57,7 @@ export default function ServiceTracking() {
                 </div>
                 <div>
                   <h1 className="text-2xl md:text-3xl font-bold">Lacak Status Service</h1>
-                  <p className="text-red-100 text-sm mt-1">IGD Ponsel Service Center</p>
+                  <p className="text-red-100 text-sm mt-1">ORBIT Service Center</p>
                 </div>
               </div>
             </div>
@@ -281,7 +281,7 @@ export default function ServiceTracking() {
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
                   <p>
-                    <strong className="text-gray-900">Service Bergaransi:</strong> Semua perbaikan yang dilakukan di IGD Ponsel dilengkapi dengan garansi sesuai dengan jenis perbaikan.
+                    <strong className="text-gray-900">Service Bergaransi:</strong> Semua perbaikan yang dilakukan di ORBIT dilengkapi dengan garansi sesuai dengan jenis perbaikan.
                   </p>
                 </div>
                 <div className="flex items-start gap-3">

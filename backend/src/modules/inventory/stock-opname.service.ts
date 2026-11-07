@@ -934,7 +934,7 @@ export class StockOpnameService {
     }
 
     const wb = new ExcelJS.Workbook();
-    wb.creator = 'IGD-ERP';
+    wb.creator = 'ORBIT';
     const ws = wb.addWorksheet('Hasil Opname');
 
     ws.columns = [
