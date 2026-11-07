@@ -106,7 +106,11 @@ function IntakeLinksCard() {
           </p>
         </div>
         {(links.data as IntakeLink[]).map((l) => {
-          const url = l.intakeToken ? `${window.location.origin}/r/${l.intakeToken}` : '';
+          const url = l.intakePath
+            ? `${window.location.origin}${l.intakePath}`
+            : l.intakeToken
+              ? `${window.location.origin}/r/${l.intakeToken}`
+              : '';
           return (
             <div key={l.branchId} className="flex flex-col sm:flex-row sm:items-center gap-2 rounded-lg border border-gray-100 p-2.5">
               <div className="sm:w-44 shrink-0">

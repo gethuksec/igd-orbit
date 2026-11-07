@@ -32,11 +32,20 @@ export interface IntakeMember {
   customerCode: string;
 }
 
+export interface IntakeCustomer {
+  id: string;
+  name: string;
+  phone: string;
+  subdistrict: string | null;
+}
+
 export interface IntakeLink {
   branchId: string;
   branchCode: string;
   branchName: string;
   intakeToken: string | null;
+  intakeSlug: string | null;
+  intakePath: string | null;
 }
 
 export interface IntakeItemPayload {
@@ -51,7 +60,9 @@ export interface IntakeItemPayload {
 
 export interface CreateIntakePayload {
   staffName: string;
-  customerType: 'USER' | 'MEMBER';
+  customerId?: string;
+  /** @deprecated Backwards compat — frontend picker sends customerId instead. */
+  customerType?: 'USER' | 'MEMBER';
   memberRef?: string;
   items: IntakeItemPayload[];
 }
@@ -122,6 +133,17 @@ export const stockRequestsService = {
       .get(`/stock-requests/intake/${token}/members/verify`, { params: { code } })
       .then(unwrap);
   },
+  searchIntakeCustomers(token: string, q: string, limit = 15): Promise<IntakeCustomer[]> {
+    return api
+      .get(`/stock-requests/intake/${token}/customers/search`, { params: { q, limit } })
+      .then(unwrap);
+  },
+  quickAddIntakeCustomer(
+    token: string,
+    payload: { name: string; phone: string; subdistrict: string },
+  ): Promise<IntakeCustomer> {
+    return api.post(`/stock-requests/intake/${token}/customers/quick-add`, payload).then(unwrap);
+  },
   createIntake(token: string, payload: CreateIntakePayload): Promise<StockRequest> {
     return api.post(`/stock-requests/intake/${token}`, payload).then(unwrap);
   },
@@ -151,7 +173,7 @@ export const stockRequestsService = {
   updateStatus(id: string, payload: { status: string; reason?: string; poNumber?: string }) {
     return api.patch(`/stock-requests/${id}/status`, payload).then(unwrap);
   },
-  rotateIntakeToken(branchId: string): Promise<{ intakeToken: string; branchName: string }> {
+  rotateIntakeToken(branchId: string): Promise<{ intakeToken: string; intakeSlug: string | null; intakePath: string | null; branchName: string }> {
     return api.post('/stock-requests/intake-tokens', { branchId }).then(unwrap);
   },
 };

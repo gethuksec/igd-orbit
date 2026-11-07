@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Edit,
   ArrowLeft,
@@ -14,13 +14,78 @@ import {
   ArrowRightLeft,
   Eye,
   Loader2,
+  Link2,
+  Copy,
+  RefreshCw,
 } from 'lucide-react';
 import { branchesService } from '../../services/branches.service';
+import { stockRequestsService } from '../../services/stock-requests.service';
+import { toast } from 'sonner';
 import { warehousesService } from '../../services/warehouses.service';
 import { Warehouse as WarehouseIcon } from 'lucide-react';
 import { BreadcrumbHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+
+function IntakeLinkCard({ branchId, intakePath }: { branchId: string; intakePath: string | null }) {
+  const queryClient = useQueryClient();
+  const url = intakePath ? `${window.location.origin}${intakePath}` : '';
+
+  const rotate = useMutation({
+    mutationFn: () => stockRequestsService.rotateIntakeToken(branchId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['branch', branchId] });
+      queryClient.invalidateQueries({ queryKey: ['stock-request-intake-links'] });
+      toast.success('Token diputar — slug link tetap sama.');
+    },
+    onError: (e: any) => {
+      toast.error(e?.response?.data?.message || 'Gagal memutar token.');
+    },
+  });
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('Link request disalin.');
+    } catch {
+      toast.error('Gagal menyalin otomatis — salin manual dari kolom.');
+    }
+  };
+
+  return (
+    <Card className="border-red-100">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Link2 className="w-5 h-5 text-primary-600" />
+          Link Request Stok
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2.5">
+        <p className="text-xs text-gray-500">
+          Dibuat otomatis saat outlet dibuat — bagikan ke ASA/CS, form terbuka tanpa login.
+        </p>
+        {url ? (
+          <>
+            <Input readOnly value={url} className="font-mono text-xs" onFocus={(e) => e.target.select()} />
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={copy}>
+                <Copy className="w-3.5 h-3.5 mr-1" />
+                Salin link
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => rotate.mutate()} disabled={rotate.isPending}>
+                <RefreshCw className={`w-3.5 h-3.5 mr-1 ${rotate.isPending ? 'animate-spin' : ''}`} />
+                {rotate.isPending ? 'Memutar…' : 'Putar token'}
+              </Button>
+            </div>
+          </>
+        ) : (
+          <p className="text-xs text-amber-700">Belum ada link — hubungi admin.</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function BranchDetail() {
   const { id } = useParams();
@@ -175,6 +240,8 @@ export default function BranchDetail() {
               )}
             </CardContent>
           </Card>
+
+          <IntakeLinkCard branchId={branch.id} intakePath={(branch as any).intakePath ?? null} />
 
           {/* Alamat & Lokasi */}
           {(branch.address || branch.city || branch.province) && (

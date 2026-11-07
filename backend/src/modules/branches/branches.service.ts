@@ -10,6 +10,31 @@ import { CreateBranchDto } from './dto/create-branch.dto';
 import { UpdateBranchDto } from './dto/update-branch.dto';
 import { randomBytes } from 'crypto';
 
+/** URL-safe base slug from a branch name, e.g. "Jember Pusat" -> "jember-pusat". */
+export function slugifyBranchName(name: string): string {
+  const base = (name || '')
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-+/g, '-')
+    .slice(0, 40)
+    .replace(/-+$/g, '');
+  return base || 'outlet';
+}
+
+/** 4 lowercase base36 chars, e.g. "x7k2". */
+export function shortToken(): string {
+  const n = randomBytes(4).readUInt32BE(0) % 36 ** 4;
+  return n.toString(36).padStart(4, '0');
+}
+
+/** Unguessable 48-char hex intake token. */
+export function generateIntakeToken(): string {
+  return randomBytes(24).toString('hex');
+}
+
 @Injectable()
 export class BranchesService {
   constructor(private prisma: PrismaService) {}
@@ -45,6 +70,58 @@ export class BranchesService {
     }
 
     return code!;
+  }
+
+  /**
+   * Generate a unique unguessable intake token (48 hex chars) with retries.
+   */
+  async generateUniqueIntakeToken(maxAttempts = 10): Promise<string> {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const intakeToken = generateIntakeToken();
+      const existing = await this.prisma.branch.findUnique({
+        where: { intakeToken },
+      });
+      if (!existing) return intakeToken;
+    }
+    throw new BadRequestException('Failed to generate unique intake token after multiple attempts');
+  }
+
+  /**
+   * Generate a unique human-friendly intake slug
+   * (slugify(name)+'-'+4-char base36 suffix, e.g. jember-pusat-x7k2) with retries.
+   */
+  async generateUniqueIntakeSlug(name: string, maxAttempts = 10): Promise<string> {
+    const base = slugifyBranchName(name);
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const intakeSlug = `${base}-${shortToken()}`;
+      const existing = await this.prisma.branch.findUnique({
+        where: { intakeSlug },
+      });
+      if (!existing) return intakeSlug;
+    }
+    throw new BadRequestException('Failed to generate unique intake slug after multiple attempts');
+  }
+
+  /**
+   * Backfill intake identity for existing outlets missing token and/or slug.
+   * Fills only null fields — never rotates existing values.
+   */
+  async backfillIntakeIdentities(): Promise<{ processed: number; backfilled: number }> {
+    const missing = await this.prisma.branch.findMany({
+      where: { OR: [{ intakeToken: null }, { intakeSlug: null }] },
+      select: { id: true, name: true, intakeToken: true, intakeSlug: true },
+    });
+    let backfilled = 0;
+    for (const outlet of missing) {
+      const data: { intakeToken?: string; intakeSlug?: string } = {};
+      if (!outlet.intakeToken) data.intakeToken = await this.generateUniqueIntakeToken();
+      if (!outlet.intakeSlug) data.intakeSlug = await this.generateUniqueIntakeSlug(outlet.name);
+      if (Object.keys(data).length > 0) {
+        await this.prisma.branch.update({ where: { id: outlet.id }, data });
+        backfilled++;
+      }
+    }
+    return { processed: missing.length, backfilled };
   }
 
   /**
@@ -193,6 +270,9 @@ export class BranchesService {
         : null,
       isActive: branch.isActive,
       operatingHours: branch.operatingHours,
+      intakeToken: (branch as any).intakeToken ?? null,
+      intakeSlug: (branch as any).intakeSlug ?? null,
+      intakePath: (branch as any).intakeSlug ? `/r/${(branch as any).intakeSlug}` : null,
       userCount: branch._count.userBranches,
       productStockCount: branch._count.productStocks,
       salesTransactionCount: branch._count.salesTransactions,
@@ -262,10 +342,17 @@ export class BranchesService {
       }
     }
 
+    const [intakeToken, intakeSlug] = await Promise.all([
+      this.generateUniqueIntakeToken(),
+      this.generateUniqueIntakeSlug(createBranchDto.name),
+    ]);
+
     const branch = await this.prisma.branch.create({
       data: {
         code,
         name: createBranchDto.name,
+        intakeToken,
+        intakeSlug,
         group: createBranchDto.group || null,
         phone: createBranchDto.phone || null,
         email: createBranchDto.email || null,
@@ -315,6 +402,9 @@ export class BranchesService {
         : null,
       isActive: branch.isActive,
       operatingHours: branch.operatingHours,
+      intakeToken: branch.intakeToken,
+      intakeSlug: branch.intakeSlug,
+      intakePath: branch.intakeSlug ? `/r/${branch.intakeSlug}` : null,
       createdAt: branch.createdAt,
       updatedAt: branch.updatedAt,
     };

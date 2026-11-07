@@ -46,7 +46,7 @@ describe('StockRequestsService', () => {
       product: { findUnique: jest.fn(), findMany: jest.fn() },
       productStock: { aggregate: jest.fn() },
       category: { findUnique: jest.fn(), findFirst: jest.fn(), findMany: jest.fn() },
-      customer: { findUnique: jest.fn() },
+      customer: { findUnique: jest.fn(), findMany: jest.fn(), create: jest.fn() },
       stockRequest: {
         create: jest.fn(),
         findUnique: jest.fn(),
@@ -255,11 +255,32 @@ describe('StockRequestsService', () => {
 
   describe('rotateIntakeToken', () => {
     it('issues a fresh unguessable token', async () => {
-      prisma.branch.findUnique.mockResolvedValue(branch);
+      prisma.branch.findUnique.mockResolvedValue({ ...branch, intakeSlug: 'jember-ab12' });
       prisma.branch.update.mockImplementation(async ({ data }: any) => ({ ...branch, ...data }));
       const res = await service.rotateIntakeToken('branch-1');
       expect(res.intakeToken).toMatch(/^[0-9a-f]{48}$/);
       expect(res.branchId).toBe('branch-1');
+    });
+
+    it('keeps the slug stable across rotations', async () => {
+      prisma.branch.findUnique.mockResolvedValue({ ...branch, intakeSlug: 'jember-ab12' });
+      prisma.branch.update.mockImplementation(async ({ data }: any) => ({ ...branch, ...data }));
+      const res = await service.rotateIntakeToken('branch-1');
+      expect(res.intakeSlug).toBe('jember-ab12');
+      expect(res.intakePath).toBe('/r/jember-ab12');
+      expect(prisma.branch.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'branch-1' } }),
+      );
+    });
+
+    it('backfills a slug for legacy outlets missing one', async () => {
+      prisma.branch.findUnique
+        .mockResolvedValueOnce({ ...branch, intakeSlug: null })
+        .mockResolvedValue(null); // no slug clash
+      prisma.branch.update.mockImplementation(async ({ data }: any) => ({ ...branch, ...data }));
+      const res = await service.rotateIntakeToken('branch-1');
+      expect(res.intakeSlug).toMatch(/^jember-[0-9a-z]{4}$/);
+      expect(res.intakePath).toBe(`/r/${res.intakeSlug}`);
     });
 
     it('404 on unknown branch', async () => {
@@ -271,17 +292,107 @@ describe('StockRequestsService', () => {
   describe('listIntakeLinks', () => {
     it('returns only active outlets with their tokens', async () => {
       prisma.branch.findMany.mockResolvedValue([
-        { id: 'b1', code: 'BR-001', name: 'Jember Pusat', intakeToken: 'tok1' },
-        { id: 'b2', code: 'BR-002', name: 'Kalisat', intakeToken: null },
+        { id: 'b1', code: 'BR-001', name: 'Jember Pusat', intakeToken: 'tok1', intakeSlug: 'jember-pusat-x7k2' },
+        { id: 'b2', code: 'BR-002', name: 'Kalisat', intakeToken: null, intakeSlug: null },
       ]);
       const res = await service.listIntakeLinks();
       expect(prisma.branch.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: { isActive: true } }),
       );
       expect(res).toEqual([
-        { branchId: 'b1', branchCode: 'BR-001', branchName: 'Jember Pusat', intakeToken: 'tok1' },
-        { branchId: 'b2', branchCode: 'BR-002', branchName: 'Kalisat', intakeToken: null },
+        { branchId: 'b1', branchCode: 'BR-001', branchName: 'Jember Pusat', intakeToken: 'tok1', intakeSlug: 'jember-pusat-x7k2', intakePath: '/r/jember-pusat-x7k2' },
+        { branchId: 'b2', branchCode: 'BR-002', branchName: 'Kalisat', intakeToken: null, intakeSlug: null, intakePath: null },
       ]);
+    });
+  });
+
+  describe('searchIntakeCustomers', () => {
+    it('returns [] on empty query without hitting customer table', async () => {
+      mockBranchOk();
+      const res = await service.searchIntakeCustomers('tok', '  ');
+      expect(res).toEqual([]);
+      expect(prisma.customer.findMany).not.toHaveBeenCalled();
+    });
+
+    it('rejects unknown outlet token', async () => {
+      prisma.branch.findUnique.mockResolvedValue(null);
+      await expect(service.searchIntakeCustomers('nope', 'budi')).rejects.toThrow(NotFoundException);
+    });
+
+    it('searches by name/WA with PII-light select', async () => {
+      mockBranchOk();
+      prisma.customer.findMany.mockResolvedValue([
+        { id: 'c1', name: 'Budi Santoso', phone: '081234567890', subdistrict: 'Kaliwates' },
+      ]);
+      const res = await service.searchIntakeCustomers('tok', 'budi');
+      expect(prisma.customer.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ take: 15 }),
+      );
+      expect(res).toEqual([
+        { id: 'c1', name: 'Budi Santoso', phone: '081234567890', subdistrict: 'Kaliwates' },
+      ]);
+    });
+  });
+
+  describe('quickAddIntakeCustomer', () => {
+    it('creates a retail master row on valid input', async () => {
+      mockBranchOk();
+      prisma.customer.findUnique.mockResolvedValue(null); // code free
+      prisma.customer.create.mockImplementation(async ({ data }: any) => ({ id: 'c9', ...data }));
+      const res = await service.quickAddIntakeCustomer('tok', {
+        name: 'Ibu Rina',
+        phone: '081234567890',
+        subdistrict: 'Sumbersari',
+      } as any);
+      expect(res.id).toBe('c9');
+      expect(prisma.customer.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ customerType: 'retail', name: 'Ibu Rina' }),
+        }),
+      );
+    });
+
+    it('rejects invalid WA', async () => {
+      mockBranchOk();
+      await expect(
+        service.quickAddIntakeCustomer('tok', { name: 'X', phone: '123', subdistrict: 'Sumbersari' } as any),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('rejects unknown kecamatan', async () => {
+      mockBranchOk();
+      await expect(
+        service.quickAddIntakeCustomer('tok', { name: 'X', phone: '081234567890', subdistrict: 'Bogor' } as any),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('createIntake with customerId', () => {
+    it('resolves picker-selected customer', async () => {
+      mockBranchOk();
+      prisma.customer.findUnique.mockResolvedValue({ id: 'cust-9', name: 'Budi', isActive: true });
+      prisma.user.findFirst.mockResolvedValue(null);
+      prisma.product.findUnique.mockResolvedValue(product);
+      prisma.stockRequest.findUnique.mockResolvedValue(null);
+      prisma.stockRequest.create.mockImplementation(async ({ data }: any) => ({
+        id: 'req-9',
+        ...data,
+        items: data.items.create.map((r: any, i: number) => ({ id: `item-${i}`, ...r })),
+      }));
+      const res: any = await service.createIntake(
+        'tok',
+        dto({ customerId: 'cust-9', customerType: undefined, items: [existItem()] }),
+      );
+      expect(res.memberId).toBe('cust-9');
+      expect(res.memberRef).toBe('Budi');
+    });
+
+    it('404s on unknown customerId', async () => {
+      mockBranchOk();
+      prisma.customer.findUnique.mockResolvedValue(null);
+      await expect(
+        service.createIntake('tok', dto({ customerId: 'missing', customerType: undefined })),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 

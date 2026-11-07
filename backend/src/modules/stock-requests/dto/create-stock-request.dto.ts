@@ -54,10 +54,18 @@ export class CreateStockRequestDto {
   @IsNotEmpty({ message: 'staffName is required' })
   staffName!: string;
 
+  /** Preferred: picker-selected customer. Falls back to legacy customerType/memberRef. */
+  @IsOptional()
+  @IsUUID('4', { message: 'customerId must be a valid UUID' })
+  customerId?: string;
+
+  /** @deprecated Backwards compat — required only when customerId is absent. */
+  @IsOptional()
   @IsString()
   @IsIn(['USER', 'MEMBER'], { message: 'customerType must be USER or MEMBER' })
-  customerType!: string;
+  customerType?: string;
 
+  /** @deprecated Backwards compat — member code for MEMBER type. */
   @IsOptional()
   @IsString()
   memberRef?: string;

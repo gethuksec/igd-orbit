@@ -6,13 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, CheckCircle2, Minus, Plus } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Minus, Plus, X } from 'lucide-react';
 import {
   stockRequestsService,
   type IntakeCategory,
-  type IntakeMember,
+  type IntakeCustomer,
   type IntakeProduct,
 } from '@/services/stock-requests.service';
+import kecamatanJember from '@/data/kecamatan-jember.json';
 
 interface RowState {
   key: string;
@@ -92,7 +93,7 @@ function ItemRow({
   const checkBarcode = async () => {
     const code = row.barcode.trim();
     if (!code) {
-      set({ lookup: 'miss', lookupText: 'Isi barcode dulu, lalu tekan Cek.' });
+      set({ lookup: 'miss', lookupText: 'Isi barcode / nama produk dulu, lalu tekan Cek.' });
       return;
     }
     try {
@@ -153,11 +154,11 @@ function ItemRow({
         </div>
 
         <div>
-          <Label className="text-[13.5px] font-semibold">Barcode <span className="text-red-600">*</span></Label>
+          <Label className="text-[13.5px] font-semibold">Barcode/Nama produk <span className="text-red-600">*</span></Label>
           <div className="flex gap-2 mt-1">
             <Input
               className={inputCls}
-              placeholder="Ketik / tempel barcode…"
+              placeholder="Ketik / tempel barcode, nama, SKU…"
               value={row.barcode}
               onChange={(e) => set({ barcode: e.target.value })}
             />
@@ -297,14 +298,20 @@ function ItemRow({
 export default function RequestIntakePage() {
   const { token = '' } = useParams<{ token: string }>();
   const [staffName, setStaffName] = useState('');
-  const [custType, setCustType] = useState<'USER' | 'MEMBER'>('USER');
-  const [memberCode, setMemberCode] = useState('');
-  const [member, setMember] = useState<IntakeMember | null>(null);
-  const [memberErr, setMemberErr] = useState('');
-  const [verifying, setVerifying] = useState(false);
+  const [customer, setCustomer] = useState<IntakeCustomer | null>(null);
+  const [custSearch, setCustSearch] = useState('');
+  const [custResults, setCustResults] = useState<IntakeCustomer[]>([]);
+  const [custSearching, setCustSearching] = useState(false);
+  const [custErr, setCustErr] = useState('');
+  const [quickOpen, setQuickOpen] = useState(false);
+  const [quickName, setQuickName] = useState('');
+  const [quickPhone, setQuickPhone] = useState('');
+  const [quickKec, setQuickKec] = useState('');
+  const [quickSaving, setQuickSaving] = useState(false);
+  const [quickErr, setQuickErr] = useState('');
   const [rows, setRows] = useState<RowState[]>([emptyRow()]);
   const [submitting, setSubmitting] = useState(false);
-  const [done, setDone] = useState<{ no: string; summary: string[] } | null>(null);
+  const [done, setDone] = useState<{ no: string; summary: string[]; customerName: string } | null>(null);
   const [formErr, setFormErr] = useState('');
 
   const ctx = useQuery({
@@ -313,21 +320,58 @@ export default function RequestIntakePage() {
     retry: false,
   });
 
-  const verifyMember = async () => {
-    setMemberErr('');
-    setMember(null);
-    if (!memberCode.trim()) {
-      setMemberErr('Isi nomor member dulu.');
+  useEffect(() => {
+    if (custSearch.trim().length < 2) {
+      setCustResults([]);
       return;
     }
-    setVerifying(true);
+    const h = setTimeout(async () => {
+      setCustSearching(true);
+      try {
+        const list = await stockRequestsService.searchIntakeCustomers(token, custSearch.trim(), 8);
+        setCustResults(list);
+      } catch {
+        setCustResults([]);
+      } finally {
+        setCustSearching(false);
+      }
+    }, 300);
+    return () => clearTimeout(h);
+  }, [custSearch, token]);
+
+  const saveQuickAdd = async () => {
+    setQuickErr('');
+    if (!quickName.trim()) {
+      setQuickErr('Isi nama pelanggan dulu.');
+      return;
+    }
+    if (!/^(?:\+62|0)[0-9]{9,12}$/.test(quickPhone.trim())) {
+      setQuickErr('No. WA tidak valid. Format: 08… atau +62…');
+      return;
+    }
+    if (!quickKec) {
+      setQuickErr('Pilih kecamatan dulu.');
+      return;
+    }
+    setQuickSaving(true);
     try {
-      const m = await stockRequestsService.verifyIntakeMember(token, memberCode.trim());
-      setMember(m);
+      const created = await stockRequestsService.quickAddIntakeCustomer(token, {
+        name: quickName.trim(),
+        phone: quickPhone.trim(),
+        subdistrict: quickKec,
+      });
+      setCustomer(created);
+      setCustSearch('');
+      setCustResults([]);
+      setCustErr('');
+      setQuickOpen(false);
+      setQuickName('');
+      setQuickPhone('');
+      setQuickKec('');
     } catch (e: any) {
-      setMemberErr(e?.response?.data?.message || 'Member tidak ditemukan.');
+      setQuickErr(e?.response?.data?.message || 'Gagal menyimpan pelanggan, coba lagi.');
     } finally {
-      setVerifying(false);
+      setQuickSaving(false);
     }
   };
 
@@ -337,8 +381,8 @@ export default function RequestIntakePage() {
       setFormErr('Pilih nama pengaju dulu.');
       return;
     }
-    if (custType === 'MEMBER' && !member) {
-      setFormErr('Verifikasi member dulu (pakai nomor member).');
+    if (!customer) {
+      setFormErr('Pilih pelanggan dulu (cari atau tambah baru).');
       return;
     }
     for (let i = 0; i < rows.length; i++) {
@@ -353,8 +397,7 @@ export default function RequestIntakePage() {
     try {
       const res = await stockRequestsService.createIntake(token, {
         staffName,
-        customerType: custType,
-        memberRef: custType === 'MEMBER' ? memberCode.trim() : undefined,
+        customerId: customer.id,
         items: rows.map((r) => ({
           barcode: r.barcode.trim(),
           listing: r.listing,
@@ -370,6 +413,7 @@ export default function RequestIntakePage() {
         summary: (res.items || []).map(
           (it) => `${it.productName} ×${it.quantity}${it.listing === 'NEW' ? ' • Baru' : ''}`,
         ),
+        customerName: customer.name,
       });
       window.scrollTo(0, 0);
     } catch (e: any) {
@@ -427,7 +471,7 @@ export default function RequestIntakePage() {
             </div>
           </div>
           <ul className="bg-white border border-gray-200 rounded-xl mx-3 mt-4 px-4 py-2 text-sm list-disc">
-            <li className="ml-4 my-2"><b>Pengaju:</b> {staffName} • <b>Tipe:</b> {custType}{member ? ` (${member.customerCode})` : ''}</li>
+            <li className="ml-4 my-2"><b>Pengaju:</b> {staffName} • <b>Customer:</b> {done.customerName}</li>
             {done.summary.map((s, i) => (
               <li key={i} className="ml-4 my-2">{s}</li>
             ))}
@@ -439,8 +483,8 @@ export default function RequestIntakePage() {
                 setDone(null);
                 setRows([emptyRow()]);
                 setStaffName('');
-                setMemberCode('');
-                setMember(null);
+                setCustomer(null);
+                setCustSearch('');
                 window.scrollTo(0, 0);
               }}
             >
@@ -465,7 +509,7 @@ export default function RequestIntakePage() {
         <div className="px-3 pt-3 space-y-3">
           <Card>
             <CardContent className="p-4 space-y-3">
-              <h2 className="text-xs uppercase tracking-wide text-gray-500 font-bold">Data Pengaju</h2>
+              <h2 className="text-xs uppercase tracking-wide text-gray-500 font-bold">Requester</h2>
               <div>
                 <Label className="text-[13.5px] font-semibold">Nama <span className="text-red-600">*</span></Label>
                 <select className={`${selectCls} mt-1`} value={staffName} onChange={(e) => setStaffName(e.target.value)}>
@@ -475,58 +519,74 @@ export default function RequestIntakePage() {
                   ))}
                 </select>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <h2 className="text-xs uppercase tracking-wide text-gray-500 font-bold">Customer</h2>
               <div>
-                <Label className="text-[13.5px] font-semibold">Tipe Customer <span className="text-red-600">*</span></Label>
-                <div className="flex bg-gray-100 rounded-lg p-1 gap-1 mt-1">
-                  {(['USER', 'MEMBER'] as const).map((v) => (
-                    <button
-                      key={v}
-                      type="button"
-                      onClick={() => setCustType(v)}
-                      className={`flex-1 rounded-md min-h-[42px] text-sm font-semibold ${
-                        custType === v ? 'bg-white text-red-600 shadow-sm' : 'text-gray-500'
-                      }`}
-                    >
-                      {v === 'USER' ? 'User' : 'Member'}
-                    </button>
-                  ))}
+                <Label className="text-[13.5px] font-semibold">Cari pelanggan <span className="text-red-600">*</span></Label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    className={inputCls}
+                    placeholder="Ketik nama / WA… (min. 2 huruf)"
+                    value={custSearch}
+                    onChange={(e) => {
+                      setCustSearch(e.target.value);
+                      setCustErr('');
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="min-h-[46px] min-w-[46px] px-0 border-gray-300 font-bold text-xl"
+                    onClick={() => {
+                      setQuickErr('');
+                      setQuickOpen(true);
+                    }}
+                    aria-label="Tambah pelanggan baru"
+                  >
+                    <Plus className="w-5 h-5 mx-auto" />
+                  </Button>
                 </div>
-              </div>
-              {custType === 'MEMBER' && (
-                <div>
-                  <Label className="text-[13.5px] font-semibold">Nomor member <span className="text-red-600">*</span></Label>
-                  <div className="flex gap-2 mt-1">
-                    <Input
-                      className={inputCls}
-                      placeholder="cth: MBR-001"
-                      value={memberCode}
-                      onChange={(e) => {
-                        setMemberCode(e.target.value);
-                        setMember(null);
-                        setMemberErr('');
-                      }}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="min-h-[46px] border-red-600 text-red-600 font-bold"
-                      onClick={verifyMember}
-                      disabled={verifying}
-                    >
-                      {verifying ? '…' : 'Cek'}
-                    </Button>
+                {custSearching && <p className="text-xs text-gray-500 mt-1">Mencari…</p>}
+                {custResults.length > 0 && (
+                  <div className="mt-2 space-y-1.5">
+                    {custResults.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => {
+                          setCustomer(c);
+                          setCustErr('');
+                        }}
+                        className={`block w-full text-left px-3 py-2.5 text-sm border rounded-lg active:bg-red-50 ${
+                          customer?.id === c.id
+                            ? 'border-red-600 bg-red-50/60 shadow-[inset_0_0_0_1px_#dc2626]'
+                            : 'border-gray-200 bg-white'
+                        }`}
+                      >
+                        <span className="font-semibold">
+                          {customer?.id === c.id ? '✓ ' : ''}{c.name}
+                        </span>
+                        <span className="block text-xs text-gray-500">
+                          {c.phone}{c.subdistrict ? ` • ${c.subdistrict}` : ''}
+                        </span>
+                      </button>
+                    ))}
                   </div>
-                  {member && (
-                    <div className="mt-2 text-[13px] rounded-lg px-3 py-2 bg-green-50 text-green-800 border border-green-200">
-                      ✓ {member.name} • {member.customerCode}
-                    </div>
-                  )}
-                  {memberErr && (
-                    <p className="text-[12.5px] text-red-600 mt-1.5">{memberErr}</p>
-                  )}
-                  {!member && !memberErr && staff.length > 0 && (
-                    <p className="text-[12px] text-gray-400 mt-1.5">Ketik nomor member persis seperti di kartu, lalu tekan Cek.</p>
-                  )}
+                )}
+                {!custSearching && custSearch.trim().length >= 2 && custResults.length === 0 && (
+                  <p className="text-[12.5px] text-gray-500 mt-1.5">
+                    Tidak ketemu? Tekan + untuk tambah pelanggan baru.
+                  </p>
+                )}
+                {custErr && <p className="text-[12.5px] text-red-600 mt-1.5">{custErr}</p>}
+              </div>
+              {customer && (
+                <div className="mt-1 text-[13px] rounded-lg px-3 py-2 bg-green-50 text-green-800 border border-green-200">
+                  ✓ {customer.name} • {customer.phone}{customer.subdistrict ? ` • ${customer.subdistrict}` : ''}
                 </div>
               )}
             </CardContent>
@@ -575,6 +635,66 @@ export default function RequestIntakePage() {
           <Badge variant="secondary" className="text-[11px] text-gray-400">IGD-Orbit • Request Stok</Badge>
         </div>
       </div>
+
+      {quickOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={() => setQuickOpen(false)}>
+          <div className="w-full max-w-md bg-white rounded-t-2xl p-5 pb-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="font-bold text-[15px]">Pelanggan baru</h3>
+                <p className="text-[12.5px] text-gray-500 mt-0.5">Langsung masuk master. WA wajib untuk data building.</p>
+              </div>
+              <button type="button" onClick={() => setQuickOpen(false)} aria-label="Tutup">
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            <div className="space-y-3 mt-4">
+              <div>
+                <Label className="text-[13.5px] font-semibold">Nama <span className="text-red-600">*</span></Label>
+                <Input
+                  className={`${inputCls} mt-1`}
+                  placeholder="cth: Ibu Rina"
+                  value={quickName}
+                  onChange={(e) => setQuickName(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label className="text-[13.5px] font-semibold">No. WA <span className="text-red-600">*</span></Label>
+                <Input
+                  className={`${inputCls} mt-1`}
+                  placeholder="08… / +62…"
+                  value={quickPhone}
+                  onChange={(e) => setQuickPhone(e.target.value)}
+                />
+                <p className="text-[12px] text-gray-500 mt-1">Format: 08… atau +62… — dicek saat simpan.</p>
+              </div>
+              <div>
+                <Label className="text-[13.5px] font-semibold">Kecamatan <span className="text-red-600">*</span></Label>
+                <select className={`${selectCls} mt-1`} value={quickKec} onChange={(e) => setQuickKec(e.target.value)}>
+                  <option value="">Pilih Kecamatan</option>
+                  {(kecamatanJember as string[]).map((k) => (
+                    <option key={k} value={k}>{k}</option>
+                  ))}
+                </select>
+              </div>
+              {quickErr && <p className="text-[12.5px] text-red-600">{quickErr}</p>}
+              <div className="flex gap-2 pt-1">
+                <Button type="button" variant="outline" className="flex-1 min-h-[48px]" onClick={() => setQuickOpen(false)}>
+                  Batal
+                </Button>
+                <Button
+                  type="button"
+                  className="flex-1 min-h-[48px] bg-red-600 hover:bg-red-700 font-bold"
+                  onClick={saveQuickAdd}
+                  disabled={quickSaving}
+                >
+                  {quickSaving ? 'Menyimpan…' : 'Simpan'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
