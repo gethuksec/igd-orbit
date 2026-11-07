@@ -45,9 +45,15 @@ describe('StockOutController', () => {
       limit: 10,
       outletId: 'outlet-1',
       warehouseId: undefined,
+      operator: undefined,
       startDate: '2026-08-01',
       endDate: undefined,
     });
+  });
+
+  it('forwards operator query to findAll', async () => {
+    await controller.findAll({ operator: 'sari' });
+    expect(service.findAll).toHaveBeenCalledWith(expect.objectContaining({ operator: 'sari' }));
   });
 
   it('forwards outletId to findSourceWarehouses and q/limit/warehouseId to searchProducts', async () => {

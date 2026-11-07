@@ -309,6 +309,7 @@ export class StockInService {
     outletId?: string;
     warehouseId?: string;
     supplierId?: string;
+    operator?: string;
     startDate?: string;
     endDate?: string;
   }) {
@@ -320,6 +321,18 @@ export class StockInService {
     if (query.outletId) where.outletId = query.outletId;
     if (query.warehouseId) where.warehouseId = query.warehouseId;
     if (query.supplierId) where.supplierId = query.supplierId;
+    if (query.operator?.trim()) {
+      const operators = await this.prisma.user.findMany({
+        where: {
+          OR: [
+            { fullName: { contains: query.operator.trim(), mode: 'insensitive' } },
+            { username: { contains: query.operator.trim(), mode: 'insensitive' } },
+          ],
+        },
+        select: { id: true },
+      });
+      where.createdBy = { in: operators.map((u) => u.id) };
+    }
     if (query.startDate || query.endDate) {
       where.documentDate = {};
       if (query.startDate) where.documentDate.gte = new Date(query.startDate);
@@ -341,8 +354,13 @@ export class StockInService {
       this.prisma.stockIn.count({ where }),
     ]);
 
+    const operatorNameById = await this.operatorNameMap(data);
+
     return {
-      data: data.map((doc) => this.serialize(doc)),
+      data: data.map((doc) => ({
+        ...this.serialize(doc),
+        operatorName: doc.createdBy ? operatorNameById.get(doc.createdBy) || null : null,
+      })),
       meta: {
         total,
         page,
@@ -364,7 +382,28 @@ export class StockInService {
     if (!doc) {
       throw new NotFoundException('Stock In document not found');
     }
-    return this.serialize(doc);
+    return { ...this.serialize(doc), operatorName: await this.operatorNameOf(doc.createdBy) };
+  }
+
+  /** Creator display name for one doc (transfer-stock picName pattern). */
+  private async operatorNameOf(createdBy?: string | null): Promise<string | null> {
+    if (!createdBy) return null;
+    const user = await this.prisma.user.findUnique({
+      where: { id: createdBy },
+      select: { id: true, fullName: true },
+    });
+    return user?.fullName || null;
+  }
+
+  /** Batch-load creator display names for a page of docs. */
+  private async operatorNameMap(docs: any[]): Promise<Map<string, string>> {
+    const ids = Array.from(new Set(docs.map((d) => d.createdBy).filter(Boolean)));
+    if (ids.length === 0) return new Map();
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, fullName: true },
+    });
+    return new Map(users.map((u) => [u.id, u.fullName || '']));
   }
 
   private serialize(doc: any) {

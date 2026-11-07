@@ -25,45 +25,98 @@ const formatCurrency = (amount: number) =>
     minimumFractionDigits: 0,
   }).format(amount);
 
+const docTotalQty = (d: StockIn) =>
+  (d.items || []).reduce((s, it) => s + Number((it as any).quantity || 0), 0);
+
+const docMatchesProduct = (d: StockIn, q: string) =>
+  (d.items || []).some((it) => {
+    const p = (it as any).product || {};
+    return (
+      ((it as any).productName || '').toLowerCase().includes(q) ||
+      ((it as any).productSku || '').toLowerCase().includes(q) ||
+      (p.name || '').toLowerCase().includes(q) ||
+      (p.sku || '').toLowerCase().includes(q) ||
+      (p.barcode || '').toLowerCase().includes(q)
+    );
+  });
+
 /**
  * Stok Masuk — history list first (Option B, 07 Nov thread).
- * Default view is the document history with search + outlet/date filters;
- * creating a new document happens in a large modal reusing StockInForm.
+ * Default view is the document history with search + outlet/warehouse/date/
+ * product/operator/quantity filters; creating a new document happens in a
+ * large modal reusing StockInForm.
  * Mirrors the Transfer/Mutasi list pattern (IGDERP-139/140).
  */
 export default function StockIn() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [branchId, setBranchId] = useState('');
+  const [warehouseId, setWarehouseId] = useState('');
+  const [productText, setProductText] = useState('');
+  const [operator, setOperator] = useState('');
+  const [qty, setQty] = useState('');
+  const [qtyOp, setQtyOp] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
 
+  const { data: warehouses = [] } = useQuery({
+    queryKey: ['stock-in-filter-warehouses', branchId],
+    queryFn: () => inventoryService.getStockInWarehouses(branchId || undefined),
+  });
+
   const { data: result = { data: [], meta: { total: 0, page: 1, totalPages: 0 } } } =
     useQuery({
-      queryKey: ['stock-in-docs', page, branchId, startDate, endDate],
+      queryKey: ['stock-in-docs', page, branchId, warehouseId, operator, startDate, endDate],
       queryFn: () =>
         inventoryService.getStockIns({
           page,
           limit: PAGE_SIZE,
           ...(branchId ? { outletId: branchId } : {}),
+          ...(warehouseId ? { warehouseId } : {}),
+          ...(operator.trim() ? { operator: operator.trim() } : {}),
           ...(startDate ? { startDate } : {}),
           ...(endDate ? { endDate } : {}),
         }),
     });
 
-  const docs = result.data.filter((d) => {
-    if (!search.trim()) return true;
-    const q = search.trim().toLowerCase();
-    return (
-      d.documentNumber.toLowerCase().includes(q) ||
-      (d.outlet?.name || '').toLowerCase().includes(q) ||
-      (d.warehouse?.name || '').toLowerCase().includes(q) ||
-      (d.supplierName || '').toLowerCase().includes(q) ||
-      (d.poNumber || '').toLowerCase().includes(q) ||
-      d.reason.toLowerCase().includes(q)
-    );
-  });
+  const docs = result.data
+    .filter((d) => {
+      if (!search.trim()) return true;
+      const q = search.trim().toLowerCase();
+      return (
+        d.documentNumber.toLowerCase().includes(q) ||
+        (d.outlet?.name || '').toLowerCase().includes(q) ||
+        (d.warehouse?.name || '').toLowerCase().includes(q) ||
+        (d.supplierName || '').toLowerCase().includes(q) ||
+        (d.poNumber || '').toLowerCase().includes(q) ||
+        (d.operatorName || '').toLowerCase().includes(q) ||
+        d.reason.toLowerCase().includes(q)
+      );
+    })
+    .filter((d) => {
+      if (!productText.trim()) return true;
+      return docMatchesProduct(d, productText.trim().toLowerCase());
+    })
+    .filter((d) => {
+      if (!qty.trim()) return true;
+      const target = parseFloat(qty);
+      if (Number.isNaN(target)) return true;
+      const total = docTotalQty(d);
+      const op = qtyOp || 'eq';
+      return op === 'gt' ? total > target : op === 'lt' ? total < target : total === target;
+    });
+
+  const resetFilters = () => {
+    setWarehouseId('');
+    setProductText('');
+    setOperator('');
+    setQty('');
+    setQtyOp('');
+    setStartDate('');
+    setEndDate('');
+    setPage(1);
+  };
 
   return (
     <div className="w-full space-y-4">
@@ -77,7 +130,7 @@ export default function StockIn() {
         </Button>
       </BreadcrumbHeader>
 
-      {/* ── Toolbar: search inline + outlet inline + date popup (IGDERP-110) ── */}
+      {/* ── Toolbar: search + outlet inline, filter popup (IGDERP-110) ── */}
       <FilterToolbar
         searchValue={search}
         onSearchChange={(v) => {
@@ -85,8 +138,40 @@ export default function StockIn() {
           setPage(1);
         }}
         searchPlaceholder="Cari no. dokumen, supplier, alasan, atau PO..."
-        branchFilter={{ value: branchId, onChange: (v) => { setBranchId(v); setPage(1); }, allowAll: true }}
+        branchFilter={{
+          value: branchId,
+          onChange: (v) => {
+            setBranchId(v);
+            setWarehouseId('');
+            setPage(1);
+          },
+          allowAll: true,
+        }}
         fields={[
+          {
+            key: 'warehouse',
+            label: 'Gudang',
+            type: 'select',
+            options: warehouses.map((w) => ({ value: w.id, label: `${w.name} (${w.code})` })),
+          },
+          {
+            key: 'product',
+            label: 'Barcode / Nama Produk / Kode Ref',
+            type: 'input',
+            placeholder: 'cth. 899... / Minyak Telon',
+          },
+          {
+            key: 'operator',
+            label: 'Operator',
+            type: 'input',
+            placeholder: 'Nama pembuat dokumen',
+          },
+          {
+            key: 'qty',
+            label: 'Perkiraan Jumlah',
+            type: 'number-compare',
+            placeholder: '0',
+          },
           {
             key: 'date',
             label: 'Tanggal',
@@ -94,19 +179,25 @@ export default function StockIn() {
           },
         ]}
         values={{
+          warehouse: warehouseId,
+          product: productText,
+          operator,
+          qty,
+          qtyOp,
           dateFrom: startDate,
           dateTo: endDate,
         }}
         onFieldChange={(key, v) => {
-          if (key === 'dateFrom') setStartDate(v);
+          if (key === 'warehouse') setWarehouseId(v);
+          else if (key === 'product') setProductText(v);
+          else if (key === 'operator') setOperator(v);
+          else if (key === 'qty') setQty(v);
+          else if (key === 'qtyOp') setQtyOp(v);
+          else if (key === 'dateFrom') setStartDate(v);
           else if (key === 'dateTo') setEndDate(v);
           setPage(1);
         }}
-        onReset={() => {
-          setStartDate('');
-          setEndDate('');
-          setPage(1);
-        }}
+        onReset={resetFilters}
       />
 
       {/* ── Documents table ── */}
@@ -127,6 +218,7 @@ export default function StockIn() {
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Outlet</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Gudang</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Supplier</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Operator</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Alasan</th>
                   <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">Total Nilai</th>
                 </tr>
@@ -145,6 +237,7 @@ export default function StockIn() {
                     <td className="px-4 py-3 text-sm text-gray-600">
                       {doc.supplierId === NO_SUPPLIER ? 'Tanpa Supplier' : doc.supplierName || '-'}
                     </td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{doc.operatorName || '-'}</td>
                     <td className="px-4 py-3 text-sm text-gray-600 max-w-[220px] truncate">{doc.reason}</td>
                     <td className="px-4 py-3 text-sm font-semibold text-gray-900 text-right">
                       {formatCurrency(doc.totalValue)}

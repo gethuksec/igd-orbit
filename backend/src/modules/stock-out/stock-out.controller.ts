@@ -139,6 +139,7 @@ export class StockOutController {
       limit: query.limit ? parseInt(query.limit, 10) : undefined,
       outletId: query.outletId,
       warehouseId: query.warehouseId,
+      operator: query.operator,
       startDate: query.startDate,
       endDate: query.endDate,
     });
