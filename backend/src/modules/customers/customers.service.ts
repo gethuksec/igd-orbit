@@ -17,6 +17,50 @@ import {
 import { Prisma } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { randomBytes } from 'crypto';
+import {
+  buildCustomerImportTemplate as buildCustomerImportTemplateWorkbook,
+  parseCustomerImportBuffer,
+  RawCustomerImportRow,
+} from '../../shared/utils/customer-import-template';
+import { ConfirmCustomerImportDto } from './dto/confirm-customer-import.dto';
+
+const CUSTOMER_PHONE_REGEX = /^(\+62|0)[0-9]{9,12}$/;
+
+const CUSTOMER_TYPES = ['retail', 'wholesale', 'corporate'] as const;
+
+/**
+ * Strict dd/mm/yyyy -> ISO yyyy-mm-dd. Returns null when invalid
+ * (wrong format or impossible calendar date).
+ */
+function parseCustomerDateOfBirth(raw: string): string | null {
+  const m = raw.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return null;
+  const day = parseInt(m[1], 10);
+  const month = parseInt(m[2], 10);
+  const year = parseInt(m[3], 10);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  const d = new Date(year, month - 1, day);
+  if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) {
+    return null;
+  }
+  const dd = String(day).padStart(2, '0');
+  const mm = String(month).padStart(2, '0');
+  return `${year}-${mm}-${dd}`;
+}
+
+export interface CustomerImportPreviewRow {
+  rowNumber: number;
+  customerCode?: string;
+  name?: string;
+  phone?: string;
+  address?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  customerType: string;
+  notes?: string;
+  isUpdate: boolean;
+  errors: string[];
+}
 
 /**
  * Customer Statistics Interface
@@ -1516,6 +1560,230 @@ export class CustomersService {
       return `"${value.replace(/"/g, '""')}"`;
     }
     return value;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // Customer XLSX import: template / preview / confirm
+  // Template === user template (8 cols). Files are never stored.
+  // ═══════════════════════════════════════════════════════════
+
+  async buildCustomerImportTemplate(): Promise<Buffer> {
+    return buildCustomerImportTemplateWorkbook();
+  }
+
+  /**
+   * Parse + validate an uploaded workbook. READ-ONLY: resolves existing
+   * customers (by phone exact match, or customerCode exact match when
+   * provided) only to flag preview rows as updates — no writes.
+   */
+  async previewCustomerImport(buffer: Buffer): Promise<{
+    rows: CustomerImportPreviewRow[];
+    validCount: number;
+    errorCount: number;
+  }> {
+    let raw: RawCustomerImportRow[];
+    try {
+      raw = await parseCustomerImportBuffer(buffer);
+    } catch (e: any) {
+      throw new BadRequestException(e.message || 'File Excel tidak valid');
+    }
+
+    const phones = [...new Set(raw.map((r) => r.phone).filter((p): p is string => !!p))];
+    const codes = [
+      ...new Set(raw.map((r) => r.customerCode).filter((c): c is string => !!c)),
+    ];
+    const byPhone = new Map<string, { id: string }>();
+    const byCode = new Map<string, { id: string }>();
+    if (phones.length) {
+      const found = await this.prisma.customer.findMany({
+        where: { phone: { in: phones }, deletedAt: null },
+        select: { id: true, phone: true },
+      });
+      for (const c of found) byPhone.set(c.phone, c);
+    }
+    if (codes.length) {
+      const found = await this.prisma.customer.findMany({
+        where: { customerCode: { in: codes } },
+        select: { id: true, customerCode: true },
+      });
+      for (const c of found) byCode.set(c.customerCode, c);
+    }
+
+    const rows: CustomerImportPreviewRow[] = raw.map((r) => {
+      const errors: string[] = [];
+      const name = r.name?.trim() || undefined;
+      const phone = r.phone?.trim() || undefined;
+      if (!name) errors.push(`Baris ${r.rowNumber}: Nama wajib diisi`);
+      if (!phone) {
+        errors.push(`Baris ${r.rowNumber}: Kontak wajib diisi`);
+      } else if (!CUSTOMER_PHONE_REGEX.test(phone)) {
+        errors.push(
+          `Baris ${r.rowNumber}: Kontak tidak valid (format +62XXXXXXXXX atau 0XXXXXXXXX, 9-12 digit)`,
+        );
+      }
+
+      let dateOfBirth: string | undefined;
+      if (r.dateOfBirthRaw) {
+        const iso = parseCustomerDateOfBirth(r.dateOfBirthRaw);
+        if (!iso) {
+          errors.push(
+            `Baris ${r.rowNumber}: Tanggal Lahir tidak valid (format dd/mm/yyyy)`,
+          );
+        } else {
+          dateOfBirth = iso;
+        }
+      }
+
+      let gender: string | undefined;
+      if (r.genderRaw) {
+        const g = r.genderRaw.trim().toUpperCase();
+        if (g !== 'L' && g !== 'P') {
+          errors.push(`Baris ${r.rowNumber}: Jenis Kelamin harus L atau P`);
+        } else {
+          gender = g;
+        }
+      }
+
+      let customerType = 'retail';
+      if (r.customerTypeRaw) {
+        const t = r.customerTypeRaw.trim().toLowerCase();
+        if (!(CUSTOMER_TYPES as readonly string[]).includes(t)) {
+          errors.push(
+            `Baris ${r.rowNumber}: Type Customer harus salah satu: retail, wholesale, corporate`,
+          );
+        } else {
+          customerType = t;
+        }
+      }
+
+      const existing =
+        (r.customerCode && byCode.get(r.customerCode)) ||
+        (phone && byPhone.get(phone)) ||
+        null;
+
+      return {
+        rowNumber: r.rowNumber,
+        customerCode: r.customerCode,
+        name,
+        phone,
+        address: r.address,
+        dateOfBirth,
+        gender,
+        customerType,
+        notes: r.notes,
+        isUpdate: !!existing,
+        errors,
+      };
+    });
+
+    return {
+      rows,
+      validCount: rows.filter((r) => r.errors.length === 0).length,
+      errorCount: rows.filter((r) => r.errors.length > 0).length,
+    };
+  }
+
+  /**
+   * Confirm a previewed import. Rows matching an existing customer
+   * (by customerCode exact match when provided, else phone exact match)
+   * go through update(); the rest go through create() (auto-generates
+   * customerCode when empty). Per-row failures are reported, never thrown.
+   */
+  async confirmCustomerImport(
+    dto: ConfirmCustomerImportDto,
+    userId: string,
+  ): Promise<{
+    created: number;
+    updated: number;
+    failed: number;
+    errors: Array<{ row: number; error: string }>;
+    customerIds: string[];
+  }> {
+    if (!dto.rows || dto.rows.length === 0) {
+      throw new BadRequestException('Tidak ada baris valid untuk diimport');
+    }
+
+    let created = 0;
+    let updated = 0;
+    let failed = 0;
+    const errors: Array<{ row: number; error: string }> = [];
+    const customerIds: string[] = [];
+
+    for (const row of dto.rows) {
+      try {
+        const name = row.name?.trim();
+        const phone = row.phone?.trim();
+        if (!name || !phone) {
+          throw new BadRequestException('Nama dan Kontak wajib diisi');
+        }
+        if (!CUSTOMER_PHONE_REGEX.test(phone)) {
+          throw new BadRequestException(
+            'Kontak tidak valid (format +62XXXXXXXXX atau 0XXXXXXXXX, 9-12 digit)',
+          );
+        }
+        const customerType = (row.customerType || 'retail').trim().toLowerCase();
+        if (!(CUSTOMER_TYPES as readonly string[]).includes(customerType)) {
+          throw new BadRequestException(
+            'Type Customer harus salah satu: retail, wholesale, corporate',
+          );
+        }
+        let gender: string | undefined;
+        if (row.gender) {
+          const g = row.gender.trim().toUpperCase();
+          if (g !== 'L' && g !== 'P') {
+            throw new BadRequestException('Jenis Kelamin harus L atau P');
+          }
+          gender = g;
+        }
+        let dateOfBirth: string | undefined;
+        if (row.dateOfBirth) {
+          const d = new Date(row.dateOfBirth);
+          if (Number.isNaN(d.getTime())) {
+            throw new BadRequestException('Tanggal Lahir tidak valid');
+          }
+          dateOfBirth = row.dateOfBirth;
+        }
+
+        const data: any = { customerType, name, phone };
+        const customerCode = row.customerCode?.trim();
+        if (customerCode) data.customerCode = customerCode;
+        if (row.address !== undefined && row.address !== '') data.address = row.address;
+        if (gender) data.gender = gender;
+        if (dateOfBirth) data.dateOfBirth = dateOfBirth;
+        if (row.notes !== undefined && row.notes !== '') data.notes = row.notes;
+
+        let existing: { id: string } | null = null;
+        if (customerCode) {
+          existing = await this.prisma.customer.findUnique({
+            where: { customerCode },
+          });
+        }
+        if (!existing) {
+          existing = await this.prisma.customer.findFirst({
+            where: { phone, deletedAt: null },
+          });
+        }
+
+        if (existing) {
+          const { customerCode: _omit, ...updateData } = data;
+          const result = await this.update(existing.id, updateData, userId);
+          updated++;
+          customerIds.push(result.id);
+        } else {
+          const result = await this.create(data, userId);
+          created++;
+          customerIds.push(result.id);
+        }
+      } catch (e: any) {
+        failed++;
+        errors.push({
+          row: row.rowNumbers?.[0] ?? 0,
+          error: e.message || 'Unknown error',
+        });
+      }
+    }
+
+    return { created, updated, failed, errors, customerIds };
   }
 }
 
