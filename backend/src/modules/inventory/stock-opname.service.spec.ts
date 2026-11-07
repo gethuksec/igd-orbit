@@ -164,7 +164,7 @@ describe('StockOpnameService', () => {
 
       expect(prisma.stockOpname.findFirst).toHaveBeenCalledWith({
         where: {
-          warehouseId: 'wh-outlet-1',
+          branchId: 'branch-1',
           status: { in: ['draft', 'counting', 'completed'] },
         },
       });
@@ -869,7 +869,8 @@ describe('StockOpnameService', () => {
   });
 
   describe('assertNoFreezeOpname (IGDERP-233)', () => {
-    it('throws when a FREEZE session covers the warehouse', async () => {
+    it('throws when a FREEZE session covers the outlet (any warehouse)', async () => {
+      prisma.warehouse.findUnique.mockResolvedValue({ id: 'wh-outlet-1', outletId: 'branch-1' });
       prisma.stockOpname.findFirst.mockResolvedValue({
         opnameNumber: 'OP-20261028-000001',
         code: 'OPN-AAAAA',
@@ -880,7 +881,7 @@ describe('StockOpnameService', () => {
       ).rejects.toThrow(BadRequestException);
       expect(prisma.stockOpname.findFirst).toHaveBeenCalledWith({
         where: {
-          warehouseId: 'wh-outlet-1',
+          branchId: 'branch-1',
           opnameType: 'FREEZE',
           status: { in: ['draft', 'counting', 'completed'] },
         },
@@ -888,6 +889,7 @@ describe('StockOpnameService', () => {
     });
 
     it('passes when no FREEZE session exists', async () => {
+      prisma.warehouse.findUnique.mockResolvedValue({ id: 'wh-outlet-1', outletId: 'branch-1' });
       prisma.stockOpname.findFirst.mockResolvedValue(null);
 
       await expect(
