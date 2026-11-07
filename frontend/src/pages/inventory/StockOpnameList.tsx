@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { inventoryService } from '../../services/inventory.service';
 import type { StockOpname } from '../../services/inventory.service';
+import StockOpnameStartModal from './StockOpnameStartModal';
 import { useBranchFilter } from '@/components/branch/BranchFilter';
 
 export default function StockOpnameList() {
@@ -25,6 +26,7 @@ export default function StockOpnameList() {
   const [joinCode, setJoinCode] = useState('');
   const [joinError, setJoinError] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
+  const [startOpen, setStartOpen] = useState(false);
   const { branchId, setBranchId } = useBranchFilter();
   const queryClient = useQueryClient();
 
@@ -118,11 +120,12 @@ export default function StockOpnameList() {
     <div className="w-full space-y-3">
       {/* Page Header */}
       <BreadcrumbHeader title="Stock Opname" subtitle="Kelola stock opname dan audit stok">
-        <Button onClick={() => navigate('/inventory/opname/new')}>
+        <Button onClick={() => setStartOpen(true)}>
           <Plus className="w-4 h-4 mr-2" />
           Mulai Opname
         </Button>
       </BreadcrumbHeader>
+      <StockOpnameStartModal open={startOpen} onClose={() => setStartOpen(false)} />
 
       {/* IGDERP-234 (OP2): join a counting session via its short code */}
       <form
@@ -276,12 +279,12 @@ export default function StockOpnameList() {
                         <ClipboardCheck className="w-16 h-16 text-gray-400" />
                       </div>
                       <p className="text-gray-600 font-semibold text-lg">Tidak ada opname ditemukan</p>
-                      <Link
-                        to="/inventory/opname/new"
+                      <button
+                        onClick={() => setStartOpen(true)}
                         className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
                       >
                         Mulai Opname Baru
-                      </Link>
+                      </button>
                     </div>
                   </td>
                 </tr>
