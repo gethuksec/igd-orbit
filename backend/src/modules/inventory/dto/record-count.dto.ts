@@ -15,11 +15,32 @@ export class OpnameItemDto {
 
   @IsInt()
   @Min(0)
-  physicalQuantity!: number;
+  @IsOptional()
+  physicalQuantity?: number;
 
   @IsEnum(['good', 'damaged', 'expired'])
   @IsOptional()
   condition?: 'good' | 'damaged' | 'expired';
+
+  /**
+   * IGDERP-234 (OP2): blind-count split quantities. One scan carries
+   * GOOD/RUSAK/KADALUARSA qtys and fans out to one row per non-zero
+   * condition. When omitted, physicalQuantity + condition apply as before.
+   */
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  goodQuantity?: number;
+
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  damagedQuantity?: number;
+
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  expiredQuantity?: number;
 
   @IsOptional()
   notes?: string;
@@ -30,6 +51,13 @@ export class OpnameItemDto {
    */
   @IsOptional()
   force?: boolean;
+
+  /**
+   * IGDERP-236 (OP4): mandatory reason when force overwrites an already
+   * counted row — stored in the append-only correction history.
+   */
+  @IsOptional()
+  correctionReason?: string;
 
   @IsUUID()
   @IsOptional()

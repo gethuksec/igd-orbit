@@ -78,6 +78,9 @@ export interface StockOpname {
   notes?: string;
   createdAt: string;
   updatedAt: string;
+  /** IGDERP-234 (OP2): caller's assigned categories (null = whole session). */
+  myCategoryIds?: string[] | null;
+  assignments?: Array<{ id: string; userId: string; categoryId: string; category?: { id: string; name: string } }>;
 }
 
 export interface StockOpnameItem {
@@ -537,15 +540,96 @@ export const inventoryService = {
   async recordCount(opnameId: string, data: {
     items: Array<{
       productId: string;
-      physicalQuantity: number;
+      physicalQuantity?: number;
       condition?: 'good' | 'damaged' | 'expired';
+      goodQuantity?: number;
+      damagedQuantity?: number;
+      expiredQuantity?: number;
       notes?: string;
       countedBy?: string;
       force?: boolean;
+      correctionReason?: string;
     }>;
   }): Promise<StockOpname> {
     try {
       const response = await api.post(`/inventory/opname/${opnameId}/items`, data);
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  /** IGDERP-234 (OP2): counter-facing count view (scoped + blind). */
+  async getCountView(opnameId: string): Promise<StockOpname> {
+    try {
+      const response = await api.get(`/inventory/opname/${opnameId}/count-view`);
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  /** IGDERP-234 (OP2): resolve a scanned barcode/SKU (identity only, never system stock). */
+  async resolveBarcode(opnameId: string, barcode: string): Promise<{
+    product: { id: string; name: string; sku: string; barcode: string | null; category: { id: string; name: string } | null };
+    lines: Array<{ itemId: string; condition: string; physicalQuantity: string | null; countedBy: string | null }>;
+  }> {
+    try {
+      const response = await api.get(`/inventory/opname/${opnameId}/resolve`, { params: { barcode } });
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  /** IGDERP-234 (OP2): session progress — who counted what. */
+  async getOpnameProgress(opnameId: string): Promise<{
+    totals: { rows: number; countedRows: number; remainingRows: number; products: number; countedProducts: number; scanEvents: number; exceptions: number };
+    byUser: Array<{ userId: string; displayName: string; rows: number; products: number; quantity: number; lastScanAt: string | null }>;
+    assignments: Array<{ id: string; userId: string; categoryId: string; category?: { id: string; name: string } }>;
+  }> {
+    try {
+      const response = await api.get(`/inventory/opname/${opnameId}/progress`);
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  /** IGDERP-234 (OP2): assignment roster. */
+  async listAssignments(opnameId: string): Promise<any[]> {
+    try {
+      const response = await api.get(`/inventory/opname/${opnameId}/assignments`);
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  /** IGDERP-234 (OP2): assign a counter to categories (addable mid-session). */
+  async addAssignments(opnameId: string, data: { userId: string; categoryIds: string[] }): Promise<any[]> {
+    try {
+      const response = await api.post(`/inventory/opname/${opnameId}/assignments`, data);
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  /** IGDERP-234 (OP2): log an unknown-barcode scan (never a count line). */
+  async logOpnameException(opnameId: string, barcode: string): Promise<any> {
+    try {
+      const response = await api.post(`/inventory/opname/${opnameId}/exceptions`, { barcode });
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  /** IGDERP-234 (OP2): unknown-barcode exception log (coordinator). */
+  async listOpnameExceptions(opnameId: string): Promise<any[]> {
+    try {
+      const response = await api.get(`/inventory/opname/${opnameId}/exceptions`);
       return response.data;
     } catch (error: any) {
       throw error;
@@ -569,9 +653,83 @@ export const inventoryService = {
     return response.data;
   },
 
-  async approveOpname(id: string): Promise<StockOpname> {
+  async approveOpname(id: string, note?: string): Promise<StockOpname> {
     try {
-      const response = await api.post(`/inventory/opname/${id}/approve`);
+      const response = await api.post(`/inventory/opname/${id}/approve`, note ? { note } : {});
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  /** IGDERP-236 (OP4): approval history (append-only). */
+  async listOpnameApprovals(opnameId: string): Promise<any[]> {
+    try {
+      const response = await api.get(`/inventory/opname/${opnameId}/approvals`);
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  /** IGDERP-236 (OP4): correction history (append-only). */
+  async listOpnameCorrections(opnameId: string): Promise<any[]> {
+    try {
+      const response = await api.get(`/inventory/opname/${opnameId}/corrections`);
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  /** IGDERP-236 (OP4): approver setting (Administrator → General). */
+  async getApproverSetting(): Promise<{ defaultRole: string; overrides: Array<{ outletId: string; userId: string }> }> {
+    try {
+      const response = await api.get('/inventory/opname/approver-setting');
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  /** IGDERP-236 (OP4): update the approver setting. */
+  async upsertApproverSetting(data: { outletId?: string; role?: string; userId?: string | null }): Promise<any> {
+    try {
+      const response = await api.put('/inventory/opname/approver-setting', data);
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  /** IGDERP-236 (OP4): approver candidates for an outlet (start-form prefill). */
+  async getApproverCandidates(outletId: string): Promise<{
+    defaultRole: string;
+    defaultUserId: string | null;
+    candidates: Array<{ id: string; displayName: string }>;
+  }> {
+    try {
+      const response = await api.get('/inventory/opname/approver-candidates', { params: { outletId } });
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  /** IGDERP-235 (OP3): variance review (selisih-first for the C2 layout). */
+  async getOpnameReview(opnameId: string): Promise<{
+    id: string;
+    opnameNumber: string;
+    code?: string;
+    opnameType?: string;
+    status: string;
+    summary: { products: number; countedProducts: number; selisih: number; cocok: number; belumDihitung: number; totalVarianceValue?: number; movementCount?: number };
+    selisih: any[];
+    cocok: any[];
+    belumDihitung: any[];
+  }> {
+    try {
+      const response = await api.get(`/inventory/opname/${opnameId}/review`);
       return response.data;
     } catch (error: any) {
       throw error;

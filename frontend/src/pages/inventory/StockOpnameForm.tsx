@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { BreadcrumbHeader } from '@/components/shared';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -74,6 +74,35 @@ export default function StockOpnameForm() {
     return users.filter((u) => userRoles(u).some((r) => APPROVER_ROLES.includes(r)));
   }, [usersData]);
 
+  // IGDERP-236 (OP4): pre-fill the approver from the General setting
+  // (per-outlet person override, else first holder of the default role).
+  const { data: approverCandidates } = useQuery({
+    queryKey: ['opname-approver-candidates', outletId],
+    queryFn: () => inventoryService.getApproverCandidates(outletId),
+    enabled: !!outletId,
+    retry: false,
+  });
+  useEffect(() => {
+    if (!outletId) return;
+    if (approverCandidates?.defaultUserId) setApproverId(approverCandidates.defaultUserId);
+    else if (approverCandidates) setApproverId('');
+  }, [outletId, approverCandidates]);
+
+  // Allowed list = setting candidates ∪ role-filtered users (reassignable within it)
+  const approverOptions: any[] = useMemo(() => {
+    const byId = new Map<string, any>();
+    for (const u of approvers) byId.set(u.id, u);
+    for (const c of approverCandidates?.candidates ?? []) {
+      if (!byId.has(c.id)) {
+        byId.set(c.id, { id: c.id, fullName: c.displayName, username: c.displayName });
+      }
+    }
+    return [...byId.values()];
+  }, [approvers, approverCandidates]);
+  const defaultApproverLabel = approverCandidates
+    ? `Default — ${approverCandidates.candidates.find((c) => c.id === approverCandidates.defaultUserId)?.displayName || 'tidak ada (' + approverCandidates.defaultRole + ')'}`
+    : 'Outlet manager (default)';
+
   const toggleCategory = (id: string) => {
     setCategoriesTouched(true);
     setSelectedCategories((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]));
@@ -113,9 +142,9 @@ export default function StockOpnameForm() {
   };
 
   const outletName = branches?.find((b: any) => b.id === outletId)?.name || '-';
-  const approverName = approvers.find((u: any) => u.id === approverId)?.fullName
-    || approvers.find((u: any) => u.id === approverId)?.username
-    || 'Outlet manager (default)';
+  const approverName = approverOptions.find((u: any) => u.id === approverId)?.fullName
+    || approverOptions.find((u: any) => u.id === approverId)?.username
+    || defaultApproverLabel;
 
   const copyCode = async () => {
     try {
@@ -276,8 +305,8 @@ export default function StockOpnameForm() {
               onChange={(e) => setApproverId(e.target.value)}
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             >
-              <option value="">Outlet manager (default)</option>
-              {approvers.map((u: any) => (
+              <option value="">{defaultApproverLabel}</option>
+              {approverOptions.map((u: any) => (
                 <option key={u.id} value={u.id}>
                   {u.fullName || u.username} ({userRoles(u).join(', ')})
                 </option>

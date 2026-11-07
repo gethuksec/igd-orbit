@@ -7,12 +7,12 @@ import {
   Loader2,
   ClipboardCheck,
   Search,
-  AlertTriangle,
   RefreshCw,
   Plus,
   Trash2,
   X,
   ScanBarcode,
+  Users,
 } from 'lucide-react';
 import { BreadcrumbHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
@@ -28,11 +28,18 @@ import { productsService } from '../../services/products.service';
 import { toast } from 'sonner';
 type Condition = 'good' | 'damaged' | 'expired';
 
-const toNumber = (v: any): number => {
-  if (v === null || v === undefined) return 0;
-  return typeof v === 'string' ? parseFloat(v) : Number(v);
+type ResolvedProduct = {
+  product: { id: string; name: string; sku: string; barcode: string | null; category: { id: string; name: string } | null };
+  lines: Array<{ itemId: string; condition: string; physicalQuantity: string | null; countedBy: string | null }>;
 };
 
+/**
+ * IGDERP-234 (OP2): blind count page.
+ * Counters never see system/expected/variance — scan resolves to product
+ * identity only, qty entry is GOOD/RUSAK/KADALUARSA, unknown barcodes go to
+ * the exception log. Server is source of truth; refresh is manual (+15s
+ * progress poll). No push channel per the IGDERP-92 draft model.
+ */
 export default function StockOpnameCount() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -42,23 +49,25 @@ export default function StockOpnameCount() {
     try {
       return JSON.parse(localStorage.getItem('user') || '{}');
     } catch {
-      return {};
+      return {} as any;
     }
   }, []);
 
   const [scanQuery, setScanQuery] = useState('');
-  const [activeItemId, setActiveItemId] = useState<string | null>(null);
+  const [activeProduct, setActiveProduct] = useState<ResolvedProduct | null>(null);
+  const [cardGood, setCardGood] = useState('');
+  const [cardDamaged, setCardDamaged] = useState('');
+  const [cardExpired, setCardExpired] = useState('');
+  const [cardNote, setCardNote] = useState('');
   const [counts, setCounts] = useState<Record<string, string>>({});
   const [conditions, setConditions] = useState<Record<string, Condition>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [addSearch, setAddSearch] = useState('');
   const scanInputRef = useRef<HTMLInputElement>(null);
-  const activeQtyRef = useRef<HTMLInputElement>(null);
+  const cardGoodRef = useRef<HTMLInputElement>(null);
 
   // IGDERP-176: crash-proof draft — unsubmitted inputs survive refresh.
-  // Server is source of truth; the draft only fills items the server
-  // has no count for, and is pruned as items get saved.
   const draftKey = `opname-draft:${id}`;
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(() => {
     try {
@@ -69,7 +78,7 @@ export default function StockOpnameCount() {
   });
   const [draftRestored, setDraftRestored] = useState(false);
 
-  // IGDERP-175: same-condition double-scan reject + >5% confirm modal
+  // IGDERP-175: same-condition double-scan reject modal (server 409)
   const [rejectInfo, setRejectInfo] = useState<{
     productName: string;
     cond: Condition;
@@ -77,29 +86,41 @@ export default function StockOpnameCount() {
     physical: number;
     rowId: string;
   } | null>(null);
-  // IGDERP-175 (QA 23 Sep): unknown-barcode mismatch popup (explicit dialog,
-  // a toast alone was missed/proved too subtle on live)
+  // IGDERP-175 + OP2: unknown-barcode mismatch popup (explicit dialog + BE log)
   const [mismatchQuery, setMismatchQuery] = useState<string | null>(null);
-  // IGDERP-175 (QA R2 23 Sep): persistent scan-event notice — headless runs
-  // can miss toasts/dialogs, the last scan result always stays in the DOM
-  const [scanNotice, setScanNotice] = useState<{ kind: 'found' | 'mismatch' | 'double'; text: string } | null>(null);
-  const [bigSave, setBigSave] = useState<{
-    item: any;
-    qty: number;
-    cond: Condition;
-    pct: number;
+  const [scopeNotice, setScopeNotice] = useState<string | null>(null);
+  // IGDERP-236 (OP4): correction reason dialog (force-overwrite needs a reason)
+  const [reasonDialog, setReasonDialog] = useState<{
+    lines: Array<{ productId: string; physicalQuantity?: number; condition?: Condition; goodQuantity?: number; damagedQuantity?: number; expiredQuantity?: number; notes?: string; force?: boolean }>;
+    context: string;
   } | null>(null);
-  const [bigNote, setBigNote] = useState('');
+  const [reasonInput, setReasonInput] = useState('');
+  const [scanNotice, setScanNotice] = useState<{ kind: 'found' | 'mismatch' | 'double' | 'scope'; text: string } | null>(null);
 
+  // OP2: scoped blind count view (never system stock for counters)
   const { data: opname, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['inventory-opname', id],
-    queryFn: () => inventoryService.getOpnameById(id!),
+    queryFn: () => inventoryService.getCountView(id!),
     enabled: !!id,
   });
 
+  // OP2: session progress — who counted what (polled, no push channel)
+  const { data: progress, refetch: refetchProgress } = useQuery({
+    queryKey: ['inventory-opname-progress', id],
+    queryFn: () => inventoryService.getOpnameProgress(id!),
+    enabled: !!id,
+    refetchInterval: 15000,
+  });
+
+  // OP2: unknown-barcode exceptions (coordinator roles only; hidden otherwise)
+  const { data: exceptions } = useQuery({
+    queryKey: ['inventory-opname-exceptions', id],
+    queryFn: () => inventoryService.listOpnameExceptions(id!),
+    enabled: !!id,
+    retry: false,
+  });
+
   // Initialize local inputs from server data — uncounted items stay EMPTY
-  // (no silent "physical = system" prefill). IGDERP-176: merge the crash
-  // draft for items the server has no count for.
   useEffect(() => {
     if (opname) {
       const nextCounts: Record<string, string> = {};
@@ -180,33 +201,52 @@ export default function StockOpnameCount() {
       /* ignore */
     }
   };
-  // Auto-focus the scanned item's quantity input
+
+  // Focus the GOOD qty input when a scan card opens; scan box otherwise
   useEffect(() => {
-    if (activeItemId) {
-      const t = setTimeout(() => activeQtyRef.current?.focus(), 50);
+    if (activeProduct) {
+      const t = setTimeout(() => cardGoodRef.current?.focus(), 50);
       return () => clearTimeout(t);
     }
-  }, [activeItemId]);
-
-  // IGDERP-175 (§3): cursor standby in the scan column — refocus the scan
-  // box whenever no scan card is open (initial load, after a save, on close).
+  }, [activeProduct]);
   useEffect(() => {
-    if (!activeItemId) {
+    if (!activeProduct) {
       const t = setTimeout(() => scanInputRef.current?.focus(), 50);
       return () => clearTimeout(t);
     }
-  }, [activeItemId]);
+  }, [activeProduct]);
+
+  const refreshAll = () => {
+    refetch();
+    refetchProgress();
+  };
 
   const recordMutation = useMutation({
-    mutationFn: (data: { items: Array<{ productId: string; physicalQuantity: number; condition?: Condition; notes?: string; force?: boolean }> }) =>
+    mutationFn: (data: { items: Array<{ productId: string; physicalQuantity?: number; condition?: Condition; goodQuantity?: number; damagedQuantity?: number; expiredQuantity?: number; notes?: string; force?: boolean }> }) =>
       inventoryService.recordCount(id!, data),
     onSuccess: () => {
       toast.success('Hasil perhitungan disimpan');
       setLastSavedAt(new Date().toISOString());
       queryClient.invalidateQueries({ queryKey: ['inventory-opname', id] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-opname-progress', id] });
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Gagal menyimpan hasil perhitungan');
+      const status = error.response?.status;
+      const message: string = error.response?.data?.message || '';
+      // OP2: same-condition re-scan = 409 reject (keep existing) → modal
+      if (status === 409 && activeProduct) {
+        const prodItems = (opname?.items ?? []).filter((i) => i.productId === activeProduct.product.id);
+        const hit = prodItems.find((i) => i.physicalQuantity !== null && i.physicalQuantity !== undefined);
+        setRejectInfo({
+          productName: activeProduct.product.name,
+          cond: firstEnteredCond(),
+          countedLabel: hit?.countedBy === me.id ? 'Anda' : 'petugas lain',
+          physical: hit ? Number(hit.physicalQuantity) : 0,
+          rowId: hit?.id || '',
+        });
+        return;
+      }
+      toast.error(message || 'Gagal menyimpan hasil perhitungan');
     },
   });
 
@@ -256,75 +296,62 @@ export default function StockOpnameCount() {
     },
   });
 
-  const isCounted = (itemId: string) =>
-    counts[itemId] !== undefined && counts[itemId] !== '';
-
-  const countedItems = useMemo(
-    () => (opname?.items ?? []).filter((i) => isCounted(i.id)).length,
-    [opname, counts],
-  );
-  const totalItems = opname?.items.length ?? 0;
-  const remaining = totalItems - countedItems;
-  const progressPct = totalItems > 0 ? Math.round((countedItems / totalItems) * 100) : 0;
-
-  // Per-counter breakdown
-  const myCounted = useMemo(
-    () => (opname?.items ?? []).filter((i) => isCounted(i.id) && i.countedBy === me.id).length,
-    [opname, counts, me.id],
-  );
-  const othersCounted = countedItems - myCounted;
-
-  const totalDiscrepancyValue = useMemo(
-    () =>
-      (opname?.items ?? []).reduce((sum, i) => sum + toNumber(i.discrepancyValue), 0),
+  // ---- server-truth progress (blind: physical counts only, never system) ----
+  const serverCountedRows = useMemo(
+    () => (opname?.items ?? []).filter((i) => i.physicalQuantity !== null && i.physicalQuantity !== undefined).length,
     [opname],
   );
+  const totalRows = opname?.items.length ?? 0;
+  const remaining = totalRows - serverCountedRows;
+  const progressPct = totalRows > 0 ? Math.round((serverCountedRows / totalRows) * 100) : 0;
 
-  const handleScanSubmit = (e: React.FormEvent) => {
+  const openCard = (resolved: ResolvedProduct) => {
+    setActiveProduct(resolved);
+    setCardGood('');
+    setCardDamaged('');
+    setCardExpired('');
+    setCardNote('');
+    setScopeNotice(null);
+  };
+
+  // OP2: scan → server resolve (identity only). Unknown → exception popup + log.
+  const handleScanSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const q = scanQuery.trim().toLowerCase();
-    if (!q || !opname) return;
-    const rows = opname.items.filter((i) => {
-      const barcode = (i.product?.barcode || '').toLowerCase();
-      const sku = (i.product?.sku || '').toLowerCase();
-      const name = (i.product?.name || '').toLowerCase();
-      return barcode === q || sku === q || name.includes(q);
-    });
-    if (rows.length > 0) {
-      // IGDERP-175: prefer an uncounted row; the condition picker + reject
-      // modal sort out same-condition re-scans after the condition is chosen
-      const uncounted = rows.find((i) => i.physicalQuantity === null || i.physicalQuantity === undefined);
-      const target = uncounted || rows[0];
-      // IGDERP-175 (QA R2 23 Sep): PRE-SAVE double-scan — card already open
-      // for this product, or a qty already typed but not saved yet
-      const alreadyOpen = rows.some(
-        (i) => i.id === activeItemId || (counts[i.id] !== undefined && counts[i.id] !== ''),
-      );
-      setActiveItemId(target.id);
+    const q = scanQuery.trim();
+    if (!q || !id) return;
+    try {
+      const resolved = await inventoryService.resolveBarcode(id, q);
       setScanQuery('');
-      const prodName = target.product?.name || '-';
-      // IGDERP-175 (QA 23 Sep): scan-time double-scan warning — every matching
-      // row is already counted, so this scan can only be a correction
-      if (!uncounted) {
-        toast.warning(
-          `"${prodName}" sudah dihitung (fisik ${target.physicalQuantity}) — kartu dibuka untuk koreksi`,
-        );
-        setScanNotice({ kind: 'double', text: `"${prodName}" sudah dihitung (fisik ${target.physicalQuantity}) — scan ganda, kartu dibuka untuk koreksi` });
-      } else if (alreadyOpen) {
-        toast.warning(`"${prodName}" sudah di-scan — kartu sudah terbuka, koreksi langsung di kartu`);
-        setScanNotice({ kind: 'double', text: `"${prodName}" sudah di-scan — kartu sudah terbuka (scan ganda)` });
+      openCard(resolved);
+      const recorded = resolved.lines.filter((l) => l.physicalQuantity !== null);
+      setScanNotice({
+        kind: 'found',
+        text: recorded.length > 0
+          ? `"${resolved.product.name}" cocok — sudah tercatat (${recorded.map((l) => `${condLabel(l.condition)} ${l.physicalQuantity}`).join(' · ')}), isi untuk koreksi`
+          : `"${resolved.product.name}" cocok — kartu dibuka, isi jumlah Baik/Rusak/Kadaluarsa`,
+      });
+    } catch (error: any) {
+      const status = error.response?.status;
+      if (status === 404) {
+        // Unknown barcode → exception popup + BE log, NO new line
+        setMismatchQuery(q);
+        setScanNotice({ kind: 'mismatch', text: `"${q}" tidak dikenal dalam opname ini — dicatat sebagai pengecualian` });
+        try {
+          await inventoryService.logOpnameException(id, q);
+          queryClient.invalidateQueries({ queryKey: ['inventory-opname-progress', id] });
+        } catch {
+          /* logging is best-effort; the popup already told the counter */
+        }
+      } else if (status === 403) {
+        setScopeNotice(`"${q}" ada di opname ini tapi di luar kategori tugas Anda — minta koordinator untuk penugasan.`);
+        setScanNotice({ kind: 'scope', text: `"${q}" di luar kategori tugas Anda` });
       } else {
-        setScanNotice({ kind: 'found', text: `"${prodName}" cocok — kartu dibuka, pilih kondisi lalu isi jumlah` });
+        toast.error(error.response?.data?.message || 'Gagal memproses scan');
       }
-    } else {
-      // IGDERP-175 (QA 23 Sep): explicit mismatch popup, not just a toast.
-      // QA R2: keep the text in the box as evidence + persistent notice.
-      setMismatchQuery(scanQuery.trim());
-      setScanNotice({ kind: 'mismatch', text: `"${scanQuery.trim()}" tidak cocok dengan barcode, SKU, atau nama produk mana pun dalam opname ini` });
     }
   };
 
-  // Live suggestions while typing in the scan box (like master product search)
+  // Live suggestions while typing (identity only — never stock figures)
   const scanMatches = useMemo(() => {
     const q = scanQuery.trim().toLowerCase();
     if (!q || !opname) return [];
@@ -338,36 +365,93 @@ export default function StockOpnameCount() {
       .slice(0, 8);
   }, [scanQuery, opname]);
 
-  const pickScanMatch = (item: any) => {
-    if (!opname) {
-      setActiveItemId(item.id);
+  const pickScanMatch = async (item: any) => {
+    const key = item.product?.barcode || item.product?.sku || '';
+    if (!key || !id) return;
+    setScanQuery(key);
+    try {
+      const resolved = await inventoryService.resolveBarcode(id, key);
       setScanQuery('');
-      return;
+      openCard(resolved);
+      setScanNotice({ kind: 'found', text: `"${resolved.product.name}" cocok — kartu dibuka, isi jumlah` });
+    } catch (error: any) {
+      if (error.response?.status === 403) {
+        setScopeNotice(`"${item.product?.name}" di luar kategori tugas Anda.`);
+        setScanNotice({ kind: 'scope', text: `"${item.product?.name}" di luar kategori tugas Anda` });
+      } else {
+        toast.error(error.response?.data?.message || 'Gagal memproses scan');
+      }
     }
-    // IGDERP-175: same product-preference as scan submit (uncounted row first)
-    const rows = opname.items.filter((i) => i.productId === item.productId);
-    const target =
-      rows.find((i) => i.physicalQuantity === null || i.physicalQuantity === undefined) ||
-      rows[0] ||
-      item;
-    // IGDERP-175 (QA R2 23 Sep): pre-save double-scan via suggestion tap too
-    if (target.id === activeItemId) {
-      toast.warning(`"${target.product?.name || '-'}" sudah di-scan — kartu sudah terbuka`);
-      setScanNotice({ kind: 'double', text: `"${target.product?.name || '-'}" sudah di-scan — kartu sudah terbuka (scan ganda)` });
-    } else {
-      setScanNotice({ kind: 'found', text: `"${target.product?.name || '-'}" cocok — kartu dibuka, pilih kondisi lalu isi jumlah` });
-    }
-    setActiveItemId(target.id);
-    setScanQuery('');
   };
 
-  const saveItem = (item: any, qty?: string, cond?: Condition, note?: string, force = false) => {
-    // IGDERP-176 save-lock: never double-submit while a save is in flight
+  const parseQty = (v: string): number | undefined => {
+    if (v === undefined || v === null || String(v).trim() === '') return undefined;
+    const n = parseInt(String(v), 10);
+    return Number.isNaN(n) || n < 0 ? NaN : n;
+  };
+
+  const firstEnteredCond = (): Condition => {
+    if (cardGood.trim() !== '') return 'good';
+    if (cardDamaged.trim() !== '') return 'damaged';
+    return 'expired';
+  };
+
+  // OP2: one scan saves GOOD/RUSAK/KADALUARSA together (empty = untouched)
+  const saveCard = () => {
+    if (!activeProduct || recordMutation.isPending) return;
+    const g = parseQty(cardGood);
+    const d = parseQty(cardDamaged);
+    const x = parseQty(cardExpired);
+    if (g === undefined && d === undefined && x === undefined) {
+      toast.error('Isi minimal satu jumlah (Baik, Rusak, atau Kadaluarsa)');
+      return;
+    }
+    if (g !== undefined && Number.isNaN(g) || d !== undefined && Number.isNaN(d as number) || x !== undefined && Number.isNaN(x as number)) {
+      toast.error('Masukkan jumlah yang valid');
+      return;
+    }
+    recordMutation.mutate(
+      {
+        items: [
+          {
+            productId: activeProduct.product.id,
+            ...(g !== undefined ? { goodQuantity: g } : {}),
+            ...(d !== undefined ? { damagedQuantity: d } : {}),
+            ...(x !== undefined ? { expiredQuantity: x } : {}),
+            notes: cardNote || undefined,
+          },
+        ],
+      },
+      {
+        onSuccess: () => setActiveProduct(null),
+      },
+    );
+  };
+
+  const saveGridRow = (item: any, reason?: string) => {
     if (recordMutation.isPending) return;
-    const q = qty ?? counts[item.id];
+    const q = counts[item.id];
     const parsed = q !== undefined && q !== '' ? parseInt(q, 10) : NaN;
     if (Number.isNaN(parsed) || parsed < 0) {
       toast.error('Masukkan jumlah yang valid');
+      return;
+    }
+    const serverCounted = item.physicalQuantity !== null && item.physicalQuantity !== undefined;
+    // IGDERP-236 (OP4): overwriting a counted row needs a reason
+    if (serverCounted && !reason) {
+      setReasonInput('');
+      setReasonDialog({
+        lines: [
+          {
+            productId: item.productId,
+            physicalQuantity: parsed,
+            condition: (conditions[item.id] || item.condition || 'good') as Condition,
+            notes: (notes[item.id] || item.notes) || undefined,
+            force: true,
+          },
+        ],
+        context: `"${item.product?.name || '-'}" sudah tercatat (${item.physicalQuantity}) — isi alasan koreksi untuk mengubah.`,
+      });
       return;
     }
     recordMutation.mutate({
@@ -375,34 +459,48 @@ export default function StockOpnameCount() {
         {
           productId: item.productId,
           physicalQuantity: parsed,
-          condition: (cond ?? conditions[item.id]) || 'good',
-          notes: (note ?? notes[item.id]) || undefined,
-          force,
+          condition: (conditions[item.id] || item.condition || 'good') as Condition,
+          notes: (notes[item.id] || item.notes) || undefined,
+          force: true,
+          ...(reason ? { correctionReason: reason } : {}),
         },
       ],
     });
-    // Keep focus in the flow: move to next scan after saving from the scanned card
-    setActiveItemId(null);
   };
 
-  const handleSaveAll = () => {
-    // IGDERP-176 save-lock
+  const handleSaveAll = (reason?: string) => {
     if (!opname || recordMutation.isPending) return;
     const itemsToSave = opname.items
-      .filter((i) => isCounted(i.id))
+      .filter((i) => counts[i.id] !== undefined && counts[i.id] !== '')
       .map((i) => ({
         productId: i.productId,
         physicalQuantity: parseInt(counts[i.id], 10),
-        condition: conditions[i.id] || 'good',
+        condition: (conditions[i.id] || i.condition || 'good') as Condition,
         notes: notes[i.id] || undefined,
-        // IGDERP-175: explicit bulk save = corrections allowed (force)
         force: true,
       }));
     if (itemsToSave.length === 0) {
       toast.error('Belum ada hasil perhitungan untuk disimpan');
       return;
     }
-    recordMutation.mutate({ items: itemsToSave });
+    // IGDERP-236 (OP4): bulk overwrite of counted rows needs one reason
+    const touchesCounted = itemsToSave.some((l) => {
+      const row = opname.items.find(
+        (i) => i.productId === l.productId && (i.condition || 'good') === (l.condition || 'good'),
+      );
+      return row && row.physicalQuantity !== null && row.physicalQuantity !== undefined;
+    });
+    if (touchesCounted && !reason) {
+      setReasonInput('');
+      setReasonDialog({
+        lines: itemsToSave,
+        context: 'Sebagian baris sudah tercatat — isi satu alasan koreksi untuk seluruh penyimpanan ini.',
+      });
+      return;
+    }
+    recordMutation.mutate({
+      items: itemsToSave.map((l) => (reason ? { ...l, correctionReason: reason } : l)),
+    });
   };
 
   const handleCancel = () => {
@@ -415,7 +513,7 @@ export default function StockOpnameCount() {
     if (remaining > 0) return;
     if (
       window.confirm(
-        `Ajukan opname ini (${countedItems} item) untuk persetujuan? Setelah diajukan, item tidak bisa diubah lagi.`,
+        `Ajukan opname ini (${serverCountedRows} baris) untuk persetujuan? Setelah diajukan, item tidak bisa diubah lagi.`,
       )
     ) {
       completeMutation.mutate();
@@ -423,92 +521,23 @@ export default function StockOpnameCount() {
   };
 
   const handleRemove = (item: any) => {
+    const saved = item.physicalQuantity !== null && item.physicalQuantity !== undefined;
     if (
       window.confirm(
-        `Hapus "${item.product?.name}" dari opname? ${isCounted(item.id) ? 'Hasil hitungannya juga akan dibuang.' : ''}`,
+        `Hapus "${item.product?.name}" dari opname? ${saved ? 'Hasil hitungannya juga akan dibuang.' : ''}`,
       )
     ) {
       removeItemMutation.mutate(item.id);
     }
   };
 
-  const activeItem = activeItemId
-    ? (opname?.items ?? []).find((i) => i.id === activeItemId)
-    : null;
-
-  // IGDERP-175: condition-first scan — qty + Simpan stay locked until a
-  // condition is chosen; same-condition re-scan opens the reject modal.
-  const activeCond = (activeItem ? conditions[activeItem.id] || '' : '') as '' | Condition;
-  const activeRows =
-    activeItem && opname ? opname.items.filter((i) => i.productId === activeItem.productId) : [];
-  const sameCounted = activeCond
-    ? activeRows.find(
-        (r) =>
-          (r.condition || undefined) === activeCond &&
-          r.physicalQuantity !== null &&
-          r.physicalQuantity !== undefined,
-      )
-    : undefined;
-  const diffCounted = activeCond
-    ? activeRows.filter(
-        (r) =>
-          r.physicalQuantity !== null &&
-          r.physicalQuantity !== undefined &&
-          (r.condition || undefined) !== activeCond,
-      )
-    : [];
   const condLabel = (c: string) => (c === 'damaged' ? 'Rusak' : c === 'expired' ? 'Kadaluarsa' : 'Baik');
 
-  const pickCondition = (c: Condition | '') => {
-    if (!activeItem || !opname) return;
-    if (c) {
-      setConditions({ ...conditions, [activeItem.id]: c });
-      const hit = opname.items.find(
-        (r) =>
-          r.productId === activeItem.productId &&
-          (r.condition || undefined) === c &&
-          r.physicalQuantity !== null &&
-          r.physicalQuantity !== undefined,
-      );
-      if (hit) {
-        setRejectInfo({
-          productName: activeItem.product?.name || '-',
-          cond: c,
-          countedLabel: hit.countedBy === me.id ? 'Anda' : 'petugas lain',
-          physical: Number(hit.physicalQuantity),
-          rowId: hit.id,
-        });
-      }
-    } else {
-      const next = { ...conditions };
-      delete next[activeItem.id];
-      setConditions(next);
-    }
-  };
-
-  const attemptSave = () => {
-    if (!activeItem || !activeCond || sameCounted || recordMutation.isPending) return;
-    const parsed = parseInt(counts[activeItem.id] ?? '', 10);
-    if (Number.isNaN(parsed) || parsed < 0) {
-      toast.error('Masukkan jumlah yang valid');
-      return;
-    }
-    const live = toNumber(activeItem.liveQuantity);
-    const pct = live > 0 ? (Math.abs(parsed - live) / live) * 100 : 0;
-    if (pct > 5) {
-      setBigNote(notes[activeItem.id] || '');
-      setBigSave({ item: activeItem, qty: parsed, cond: activeCond, pct });
-    } else {
-      saveItem(activeItem, String(parsed), activeCond);
-    }
-  };
-
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(amount);
+  const myCategories: string[] = useMemo(() => {
+    if (!opname?.myCategoryIds) return [];
+    const byId = new Map((opname.assignments ?? []).map((a) => [a.categoryId, a.category?.name || a.categoryId]));
+    return opname.myCategoryIds.map((cid) => byId.get(cid) || cid);
+  }, [opname]);
 
   if (isLoading || !opname) {
     return (
@@ -525,13 +554,18 @@ export default function StockOpnameCount() {
     <div className="w-full space-y-4">
       <BreadcrumbHeader
         title="Catat Hasil Perhitungan"
-        subtitle={`${opname.opnameNumber} · ${opname.branch?.name || 'Cabang'} · ${new Date(opname.opnameDate).toLocaleDateString('id-ID')}`}
+        subtitle={`${opname.opnameNumber}${opname.code ? ` · ${opname.code}` : ''} · ${opname.branch?.name || 'Cabang'} · ${new Date(opname.opnameDate).toLocaleDateString('id-ID')}`}
       >
         <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 border border-red-200 px-3 py-1 text-xs font-bold text-red-700">
           ● COUNTING
         </span>
+        {opname.opnameType && (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 border border-gray-300 px-3 py-1 text-xs font-bold text-gray-700">
+            {opname.opnameType}
+          </span>
+        )}
         <button
-          onClick={() => refetch()}
+          onClick={refreshAll}
           disabled={isFetching}
           className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
         >
@@ -547,7 +581,17 @@ export default function StockOpnameCount() {
         </button>
       </BreadcrumbHeader>
 
-      {/* IGDERP-176: autosave status bar — draft durability + save-lock state */}
+      {/* OP2: assignment scope notice */}
+      {myCategories.length > 0 && (
+        <div className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+          <Users className="w-4 h-4 shrink-0" />
+          <span>
+            <b>Tugas Anda:</b> {myCategories.join(' · ')} — produk di luar kategori ini disembunyikan.
+          </span>
+        </div>
+      )}
+
+      {/* IGDERP-176: autosave status bar */}
       <div className="flex items-center gap-2 rounded-lg border border-dashed border-gray-300 bg-gray-50 px-3 py-1.5 text-xs text-gray-500">
         <span
           className={`inline-block w-2 h-2 rounded-full ${unsavedCount > 0 ? 'bg-amber-500' : 'bg-green-500'}`}
@@ -574,13 +618,15 @@ export default function StockOpnameCount() {
         )}
       </div>
 
-      {/* Progress */}
+      {/* Progress — blind: physical counts only */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-bold text-gray-900">Progress Perhitungan</span>
           <span className="text-xs text-gray-500">
-            <b className="text-primary-600">{countedItems}</b> dari {totalItems} item dihitung ·{' '}
-            <b className="text-gray-900">{myCounted > 0 || othersCounted > 0 ? (myCounted > 0 ? 1 : 0) + (othersCounted > 0 ? 1 : 0) : 0}</b> petugas
+            <b className="text-primary-600">{serverCountedRows}</b> dari {totalRows} baris dihitung
+            {progress && progress.byUser.length > 0 && (
+              <> · <b className="text-gray-900">{progress.byUser.length}</b> petugas</>
+            )}
           </span>
         </div>
         <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
@@ -589,29 +635,40 @@ export default function StockOpnameCount() {
             style={{ width: `${progressPct}%` }}
           />
         </div>
-        <div className="flex flex-wrap gap-4 mt-2.5 text-xs text-gray-500">
-          {myCounted > 0 && (
-            <span>
-              <b className="text-gray-900">Anda ({me.name || 'Saya'}):</b> {myCounted} item
+        {remaining > 0 && (
+          <div className="mt-2.5">
+            <span className="rounded-full bg-red-50 border border-red-200 px-2.5 py-0.5 text-xs font-semibold text-red-700">
+              {remaining} baris belum dihitung
             </span>
-          )}
-          {othersCounted > 0 && (
-            <span>
-              <b className="text-gray-900">Petugas lain:</b> {othersCounted} item
-            </span>
-          )}
-          {remaining > 0 && (
-            <span className="rounded-full bg-red-50 border border-red-200 px-2.5 py-0.5 font-semibold text-red-700">
-              {remaining} item belum dihitung
-            </span>
-          )}
-          <span>
-            Total selisih: <b className="text-gray-900">{formatCurrency(totalDiscrepancyValue)}</b>
-          </span>
-        </div>
+          </div>
+        )}
+        {/* OP2: who counted what (server, refreshed manually / 15s poll) */}
+        {progress && progress.byUser.length > 0 && (
+          <div className="mt-3 border-t border-gray-100 pt-2.5">
+            <div className="text-[11px] font-bold uppercase tracking-wide text-gray-500 mb-1.5">
+              Per petugas
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {progress.byUser.map((u) => (
+                <span
+                  key={u.userId}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-700"
+                  title={u.lastScanAt ? `Scan terakhir ${new Date(u.lastScanAt).toLocaleString('id-ID')}` : ''}
+                >
+                  <b>{u.displayName}</b> {u.products} produk · {u.quantity} pcs
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+        {progress && progress.totals.exceptions > 0 && (
+          <div className="mt-2 text-xs text-amber-700">
+            ⚠️ {progress.totals.exceptions} barcode tak dikenal dicatat sebagai pengecualian
+          </div>
+        )}
       </div>
 
-      {/* Scan box */}
+      {/* Scan box — OP2: server resolve, identity only */}
       <form onSubmit={handleScanSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 relative">
         <div className="flex items-center gap-3 rounded-lg border-2 border-primary-600 bg-white px-4 shadow-[0_0_0_4px_rgba(220,38,38,0.08)]">
           <ScanBarcode className="w-5 h-5 text-primary-600" />
@@ -620,7 +677,7 @@ export default function StockOpnameCount() {
             autoFocus
             value={scanQuery}
             onChange={(e) => setScanQuery(e.target.value)}
-            placeholder="Scan barcode, atau ketik nama/SKU lalu tekan Enter…"
+            placeholder="Scan barcode atau ketik SKU lalu tekan Enter…"
             className="flex-1 border-none outline-none py-3 text-base bg-transparent"
           />
           <kbd className="hidden sm:inline-block rounded border border-gray-300 border-b-2 bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600">
@@ -638,9 +695,11 @@ export default function StockOpnameCount() {
               >
                 <div className="font-medium text-gray-900 flex items-center gap-2">
                   {m.product?.name || '-'}
-                  <span className="text-[10px] rounded-full bg-gray-100 px-2 py-0.5 font-bold text-gray-500">
-                    {toNumber(m.liveQuantity)} stok
-                  </span>
+                  {m.physicalQuantity !== null && m.physicalQuantity !== undefined && (
+                    <span className="text-[10px] rounded-full bg-green-100 px-2 py-0.5 font-bold text-green-700">
+                      ✓ tercatat
+                    </span>
+                  )}
                 </div>
                 <div className="text-sm text-gray-500">
                   SKU: {m.product?.sku || '-'}
@@ -651,10 +710,9 @@ export default function StockOpnameCount() {
           </div>
         )}
         <p className="text-[11px] text-gray-400 mt-2 px-1">
-          Scanner USB (keyboard-wedge) langsung berfungsi — scan atau ketik → item muncul di kartu atas → isi jumlah →{' '}
-          <b className="text-primary-600">Enter</b> → otomatis lanjut ke item berikutnya.
+          Scanner USB (keyboard-wedge) langsung berfungsi — scan → kartu produk muncul → isi jumlah{' '}
+          <b>Baik/Rusak/Kadaluarsa</b> → <b className="text-primary-600">Enter</b> → otomatis lanjut.
         </p>
-        {/* IGDERP-175 (QA R2 23 Sep): last scan result stays in the DOM */}
         {scanNotice && (
           <div
             role="status"
@@ -664,120 +722,124 @@ export default function StockOpnameCount() {
             className={`mt-2 px-3 py-2 rounded-lg text-xs font-medium ${
               scanNotice.kind === 'mismatch'
                 ? 'bg-red-50 border border-red-200 text-red-700'
-                : scanNotice.kind === 'double'
+                : scanNotice.kind === 'scope'
                   ? 'bg-amber-50 border border-amber-200 text-amber-700'
-                  : 'bg-green-50 border border-green-200 text-green-700'
+                  : scanNotice.kind === 'double'
+                    ? 'bg-amber-50 border border-amber-200 text-amber-700'
+                    : 'bg-green-50 border border-green-200 text-green-700'
             }`}
           >
-            {scanNotice.kind === 'mismatch' ? '🔍 ' : scanNotice.kind === 'double' ? '⚠️ ' : '✅ '}
+            {scanNotice.kind === 'mismatch' ? '🔍 ' : scanNotice.kind === 'found' ? '✅ ' : '⚠️ '}
             {scanNotice.text}
+          </div>
+        )}
+        {scopeNotice && (
+          <div className="mt-2 px-3 py-2 rounded-lg text-xs font-medium bg-amber-50 border border-amber-200 text-amber-700">
+            {scopeNotice}
           </div>
         )}
       </form>
 
-      {/* Scanned item card */}
-      {activeItem && (
+      {/* OP2: scanned item card — GOOD/RUSAK/KADALUARSA entry, no system stock */}
+      {activeProduct && (
         <div className="rounded-xl border-2 border-primary-600 bg-red-50 p-4 shadow-[0_0_0_4px_rgba(220,38,38,0.08)]">
-          <div className="flex flex-wrap items-center gap-4">
+          <div className="flex flex-wrap items-start gap-4">
             <div className="flex-1 min-w-[200px]">
               <div className="font-bold text-gray-900 flex items-center gap-2">
-                {activeItem.product?.name || '-'}
+                {activeProduct.product.name}
                 <span className="rounded-full bg-red-100 border border-red-200 px-2 py-0.5 text-[10px] font-bold text-red-700">
                   BARU DI-SCAN
                 </span>
               </div>
               <div className="text-xs text-gray-500">
-                SKU: {activeItem.product?.sku || '-'}
-                {activeItem.product?.barcode ? ` · Barcode: ${activeItem.product.barcode}` : ''}
+                SKU: {activeProduct.product.sku}
+                {activeProduct.product.barcode ? ` · Barcode: ${activeProduct.product.barcode}` : ''}
+                {activeProduct.product.category ? ` · ${activeProduct.product.category.name}` : ''}
               </div>
+              {activeProduct.lines.filter((l) => l.physicalQuantity !== null).length > 0 && (
+                <div className="mt-1 text-xs text-gray-600">
+                  Tercatat:{' '}
+                  {activeProduct.lines
+                    .filter((l) => l.physicalQuantity !== null)
+                    .map((l) => `${condLabel(l.condition)} ${l.physicalQuantity}${l.countedBy === me.id ? ' (Anda)' : ''}`)
+                    .join(' · ')}
+                </div>
+              )}
             </div>
             <div className="text-center">
-              <div className="text-[10px] uppercase tracking-wide text-gray-500">
-                Stok Sistem <span className="text-green-600 font-semibold">● LIVE</span>
-              </div>
-              <div className="text-2xl font-extrabold text-gray-900">
-                {toNumber(activeItem.liveQuantity)}
-              </div>
-            </div>
-            {/* IGDERP-175 step 1: condition first — no default */}
-            <div className="text-center">
-              <div
-                className={`text-[10px] uppercase tracking-wide font-bold ${activeCond ? 'text-gray-500' : 'text-primary-600'}`}
-              >
-                1 · Kondisi {activeCond ? '✓' : 'dulu'}
-              </div>
-              <select
-                value={activeCond}
-                onChange={(e) => pickCondition(e.target.value as Condition | '')}
-                className={`h-11 rounded-lg border-2 bg-white px-3 text-sm ${activeCond ? 'border-gray-300' : 'border-primary-600'}`}
-              >
-                <option value="">— Pilih —</option>
-                <option value="good">Baik</option>
-                <option value="damaged">Rusak</option>
-                <option value="expired">Kadaluarsa</option>
-              </select>
-            </div>
-            {/* IGDERP-175 step 2: qty locked until condition chosen */}
-            <div className="text-center">
-              <div className="text-[10px] uppercase tracking-wide text-gray-500">
-                2 · Jumlah {activeCond ? '' : '(terkunci)'}
-              </div>
+              <div className="text-[10px] uppercase tracking-wide text-gray-500">Baik</div>
               <input
-                ref={activeQtyRef}
+                ref={cardGoodRef}
                 type="number"
                 min="0"
-                disabled={!activeCond}
-                value={counts[activeItem.id] ?? ''}
-                onChange={(e) => setCounts({ ...counts, [activeItem.id]: e.target.value })}
+                value={cardGood}
+                onChange={(e) => setCardGood(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
-                    attemptSave();
+                    saveCard();
                   }
                 }}
-                placeholder={activeCond ? 'Jumlah' : '—'}
-                className={`w-28 h-11 rounded-lg border-2 px-3 text-xl font-bold text-center outline-none ${
-                  activeCond ? 'border-primary-600 bg-white' : 'border-gray-300 bg-gray-100 text-gray-400'
-                }`}
+                placeholder="0"
+                className="w-24 h-11 rounded-lg border-2 border-primary-600 bg-white px-3 text-xl font-bold text-center outline-none"
               />
-              {activeCond &&
-                counts[activeItem.id] !== undefined &&
-                counts[activeItem.id] !== '' && (
-                  <div className="text-[11px] mt-1 text-gray-500">
-                    selisih{' '}
-                    <b className={toNumber(counts[activeItem.id]) - toNumber(activeItem.liveQuantity) < 0 ? 'text-red-600' : 'text-green-600'}>
-                      {toNumber(counts[activeItem.id]) - toNumber(activeItem.liveQuantity) > 0 ? '+' : ''}
-                      {toNumber(counts[activeItem.id]) - toNumber(activeItem.liveQuantity)}
-                    </b>
-                  </div>
-                )}
+            </div>
+            <div className="text-center">
+              <div className="text-[10px] uppercase tracking-wide text-gray-500">Rusak</div>
+              <input
+                type="number"
+                min="0"
+                value={cardDamaged}
+                onChange={(e) => setCardDamaged(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveCard();
+                  }
+                }}
+                placeholder="0"
+                className="w-24 h-11 rounded-lg border-2 border-gray-300 bg-white px-3 text-xl font-bold text-center outline-none focus:border-primary-600"
+              />
+            </div>
+            <div className="text-center">
+              <div className="text-[10px] uppercase tracking-wide text-gray-500">Kadaluarsa</div>
+              <input
+                type="number"
+                min="0"
+                value={cardExpired}
+                onChange={(e) => setCardExpired(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveCard();
+                  }
+                }}
+                placeholder="0"
+                className="w-24 h-11 rounded-lg border-2 border-gray-300 bg-white px-3 text-xl font-bold text-center outline-none focus:border-primary-600"
+              />
             </div>
             <button
-              onClick={attemptSave}
-              disabled={!activeCond || !!sameCounted || recordMutation.isPending}
+              onClick={saveCard}
+              disabled={recordMutation.isPending}
               className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-5 py-2.5 font-semibold text-white hover:bg-primary-700 disabled:opacity-50"
             >
               {recordMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               {recordMutation.isPending ? 'Menyimpan…' : 'Simpan'}
             </button>
             <button
-              onClick={() => setActiveItemId(null)}
+              onClick={() => setActiveProduct(null)}
               className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
               title="Tutup"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
-          {/* IGDERP-175: different condition already counted → this save creates a second row */}
-          {diffCounted.length > 0 && (
-            <div className="mt-2 text-xs text-blue-800 bg-blue-50 border border-blue-200 rounded-lg px-3 py-1.5">
-              Sudah ada:{' '}
-              {diffCounted
-                .map((r) => `${condLabel(r.condition || 'good')} ${toNumber(r.physicalQuantity)}`)
-                .join(' · ')}{' '}
-              — menyimpan {condLabel(activeCond)} membuat baris baru.
-            </div>
-          )}
+          <input
+            value={cardNote}
+            onChange={(e) => setCardNote(e.target.value)}
+            placeholder="Catatan (opsional)"
+            className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-primary-500"
+          />
         </div>
       )}
 
@@ -789,7 +851,7 @@ export default function StockOpnameCount() {
             <DialogDescription>
               {rejectInfo?.productName} sudah dicatat oleh {rejectInfo?.countedLabel} (fisik{' '}
               {rejectInfo?.physical}, kondisi{' '}
-              {rejectInfo ? condLabel(rejectInfo.cond) : ''}). Scan ganda ditolak.
+              {rejectInfo ? condLabel(rejectInfo.cond) : ''}). Scan ganda ditolak — data lama dipertahankan.
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2">
@@ -801,7 +863,7 @@ export default function StockOpnameCount() {
               onClick={() => {
                 const rowId = rejectInfo?.rowId;
                 setRejectInfo(null);
-                setActiveItemId(null);
+                setActiveProduct(null);
                 if (rowId) {
                   setTimeout(
                     () =>
@@ -819,7 +881,7 @@ export default function StockOpnameCount() {
         </DialogContent>
       </Dialog>
 
-      {/* IGDERP-175 (QA 23 Sep): unknown-barcode mismatch popup */}
+      {/* OP2: unknown-barcode exception popup (logged, never a count line) */}
       <Dialog
         open={mismatchQuery !== null}
         onOpenChange={(o) => {
@@ -831,10 +893,10 @@ export default function StockOpnameCount() {
       >
         <DialogContent className="max-w-md" data-testid="mismatch-dialog">
           <DialogHeader>
-            <DialogTitle>🔍 Barcode tidak cocok</DialogTitle>
+            <DialogTitle>🔍 Barcode tidak dikenal</DialogTitle>
             <DialogDescription>
-              <b>{mismatchQuery}</b> tidak cocok dengan barcode, SKU, atau nama produk mana pun
-              dalam opname ini. Periksa barang atau ketik ulang.
+              <b>{mismatchQuery}</b> tidak cocok dengan produk mana pun dalam opname ini.
+              Sudah dicatat sebagai pengecualian untuk koordinator — tidak ada baris hitungan baru.
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2">
@@ -851,80 +913,63 @@ export default function StockOpnameCount() {
         </DialogContent>
       </Dialog>
 
-      {/* IGDERP-175: >5% variance confirm modal (note optional, row never shifts) */}
-      <Dialog open={!!bigSave} onOpenChange={(o) => !o && setBigSave(null)}>
+      {/* IGDERP-236 (OP4): correction reason dialog — overwrites need a reason */}
+      <Dialog open={reasonDialog !== null} onOpenChange={(o) => !o && setReasonDialog(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>⚠️ Selisih besar ({bigSave ? `−${bigSave.pct.toFixed(1)}%`.replace('−−', '') : ''})</DialogTitle>
-            <DialogDescription>
-              Sistem <b>{bigSave ? toNumber(bigSave.item.liveQuantity) : ''}</b> · Fisik{' '}
-              <b>{bigSave?.qty}</b> · kondisi{' '}
-              <b>{bigSave ? condLabel(bigSave.cond) : ''}</b>. Tekan <b>Tetap simpan</b>{' '}
-              untuk menyimpan, atau <b>Periksa lagi</b> untuk hitung ulang.
-            </DialogDescription>
+            <DialogTitle>📝 Alasan koreksi</DialogTitle>
+            <DialogDescription>{reasonDialog?.context}</DialogDescription>
           </DialogHeader>
           <input
-            value={bigNote}
-            onChange={(e) => setBigNote(e.target.value)}
-            placeholder="Catatan (opsional)"
+            value={reasonInput}
+            onChange={(e) => setReasonInput(e.target.value)}
+            placeholder="mis. salah baca label, hitung ulang…"
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500"
           />
           <div className="flex justify-end gap-2">
-            <Button variant="outline" size="sm" onClick={() => setBigSave(null)}>
-              Periksa lagi
+            <Button variant="outline" size="sm" onClick={() => setReasonDialog(null)}>
+              Batal
             </Button>
             <Button
               size="sm"
+              disabled={!reasonInput.trim() || recordMutation.isPending}
               onClick={() => {
-                if (!bigSave) return;
-                const s = bigSave;
-                setBigSave(null);
-                if (bigNote) setNotes((n) => ({ ...n, [s.item.id]: bigNote }));
-                saveItem(s.item, String(s.qty), s.cond, bigNote || undefined);
+                if (!reasonDialog || !reasonInput.trim()) return;
+                const lines = reasonDialog.lines;
+                const reason = reasonInput.trim();
+                setReasonDialog(null);
+                recordMutation.mutate({
+                  items: lines.map((l) => ({ ...l, correctionReason: reason })),
+                });
               }}
             >
-              Tetap simpan
+              Simpan koreksi
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Grid */}
+      {/* Grid — blind browse/edit (no system stock, no variance) */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="flex items-center justify-between px-4 pt-3 pb-1">
-          <span className="text-sm font-bold text-gray-900">Daftar Item ({totalItems})</span>
+          <span className="text-sm font-bold text-gray-900">Daftar Item ({totalRows})</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-700 uppercase">Produk</th>
-                <th className="px-4 py-2.5 text-right text-[11px] font-bold text-gray-700 uppercase">
-                  Stok Sistem <span className="text-green-600">● live</span>
-                </th>
                 <th className="px-4 py-2.5 text-right text-[11px] font-bold text-gray-700 uppercase">Stok Fisik</th>
-                <th className="px-4 py-2.5 text-right text-[11px] font-bold text-gray-700 uppercase">Selisih</th>
                 <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-700 uppercase">Kondisi</th>
                 <th className="px-4 py-2.5 text-center text-[11px] font-bold text-gray-700 uppercase">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {opname.items.map((item) => {
-                const liveQty = toNumber(item.liveQuantity);
                 const physRaw = counts[item.id];
-                const phys = physRaw !== undefined && physRaw !== '' ? parseInt(physRaw, 10) : null;
-                const counted = phys !== null;
-                const discrepancy = phys !== null ? phys - liveQty : null;
-                const pct = liveQty > 0 && discrepancy !== null ? Math.abs((discrepancy / liveQty) * 100) : 0;
-                const isLarge = pct > 5;
-                const isActive = activeItemId === item.id;
-
+                const counted = physRaw !== undefined && physRaw !== '';
                 return (
-                  <tr
-                    key={item.id}
-                    id={`opname-row-${item.id}`}
-                    className={`${isActive ? 'bg-red-50' : 'hover:bg-gray-50'} ${isLarge && counted ? 'bg-yellow-50' : ''}`}
-                  >
+                  <tr key={item.id} id={`opname-row-${item.id}`} className="hover:bg-gray-50">
                     <td className="px-4 py-2.5">
                       <div className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
                         {counted && <span className="text-green-600">✓</span>}
@@ -932,14 +977,8 @@ export default function StockOpnameCount() {
                       </div>
                       <div className="text-[11px] text-gray-400">
                         SKU: {item.product?.sku || '-'}
-                        {isActive && (
-                          <span className="ml-2 rounded-full bg-red-100 border border-red-200 px-2 py-0.5 text-[10px] font-bold text-red-700">
-                            BELUM DISIMPAN
-                          </span>
-                        )}
                       </div>
                     </td>
-                    <td className="px-4 py-2.5 text-right text-sm font-bold text-gray-900">{liveQty}</td>
                     <td className="px-4 py-2.5 text-right">
                       <input
                         type="number"
@@ -947,35 +986,12 @@ export default function StockOpnameCount() {
                         value={physRaw ?? ''}
                         onChange={(e) => setCounts({ ...counts, [item.id]: e.target.value })}
                         placeholder="—"
-                        className={`w-20 rounded-lg border px-2 py-1 text-sm text-right outline-none ${
-                          isActive ? 'border-primary-600 bg-white' : 'border-gray-300 bg-white focus:border-primary-500'
-                        }`}
+                        className="w-20 rounded-lg border px-2 py-1 text-sm text-right outline-none border-gray-300 bg-white focus:border-primary-500"
                       />
-                    </td>
-                    <td className="px-4 py-2.5 text-right">
-                      {discrepancy !== null ? (
-                        <>
-                          <div
-                            className={`text-sm font-bold ${
-                              discrepancy > 0 ? 'text-green-600' : discrepancy < 0 ? 'text-red-600' : 'text-gray-400'
-                            }`}
-                          >
-                            {discrepancy > 0 ? '+' : ''}
-                            {discrepancy} ({pct.toFixed(1)}%)
-                          </div>
-                          {isLarge && (
-                            <div className="text-[10px] text-yellow-600 font-semibold flex items-center justify-end gap-0.5">
-                              <AlertTriangle className="w-3 h-3" /> &gt; 5%
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        <span className="text-gray-300 font-semibold">—</span>
-                      )}
                     </td>
                     <td className="px-4 py-2.5">
                       <select
-                        value={conditions[item.id] || 'good'}
+                        value={conditions[item.id] || item.condition || 'good'}
                         onChange={(e) =>
                           setConditions({ ...conditions, [item.id]: e.target.value as Condition })
                         }
@@ -993,6 +1009,14 @@ export default function StockOpnameCount() {
                             <span className="text-[11px] text-gray-400">
                               ✓ {item.countedBy === me.id ? 'Anda' : 'Petugas lain'}
                             </span>
+                            <button
+                              onClick={() => saveGridRow(item)}
+                              disabled={recordMutation.isPending}
+                              className="rounded p-1 text-primary-600 hover:bg-primary-50 disabled:opacity-50"
+                              title="Simpan baris ini"
+                            >
+                              <Save className="w-3.5 h-3.5" />
+                            </button>
                             {item.notes && (
                               <span title={item.notes} className="text-[11px] text-gray-400 cursor-help">
                                 📝
@@ -1020,9 +1044,26 @@ export default function StockOpnameCount() {
           </table>
         </div>
         <div className="px-4 py-2 text-[11px] text-gray-400">
-          Stok Sistem = stok saat ini (live); berubah jika ada transaksi POS selama SO berjalan. Baris kuning = selisih &gt; 5%.
+          Mode buta: stok sistem &amp; selisih disembunyikan dari petugas pencacah. Koreksi eksplisit per baris
+          (tombol 💾) atau massal via Draft SO.
         </div>
       </div>
+
+      {/* OP2: coordinator — exception log */}
+      {exceptions && exceptions.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-amber-200 p-4">
+          <div className="text-sm font-bold text-gray-900 mb-1.5">
+            ⚠️ Barcode tak dikenal ({exceptions.length})
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {exceptions.slice(0, 20).map((ex: any) => (
+              <span key={ex.id} className="rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1 text-xs text-amber-800">
+                <b>{ex.barcode}</b>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <div className="flex flex-wrap items-center gap-2.5 pb-2">
@@ -1043,7 +1084,7 @@ export default function StockOpnameCount() {
           Batalkan SO
         </button>
         <button
-          onClick={handleSaveAll}
+          onClick={() => handleSaveAll()}
           disabled={recordMutation.isPending}
           className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
         >

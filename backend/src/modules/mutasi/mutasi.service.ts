@@ -5,6 +5,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services/prisma.service';
 import { assertNoFreezeOpname } from '../inventory/opname-freeze.guard';
+import { recordOpenOpnameMovements } from '../inventory/opname-movement.recorder';
+import type { OpenMovementEntry } from '../inventory/opname-movement.recorder';
 import { CreateMutasiDto } from './dto/create-mutasi.dto';
 import {
   TransferStockItemDto,
@@ -217,6 +219,8 @@ export class MutasiService {
   ) {
     const { productId, productName, qty, fromWarehouse, toWarehouse } = args;
     if (qty <= 0) return;
+    // IGDERP-235 (OP3): both legs captured for OPEN opname sessions
+    const openMovements: OpenMovementEntry[] = [];
 
     const srcStock = await tx.productStock.findUnique({
       where: {
@@ -250,6 +254,16 @@ export class MutasiService {
         notes: args.note,
         createdBy: args.userId,
       },
+    });
+
+    openMovements.push({
+      warehouseId: fromWarehouse.id,
+      productId,
+      quantityChange: -qty,
+      movementType: 'TRANSFER',
+      referenceType: args.referenceType,
+      referenceId: args.referenceId,
+      createdBy: args.userId,
     });
 
     const dstStock = await tx.productStock.findUnique({
@@ -293,6 +307,17 @@ export class MutasiService {
         createdBy: args.userId,
       },
     });
+
+    openMovements.push({
+      warehouseId: toWarehouse.id,
+      productId,
+      quantityChange: qty,
+      movementType: 'TRANSFER',
+      referenceType: args.referenceType,
+      referenceId: args.referenceId,
+      createdBy: args.userId,
+    });
+    await recordOpenOpnameMovements(tx, openMovements);
   }
 
   private async loadMutasiDoc(id: string) {
@@ -327,6 +352,8 @@ export class MutasiService {
     await assertNoFreezeOpname(this.prisma, doc.fromWarehouseId, 'send mutasi');
 
     return await this.prisma.$transaction(async (tx) => {
+      // IGDERP-235 (OP3): collect outlet movements for OPEN opname sessions
+      const sendMovements: OpenMovementEntry[] = [];
       for (const item of doc.items) {
         const requested = Number(item.quantityRequested);
         let sent = overrides.has(item.id) ? Number(overrides.get(item.id)) : requested;
@@ -375,8 +402,19 @@ export class MutasiService {
               createdBy: userId,
             },
           });
+
+          sendMovements.push({
+            warehouseId: doc.fromWarehouseId,
+            productId: item.productId,
+            quantityChange: -sent,
+            movementType: 'TRANSFER',
+            referenceType: 'TRANSFER',
+            referenceId: doc.id,
+            createdBy: userId,
+          });
         }
       }
+      await recordOpenOpnameMovements(tx, sendMovements);
       await tx.stockTransfer.update({
         where: { id: doc.id },
         data: { status: 'sent', sentBy: userId, sentAt: new Date() },
@@ -439,6 +477,8 @@ export class MutasiService {
 
     return await this.prisma.$transaction(async (tx) => {
       const damageDocLines: any[] = [];
+      // IGDERP-235 (OP3): collect outlet movements for OPEN opname sessions
+      const openMovements: OpenMovementEntry[] = [];
       for (const item of doc.items) {
         const line = byId.get(item.id);
         const sent = Number(item.quantitySent ?? 0);
@@ -519,6 +559,16 @@ export class MutasiService {
               createdBy: userId,
             },
           });
+
+          openMovements.push({
+            warehouseId: doc.toWarehouseId,
+            productId: item.productId,
+            quantityChange: arrived,
+            movementType: 'TRANSFER',
+            referenceType: 'TRANSFER',
+            referenceId: doc.id,
+            createdBy: userId,
+          });
         }
 
         if (damage > 0) {
@@ -534,6 +584,8 @@ export class MutasiService {
       }
 
       // Auto-created SODO damage mutasi: destination GOOD → central BAD.
+      // (moveAvailable below captures both legs for OPEN sessions.)
+      await recordOpenOpnameMovements(tx, openMovements);
       if (damageDocLines.length > 0) {
         const damageNumber = this.generateDocumentNumber();
         const damageDoc = await tx.stockTransfer.create({
@@ -621,6 +673,8 @@ export class MutasiService {
 
     return await this.prisma.$transaction(async (tx) => {
       if (doc.status === 'sent') {
+        // IGDERP-235 (OP3): collect outlet movements for OPEN opname sessions
+        const cancelMovements: OpenMovementEntry[] = [];
         for (const item of doc.items) {
           const sent = Number(item.quantitySent ?? 0);
           if (sent <= 0) continue;
@@ -665,7 +719,18 @@ export class MutasiService {
               createdBy: userId,
             },
           });
+
+          cancelMovements.push({
+            warehouseId: doc.fromWarehouseId,
+            productId: item.productId,
+            quantityChange: sent,
+            movementType: 'TRANSFER',
+            referenceType: 'TRANSFER',
+            referenceId: doc.id,
+            createdBy: userId,
+          });
         }
+        await recordOpenOpnameMovements(tx, cancelMovements);
       }
       await tx.stockTransfer.update({
         where: { id: doc.id },

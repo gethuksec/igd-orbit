@@ -11,6 +11,8 @@ import { assertNoFreezeOpname } from '../inventory/opname-freeze.guard';
 import { StorageService } from '../../shared/services/storage.service';
 import { FileTokenService } from '../../shared/services/file-token.service';
 import { assertFileMagic } from '../../shared/utils/file-magic';
+import { recordOpenOpnameMovements } from '../inventory/opname-movement.recorder';
+import type { OpenMovementEntry } from '../inventory/opname-movement.recorder';
 import { BranchFilter } from '../../common/branch-access.util';
 import { CreateServiceOrderDto } from './dto/create-service-order.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
@@ -1304,6 +1306,8 @@ export class ServiceOrdersService {
       if (restoresStock) {
         const cancelReason = dto.notes?.trim() || 'tanpa alasan';
         const restored: string[] = [];
+        // IGDERP-235 (OP3): collect outlet movements for OPEN opname sessions
+        const restoreMovements: OpenMovementEntry[] = [];
         for (const part of serviceOrder.partsUsed || []) {
           const restoreWarehouseId = (part as any).warehouseId || (serviceOrder as any).warehouseId;
           if (!restoreWarehouseId) continue;
@@ -1339,8 +1343,18 @@ export class ServiceOrdersService {
               createdBy: userId,
             },
           });
+          restoreMovements.push({
+            warehouseId: restoreWarehouseId,
+            productId: part.productId,
+            quantityChange: Number(part.quantity),
+            movementType: 'ADJUSTMENT',
+            referenceType: 'SERVICE',
+            referenceId: serviceOrderId,
+            createdBy: userId,
+          });
           restored.push(`${(part as any).product?.name || part.productId} ×${Number(part.quantity)}`);
         }
+        await recordOpenOpnameMovements(tx, restoreMovements);
         if (restored.length > 0) {
           await tx.serviceStatusHistory.create({
             data: {
@@ -1555,6 +1569,19 @@ export class ServiceOrdersService {
               createdBy: userId,
             },
           });
+
+          // IGDERP-235 (OP3): capture for OPEN opname sessions on this outlet
+          await recordOpenOpnameMovements(tx, [
+            {
+              warehouseId: partWarehouseId,
+              productId: part.productId,
+              quantityChange: -part.quantity,
+              movementType: 'ADJUSTMENT',
+              referenceType: 'SERVICE',
+              referenceId: serviceOrderId,
+              createdBy: userId,
+            },
+          ]);
         }
 
         totalPartsCost += Number(totalCost);
@@ -1686,6 +1713,19 @@ export class ServiceOrdersService {
           createdBy: userId,
         },
       });
+
+      // IGDERP-235 (OP3): capture for OPEN opname sessions on this outlet
+      await recordOpenOpnameMovements(tx, [
+        {
+          warehouseId: restoreWarehouseId,
+          productId: part.productId,
+          quantityChange: Number(part.quantity),
+          movementType: 'ADJUSTMENT',
+          referenceType: 'SERVICE',
+          referenceId: serviceOrderId,
+          createdBy: userId,
+        },
+      ]);
 
       // Delete service part
       await tx.servicePartsUsed.delete({

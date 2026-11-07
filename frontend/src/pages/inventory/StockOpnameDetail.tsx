@@ -26,6 +26,31 @@ export default function StockOpnameDetail() {
     enabled: !!id,
   });
 
+  // IGDERP-235 (OP3): variance review — selisih-first C2 layout for
+  // reviewers; counters receive the same groups without variance figures.
+  const { data: review } = useQuery({
+    queryKey: ['inventory-opname-review', id],
+    queryFn: () => inventoryService.getOpnameReview(id!),
+    enabled: !!id,
+  });
+  const reviewProbe =
+    review?.selisih?.[0] ?? review?.cocok?.[0] ?? review?.belumDihitung?.[0];
+  const hasVariance = !!reviewProbe && 'variance' in reviewProbe;
+
+  // IGDERP-236 (OP4): approval + correction history (role-gated; hidden on 403)
+  const { data: approvals } = useQuery({
+    queryKey: ['inventory-opname-approvals', id],
+    queryFn: () => inventoryService.listOpnameApprovals(id!),
+    enabled: !!id,
+    retry: false,
+  });
+  const { data: corrections } = useQuery({
+    queryKey: ['inventory-opname-corrections', id],
+    queryFn: () => inventoryService.listOpnameCorrections(id!),
+    enabled: !!id,
+    retry: false,
+  });
+
   const completeMutation = useMutation({
     mutationFn: () => inventoryService.completeOpname(id!),
     onSuccess: () => {
@@ -51,10 +76,7 @@ export default function StockOpnameDetail() {
     },
   });
 
-  // IGDERP-177: variance analytics filter + Excel export state.
-  // NOTE: hooks must stay above the early returns below (React #310 —
-  // conditional hooks blank the whole page once data arrives).
-  const [varianceFilter, setVarianceFilter] = useState<'all' | 'diff' | 'big'>('all');
+  // IGDERP-177: Excel export state (hooks above early returns).
   const [exporting, setExporting] = useState(false);
 
   if (isLoading) {
@@ -129,35 +151,39 @@ export default function StockOpnameDetail() {
     }
   };
 
-  const totalDiscrepancyValue = opname.totalDiscrepancyValue
-    ? typeof opname.totalDiscrepancyValue === 'string'
-      ? parseFloat(opname.totalDiscrepancyValue)
-      : Number(opname.totalDiscrepancyValue)
-    : 0;
-
   const countedItems = opname.items.filter((item) => item.physicalQuantity !== null).length;
   const totalItems = opname.items.length;
-  const itemsWithLargeDiscrepancy = opname.items.filter((item) => {
-    const systemQty = Number(item.systemQuantity);
-    const discrepancy = Number(item.discrepancy || 0);
-    const percentage = systemQty > 0 ? Math.abs((discrepancy / systemQty) * 100) : 0;
-    return percentage > 5;
+
+  // IGDERP-235 (OP3): C2 figures come from the review (product-level,
+  // OPEN-aware). Counters see counts only — no variance figures.
+  const summary = review?.summary;
+  const c2Products = summary?.products ?? totalItems;
+  const c2Counted = summary?.countedProducts ?? countedItems;
+  const c2Selisih = summary?.selisih ?? opname.items.filter((item) => Number(item.discrepancy || 0) !== 0).length;
+  const c2Cocok = summary?.cocok ?? 0;
+  const c2VarianceTotal = hasVariance ? Number(summary?.totalVarianceValue ?? 0) : null;
+  const c2Large = (review?.selisih ?? []).filter((p: any) => {
+    const base = Number(p.expected || 0);
+    return base > 0 && (Math.abs(Number(p.variance || 0)) / base) * 100 > 5;
   });
+  const itemsWithLargeDiscrepancy = hasVariance || review
+    ? c2Large
+    : opname.items.filter((item) => {
+        const systemQty = Number(item.systemQuantity);
+        const discrepancy = Number(item.discrepancy || 0);
+        const percentage = systemQty > 0 ? Math.abs((discrepancy / systemQty) * 100) : 0;
+        return percentage > 5;
+      });
 
   const canComplete = opname.status === 'counting' && countedItems === totalItems;
   const canApprove = opname.status === 'completed';
 
-  const pctOf = (item: any) => {
-    const sys = Number(item.systemQuantity || 0);
-    const d = Number(item.discrepancy || 0);
-    return sys > 0 ? (Math.abs(d) / sys) * 100 : 0;
-  };
-  const visibleItems = opname.items.filter((item) => {
-    if (varianceFilter === 'all') return true;
-    if (item.physicalQuantity === null || item.physicalQuantity === undefined) return false;
-    if (varianceFilter === 'diff') return Number(item.discrepancy || 0) !== 0;
-    return pctOf(item) > 5;
-  });
+  // IGDERP-235 (OP3): C2 groups from the review. Reviewers get
+  // selisih-first + cocok collapsed; counters get one blind "tercatat" group.
+  const selisihGroup: any[] = review?.selisih ?? [];
+  const cocokGroup: any[] = review?.cocok ?? [];
+  const belumGroup: any[] = review?.belumDihitung ?? [];
+  const blindCounted: any[] = !hasVariance && review ? [...selisihGroup, ...cocokGroup] : [];
 
   const handleExport = async () => {
     try {
@@ -208,60 +234,78 @@ export default function StockOpnameDetail() {
         </Link>
       </BreadcrumbHeader>
 
-      {/* Stats Cards */}
+      {/* Stats Cards — IGDERP-235 (OP3): C2 figures from the review */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600">Total Item</span>
+            <span className="text-sm font-medium text-gray-600">Total Produk</span>
             <Package className="w-5 h-5 text-primary-600" />
           </div>
-          <h3 className="text-2xl font-bold text-gray-900">{totalItems}</h3>
+          <h3 className="text-2xl font-bold text-gray-900">{c2Products}</h3>
           <p className="text-xs text-gray-500 mt-1">
-            {countedItems} sudah dihitung ({Math.round((countedItems / totalItems) * 100)}%)
+            {c2Counted} sudah dihitung ({c2Products > 0 ? Math.round((c2Counted / c2Products) * 100) : 0}%)
           </p>
         </div>
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600">Nilai Discrepancy</span>
-            {totalDiscrepancyValue > 0 ? (
+            <span className="text-sm font-medium text-gray-600">Nilai Selisih</span>
+            {c2VarianceTotal === null ? (
+              <CheckCircle className="w-5 h-5 text-gray-400" />
+            ) : c2VarianceTotal > 0 ? (
               <TrendingUp className="w-5 h-5 text-green-600" />
-            ) : totalDiscrepancyValue < 0 ? (
+            ) : c2VarianceTotal < 0 ? (
               <TrendingDown className="w-5 h-5 text-red-600" />
             ) : (
               <CheckCircle className="w-5 h-5 text-gray-600" />
             )}
           </div>
-          <h3
-            className={`text-2xl font-bold ${
-              totalDiscrepancyValue > 0
-                ? 'text-green-600'
-                : totalDiscrepancyValue < 0
-                  ? 'text-red-600'
-                  : 'text-gray-900'
-            }`}
-          >
-            {/* IGDERP-193: signed netto (header = sum of signed rows) */}
-            {totalDiscrepancyValue > 0 ? '+' : totalDiscrepancyValue < 0 ? '−' : ''}
-            {formatCurrency(Math.abs(totalDiscrepancyValue))}
-          </h3>
-          <p className="text-xs text-gray-500 mt-1">Netto semua item · dasar harga beli</p>
+          {c2VarianceTotal === null ? (
+            <h3 className="text-2xl font-bold text-gray-300">—</h3>
+          ) : (
+            <h3
+              className={`text-2xl font-bold ${
+                c2VarianceTotal > 0
+                  ? 'text-green-600'
+                  : c2VarianceTotal < 0
+                    ? 'text-red-600'
+                    : 'text-gray-900'
+              }`}
+            >
+              {c2VarianceTotal > 0 ? '+' : c2VarianceTotal < 0 ? '−' : ''}
+              {formatCurrency(Math.abs(c2VarianceTotal))}
+            </h3>
+          )}
+          <p className="text-xs text-gray-500 mt-1">
+            {hasVariance ? 'Netto semua produk · dasar harga beli' : 'Disembunyikan untuk petugas pencacah'}
+          </p>
         </div>
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600">Item dengan Discrepancy</span>
+            <span className="text-sm font-medium text-gray-600">
+              {hasVariance ? 'Produk Selisih' : 'Tercatat'}
+            </span>
             <AlertTriangle className="w-5 h-5 text-yellow-600" />
           </div>
-          <h3 className="text-2xl font-bold text-gray-900">
-            {opname.items.filter((item) => Number(item.discrepancy || 0) !== 0).length}
-          </h3>
+          <h3 className="text-2xl font-bold text-gray-900">{hasVariance ? c2Selisih : c2Counted}</h3>
+          {hasVariance && summary && summary.movementCount! > 0 && (
+            <p className="text-xs text-gray-500 mt-1">{summary.movementCount} mutasi selama sesi OPEN</p>
+          )}
         </div>
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600">Discrepancy {'>'} 5%</span>
-            <AlertTriangle className="w-5 h-5 text-red-600" />
+            <span className="text-sm font-medium text-gray-600">
+              {hasVariance ? 'Cocok' : 'Belum Dihitung'}
+            </span>
+            {hasVariance ? (
+              <CheckCircle className="w-5 h-5 text-green-600" />
+            ) : (
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+            )}
           </div>
-          <h3 className="text-2xl font-bold text-red-600">{itemsWithLargeDiscrepancy.length}</h3>
-          <p className="text-xs text-gray-500 mt-1">Perlu investigasi</p>
+          <h3 className={`text-2xl font-bold ${hasVariance ? 'text-green-600' : 'text-red-600'}`}>
+            {hasVariance ? c2Cocok : (summary?.belumDihitung ?? totalItems - countedItems)}
+          </h3>
+          {!hasVariance && <p className="text-xs text-gray-500 mt-1">Perlu dihitung</p>}
         </div>
       </div>
 
@@ -328,26 +372,51 @@ export default function StockOpnameDetail() {
         )}
       </div>
 
-      {/* Items List */}
+      {/* D2 timeline — IGDERP-236 (OP4): counting → review → approval → posting */}
       <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-        <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Alur Persetujuan</h2>
+        <OpnameTimeline opname={opname} approvals={approvals} />
+        {approvals && approvals.length > 0 && (
+          <div className="mt-4 border-t border-gray-100 pt-3">
+            <div className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-1.5">
+              Riwayat persetujuan
+            </div>
+            <div className="space-y-1">
+              {approvals.map((a: any) => (
+                <div key={a.id} className="text-xs text-gray-600">
+                  ✓ {a.decision} · {new Date(a.createdAt).toLocaleString('id-ID')}
+                  {a.note ? ` — ${a.note}` : ''}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {corrections && corrections.length > 0 && (
+          <div className="mt-4 border-t border-gray-100 pt-3">
+            <div className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-1.5">
+              Riwayat koreksi ({corrections.length})
+            </div>
+            <div className="space-y-1 max-h-48 overflow-y-auto">
+              {corrections.slice(0, 30).map((c: any) => (
+                <div key={c.id} className="text-xs text-gray-600">
+                  {c.product?.name || c.productId}: {c.oldQuantity ?? '—'} → <b>{c.newQuantity}</b>
+                  {c.condition ? ` (${c.condition})` : ''} · “{c.reason}” ·{' '}
+                  {new Date(c.createdAt).toLocaleString('id-ID')}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Hasil — IGDERP-235 (OP3): C2 variance-first review */}
+      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-5">
+        <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
             <Package className="w-5 h-5 text-primary-600" />
-            Daftar Item
+            Hasil Perhitungan
           </h2>
-          <div className="flex items-center gap-2">
-            {/* IGDERP-177: variance analytics filter */}
-            <span className="text-xs text-gray-500">tampilkan:</span>
-            <select
-              value={varianceFilter}
-              onChange={(e) => setVarianceFilter(e.target.value as 'all' | 'diff' | 'big')}
-              className="h-8 rounded-md border border-gray-300 bg-white px-2 text-xs"
-            >
-              <option value="all">semua</option>
-              <option value="diff">selisih saja</option>
-              <option value="big">&gt;5% saja</option>
-            </select>
-            {opname.status === 'counting' && (
+          {opname.status === 'counting' && (
             <Link
               to={`/inventory/opname/${opname.id}/count`}
               className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium flex items-center gap-2"
@@ -356,125 +425,98 @@ export default function StockOpnameDetail() {
               Lanjutkan Menghitung
             </Link>
           )}
-          </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Produk</th>
-                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">Stok Sistem</th>
-                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">
-                  Stok Fisik
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">Discrepancy</th>
-                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">
-                  Nilai Discrepancy
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Kondisi</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Catatan</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {visibleItems.map((item) => {
-                const systemQty = Number(item.systemQuantity);
-                const physicalQty = Number(item.physicalQuantity || 0);
-                const discrepancy = Number(item.discrepancy || 0);
-                const discrepancyValue = Number(item.discrepancyValue || 0);
-                const percentage = systemQty > 0 ? Math.abs((discrepancy / systemQty) * 100) : 0;
-                const isLargeDiscrepancy = percentage > 5;
-                const isNotCounted = item.physicalQuantity === null;
 
-                return (
-                  <tr
-                    key={item.id}
-                    className={`hover:bg-gray-50 ${
-                      isLargeDiscrepancy ? 'bg-yellow-50' : isNotCounted ? 'bg-gray-50' : ''
-                    }`}
-                  >
-                    <td className="px-4 py-3">
-                      <div className="text-sm font-medium text-gray-900">
-                        {item.product?.name || '-'}
-                      </div>
-                      <div className="text-xs text-gray-500">SKU: {item.product?.sku || '-'}</div>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="text-sm font-semibold text-gray-900">{systemQty}</div>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {isNotCounted ? (
-                        <span className="text-sm text-gray-400 italic">Belum dihitung</span>
-                      ) : (
-                        <div className="text-sm font-semibold text-gray-900">{physicalQty}</div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {isNotCounted ? (
-                        <span className="text-sm text-gray-400">-</span>
-                      ) : (
-                        <div
-                          className={`text-sm font-semibold ${
-                            discrepancy > 0
-                              ? 'text-green-600'
-                              : discrepancy < 0
-                                ? 'text-red-600'
-                                : 'text-gray-900'
-                          }`}
-                        >
-                          {discrepancy > 0 ? '+' : ''}
-                          {discrepancy} ({percentage.toFixed(1)}%)
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {isNotCounted ? (
-                        <span className="text-sm text-gray-400">-</span>
-                      ) : (
-                        <div
-                          className={`text-sm font-semibold ${
-                            discrepancyValue > 0
-                              ? 'text-green-600'
-                              : discrepancyValue < 0
-                                ? 'text-red-600'
-                                : 'text-gray-900'
-                          }`}
-                        >
-                          {/* IGDERP-193: signed row nominal (matches netto header) */}
-                          {discrepancyValue > 0 ? '+' : discrepancyValue < 0 ? '−' : ''}
-                          {formatCurrency(Math.abs(discrepancyValue))}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {isNotCounted ? (
-                        <span className="text-sm text-gray-400">-</span>
-                      ) : (
-                        <span
-                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${
-                            item.condition === 'damaged'
-                              ? 'bg-red-100 text-red-800'
-                              : item.condition === 'expired'
-                                ? 'bg-orange-100 text-orange-800'
-                                : 'bg-green-100 text-green-800'
-                          }`}
-                        >
-                          {item.condition === 'damaged'
-                            ? 'Rusak'
-                            : item.condition === 'expired'
-                              ? 'Kadaluarsa'
-                              : 'Baik'}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="text-sm text-gray-900">{item.notes || '-'}</div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        {!review ? (
+          <p className="text-sm text-gray-400 py-4 text-center">Memuat hasil perhitungan…</p>
+        ) : hasVariance ? (
+          <>
+            {/* Variance banner */}
+            <div className="rounded-xl border-2 border-yellow-300 bg-yellow-50 px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-1">
+              <span className="text-sm font-bold text-yellow-900">
+                Selisih {c2Selisih} produk · Cocok {c2Cocok} · Belum {belumGroup.length}
+              </span>
+              <span className="text-sm font-extrabold text-gray-900">
+                Netto {c2VarianceTotal! > 0 ? '+' : c2VarianceTotal! < 0 ? '−' : ''}
+                {formatCurrency(Math.abs(c2VarianceTotal ?? 0))}
+              </span>
+              {review && (opname.opnameType === 'OPEN' || (review as any).opnameType === 'OPEN') && (
+                <span className="text-xs text-yellow-800">
+                  Sesi OPEN — expected = snapshot + mutasi selama sesi
+                  {summary?.movementCount ? ` (${summary.movementCount} mutasi)` : ''}
+                </span>
+              )}
+            </div>
+
+            {/* Selisih group on top */}
+            <section>
+              <h3 className="text-sm font-bold uppercase tracking-wide text-red-700 mb-2">
+                Selisih ({selisihGroup.length})
+              </h3>
+              {selisihGroup.length === 0 ? (
+                <p className="text-sm text-gray-400">Tidak ada selisih — semua yang dihitung cocok.</p>
+              ) : (
+                <div className="space-y-2">
+                  {selisihGroup.map((p: any) => (
+                    <ReviewProductRow key={p.productId} p={p} showVariance formatCurrency={formatCurrency} />
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* Cocok group collapsed */}
+            <details className="rounded-xl border border-green-200 bg-green-50/50 px-4 py-2">
+              <summary className="cursor-pointer text-sm font-bold text-green-800">
+                Cocok ({cocokGroup.length}) — klik untuk melihat
+              </summary>
+              <div className="mt-2 space-y-2">
+                {cocokGroup.map((p: any) => (
+                  <ReviewProductRow key={p.productId} p={p} showVariance formatCurrency={formatCurrency} />
+                ))}
+              </div>
+            </details>
+
+            {/* Belum dihitung */}
+            {belumGroup.length > 0 && (
+              <section>
+                <h3 className="text-sm font-bold uppercase tracking-wide text-gray-500 mb-2">
+                  Belum dihitung ({belumGroup.length})
+                </h3>
+                <div className="space-y-2">
+                  {belumGroup.map((p: any) => (
+                    <ReviewProductRow key={p.productId} p={p} showVariance formatCurrency={formatCurrency} />
+                  ))}
+                </div>
+              </section>
+            )}
+          </>
+        ) : (
+          <>
+            {/* Blind: one counted group, no variance figures */}
+            <section>
+              <h3 className="text-sm font-bold uppercase tracking-wide text-gray-700 mb-2">
+                Tercatat ({blindCounted.length})
+              </h3>
+              <div className="space-y-2">
+                {blindCounted.map((p: any) => (
+                  <ReviewProductRow key={p.productId} p={p} showVariance={false} formatCurrency={formatCurrency} />
+                ))}
+              </div>
+            </section>
+            {belumGroup.length > 0 && (
+              <section>
+                <h3 className="text-sm font-bold uppercase tracking-wide text-gray-500 mb-2">
+                  Belum dihitung ({belumGroup.length})
+                </h3>
+                <div className="space-y-2">
+                  {belumGroup.map((p: any) => (
+                    <ReviewProductRow key={p.productId} p={p} showVariance={false} formatCurrency={formatCurrency} />
+                  ))}
+                </div>
+              </section>
+            )}
+          </>
+        )}
       </div>
 
       {/* Actions */}
@@ -521,6 +563,153 @@ export default function StockOpnameDetail() {
             </button>
           )}
         </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * IGDERP-236 (OP4): D2 timeline — counting → review → approval → posting.
+ * Review = completed (counted, awaiting approval); posting rides the approval
+ * transaction, so approval + posting share the approved stamp (CLOSED).
+ */
+function OpnameTimeline({ opname, approvals }: { opname: any; approvals?: any[] }) {
+  const order = ['draft', 'counting', 'completed', 'approved', 'cancelled'];
+  const stageIdx = Math.max(0, order.indexOf(opname.status));
+  const approvedAt = opname.approvedAt || approvals?.[0]?.createdAt || null;
+  const stages = [
+    { key: 'counting', label: 'Pencacahan', at: opname.createdAt, done: stageIdx >= 1 },
+    { key: 'review', label: 'Review', at: opname.completedAt, done: stageIdx >= 2 && opname.status !== 'cancelled' },
+    { key: 'approval', label: 'Persetujuan', at: opname.approvedAt, done: opname.status === 'approved' },
+    { key: 'posting', label: 'Posting stok', at: approvedAt, done: opname.status === 'approved' },
+  ];
+  return (
+    <ol className="flex flex-col sm:flex-row gap-2">
+      {stages.map((s, i) => (
+        <li
+          key={s.key}
+          className={`flex-1 rounded-xl border px-3 py-2 ${
+            s.done ? 'border-green-300 bg-green-50' : i === stages.findIndex((x) => !x.done) && opname.status !== 'cancelled' && opname.status !== 'approved'
+              ? 'border-primary-400 bg-red-50'
+              : 'border-gray-200 bg-gray-50'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <span
+              className={`inline-flex w-5 h-5 items-center justify-center rounded-full text-[11px] font-bold text-white ${
+                s.done ? 'bg-green-600' : 'bg-gray-400'
+              }`}
+            >
+              {s.done ? '✓' : i + 1}
+            </span>
+            <span className="text-xs font-bold text-gray-900">{s.label}</span>
+          </div>
+          <div className="mt-0.5 text-[11px] text-gray-500">
+            {s.at ? new Date(s.at).toLocaleString('id-ID') : '—'}
+          </div>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/**
+ * IGDERP-235 (OP3): one product in the C2 review — figures on top,
+ * expandable count detail (breakdown + condition rows + OPEN movements).
+ * Blind (showVariance=false) shows identity + physical only.
+ */
+function ReviewProductRow({
+  p,
+  showVariance,
+  formatCurrency,
+}: {
+  p: any;
+  showVariance: boolean;
+  formatCurrency: (n: number) => string;
+}) {
+  const condLabel = (c: string) => (c === 'damaged' ? 'Rusak' : c === 'expired' ? 'Kadaluarsa' : 'Baik');
+  const variance = p.variance;
+  const uncounted = p.physical === null || p.physical === undefined;
+  return (
+    <div
+      className={`rounded-xl border px-4 py-2.5 ${
+        showVariance && !uncounted && variance !== 0
+          ? 'border-red-200 bg-red-50/50'
+          : 'border-gray-200 bg-white'
+      }`}
+    >
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
+        <div className="flex-1 min-w-[180px]">
+          <div className="text-sm font-bold text-gray-900">{p.product?.name || '-'}</div>
+          <div className="text-[11px] text-gray-400">SKU: {p.product?.sku || '-'}</div>
+        </div>
+        {showVariance && (
+          <>
+            <span className="text-xs text-gray-500">
+              Snapshot <b className="text-gray-900">{p.snapshot}</b>
+            </span>
+            {'expected' in p && p.expected !== p.snapshot && (
+              <span className="text-xs text-gray-500">
+                Expected <b className="text-gray-900">{p.expected}</b>
+              </span>
+            )}
+            <span className="text-xs text-gray-500">
+              Fisik <b className="text-gray-900">{uncounted ? '—' : p.physical}</b>
+            </span>
+            {!uncounted && (
+              <span
+                className={`text-sm font-extrabold ${
+                  variance > 0 ? 'text-green-600' : variance < 0 ? 'text-red-600' : 'text-gray-400'
+                }`}
+              >
+                {variance > 0 ? '+' : ''}
+                {variance}
+                {p.varianceValue !== null && p.varianceValue !== undefined && variance !== 0 && (
+                  <span className="ml-2 text-xs font-semibold">
+                    {p.varianceValue > 0 ? '+' : '−'}
+                    {formatCurrency(Math.abs(p.varianceValue))}
+                  </span>
+                )}
+              </span>
+            )}
+          </>
+        )}
+        {!showVariance && (
+          <span className="text-sm font-bold text-gray-900">
+            Fisik {uncounted ? '—' : p.physical}
+          </span>
+        )}
+      </div>
+      {!uncounted && (
+        <details className="mt-1.5">
+          <summary className="cursor-pointer text-[11px] font-semibold text-primary-600">
+            Rincian hitungan
+            {p.breakdown &&
+              ` — Baik ${p.breakdown.good} · Rusak ${p.breakdown.damaged} · Kadaluarsa ${p.breakdown.expired}`}
+          </summary>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {(p.rows ?? []).map((r: any) => (
+              <span
+                key={r.itemId}
+                className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] text-gray-700"
+              >
+                {condLabel(r.condition)} {r.physicalQuantity}
+              </span>
+            ))}
+          </div>
+          {showVariance && (p.movements ?? []).length > 0 && (
+            <div className="mt-1.5 space-y-0.5">
+              {(p.movements ?? []).map((m: any) => (
+                <div key={m.id} className="text-[11px] text-gray-500">
+                  {m.movementType} {Number(m.quantityChange) > 0 ? '+' : ''}
+                  {m.quantityChange}
+                  {m.referenceType ? ` · ${m.referenceType}` : ''}
+                  {m.referenceId ? ` ${m.referenceId}` : ''}
+                </div>
+              ))}
+            </div>
+          )}
+        </details>
       )}
     </div>
   );
