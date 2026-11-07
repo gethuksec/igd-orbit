@@ -264,6 +264,7 @@ model Category {
   childCategories     Category[] @relation("CategoryHierarchy")
   products            Product[]
   subCategoryProducts Product[]  @relation("ProductSubCategory")
+  opnameAssignments   OpnameAssignment[]
 
   @@index([code])
   @@index([parentCategoryId])
@@ -436,6 +437,9 @@ model Product {
   stockMovements     StockMovement[]
   transferItems      StockTransferItem[]
   opnameItems        StockOpnameItem[]
+  opnameScans        OpnameScan[]
+  opnameMovements    OpnameMovement[]
+  opnameCorrections  OpnameCorrection[]
   stockInItems       StockInItem[]
   stockOutItems      StockOutItem[]
   servicePartsUsed   ServicePartsUsed[]
