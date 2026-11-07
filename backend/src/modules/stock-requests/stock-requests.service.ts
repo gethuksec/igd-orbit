@@ -338,6 +338,7 @@ export class StockRequestsService {
         categoryId,
         categoryName,
         quantity: item.quantity,
+        note: item.note?.trim() || null,
         sortOrder: i,
       });
     }

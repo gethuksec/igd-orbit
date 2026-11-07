@@ -106,6 +106,25 @@ describe('StockRequestsService', () => {
       expect(res.outlet).toEqual({ id: 'branch-1', code: 'JBR', name: 'Jember' });
     });
 
+    it('persists trimmed item note, null when absent', async () => {
+      mockBranchOk();
+      prisma.user.findFirst.mockResolvedValue({ id: 'user-1' });
+      prisma.product.findUnique.mockResolvedValue(product);
+      prisma.stockRequest.findUnique.mockResolvedValue(null);
+      prisma.stockRequest.create.mockImplementation(async ({ data }: any) => ({
+        id: 'req-1',
+        ...data,
+        items: data.items.create.map((r: any, i: number) => ({ id: `item-${i}`, ...r })),
+      }));
+
+      const res: any = await service.createIntake(
+        'tok',
+        dto({ items: [existItem({ note: '  warna hitam, minta 2 pcs  ' }), existItem({ productId: 'prod-1' })] }),
+      );
+      expect(res.items[0].note).toBe('warna hitam, minta 2 pcs');
+      expect(res.items[1].note).toBeNull();
+    });
+
     it('rejects unknown outlet token', async () => {
       prisma.branch.findUnique.mockResolvedValue(null);
       await expect(service.createIntake('bad', dto())).rejects.toThrow(NotFoundException);

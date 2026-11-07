@@ -242,7 +242,7 @@ function DetailDrawer({ id, onClose }: { id: string | null; onClose: () => void 
                       <TableHead>Barcode</TableHead>
                       <TableHead>Produk</TableHead>
                       <TableHead>Kategori</TableHead>
-                      <TableHead className="text-right">Qty</TableHead>
+                      <TableHead>Catatan</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -256,7 +256,7 @@ function DetailDrawer({ id, onClose }: { id: string | null; onClose: () => void 
                           )}
                         </TableCell>
                         <TableCell className="text-[13px]">{it.categoryName}</TableCell>
-                        <TableCell className="text-right font-bold">×{it.quantity}</TableCell>
+                        <TableCell className="text-[13px]">{it.note || '-'}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

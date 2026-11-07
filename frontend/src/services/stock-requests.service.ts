@@ -56,6 +56,7 @@ export interface IntakeItemPayload {
   categoryId?: string;
   categoryName?: string;
   quantity: number;
+  note?: string;
 }
 
 export interface CreateIntakePayload {
@@ -76,6 +77,7 @@ export interface StockRequestItem {
   categoryId: string | null;
   categoryName: string;
   quantity: number;
+  note?: string | null;
   sortOrder: number;
 }
 

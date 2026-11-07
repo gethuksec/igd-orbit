@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, CheckCircle2, Minus, Plus, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Plus, X } from 'lucide-react';
 import {
   stockRequestsService,
   type IntakeCategory,
@@ -25,7 +25,7 @@ interface RowState {
   productName: string; // EXIST: chosen master name (display) · NEW: free text
   categoryId: string;
   categoryName: string;
-  qty: number;
+  note: string;
   stockHint: string;
 }
 
@@ -39,7 +39,7 @@ const emptyRow = (): RowState => ({
   productName: '',
   categoryId: '',
   categoryName: '',
-  qty: 1,
+  note: '',
   stockHint: '',
 });
 
@@ -70,7 +70,7 @@ function ItemRow({
   const [searching, setSearching] = useState(false);
 
   useEffect(() => {
-    if (row.listing !== 'EXIST' || search.trim().length < 2) {
+    if (search.trim().length < 2) {
       setResults([]);
       return;
     }
@@ -86,7 +86,7 @@ function ItemRow({
       }
     }, 300);
     return () => clearTimeout(h);
-  }, [search, row.listing, token]);
+  }, [search, token]);
 
   const set = (patch: Partial<RowState>) => onChange({ ...row, ...patch });
 
@@ -116,7 +116,7 @@ function ItemRow({
       } else {
         set({
           lookup: 'miss',
-          lookupText: 'Tidak terdaftar di master — pilih Listing “Baru” dan isi nama + kategori.',
+          lookupText: 'Tidak terdaftar di master — ketik di kolom produk lalu pilih “Tambah baru”.',
         });
       }
     } catch {
@@ -136,7 +136,21 @@ function ItemRow({
     setResults([]);
   };
 
-  const isNewCat = row.categoryName.trim() && !categories.some((c) => c.name === row.categoryName.trim());
+  const chooseNewProduct = (name: string) => {
+    set({
+      listing: 'NEW',
+      productId: '',
+      productName: name.trim(),
+    });
+    setSearch('');
+    setResults([]);
+  };
+
+  const clearProduct = () => {
+    set({ listing: 'EXIST', productId: '', productName: '' });
+    setSearch('');
+    setResults([]);
+  };
 
   return (
     <Card>
@@ -180,115 +194,83 @@ function ItemRow({
         </div>
 
         <div>
-          <Label className="text-[13.5px] font-semibold">Listing <span className="text-red-600">*</span></Label>
-          <div className="flex bg-gray-100 rounded-lg p-1 gap-1 mt-1">
-            {(['EXIST', 'NEW'] as const).map((v) => (
-              <button
-                key={v}
-                type="button"
-                onClick={() => set({ listing: v })}
-                className={`flex-1 rounded-md min-h-[42px] text-sm font-semibold ${
-                  row.listing === v ? 'bg-white text-red-600 shadow-sm' : 'text-gray-500'
-                }`}
-              >
-                {v === 'EXIST' ? 'Sudah ada' : 'Baru'}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {row.listing === 'EXIST' ? (
-          <div className="relative">
-            <Label className="text-[13.5px] font-semibold">Produk <span className="text-red-600">*</span></Label>
-            <Input
-              className={`${inputCls} mt-1`}
-              placeholder="Ketik nama / SKU / barcode… (min. 2 huruf)"
-              value={row.productId ? row.productName : search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                if (row.productId) set({ productId: '', productName: '' });
-              }}
-              onFocus={() => row.productName && !row.productId && setSearch(row.productName)}
-            />
-            {searching && <p className="text-xs text-gray-500 mt-1">Mencari…</p>}
-            {results.length > 0 && (
-              <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg mt-1 shadow-lg max-h-56 overflow-auto">
-                {results.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => pickProduct(p)}
-                    className="block w-full text-left px-3 py-2.5 text-sm border-b border-gray-100 last:border-0 active:bg-red-50"
-                  >
-                    <span className="font-semibold">{p.name}</span>
-                    <span className="block text-xs text-gray-500">
-                      {p.barcode || p.sku} • {p.category?.name || '-'}
-                    </span>
-                  </button>
-                ))}
+          <Label className="text-[13.5px] font-semibold">Produk <span className="text-red-600">*</span></Label>
+          {row.productId || row.listing === 'NEW' ? (
+            <div className="flex gap-2 mt-1">
+              <div className="flex-1 min-h-[46px] text-[15px] border-[1.5px] border-gray-300 rounded-md bg-white px-3 flex items-center gap-2">
+                <span className="font-semibold truncate">
+                  {row.listing === 'NEW' ? `Baru: ${row.productName}` : row.productName}
+                </span>
+                <button type="button" onClick={clearProduct} aria-label="Ganti produk" className="ml-auto shrink-0 p-1">
+                  <X className="w-4 h-4 text-gray-400" />
+                </button>
               </div>
-            )}
-          </div>
-        ) : (
-          <div>
-            <Label className="text-[13.5px] font-semibold">Nama produk baru <span className="text-red-600">*</span></Label>
-            <Input
-              className={`${inputCls} mt-1`}
-              placeholder="cth: LCD + TS Oppo A58"
-              value={row.productName}
-              onChange={(e) => set({ productName: e.target.value })}
-            />
-          </div>
-        )}
+            </div>
+          ) : (
+            <div className="relative">
+              <Input
+                className={`${inputCls} mt-1`}
+                placeholder="Ketik nama / SKU / barcode… (min. 2 huruf)"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              {searching && <p className="text-xs text-gray-500 mt-1">Mencari…</p>}
+              {!searching && search.trim().length >= 2 && (
+                <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg mt-1 shadow-lg max-h-56 overflow-auto">
+                  {results.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => pickProduct(p)}
+                      className="block w-full text-left px-3 py-2.5 text-sm border-b border-gray-100 last:border-0 active:bg-red-50"
+                    >
+                      <span className="font-semibold">{p.name}</span>
+                      <span className="block text-xs text-gray-500">
+                        {p.barcode || p.sku} • {p.category?.name || '-'}
+                      </span>
+                    </button>
+                  ))}
+                  {!results.some((p) => p.name.toLowerCase() === search.trim().toLowerCase()) && (
+                    <button
+                      type="button"
+                      onClick={() => chooseNewProduct(search)}
+                      className="block w-full text-left px-3 py-2.5 text-sm font-bold text-red-600 border-t-2 border-dashed border-gray-200 active:bg-red-50"
+                    >
+                      ＋ Tambah baru: “{search.trim()}”
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          {row.stockHint && <span className="text-xs text-gray-500 mt-1 block">{row.stockHint}</span>}
+        </div>
 
         <div>
           <Label className="text-[13.5px] font-semibold">Kategori <span className="text-red-600">*</span></Label>
-          <Input
-            className={`${inputCls} mt-1`}
-            list={`catlist-${row.key}`}
-            placeholder="Pilih dari master atau ketik baru…"
-            autoComplete="off"
-            value={row.categoryName}
+          <select
+            className={`${selectCls} mt-1`}
+            value={row.categoryId}
             onChange={(e) => {
-              const v = e.target.value;
-              const match = categories.find((c) => c.name === v.trim());
-              set({ categoryName: v, categoryId: match ? match.id : '' });
+              const cat = categories.find((c) => c.id === e.target.value);
+              set({ categoryId: e.target.value, categoryName: cat ? cat.name : '' });
             }}
-          />
-          <datalist id={`catlist-${row.key}`}>
+          >
+            <option value="">— Pilih kategori —</option>
             {categories.map((c) => (
-              <option key={c.id} value={c.name} />
+              <option key={c.id} value={c.id}>{c.name}</option>
             ))}
-          </datalist>
-          {isNewCat ? (
-            <p className="text-[12.5px] text-amber-700 mt-1.5">
-              “{row.categoryName.trim()}” belum ada di master — akan diajukan sebagai kategori baru.
-            </p>
-          ) : null}
+          </select>
         </div>
 
         <div>
-          <Label className="text-[13.5px] font-semibold">Jumlah <span className="text-red-600">*</span></Label>
-          <div className="flex items-center gap-3 mt-1">
-            <button
-              type="button"
-              onClick={() => set({ qty: Math.max(1, row.qty - 1) })}
-              className="w-[46px] h-[46px] rounded-lg border-[1.5px] border-gray-300 text-xl font-bold"
-              aria-label="Kurangi"
-            >
-              <Minus className="w-4 h-4 mx-auto" />
-            </button>
-            <span className="text-lg font-extrabold min-w-[40px] text-center">{row.qty}</span>
-            <button
-              type="button"
-              onClick={() => set({ qty: Math.min(9999, row.qty + 1) })}
-              className="w-[46px] h-[46px] rounded-lg border-[1.5px] border-gray-300 text-xl font-bold"
-              aria-label="Tambah"
-            >
-              <Plus className="w-4 h-4 mx-auto" />
-            </button>
-            {row.stockHint && <span className="text-xs text-gray-500">{row.stockHint}</span>}
-          </div>
+          <Label className="text-[13.5px] font-semibold">Catatan</Label>
+          <Input
+            className={`${inputCls} mt-1`}
+            placeholder="cth: warna hitam, minta yang ori…"
+            value={row.note}
+            onChange={(e) => set({ note: e.target.value })}
+          />
         </div>
       </CardContent>
     </Card>
@@ -388,7 +370,7 @@ export default function RequestIntakePage() {
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
       const prodOk = r.listing === 'EXIST' ? !!r.productId : !!r.productName.trim();
-      if (!r.barcode.trim() || !prodOk || !r.categoryName.trim()) {
+      if (!r.barcode.trim() || !prodOk || !r.categoryId) {
         setFormErr(`Barang #${i + 1} belum lengkap — cek barcode, produk & kategori.`);
         return;
       }
@@ -403,15 +385,16 @@ export default function RequestIntakePage() {
           listing: r.listing,
           ...(r.productId ? { productId: r.productId } : {}),
           ...(r.listing === 'NEW' ? { productName: r.productName.trim() } : {}),
-          ...(r.categoryId ? { categoryId: r.categoryId } : {}),
+          categoryId: r.categoryId,
           categoryName: r.categoryName.trim(),
-          quantity: r.qty,
+          quantity: 1,
+          ...(r.note.trim() ? { note: r.note.trim() } : {}),
         })),
       });
       setDone({
         no: res.requestNumber,
         summary: (res.items || []).map(
-          (it) => `${it.productName} ×${it.quantity}${it.listing === 'NEW' ? ' • Baru' : ''}`,
+          (it) => `${it.productName}${it.listing === 'NEW' ? ' • Baru' : ''}${it.note ? ` — ${it.note}` : ''}`,
         ),
         customerName: customer.name,
       });
@@ -528,15 +511,37 @@ export default function RequestIntakePage() {
               <div>
                 <Label className="text-[13.5px] font-semibold">Cari pelanggan <span className="text-red-600">*</span></Label>
                 <div className="flex gap-2 mt-1">
-                  <Input
-                    className={inputCls}
-                    placeholder="Ketik nama / WA… (min. 2 huruf)"
-                    value={custSearch}
-                    onChange={(e) => {
-                      setCustSearch(e.target.value);
-                      setCustErr('');
-                    }}
-                  />
+                  {customer ? (
+                    <div className="flex-1 min-h-[46px] text-[15px] border-[1.5px] border-gray-300 rounded-md bg-white px-3 flex items-center gap-2">
+                      <span className="font-semibold truncate">
+                        ✓ {customer.name}
+                      </span>
+                      <span className="text-xs text-gray-500 truncate">
+                        {customer.phone}{customer.subdistrict ? ` • ${customer.subdistrict}` : ''}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCustomer(null);
+                          setCustSearch('');
+                        }}
+                        aria-label="Ganti pelanggan"
+                        className="ml-auto shrink-0 p-1"
+                      >
+                        <X className="w-4 h-4 text-gray-400" />
+                      </button>
+                    </div>
+                  ) : (
+                    <Input
+                      className={inputCls}
+                      placeholder="Ketik nama / WA… (min. 2 huruf)"
+                      value={custSearch}
+                      onChange={(e) => {
+                        setCustSearch(e.target.value);
+                        setCustErr('');
+                      }}
+                    />
+                  )}
                   <Button
                     type="button"
                     variant="outline"
@@ -550,8 +555,8 @@ export default function RequestIntakePage() {
                     <Plus className="w-5 h-5 mx-auto" />
                   </Button>
                 </div>
-                {custSearching && <p className="text-xs text-gray-500 mt-1">Mencari…</p>}
-                {custResults.length > 0 && (
+                {!customer && custSearching && <p className="text-xs text-gray-500 mt-1">Mencari…</p>}
+                {!customer && custResults.length > 0 && (
                   <div className="mt-2 space-y-1.5">
                     {custResults.map((c) => (
                       <button
@@ -559,17 +564,13 @@ export default function RequestIntakePage() {
                         type="button"
                         onClick={() => {
                           setCustomer(c);
+                          setCustSearch('');
+                          setCustResults([]);
                           setCustErr('');
                         }}
-                        className={`block w-full text-left px-3 py-2.5 text-sm border rounded-lg active:bg-red-50 ${
-                          customer?.id === c.id
-                            ? 'border-red-600 bg-red-50/60 shadow-[inset_0_0_0_1px_#dc2626]'
-                            : 'border-gray-200 bg-white'
-                        }`}
+                        className="block w-full text-left px-3 py-2.5 text-sm border border-gray-200 bg-white rounded-lg active:bg-red-50"
                       >
-                        <span className="font-semibold">
-                          {customer?.id === c.id ? '✓ ' : ''}{c.name}
-                        </span>
+                        <span className="font-semibold">{c.name}</span>
                         <span className="block text-xs text-gray-500">
                           {c.phone}{c.subdistrict ? ` • ${c.subdistrict}` : ''}
                         </span>
@@ -577,18 +578,13 @@ export default function RequestIntakePage() {
                     ))}
                   </div>
                 )}
-                {!custSearching && custSearch.trim().length >= 2 && custResults.length === 0 && (
+                {!customer && !custSearching && custSearch.trim().length >= 2 && custResults.length === 0 && (
                   <p className="text-[12.5px] text-gray-500 mt-1.5">
                     Tidak ketemu? Tekan + untuk tambah pelanggan baru.
                   </p>
                 )}
                 {custErr && <p className="text-[12.5px] text-red-600 mt-1.5">{custErr}</p>}
               </div>
-              {customer && (
-                <div className="mt-1 text-[13px] rounded-lg px-3 py-2 bg-green-50 text-green-800 border border-green-200">
-                  ✓ {customer.name} • {customer.phone}{customer.subdistrict ? ` • ${customer.subdistrict}` : ''}
-                </div>
-              )}
             </CardContent>
           </Card>
 
