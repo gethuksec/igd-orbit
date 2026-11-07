@@ -205,3 +205,144 @@ describe('CategoriesService isActive handling (IGDERP-69)', () => {
     });
   });
 });
+
+/**
+ * IGDERP-157 — categories trash view (Status=Tidak Aktif) never shows deleted
+ * rows. Root cause: delete() did a HARD prisma.category.delete, so no row
+ * with isActive=false ever existed for findAllPaginated(isActive=false).
+ * Fix: delete() soft-deletes via isActive=false.
+ */
+describe('CategoriesService soft-delete (IGDERP-157)', () => {
+  let service: CategoriesService;
+  let prisma: {
+    category: {
+      findUnique: jest.Mock;
+      findFirst: jest.Mock;
+      findMany: jest.Mock;
+      count: jest.Mock;
+      create: jest.Mock;
+      update: jest.Mock;
+      delete: jest.Mock;
+    };
+  };
+
+  const activeCategory = {
+    id: 'cat-1',
+    code: 'CAT-001',
+    name: 'Kategori Aktif',
+    description: 'desc',
+    parentCategoryId: null,
+    isActive: true,
+    tierMargins: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    parentCategory: null,
+    _count: { products: 0, childCategories: 0 },
+  };
+
+  beforeEach(async () => {
+    prisma = {
+      category: {
+        findUnique: jest.fn(),
+        findFirst: jest.fn(),
+        findMany: jest.fn(),
+        count: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+        delete: jest.fn(),
+      },
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        CategoriesService,
+        { provide: PrismaService, useValue: prisma },
+      ],
+    }).compile();
+
+    service = module.get<CategoriesService>(CategoriesService);
+  });
+
+  describe('delete', () => {
+    it('soft-deletes via isActive=false instead of hard delete', async () => {
+      prisma.category.findUnique.mockResolvedValue(activeCategory);
+      prisma.category.update.mockImplementation(async ({ data }: any) => ({
+        ...activeCategory,
+        ...data,
+      }));
+
+      await service.delete('cat-1');
+
+      expect(prisma.category.update).toHaveBeenCalledWith({
+        where: { id: 'cat-1' },
+        data: { isActive: false },
+      });
+      expect(prisma.category.delete).not.toHaveBeenCalled();
+    });
+
+    it('still blocks delete when category has products', async () => {
+      prisma.category.findUnique.mockResolvedValue({
+        ...activeCategory,
+        _count: { products: 2, childCategories: 0 },
+      });
+
+      await expect(service.delete('cat-1')).rejects.toThrow();
+      expect(prisma.category.update).not.toHaveBeenCalled();
+      expect(prisma.category.delete).not.toHaveBeenCalled();
+    });
+
+    it('still blocks delete when category has subcategories', async () => {
+      prisma.category.findUnique.mockResolvedValue({
+        ...activeCategory,
+        _count: { products: 0, childCategories: 1 },
+      });
+
+      await expect(service.delete('cat-1')).rejects.toThrow();
+      expect(prisma.category.update).not.toHaveBeenCalled();
+      expect(prisma.category.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('trash view', () => {
+    it('findAllPaginated with isActive=false returns the trashed row', async () => {
+      const trashed = { ...activeCategory, isActive: false };
+      prisma.category.findMany.mockResolvedValue([trashed]);
+      prisma.category.count.mockResolvedValue(1);
+
+      const result = await service.findAllPaginated(1, 20, undefined, false);
+
+      expect(prisma.category.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ isActive: false }),
+        }),
+      );
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].isActive).toBe(false);
+      expect(result.meta.total).toBe(1);
+    });
+  });
+
+  describe('name reuse after soft-delete', () => {
+    it('create allows reusing the name of a soft-deleted category', async () => {
+      prisma.category.findUnique.mockResolvedValue(null);
+      prisma.category.findFirst.mockResolvedValue({
+        ...activeCategory,
+        isActive: false,
+      });
+      prisma.category.create.mockImplementation(async ({ data }: any) => ({
+        id: 'cat-new',
+        ...data,
+        parentCategory: null,
+        _count: { products: 0, childCategories: 0 },
+      }));
+
+      const result = await service.create({
+        code: 'CAT-NEW',
+        name: 'Kategori Aktif',
+      } as CreateCategoryDto);
+
+      expect(prisma.category.create).toHaveBeenCalled();
+      expect(result.name).toBe('Kategori Aktif');
+    });
+  });
+});

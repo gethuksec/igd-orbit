@@ -605,7 +605,9 @@ export class CategoriesService {
   }
 
   /**
-   * Delete category
+   * Soft delete category (sets isActive=false so the trash view can list it).
+   * NOTE: Category has no deletedAt column (unlike Size/Product), so the
+   * soft-delete is isActive=false only.
    * @param id - Category ID
    */
   async delete(id: string): Promise<void> {
@@ -639,9 +641,11 @@ export class CategoriesService {
       );
     }
 
-    // Delete category
-    await this.prisma.category.delete({
+    // Soft delete (set isActive to false) so the trash view
+    // (findAllPaginated with isActive=false) can list it
+    await this.prisma.category.update({
       where: { id },
+      data: { isActive: false },
     });
   }
 
