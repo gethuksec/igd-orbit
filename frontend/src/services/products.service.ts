@@ -50,6 +50,33 @@ export interface ProductListResponse {
   };
 }
 
+// ── XLSX import (3-step: template → preview → confirm). Files are parsed
+// in memory server-side and never stored. ──
+export type ProductDuplicateMode = 'overwrite' | 'skip';
+
+export interface ProductImportPreviewRow {
+  rowNumbers: number[];
+  barcode?: string;
+  name: string;
+  action?: 'create' | 'update';
+  errors: string[];
+  [key: string]: any;
+}
+
+export interface ProductImportPreview {
+  rows: ProductImportPreviewRow[];
+  validCount: number;
+  errorCount: number;
+}
+
+export interface ProductImportResult {
+  created: number;
+  updated: number;
+  failed: number;
+  errors: Array<{ row: string; error: string }>;
+  productIds: string[];
+}
+
 export const productsService = {
   async getAll(params?: {
     page?: number;
@@ -101,6 +128,30 @@ export const productsService = {
     activeCount: number;
   }> {
     const response = await api.get('/products/statistics');
+    return response.data;
+  },
+
+  // ── XLSX import: template → preview (read-only) → confirm (writes) ──
+  async downloadProductImportTemplate(): Promise<Blob> {
+    const response = await api.get('/products/import/template', { responseType: 'blob' });
+    return response.data;
+  },
+
+  async previewProductImport(file: File): Promise<ProductImportPreview> {
+    const form = new FormData();
+    form.append('file', file);
+    const response = await api.post('/products/import/preview', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  async confirmProductImport(payload: {
+    fileName: string;
+    rows: any[];
+    duplicateMode: ProductDuplicateMode;
+  }): Promise<ProductImportResult> {
+    const response = await api.post('/products/import/confirm', payload);
     return response.data;
   },
 };

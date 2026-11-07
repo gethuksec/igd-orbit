@@ -38,6 +38,39 @@ export interface CustomerListResponse {
   };
 }
 
+// ── XLSX import (3-step: template → preview → confirm). Files are parsed
+// in memory server-side and never stored. ──
+export type CustomerDuplicateMode = 'overwrite' | 'skip';
+
+export interface CustomerImportPreviewRow {
+  rowNumber: number;
+  rowNumbers?: number[];
+  customerCode?: string;
+  name?: string;
+  phone?: string;
+  address?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  customerType: string;
+  notes?: string;
+  isUpdate: boolean;
+  errors: string[];
+}
+
+export interface CustomerImportPreview {
+  rows: CustomerImportPreviewRow[];
+  validCount: number;
+  errorCount: number;
+}
+
+export interface CustomerImportResult {
+  created: number;
+  updated: number;
+  failed: number;
+  errors: Array<{ row: number; error: string }>;
+  customerIds: string[];
+}
+
 export const customersService = {
   async getStatistics(): Promise<{ total: number; goldPlatinum: number; regularSilver: number }> {
     try {
@@ -175,6 +208,40 @@ export const customersService = {
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
+  },
+
+  // ── XLSX import: template → preview (read-only) → confirm (writes) ──
+  async downloadCustomerImportTemplate(): Promise<Blob> {
+    const response = await api.get('/customers/import/template', { responseType: 'blob' });
+    return response.data;
+  },
+
+  async previewCustomerImport(file: File): Promise<CustomerImportPreview> {
+    const form = new FormData();
+    form.append('file', file);
+    const response = await api.post('/customers/import/preview', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
+
+  async confirmCustomerImport(payload: {
+    fileName: string;
+    rows: Array<{
+      rowNumbers: number[];
+      customerCode?: string;
+      name: string;
+      phone: string;
+      address?: string;
+      dateOfBirth?: string;
+      gender?: string;
+      customerType?: string;
+      notes?: string;
+    }>;
+    duplicateMode: CustomerDuplicateMode;
+  }): Promise<CustomerImportResult> {
+    const response = await api.post('/customers/import/confirm', payload);
+    return response.data;
   },
 };
 
