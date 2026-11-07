@@ -252,7 +252,7 @@ function DetailDrawer({ id, onClose }: { id: string | null; onClose: () => void 
                         <TableCell>
                           {it.productName}
                           {it.listing === 'NEW' && (
-                            <Badge className="ml-2 bg-amber-100 text-amber-800 hover:bg-amber-100 text-[11px]">Baru</Badge>
+                            <Badge className="ml-2 bg-amber-100 text-amber-800 hover:bg-amber-100 text-[11px]">NEW</Badge>
                           )}
                         </TableCell>
                         <TableCell className="text-[13px]">{it.categoryName}</TableCell>

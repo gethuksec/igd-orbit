@@ -353,6 +353,40 @@ describe('StockRequestsService', () => {
     });
   });
 
+  describe('searchIntakeProducts', () => {
+    const row = {
+      id: 'prod-1',
+      name: 'LCD + TS iPhone 11',
+      sku: 'SKU-1',
+      barcode: 'BC-1',
+      categoryId: 'cat-1',
+      category: { id: 'cat-1', name: 'LCD+TS' },
+    };
+
+    it('returns default top list on empty query (dropdown on focus)', async () => {
+      mockBranchOk();
+      prisma.product.findMany.mockResolvedValue([row]);
+      prisma.productStock.aggregate.mockResolvedValue({ _sum: { quantityAvailable: 3 } });
+      const res = await service.searchIntakeProducts('tok', '');
+      expect(prisma.product.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { isActive: true, deletedAt: null } }),
+      );
+      expect(res).toEqual([
+        { id: 'prod-1', name: 'LCD + TS iPhone 11', sku: 'SKU-1', barcode: 'BC-1', category: row.category, available: 3 },
+      ]);
+    });
+
+    it('filters by name/sku/barcode on typed query', async () => {
+      mockBranchOk();
+      prisma.product.findMany.mockResolvedValue([]);
+      const res = await service.searchIntakeProducts('tok', 'lcd');
+      expect(prisma.product.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining({ OR: expect.any(Array) }) }),
+      );
+      expect(res).toEqual([]);
+    });
+  });
+
   describe('quickAddIntakeCustomer', () => {
     it('creates a retail master row on valid input', async () => {
       mockBranchOk();

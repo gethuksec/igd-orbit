@@ -17,9 +17,7 @@ import kecamatanJember from '@/data/kecamatan-jember.json';
 
 interface RowState {
   key: string;
-  barcode: string;
-  lookup: 'idle' | 'found' | 'miss';
-  lookupText: string;
+  barcode: string; // auto-filled from picked product (barcode/sku) or typed text for NEW
   listing: 'EXIST' | 'NEW';
   productId: string;
   productName: string; // EXIST: chosen master name (display) · NEW: free text
@@ -32,8 +30,6 @@ interface RowState {
 const emptyRow = (): RowState => ({
   key: crypto.randomUUID(),
   barcode: '',
-  lookup: 'idle',
-  lookupText: '',
   listing: 'EXIST',
   productId: '',
   productName: '',
@@ -68,59 +64,46 @@ function ItemRow({
   const [search, setSearch] = useState('');
   const [results, setResults] = useState<IntakeProduct[]>([]);
   const [searching, setSearching] = useState(false);
+  const [open, setOpen] = useState(false);
 
+  // Dropdown: default top list on focus (empty query), filtered once ≥2 chars typed.
   useEffect(() => {
-    if (search.trim().length < 2) {
+    if (!open) return;
+    const q = search.trim();
+    if (q.length > 0 && q.length < 2) {
       setResults([]);
       return;
     }
     const h = setTimeout(async () => {
       setSearching(true);
       try {
-        const list = await stockRequestsService.searchIntakeProducts(token, search.trim(), 8);
+        const list = await stockRequestsService.searchIntakeProducts(token, q, 10);
         setResults(list);
       } catch {
         setResults([]);
       } finally {
         setSearching(false);
       }
-    }, 300);
+    }, 250);
     return () => clearTimeout(h);
-  }, [search, token]);
+  }, [search, open, token]);
 
   const set = (patch: Partial<RowState>) => onChange({ ...row, ...patch });
 
-  const checkBarcode = async () => {
-    const code = row.barcode.trim();
-    if (!code) {
-      set({ lookup: 'miss', lookupText: 'Isi barcode / nama produk dulu, lalu tekan Cek.' });
-      return;
-    }
+  // Scan/Enter on the unified field: exact barcode hit auto-picks the product.
+  const runLookup = async (code: string) => {
+    const c = code.trim();
+    if (!c) return;
     try {
-      const list = await stockRequestsService.searchIntakeProducts(token, code, 10);
-      const exact = list.find((p) => (p.barcode || '').toLowerCase() === code.toLowerCase());
+      const list = await stockRequestsService.searchIntakeProducts(token, c, 10);
+      const exact = list.find((p) => (p.barcode || '').toLowerCase() === c.toLowerCase());
       if (exact) {
-        set({
-          lookup: 'found',
-          lookupText: `✓ ${exact.name} • ${exact.category?.name || '-'}${exact.available > 0 ? ` • stok outlet: ${exact.available}` : ' • stok outlet kosong'}`,
-          listing: 'EXIST',
-          productId: exact.id,
-          productName: exact.name,
-          categoryId: exact.category?.id || '',
-          categoryName: exact.category?.name || '',
-          stockHint:
-            exact.available > 0
-              ? `Stok outlet: ${exact.available}`
-              : 'Stok outlet kosong — tetap bisa request',
-        });
+        pickProduct(exact);
       } else {
-        set({
-          lookup: 'miss',
-          lookupText: 'Tidak terdaftar di master — ketik di kolom produk lalu pilih “Tambah baru”.',
-        });
+        setOpen(true);
       }
     } catch {
-      set({ lookup: 'miss', lookupText: 'Gagal memeriksa barcode, coba lagi.' });
+      setOpen(true);
     }
   };
 
@@ -128,12 +111,14 @@ function ItemRow({
     set({
       productId: p.id,
       productName: p.name,
+      barcode: p.barcode || p.sku || '',
       categoryId: p.category?.id || '',
       categoryName: p.category?.name || '',
       stockHint: p.available > 0 ? `Stok outlet: ${p.available}` : 'Stok outlet kosong — tetap bisa request',
     });
     setSearch('');
     setResults([]);
+    setOpen(false);
   };
 
   const chooseNewProduct = (name: string) => {
@@ -141,15 +126,21 @@ function ItemRow({
       listing: 'NEW',
       productId: '',
       productName: name.trim(),
+      barcode: name.trim(),
+      categoryId: '',
+      categoryName: '',
+      stockHint: '',
     });
     setSearch('');
     setResults([]);
+    setOpen(false);
   };
 
   const clearProduct = () => {
-    set({ listing: 'EXIST', productId: '', productName: '' });
+    set({ listing: 'EXIST', productId: '', productName: '', barcode: '', categoryId: '', categoryName: '', stockHint: '' });
     setSearch('');
     setResults([]);
+    setOpen(false);
   };
 
   return (
@@ -168,38 +159,12 @@ function ItemRow({
         </div>
 
         <div>
-          <Label className="text-[13.5px] font-semibold">Barcode/Nama produk <span className="text-red-600">*</span></Label>
-          <div className="flex gap-2 mt-1">
-            <Input
-              className={inputCls}
-              placeholder="Ketik / tempel barcode, nama, SKU…"
-              value={row.barcode}
-              onChange={(e) => set({ barcode: e.target.value })}
-            />
-            <Button type="button" variant="outline" className="min-h-[46px] border-red-600 text-red-600 font-bold" onClick={checkBarcode}>
-              Cek
-            </Button>
-          </div>
-          {row.lookup !== 'idle' && (
-            <div
-              className={`mt-2 text-[13px] rounded-lg px-3 py-2 border ${
-                row.lookup === 'found'
-                  ? 'bg-green-50 text-green-800 border-green-200'
-                  : 'bg-amber-50 text-amber-800 border-amber-200'
-              }`}
-            >
-              {row.lookupText}
-            </div>
-          )}
-        </div>
-
-        <div>
           <Label className="text-[13.5px] font-semibold">Produk <span className="text-red-600">*</span></Label>
           {row.productId || row.listing === 'NEW' ? (
             <div className="flex gap-2 mt-1">
               <div className="flex-1 min-h-[46px] text-[15px] border-[1.5px] border-gray-300 rounded-md bg-white px-3 flex items-center gap-2">
                 <span className="font-semibold truncate">
-                  {row.listing === 'NEW' ? `Baru: ${row.productName}` : row.productName}
+                  {row.listing === 'NEW' ? `${row.productName} NEW` : row.productName}
                 </span>
                 <button type="button" onClick={clearProduct} aria-label="Ganti produk" className="ml-auto shrink-0 p-1">
                   <X className="w-4 h-4 text-gray-400" />
@@ -210,17 +175,28 @@ function ItemRow({
             <div className="relative">
               <Input
                 className={`${inputCls} mt-1`}
-                placeholder="Ketik nama / SKU / barcode… (min. 2 huruf)"
+                placeholder="Ketik / scan barcode, nama, SKU…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                onFocus={() => setOpen(true)}
+                onBlur={() => setTimeout(() => setOpen(false), 150)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    runLookup(search);
+                  } else if (e.key === 'Escape') {
+                    setOpen(false);
+                  }
+                }}
               />
-              {searching && <p className="text-xs text-gray-500 mt-1">Mencari…</p>}
-              {!searching && search.trim().length >= 2 && (
+              {open && (searching || results.length > 0 || search.trim().length >= 2) && (
                 <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg mt-1 shadow-lg max-h-56 overflow-auto">
+                  {searching && <p className="px-3 py-2.5 text-xs text-gray-500">Mencari…</p>}
                   {results.map((p) => (
                     <button
                       key={p.id}
                       type="button"
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => pickProduct(p)}
                       className="block w-full text-left px-3 py-2.5 text-sm border-b border-gray-100 last:border-0 active:bg-red-50"
                     >
@@ -230,9 +206,10 @@ function ItemRow({
                       </span>
                     </button>
                   ))}
-                  {!results.some((p) => p.name.toLowerCase() === search.trim().toLowerCase()) && (
+                  {!searching && search.trim().length >= 2 && !results.some((p) => p.name.toLowerCase() === search.trim().toLowerCase()) && (
                     <button
                       type="button"
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => chooseNewProduct(search)}
                       className="block w-full text-left px-3 py-2.5 text-sm font-bold text-red-600 border-t-2 border-dashed border-gray-200 active:bg-red-50"
                     >
@@ -371,7 +348,7 @@ export default function RequestIntakePage() {
       const r = rows[i];
       const prodOk = r.listing === 'EXIST' ? !!r.productId : !!r.productName.trim();
       if (!r.barcode.trim() || !prodOk || !r.categoryId) {
-        setFormErr(`Barang #${i + 1} belum lengkap — cek barcode, produk & kategori.`);
+        setFormErr(`Barang #${i + 1} belum lengkap — pilih produk & kategori.`);
         return;
       }
     }
@@ -394,7 +371,7 @@ export default function RequestIntakePage() {
       setDone({
         no: res.requestNumber,
         summary: (res.items || []).map(
-          (it) => `${it.productName}${it.listing === 'NEW' ? ' • Baru' : ''}${it.note ? ` — ${it.note}` : ''}`,
+          (it) => `${it.productName}${it.listing === 'NEW' ? ' NEW' : ''}${it.note ? ` — ${it.note}` : ''}`,
         ),
         customerName: customer.name,
       });
