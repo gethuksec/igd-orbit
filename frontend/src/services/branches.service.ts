@@ -54,11 +54,7 @@ export const branchesService = {
     status?: string;
   }): Promise<BranchListResponse> {
     try {
-      const { status, ...rest } = params || {};
-      const queryParams: any = { ...rest };
-      if (status && status !== 'all') {
-        queryParams.includeInactive = status === 'inactive';
-      }
+      const queryParams: any = { ...(params || {}) };
       const response = await api.get('/branches/list', { params: queryParams });
       return response.data;
     } catch (error: any) {
