@@ -542,8 +542,9 @@ export class StockOpnameService {
   }
 
   /**
-   * IGDERP-236 (OP4): Stock Opname approver setting (Administrator → General).
-   * Global default = role code (default 'SPV'); per-outlet person override wins.
+   * IGDERP-236 (OP4): Stock Opname approver setting (Administrator → Approval,
+   * mirrored on General). Global default = role code (default 'HS'/Headstore —
+   * the live role catalog has no MGR/SPV/CSO); per-outlet person override wins.
    */
   async getApproverSetting() {
     const [global, overrides] = await Promise.all([
@@ -553,8 +554,19 @@ export class StockOpnameService {
         orderBy: { updatedAt: 'desc' },
       }),
     ]);
+    const role = (global?.role ?? '').trim().toUpperCase();
+    // Self-healing: a saved role deleted from the catalog (e.g. fossil MGR/SPV)
+    // matches no holder — fall back to HS instead of returning a dead code.
+    let defaultRole = role || 'HS';
+    if (role) {
+      const exists = await this.prisma.role.findUnique({
+        where: { code: role },
+        select: { code: true },
+      });
+      if (!exists) defaultRole = 'HS';
+    }
     return {
-      defaultRole: global?.role ?? 'MGR',
+      defaultRole,
       overrides: (overrides ?? []).map((o: any) => ({ outletId: o.outletId, userId: o.userId })),
     };
   }

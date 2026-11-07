@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { api } from '@/services/api';
 import { rolesService } from '@/services/roles.service';
+import OpnameApproverCard from './OpnameApproverCard';
 
 // IGDERP-171: general approval settings — approver roles per category.
 // SERVICE_PAYMENT_VOID gates Smart Repair payment voids (assertApprover server-side;
@@ -98,6 +99,9 @@ export default function ServiceApprovalSettings() {
             Simpan
           </Button>
         </div>
+      </div>
+      <div className="rounded-xl border bg-card p-5">
+        <OpnameApproverCard />
       </div>
     </div>
   );

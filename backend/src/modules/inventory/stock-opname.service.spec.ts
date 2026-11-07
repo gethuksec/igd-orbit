@@ -114,6 +114,7 @@ describe('StockOpnameService', () => {
       },
       category: { findMany: jest.fn().mockResolvedValue([]) },
       user: { findMany: jest.fn().mockResolvedValue([]) },
+      role: { findUnique: jest.fn().mockResolvedValue(null) },
       // IGDERP-236 (OP4): approver setting + outlet role holders
       opnameApproverSetting: {
         findFirst: jest.fn().mockResolvedValue(null),
@@ -1458,11 +1459,31 @@ describe('StockOpnameService', () => {
       prisma.opnameApproverSetting.findUnique.mockResolvedValue(null);
       prisma.opnameApproverSetting.findFirst.mockResolvedValue({ outletId: null, role: 'SPV' });
       prisma.opnameApproverSetting.findMany.mockResolvedValue([]);
+      prisma.role.findUnique.mockResolvedValue({ code: 'SPV' });
       prisma.userBranch.findMany.mockResolvedValue([
         { userId: 'spv-a', user: { id: 'spv-a' } },
       ]);
 
       await expect(service.resolveOutletApprover('b-1')).resolves.toBe('spv-a');
+    });
+
+    it('approver setting: no row defaults to HS (live Headstore code)', async () => {
+      prisma.opnameApproverSetting.findFirst.mockResolvedValue(null);
+      prisma.opnameApproverSetting.findMany.mockResolvedValue([]);
+
+      await expect(service.getApproverSetting()).resolves.toMatchObject({ defaultRole: 'HS' });
+      expect(prisma.role.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('approver setting: fossil saved role (MGR) heals to HS', async () => {
+      prisma.opnameApproverSetting.findFirst.mockResolvedValue({ outletId: null, role: 'MGR' });
+      prisma.opnameApproverSetting.findMany.mockResolvedValue([]);
+      prisma.role.findUnique.mockResolvedValue(null);
+
+      await expect(service.getApproverSetting()).resolves.toMatchObject({ defaultRole: 'HS' });
+      expect(prisma.role.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { code: 'MGR' } }),
+      );
     });
 
     it('startOpname pre-fills the approver from the setting when omitted', async () => {
