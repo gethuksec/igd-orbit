@@ -63,20 +63,21 @@ export class PaymentTermsService {
     const limitNum = typeof limit === 'string' ? parseInt(limit, 10) : limit || 20;
 
     const skip = (pageNum - 1) * limitNum;
-    const where: Prisma.PaymentTermWhereInput = {
-      deletedAt: null,
-    };
+    const where: Prisma.PaymentTermWhereInput = {};
 
-    // Apply status filter
-    if (status === 'active') {
-      where.isActive = true;
-    } else if (status === 'inactive') {
+    // Apply status filter (products-style: deletedAt follows status —
+    // delete() sets isActive=false AND deletedAt=now, so the inactive
+    // filter must look at trashed rows instead of excluding them)
+    if (status === 'inactive') {
       where.isActive = false;
-    } else if (status === 'all') {
-      // Show all records - no filter
-    } else if (!includeInactive) {
-      // Default: active only (backward compatible)
+      where.deletedAt = { not: null };
+    } else if (status === 'all' || (includeInactive && !status)) {
+      // Show all records - no deletedAt / isActive filter
+      where.deletedAt = undefined;
+    } else {
+      // Default + status === 'active': live rows only (backward compatible)
       where.isActive = true;
+      where.deletedAt = null;
     }
 
     // Search filter
