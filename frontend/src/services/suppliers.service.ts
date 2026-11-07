@@ -79,6 +79,7 @@ export const suppliersService = {
       
       if (params?.status) {
         apiParams['filter[isActive]'] = params.status === 'active';
+        apiParams['filter[status]'] = params.status;
       }
       
       const response = await api.get('/suppliers', { params: apiParams });
