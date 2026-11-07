@@ -164,7 +164,7 @@ describe('StockOpnameService', () => {
       expect(prisma.stockOpname.findFirst).toHaveBeenCalledWith({
         where: {
           warehouseId: 'wh-outlet-1',
-          status: { in: ['draft', 'counting'] },
+          status: { in: ['draft', 'counting', 'completed'] },
         },
       });
       const createData = tx.stockOpname.create.mock.calls[0][0].data;
@@ -206,6 +206,19 @@ describe('StockOpnameService', () => {
           'user-1',
         ),
       ).rejects.toThrow(BadRequestException);
+    });
+
+    it('rejects when a completed (unapproved) opname exists for the warehouse', async () => {
+      prisma.warehouse.findUnique.mockResolvedValue(warehouse);
+      prisma.stockOpname.findFirst.mockResolvedValue(opname({ status: 'completed' }));
+
+      await expect(
+        service.startOpname(
+          { warehouseId: 'wh-outlet-1', opnameDate: '2026-08-21' },
+          'user-1',
+        ),
+      ).rejects.toThrow(BadRequestException);
+      expect(prisma.stockOpname.findFirst.mock.calls[0][0].where.status.in).toContain('completed');
     });
 
     it('rejects an inactive warehouse', async () => {
@@ -333,6 +346,20 @@ describe('StockOpnameService', () => {
 
       await expect(service.cancelOpname('op-1', 'user-2')).rejects.toThrow(
         BadRequestException,
+      );
+    });
+
+    it('cancels a completed (unapproved) opname, freeing the outlet', async () => {
+      prisma.stockOpname.findUnique.mockResolvedValue(opname({ status: 'completed' }));
+      prisma.stockOpname.update.mockResolvedValue({ id: 'op-1', status: 'cancelled' });
+
+      await service.cancelOpname('op-1', 'user-2');
+
+      expect(prisma.stockOpname.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'op-1' },
+          data: expect.objectContaining({ status: 'cancelled', cancelledBy: 'user-2' }),
+        }),
       );
     });
   });
