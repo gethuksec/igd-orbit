@@ -1572,6 +1572,40 @@ export class CustomersService {
   }
 
   /**
+   * Export all active non-deleted customers to XLSX with headers byte-identical
+   * to the import template (8 cols, exact order). dateOfBirth renders as
+   * dd/mm/yyyy ('' when absent); gender as L/P. Re-uploading the exported
+   * file parses cleanly against the same validation.
+   */
+  async exportCustomersToXlsx(): Promise<Buffer> {
+    const { buildCustomerExportWorkbook } = require('../../shared/utils/customer-import-template');
+    const customers = await this.prisma.customer.findMany({
+      where: { deletedAt: null, isActive: true },
+      orderBy: { name: 'asc' },
+    });
+    const rows = (customers as any[]).map((c) => {
+      let dob = '';
+      if (c.dateOfBirth) {
+        const d = new Date(c.dateOfBirth);
+        if (!Number.isNaN(d.getTime())) {
+          dob = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+        }
+      }
+      return [
+        c.customerCode || '',
+        c.name || '',
+        c.phone || '',
+        c.address || '',
+        dob,
+        c.gender || '',
+        c.customerType || '',
+        c.notes || '',
+      ];
+    });
+    return buildCustomerExportWorkbook(rows);
+  }
+
+  /**
    * Parse + validate an uploaded workbook. READ-ONLY: resolves existing
    * customers (by phone exact match, or customerCode exact match when
    * provided) only to flag preview rows as updates — no writes.

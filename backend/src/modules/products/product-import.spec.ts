@@ -218,14 +218,13 @@ describe('ProductsService — XLSX product import', () => {
       expect(out.rows[0].errors[1]).toBe(`Stok '${PRODUCT_STOCK_LABELS[1]}' wajib diisi angka >= 0`);
     });
 
-    it('flags unknown warehouse names instead of skipping them', async () => {
+    it('skips stock columns whose warehouse is unknown (no error, no stock entry)', async () => {
       prisma.warehouse.findMany.mockResolvedValue([{ id: 'wh-x', name: 'Gudang Lain' }]);
       const buf = await xlsx(PRODUCT_IMPORT_HEADERS, [fullRow()]);
       const out = await service.previewProductImport(buf);
-      expect(out.validCount).toBe(0);
-      expect(out.errorCount).toBe(1);
-      expect(out.rows[0].errors).toHaveLength(10);
-      expect(out.rows[0].errors[0]).toBe(`Gudang '${PRODUCT_STOCK_LABELS[0]}' tidak ditemukan`);
+      expect(out.errorCount).toBe(0);
+      expect(out.validCount).toBe(1);
+      expect(out.rows[0].stocks).toEqual([]);
       expect(prisma.product.create).not.toHaveBeenCalled();
     });
   });

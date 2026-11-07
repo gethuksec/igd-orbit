@@ -153,6 +153,28 @@ export class CustomersController {
   }
 
   /**
+   * Export all active non-deleted customers as XLSX (round-trip import format).
+   * GET /api/v1/customers/import/export
+   * Permissions: OWNER, CMO, SPV, HS, ASA
+   * NOTE: Must be before @Get(':id') to avoid route conflict
+   */
+  @Get('import/export')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'CMO', 'SPV', 'HS', 'ASA')
+  async importExport(@Res() res: Response): Promise<void> {
+    const buffer = await this.customersService.exportCustomersToXlsx();
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="ekspor-pelanggan.xlsx"',
+    );
+    res.send(buffer);
+  }
+
+  /**
    * Get customer detail with statistics
    * GET /api/v1/customers/:id
    * Permissions: OWNER, CFO, MGR, CMO, SPV, HS, CS, ASA, CR

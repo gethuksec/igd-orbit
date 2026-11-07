@@ -1880,6 +1880,83 @@ export class ProductsService {
   }
 
   /**
+   * Export all active non-deleted products to XLSX with headers byte-identical
+   * to the import template (29 cols, exact order). Stock columns map by
+   * warehouse name (case-insensitive): quantityAvailable number (0 when the
+   * warehouse exists but has no stock row); labels with no warehouse match
+   * export as blank (skipped on re-import). Re-uploading the exported file
+   * yields 0 stock errors against the same DB.
+   */
+  async exportProductsToXlsx(): Promise<Buffer> {
+    const {
+      buildProductExportWorkbook,
+      PRODUCT_STOCK_LABELS,
+    } = require('../../shared/utils/product-import-template');
+    const [products, warehouses] = await Promise.all([
+      this.prisma.product.findMany({
+        where: { deletedAt: null, isActive: true },
+        include: {
+          category: { select: { id: true, name: true } },
+          brand: { select: { id: true, name: true } },
+          unit: { select: { id: true, name: true } },
+          size: { select: { id: true, name: true } },
+          color: { select: { id: true, name: true } },
+          supplier: { select: { id: true, name: true } },
+          productStocks: {
+            include: { warehouse: { select: { id: true, name: true } } },
+          },
+        },
+        orderBy: { name: 'asc' },
+      }),
+      this.prisma.warehouse.findMany(),
+    ]);
+    const warehouseByName = new Map(
+      (warehouses as any[]).map((w) => [String(w.name).toLowerCase(), w]),
+    );
+    const num = (v: any): number => {
+      if (v === null || v === undefined || v === '') return 0;
+      if (typeof v === 'number') return v;
+      const n = Number(typeof v.toNumber === 'function' ? v.toNumber() : String(v));
+      return Number.isFinite(n) ? n : 0;
+    };
+    const rows = (products as any[]).map((p) => {
+      const mp = (p.memberPricing as any) || {};
+      const disc = (tier: string) => mp?.[tier]?.discount ?? '';
+      const stockByWarehouseId = new Map(
+        (p.productStocks || []).map((s: any) => [s.warehouseId, num(s.quantityAvailable)]),
+      );
+      const stockCols = (PRODUCT_STOCK_LABELS as string[]).map((label: string) => {
+        const wh = warehouseByName.get(label.toLowerCase());
+        if (!wh) return '';
+        return stockByWarehouseId.get(wh.id) ?? 0;
+      });
+      return [
+        p.barcode ?? '',
+        p.name ?? '',
+        p.printedName || p.name || '',
+        p.unit?.name || '',
+        p.category?.name || '',
+        p.grade || '',
+        p.brand?.name || '',
+        p.size?.name || '',
+        p.color?.name || '',
+        num(p.sellingPrice),
+        '',
+        p.isService ? 'Y' : 'N',
+        p.trackSerial ? '1' : '2',
+        num(p.costPrice),
+        p.supplier?.name || '',
+        disc('platinum'),
+        disc('gold'),
+        disc('silver'),
+        disc('user'),
+        ...stockCols,
+      ];
+    });
+    return buildProductExportWorkbook(rows);
+  }
+
+  /**
    * Preview a product XLSX import — READ-ONLY, no writes.
    * Resolves names to ids; unknown category/brand names are flagged for
    * auto-create at confirm time, unknown unit/size/color are row errors.
@@ -2008,15 +2085,13 @@ export class ProductsService {
         }
       }
 
-      // Per-warehouse opening stocks — every template stock column is
-      // required numeric >= 0; unknown warehouse names are row errors.
+      // Per-warehouse opening stocks — stock columns whose label has no DB
+      // warehouse match are SKIPPED (no error, no stock entry); required
+      // numeric >= 0 applies only to labels with a DB warehouse match.
       const stocks: Array<{ warehouseId: string; warehouseName: string; quantity: number }> = [];
       for (const label of PRODUCT_STOCK_LABELS as string[]) {
         const wh = warehouseMap.get(label.toLowerCase());
-        if (!wh) {
-          errors.push(`Gudang '${label}' tidak ditemukan`);
-          continue;
-        }
+        if (!wh) continue;
         const qtyRaw = raw.stocksRaw[label];
         if (qtyRaw === '' || qtyRaw === null || qtyRaw === undefined) {
           errors.push(`Stok '${label}' wajib diisi angka >= 0`);
@@ -2086,8 +2161,9 @@ export class ProductsService {
   /**
    * Confirm a previewed product XLSX import — creates/updates products via the
    * existing create()/update() paths, then upserts per-warehouse stocks.
-   * Stocks are re-validated here the same way as preview (every template
-   * stock column required numeric >= 0); any violation fails that row before
+   * Stocks are re-validated here the same way as preview (required numeric
+   * >= 0 only for template stock columns matching a current warehouse;
+   * unmatched labels are skipped); any violation fails that row before
    * any write for it (never partial). duplicateMode 'skip' leaves existing
    * products (barcode→name) untouched and counts them as skipped.
    */
@@ -2136,8 +2212,9 @@ export class ProductsService {
         }
 
         // Re-validate opening stocks the same way as preview (before any
-        // write for this row): every template stock column required numeric
-        // >= 0 against the current warehouse list.
+        // write for this row): required numeric >= 0 only for template
+        // stock columns that match a current warehouse; unmatched labels
+        // are skipped.
         for (const s of row.stocks || []) {
           if (!s || !warehouseById.get(s.warehouseId)) {
             throw new BadRequestException(`Gudang tidak dikenal (id: ${s?.warehouseId})`);
@@ -2146,7 +2223,7 @@ export class ProductsService {
         const stocksByWarehouse = new Map((row.stocks || []).map((s: any) => [s?.warehouseId, s]));
         for (const stockLabel of CONFIRM_STOCK_LABELS as string[]) {
           const wh = warehouseByName.get(stockLabel.toLowerCase());
-          if (!wh) throw new BadRequestException(`Gudang '${stockLabel}' tidak ditemukan`);
+          if (!wh) continue;
           const qty = (stocksByWarehouse.get(wh.id) as any)?.quantity;
           if (typeof qty !== 'number' || !Number.isFinite(qty) || qty < 0) {
             throw new BadRequestException(`Stok '${stockLabel}' wajib diisi angka >= 0`);

@@ -252,3 +252,23 @@ export async function buildProductImportTemplate(): Promise<Buffer> {
   sample.columns = PRODUCT_IMPORT_HEADERS.map(() => ({ width: 24 }));
   return (await wb.xlsx.writeBuffer()) as Buffer;
 }
+
+/**
+ * Export workbook: `Data` sheet with headers byte-identical to the template
+ * plus one row per product, columns in exact template order.
+ * Accepts rows either as position arrays (already in template order) or as
+ * records keyed by exact header label.
+ */
+export async function buildProductExportWorkbook(
+  rows: Array<Record<string, any> | any[]>,
+): Promise<Buffer> {
+  const wb = new ExcelJS.Workbook();
+  const data = wb.addWorksheet('Data');
+  data.addRow(PRODUCT_IMPORT_HEADERS);
+  styleHeader(data.getRow(1));
+  for (const r of rows) {
+    data.addRow(Array.isArray(r) ? r : PRODUCT_IMPORT_HEADERS.map((h) => r[h] ?? ''));
+  }
+  data.columns = PRODUCT_IMPORT_HEADERS.map(() => ({ width: 22 }));
+  return (await wb.xlsx.writeBuffer()) as Buffer;
+}

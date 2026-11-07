@@ -225,3 +225,26 @@ export async function buildCustomerImportTemplate(): Promise<Buffer> {
   sample.columns = IMPORT_COLUMNS.map(() => ({ width: 24 }));
   return (await wb.xlsx.writeBuffer()) as Buffer;
 }
+
+/** Export header order (byte-identical to the template labels). */
+export const CUSTOMER_EXPORT_HEADERS: string[] = IMPORT_COLUMNS.map((c) => c.label);
+
+/**
+ * Export workbook: 'Import Pelanggan' sheet with template-identical headers
+ * plus one row per customer. Accepts rows either as position arrays (already
+ * in template order) or as records keyed by exact header label.
+ */
+export async function buildCustomerExportWorkbook(
+  rows: Array<Record<string, any> | any[]>,
+): Promise<Buffer> {
+  const wb = new ExcelJS.Workbook();
+  const headers = IMPORT_COLUMNS.map((c) => c.label);
+  const data = wb.addWorksheet('Import Pelanggan');
+  data.addRow(headers);
+  styleHeader(data.getRow(1));
+  for (const r of rows) {
+    data.addRow(Array.isArray(r) ? r : headers.map((h) => r[h] ?? ''));
+  }
+  data.columns = IMPORT_COLUMNS.map(() => ({ width: 24 }));
+  return (await wb.xlsx.writeBuffer()) as Buffer;
+}

@@ -131,6 +131,25 @@ export class ProductsController {
   }
 
   /**
+   * Export all active non-deleted products as XLSX (round-trip import format)
+   * GET /api/v1/products/import/export
+   * Permissions: OWNER, CSO, CMO, SPV, HS, ASA
+   * NOTE: Must be before @Get(':id') to avoid route conflict
+   */
+  @Get('import/export')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'CSO', 'CMO', 'SPV', 'HS', 'ASA')
+  async exportImport(@Res() res: Response): Promise<void> {
+    const buffer = await this.productsService.exportProductsToXlsx();
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader('Content-Disposition', 'attachment; filename="ekspor-produk.xlsx"');
+    res.send(buffer);
+  }
+
+  /**
    * Get product detail with stock info
    * GET /api/v1/products/:id
    * Permissions: OWNER, CFO, MGR, CSO, CMO, SPV, HS, ASA
