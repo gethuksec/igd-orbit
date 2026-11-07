@@ -180,7 +180,7 @@ export class StockRequestsService {
     if (!name) {
       throw new BadRequestException('Nama wajib diisi.');
     }
-    if (!INTAKE_WA_PATTERN.test(phone)) {
+    if (phone && !INTAKE_WA_PATTERN.test(phone)) {
       throw new BadRequestException('No. WA tidak valid. Format: 08… atau +62…');
     }
     if (!(KECAMATAN_JEMBER as readonly string[]).includes(subdistrict)) {
@@ -188,7 +188,7 @@ export class StockRequestsService {
     }
     const customerCode = await this.generateIntakeCustomerCode();
     return this.prisma.customer.create({
-      data: { customerCode, customerType: 'retail', name, phone, subdistrict },
+      data: { customerCode, customerType: 'retail', name, phone: phone || null, subdistrict },
       select: { id: true, name: true, phone: true, subdistrict: true },
     });
   }
@@ -315,22 +315,23 @@ export class StockRequestsService {
           throw new BadRequestException(`Barang #${n}: nama produk baru wajib diisi.`);
         }
         categoryName = item.categoryName?.trim() || '';
-        if (!categoryName) {
-          throw new BadRequestException(`Barang #${n}: kategori wajib diisi.`);
-        }
-        if (item.categoryId) {
-          const cat = await this.prisma.category.findUnique({
-            where: { id: item.categoryId },
-            select: { id: true },
-          });
-          if (!cat) throw new BadRequestException(`Barang #${n}: kategori tidak valid.`);
-          categoryId = cat.id;
-        } else {
-          const cat = await this.prisma.category.findFirst({
-            where: { name: { equals: categoryName, mode: 'insensitive' }, isActive: true },
-            select: { id: true },
-          });
-          if (cat) categoryId = cat.id;
+        // Category is optional for new products — resolve the id only when given.
+        if (item.categoryId || categoryName) {
+          if (item.categoryId) {
+            const cat = await this.prisma.category.findUnique({
+              where: { id: item.categoryId },
+              select: { id: true, name: true },
+            });
+            if (!cat) throw new BadRequestException(`Barang #${n}: kategori tidak valid.`);
+            categoryId = cat.id;
+            categoryName = categoryName || cat.name;
+          } else {
+            const cat = await this.prisma.category.findFirst({
+              where: { name: { equals: categoryName, mode: 'insensitive' }, isActive: true },
+              select: { id: true },
+            });
+            if (cat) categoryId = cat.id;
+          }
         }
       }
       rows.push({

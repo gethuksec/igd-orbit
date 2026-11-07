@@ -142,7 +142,7 @@ export const stockRequestsService = {
   },
   quickAddIntakeCustomer(
     token: string,
-    payload: { name: string; phone: string; subdistrict: string },
+    payload: { name: string; phone?: string; subdistrict: string },
   ): Promise<IntakeCustomer> {
     return api.post(`/stock-requests/intake/${token}/customers/quick-add`, payload).then(unwrap);
   },
