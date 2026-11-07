@@ -494,6 +494,8 @@ export const inventoryService = {
   async getOpnames(params?: {
     branchId?: string;
     status?: string;
+    startDate?: string;
+    endDate?: string;
   }): Promise<StockOpname[]> {
     try {
       const response = await api.get('/inventory/opname', { params });

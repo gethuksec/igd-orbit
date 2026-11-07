@@ -23,6 +23,8 @@ export default function StockOpnameList() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [joinError, setJoinError] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
@@ -43,11 +45,13 @@ export default function StockOpnameList() {
   });
 
   const { data: opnames, isLoading, error, refetch } = useQuery({
-    queryKey: ['inventory-opnames', searchTerm, selectedStatus, branchId],
+    queryKey: ['inventory-opnames', searchTerm, selectedStatus, branchId, dateFrom, dateTo],
     queryFn: () =>
       inventoryService.getOpnames({
         branchId: branchId || undefined,
         status: selectedStatus !== 'ALL' ? selectedStatus : undefined,
+        startDate: dateFrom || undefined,
+        endDate: dateTo || undefined,
       }),
   });
 
@@ -56,7 +60,7 @@ export default function StockOpnameList() {
       refetch();
     }, 500);
     return () => clearTimeout(debounce);
-  }, [searchTerm, selectedStatus, refetch]);
+  }, [searchTerm, selectedStatus, dateFrom, dateTo, refetch]);
 
   const filteredOpnames = (opnames || []).filter((opname: StockOpname) => {
     if (!searchTerm) return true;
@@ -218,17 +222,30 @@ export default function StockOpnameList() {
               { value: 'cancelled', label: 'Dibatalkan' },
             ],
           },
+          {
+            key: 'opnameDate',
+            label: 'Tanggal Opname',
+            type: 'date-range',
+          },
         ]}
         values={{
           status: selectedStatus === 'ALL' ? '' : selectedStatus,
+          opnameDateFrom: dateFrom,
+          opnameDateTo: dateTo,
         }}
         onFieldChange={(key, v) => {
           if (key === 'status') {
             setSelectedStatus(v || 'ALL');
+          } else if (key === 'opnameDateFrom') {
+            setDateFrom(v || '');
+          } else if (key === 'opnameDateTo') {
+            setDateTo(v || '');
           }
         }}
         onReset={() => {
           setSelectedStatus('ALL');
+          setDateFrom('');
+          setDateTo('');
         }}
       />
 

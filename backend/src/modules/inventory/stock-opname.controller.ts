@@ -43,6 +43,8 @@ export class StockOpnameController {
     @Request() req: any,
     @Query('branchId') branchId?: string,
     @Query('status') status?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
   ) {
     // "Semua Cabang" default (22-Agu-2026): no branchId → restrict to user's branches
     let branchIds: string[] | undefined;
@@ -50,7 +52,7 @@ export class StockOpnameController {
       branchIds = resolveBranchFilter(req, undefined).branchIds;
     }
     // IGDERP-234 (OP2): blind list rows for counters.
-    return this.opnameService.findAll(branchId, status, branchIds, { roles: req.user.roles });
+    return this.opnameService.findAll(branchId, status, branchIds, { roles: req.user.roles }, startDate, endDate);
   }
 
   @Get('code/:code')

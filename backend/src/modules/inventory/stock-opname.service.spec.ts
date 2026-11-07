@@ -1499,6 +1499,24 @@ describe('StockOpnameService', () => {
       expect(tx.stockOpname.create.mock.calls[0][0].data.approverId).toBe('spv-prefill');
     });
 
+    it('findAll filters by opname-date range (inclusive full days)', async () => {
+      prisma.stockOpname.findMany.mockResolvedValue([]);
+
+      await service.findAll(undefined, undefined, [], { roles: ['OWNER'] }, '2026-11-01', '2026-11-07');
+
+      const where = prisma.stockOpname.findMany.mock.calls[0][0].where;
+      expect(where.opnameDate.gte).toEqual(new Date('2026-11-01T00:00:00'));
+      expect(where.opnameDate.lte).toEqual(new Date('2026-11-07T23:59:59.999'));
+    });
+
+    it('findAll omits the date clause when no range is given', async () => {
+      prisma.stockOpname.findMany.mockResolvedValue([]);
+
+      await service.findAll(undefined, undefined, [], { roles: ['OWNER'] });
+
+      expect(prisma.stockOpname.findMany.mock.calls[0][0].where.opnameDate).toBeUndefined();
+    });
+
     it('startOpname keeps an explicit approver over the setting', async () => {
       prisma.warehouse.findUnique.mockResolvedValue(warehouse);
       prisma.stockOpname.findFirst.mockResolvedValue(null);

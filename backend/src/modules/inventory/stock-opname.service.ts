@@ -303,7 +303,7 @@ export class StockOpnameService {
     });
   }
 
-  async findAll(branchId?: string, status?: string, branchIds?: string[], viewer?: { roles?: string[] }) {
+  async findAll(branchId?: string, status?: string, branchIds?: string[], viewer?: { roles?: string[] }, startDate?: string, endDate?: string) {
     const where: any = {};
 
     if (branchId) {
@@ -315,6 +315,12 @@ export class StockOpnameService {
 
     if (status) {
       where.status = status;
+    }
+
+    if (startDate || endDate) {
+      where.opnameDate = {};
+      if (startDate) where.opnameDate.gte = new Date(`${startDate}T00:00:00`);
+      if (endDate) where.opnameDate.lte = new Date(`${endDate}T23:59:59.999`);
     }
 
     const opnames = await this.prisma.stockOpname.findMany({
