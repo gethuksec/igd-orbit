@@ -22,7 +22,7 @@ import { Request as ExpressRequest } from 'express';
 import { ProductsService } from './products.service';
 import { JwtAuthGuard, RolesGuard } from '../../shared/guards';
 import { Roles } from '../../shared/decorators';
-import { CreateProductDto, UpdateProductDto, ListProductsDto } from './dto';
+import { CreateProductDto, UpdateProductDto, ListProductsDto, ConfirmProductImportDto } from './dto';
 
 /**
  * Products Controller
@@ -76,6 +76,77 @@ export class ProductsController {
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="products-${new Date().toISOString().split('T')[0]}.csv"`);
     res.send('\uFEFF' + csv); // BOM for Excel UTF-8 support
+  }
+
+  /**
+   * Download the product XLSX import template (29 user columns)
+   * GET /api/v1/products/import/template
+   * Permissions: OWNER, CSO, CMO, SPV, HS, ASA
+   * NOTE: Must be before @Get(':id') to avoid route conflict
+   */
+  @Get('import/template')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'CSO', 'CMO', 'SPV', 'HS', 'ASA')
+  async downloadImportTemplate(@Res() res: Response): Promise<void> {
+    const buffer = await this.productsService.buildProductImportTemplate();
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader('Content-Disposition', 'attachment; filename="template-produk.xlsx"');
+    res.send(buffer);
+  }
+
+  /**
+   * Preview a product XLSX import (read-only, no writes)
+   * POST /api/v1/products/import/preview
+   * Permissions: CSO, CMO, SPV, ASA
+   */
+  @Post('import/preview')
+  @UseGuards(RolesGuard)
+  @Roles('CSO', 'CMO', 'SPV', 'ASA')
+  @UseInterceptors(FileInterceptor('file'))
+  @HttpCode(HttpStatus.OK)
+  async previewImport(@UploadedFile() file: any) {
+    if (!file) {
+      throw new BadRequestException('File is required');
+    }
+    return this.productsService.previewProductImport(file.buffer);
+  }
+
+  /**
+   * Confirm a previewed product XLSX import (creates/updates + stocks)
+   * POST /api/v1/products/import/confirm
+   * Permissions: CSO, CMO, SPV, ASA
+   */
+  @Post('import/confirm')
+  @UseGuards(RolesGuard)
+  @Roles('CSO', 'CMO', 'SPV', 'ASA')
+  @HttpCode(HttpStatus.OK)
+  async confirmImport(
+    @Body() dto: ConfirmProductImportDto,
+    @Request() req: ExpressRequest & { user: any },
+  ) {
+    return this.productsService.confirmProductImport(dto, req.user.id);
+  }
+
+  /**
+   * Export all active non-deleted products as XLSX (round-trip import format)
+   * GET /api/v1/products/import/export
+   * Permissions: OWNER, CSO, CMO, SPV, HS, ASA
+   * NOTE: Must be before @Get(':id') to avoid route conflict
+   */
+  @Get('import/export')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'CSO', 'CMO', 'SPV', 'HS', 'ASA')
+  async exportImport(@Res() res: Response): Promise<void> {
+    const buffer = await this.productsService.exportProductsToXlsx();
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader('Content-Disposition', 'attachment; filename="ekspor-produk.xlsx"');
+    res.send(buffer);
   }
 
   /**

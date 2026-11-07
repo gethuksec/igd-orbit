@@ -21,6 +21,7 @@ import type { Column } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import CustomerFormModal from './CustomerFormModal';
+import CustomerImportModal from './CustomerImportModal';
 
 export default function CustomerList() {
   const navigate = useNavigate();
@@ -33,7 +34,6 @@ export default function CustomerList() {
   const [filterType, setFilterType] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [showImportModal, setShowImportModal] = useState(false);
-  const [importFile, setImportFile] = useState<File | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<{ id: string; name: string } | null>(null);
   const [editingCustomerId, setEditingCustomerId] = useState<string | undefined>(undefined);
@@ -79,26 +79,6 @@ export default function CustomerList() {
   const customers = data?.data || [];
   const pagination = data?.meta || { page: 1, limit: 20, total: 0, totalPages: 1 };
   const totalCustomers = statistics?.total || pagination.total;
-
-  const importMutation = useMutation({
-    mutationFn: (file: File) => customersService.import(file),
-    onSuccess: (result) => {
-      const createdText = result.created > 0 ? `${result.created} dibuat` : '';
-      const updatedText = result.updated > 0 ? `${result.updated} diupdate` : '';
-      const successText = [createdText, updatedText].filter(Boolean).join(', ');
-      toast.success(`Import berhasil! ${successText}${result.failed > 0 ? `, ${result.failed} gagal` : ''}`);
-      if (result.errors.length > 0) {
-        const errorDetails = result.errors.slice(0, 5).map((e: any) => `Baris ${e.row}: ${e.error}`).join('; ');
-        toast.warning(`Beberapa data gagal: ${errorDetails}${result.errors.length > 5 ? '...' : ''}`);
-      }
-      setShowImportModal(false);
-      setImportFile(null);
-      refetch();
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Gagal mengimport data');
-    },
-  });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => customersService.delete(id),
@@ -436,68 +416,17 @@ export default function CustomerList() {
         </div>
       )}
 
-      {/* Import Modal */}
-      <Dialog
+      {/* Import Excel Modal (xlsx 3-step) */}
+      <CustomerImportModal
         open={showImportModal}
-        onOpenChange={(open) => {
-          if (!open) {
-            setShowImportModal(false);
-            setImportFile(null);
-          }
+        onClose={() => setShowImportModal(false)}
+        onImported={() => {
+          setShowImportModal(false);
+          refetch();
+          queryClient.invalidateQueries({ queryKey: ['customers'] });
+          queryClient.invalidateQueries({ queryKey: ['customers-statistics'] });
         }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Import Pelanggan</DialogTitle>
-          </DialogHeader>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Pilih File CSV</label>
-            <input
-              type="file"
-              accept=".csv"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) setImportFile(file);
-              }}
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
-            />
-            <p className="text-xs text-gray-500 mt-2">Format: CSV dengan header sesuai template</p>
-          </div>
-          {importFile && (
-            <div className="p-3 bg-gray-50 rounded-lg">
-              <p className="text-sm font-medium">{importFile.name}</p>
-              <p className="text-xs text-gray-500">{(importFile.size / 1024).toFixed(2)} KB</p>
-            </div>
-          )}
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => { setShowImportModal(false); setImportFile(null); }}
-              className="flex-1"
-            >
-              Batal
-            </Button>
-            <Button
-              type="button"
-              onClick={() => { if (importFile) importMutation.mutate(importFile); }}
-              disabled={!importFile || importMutation.isPending}
-              className="flex-1"
-            >
-              {importMutation.isPending ? (
-                <span className="flex items-center justify-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Mengimport...
-                </span>
-              ) : (
-                'Import'
-              )}
-            </Button>
-          </div>
-        </div>
-        </DialogContent>
-      </Dialog>
+      />
 
       {/* Delete Confirmation Modal */}
       <Dialog

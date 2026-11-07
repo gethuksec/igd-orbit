@@ -14,6 +14,7 @@ import {
   Res,
   UseInterceptors,
   UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
 import { Request as ExpressRequest } from 'express';
 import type { Response } from 'express';
@@ -28,6 +29,7 @@ import {
   BlacklistCustomerDto,
   MergeCustomersDto,
 } from './dto';
+import { ConfirmCustomerImportDto } from './dto/confirm-customer-import.dto';
 
 /**
  * Customers Controller
@@ -93,6 +95,83 @@ export class CustomersController {
   @Roles('OWNER', 'CFO', 'MGR', 'CMO', 'SPV', 'HS', 'CS', 'ASA', 'CR')
   async getTiers() {
     return this.customersService.getActiveTiers();
+  }
+
+  /**
+   * Download the customer XLSX import template (user template, 8 cols).
+   * GET /api/v1/customers/import/template
+   * Permissions: OWNER, CMO, SPV, HS, ASA
+   * NOTE: Must be before @Get(':id') to avoid route conflict
+   */
+  @Get('import/template')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'CMO', 'SPV', 'HS', 'ASA')
+  async importTemplate(@Res() res: Response): Promise<void> {
+    const buffer = await this.customersService.buildCustomerImportTemplate();
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="template-import-pelanggan.xlsx"',
+    );
+    res.send(buffer);
+  }
+
+  /**
+   * Preview a customer XLSX import (read-only validation).
+   * POST /api/v1/customers/import/preview
+   * Permissions: OWNER, CMO, SPV, HS, ASA
+   */
+  @Post('import/preview')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'CMO', 'SPV', 'HS', 'ASA')
+  @UseInterceptors(FileInterceptor('file'))
+  @HttpCode(HttpStatus.OK)
+  async importPreview(@UploadedFile() file: any) {
+    if (!file?.buffer) {
+      throw new BadRequestException('File Excel wajib diunggah');
+    }
+    return this.customersService.previewCustomerImport(file.buffer);
+  }
+
+  /**
+   * Confirm a previewed customer XLSX import.
+   * POST /api/v1/customers/import/confirm
+   * Permissions: OWNER, CMO, SPV, HS, ASA
+   */
+  @Post('import/confirm')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'CMO', 'SPV', 'HS', 'ASA')
+  @HttpCode(HttpStatus.OK)
+  async importConfirm(
+    @Body() dto: ConfirmCustomerImportDto,
+    @Request() req: ExpressRequest & { user: any },
+  ) {
+    return this.customersService.confirmCustomerImport(dto, req.user.id);
+  }
+
+  /**
+   * Export all active non-deleted customers as XLSX (round-trip import format).
+   * GET /api/v1/customers/import/export
+   * Permissions: OWNER, CMO, SPV, HS, ASA
+   * NOTE: Must be before @Get(':id') to avoid route conflict
+   */
+  @Get('import/export')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'CMO', 'SPV', 'HS', 'ASA')
+  async importExport(@Res() res: Response): Promise<void> {
+    const buffer = await this.customersService.exportCustomersToXlsx();
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="ekspor-pelanggan.xlsx"',
+    );
+    res.send(buffer);
   }
 
   /**

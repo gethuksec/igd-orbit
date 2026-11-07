@@ -821,6 +821,7 @@ export class ProductsService {
       trackBatch: createProductDto.trackBatch || false,
       trackExpiry: createProductDto.trackExpiry || false,
       expiryReturnLimitDays: createProductDto.expiryReturnLimitDays || null,
+      grade: (createProductDto as any).grade || null,
       memberPricing: createProductDto.memberPricing || null,
       images: createProductDto.images || null,
     };
@@ -997,6 +998,9 @@ export class ProductsService {
     }
     if (updateProductDto.expiryReturnLimitDays !== undefined) {
       updateData.expiryReturnLimitDays = updateProductDto.expiryReturnLimitDays || null;
+    }
+    if ((updateProductDto as any).grade !== undefined) {
+      updateData.grade = (updateProductDto as any).grade || null;
     }
 
     // Update product
@@ -1865,6 +1869,444 @@ export class ProductsService {
     }
 
     return results;
+  }
+
+  /**
+   * Build the product XLSX import template (29 user columns, headers only).
+   */
+  async buildProductImportTemplate(): Promise<Buffer> {
+    const { buildProductImportTemplate } = require('../../shared/utils/product-import-template');
+    return buildProductImportTemplate();
+  }
+
+  /**
+   * Export all active non-deleted products to XLSX with headers byte-identical
+   * to the import template (29 cols, exact order). Stock columns map by
+   * warehouse name (case-insensitive): quantityAvailable number (0 when the
+   * warehouse exists but has no stock row); labels with no warehouse match
+   * export as blank (skipped on re-import). Re-uploading the exported file
+   * yields 0 stock errors against the same DB.
+   */
+  async exportProductsToXlsx(): Promise<Buffer> {
+    const {
+      buildProductExportWorkbook,
+      PRODUCT_STOCK_LABELS,
+    } = require('../../shared/utils/product-import-template');
+    const [products, warehouses] = await Promise.all([
+      this.prisma.product.findMany({
+        where: { deletedAt: null, isActive: true },
+        include: {
+          category: { select: { id: true, name: true } },
+          brand: { select: { id: true, name: true } },
+          unit: { select: { id: true, name: true } },
+          size: { select: { id: true, name: true } },
+          color: { select: { id: true, name: true } },
+          supplier: { select: { id: true, name: true } },
+          productStocks: {
+            include: { warehouse: { select: { id: true, name: true } } },
+          },
+        },
+        orderBy: { name: 'asc' },
+      }),
+      this.prisma.warehouse.findMany(),
+    ]);
+    const warehouseByName = new Map(
+      (warehouses as any[]).map((w) => [String(w.name).toLowerCase(), w]),
+    );
+    const num = (v: any): number => {
+      if (v === null || v === undefined || v === '') return 0;
+      if (typeof v === 'number') return v;
+      const n = Number(typeof v.toNumber === 'function' ? v.toNumber() : String(v));
+      return Number.isFinite(n) ? n : 0;
+    };
+    const rows = (products as any[]).map((p) => {
+      const mp = (p.memberPricing as any) || {};
+      const disc = (tier: string) => mp?.[tier]?.discount ?? '';
+      const stockByWarehouseId = new Map(
+        (p.productStocks || []).map((s: any) => [s.warehouseId, num(s.quantityAvailable)]),
+      );
+      const stockCols = (PRODUCT_STOCK_LABELS as string[]).map((label: string) => {
+        const wh = warehouseByName.get(label.toLowerCase());
+        if (!wh) return '';
+        return stockByWarehouseId.get(wh.id) ?? 0;
+      });
+      return [
+        p.barcode ?? '',
+        p.name ?? '',
+        p.printedName || p.name || '',
+        p.unit?.name || '',
+        p.category?.name || '',
+        p.grade || '',
+        p.brand?.name || '',
+        p.size?.name || '',
+        p.color?.name || '',
+        num(p.sellingPrice),
+        '',
+        p.isService ? 'Y' : 'N',
+        p.trackSerial ? '1' : '2',
+        num(p.costPrice),
+        p.supplier?.name || '',
+        disc('platinum'),
+        disc('gold'),
+        disc('silver'),
+        disc('user'),
+        ...stockCols,
+      ];
+    });
+    return buildProductExportWorkbook(rows);
+  }
+
+  /**
+   * Preview a product XLSX import — READ-ONLY, no writes.
+   * Resolves names to ids; unknown category/brand names are flagged for
+   * auto-create at confirm time, unknown unit/size/color are row errors.
+   */
+  async previewProductImport(buffer: Buffer): Promise<{
+    rows: any[];
+    validCount: number;
+    errorCount: number;
+  }> {
+    const {
+      parseProductImportBuffer,
+      parseProductImportNumber,
+      PRODUCT_STOCK_LABELS,
+    } = require('../../shared/utils/product-import-template');
+    const rawRows = await parseProductImportBuffer(buffer);
+
+    const [categories, brands, units, sizes, colors, warehouses, suppliers] = await Promise.all([
+      this.prisma.category.findMany(),
+      this.prisma.brand.findMany(),
+      this.prisma.unit.findMany({ where: { isActive: true } }),
+      this.prisma.size.findMany({ where: { isActive: true } }),
+      this.prisma.color.findMany({ where: { isActive: true } }),
+      this.prisma.warehouse.findMany(),
+      this.prisma.customer.findMany({ where: { customerType: 'wholesale', deletedAt: null } }),
+    ]);
+    const byName = (list: any[]) => new Map(list.map((e) => [String(e.name).toLowerCase(), e]));
+    const categoryMap = byName(categories);
+    const brandMap = byName(brands);
+    const unitMap = byName(units);
+    const sizeMap = byName(sizes);
+    const colorMap = byName(colors);
+    const warehouseMap = byName(warehouses);
+    const supplierMap = byName(suppliers);
+
+    const rows: any[] = [];
+    for (const raw of rawRows) {
+      const errors: string[] = [];
+      const name = raw.name?.trim() || '';
+      if (!name) errors.push('Item (nama produk) wajib diisi');
+
+      const sellingPrice = parseProductImportNumber(raw.sellingPriceRaw);
+      if (sellingPrice === null || sellingPrice <= 0) errors.push('Harga Reguler wajib diisi dan harus lebih dari 0');
+      const costPrice = parseProductImportNumber(raw.costPriceRaw);
+      if (costPrice === null || costPrice <= 0) errors.push('Harga Modal wajib diisi dan harus lebih dari 0');
+
+      // Category — resolve or auto-create at confirm
+      let categoryId: string | null = null;
+      let categoryName: string | undefined;
+      let willCreateCategory = false;
+      if (raw.category) {
+        const found = categoryMap.get(raw.category.toLowerCase());
+        if (found) categoryId = found.id;
+        else {
+          categoryName = raw.category.trim();
+          willCreateCategory = true;
+        }
+      } else {
+        errors.push('Kategori wajib diisi');
+      }
+
+      // Brand — resolve or auto-create at confirm (optional)
+      let brandId: string | null = null;
+      let brandName: string | undefined;
+      let willCreateBrand = false;
+      if (raw.brand) {
+        const found = brandMap.get(raw.brand.toLowerCase());
+        if (found) brandId = found.id;
+        else {
+          brandName = raw.brand.trim();
+          willCreateBrand = true;
+        }
+      }
+
+      // Unit / size / color — error if not found
+      let unitId: string | undefined;
+      let unitName: string | undefined;
+      if (raw.unit) {
+        const found = unitMap.get(raw.unit.toLowerCase());
+        if (found) {
+          unitId = found.id;
+          unitName = found.name;
+        } else errors.push(`Satuan '${raw.unit}' tidak ditemukan`);
+      }
+      let sizeId: string | undefined;
+      let sizeName: string | undefined;
+      if (raw.size) {
+        const found = sizeMap.get(raw.size.toLowerCase());
+        if (found) {
+          sizeId = found.id;
+          sizeName = found.name;
+        } else errors.push(`Ukuran '${raw.size}' tidak ditemukan`);
+      }
+      let colorId: string | undefined;
+      let colorName: string | undefined;
+      if (raw.color) {
+        const found = colorMap.get(raw.color.toLowerCase());
+        if (found) {
+          colorId = found.id;
+          colorName = found.name;
+        } else errors.push(`Warna '${raw.color}' tidak ditemukan`);
+      }
+
+      // Supplier — optional, null when not found (no error)
+      let supplierId: string | null = null;
+      let supplierName: string | undefined;
+      if (raw.supplier) {
+        const found = supplierMap.get(raw.supplier.toLowerCase());
+        if (found) {
+          supplierId = found.id;
+          supplierName = found.name;
+        }
+      }
+
+      // Member-pricing discounts (numeric or empty)
+      const memberPricing: Record<string, { discount: number }> = {};
+      for (const [rawKey, tier] of [
+        [raw.platinumRaw, 'platinum'],
+        [raw.goldRaw, 'gold'],
+        [raw.silverRaw, 'silver'],
+        [raw.userRaw, 'user'],
+      ] as const) {
+        const n = parseProductImportNumber(rawKey);
+        if (n !== null) memberPricing[tier] = { discount: n };
+        else if (rawKey !== '' && rawKey !== null && rawKey !== undefined) {
+          errors.push(`Diskon ${tier} harus berupa angka`);
+        }
+      }
+
+      // Per-warehouse opening stocks — stock columns whose label has no DB
+      // warehouse match are SKIPPED (no error, no stock entry); required
+      // numeric >= 0 applies only to labels with a DB warehouse match.
+      const stocks: Array<{ warehouseId: string; warehouseName: string; quantity: number }> = [];
+      for (const label of PRODUCT_STOCK_LABELS as string[]) {
+        const wh = warehouseMap.get(label.toLowerCase());
+        if (!wh) continue;
+        const qtyRaw = raw.stocksRaw[label];
+        if (qtyRaw === '' || qtyRaw === null || qtyRaw === undefined) {
+          errors.push(`Stok '${label}' wajib diisi angka >= 0`);
+          continue;
+        }
+        const qty = parseProductImportNumber(qtyRaw);
+        if (qty === null || qty < 0) {
+          errors.push(`Stok '${label}' wajib diisi angka >= 0`);
+          continue;
+        }
+        stocks.push({ warehouseId: wh.id, warehouseName: wh.name, quantity: qty });
+      }
+
+      // Identity check (read-only): barcode first, then name insensitive
+      let action: 'create' | 'update' = 'create';
+      if (raw.barcode) {
+        const byBarcode = await this.prisma.product.findFirst({
+          where: { barcode: raw.barcode, deletedAt: null },
+        });
+        if (byBarcode) action = 'update';
+      }
+      if (action === 'create' && name) {
+        const byNameMatch = await this.prisma.product.findFirst({
+          where: { name: { equals: name, mode: 'insensitive' }, deletedAt: null },
+        });
+        if (byNameMatch) action = 'update';
+      }
+
+      rows.push({
+        rowNumbers: [raw.rowNumber],
+        barcode: raw.barcode,
+        name,
+        printedName: raw.printedName?.trim() || name || undefined,
+        categoryId,
+        categoryName,
+        willCreateCategory,
+        brandId: brandId ?? undefined,
+        brandName,
+        willCreateBrand,
+        unitId,
+        unitName,
+        sizeId,
+        sizeName,
+        colorId,
+        colorName,
+        grade: raw.grade?.trim() || undefined,
+        sellingPrice: sellingPrice ?? undefined,
+        costPrice: costPrice ?? undefined,
+        isService: String(raw.isServiceRaw ?? '').trim().toUpperCase() === 'Y',
+        trackSerial: String(raw.trackSerialRaw ?? '').trim() === '1',
+        supplierId: supplierId ?? undefined,
+        supplierName,
+        memberPricing,
+        stocks,
+        action,
+        errors,
+      });
+    }
+
+    return {
+      rows,
+      validCount: rows.filter((r) => r.errors.length === 0).length,
+      errorCount: rows.filter((r) => r.errors.length > 0).length,
+    };
+  }
+
+  /**
+   * Confirm a previewed product XLSX import — creates/updates products via the
+   * existing create()/update() paths, then upserts per-warehouse stocks.
+   * Stocks are re-validated here the same way as preview (required numeric
+   * >= 0 only for template stock columns matching a current warehouse;
+   * unmatched labels are skipped); any violation fails that row before
+   * any write for it (never partial). duplicateMode 'skip' leaves existing
+   * products (barcode→name) untouched and counts them as skipped.
+   */
+  async confirmProductImport(
+    dto: { fileName: string; rows: any[]; duplicateMode?: 'overwrite' | 'skip' },
+    userId: string,
+  ): Promise<{
+    created: number;
+    updated: number;
+    skipped: number;
+    failed: number;
+    errors: Array<{ row: string; error: string }>;
+    productIds: string[];
+  }> {
+    const { PRODUCT_STOCK_LABELS: CONFIRM_STOCK_LABELS } = require('../../shared/utils/product-import-template');
+    const warehouses = await this.prisma.warehouse.findMany();
+    const warehouseByName = new Map(
+      (warehouses as any[]).map((w) => [String(w.name).toLowerCase(), w]),
+    );
+    const warehouseById = new Map((warehouses as any[]).map((w) => [w.id, w]));
+    const duplicateMode = dto.duplicateMode ?? 'overwrite';
+    const result = { created: 0, updated: 0, skipped: 0, failed: 0, errors: [] as Array<{ row: string; error: string }>, productIds: [] as string[] };
+
+    for (const row of dto.rows) {
+      const label = row.rowNumbers ? `baris ${row.rowNumbers.join(',')}` : `produk '${row.name}'`;
+      try {
+        if (!row.name) throw new BadRequestException('Nama produk wajib diisi');
+        if (!row.sellingPrice || row.sellingPrice <= 0) throw new BadRequestException('Harga Reguler wajib > 0');
+        if (!row.costPrice || row.costPrice <= 0) throw new BadRequestException('Harga Modal wajib > 0');
+
+        // Identity: barcode first, then name insensitive
+        let existing: any = null;
+        if (row.barcode) {
+          existing = await this.prisma.product.findFirst({
+            where: { barcode: row.barcode, deletedAt: null },
+          });
+        }
+        if (!existing) {
+          existing = await this.prisma.product.findFirst({
+            where: { name: { equals: row.name, mode: 'insensitive' }, deletedAt: null },
+          });
+        }
+        if (existing && duplicateMode === 'skip') {
+          result.skipped++;
+          continue;
+        }
+
+        // Re-validate opening stocks the same way as preview (before any
+        // write for this row): required numeric >= 0 only for template
+        // stock columns that match a current warehouse; unmatched labels
+        // are skipped.
+        for (const s of row.stocks || []) {
+          if (!s || !warehouseById.get(s.warehouseId)) {
+            throw new BadRequestException(`Gudang tidak dikenal (id: ${s?.warehouseId})`);
+          }
+        }
+        const stocksByWarehouse = new Map((row.stocks || []).map((s: any) => [s?.warehouseId, s]));
+        for (const stockLabel of CONFIRM_STOCK_LABELS as string[]) {
+          const wh = warehouseByName.get(stockLabel.toLowerCase());
+          if (!wh) continue;
+          const qty = (stocksByWarehouse.get(wh.id) as any)?.quantity;
+          if (typeof qty !== 'number' || !Number.isFinite(qty) || qty < 0) {
+            throw new BadRequestException(`Stok '${stockLabel}' wajib diisi angka >= 0`);
+          }
+        }
+
+        // Resolve category (id wins; else find-or-auto-create by name)
+        let categoryId: string | undefined = row.categoryId || undefined;
+        const categoryName = row.categoryName?.trim();
+        if (!categoryId && categoryName) {
+          const existing = await this.prisma.category.findFirst({
+            where: { name: { equals: categoryName, mode: 'insensitive' } },
+          });
+          if (existing) categoryId = existing.id;
+          else {
+            const code = await this.generateCategoryCode(categoryName);
+            const created = await this.prisma.category.create({ data: { name: categoryName, code } });
+            categoryId = created.id;
+          }
+        }
+        if (!categoryId) throw new BadRequestException('Kategori wajib diisi');
+
+        // Resolve brand (optional; same find-or-create)
+        let brandId: string | undefined = row.brandId || undefined;
+        const brandName = row.brandName?.trim();
+        if (!brandId && brandName) {
+          const existing = await this.prisma.brand.findFirst({
+            where: { name: { equals: brandName, mode: 'insensitive' } },
+          });
+          if (existing) brandId = existing.id;
+          else {
+            const code = await this.generateBrandCode(brandName);
+            const created = await this.prisma.brand.create({ data: { name: brandName, code } });
+            brandId = created.id;
+          }
+        }
+
+        const productData: any = {
+          name: row.name,
+          printedName: row.printedName || row.name,
+          barcode: row.barcode || undefined,
+          categoryId,
+          brandId: brandId || undefined,
+          supplierId: row.supplierId || undefined,
+          unitId: row.unitId || undefined,
+          sizeId: row.sizeId || undefined,
+          colorId: row.colorId || undefined,
+          grade: row.grade || undefined,
+          costPrice: row.costPrice,
+          sellingPrice: row.sellingPrice,
+          isService: row.isService || false,
+          trackSerial: row.trackSerial || false,
+          memberPricing: row.memberPricing && Object.keys(row.memberPricing).length > 0 ? row.memberPricing : undefined,
+        };
+
+        let productId: string;
+        if (existing) {
+          const updated = await this.update(existing.id, productData, userId);
+          productId = (updated as any).id;
+          result.updated++;
+        } else {
+          const created = await this.create(productData, userId);
+          productId = (created as any).id;
+          result.created++;
+        }
+        result.productIds.push(productId);
+
+        // Opening stocks — upsert quantityAvailable, never touch reserved
+        for (const s of row.stocks || []) {
+          if (!s.warehouseId || !(s.quantity > 0)) continue;
+          await this.prisma.productStock.upsert({
+            where: { productId_warehouseId: { productId, warehouseId: s.warehouseId } },
+            create: { productId, warehouseId: s.warehouseId, quantityAvailable: s.quantity },
+            update: { quantityAvailable: s.quantity },
+          });
+        }
+      } catch (error: any) {
+        result.failed++;
+        result.errors.push({ row: label, error: error.message || 'Unknown error' });
+      }
+    }
+
+    return result;
   }
 
   /**
