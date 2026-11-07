@@ -47,6 +47,11 @@ export class StockRequestItemDto {
   @Min(1, { message: 'quantity minimum is 1' })
   @Max(9999, { message: 'quantity maximum is 9999' })
   quantity!: number;
+
+  /** Outlet note per item (public form sends this instead of a qty stepper). */
+  @IsOptional()
+  @IsString()
+  note?: string;
 }
 
 export class CreateStockRequestDto {

@@ -2341,6 +2341,7 @@ model StockRequestItem {
   categoryId   String? @map("category_id") // plain ref to categories.id when matched
   categoryName String  @map("category_name") // master snapshot / free text (new category)
   quantity     Int
+  note         String? @db.Text // outlet note per item (replaces qty input on intake)
   sortOrder    Int     @default(0) @map("sort_order")
 
   request StockRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
