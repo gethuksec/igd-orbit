@@ -912,24 +912,6 @@ export class StockOpnameService {
   }
 
   /**
-   * IGDERP-233 (OP1): join a session by its short code (Menu > Opname > Count > Code).
-   * Blind-count clients use the id from here for subsequent calls.
-   */
-  async findByCode(code: string) {
-    const normalized = code.trim().toUpperCase();
-    const opname = await this.prisma.stockOpname.findFirst({
-      where: { code: normalized },
-      select: { id: true },
-    });
-
-    if (!opname) {
-      throw new NotFoundException('Opname session not found for this code');
-    }
-
-    return this.findById(opname.id);
-  }
-
-  /**
    * IGDERP-177 — result document export (.xlsx, ExcelJS).
    * Header meta + variance summary + one row per counted line
    * (one row per product+condition after IGDERP-175).

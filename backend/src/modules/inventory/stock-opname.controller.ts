@@ -154,13 +154,6 @@ export class StockOpnameController {
     return this.opnameService.getReview(id, { roles: req.user.roles });
   }
 
-  @Get('code/:code')
-  @UseGuards(RolesGuard)
-  @Roles('CSO', 'SPV', 'HS', 'ASA', 'SODO', 'CS', 'CR', 'TC', 'AS', 'SMO', 'AR', 'CMO', 'CFO', 'CHR', 'OWNER', 'SUPERADMIN')
-  async findByCode(@Param('code') code: string) {
-    return this.opnameService.findByCode(code);
-  }
-
   @Get(':id')
   @UseGuards(RolesGuard)
   @Roles('CSO', 'SPV', 'HS', 'ASA', 'SODO', 'CS', 'CR', 'TC', 'AS', 'SMO', 'AR', 'CMO', 'CFO', 'CHR', 'OWNER', 'SUPERADMIN')
