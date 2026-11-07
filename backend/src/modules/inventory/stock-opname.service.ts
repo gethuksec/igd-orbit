@@ -205,12 +205,14 @@ export class StockOpnameService {
     // Explicit approverId from the start form always wins.
     const resolvedApproverId = approverId ?? (await this.resolveOutletApprover(effectiveBranchId));
 
-    // One active opname (draft/counting/completed) per warehouse/outlet.
+    // One active opname (draft/counting/completed) per outlet — outlet-wide,
+    // like the FREEZE guard: a session on a sibling warehouse still counts
+    // the same outlet truth, so a second session must wait for approval/cancel.
     // 'completed' blocks too: a counted-but-unapproved session must be
     // approved or cancelled first — otherwise two overlapping truths.
     const activeOpname = await this.prisma.stockOpname.findFirst({
       where: {
-        warehouseId: warehouse.id,
+        branchId: effectiveBranchId,
         status: {
           in: ['draft', 'counting', 'completed'],
         },
