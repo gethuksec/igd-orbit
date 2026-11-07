@@ -160,7 +160,8 @@ export class ServiceCheckpointsService {
   }
 
   /**
-   * Delete checkpoint (hard delete — it's master data, orders keep JSON snapshot)
+   * Delete checkpoint (soft delete — sets isActive=false so the inactive
+   * filter can list it and the name stays reusable; orders keep JSON snapshot)
    */
   async delete(id: string): Promise<void> {
     const checkpoint = await this.prisma.serviceCheckpoint.findUnique({
@@ -171,6 +172,9 @@ export class ServiceCheckpointsService {
       throw new NotFoundException('Service checkpoint not found');
     }
 
-    await this.prisma.serviceCheckpoint.delete({ where: { id } });
+    await this.prisma.serviceCheckpoint.update({
+      where: { id },
+      data: { isActive: false },
+    });
   }
 }
