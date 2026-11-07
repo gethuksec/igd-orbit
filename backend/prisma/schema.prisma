@@ -147,6 +147,7 @@ model Branch {
   headOfServiceId String?  @map("head_of_service_id") // HS (Head of Store) responsible for this branch
   isActive        Boolean  @default(true) @map("is_active")
   intakeToken     String?  @unique @map("intake_token") // unguessable public intake token (GForm-style link gate)
+  intakeSlug      String?  @unique @map("intake_slug") // human-friendly public intake slug, e.g. jember-pusat-x7k2 (stable across token rotations)
   operatingHours  Json?    @map("operating_hours") // JSONB: {"monday": {"open": "08:00", "close": "22:00"}, ...}
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")

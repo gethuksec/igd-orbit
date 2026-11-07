@@ -16,6 +16,7 @@ import { RolesGuard } from '../../shared/guards/roles.guard';
 import { Roles } from '../../shared/decorators/roles.decorator';
 import { StockRequestsService } from './stock-requests.service';
 import { CreateStockRequestDto } from './dto/create-stock-request.dto';
+import { QuickAddIntakeCustomerDto } from './dto/intake-customer.dto';
 import {
   RotateIntakeTokenDto,
   UpdateStockRequestStatusDto,
@@ -68,6 +69,29 @@ export class StockRequestsController {
     @Query('code') code?: string,
   ) {
     return this.stockRequestsService.verifyIntakeMember(token, code);
+  }
+
+  @Get('intake/:token/customers/search')
+  async searchIntakeCustomers(
+    @Param('token') token: string,
+    @Query('q') q?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.stockRequestsService.searchIntakeCustomers(
+      token,
+      q,
+      limit ? parseInt(limit, 10) : 15,
+    );
+  }
+
+  @Post('intake/:token/customers/quick-add')
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(new IntakeRateLimitGuard(15, 10 * 60 * 1000))
+  async quickAddIntakeCustomer(
+    @Param('token') token: string,
+    @Body() dto: QuickAddIntakeCustomerDto,
+  ) {
+    return this.stockRequestsService.quickAddIntakeCustomer(token, dto);
   }
 
   @Post('intake/:token')

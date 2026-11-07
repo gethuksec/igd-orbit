@@ -22,6 +22,9 @@ export interface Branch {
   } | null;
   isActive: boolean;
   operatingHours?: Record<string, any>;
+  intakeToken?: string | null;
+  intakeSlug?: string | null;
+  intakePath?: string | null;
   userCount?: number;
   productStockCount?: number;
   salesTransactionCount?: number;

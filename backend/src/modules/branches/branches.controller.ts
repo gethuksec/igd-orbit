@@ -101,6 +101,19 @@ export class BranchesController {
   }
 
   /**
+   * Backfill intake identity (token + slug) for legacy outlets missing them.
+   * POST /api/v1/branches/backfill-intake — one-shot after deploy.
+   * Permissions: OWNER, CFO, MGR
+   */
+  @Post('backfill-intake')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('OWNER', 'CFO', 'MGR')
+  @HttpCode(HttpStatus.OK)
+  async backfillIntake() {
+    return this.branchesService.backfillIntakeIdentities();
+  }
+
+  /**
    * Update branch
    * PUT /api/v1/branches/:id
    * Permissions: OWNER, CFO, MGR

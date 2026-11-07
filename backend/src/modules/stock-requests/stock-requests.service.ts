@@ -5,8 +5,14 @@ import {
 } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../../shared/services/prisma.service';
+import { slugifyBranchName, shortToken } from '../branches/branches.service';
 import { CreateStockRequestDto } from './dto/create-stock-request.dto';
 import { UpdateStockRequestStatusDto } from './dto/update-stock-request-status.dto';
+import {
+  INTAKE_WA_PATTERN,
+  KECAMATAN_JEMBER,
+  QuickAddIntakeCustomerDto,
+} from './dto/intake-customer.dto';
 
 /** Forward chain; REJECTED only from SUBMITTED, CANCELLED from any non-terminal. */
 const NEXT_STEP: Record<string, string> = {
@@ -33,10 +39,16 @@ export class StockRequestsService {
     if (!token) {
       throw new NotFoundException('Tautan request tidak valid.');
     }
-    const branch = await this.prisma.branch.findUnique({
-      where: { intakeToken: token },
-      select: { id: true, code: true, name: true, isActive: true },
-    });
+    // Hybrid C: accept either the unguessable intakeToken or the friendly intakeSlug.
+    const branch =
+      (await this.prisma.branch.findUnique({
+        where: { intakeSlug: token },
+        select: { id: true, code: true, name: true, isActive: true },
+      })) ||
+      (await this.prisma.branch.findUnique({
+        where: { intakeToken: token },
+        select: { id: true, code: true, name: true, isActive: true },
+      }));
     if (!branch || branch.isActive === false) {
       throw new NotFoundException('Tautan request tidak valid.');
     }
@@ -135,6 +147,61 @@ export class StockRequestsService {
     return { id: member.id, name: member.name, customerCode: member.customerCode };
   }
 
+  /** Name/WA search across all active customers (PII-light: id/name/phone/subdistrict only). */
+  async searchIntakeCustomers(token: string, query?: string, limit = 15) {
+    await this.requireBranchByToken(token);
+    const q = (query || '').trim();
+    if (!q) return [];
+    const take = Math.min(Math.max(limit || 15, 1), 15);
+    return this.prisma.customer.findMany({
+      where: {
+        isActive: true,
+        deletedAt: null,
+        OR: [
+          { name: { contains: q, mode: 'insensitive' } },
+          { phone: { contains: q, mode: 'insensitive' } },
+        ],
+      },
+      select: { id: true, name: true, phone: true, subdistrict: true },
+      orderBy: { name: 'asc' },
+      take,
+    });
+  }
+
+  /** Public quick-add: creates a retail Customer master row, returns the picker row. */
+  async quickAddIntakeCustomer(token: string, dto: QuickAddIntakeCustomerDto) {
+    await this.requireBranchByToken(token);
+    const name = dto.name?.trim() || '';
+    const phone = dto.phone?.trim() || '';
+    const subdistrict = dto.subdistrict?.trim() || '';
+    if (!name) {
+      throw new BadRequestException('Nama wajib diisi.');
+    }
+    if (!INTAKE_WA_PATTERN.test(phone)) {
+      throw new BadRequestException('No. WA tidak valid. Format: 08… atau +62…');
+    }
+    if (!(KECAMATAN_JEMBER as readonly string[]).includes(subdistrict)) {
+      throw new BadRequestException('Kecamatan tidak valid.');
+    }
+    const customerCode = await this.generateIntakeCustomerCode();
+    return this.prisma.customer.create({
+      data: { customerCode, customerType: 'retail', name, phone, subdistrict },
+      select: { id: true, name: true, phone: true, subdistrict: true },
+    });
+  }
+
+  private async generateIntakeCustomerCode(): Promise<string> {
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const code = `CUST-${randomBytes(4).toString('hex').toUpperCase()}`;
+      const existing = await this.prisma.customer.findUnique({
+        where: { customerCode: code },
+        select: { id: true },
+      });
+      if (!existing) return code;
+    }
+    throw new BadRequestException('Gagal membuat kode customer, coba lagi.');
+  }
+
   async createIntake(token: string, dto: CreateStockRequestDto) {
     const branch = await this.requireBranchByToken(token);
     if (!dto.items || dto.items.length === 0) {
@@ -143,9 +210,38 @@ export class StockRequestsService {
     if (dto.items.length > 50) {
       throw new BadRequestException('Maksimal 50 barang per request.');
     }
-    const customerType = (dto.customerType || '').toUpperCase();
-    if (customerType !== 'USER' && customerType !== 'MEMBER') {
-      throw new BadRequestException('customerType must be USER or MEMBER.');
+    // Customer resolution: customerId preferred (picker); legacy customerType/memberRef kept for compat.
+    let memberId: string | null = null;
+    let memberRef: string | null = null;
+    let customerType: string;
+    if (dto.customerId) {
+      const customer = await this.prisma.customer.findUnique({
+        where: { id: dto.customerId },
+        select: { id: true, name: true, isActive: true },
+      });
+      if (!customer || customer.isActive === false) {
+        throw new BadRequestException('Customer tidak ditemukan.');
+      }
+      memberId = customer.id;
+      memberRef = customer.name;
+      customerType = 'MEMBER';
+    } else {
+      customerType = (dto.customerType || '').toUpperCase();
+      if (customerType !== 'USER' && customerType !== 'MEMBER') {
+        throw new BadRequestException('customerType must be USER or MEMBER.');
+      }
+      // Member resolution on exact code match (non-blocking — ref text always stored).
+      memberRef = dto.memberRef?.trim() || null;
+      if (customerType === 'MEMBER') {
+        if (!memberRef) {
+          throw new BadRequestException('Referensi member wajib diisi untuk tipe Member.');
+        }
+        const member = await this.prisma.customer.findUnique({
+          where: { customerCode: memberRef },
+          select: { id: true, isActive: true },
+        });
+        if (member && member.isActive !== false) memberId = member.id;
+      }
     }
 
     // Best-effort staff resolution (non-blocking — name is always stored).
@@ -167,20 +263,6 @@ export class StockRequestsService {
       staffUserId = match?.id ?? null;
     } catch {
       staffUserId = null;
-    }
-
-    // Member resolution on exact code match (non-blocking — ref text always stored).
-    let memberId: string | null = null;
-    const memberRef = dto.memberRef?.trim() || null;
-    if (customerType === 'MEMBER') {
-      if (!memberRef) {
-        throw new BadRequestException('Referensi member wajib diisi untuk tipe Member.');
-      }
-      const member = await this.prisma.customer.findUnique({
-        where: { customerCode: memberRef },
-        select: { id: true, isActive: true },
-      });
-      if (member && member.isActive !== false) memberId = member.id;
     }
 
     const rows: any[] = [];
@@ -430,22 +512,47 @@ export class StockRequestsService {
   async rotateIntakeToken(branchId: string) {
     const branch = await this.prisma.branch.findUnique({
       where: { id: branchId },
-      select: { id: true, code: true, name: true },
+      select: { id: true, code: true, name: true, intakeSlug: true },
     });
     if (!branch) throw new NotFoundException('Outlet tidak ditemukan.');
     const intakeToken = randomBytes(24).toString('hex');
+    // Slug is stable across rotations; backfill it when missing on legacy outlets.
+    const data: any = { intakeToken };
+    let intakeSlug = branch.intakeSlug;
+    if (!intakeSlug) {
+      for (let attempt = 0; attempt < 10; attempt++) {
+        const candidate = `${slugifyBranchName(branch.name)}-${shortToken()}`;
+        const clash = await this.prisma.branch.findUnique({
+          where: { intakeSlug: candidate },
+          select: { id: true },
+        });
+        if (!clash) {
+          intakeSlug = candidate;
+          break;
+        }
+      }
+      if (!intakeSlug) throw new BadRequestException('Gagal membuat slug outlet, coba lagi.');
+      data.intakeSlug = intakeSlug;
+    }
     await this.prisma.branch.update({
       where: { id: branchId },
-      data: { intakeToken },
+      data,
     });
-    return { branchId: branch.id, branchCode: branch.code, branchName: branch.name, intakeToken };
+    return {
+      branchId: branch.id,
+      branchCode: branch.code,
+      branchName: branch.name,
+      intakeToken,
+      intakeSlug,
+      intakePath: intakeSlug ? `/r/${intakeSlug}` : null,
+    };
   }
 
   /** Active outlet intake links for the SODO review page (tokens stay server-side until here). */
   async listIntakeLinks() {
     const branches = await this.prisma.branch.findMany({
       where: { isActive: true },
-      select: { id: true, code: true, name: true, intakeToken: true },
+      select: { id: true, code: true, name: true, intakeToken: true, intakeSlug: true },
       orderBy: { code: 'asc' },
     });
     return branches.map((b) => ({
@@ -453,6 +560,8 @@ export class StockRequestsService {
       branchCode: b.code,
       branchName: b.name,
       intakeToken: b.intakeToken,
+      intakeSlug: b.intakeSlug,
+      intakePath: b.intakeSlug ? `/r/${b.intakeSlug}` : null,
     }));
   }
 }
