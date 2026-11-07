@@ -138,6 +138,7 @@ export class StockInController {
       outletId: query.outletId,
       warehouseId: query.warehouseId,
       supplierId: query.supplierId,
+      operator: query.operator,
       startDate: query.startDate,
       endDate: query.endDate,
     });

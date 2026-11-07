@@ -15,6 +15,7 @@ describe('StockOutService', () => {
     productStock: { findMany: jest.Mock };
     stockOpname: { findFirst: jest.Mock };
     stockOut: { create: jest.Mock; update: jest.Mock; findUnique: jest.Mock; findMany: jest.Mock; count: jest.Mock };
+    user: { findMany: jest.Mock; findUnique: jest.Mock };
     $transaction: jest.Mock;
   };
   let tx: {
@@ -103,6 +104,10 @@ describe('StockOutService', () => {
       unit: { findMany: jest.fn().mockResolvedValue([unit]) },
       productStock: { findMany: jest.fn().mockResolvedValue([]) },
       stockOpname: { findFirst: jest.fn().mockResolvedValue(null) },
+      user: {
+        findMany: jest.fn().mockResolvedValue([]),
+        findUnique: jest.fn().mockResolvedValue(null),
+      },
       stockOut: {
         create: jest.fn(),
         update: jest.fn(),
@@ -430,6 +435,55 @@ describe('StockOutService', () => {
       const doc = await service.findById('stockout-1');
       expect(doc.totalValue).toBe(50000);
       expect(doc.items[0].quantity).toBe(5);
+    });
+  });
+
+  describe('findAll — operator filter', () => {
+    const listDoc = {
+      id: 'stockout-1',
+      documentNumber: 'SOUT-20260821-123456',
+      createdBy: 'user-1',
+      totalValue: new Decimal(50000),
+      items: [],
+    };
+
+    it('resolves an operator name to user ids and attaches operatorName', async () => {
+      prisma.user.findMany
+        .mockResolvedValueOnce([{ id: 'user-1' }])
+        .mockResolvedValueOnce([{ id: 'user-1', fullName: 'Sari Wulandari' }]);
+      prisma.stockOut.findMany.mockResolvedValue([listDoc]);
+      prisma.stockOut.count.mockResolvedValue(1);
+
+      const result = await service.findAll({ operator: 'sari' });
+
+      expect(prisma.stockOut.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ createdBy: { in: ['user-1'] } }),
+        }),
+      );
+      expect(result.data[0].operatorName).toBe('Sari Wulandari');
+    });
+
+    it('matches nothing when no user matches the operator', async () => {
+      prisma.user.findMany.mockResolvedValueOnce([]);
+
+      const result = await service.findAll({ operator: 'nobody-here' });
+
+      expect(prisma.stockOut.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ createdBy: { in: [] } }),
+        }),
+      );
+      expect(result.data).toEqual([]);
+    });
+
+    it('attaches operatorName on findById', async () => {
+      prisma.stockOut.findUnique.mockResolvedValue(listDoc);
+      prisma.user.findUnique.mockResolvedValue({ id: 'user-1', fullName: 'Sari Wulandari' });
+
+      const doc = await service.findById('stockout-1');
+
+      expect(doc.operatorName).toBe('Sari Wulandari');
     });
   });
 

@@ -131,7 +131,7 @@ function getFieldSummary(
     return `sampai ${to}`;
   }
   if (field.type === 'number-compare') {
-    const op = values[`${field.key}Op`] || 'gt';
+    const op = values[`${field.key}Op`] || 'eq';
     return `${COMPARE_SYMBOLS[op] ?? op} ${values[field.key]}`;
   }
   if (field.type === 'age') {
@@ -509,14 +509,14 @@ export function FilterToolbar({
                 {field.type === 'number-compare' && (
                   <div className="flex gap-2">
                     <select
-                      value={draft[`${field.key}Op`] ?? values[`${field.key}Op`] ?? 'gt'}
+                      value={draft[`${field.key}Op`] ?? values[`${field.key}Op`] ?? 'eq'}
                       onChange={(e) => setDraft((d) => ({ ...d, [`${field.key}Op`]: e.target.value }))}
                       className="h-9 w-20 shrink-0 rounded-md border border-input bg-background px-2 py-1 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       aria-label={`Operator ${field.label}`}
                     >
+                      <option value="eq">=</option>
                       <option value="gt">&gt;</option>
                       <option value="lt">&lt;</option>
-                      <option value="eq">=</option>
                     </select>
                     <Input
                       type="number"

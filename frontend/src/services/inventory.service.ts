@@ -113,6 +113,7 @@ export interface StockIn {
   reason: string;
   totalValue: number;
   createdBy: string;
+  operatorName?: string | null;
   createdAt: string;
   items: StockInItem[];
 }
@@ -207,6 +208,7 @@ export interface StockOut {
   reason: string;
   totalValue: number;
   createdBy: string;
+  operatorName?: string | null;
   createdAt: string;
   items: StockOutItem[];
 }
@@ -796,6 +798,7 @@ export const inventoryService = {
     limit?: number;
     outletId?: string;
     warehouseId?: string;
+    operator?: string;
     startDate?: string;
     endDate?: string;
   }): Promise<{ data: StockIn[]; meta: any }> {
@@ -877,6 +880,7 @@ export const inventoryService = {
     limit?: number;
     outletId?: string;
     warehouseId?: string;
+    operator?: string;
     startDate?: string;
     endDate?: string;
   }): Promise<{ data: StockOut[]; meta: any }> {

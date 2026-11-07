@@ -48,9 +48,15 @@ describe('StockInController', () => {
       outletId: 'outlet-1',
       warehouseId: undefined,
       supplierId: undefined,
+      operator: undefined,
       startDate: '2026-08-01',
       endDate: undefined,
     });
+  });
+
+  it('forwards operator query to findAll', async () => {
+    await controller.findAll({ operator: 'budi' });
+    expect(service.findAll).toHaveBeenCalledWith(expect.objectContaining({ operator: 'budi' }));
   });
 
   it('forwards outletId to findGoodWarehouses and q/limit to searchProducts', async () => {
