@@ -9,7 +9,7 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/favicon-igd.png",
+      "src": "/favicon-igd-v2.png",
       "sizes": "64x64",
       "type": "image/png"
     },
