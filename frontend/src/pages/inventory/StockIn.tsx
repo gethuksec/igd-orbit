@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Plus } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Download, Plus, Upload } from 'lucide-react';
 import { BreadcrumbHeader, FilterToolbar } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,9 +10,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 import { inventoryService } from '../../services/inventory.service';
 import type { StockIn } from '../../services/inventory.service';
 import StockInForm from './StockInForm';
+import StockImportModal from './StockImportModal';
 
 const PAGE_SIZE = 20;
 
@@ -59,6 +61,34 @@ export default function StockIn() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
+  // IGDERP-97 (I4): Excel import/export lives on the list (next to Buat),
+  // not inside the create modal — same template, round-trip.
+  const [importOpen, setImportOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleExport = async () => {
+    if (!warehouseId) {
+      toast.error('Pilih gudang terlebih dahulu (filter Gudang)');
+      return;
+    }
+    setExporting(true);
+    try {
+      const blob = await inventoryService.exportStockSnapshot('in', warehouseId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `stok-masuk-${warehouseId.slice(0, 8)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch {
+      toast.error('Gagal mengunduh export');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const { data: warehouses = [] } = useQuery({
     queryKey: ['stock-in-filter-warehouses', branchId],
@@ -124,11 +154,32 @@ export default function StockIn() {
         title="Stok Masuk"
         subtitle="Riwayat dokumen stok masuk non-pembelian (stok awal, barang hadiah, dll)"
       >
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Buat Stok Masuk
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" variant="outline" onClick={() => setImportOpen(true)}>
+            <Upload className="w-4 h-4 mr-2" />
+            Import Excel
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleExport}
+            disabled={!warehouseId || exporting}
+          >
+            <Download className="w-4 h-4 mr-2" />
+            {exporting ? 'Mengunduh…' : 'Export Excel'}
+          </Button>
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Buat Stok Masuk
+          </Button>
+        </div>
       </BreadcrumbHeader>
+      <StockImportModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        kind="in"
+        onImported={() => queryClient.invalidateQueries({ queryKey: ['stock-in-docs'] })}
+      />
 
       {/* ── Toolbar: search + outlet inline, filter popup (IGDERP-110) ── */}
       <FilterToolbar

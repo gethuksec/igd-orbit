@@ -8,8 +8,6 @@ import {
   Search,
   Trash2,
   ArrowUpFromLine,
-  Upload,
-  Download,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +15,6 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { api } from '../../services/api';
-import StockImportModal from './StockImportModal';
 import {
   inventoryService,
 } from '../../services/inventory.service';
@@ -66,32 +63,6 @@ export default function StockOutForm({
 
   const [items, setItems] = useState<LineItem[]>([]);
   const [productSearch, setProductSearch] = useState('');
-  // IGDERP-97 (I4): Excel import/export
-  const [importOpen, setImportOpen] = useState(false);
-  const [exporting, setExporting] = useState(false);
-
-  const handleExport = async () => {
-    if (!warehouseId) {
-      toast.error('Pilih gudang terlebih dahulu');
-      return;
-    }
-    setExporting(true);
-    try {
-      const blob = await inventoryService.exportStockSnapshot('out', warehouseId);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `stok-keluar-${warehouseId.slice(0, 8)}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch {
-      toast.error('Gagal mengunduh export');
-    } finally {
-      setExporting(false);
-    }
-  };
 
   // ── Supporting lists ──
   const { data: branches = [] } = useQuery({
@@ -277,24 +248,6 @@ export default function StockOutForm({
 
   return (
     <div className="space-y-4">
-      {/* IGDERP-97 (I4): Excel import/export — same template, round-trip */}
-      <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" onClick={() => setImportOpen(true)}>
-          <Upload className="w-4 h-4 mr-2" />
-          Import Excel
-        </Button>
-        <Button type="button" variant="outline" onClick={handleExport} disabled={!warehouseId || exporting}>
-          <Download className="w-4 h-4 mr-2" />
-          {exporting ? 'Mengunduh…' : 'Export Excel'}
-        </Button>
-      </div>
-      <StockImportModal
-        open={importOpen}
-        onClose={() => setImportOpen(false)}
-        kind="out"
-        onImported={() => queryClient.invalidateQueries({ queryKey: ['stock-out-docs'] })}
-      />
-
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* ── Header: Informasi Stok Keluar ── */}
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
