@@ -205,12 +205,14 @@ export class StockOpnameService {
     // Explicit approverId from the start form always wins.
     const resolvedApproverId = approverId ?? (await this.resolveOutletApprover(effectiveBranchId));
 
-    // One active opname (draft/counting) per warehouse/outlet
+    // One active opname (draft/counting/completed) per warehouse/outlet.
+    // 'completed' blocks too: a counted-but-unapproved session must be
+    // approved or cancelled first — otherwise two overlapping truths.
     const activeOpname = await this.prisma.stockOpname.findFirst({
       where: {
         warehouseId: warehouse.id,
         status: {
-          in: ['draft', 'counting'],
+          in: ['draft', 'counting', 'completed'],
         },
       },
     });
@@ -1082,7 +1084,14 @@ export class StockOpnameService {
     if (!opname) {
       throw new NotFoundException('Opname not found');
     }
-    this.assertActive(opname, 'cancel');
+    // Cancellable = anything not yet terminal. Deliberately NOT assertActive:
+    // a 'completed' (counted, unapproved) session must be cancellable too,
+    // otherwise it blocks the outlet forever with no escape.
+    if (!['draft', 'counting', 'completed'].includes(opname.status)) {
+      throw new BadRequestException(
+        `Cannot cancel for opname with status: ${opname.status}`,
+      );
+    }
 
     return this.prisma.stockOpname.update({
       where: { id: opnameId },

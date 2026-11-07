@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   Loader2,
   CheckCircle,
+  XCircle,
   ClipboardCheck,
   Package,
   AlertTriangle,
@@ -73,6 +74,18 @@ export default function StockOpnameDetail() {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Gagal menyetujui opname');
+    },
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: () => inventoryService.cancelOpname(id!),
+    onSuccess: () => {
+      toast.success('Opname dibatalkan — outlet bebas untuk opname baru');
+      queryClient.invalidateQueries({ queryKey: ['inventory-opname', id] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-opnames'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Gagal membatalkan opname');
     },
   });
 
@@ -520,8 +533,32 @@ export default function StockOpnameDetail() {
       </div>
 
       {/* Actions */}
-      {opname.status !== 'approved' && (
+      {opname.status !== 'approved' && opname.status !== 'cancelled' && (
         <div className="flex items-center justify-end gap-3">
+          {(opname.status === 'draft' ||
+            opname.status === 'counting' ||
+            opname.status === 'completed') && (
+            <button
+              onClick={() => {
+                if (
+                  confirm(
+                    'Yakin ingin membatalkan opname ini? Hasil perhitungan yang sudah masuk tetap tersimpan sebagai riwayat, tapi sesi ini berakhir dan stok tidak berubah.',
+                  )
+                ) {
+                  cancelMutation.mutate();
+                }
+              }}
+              disabled={cancelMutation.isPending}
+              className="px-6 py-3 bg-white text-red-600 border border-red-300 rounded-lg font-semibold hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {cancelMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <XCircle className="w-4 h-4" />
+              )}
+              <span>Batalkan</span>
+            </button>
+          )}
           {canComplete && (
             <button
               onClick={() => {

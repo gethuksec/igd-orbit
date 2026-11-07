@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Plus,
   Eye,
@@ -9,11 +9,14 @@ import {
   CheckCircle,
   Clock,
   AlertTriangle,
+  XCircle,
 } from 'lucide-react';
 import { BreadcrumbHeader, FilterToolbar } from '@/components/shared';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import { inventoryService } from '../../services/inventory.service';
 import type { StockOpname } from '../../services/inventory.service';
+import StockOpnameStartModal from './StockOpnameStartModal';
 import { useBranchFilter } from '@/components/branch/BranchFilter';
 
 export default function StockOpnameList() {
@@ -23,7 +26,21 @@ export default function StockOpnameList() {
   const [joinCode, setJoinCode] = useState('');
   const [joinError, setJoinError] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
+  const [startOpen, setStartOpen] = useState(false);
   const { branchId, setBranchId } = useBranchFilter();
+  const queryClient = useQueryClient();
+
+  const cancelMutation = useMutation({
+    mutationFn: (id: string) => inventoryService.cancelOpname(id),
+    onSuccess: () => {
+      toast.success('Opname dibatalkan — outlet bebas untuk opname baru');
+      queryClient.invalidateQueries({ queryKey: ['inventory-opnames'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Gagal membatalkan opname');
+      queryClient.invalidateQueries({ queryKey: ['inventory-opnames'] });
+    },
+  });
 
   const { data: opnames, isLoading, error, refetch } = useQuery({
     queryKey: ['inventory-opnames', searchTerm, selectedStatus, branchId],
@@ -103,11 +120,12 @@ export default function StockOpnameList() {
     <div className="w-full space-y-3">
       {/* Page Header */}
       <BreadcrumbHeader title="Stock Opname" subtitle="Kelola stock opname dan audit stok">
-        <Button onClick={() => navigate('/inventory/opname/new')}>
+        <Button onClick={() => setStartOpen(true)}>
           <Plus className="w-4 h-4 mr-2" />
           Mulai Opname
         </Button>
       </BreadcrumbHeader>
+      <StockOpnameStartModal open={startOpen} onClose={() => setStartOpen(false)} />
 
       {/* IGDERP-234 (OP2): join a counting session via its short code */}
       <form
@@ -261,12 +279,12 @@ export default function StockOpnameList() {
                         <ClipboardCheck className="w-16 h-16 text-gray-400" />
                       </div>
                       <p className="text-gray-600 font-semibold text-lg">Tidak ada opname ditemukan</p>
-                      <Link
-                        to="/inventory/opname/new"
+                      <button
+                        onClick={() => setStartOpen(true)}
                         className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
                       >
                         Mulai Opname Baru
-                      </Link>
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -351,6 +369,7 @@ export default function StockOpnameList() {
                         )}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-center">
+                        <div className="inline-flex items-center gap-2">
                         {opname.status === 'counting' ? (
                           <Link
                             to={`/inventory/opname/${opname.id}/count`}
@@ -370,6 +389,29 @@ export default function StockOpnameList() {
                             <span>Detail</span>
                           </Link>
                         )}
+                        {(opname.status === 'draft' ||
+                          opname.status === 'counting' ||
+                          opname.status === 'completed') && (
+                          <button
+                            title="Batalkan opname"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (
+                                confirm(
+                                  `Yakin ingin membatalkan opname ${opname.opnameNumber}? Hasil perhitungan yang sudah masuk tetap tersimpan sebagai riwayat, tapi sesi ini berakhir dan stok tidak berubah.`,
+                                )
+                              ) {
+                                cancelMutation.mutate(opname.id);
+                              }
+                            }}
+                            disabled={cancelMutation.isPending}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-white text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium disabled:opacity-50"
+                          >
+                            <XCircle className="w-4 h-4" />
+                            <span>Batal</span>
+                          </button>
+                        )}
+                        </div>
                       </td>
                     </tr>
                   );
