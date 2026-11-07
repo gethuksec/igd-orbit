@@ -143,7 +143,7 @@ export default function StockOpnameStartModal({
       return;
     }
     if (approverMissing) {
-      toast.error('Atur approver outlet ini di Administrator → General dulu');
+      toast.error('Atur approver outlet ini di Administrator → Approval dulu');
       return;
     }
     startMutation.mutate({
@@ -243,11 +243,11 @@ export default function StockOpnameStartModal({
               <div className="mt-1.5 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
                 Belum ada approver untuk outlet ini. Atur dulu di{' '}
                 <Link
-                  to="/admin/general"
+                  to="/admin/approval"
                   onClick={onClose}
                   className="font-semibold underline hover:text-red-800"
                 >
-                  Administrator → General
+                  Administrator → Approval
                 </Link>{' '}
                 sebelum memulai opname.
               </div>
