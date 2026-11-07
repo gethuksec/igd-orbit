@@ -412,6 +412,23 @@ describe('StockRequestsService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
+    it('accepts empty phone and stores null', async () => {
+      mockBranchOk();
+      prisma.customer.findUnique.mockResolvedValue(null);
+      prisma.customer.create.mockImplementation(async ({ data }: any) => ({ id: 'c10', ...data }));
+      const res = await service.quickAddIntakeCustomer('tok', {
+        name: 'Tanpa WA',
+        phone: '',
+        subdistrict: 'Sumbersari',
+      } as any);
+      expect(res.id).toBe('c10');
+      expect(prisma.customer.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ name: 'Tanpa WA', phone: null }),
+        }),
+      );
+    });
+
     it('rejects unknown kecamatan', async () => {
       mockBranchOk();
       await expect(

@@ -164,7 +164,8 @@ function ItemRow({
             <div className="flex gap-2 mt-1">
               <div className="flex-1 min-h-[46px] text-[15px] border-[1.5px] border-gray-300 rounded-md bg-white px-3 flex items-center gap-2">
                 <span className="font-semibold truncate">
-                  {row.listing === 'NEW' ? `${row.productName} NEW` : row.productName}
+                  {row.productName}{' '}
+                  {row.listing === 'NEW' && <span className="text-green-700 font-bold">NEW</span>}
                 </span>
                 <button type="button" onClick={clearProduct} aria-label="Ganti produk" className="ml-auto shrink-0 p-1">
                   <X className="w-4 h-4 text-gray-400" />
@@ -224,7 +225,7 @@ function ItemRow({
         </div>
 
         <div>
-          <Label className="text-[13.5px] font-semibold">Kategori <span className="text-red-600">*</span></Label>
+          <Label className="text-[13.5px] font-semibold">Kategori <span className="text-gray-400 font-normal">(opsional)</span></Label>
           <select
             className={`${selectCls} mt-1`}
             value={row.categoryId}
@@ -304,7 +305,7 @@ export default function RequestIntakePage() {
       setQuickErr('Isi nama pelanggan dulu.');
       return;
     }
-    if (!/^(?:\+62|0)[0-9]{9,12}$/.test(quickPhone.trim())) {
+    if (quickPhone.trim() && !/^(?:\+62|0)[0-9]{9,12}$/.test(quickPhone.trim())) {
       setQuickErr('No. WA tidak valid. Format: 08… atau +62…');
       return;
     }
@@ -316,7 +317,7 @@ export default function RequestIntakePage() {
     try {
       const created = await stockRequestsService.quickAddIntakeCustomer(token, {
         name: quickName.trim(),
-        phone: quickPhone.trim(),
+        ...(quickPhone.trim() ? { phone: quickPhone.trim() } : {}),
         subdistrict: quickKec,
       });
       setCustomer(created);
@@ -347,8 +348,8 @@ export default function RequestIntakePage() {
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
       const prodOk = r.listing === 'EXIST' ? !!r.productId : !!r.productName.trim();
-      if (!r.barcode.trim() || !prodOk || !r.categoryId) {
-        setFormErr(`Barang #${i + 1} belum lengkap — pilih produk & kategori.`);
+      if (!r.barcode.trim() || !prodOk) {
+        setFormErr(`Barang #${i + 1} — pilih produk dulu ya.`);
         return;
       }
     }
@@ -362,7 +363,7 @@ export default function RequestIntakePage() {
           listing: r.listing,
           ...(r.productId ? { productId: r.productId } : {}),
           ...(r.listing === 'NEW' ? { productName: r.productName.trim() } : {}),
-          categoryId: r.categoryId,
+          ...(r.categoryId ? { categoryId: r.categoryId } : {}),
           categoryName: r.categoryName.trim(),
           quantity: 1,
           ...(r.note.trim() ? { note: r.note.trim() } : {}),
@@ -494,7 +495,7 @@ export default function RequestIntakePage() {
                         ✓ {customer.name}
                       </span>
                       <span className="text-xs text-gray-500 truncate">
-                        {customer.phone}{customer.subdistrict ? ` • ${customer.subdistrict}` : ''}
+                        {[customer.phone, customer.subdistrict].filter(Boolean).join(' • ') || '—'}
                       </span>
                       <button
                         type="button"
@@ -549,7 +550,7 @@ export default function RequestIntakePage() {
                       >
                         <span className="font-semibold">{c.name}</span>
                         <span className="block text-xs text-gray-500">
-                          {c.phone}{c.subdistrict ? ` • ${c.subdistrict}` : ''}
+                          {[c.phone, c.subdistrict].filter(Boolean).join(' • ') || '—'}
                         </span>
                       </button>
                     ))}
@@ -615,7 +616,7 @@ export default function RequestIntakePage() {
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="font-bold text-[15px]">Pelanggan baru</h3>
-                <p className="text-[12.5px] text-gray-500 mt-0.5">Langsung masuk master. WA wajib untuk data building.</p>
+                <p className="text-[12.5px] text-gray-500 mt-0.5">Langsung masuk master. No. WA opsional.</p>
               </div>
               <button type="button" onClick={() => setQuickOpen(false)} aria-label="Tutup">
                 <X className="w-5 h-5 text-gray-400" />
@@ -632,14 +633,14 @@ export default function RequestIntakePage() {
                 />
               </div>
               <div>
-                <Label className="text-[13.5px] font-semibold">No. WA <span className="text-red-600">*</span></Label>
+                <Label className="text-[13.5px] font-semibold">No. WA <span className="text-gray-400 font-normal">(opsional)</span></Label>
                 <Input
                   className={`${inputCls} mt-1`}
                   placeholder="08… / +62…"
                   value={quickPhone}
                   onChange={(e) => setQuickPhone(e.target.value)}
                 />
-                <p className="text-[12px] text-gray-500 mt-1">Format: 08… atau +62… — dicek saat simpan.</p>
+                <p className="text-[12px] text-gray-500 mt-1">Boleh kosong — kalau diisi, format: 08… atau +62…, dicek saat simpan.</p>
               </div>
               <div>
                 <Label className="text-[13.5px] font-semibold">Kecamatan <span className="text-red-600">*</span></Label>

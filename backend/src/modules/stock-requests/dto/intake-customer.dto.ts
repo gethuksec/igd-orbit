@@ -1,4 +1,4 @@
-import { IsIn, IsNotEmpty, IsOptional, IsString, IsUUID, Matches } from 'class-validator';
+import { IsIn, IsNotEmpty, IsOptional, IsString, IsUUID, Matches, ValidateIf } from 'class-validator';
 
 /**
  * Kecamatan list for Jember (outlet territory).
@@ -46,11 +46,13 @@ export class QuickAddIntakeCustomerDto {
   @IsNotEmpty({ message: 'Nama wajib diisi.' })
   name!: string;
 
+  @IsOptional()
   @IsString()
+  @ValidateIf((o) => (o.phone ?? '').trim() !== '')
   @Matches(INTAKE_WA_PATTERN, {
     message: 'No. WA tidak valid. Format: 08… atau +62…',
   })
-  phone!: string;
+  phone?: string;
 
   @IsString()
   @IsNotEmpty({ message: 'Kecamatan wajib diisi.' })
