@@ -52,12 +52,12 @@ export default function LandingPage() {
             <div className="flex items-center gap-3">
               {/* Logo utama di navbar */}
               <img
-                src="/logo/igd-1.jpg"
-                alt="IGD Ponsel Logo"
+                src="/logo/igd-group.png"
+                alt="IGD Group Logo"
                 className="h-8 w-auto object-contain"
               />
               <div className="leading-tight">
-                <p className="text-sm font-semibold text-gray-900">IGD Ponsel</p>
+                <p className="text-sm font-semibold text-gray-900">ORBIT</p>
                 <p className="text-xs text-gray-500">Servis • Sparepart • Accessories</p>
               </div>
             </div>
@@ -93,7 +93,7 @@ export default function LandingPage() {
             <div className="flex items-center justify-center gap-4 mb-6 animate-fade-in">
               <div>
                 <h1 className="text-5xl md:text-6xl font-extrabold mb-2 tracking-tight bg-gradient-to-r from-white to-red-100 bg-clip-text text-transparent">
-                  IGD Ponsel
+                  ORBIT
                 </h1>
                 <div className="flex flex-wrap items-center justify-center gap-2 text-red-50">
                   <Star className="w-4 h-4 fill-current" />
@@ -111,7 +111,7 @@ export default function LandingPage() {
               Servis cepat, bergaransi, dan sparepart asli dengan pelayanan ramah
             </p>
             <p className="text-lg mb-10 text-white/80 max-w-3xl mx-auto">
-              Dari ganti LCD, baterai, hingga perbaikan kerusakan berat – IGD Ponsel siap membantu Anda setiap hari
+              Dari ganti LCD, baterai, hingga perbaikan kerusakan berat – ORBIT siap membantu Anda setiap hari
               dengan teknisi berpengalaman dan jaringan cabang yang mudah dijangkau.
             </p>
 
@@ -204,7 +204,7 @@ export default function LandingPage() {
             <div className="text-center mb-3">
               <h2 className="text-4xl font-bold text-gray-900 mb-2">Produk Best Seller</h2>
               <p className="text-sm text-gray-600">
-                Produk yang paling sering terjual di IGD Ponsel dalam beberapa waktu terakhir.
+                Produk yang paling sering terjual di ORBIT dalam beberapa waktu terakhir.
               </p>
             </div>
             <div className="relative -mx-4">
@@ -218,7 +218,7 @@ export default function LandingPage() {
                       >
                         <div className="aspect-square bg-gray-100 rounded-t-2xl overflow-hidden">
                           <img
-                            src={(product.images && product.images[0]) || '/logo/igd-1.jpg'}
+                            src={(product.images && product.images[0]) || '/logo/igd-group.png'}
                             alt={product.name}
                             className="w-full h-full object-cover"
                           />
@@ -448,7 +448,7 @@ export default function LandingPage() {
         <footer className="mt-auto border-t border-gray-200 bg-white">
           <div className="container mx-auto px-4 py-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-500">
             <div className="flex items-center gap-2">
-              <span>© {new Date().getFullYear()} IGD Ponsel.</span>
+              <span>© {new Date().getFullYear()} ORBIT.</span>
             </div>
           </div>
         </footer>

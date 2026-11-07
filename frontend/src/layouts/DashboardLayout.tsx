@@ -602,7 +602,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Logo */}
       <div className="flex items-center h-16 px-6 border-b shrink-0">
         <div className="flex items-center gap-3">
-          <img src="/logo/igd-1.jpg" alt="IGD Ponsel Logo" className="h-10 w-10 object-contain flex-shrink-0" />
+          <img src="/logo/igd-group.png" alt="IGD Group Logo" className="h-10 w-auto object-contain flex-shrink-0" />
+          <p className="text-lg font-extrabold tracking-wide text-foreground">ORBIT</p>
           <p className="text-xs text-muted-foreground font-medium">v1.0</p>
         </div>
       </div>

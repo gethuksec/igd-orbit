@@ -47,7 +47,7 @@ export function InstallPrompt() {
         <div className="ml-3 flex-1">
           <div className="flex items-start justify-between">
             <h3 className="text-sm font-semibold text-gray-900">
-              Pasang Aplikasi IGD ERP
+              Pasang Aplikasi ORBIT
             </h3>
             <button
               onClick={() => setShowPrompt(false)}

@@ -186,17 +186,17 @@ const SalesReceiptPrint = () => {
           <div className="flex items-start gap-2">
             {/* Logo */}
             <img
-              src="/logo/igd-1.jpg"
-              alt="IGD Ponsel Logo"
+              src="/logo/igd-group.png"
+              alt="ORBIT Logo"
               className="h-10 w-10 object-contain flex-shrink-0"
             />
             <div>
-              <h1 className="text-sm font-bold text-gray-900 leading-tight">IGD PONSEL</h1>
+              <h1 className="text-sm font-bold text-gray-900 leading-tight">ORBIT</h1>
               <p className="text-xs text-gray-600">sparepart-accessories-service</p>
             </div>
           </div>
           <div className="text-right text-xs flex-shrink-0">
-            <p className="font-semibold text-gray-900">{branch.name || 'IGD PONSEL'}</p>
+            <p className="font-semibold text-gray-900">{branch.name || 'ORBIT'}</p>
             <p className="text-gray-600">{branch.address || ''}</p>
             <p className="text-gray-600">Telpon/WA. {branch.phone || '0853 66688 345'}</p>
             <p className="text-gray-600">Jam buka: Senin - Minggu 08.00 - 21.00 WIB</p>

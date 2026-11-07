@@ -1314,7 +1314,7 @@ export default function POSTransaksi() {
         <span><strong>F2</strong> = Simpan</span>
         <span><strong>F3</strong> = Simpan Sementara</span>
         <span><strong>F5</strong> = Refresh</span>
-        <div className="ml-auto text-primary-200">IGD Ponsel - POS</div>
+        <div className="ml-auto text-primary-200">ORBIT - POS</div>
       </div>
     </div>
   );

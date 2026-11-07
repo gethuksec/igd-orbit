@@ -1,6 +1,6 @@
 {
-  "name": "IGD Group - Sistem ERP",
-  "short_name": "IGD ERP",
+  "name": "ORBIT - Sistem ERP",
+  "short_name": "ORBIT",
   "description": "Sistem Manajemen ERP Terpadu untuk IGD Group",
   "start_url": "/",
   "display": "standalone",
@@ -9,9 +9,9 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/favicon.ico",
-      "sizes": "any",
-      "type": "image/x-icon"
+      "src": "/favicon.png",
+      "sizes": "64x64",
+      "type": "image/png"
     }
   ],
   "screenshots": [

@@ -552,7 +552,7 @@ export default function SmartRepairPage() {
         <Card><CardContent className="p-4"><Label>Catatan Internal (tidak tampil pada nota)</Label><Textarea value={form.internalNotes} onChange={(e) => setF({ internalNotes: e.target.value })} placeholder="Catatan internal teknisi: ..." className="mt-2 min-h-14" /></CardContent></Card>
       </div>
 
-      <div className="shrink-0 bg-primary px-4 py-2 text-xs text-primary-foreground"><div className="flex items-center gap-6"><span><strong>F2</strong> = Simpan</span><span><strong>F3</strong> = Simpan Sementara</span><span><strong>F5</strong> = Refresh</span>{pendingCount > 0 && <span className="rounded bg-white/20 px-2 py-0.5">● {pendingCount} antrean offline</span>}<div className="ml-auto opacity-80">IGD Ponsel - Smart Repair</div></div></div>
+      <div className="shrink-0 bg-primary px-4 py-2 text-xs text-primary-foreground"><div className="flex items-center gap-6"><span><strong>F2</strong> = Simpan</span><span><strong>F3</strong> = Simpan Sementara</span><span><strong>F5</strong> = Refresh</span>{pendingCount > 0 && <span className="rounded bg-white/20 px-2 py-0.5">● {pendingCount} antrean offline</span>}<div className="ml-auto opacity-80">ORBIT - Smart Repair</div></div></div>
 
       <LockModal
         open={openLock}

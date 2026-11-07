@@ -94,11 +94,11 @@ export default function Login() {
         {/* Logo & Title */}
         <div className="text-center mb-8">
           <img
-            src="/logo/igd-1.jpg"
-            alt="IGD Ponsel"
-            className="h-16 w-auto mx-auto mb-4 object-contain"
+            src="/logo/igd-group.png"
+            alt="IGD Group"
+            className="h-24 w-auto mx-auto mb-4 object-contain"
           />
-          <h1 className="text-3xl font-display font-bold text-gray-900">IGD Ponsel</h1>
+          <h1 className="text-3xl font-display font-bold text-gray-900">ORBIT</h1>
           <p className="text-gray-600 mt-2">Login karyawan untuk mengakses dashboard internal</p>
         </div>
 
@@ -263,7 +263,7 @@ export default function Login() {
             ← Kembali ke halaman utama
           </button>
           <p className="text-center text-[11px] md:text-xs">
-            © {new Date().getFullYear()} IGD Ponsel.
+            © {new Date().getFullYear()} ORBIT.
           </p>
         </div>
       </div>

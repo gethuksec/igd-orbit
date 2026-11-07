@@ -49,8 +49,8 @@ export default function POSLayout({ children }: POSLayoutProps) {
         <div className="flex items-center justify-between h-14 px-4">
           {/* Left: Logo */}
           <div className="flex items-center gap-3">
-            <img src="/logo/igd-1.jpg" alt="IGD Ponsel Logo" className="h-9 w-9 object-contain flex-shrink-0" />
-            <span className="text-sm font-semibold text-foreground hidden sm:inline">IGD Ponsel</span>
+            <img src="/logo/igd-group.png" alt="IGD Group Logo" className="h-9 w-auto object-contain flex-shrink-0" />
+            <span className="text-sm font-extrabold tracking-wide text-foreground hidden sm:inline">ORBIT</span>
           </div>
 
           {/* Right: Notifications + Account */}
