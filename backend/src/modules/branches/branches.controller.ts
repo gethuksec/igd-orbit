@@ -46,11 +46,12 @@ export class BranchesController {
     @Query('limit') limit?: string,
     @Query('search') search?: string,
     @Query('includeInactive') includeInactive?: string,
+    @Query('status') status?: string,
   ) {
     const pageNum = page ? parseInt(page) : 1;
     const limitNum = limit ? parseInt(limit) : 20;
     const includeInactiveBool = includeInactive === 'true';
-    return this.branchesService.findAll(pageNum, limitNum, search, includeInactiveBool);
+    return this.branchesService.findAll(pageNum, limitNum, search, includeInactiveBool, status);
   }
 
   /**

@@ -127,11 +127,17 @@ export class BranchesService {
   /**
    * Find all branches with pagination
    */
-  async findAll(page: number = 1, limit: number = 20, search?: string, includeInactive?: boolean) {
+  async findAll(page: number = 1, limit: number = 20, search?: string, includeInactive?: boolean, status?: string) {
     const skip = (page - 1) * limit;
     const where: any = {};
 
-    if (!includeInactive) {
+    if (status === 'inactive') {
+      where.isActive = false;
+    } else if (status === 'active') {
+      where.isActive = true;
+    } else if (status === 'all') {
+      // no isActive filter
+    } else if (!includeInactive) {
       where.isActive = true;
     }
 
