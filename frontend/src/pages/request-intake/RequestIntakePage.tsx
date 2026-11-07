@@ -24,7 +24,6 @@ interface RowState {
   categoryId: string;
   categoryName: string;
   note: string;
-  stockHint: string;
 }
 
 const emptyRow = (): RowState => ({
@@ -36,7 +35,6 @@ const emptyRow = (): RowState => ({
   categoryId: '',
   categoryName: '',
   note: '',
-  stockHint: '',
 });
 
 const inputCls =
@@ -114,7 +112,6 @@ function ItemRow({
       barcode: p.barcode || p.sku || '',
       categoryId: p.category?.id || '',
       categoryName: p.category?.name || '',
-      stockHint: p.available > 0 ? `Stok outlet: ${p.available}` : 'Stok outlet kosong — tetap bisa request',
     });
     setSearch('');
     setResults([]);
@@ -129,7 +126,6 @@ function ItemRow({
       barcode: name.trim(),
       categoryId: '',
       categoryName: '',
-      stockHint: '',
     });
     setSearch('');
     setResults([]);
@@ -137,7 +133,7 @@ function ItemRow({
   };
 
   const clearProduct = () => {
-    set({ listing: 'EXIST', productId: '', productName: '', barcode: '', categoryId: '', categoryName: '', stockHint: '' });
+    set({ listing: 'EXIST', productId: '', productName: '', barcode: '', categoryId: '', categoryName: '' });
     setSearch('');
     setResults([]);
     setOpen(false);
@@ -176,7 +172,6 @@ function ItemRow({
             <div className="relative">
               <Input
                 className={`${inputCls} mt-1`}
-                placeholder="Ketik / scan barcode, nama, SKU…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onFocus={() => setOpen(true)}
@@ -221,11 +216,10 @@ function ItemRow({
               )}
             </div>
           )}
-          {row.stockHint && <span className="text-xs text-gray-500 mt-1 block">{row.stockHint}</span>}
         </div>
 
         <div>
-          <Label className="text-[13.5px] font-semibold">Kategori <span className="text-gray-400 font-normal">(opsional)</span></Label>
+          <Label className="text-[13.5px] font-semibold">Kategori</Label>
           <select
             className={`${selectCls} mt-1`}
             value={row.categoryId}
@@ -234,7 +228,7 @@ function ItemRow({
               set({ categoryId: e.target.value, categoryName: cat ? cat.name : '' });
             }}
           >
-            <option value="">— Pilih kategori —</option>
+            <option value=""></option>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
@@ -245,7 +239,6 @@ function ItemRow({
           <Label className="text-[13.5px] font-semibold">Catatan</Label>
           <Input
             className={`${inputCls} mt-1`}
-            placeholder="cth: warna hitam, minta yang ori…"
             value={row.note}
             onChange={(e) => set({ note: e.target.value })}
           />
@@ -426,7 +419,6 @@ export default function RequestIntakePage() {
               <CheckCircle2 className="w-9 h-9" />
             </div>
             <h2 className="font-bold text-xl mt-3">Request terkirim!</h2>
-            <p className="text-sm text-gray-500 mt-1">SODO akan memeriksa &amp; menyetujui.<br />Tunjukkan nomor ini bila ditanya:</p>
             <div className="inline-block font-extrabold text-xl bg-white border-[1.5px] border-dashed border-gray-300 rounded-lg px-5 py-2 mt-2">
               {done.no}
             </div>
@@ -511,8 +503,7 @@ export default function RequestIntakePage() {
                     </div>
                   ) : (
                     <Input
-                      className={inputCls}
-                      placeholder="Ketik nama / WA… (min. 2 huruf)"
+                      className={`${inputCls} mt-1`}
                       value={custSearch}
                       onChange={(e) => {
                         setCustSearch(e.target.value);
@@ -556,11 +547,6 @@ export default function RequestIntakePage() {
                     ))}
                   </div>
                 )}
-                {!customer && !custSearching && custSearch.trim().length >= 2 && custResults.length === 0 && (
-                  <p className="text-[12.5px] text-gray-500 mt-1.5">
-                    Tidak ketemu? Tekan + untuk tambah pelanggan baru.
-                  </p>
-                )}
                 {custErr && <p className="text-[12.5px] text-red-600 mt-1.5">{custErr}</p>}
               </div>
             </CardContent>
@@ -586,8 +572,6 @@ export default function RequestIntakePage() {
           >
             ＋ Tambah barang
           </button>
-          <p className="text-[13px] text-gray-500 px-1">{rows.length} jenis barang dalam request ini.</p>
-
           {formErr && (
             <div className="text-sm rounded-lg px-3 py-2.5 bg-red-50 text-red-700 border border-red-200 flex gap-2">
               <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" /> {formErr}
@@ -616,7 +600,6 @@ export default function RequestIntakePage() {
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="font-bold text-[15px]">Pelanggan baru</h3>
-                <p className="text-[12.5px] text-gray-500 mt-0.5">Langsung masuk master. No. WA opsional.</p>
               </div>
               <button type="button" onClick={() => setQuickOpen(false)} aria-label="Tutup">
                 <X className="w-5 h-5 text-gray-400" />
@@ -627,25 +610,22 @@ export default function RequestIntakePage() {
                 <Label className="text-[13.5px] font-semibold">Nama <span className="text-red-600">*</span></Label>
                 <Input
                   className={`${inputCls} mt-1`}
-                  placeholder="cth: Ibu Rina"
                   value={quickName}
                   onChange={(e) => setQuickName(e.target.value)}
                 />
               </div>
               <div>
-                <Label className="text-[13.5px] font-semibold">No. WA <span className="text-gray-400 font-normal">(opsional)</span></Label>
+                <Label className="text-[13.5px] font-semibold">No. WA</Label>
                 <Input
                   className={`${inputCls} mt-1`}
-                  placeholder="08… / +62…"
                   value={quickPhone}
                   onChange={(e) => setQuickPhone(e.target.value)}
                 />
-                <p className="text-[12px] text-gray-500 mt-1">Boleh kosong — kalau diisi, format: 08… atau +62…, dicek saat simpan.</p>
               </div>
               <div>
                 <Label className="text-[13.5px] font-semibold">Kecamatan <span className="text-red-600">*</span></Label>
                 <select className={`${selectCls} mt-1`} value={quickKec} onChange={(e) => setQuickKec(e.target.value)}>
-                  <option value="">Pilih Kecamatan</option>
+                  <option value=""></option>
                   {(kecamatanJember as string[]).map((k) => (
                     <option key={k} value={k}>{k}</option>
                   ))}
