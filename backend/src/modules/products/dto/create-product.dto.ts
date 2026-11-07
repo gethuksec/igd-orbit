@@ -139,6 +139,10 @@ export class CreateProductDto {
   @IsOptional()
   expiryReturnLimitDays?: number;
 
+  @IsString({ message: 'Grade must be a string' })
+  @IsOptional()
+  grade?: string;
+
   @IsObject({ message: 'Member pricing must be an object' })
   @IsOptional()
   memberPricing?: Record<string, any>; // JSON object
