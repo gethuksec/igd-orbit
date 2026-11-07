@@ -1633,7 +1633,7 @@ export class CustomersService {
         where: { phone: { in: phones }, deletedAt: null },
         select: { id: true, phone: true },
       });
-      for (const c of found) byPhone.set(c.phone, c);
+      for (const c of found) { if (c.phone) byPhone.set(c.phone, c); }
     }
     if (codes.length) {
       const found = await this.prisma.customer.findMany({
