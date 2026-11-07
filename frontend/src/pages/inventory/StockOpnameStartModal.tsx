@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -104,6 +104,10 @@ export default function StockOpnameStartModal({
   const defaultApproverName =
     approverCandidates?.candidates.find((c) => c.id === approverCandidates.defaultUserId)
       ?.displayName || null;
+  // No head/approver assigned to this outlet (and no global default) → the
+  // admin must set one in Administrator → General before an SO can start.
+  const approverMissing =
+    !!outletId && !!approverCandidates && !approverCandidates.defaultUserId;
 
   const toggleCategory = (id: string) => {
     setSelectedCategories((prev) =>
@@ -112,6 +116,8 @@ export default function StockOpnameStartModal({
   };
   const effectiveCategoryIds = selectedCategories;
   const allSelected = categories.length > 0 && selectedCategories.length === categories.length;
+  const startBlocked =
+    !outletId || effectiveCategoryIds.length === 0 || approverMissing;
 
   const startMutation = useMutation({
     mutationFn: (data: any) => inventoryService.startOpname(data),
@@ -136,6 +142,10 @@ export default function StockOpnameStartModal({
       toast.error('Pilih minimal satu kategori');
       return;
     }
+    if (approverMissing) {
+      toast.error('Atur approver outlet ini di Administrator → General dulu');
+      return;
+    }
     startMutation.mutate({
       branchId: outletId,
       opnameDate,
@@ -154,7 +164,7 @@ export default function StockOpnameStartModal({
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Outlet</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Outlet <span className="text-red-500">*</span></label>
             <select
               value={outletId}
               onChange={(e) => setOutletId(e.target.value)}
@@ -170,7 +180,7 @@ export default function StockOpnameStartModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Tipe</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Tipe <span className="text-red-500">*</span></label>
             <div className="grid grid-cols-2 gap-2">
               {(
                 [
@@ -198,7 +208,7 @@ export default function StockOpnameStartModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Tanggal</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Tanggal <span className="text-red-500">*</span></label>
             <input
               type="date"
               value={opnameDate}
@@ -209,7 +219,7 @@ export default function StockOpnameStartModal({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Approver
+              Approver <span className="text-red-500">*</span>
             </label>
             <select
               value={approverId}
@@ -229,10 +239,23 @@ export default function StockOpnameStartModal({
                 </option>
               ))}
             </select>
+            {approverMissing && (
+              <div className="mt-1.5 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
+                Belum ada approver untuk outlet ini. Atur dulu di{' '}
+                <Link
+                  to="/admin/general"
+                  onClick={onClose}
+                  className="font-semibold underline hover:text-red-800"
+                >
+                  Administrator → General
+                </Link>{' '}
+                sebelum memulai opname.
+              </div>
+            )}
           </div>
 
           <div className="relative">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Kategori</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Kategori <span className="text-red-500">*</span></label>
             <button
               type="button"
               onClick={() => setCatOpen((o) => !o)}
@@ -295,7 +318,7 @@ export default function StockOpnameStartModal({
           <Button variant="outline" onClick={onClose}>
             Batal
           </Button>
-          <Button onClick={handleStart} disabled={!outletId || effectiveCategoryIds.length === 0 || startMutation.isPending}>
+          <Button onClick={handleStart} disabled={startBlocked || startMutation.isPending}>
             {startMutation.isPending && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
             Mulai Opname →
           </Button>
