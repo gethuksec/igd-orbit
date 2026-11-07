@@ -216,6 +216,11 @@ export const customersService = {
     return response.data;
   },
 
+  async exportCustomersXlsx(): Promise<Blob> {
+    const response = await api.get('/customers/import/export', { responseType: 'blob' });
+    return response.data;
+  },
+
   async previewCustomerImport(file: File): Promise<CustomerImportPreview> {
     const form = new FormData();
     form.append('file', file);

@@ -93,6 +93,7 @@ export default function ProductImportModal({
   const [result, setResult] = useState<ProductImportResult | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [busyTemplate, setBusyTemplate] = useState(false);
+  const [busyExport, setBusyExport] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const reset = () => {
@@ -127,6 +128,18 @@ export default function ProductImportModal({
       toast.error('Gagal mengunduh template');
     } finally {
       setBusyTemplate(false);
+    }
+  };
+
+  const exportCurrent = async () => {
+    setBusyExport(true);
+    try {
+      const blob = await productsService.exportProductsXlsx();
+      saveBlob(blob, `ekspor-produk-${new Date().toISOString().split('T')[0]}.xlsx`);
+    } catch {
+      toast.error('Gagal mengekspor data produk');
+    } finally {
+      setBusyExport(false);
     }
   };
 
@@ -196,10 +209,14 @@ export default function ProductImportModal({
         <div className="flex-1 overflow-y-auto space-y-4 pr-1">
           {step === 1 && (
             <>
-              <div>
+              <div className="flex flex-wrap gap-2">
                 <Button type="button" variant="outline" onClick={downloadTemplate} disabled={busyTemplate}>
                   {busyTemplate ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
                   Download Template Produk (.xlsx)
+                </Button>
+                <Button type="button" variant="secondary" onClick={exportCurrent} disabled={busyExport}>
+                  {busyExport ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                  ⬇ Export data saat ini (.xlsx)
                 </Button>
               </div>
 

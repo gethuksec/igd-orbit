@@ -137,6 +137,11 @@ export const productsService = {
     return response.data;
   },
 
+  async exportProductsXlsx(): Promise<Blob> {
+    const response = await api.get('/products/import/export', { responseType: 'blob' });
+    return response.data;
+  },
+
   async previewProductImport(file: File): Promise<ProductImportPreview> {
     const form = new FormData();
     form.append('file', file);
