@@ -127,7 +127,7 @@ export default function CustomerTierList() {
 
   const activeCount = tiers.filter((t: CustomerTier) => t.isActive).length;
   const avgDiscount = tiers.length
-    ? Math.round(tiers.reduce((sum: number, t: CustomerTier) => sum + t.discountPercentage, 0) / tiers.length)
+    ? Math.round((tiers.reduce((sum: number, t: CustomerTier) => sum + Number(t.discountPercentage), 0) / tiers.length) * 10) / 10
     : 0;
 
   const columns: Column<CustomerTier>[] = [
