@@ -63,19 +63,26 @@ export class SizesService {
     const limitNum = typeof limit === 'string' ? parseInt(limit, 10) : limit || 20;
 
     const skip = (pageNum - 1) * limitNum;
-    const where: Prisma.SizeWhereInput = {
-      deletedAt: null,
-    };
+    const where: Prisma.SizeWhereInput = {};
 
-    // Apply status filter
-    if (status === 'active') {
-      where.isActive = true;
-    } else if (status === 'inactive') {
+    // Apply status filter (status-aware deletedAt, cf. products.service.ts:
+    // soft-delete sets isActive=false AND deletedAt=now, so the deletedAt
+    // clause must follow the requested status instead of hardcoded null)
+    if (status === 'inactive') {
+      where.deletedAt = { not: null };
       where.isActive = false;
     } else if (status === 'all') {
       // Show all records - no filter
-    } else if (!includeInactive) {
+      where.deletedAt = undefined;
+    } else if (status === 'active') {
+      where.deletedAt = null;
+      where.isActive = true;
+    } else if (includeInactive) {
+      // Legacy flag: show all records including inactive
+      where.deletedAt = undefined;
+    } else {
       // Default: active only (backward compatible)
+      where.deletedAt = null;
       where.isActive = true;
     }
 
