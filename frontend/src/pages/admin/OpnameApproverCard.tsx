@@ -42,6 +42,27 @@ export default function OpnameApproverCard() {
   });
   const users: any[] = Array.isArray(usersData) ? usersData : [];
 
+  // Override picker stays synced with the outlet: only people assigned to the
+  // chosen outlet are offered (role codes shown), and switching outlet clears
+  // a stale cross-outlet selection.
+  const { data: outletUsersData } = useQuery({
+    queryKey: ['users-outlet', overrideOutlet],
+    queryFn: async () => {
+      const res = await api.get('/users', {
+        params: { page: 1, limit: 100, 'filter[branch]': overrideOutlet, 'filter[status]': 'active' },
+      });
+      return res.data.data || res.data || [];
+    },
+    enabled: !!overrideOutlet,
+  });
+  const outletUsers: any[] = Array.isArray(outletUsersData) ? outletUsersData : [];
+  const outletRoleOf = (u: any) =>
+    (u.userBranches || [])
+      .filter((ub: any) => (ub.branchId || ub.branch?.id) === overrideOutlet)
+      .map((ub: any) => ub.role?.code || ub.roleCode)
+      .filter(Boolean)
+      .join(', ');
+
   const { data: rolesResp } = useQuery({
     queryKey: ['admin-approval-roles'],
     queryFn: () => rolesService.getAll({ limit: 100, isActive: true }),
@@ -148,7 +169,10 @@ export default function OpnameApproverCard() {
                 <label className="block text-xs font-medium text-gray-600 mb-1">Outlet</label>
                 <select
                   value={overrideOutlet}
-                  onChange={(e) => setOverrideOutlet(e.target.value)}
+                  onChange={(e) => {
+                    setOverrideOutlet(e.target.value);
+                    setOverrideUser('');
+                  }}
                   className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-primary-500"
                 >
                   <option value="">Pilih outlet</option>
@@ -164,14 +188,21 @@ export default function OpnameApproverCard() {
                 <select
                   value={overrideUser}
                   onChange={(e) => setOverrideUser(e.target.value)}
-                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-primary-500"
+                  disabled={!overrideOutlet}
+                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-primary-500 disabled:bg-gray-50 disabled:text-gray-400"
                 >
-                  <option value="">Pilih pengguna</option>
-                  {users.map((u: any) => (
-                    <option key={u.id} value={u.id}>
-                      {u.fullName || u.username}
-                    </option>
-                  ))}
+                  <option value="">
+                    {overrideOutlet ? 'Pilih pengguna outlet ini' : 'Pilih outlet dulu'}
+                  </option>
+                  {outletUsers.map((u: any) => {
+                    const roles = outletRoleOf(u);
+                    return (
+                      <option key={u.id} value={u.id}>
+                        {u.fullName || u.username}
+                        {roles ? ` (${roles})` : ''}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
               <Button
