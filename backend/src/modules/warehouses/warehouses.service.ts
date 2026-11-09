@@ -156,15 +156,15 @@ export class WarehousesService {
       list.length > 0
         ? await this.prisma.stockOpname.findMany({
             where: {
-              warehouseId: { in: list.map((w) => w.id) },
+              warehouseId: { in: list.map((w: any) => w.id) },
               opnameType: 'FREEZE',
               status: { in: FREEZE_BLOCKED_STATUSES },
             },
             select: { warehouseId: true, opnameNumber: true, code: true },
           })
         : [];
-    const frozenByWarehouse = new Map(frozen.map((f) => [f.warehouseId, f.opnameNumber ?? f.code ?? '']));
-    return list.map((w) => ({
+    const frozenByWarehouse = new Map(frozen.map((f: any) => [f.warehouseId, f.opnameNumber ?? f.code ?? '']));
+    return list.map((w: any) => ({
       ...w,
       hasActiveOpname: frozenByWarehouse.has(w.id),
       activeOpnameNumber: frozenByWarehouse.get(w.id) ?? null,
