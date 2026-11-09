@@ -1,5 +1,4 @@
 import {
-  IsEnum,
   IsDateString,
   IsNotEmpty,
   IsString,
@@ -8,7 +7,13 @@ import {
 } from 'class-validator';
 
 export class LeaveRequestDto {
-  @IsEnum(['annual', 'sick', 'emergency', 'unpaid'])
+  /**
+   * Leave type master code (leave_types.code, e.g. 'CUTI-TAHUNAN').
+   * Legacy strings ('annual','sick','emergency','unpaid') still accepted
+   * and mapped server-side (IGDERP-261 transitional).
+   */
+  @IsString()
+  @IsNotEmpty()
   leave_type!: string;
 
   @IsDateString()
@@ -25,4 +30,3 @@ export class LeaveRequestDto {
   @IsUrl()
   attachment_url?: string;
 }
-

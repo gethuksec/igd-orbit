@@ -76,6 +76,13 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
           { label: 'Kelengkapan', key: 'service.checkpoint.view' },
         ],
       },
+      {
+        label: 'Staff',
+        children: [
+          { label: 'Cuti', key: 'master_data.attribute.view' },
+          { label: 'Denda', key: 'master_data.attribute.view' },
+        ],
+      },
     ],
   },
 

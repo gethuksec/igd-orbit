@@ -1593,6 +1593,28 @@ async function main() {
     update: { name: 'Human Resource Development', isActive: true },
     create: { code: 'DEPT-HRD', name: 'Human Resource Development', isActive: true },
   });
+  // 16b. HR master data — IGDERP-261 (7-Nov agreed rules; nominal HR fills denda amounts)
+  console.log('📋 Creating HR master data...');
+  const leaveTypes = [
+    { code: 'CUTI-TAHUNAN', name: 'Cuti Tahunan', isPaid: true, quotaDays: 12, maxApplyDelayDays: null, maxRequestsPerMonth: null, requiresAttachment: false },
+    { code: 'SAKIT', name: 'Sakit', description: 'Max pengajuan hari H, sebulan 1x', isPaid: true, quotaDays: 12, maxApplyDelayDays: 0, maxRequestsPerMonth: 1, requiresAttachment: true },
+    { code: 'DARURAT', name: 'Darurat', isPaid: true, quotaDays: 3, maxApplyDelayDays: null, maxRequestsPerMonth: null, requiresAttachment: true },
+    { code: 'TANPA-GAJI', name: 'Tanpa Gaji', isPaid: false, quotaDays: 0, maxApplyDelayDays: null, maxRequestsPerMonth: null, requiresAttachment: false },
+  ];
+  for (const lt of leaveTypes) {
+    await prisma.leaveType.upsert({ where: { code: lt.code }, update: { ...lt, isActive: true }, create: lt });
+  }
+  const penaltyTypes = [
+    { code: 'DENDA-TERLAMBAT', name: 'Denda Terlambat', calculation: 'fixed', defaultAmount: 0, priority: 5, approverRole: 'HS' },
+    { code: 'DENDA-LEBIH-LIBUR', name: 'Denda Lebih Libur', description: 'Kalah vs alpha (nominal tertinggi menang)', calculation: 'fixed', defaultAmount: 0, priority: 4, approverRole: 'HS', linksHolidayWork: true },
+    { code: 'DENDA-ALPHA', name: 'Denda Alpha / Tanpa Keterangan', description: 'Menang vs lebih-libur (priority tertinggi)', calculation: 'fixed', defaultAmount: 0, priority: 10, approverRole: 'HS' },
+    { code: 'DENDA-PULANG-CEPAT', name: 'Denda Pulang Cepat', description: 'Tier 25-100% dari nominal layer organisasi', calculation: 'percent-tier', defaultAmount: 0, tiers: [{ min: 25, max: 100 }], priority: 5, approverRole: 'HS' },
+    { code: 'DENDA-KELALAIAN', name: 'Denda Kelalaian', description: 'Nominal flexible', calculation: 'flexible', defaultAmount: 0, priority: 3, approverRole: 'HS' },
+    { code: 'DENDA-INDISIPLINER', name: 'Denda Indisipliner', calculation: 'flexible', defaultAmount: 0, priority: 6, approverRole: 'HS' },
+  ];
+  for (const pt of penaltyTypes) {
+    await prisma.penaltyType.upsert({ where: { code: pt.code }, update: { ...pt, isActive: true }, create: pt as any });
+  }
   console.log('🔄 Creating service returns...');
   if (createdServiceOrders.length > 0) {
     // Find a completed/delivered service order for return

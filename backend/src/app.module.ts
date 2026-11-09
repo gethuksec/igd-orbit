@@ -14,6 +14,8 @@ import { SizesModule } from "./modules/sizes/sizes.module";
 import { ExpeditionsModule } from "./modules/expeditions/expeditions.module";
 import { WarehousesModule } from "./modules/warehouses/warehouses.module";
 import { CustomerTypesModule } from "./modules/customer-types/customer-types.module";
+import { LeaveTypesModule } from "./modules/leave-types/leave-types.module";
+import { PenaltyTypesModule } from "./modules/penalty-types/penalty-types.module";
 import { CustomersModule } from './modules/customers/customers.module';
 import { SalesModule } from './modules/sales/sales.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
@@ -58,6 +60,8 @@ import { FileAccessModule } from './modules/file-access/file-access.module';
     ExpeditionsModule,
     WarehousesModule,
     CustomerTypesModule,
+    LeaveTypesModule,
+    PenaltyTypesModule,
     CustomersModule,
     SuppliersModule,
     SalesModule,
