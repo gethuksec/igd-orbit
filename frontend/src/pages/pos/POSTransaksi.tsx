@@ -370,6 +370,9 @@ export default function POSTransaksi() {
   // ── IGDERP-239: offline mode (cash-only, outbox queue) ──
   // (isOnline declared near top — search/catalog logic reads it)
   const [pendingCount, setPendingCount] = useState(0);
+  // Failed (parked after a 4xx) items are shown separately — sync skips them
+  // unless the cashier taps Sync (which passes includeFailed).
+  const [failedCount, setFailedCount] = useState(0);
   const [syncing, setSyncing] = useState(false);
   // IGDERP-241 (D5): expandable queue for offline print-from-queue
   const [showQueue, setShowQueue] = useState(false);
@@ -381,7 +384,8 @@ export default function POSTransaksi() {
   const refreshPending = useCallback(async () => {
     try {
       const all = await posOutbox.list();
-      setPendingCount(all.length);
+      setPendingCount(all.filter((p) => p.status === 'pending').length);
+      setFailedCount(all.filter((p) => p.status === 'failed').length);
       // IGDERP-241 (D5): keep the printable queue rows fresh
       setPendingSales(all.sort((a, b) => b.createdAt - a.createdAt));
     } catch {
@@ -392,9 +396,14 @@ export default function POSTransaksi() {
   const handleSyncNow = useCallback(async () => {
     setSyncing(true);
     try {
-      const res = await syncPendingSales();
+      // Manual sync retries parked (failed) sales too — otherwise a failed
+      // item is counted in the banner but invisible to sync ("Tidak ada antrean").
+      const res = await syncPendingSales({ includeFailed: true });
       if (res.synced === 0 && res.failed === 0) {
         toast.info('Tidak ada antrean offline');
+      } else if (res.synced === 0) {
+        const first = res.errors[0]?.error || 'perlu diperiksa';
+        toast.warning(`${res.failed} transaksi butuh review: ${first}`);
       } else {
         toast.success(`${res.synced} tersinkron` + (res.failed ? `, ${res.failed} butuh review` : ''));
       }
@@ -786,11 +795,14 @@ export default function POSTransaksi() {
           )}
         </div>
       )}
-      {pendingCount > 0 && (
+      {(pendingCount + failedCount) > 0 && (
         <div className="bg-blue-50 border-b border-blue-200 px-4 py-2 text-sm text-blue-800">
           <div className="flex items-center justify-center gap-3">
             <button className="underline font-medium" onClick={() => setShowQueue((v) => !v)}>
-              {pendingCount} transaksi offline menunggu sync {showQueue ? '▴' : '▾'}
+              {pendingCount > 0 && `${pendingCount} transaksi offline menunggu sync`}
+              {pendingCount > 0 && failedCount > 0 && ' • '}
+              {failedCount > 0 && `${failedCount} butuh review`}
+              {' '}{showQueue ? '▴' : '▾'}
             </button>
             <Button size="sm" variant="outline" onClick={handleSyncNow} disabled={syncing || !isOnline}>
               {syncing ? 'Syncing…' : 'Sync sekarang'}
@@ -802,7 +814,13 @@ export default function POSTransaksi() {
               {pendingSales.map((s) => (
                 <div key={s.clientMutationId} className="flex items-center justify-between gap-2 px-3 py-1.5 border-b border-blue-100 last:border-0 text-xs">
                   <span className="font-mono">{s.provisionalNumber}</span>
-                  <span className="text-gray-500">{new Date(s.createdAt).toLocaleString('id-ID')}</span>
+                  {s.status === 'failed' ? (
+                    <span className="text-red-600 font-medium truncate" title={s.lastError || ''}>
+                      Butuh review{s.lastError ? ` — ${s.lastError}` : ''}
+                    </span>
+                  ) : (
+                    <span className="text-gray-500">{new Date(s.createdAt).toLocaleString('id-ID')}</span>
+                  )}
                   <a href={`/pos/offline-receipt/${s.clientMutationId}`} target="_blank" rel="noreferrer">
                     <Button size="sm" variant="outline">Cetak</Button>
                   </a>
