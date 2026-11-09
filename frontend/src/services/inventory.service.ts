@@ -62,8 +62,9 @@ export interface StockOpname {
   opnameType?: 'FREEZE' | 'OPEN';
   approverId?: string | null;
   warehouseId: string;
+  warehouse?: { id: string; code: string; name: string; type: string; scope: string } | null;
   branchId: string;
-  branch?: { id: string; name: string; code: string };
+  branch?: { id: string; name: string; code: string } | null;
   opnameDate: string;
   status: 'draft' | 'counting' | 'completed' | 'approved' | 'cancelled';
   items: StockOpnameItem[];
@@ -495,6 +496,7 @@ export const inventoryService = {
   // Stock Opname
   async getOpnames(params?: {
     branchId?: string;
+    warehouseId?: string;
     status?: string;
     startDate?: string;
     endDate?: string;
@@ -526,12 +528,14 @@ export const inventoryService = {
   },
 
   async startOpname(data: {
-    branchId: string;
+    warehouseId?: string;
+    branchId?: string;
     opnameDate: string;
     notes?: string;
     opnameType?: 'FREEZE' | 'OPEN';
     approverId?: string;
     categoryIds?: string[];
+    assignments?: Array<{ userId: string; categoryIds?: string[] }>;
   }): Promise<StockOpname> {
     try {
       const response = await api.post('/inventory/opname', data);
@@ -610,10 +614,20 @@ export const inventoryService = {
     }
   },
 
-  /** IGDERP-234 (OP2): assign a counter to categories (addable mid-session). */
-  async addAssignments(opnameId: string, data: { userId: string; categoryIds: string[] }): Promise<any[]> {
+  /** IGDERP-234 (OP2): assign a counter (addable mid-session). IGDERP-260: categoryIds optional = whole session scope. */
+  async addAssignments(opnameId: string, data: { userId: string; categoryIds?: string[] }): Promise<any[]> {
     try {
       const response = await api.post(`/inventory/opname/${opnameId}/assignments`, data);
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  /** IGDERP-260: remove a member — categoryId omitted = remove the user entirely. Counts/scans stay. */
+  async removeAssignment(opnameId: string, data: { userId: string; categoryId?: string }): Promise<any[]> {
+    try {
+      const response = await api.delete(`/inventory/opname/${opnameId}/assignments`, { data });
       return response.data;
     } catch (error: any) {
       throw error;

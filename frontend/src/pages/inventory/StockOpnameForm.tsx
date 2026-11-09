@@ -15,13 +15,12 @@ import {
   Copy,
 } from 'lucide-react';
 import { inventoryService } from '../../services/inventory.service';
-import { useBranchFilter } from '@/components/branch/BranchFilter';
 import { toast } from 'sonner';
 import { api } from '@/services/api';
 
 type OpnameType = 'FREEZE' | 'OPEN';
 
-const STEPS = ['Tipe', 'Outlet & Jadwal', 'Kategori', 'Review'];
+const STEPS = ['Tipe', 'Gudang & Jadwal', 'Kategori & Anggota', 'Review'];
 
 const APPROVER_ROLES = ['OWNER', 'MGR', 'SPV'];
 
@@ -33,25 +32,31 @@ function userRoles(user: any): string[] {
 export default function StockOpnameForm() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { branchId } = useBranchFilter({ defaultAll: false });
 
   const [step, setStep] = useState(0);
   const [opnameType, setOpnameType] = useState<OpnameType>('FREEZE');
-  const [outletId, setOutletId] = useState(branchId || '');
+  const [warehouseId, setWarehouseId] = useState('');
   const [opnameDate, setOpnameDate] = useState(new Date().toISOString().split('T')[0]);
   const [approverId, setApproverId] = useState('');
   const [notes, setNotes] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [categoriesTouched, setCategoriesTouched] = useState(false);
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [created, setCreated] = useState<any>(null);
 
-  const { data: branches } = useQuery({
-    queryKey: ['branches'],
+  // IGDERP-259: gudang dropdown — outlet GOOD + central GOOD/BAD
+  const { data: warehousesData } = useQuery({
+    queryKey: ['warehouses-active-all'],
     queryFn: async () => {
-      const res = await api.get('/branches');
-      return res.data.data || res.data;
+      const res = await api.get('/warehouses/active', { params: { includeSystem: true } });
+      return res.data.data || res.data || [];
     },
   });
+  const warehouses: any[] = Array.isArray(warehousesData) ? warehousesData : [];
+  const outletWarehouses = warehouses.filter((w: any) => w.scope !== 'SYSTEM');
+  const centralWarehouses = warehouses.filter((w: any) => w.scope === 'SYSTEM');
+  const selectedWarehouse = warehouses.find((w: any) => w.id === warehouseId);
+  const outletId = selectedWarehouse?.outletId || '';
 
   const { data: categoriesData } = useQuery({
     queryKey: ['categories-all'],
@@ -63,12 +68,13 @@ export default function StockOpnameForm() {
   const categories: any[] = Array.isArray(categoriesData) ? categoriesData : [];
 
   const { data: usersData } = useQuery({
-    queryKey: ['users-approvers'],
+    queryKey: ['users-all'],
     queryFn: async () => {
       const res = await api.get('/users', { params: { page: 1, limit: 100 } });
       return res.data.data || res.data || [];
     },
   });
+  const allUsers: any[] = Array.isArray(usersData) ? usersData : [];
   const approvers: any[] = useMemo(() => {
     const users: any[] = Array.isArray(usersData) ? usersData : [];
     return users.filter((u) => userRoles(u).some((r) => APPROVER_ROLES.includes(r)));
@@ -108,6 +114,10 @@ export default function StockOpnameForm() {
     setSelectedCategories((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]));
   };
 
+  const toggleMember = (id: string) => {
+    setSelectedMembers((prev) => (prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]));
+  };
+
   const effectiveCategoryIds = categoriesTouched ? selectedCategories : categories.map((c: any) => c.id);
 
   const mutation = useMutation({
@@ -122,26 +132,34 @@ export default function StockOpnameForm() {
   });
 
   const canNext = () => {
-    if (step === 1) return !!outletId && !!opnameDate;
+    if (step === 1) return !!warehouseId && !!opnameDate;
     return true;
   };
 
   const handleCreate = () => {
-    if (!outletId) {
-      toast.error('Pilih cabang');
+    if (!warehouseId) {
+      toast.error('Pilih gudang');
       return;
     }
     mutation.mutate({
-      branchId: outletId,
+      warehouseId,
       opnameDate,
       notes: notes || undefined,
       opnameType,
       approverId: approverId || undefined,
       categoryIds: effectiveCategoryIds.length > 0 ? effectiveCategoryIds : undefined,
+      assignments: selectedMembers.length > 0 ? selectedMembers.map((userId) => ({ userId })) : undefined,
     });
   };
 
-  const outletName = branches?.find((b: any) => b.id === outletId)?.name || '-';
+  const warehouseName = selectedWarehouse ? `${selectedWarehouse.name} (${selectedWarehouse.code})` : '-';
+  const memberNames = selectedMembers
+    .map((id) => {
+      const u = allUsers.find((x: any) => x.id === id);
+      return u ? u.fullName || u.username : null;
+    })
+    .filter(Boolean)
+    .join(', ');
   const approverName = approverOptions.find((u: any) => u.id === approverId)?.fullName
     || approverOptions.find((u: any) => u.id === approverId)?.username
     || defaultApproverLabel;
@@ -167,7 +185,7 @@ export default function StockOpnameForm() {
             <p className="text-sm text-gray-500">Kode sesi (Menu › Opname › Count › Code)</p>
             <p className="text-4xl font-extrabold tracking-[0.2em] mt-1">{created.code}</p>
             <p className="text-sm text-gray-500 mt-2">
-              {created.opnameNumber} · {outletName} · {opnameType === 'FREEZE' ? '❄ FREEZE' : '🔓 OPEN'}
+              {created.opnameNumber} · {warehouseName} · {opnameType === 'FREEZE' ? '❄ FREEZE' : '🔓 OPEN'}
             </p>
           </div>
           <div className="flex items-center justify-center gap-3">
@@ -260,25 +278,38 @@ export default function StockOpnameForm() {
         </div>
       )}
 
-      {/* Step 2: Outlet & jadwal */}
+      {/* Step 2: Gudang & jadwal */}
       {step === 1 && (
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Cabang <span className="text-red-500">*</span>
+                Gudang <span className="text-red-500">*</span>
               </label>
               <select
-                value={outletId}
-                onChange={(e) => setOutletId(e.target.value)}
+                value={warehouseId}
+                onChange={(e) => setWarehouseId(e.target.value)}
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
-                <option value="">Pilih Cabang</option>
-                {branches?.map((branch: any) => (
-                  <option key={branch.id} value={branch.id}>
-                    {branch.name} ({branch.code})
-                  </option>
-                ))}
+                <option value="">Pilih Gudang</option>
+                {outletWarehouses.length > 0 && (
+                  <optgroup label="Gudang Outlet">
+                    {outletWarehouses.map((w: any) => (
+                      <option key={w.id} value={w.id}>
+                        {w.name} ({w.code})
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                {centralWarehouses.length > 0 && (
+                  <optgroup label="Gudang Central">
+                    {centralWarehouses.map((w: any) => (
+                      <option key={w.id} value={w.id}>
+                        {w.name} ({w.code}) · {w.type}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
             </div>
             <div>
@@ -325,14 +356,14 @@ export default function StockOpnameForm() {
           </div>
           {opnameType === 'FREEZE' && (
             <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-3 text-sm text-yellow-800">
-              Selama sesi FREEZE berjalan, stock in/out outlet ini diblokir kecuali posting hasil opname setelah
+              Selama sesi FREEZE berjalan, stock in/out gudang ini diblokir kecuali posting hasil opname setelah
               approval.
             </div>
           )}
         </div>
       )}
 
-      {/* Step 3: Kategori */}
+      {/* Step 3: Kategori & Anggota */}
       {step === 2 && (
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-4">
           <div>
@@ -359,6 +390,29 @@ export default function StockOpnameForm() {
               );
             })}
           </div>
+          <div>
+            <h3 className="font-bold text-gray-900">Anggota counting</h3>
+            <p className="text-sm text-gray-500">
+              Opsional — anggota bisa ditambah/dikurangi di detail sesi; hasil scan tetap tersimpan
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {allUsers.map((u: any) => {
+              const active = selectedMembers.includes(u.id);
+              return (
+                <button
+                  key={u.id}
+                  type="button"
+                  onClick={() => toggleMember(u.id)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium border transition-all ${
+                    active ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-gray-700 border-gray-300'
+                  }`}
+                >
+                  {active ? '✓ ' : ''}{u.fullName || u.username}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -370,10 +424,11 @@ export default function StockOpnameForm() {
           </h3>
           <dl className="text-sm divide-y divide-gray-100">
             <div className="flex justify-between py-2"><dt className="text-gray-500">Tipe</dt><dd className="font-bold">{opnameType === 'FREEZE' ? '❄ FREEZE' : '🔓 OPEN'}</dd></div>
-            <div className="flex justify-between py-2"><dt className="text-gray-500">Outlet</dt><dd className="font-bold">{outletName}</dd></div>
+            <div className="flex justify-between py-2"><dt className="text-gray-500">Gudang</dt><dd className="font-bold">{warehouseName}</dd></div>
             <div className="flex justify-between py-2"><dt className="text-gray-500">Tanggal</dt><dd className="font-bold">{opnameDate}</dd></div>
             <div className="flex justify-between py-2"><dt className="text-gray-500">Approver</dt><dd className="font-bold">{approverName}</dd></div>
             <div className="flex justify-between py-2"><dt className="text-gray-500">Kategori</dt><dd className="font-bold">{effectiveCategoryIds.length} dari {categories.length}</dd></div>
+            <div className="flex justify-between py-2"><dt className="text-gray-500">Anggota</dt><dd className="font-bold text-right max-w-md">{selectedMembers.length > 0 ? `${selectedMembers.length} orang — ${memberNames}` : '—'}</dd></div>
             {notes && <div className="flex justify-between py-2"><dt className="text-gray-500">Catatan</dt><dd className="font-medium text-right max-w-md">{notes}</dd></div>}
           </dl>
           <button

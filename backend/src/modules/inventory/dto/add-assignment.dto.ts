@@ -1,6 +1,6 @@
-import { IsArray, IsUUID, ArrayUnique } from 'class-validator';
+import { IsArray, IsUUID, ArrayUnique, IsOptional } from 'class-validator';
 
-/** IGDERP-234 (OP2): assign a counter to categories mid-session. */
+/** IGDERP-234 (OP2): assign a counter — categoryIds omitted = whole session scope. */
 export class AddAssignmentDto {
   @IsUUID()
   userId!: string;
@@ -8,5 +8,6 @@ export class AddAssignmentDto {
   @IsArray()
   @ArrayUnique()
   @IsUUID('4', { each: true })
-  categoryIds!: string[];
+  @IsOptional()
+  categoryIds?: string[];
 }
