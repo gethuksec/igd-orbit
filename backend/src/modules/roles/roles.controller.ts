@@ -38,8 +38,11 @@ export class RolesController {
   /**
    * List all roles
    * GET /api/v1/roles
+   * Read widened (IGDERP-261): HR master forms need the role list for the
+   * approver dropdown (OWNER + HR staff), writes stay SUPERADMIN-only.
    */
   @Get()
+  @Roles('SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS')
   async findAll(@Query() query: any) {
     return this.rolesService.findAll(query);
   }
@@ -49,6 +52,7 @@ export class RolesController {
    * GET /api/v1/roles/:id
    */
   @Get(':id')
+  @Roles('SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS')
   async findById(@Param('id', ParseUUIDPipe) id: string) {
     return this.rolesService.findById(id);
   }

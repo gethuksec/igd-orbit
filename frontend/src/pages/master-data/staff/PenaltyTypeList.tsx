@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Edit, Trash2, Save, Loader2, Gavel, AlertTriangle } from "lucide-react";
 import { penaltyTypesService, type PenaltyType } from "@/services/penalty-types.service";
+import { rolesService, type Role } from "@/services/roles.service";
 import { api } from "@/services/api";
 import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable } from "@/components/shared";
 import type { Column } from "@/components/shared";
@@ -54,6 +55,12 @@ export default function PenaltyTypeList() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [toDelete, setToDelete] = useState<{ id: string; name: string } | null>(null);
 
+  const { data: rolesData } = useQuery({
+    queryKey: ["roles-active"],
+    queryFn: () => rolesService.getAll({ limit: 100, isActive: true }),
+  });
+  const roles: Role[] = rolesData?.data || [];
+
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["penalty-types", page, searchTerm, statusFilter],
     queryFn: () =>
@@ -81,15 +88,28 @@ export default function PenaltyTypeList() {
   const pagination = data?.meta || { page: 1, limit: 20, total: 0, totalPages: 1 };
   const activeCount = rows.filter((t: PenaltyType) => t.isActive).length;
 
-  const toPayload = (f: FormData) => ({
-    name: f.name,
-    description: f.description || undefined,
-    calculation: f.calculation,
-    defaultAmount: f.defaultAmount === "" ? undefined : Number(f.defaultAmount),
-    priority: f.priority === "" ? undefined : Number(f.priority),
-    approverRole: f.approverRole || undefined,
-    isActive: f.isActive,
-  });
+  const toPayload = (f: FormData) => {
+    if (!editing) {
+      // Tambah: minimal — calculation defaults to flexible, priority 0, active
+      return {
+        name: f.name,
+        description: f.description || undefined,
+        calculation: "flexible",
+        defaultAmount: f.defaultAmount === "" ? undefined : Number(f.defaultAmount),
+        priority: 0,
+        approverRole: f.approverRole || undefined,
+      };
+    }
+    return {
+      name: f.name,
+      description: f.description || undefined,
+      calculation: f.calculation,
+      defaultAmount: f.defaultAmount === "" ? undefined : Number(f.defaultAmount),
+      priority: f.priority === "" ? undefined : Number(f.priority),
+      approverRole: f.approverRole || undefined,
+      isActive: f.isActive,
+    };
+  };
 
   const saveMutation = useMutation({
     mutationFn: (payload: any) => {
@@ -360,6 +380,7 @@ export default function PenaltyTypeList() {
                 placeholder="cth: Denda Terlambat"
               />
             </div>
+            {editing && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Perhitungan</label>
               <select
@@ -373,6 +394,7 @@ export default function PenaltyTypeList() {
               </select>
               <p className="text-xs text-gray-500 mt-1">Pulang-cepat pakai percent-tier 25–100%.</p>
             </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Nominal Default (Rp)</label>
               <input
@@ -385,6 +407,7 @@ export default function PenaltyTypeList() {
               />
               <p className="text-xs text-gray-500 mt-1">0 = belum diset, HR isi nominalnya.</p>
             </div>
+            {editing && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Prioritas</label>
               <input
@@ -396,30 +419,30 @@ export default function PenaltyTypeList() {
               />
               <p className="text-xs text-gray-500 mt-1">Lebih tinggi menang saat bentrok (alpha 10 &gt; lebih-libur 4).</p>
             </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Approver</label>
-              <input
-                type="text"
-                value={formData.approverRole}
-                onChange={(e) => setFormData({ ...formData, approverRole: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
+              {roles.length > 0 ? (
+                <select
+                  value={formData.approverRole}
+                  onChange={(e) => setFormData({ ...formData, approverRole: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                >
+                  {roles.map((r) => (
+                    <option key={r.id} value={r.code}>
+                      {r.name} ({r.code})
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={formData.approverRole}
+                  onChange={(e) => setFormData({ ...formData, approverRole: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+              )}
             </div>
-            {editing && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setFormData((prev) => ({ ...prev, isActive: !prev.isActive }))}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isActive ? "bg-green-500" : "bg-gray-300"}`}
-                  >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.isActive ? "translate-x-6" : "translate-x-1"}`} />
-                  </button>
-                  <span className="text-sm text-gray-600">{formData.isActive ? "Aktif" : "Tidak Aktif"}</span>
-                </div>
-              </div>
-            )}
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
