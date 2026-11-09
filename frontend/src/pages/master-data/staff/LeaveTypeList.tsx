@@ -29,7 +29,7 @@ const defaultForm: FormData = {
   maxApplyDelayDays: "",
   maxRequestsPerMonth: "",
   minTenureMonths: "",
-  requiresAttachment: false,
+  requiresAttachment: true,
   isActive: true,
 };
 
@@ -393,10 +393,12 @@ export default function LeaveTypeList() {
                 placeholder="cth: Cuti Melahirkan"
               />
             </div>
+            {editing && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Berbayar (paid leave)</label>
               {toggle(formData.isPaid, () => setFormData((p) => ({ ...p, isPaid: !p.isPaid })))}
             </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Kuota per tahun (hari)</label>
               <input
@@ -408,6 +410,7 @@ export default function LeaveTypeList() {
                 placeholder="12"
               />
             </div>
+            {editing && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Max pengajuan (hari setelah mulai)</label>
               <input
@@ -420,6 +423,7 @@ export default function LeaveTypeList() {
               />
               <p className="text-xs text-gray-500 mt-1">0 = boleh diajukan di hari H (seperti Sakit).</p>
             </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Max pengajuan per bulan (x)</label>
               <input
@@ -444,6 +448,7 @@ export default function LeaveTypeList() {
               />
               <p className="text-xs text-gray-500 mt-1">cth: 12 = baru boleh ambil setelah 1 tahun kerja.</p>
             </div>
+            {editing && (
             <div>
               <label className="flex items-center gap-2 text-sm text-gray-700">
                 <input
@@ -455,6 +460,7 @@ export default function LeaveTypeList() {
                 Wajib lampiran
               </label>
             </div>
+            )}
             {editing && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
