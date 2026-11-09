@@ -39,6 +39,7 @@ export default function StockOpnameStartModal({
   const [catOpen, setCatOpen] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [catInit, setCatInit] = useState(false);
+  const [memberOpen, setMemberOpen] = useState(false);
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
 
   // Reset each time the modal opens
@@ -51,6 +52,7 @@ export default function StockOpnameStartModal({
       setCatOpen(false);
       setSelectedCategories([]);
       setCatInit(false);
+      setMemberOpen(false);
       setSelectedMembers([]);
     }
   }, [open]);
@@ -135,7 +137,7 @@ export default function StockOpnameStartModal({
   const effectiveCategoryIds = selectedCategories;
   const allSelected = categories.length > 0 && selectedCategories.length === categories.length;
   const startBlocked =
-    !warehouseId || effectiveCategoryIds.length === 0 || approverMissing;
+    !warehouseId || effectiveCategoryIds.length === 0 || selectedMembers.length === 0 || approverMissing;
 
   const startMutation = useMutation({
     mutationFn: (data: any) => inventoryService.startOpname(data),
@@ -158,6 +160,10 @@ export default function StockOpnameStartModal({
     }
     if (effectiveCategoryIds.length === 0) {
       toast.error('Pilih minimal satu kategori');
+      return;
+    }
+    if (selectedMembers.length === 0) {
+      toast.error('Pilih minimal satu anggota');
       return;
     }
     if (approverMissing) {
@@ -193,8 +199,8 @@ export default function StockOpnameStartModal({
               {outletWarehouses.length > 0 && (
                 <optgroup label="Gudang Outlet">
                   {outletWarehouses.map((w: any) => (
-                    <option key={w.id} value={w.id}>
-                      {w.name} ({w.code})
+                    <option key={w.id} value={w.id} disabled={!!w.hasActiveOpname}>
+                      {w.name} ({w.code}){w.hasActiveOpname ? ` · opname ${w.activeOpnameNumber || 'berjalan'}` : ''}
                     </option>
                   ))}
                 </optgroup>
@@ -202,8 +208,8 @@ export default function StockOpnameStartModal({
               {centralWarehouses.length > 0 && (
                 <optgroup label="Gudang Central">
                   {centralWarehouses.map((w: any) => (
-                    <option key={w.id} value={w.id}>
-                      {w.name} ({w.code}) · {w.type}
+                    <option key={w.id} value={w.id} disabled={!!w.hasActiveOpname}>
+                      {w.name} ({w.code}) · {w.type}{w.hasActiveOpname ? ` · opname ${w.activeOpnameNumber || 'berjalan'}` : ''}
                     </option>
                   ))}
                 </optgroup>
@@ -341,26 +347,60 @@ export default function StockOpnameStartModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Anggota <span className="text-gray-400 font-normal">(opsional)</span></label>
-            <div className="max-h-32 overflow-y-auto rounded-lg border border-gray-300 p-1.5">
-              {allUsers.map((u: any) => (
-                <label
-                  key={u.id}
-                  className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-gray-50 cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedMembers.includes(u.id)}
-                    onChange={() => toggleMember(u.id)}
-                    className="w-4 h-4 accent-red-600"
-                  />
-                  <span>{u.fullName || u.username}</span>
-                </label>
-              ))}
-              {allUsers.length === 0 && (
-                <span className="block px-2 py-1.5 text-sm text-gray-400">Memuat…</span>
-              )}
-            </div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Anggota <span className="text-red-500">*</span></label>
+            <button
+              type="button"
+              onClick={() => setMemberOpen((v) => !v)}
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm flex items-center justify-between"
+            >
+              <span>
+                {selectedMembers.length === 0
+                  ? 'Pilih anggota'
+                  : selectedMembers.length === allUsers.length && allUsers.length > 0
+                    ? 'Semua anggota'
+                    : `${selectedMembers.length} dari ${allUsers.length} anggota`}
+              </span>
+              <span>{memberOpen ? '▴' : '▾'}</span>
+            </button>
+            {memberOpen && (
+              <div className="mt-1 rounded-lg border border-gray-300 p-1.5">
+                <div className="flex items-center justify-between px-2 py-1 text-xs">
+                  <button
+                    type="button"
+                    className="text-primary-600 font-semibold hover:underline"
+                    onClick={() => setSelectedMembers(allUsers.map((u: any) => u.id))}
+                  >
+                    Pilih semua
+                  </button>
+                  <button
+                    type="button"
+                    className="text-gray-500 font-semibold hover:underline"
+                    onClick={() => setSelectedMembers([])}
+                  >
+                    Hapus
+                  </button>
+                </div>
+                <div className="max-h-40 overflow-y-auto">
+                  {allUsers.map((u: any) => (
+                    <label
+                      key={u.id}
+                      className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-gray-50 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedMembers.includes(u.id)}
+                        onChange={() => toggleMember(u.id)}
+                        className="w-4 h-4 accent-red-600"
+                      />
+                      <span>{u.fullName || u.username}</span>
+                    </label>
+                  ))}
+                  {allUsers.length === 0 && (
+                    <span className="block px-2 py-1.5 text-sm text-gray-400">Memuat…</span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="rounded-lg bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-800">

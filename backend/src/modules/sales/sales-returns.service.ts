@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Decimal } from '@prisma/client/runtime/library';
+import { assertNoFreezeOpname } from '../inventory/opname-freeze.guard';
 import { PrismaService } from '../../shared/services/prisma.service';
 import { CreateSalesReturnDto } from './dto';
 
@@ -96,6 +97,8 @@ export class SalesReturnsService {
       if (!badWarehouse) {
         throw new BadRequestException('Gudang BAD (Central Bad Stock) belum dikonfigurasi');
       }
+      // IGDERP-259: freeze — active SO warehouse cannot transact (sales return)
+      await assertNoFreezeOpname(tx, badWarehouse.id, 'process a sales return');
 
       for (const item of transaction.items) {
         const qty = item.quantity.toNumber();

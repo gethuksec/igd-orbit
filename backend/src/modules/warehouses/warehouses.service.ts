@@ -9,6 +9,7 @@ import { CreateWarehouseDto, UpdateWarehouseDto, ListWarehousesDto } from './dto
 import { normalizeWarehouseIdentity } from './warehouse-rules';
 import { Prisma } from '@prisma/client';
 import { randomBytes } from 'crypto';
+import { FREEZE_BLOCKED_STATUSES } from '../inventory/opname-freeze.guard';
 
 /**
  * Warehouses Service
@@ -143,11 +144,31 @@ export class WarehousesService {
       where.scope = 'OUTLET';
     }
 
-    return this.prisma.warehouse.findMany({
+    const list = await this.prisma.warehouse.findMany({
       where,
       select: { id: true, code: true, name: true, outletId: true, type: true, scope: true },
       orderBy: { name: 'asc' },
     });
+    // IGDERP-259: flag warehouses locked by an unresolved FREEZE session
+    // (draft/counting/completed-pending-approval). OPEN sessions never freeze,
+    // so parallel same-warehouse sessions stay selectable.
+    const frozen =
+      list.length > 0
+        ? await this.prisma.stockOpname.findMany({
+            where: {
+              warehouseId: { in: list.map((w) => w.id) },
+              opnameType: 'FREEZE',
+              status: { in: FREEZE_BLOCKED_STATUSES },
+            },
+            select: { warehouseId: true, opnameNumber: true, code: true },
+          })
+        : [];
+    const frozenByWarehouse = new Map(frozen.map((f) => [f.warehouseId, f.opnameNumber ?? f.code ?? '']));
+    return list.map((w) => ({
+      ...w,
+      hasActiveOpname: frozenByWarehouse.has(w.id),
+      activeOpnameNumber: frozenByWarehouse.get(w.id) ?? null,
+    }));
   }
 
   /**
