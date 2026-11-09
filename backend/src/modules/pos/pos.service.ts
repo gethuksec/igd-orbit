@@ -3,7 +3,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services';
-import { assertNoFreezeOpname } from '../inventory/opname-freeze.guard';
+import { assertNoFreezeOpname, FREEZE_BLOCKED_STATUSES } from '../inventory/opname-freeze.guard';
 import { recordOpenOpnameMovements } from '../inventory/opname-movement.recorder';
 import type { OpenMovementEntry } from '../inventory/opname-movement.recorder';
 import { CreatePosTransactionDto } from './dto/create-pos-transaction.dto';
@@ -290,7 +290,7 @@ export class PosService {
   async listWarehouses(outletId?: string) {
     // D1: warehouses now live in their own table (were branches with isWarehouse=true)
     // D5: optional outlet filter — per-page explicit branch model (no global context)
-    return this.prisma.warehouse.findMany({
+    const list = await this.prisma.warehouse.findMany({
       where: {
         isActive: true,
         ...(outletId ? { outletId } : {}),
@@ -298,6 +298,25 @@ export class PosService {
       select: { id: true, name: true, code: true, outletId: true },
       orderBy: { name: 'asc' },
     });
+    // IGDERP-260: flag warehouses locked by an unresolved FREEZE session so
+    // PoS / Smart Repair dropdowns can disable them (OPEN never freezes).
+    const frozen =
+      list.length > 0
+        ? await this.prisma.stockOpname.findMany({
+            where: {
+              warehouseId: { in: list.map((w: any) => w.id) },
+              opnameType: 'FREEZE',
+              status: { in: FREEZE_BLOCKED_STATUSES },
+            },
+            select: { warehouseId: true, opnameNumber: true, code: true },
+          })
+        : [];
+    const frozenByWarehouse = new Map(frozen.map((f: any) => [f.warehouseId, f.opnameNumber ?? f.code ?? '']));
+    return list.map((w: any) => ({
+      ...w,
+      hasActiveOpname: frozenByWarehouse.has(w.id),
+      activeOpnameNumber: frozenByWarehouse.get(w.id) ?? null,
+    }));
   }
 
   async listSalesPersons(outletId?: string) {

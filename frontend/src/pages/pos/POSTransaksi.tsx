@@ -726,9 +726,9 @@ export default function POSTransaksi() {
     }
   }, [branches, form.outletPenjual]);
 
-  // D5: auto-select warehouse when the outlet has exactly one
+  // D5: auto-select warehouse when the outlet has exactly one (skip frozen ones)
   useEffect(() => {
-    if (warehouses.length === 1 && !form.gudang) {
+    if (warehouses.length === 1 && !form.gudang && !(warehouses[0] as any).hasActiveOpname) {
       setForm((prev) => ({ ...prev, gudang: warehouses[0].id }));
     }
   }, [warehouses, form.gudang]);
@@ -971,7 +971,9 @@ export default function POSTransaksi() {
                 >
                   <option value="">{form.outletPenjual ? 'Pilih Gudang' : 'Tentukan Outlet Penjual'}</option>
                   {warehouses.map((w: any) => (
-                    <option key={w.id} value={w.id}>{w.name}</option>
+                    <option key={w.id} value={w.id} disabled={!!w.hasActiveOpname}>
+                      {w.name}{w.hasActiveOpname ? ` · opname ${w.activeOpnameNumber || 'berjalan'}` : ''}
+                    </option>
                   ))}
                 </select>
               </div>
