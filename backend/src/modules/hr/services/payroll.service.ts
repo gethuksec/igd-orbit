@@ -100,7 +100,7 @@ export class PayrollService {
       const unpaidLeaves = await this.prisma.leaveRequest.findMany({
         where: {
           employeeId: employee.id,
-          leaveType: 'unpaid',
+          leaveType: { code: 'TANPA-GAJI' },
           status: 'approved',
           startDate: { gte: yearStart, lte: yearEnd },
         },

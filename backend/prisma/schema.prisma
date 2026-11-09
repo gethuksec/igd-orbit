@@ -1837,7 +1837,7 @@ model Attendance {
 model LeaveRequest {
   id                 String    @id @default(uuid())
   employeeId         String    @map("employee_id")
-  leaveType          String    @map("leave_type") // 'annual', 'sick', 'emergency', 'unpaid'
+  leaveTypeId        String    @map("leave_type_id") // FK → leave_types (IGDERP-261)
   startDate          DateTime  @map("start_date") @db.Date
   endDate            DateTime  @map("end_date") @db.Date
   totalDays          Int       @map("total_days")
@@ -1857,11 +1857,12 @@ model LeaveRequest {
   updatedAt          DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employee  Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveType LeaveType? @relation(fields: [leaveTypeId], references: [id], onDelete: Restrict)
 
   @@index([employeeId])
   @@index([status])
-  @@index([leaveType])
+  @@index([leaveTypeId])
   @@index([startDate])
   @@index([endDate])
   @@map("leave_requests")
@@ -1983,6 +1984,58 @@ model KPIRecord {
   @@index([overallScore])
   @@map("kpi_records")
 }
+
+// ============================================
+// 10. HR MASTER DATA (IGDERP-261)
+// Cuti + denda masters backing the 7-Nov HR rules.
+// (Kontrak/BPJS/shift deferred — cut 09 Nov per saintOx.)
+// ============================================
+
+model LeaveType {
+  id                  String    @id @default(uuid())
+  code                String    @unique // 'CUTI-TAHUNAN', 'SAKIT', 'DARURAT', 'TANPA-GAJI'
+  name                String
+  description         String?   @db.Text
+  isPaid              Boolean   @default(true) @map("is_paid")
+  quotaDays           Int       @default(12) @map("quota_days") // yearly quota
+  maxApplyDelayDays   Int?      @map("max_apply_delay_days") // e.g. sick = 0 (max pengajuan hari H)
+  maxRequestsPerMonth Int?      @map("max_requests_per_month") // e.g. sick = 1 (sebulan 1x, ada setting)
+  requiresAttachment  Boolean   @default(false) @map("requires_attachment")
+  isActive            Boolean   @default(true) @map("is_active")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  deletedAt           DateTime? @map("deleted_at")
+
+  // Relations
+  leaveRequests LeaveRequest[]
+
+  @@index([code])
+  @@index([isActive])
+  @@map("leave_types")
+}
+
+model PenaltyType {
+  id               String    @id @default(uuid())
+  code             String    @unique // 'DENDA-TERLAMBAT', 'DENDA-LEBIH-LIBUR', 'DENDA-ALPHA', 'DENDA-PULANG-CEPAT', 'DENDA-KELALAIAN', 'DENDA-INDISIPLINER'
+  name             String
+  description      String?   @db.Text
+  calculation      String    @default("fixed") @map("calculation") // 'fixed' | 'percent-tier' | 'flexible'
+  defaultAmount    Decimal?  @map("default_amount") @db.Decimal(15, 2) // nominal manual HR; 0 = belum diset
+  tiers            Json? // percent-tier config, e.g. pulang-cepat [{min:25,max:100}]
+  priority         Int       @default(0) // higher wins on overlap (alpha > lebih-libur)
+  picScoped        Boolean   @default(true) @map("pic_scoped") // input PIC per department
+  approverRole     String    @default("HS") @map("approver_role")
+  linksHolidayWork Boolean   @default(false) @map("links_holiday_work") // insentif-libur nominal link
+  isActive         Boolean   @default(true) @map("is_active")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+
+  @@index([code])
+  @@index([isActive])
+  @@map("penalty_types")
+}
+
 
 // ============================================
 // 11. PURCHASING & SUPPLIER MANAGEMENT
