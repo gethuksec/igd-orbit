@@ -106,6 +106,7 @@ export class LeaveService {
         quota: t.isPaid ? t.quotaDays : 0,
         used,
         remaining: t.isPaid ? t.quotaDays - used : 0,
+        minTenureMonths: t.minTenureMonths ?? null,
       };
     });
 
@@ -171,6 +172,18 @@ export class LeaveService {
 
     // Resolve leave type against leave_types master (IGDERP-261)
     const leaveType = await this.resolveLeaveType(dto.leave_type);
+
+    // Minimum working time (masa kerja minimum, e.g. cuti tahunan after 12 months)
+    if (leaveType.minTenureMonths !== null && leaveType.minTenureMonths !== undefined && employee.hireDate) {
+      const monthsWorked =
+        (startDate.getFullYear() - employee.hireDate.getFullYear()) * 12 +
+        (startDate.getMonth() - employee.hireDate.getMonth());
+      if (monthsWorked < leaveType.minTenureMonths) {
+        throw new BadRequestException(
+          `Leave type '${leaveType.name}' requires at least ${leaveType.minTenureMonths} months of employment`,
+        );
+      }
+    }
 
     // Advance-notice rule: standard 3 days, unless the master allows
     // same-day filing (maxApplyDelayDays = 0, e.g. SAKIT max pengajuan hari H)

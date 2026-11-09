@@ -128,7 +128,11 @@ export default function LeaveDetail() {
     }
   };
 
-  const getLeaveTypeLabel = (type: string) => {
+  const getLeaveTypeLabel = (req: any) => {
+    if (req?.leaveType && typeof req.leaveType === 'object' && req.leaveType.name) {
+      return req.leaveType.name;
+    }
+    const type = typeof req === 'string' ? req : req?.leaveType;
     switch (type) {
       case 'annual':
         return 'Cuti Tahunan';
@@ -192,7 +196,7 @@ export default function LeaveDetail() {
           <div className="space-y-3">
             <div>
               <p className="text-sm text-gray-600">Tipe Cuti</p>
-              <p className="text-base font-semibold text-gray-900">{getLeaveTypeLabel(leaveRequest.leaveType)}</p>
+              <p className="text-base font-semibold text-gray-900">{getLeaveTypeLabel(leaveRequest)}</p>
             </div>
             <div>
               <p className="text-sm text-gray-600">Periode</p>

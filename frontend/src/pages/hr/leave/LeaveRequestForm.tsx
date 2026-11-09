@@ -1,17 +1,24 @@
 import { useState } from 'react';
 import { BreadcrumbHeader } from '@/components/shared';
 import { useNavigate, Link } from 'react-router-dom';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Save } from 'lucide-react';
 import { hrService } from '@/services/hr.service';
+import { leaveTypesService, type LeaveType } from '@/services/leave-types.service';
 import { toast } from 'sonner';
 
 export default function LeaveRequestForm() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+  const { data: leaveTypesData } = useQuery({
+    queryKey: ['leave-types-active'],
+    queryFn: () => leaveTypesService.getAll({ limit: 50, status: 'active' }),
+  });
+  const leaveTypes: LeaveType[] = leaveTypesData?.data || [];
+
   const [formData, setFormData] = useState({
-    leave_type: 'annual' as 'annual' | 'sick' | 'emergency' | 'unpaid',
+    leave_type: '',
     start_date: '',
     end_date: '',
     reason: '',
@@ -44,6 +51,9 @@ export default function LeaveRequestForm() {
 
     // Validation
     const newErrors: Record<string, string> = {};
+    if (!formData.leave_type) {
+      newErrors.leave_type = 'Tipe cuti wajib dipilih';
+    }
     if (!formData.start_date) {
       newErrors.start_date = 'Tanggal mulai wajib diisi';
     }
@@ -79,13 +89,16 @@ export default function LeaveRequestForm() {
           </label>
           <select
             value={formData.leave_type}
-            onChange={(e) => setFormData({ ...formData, leave_type: e.target.value as any })}
+            onChange={(e) => setFormData({ ...formData, leave_type: e.target.value })}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
           >
-            <option value="annual">Cuti Tahunan</option>
-            <option value="sick">Sakit</option>
-            <option value="emergency">Darurat</option>
-            <option value="unpaid">Tanpa Gaji</option>
+            <option value="">Pilih tipe cuti...</option>
+            {leaveTypes.map((t) => (
+              <option key={t.id} value={t.code}>
+                {t.name}
+                {t.isPaid && t.quotaDays ? ` (${t.quotaDays} hari/thn)` : t.isPaid ? '' : ' (tanpa gaji)'}
+              </option>
+            ))}
           </select>
           {errors.leave_type && <p className="mt-1 text-sm text-red-600">{errors.leave_type}</p>}
         </div>

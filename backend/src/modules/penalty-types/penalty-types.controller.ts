@@ -27,7 +27,7 @@ export class PenaltyTypesController {
 
   @Get()
   @UseGuards(RolesGuard)
-  @Roles('SUPERADMIN', 'OWNER', 'CFO', 'CHR', 'HS', 'SPV')
+  @Roles('SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS')
   async findAll(@Query() query: ListPenaltyTypesDto) {
     try {
       return await this.svc.findAll(query);
@@ -39,14 +39,14 @@ export class PenaltyTypesController {
 
   @Get(':id')
   @UseGuards(RolesGuard)
-  @Roles('SUPERADMIN', 'OWNER', 'CFO', 'CHR', 'HS', 'SPV')
+  @Roles('SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS')
   async findById(@Param('id') id: string) {
     return this.svc.findById(id);
   }
 
   @Post()
   @UseGuards(RolesGuard)
-  @Roles('SUPERADMIN', 'OWNER', 'CFO', 'CHR')
+  @Roles('SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS')
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() dto: CreatePenaltyTypeDto) {
     return this.svc.create(dto);
@@ -54,14 +54,14 @@ export class PenaltyTypesController {
 
   @Put(':id')
   @UseGuards(RolesGuard)
-  @Roles('SUPERADMIN', 'OWNER', 'CFO', 'CHR')
+  @Roles('SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS')
   async update(@Param('id') id: string, @Body() dto: UpdatePenaltyTypeDto) {
     return this.svc.update(id, dto);
   }
 
   @Delete(':id')
   @UseGuards(RolesGuard)
-  @Roles('SUPERADMIN', 'OWNER', 'CFO', 'CHR')
+  @Roles('SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS')
   @HttpCode(HttpStatus.NO_CONTENT)
   async delete(@Param('id') id: string) {
     await this.svc.delete(id);

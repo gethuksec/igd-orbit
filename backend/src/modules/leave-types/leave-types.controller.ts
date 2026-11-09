@@ -27,7 +27,7 @@ export class LeaveTypesController {
 
   @Get()
   @UseGuards(RolesGuard)
-  @Roles('SUPERADMIN', 'OWNER', 'CFO', 'CHR', 'HS', 'SPV')
+  @Roles('SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS')
   async findAll(@Query() query: ListLeaveTypesDto) {
     try {
       return await this.svc.findAll(query);
@@ -39,14 +39,14 @@ export class LeaveTypesController {
 
   @Get(':id')
   @UseGuards(RolesGuard)
-  @Roles('SUPERADMIN', 'OWNER', 'CFO', 'CHR', 'HS', 'SPV')
+  @Roles('SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS')
   async findById(@Param('id') id: string) {
     return this.svc.findById(id);
   }
 
   @Post()
   @UseGuards(RolesGuard)
-  @Roles('SUPERADMIN', 'OWNER', 'CFO', 'CHR')
+  @Roles('SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS')
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() dto: CreateLeaveTypeDto) {
     return this.svc.create(dto);
@@ -54,14 +54,14 @@ export class LeaveTypesController {
 
   @Put(':id')
   @UseGuards(RolesGuard)
-  @Roles('SUPERADMIN', 'OWNER', 'CFO', 'CHR')
+  @Roles('SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS')
   async update(@Param('id') id: string, @Body() dto: UpdateLeaveTypeDto) {
     return this.svc.update(id, dto);
   }
 
   @Delete(':id')
   @UseGuards(RolesGuard)
-  @Roles('SUPERADMIN', 'OWNER', 'CFO', 'CHR')
+  @Roles('SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS')
   @HttpCode(HttpStatus.NO_CONTENT)
   async delete(@Param('id') id: string) {
     await this.svc.delete(id);

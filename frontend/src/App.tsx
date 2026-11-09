@@ -95,6 +95,9 @@ import PaymentTermDetail from './pages/payment-terms/PaymentTermDetail';
 import CustomerTypeList from './pages/customer-types/CustomerTypeList';
 import CustomerTypeForm from './pages/customer-types/CustomerTypeForm';
 import CustomerTypeDetail from './pages/customer-types/CustomerTypeDetail';
+// Master Data - Staff (HR masters, IGDERP-261)
+import LeaveTypeList from './pages/master-data/staff/LeaveTypeList';
+import PenaltyTypeList from './pages/master-data/staff/PenaltyTypeList';
 // Master Data - Service Types
 import CustomerTierList from "./pages/master-data/customer-tiers/CustomerTierList";
 import ServiceTypeList from './pages/service-types/ServiceTypeList';
@@ -530,6 +533,10 @@ function App() {
             <Route path="/customer-types/new" element={<ProtectedRoute><DashboardLayout><CustomerTypeForm /></DashboardLayout></ProtectedRoute>} />
             <Route path="/customer-types/:id" element={<ProtectedRoute><DashboardLayout><CustomerTypeDetail /></DashboardLayout></ProtectedRoute>} />
             <Route path="/customer-types/:id/edit" element={<ProtectedRoute><DashboardLayout><CustomerTypeForm /></DashboardLayout></ProtectedRoute>} />
+
+            {/* Master Data - Staff (HR masters, IGDERP-261) */}
+            <Route path="/master-data/staff/cuti" element={<ProtectedRoute><DashboardLayout><LeaveTypeList /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/master-data/staff/denda" element={<ProtectedRoute><DashboardLayout><PenaltyTypeList /></DashboardLayout></ProtectedRoute>} />
 
             {/* Master Data - Payment Terms */}
             <Route path="/payment-terms" element={<ProtectedRoute><DashboardLayout><PaymentTermList /></DashboardLayout></ProtectedRoute>} />

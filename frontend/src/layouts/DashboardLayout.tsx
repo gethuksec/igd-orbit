@@ -42,6 +42,7 @@ import {
   BarChart3,
   Clock,
   CalendarDays,
+  Gavel,
   Banknote,
   Target,
   RotateCcw,
@@ -288,6 +289,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             { icon: Wrench, label: 'Layanan', path: '/service-types', permission: 'master_data.service_type.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS'] },
             { icon: ClipboardList, label: 'Kelengkapan', path: '/service-checkpoints', permission: 'service.checkpoint.view', roles: ['SUPERADMIN', 'OWNER', 'MGR', 'CS', 'HS', 'SPV'] },
             { icon: Smartphone, label: 'Tipe Perangkat', path: '/device-types', permission: 'service.checkpoint.view', roles: ['SUPERADMIN', 'OWNER', 'MGR', 'CS', 'HS', 'SPV'] },
+          ],
+        },
+        {
+          icon: UserCog,
+          label: 'Staff',
+          children: [
+            { icon: CalendarDays, label: 'Cuti', path: '/master-data/staff/cuti', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
+            { icon: Gavel, label: 'Denda', path: '/master-data/staff/denda', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
           ],
         },
       ],

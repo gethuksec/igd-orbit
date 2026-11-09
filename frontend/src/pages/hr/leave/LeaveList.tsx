@@ -82,7 +82,11 @@ export default function LeaveList() {
     }
   };
 
-  const getLeaveTypeLabel = (type: string) => {
+  const getLeaveTypeLabel = (req: any) => {
+    if (req?.leaveType && typeof req.leaveType === 'object' && req.leaveType.name) {
+      return req.leaveType.name;
+    }
+    const type = typeof req === 'string' ? req : req?.leaveType;
     switch (type) {
       case 'annual':
         return 'Cuti Tahunan';
@@ -270,7 +274,7 @@ export default function LeaveList() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-semibold text-gray-900">{getLeaveTypeLabel(request.leaveType)}</div>
+                        <div className="text-sm font-semibold text-gray-900">{getLeaveTypeLabel(request)}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-semibold text-gray-900">

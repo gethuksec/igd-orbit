@@ -2000,6 +2000,7 @@ model LeaveType {
   quotaDays           Int       @default(12) @map("quota_days") // yearly quota
   maxApplyDelayDays   Int?      @map("max_apply_delay_days") // e.g. sick = 0 (max pengajuan hari H)
   maxRequestsPerMonth Int?      @map("max_requests_per_month") // e.g. sick = 1 (sebulan 1x, ada setting)
+  minTenureMonths     Int?      @map("min_tenure_months") // masa kerja minimum (bulan) agar boleh pakai tipe cuti ini
   requiresAttachment  Boolean   @default(false) @map("requires_attachment")
   isActive            Boolean   @default(true) @map("is_active")
   createdAt           DateTime  @default(now()) @map("created_at")

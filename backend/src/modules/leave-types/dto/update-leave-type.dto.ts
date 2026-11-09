@@ -8,6 +8,7 @@ export class UpdateLeaveTypeDto {
   @IsInt() @Min(0) @IsOptional() quotaDays?: number;
   @IsInt() @Min(0) @IsOptional() maxApplyDelayDays?: number;
   @IsInt() @Min(1) @IsOptional() maxRequestsPerMonth?: number;
+  @IsInt() @Min(0) @IsOptional() minTenureMonths?: number;
   @IsBoolean() @IsOptional() requiresAttachment?: boolean;
   @IsOptional() isActive?: boolean;
 }

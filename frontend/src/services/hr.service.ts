@@ -68,7 +68,8 @@ export interface Attendance {
 export interface LeaveRequest {
   id: string;
   employeeId: string;
-  leaveType: 'annual' | 'sick' | 'emergency' | 'unpaid';
+  leaveType: string;
+  leaveTypeId?: string;
   startDate: string;
   endDate: string;
   totalDays: number;
@@ -269,7 +270,7 @@ export const hrService = {
    * Request leave
    */
   async requestLeave(data: {
-    leave_type: 'annual' | 'sick' | 'emergency' | 'unpaid';
+    leave_type: string;
     start_date: string;
     end_date: string;
     reason: string;

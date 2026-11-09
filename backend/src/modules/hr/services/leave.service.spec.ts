@@ -133,6 +133,37 @@ describe('LeaveService master-driven rules (IGDERP-261)', () => {
     expect(res.leaveTypeId).toBe('lt-unpaid');
   });
 
+  it('blocks leave when tenure below minimum (masa kerja minimum)', async () => {
+    prisma.leaveType.findFirst.mockResolvedValueOnce({
+      id: 'lt-x', code: 'CUTI-KHUSUS', name: 'Cuti Khusus', isPaid: true, quotaDays: 5,
+      maxApplyDelayDays: null, maxRequestsPerMonth: null, minTenureMonths: 6,
+      requiresAttachment: false, isActive: true,
+    });
+    prisma.employee.findUnique.mockResolvedValueOnce({ id: 'emp-1', userId: 'u-1', hireDate: new Date() });
+    await expect(
+      service.requestLeave(
+        { leave_type: 'CUTI-KHUSUS', start_date: futureDate(10), end_date: futureDate(10), reason: 'x' } as any,
+        'u-1',
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('allows leave when tenure meets minimum', async () => {
+    prisma.leaveType.findFirst.mockResolvedValueOnce({
+      id: 'lt-x', code: 'CUTI-KHUSUS', name: 'Cuti Khusus', isPaid: true, quotaDays: 5,
+      maxApplyDelayDays: null, maxRequestsPerMonth: null, minTenureMonths: 6,
+      requiresAttachment: false, isActive: true,
+    });
+    const hired = new Date();
+    hired.setFullYear(hired.getFullYear() - 2);
+    prisma.employee.findUnique.mockResolvedValueOnce({ id: 'emp-1', userId: 'u-1', hireDate: hired });
+    const res: any = await service.requestLeave(
+      { leave_type: 'CUTI-KHUSUS', start_date: futureDate(10), end_date: futureDate(10), reason: 'x' } as any,
+      'u-1',
+    );
+    expect(res.leaveTypeId).toBe('lt-x');
+  });
+
   it('balance reads quotas from masters, not hardcoded constants', async () => {
     prisma.leaveRequest.findMany.mockResolvedValue([
       { leaveTypeId: 'lt-cuti', totalDays: 2, leaveType: { code: 'CUTI-TAHUNAN' } },

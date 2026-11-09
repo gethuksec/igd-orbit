@@ -131,6 +131,7 @@ export class LeaveTypesService {
         quotaDays: dto.quotaDays,
         maxApplyDelayDays: dto.maxApplyDelayDays,
         maxRequestsPerMonth: dto.maxRequestsPerMonth,
+        minTenureMonths: dto.minTenureMonths,
         requiresAttachment: dto.requiresAttachment,
         isActive: true,
       },
@@ -187,6 +188,9 @@ export class LeaveTypesService {
     }
     if ((dto as any).maxRequestsPerMonth !== undefined) {
       updateData.maxRequestsPerMonth = (dto as any).maxRequestsPerMonth;
+    }
+    if ((dto as any).minTenureMonths !== undefined) {
+      updateData.minTenureMonths = (dto as any).minTenureMonths;
     }
     if ((dto as any).requiresAttachment !== undefined) {
       updateData.requiresAttachment = (dto as any).requiresAttachment;
