@@ -55,7 +55,6 @@ import StockOpnameList from './pages/inventory/StockOpnameList';
 import StockOpnameDetail from './pages/inventory/StockOpnameDetail';
 import OpnameResultDoc from './pages/inventory/OpnameResultDoc';
 import StockOpnameCount from './pages/inventory/StockOpnameCount';
-import StockOpnameForm from './pages/inventory/StockOpnameForm';
 import StockAdjustment from './pages/inventory/StockAdjustment';
 import StockIn from './pages/inventory/StockIn';
 import StockOut from './pages/inventory/StockOut';
@@ -941,16 +940,6 @@ function App() {
                 <ProtectedRoute>
                   <DashboardLayout>
                     <StockOpnameList />
-                  </DashboardLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/inventory/opname/new"
-              element={
-                <ProtectedRoute>
-                  <DashboardLayout>
-                    <StockOpnameForm />
                   </DashboardLayout>
                 </ProtectedRoute>
               }

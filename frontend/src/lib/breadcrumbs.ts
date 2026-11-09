@@ -97,7 +97,6 @@ const TRAILS: Record<string, Crumb[]> = {
   '/inventory/transfer/new': [{ label: 'Gudang' }, { label: 'Transfer Stok', href: '/inventory/transfer' }],
   '/inventory/transfer/:id': [{ label: 'Gudang' }, { label: 'Transfer Stok', href: '/inventory/transfer' }],
   '/inventory/opname': [{ label: 'Gudang' }, { label: 'Stock Opname' }],
-  '/inventory/opname/new': [{ label: 'Gudang' }, { label: 'Stock Opname', href: '/inventory/opname' }],
   '/inventory/opname/:id': [{ label: 'Gudang' }, { label: 'Stock Opname', href: '/inventory/opname' }],
   '/inventory/opname/:id/count': [{ label: 'Gudang' }, { label: 'Stock Opname', href: '/inventory/opname' }],
   '/inventory/adjustment': [{ label: 'Gudang' }, { label: 'Stock Adjustment' }],
