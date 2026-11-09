@@ -5,6 +5,7 @@ import { WarehousesService } from './warehouses.service';
 
 type CountModel = {
   count: jest.Mock;
+  findMany?: jest.Mock;
 };
 
 const warehouseRow = (overrides: any = {}) => ({
@@ -54,7 +55,7 @@ describe('WarehousesService warehouse identity invariants', () => {
       productStock: { count: jest.fn().mockResolvedValue(0) },
       stockMovement: { count: jest.fn().mockResolvedValue(0) },
       stockTransfer: { count: jest.fn().mockResolvedValue(0) },
-      stockOpname: { count: jest.fn().mockResolvedValue(0) },
+      stockOpname: { count: jest.fn().mockResolvedValue(0), findMany: jest.fn().mockResolvedValue([]) },
       stockIn: { count: jest.fn().mockResolvedValue(0) },
       stockOut: { count: jest.fn().mockResolvedValue(0) },
       salesTransaction: { count: jest.fn().mockResolvedValue(0) },
@@ -192,6 +193,26 @@ describe('WarehousesService warehouse identity invariants', () => {
         where: { isActive: true, scope: 'OUTLET' },
       }),
     );
+  });
+
+  it('flags warehouses locked by an unresolved FREEZE session', async () => {
+    prisma.warehouse.findMany.mockResolvedValue([warehouseRow({ id: 'wh-1' }), warehouseRow({ id: 'wh-2' })]);
+    prisma.stockOpname.findMany.mockResolvedValue([
+      { warehouseId: 'wh-1', opnameNumber: 'OP-1', code: null },
+    ]);
+
+    const rows = await service.findActive(undefined, true);
+
+    expect(prisma.stockOpname.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ opnameType: 'FREEZE' }),
+      }),
+    );
+    expect(rows.find((r: any) => r.id === 'wh-1')).toMatchObject({
+      hasActiveOpname: true,
+      activeOpnameNumber: 'OP-1',
+    });
+    expect(rows.find((r: any) => r.id === 'wh-2')).toMatchObject({ hasActiveOpname: false });
   });
 });
 

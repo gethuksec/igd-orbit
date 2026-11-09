@@ -1666,6 +1666,8 @@ export class ServiceOrdersService {
     return await this.prisma.$transaction(async (tx) => {
       // IGDERP-136 round 2: restore to the part's source gudang (fallback = order warehouse)
       const restoreWarehouseId = (part as any).warehouseId || warehouse.id;
+      // IGDERP-259: freeze — active SO warehouse cannot transact (incl part removal restore)
+      await assertNoFreezeOpname(tx, restoreWarehouseId, 'restore service parts');
       // Get current stock
       const stock = await tx.productStock.findUnique({
         where: {

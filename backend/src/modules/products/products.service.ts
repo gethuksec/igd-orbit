@@ -9,6 +9,7 @@ import { buildPerWordSearch } from '../../shared/services/search.utils';
 import { CreateProductDto, UpdateProductDto, ListProductsDto } from './dto';
 import { ProductTransformer, TransformedProduct } from './transformers/product.transformer';
 import { Prisma } from '@prisma/client';
+import { assertNoFreezeOpname } from '../inventory/opname-freeze.guard';
 import { randomBytes } from 'crypto';
 
 type CompareOp = 'gt' | 'lt' | 'eq';
@@ -2294,6 +2295,8 @@ export class ProductsService {
         // Opening stocks — upsert quantityAvailable, never touch reserved
         for (const s of row.stocks || []) {
           if (!s.warehouseId || !(s.quantity > 0)) continue;
+          // IGDERP-259: freeze — active SO warehouse cannot transact (product import)
+          await assertNoFreezeOpname(this.prisma, s.warehouseId, 'import opening stock');
           await this.prisma.productStock.upsert({
             where: { productId_warehouseId: { productId, warehouseId: s.warehouseId } },
             create: { productId, warehouseId: s.warehouseId, quantityAvailable: s.quantity },

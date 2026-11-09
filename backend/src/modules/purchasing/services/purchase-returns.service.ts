@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../../../shared/services/prisma.service';
 import { CreatePurchaseReturnDto } from '../dto/create-purchase-return.dto';
 import { Decimal } from '@prisma/client/runtime/library';
+import { assertNoFreezeOpname } from '../../inventory/opname-freeze.guard';
 
 /**
  * IGDERP-84 (S4): Retur Pembelian — purchase returns per supplier invoice.
@@ -202,6 +203,9 @@ export class PurchaseReturnsService {
     }
 
     const { goodWarehouse, badWarehouse } = await this.getCentralWarehouses();
+    // IGDERP-259: freeze — active SO warehouse cannot transact (purchase return)
+    await assertNoFreezeOpname(this.prisma, goodWarehouse.id, 'return stock to supplier');
+    await assertNoFreezeOpname(this.prisma, badWarehouse.id, 'return stock to supplier');
     const returnNumber = this.generateReturnNumber();
 
     return await this.prisma.$transaction(async (tx) => {
@@ -431,6 +435,8 @@ export class PurchaseReturnsService {
         'Central Bad Stock warehouse not found — apply prisma/inventory-warehouse-stock.sql',
       );
     }
+    // IGDERP-259: freeze — active SO warehouse cannot transact (complete purchase return)
+    await assertNoFreezeOpname(this.prisma, badWarehouse.id, 'complete a purchase return');
 
     return await this.prisma.$transaction(async (tx) => {
       for (const item of ret.items) {

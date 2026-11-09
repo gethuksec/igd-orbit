@@ -11,6 +11,7 @@ import { CreateGoodsReceiptDto } from '../dto/create-goods-receipt.dto';
 import { ApproveGoodsReceiptDto } from '../dto/approve-goods-receipt.dto';
 import { RevisitGoodsReceiptDto, UpdateReceivingDto } from '../dto/receiving.dto';
 import { Decimal } from '@prisma/client/runtime/library';
+import { assertNoFreezeOpname } from '../../inventory/opname-freeze.guard';
 
 @Injectable()
 export class GoodsReceiptsService {
@@ -458,6 +459,11 @@ export class GoodsReceiptsService {
     });
 
     // Update stock and create movements
+    // IGDERP-259: freeze — active SO warehouse cannot transact (PO receiving)
+    await assertNoFreezeOpname(this.prisma, warehouse.id, 'receive stock');
+    if (badWarehouse) {
+      await assertNoFreezeOpname(this.prisma, badWarehouse.id, 'receive stock');
+    }
     return await this.prisma.$transaction(async (tx) => {
       // Update stock for each item
       for (const item of gr.items) {

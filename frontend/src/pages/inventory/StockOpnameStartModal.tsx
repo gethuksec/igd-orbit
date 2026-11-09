@@ -5,7 +5,6 @@ import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '@/services/api';
 import { inventoryService } from '../../services/inventory.service';
-import { useBranchFilter } from '@/components/branch/BranchFilter';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -32,38 +31,59 @@ export default function StockOpnameStartModal({
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { branchId: filterBranchId } = useBranchFilter();
 
-  const [outletId, setOutletId] = useState('');
+  const [warehouseId, setWarehouseId] = useState('');
   const [opnameType, setOpnameType] = useState<OpnameType>('FREEZE');
   const [opnameDate, setOpnameDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [approverId, setApproverId] = useState('');
   const [catOpen, setCatOpen] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [catInit, setCatInit] = useState(false);
+  const [memberOpen, setMemberOpen] = useState(false);
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
 
-  // Default outlet = current branch filter (reset each time the modal opens)
+  // Reset each time the modal opens
   useEffect(() => {
     if (open) {
-      setOutletId(filterBranchId || '');
+      setWarehouseId('');
       setOpnameType('FREEZE');
       setOpnameDate(new Date().toISOString().slice(0, 10));
       setApproverId('');
       setCatOpen(false);
       setSelectedCategories([]);
       setCatInit(false);
+      setMemberOpen(false);
+      setSelectedMembers([]);
     }
-  }, [open, filterBranchId]);
+  }, [open]);
 
-  const { data: branchesData } = useQuery({
-    queryKey: ['branches'],
+  // IGDERP-259: gudang dropdown — outlet GOOD + central GOOD/BAD
+  const { data: warehousesData } = useQuery({
+    queryKey: ['warehouses-active-all'],
     queryFn: async () => {
-      const res = await api.get('/branches');
-      return res.data.data || res.data;
+      const res = await api.get('/warehouses/active', { params: { includeSystem: true } });
+      return res.data.data || res.data || [];
     },
     enabled: open,
   });
-  const branches: any[] = Array.isArray(branchesData) ? branchesData : [];
+  const warehouses: any[] = Array.isArray(warehousesData) ? warehousesData : [];
+  const outletWarehouses = warehouses.filter((w: any) => w.scope !== 'SYSTEM');
+  const centralWarehouses = warehouses.filter((w: any) => w.scope === 'SYSTEM');
+  const selectedWarehouse = warehouses.find((w: any) => w.id === warehouseId);
+  const outletId = selectedWarehouse?.outletId || '';
+
+  const { data: usersData } = useQuery({
+    queryKey: ['users-all'],
+    queryFn: async () => {
+      const res = await api.get('/users', { params: { page: 1, limit: 100 } });
+      return res.data.data || res.data || [];
+    },
+    enabled: open,
+  });
+  const allUsers: any[] = Array.isArray(usersData) ? usersData : [];
+  const toggleMember = (id: string) => {
+    setSelectedMembers((prev) => (prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]));
+  };
 
   const { data: categoriesData } = useQuery({
     queryKey: ['categories-all'],
@@ -117,7 +137,7 @@ export default function StockOpnameStartModal({
   const effectiveCategoryIds = selectedCategories;
   const allSelected = categories.length > 0 && selectedCategories.length === categories.length;
   const startBlocked =
-    !outletId || effectiveCategoryIds.length === 0 || approverMissing;
+    !warehouseId || effectiveCategoryIds.length === 0 || selectedMembers.length === 0 || approverMissing;
 
   const startMutation = useMutation({
     mutationFn: (data: any) => inventoryService.startOpname(data),
@@ -134,12 +154,16 @@ export default function StockOpnameStartModal({
   });
 
   const handleStart = () => {
-    if (!outletId) {
-      toast.error('Pilih outlet');
+    if (!warehouseId) {
+      toast.error('Pilih gudang');
       return;
     }
     if (effectiveCategoryIds.length === 0) {
       toast.error('Pilih minimal satu kategori');
+      return;
+    }
+    if (selectedMembers.length === 0) {
+      toast.error('Pilih minimal satu anggota');
       return;
     }
     if (approverMissing) {
@@ -147,11 +171,12 @@ export default function StockOpnameStartModal({
       return;
     }
     startMutation.mutate({
-      branchId: outletId,
+      warehouseId,
       opnameDate,
       opnameType,
       approverId: approverId || undefined,
       categoryIds: effectiveCategoryIds.length > 0 ? effectiveCategoryIds : undefined,
+      assignments: selectedMembers.length > 0 ? selectedMembers.map((userId) => ({ userId })) : undefined,
     });
   };
 
@@ -164,18 +189,31 @@ export default function StockOpnameStartModal({
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Outlet <span className="text-red-500">*</span></label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Gudang <span className="text-red-500">*</span></label>
             <select
-              value={outletId}
-              onChange={(e) => setOutletId(e.target.value)}
+              value={warehouseId}
+              onChange={(e) => setWarehouseId(e.target.value)}
               className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-primary-500"
             >
-              <option value="">Pilih outlet</option>
-              {branches.map((b: any) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
+              <option value="">Pilih gudang</option>
+              {outletWarehouses.length > 0 && (
+                <optgroup label="Gudang Outlet">
+                  {outletWarehouses.map((w: any) => (
+                    <option key={w.id} value={w.id} disabled={!!w.hasActiveOpname}>
+                      {w.name} ({w.code}){w.hasActiveOpname ? ` · opname ${w.activeOpnameNumber || 'berjalan'}` : ''}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              {centralWarehouses.length > 0 && (
+                <optgroup label="Gudang Central">
+                  {centralWarehouses.map((w: any) => (
+                    <option key={w.id} value={w.id} disabled={!!w.hasActiveOpname}>
+                      {w.name} ({w.code}) · {w.type}{w.hasActiveOpname ? ` · opname ${w.activeOpnameNumber || 'berjalan'}` : ''}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </select>
           </div>
 
@@ -303,6 +341,63 @@ export default function StockOpnameStartModal({
                       <span>{c.name}</span>
                     </label>
                   ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Anggota <span className="text-red-500">*</span></label>
+            <button
+              type="button"
+              onClick={() => setMemberOpen((v) => !v)}
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm flex items-center justify-between"
+            >
+              <span>
+                {selectedMembers.length === 0
+                  ? 'Pilih anggota'
+                  : selectedMembers.length === allUsers.length && allUsers.length > 0
+                    ? 'Semua anggota'
+                    : `${selectedMembers.length} dari ${allUsers.length} anggota`}
+              </span>
+              <span>{memberOpen ? '▴' : '▾'}</span>
+            </button>
+            {memberOpen && (
+              <div className="mt-1 rounded-lg border border-gray-300 p-1.5">
+                <div className="flex items-center justify-between px-2 py-1 text-xs">
+                  <button
+                    type="button"
+                    className="text-primary-600 font-semibold hover:underline"
+                    onClick={() => setSelectedMembers(allUsers.map((u: any) => u.id))}
+                  >
+                    Pilih semua
+                  </button>
+                  <button
+                    type="button"
+                    className="text-gray-500 font-semibold hover:underline"
+                    onClick={() => setSelectedMembers([])}
+                  >
+                    Hapus
+                  </button>
+                </div>
+                <div className="max-h-40 overflow-y-auto">
+                  {allUsers.map((u: any) => (
+                    <label
+                      key={u.id}
+                      className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-gray-50 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedMembers.includes(u.id)}
+                        onChange={() => toggleMember(u.id)}
+                        className="w-4 h-4 accent-red-600"
+                      />
+                      <span>{u.fullName || u.username}</span>
+                    </label>
+                  ))}
+                  {allUsers.length === 0 && (
+                    <span className="block px-2 py-1.5 text-sm text-gray-400">Memuat…</span>
+                  )}
                 </div>
               </div>
             )}
