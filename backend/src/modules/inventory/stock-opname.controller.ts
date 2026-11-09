@@ -21,6 +21,7 @@ import { StartOpnameDto } from './dto/start-opname.dto';
 import { RecordCountDto } from './dto/record-count.dto';
 import { AddOpnameItemDto } from './dto/add-opname-item.dto';
 import { AddAssignmentDto } from './dto/add-assignment.dto';
+import { RemoveAssignmentDto } from './dto/remove-assignment.dto';
 import { LogExceptionDto } from './dto/log-exception.dto';
 import { UpsertApproverSettingDto } from './dto/upsert-approver-setting.dto';
 
@@ -130,6 +131,14 @@ export class StockOpnameController {
   @Roles('HS', 'SPV', 'CSO')
   async addAssignments(@Param('id') id: string, @Body() dto: AddAssignmentDto) {
     return this.opnameService.addAssignments(id, dto);
+  }
+
+  /** IGDERP-260: remove a member row (counts/scans stay). */
+  @Delete(':id/assignments')
+  @UseGuards(RolesGuard)
+  @Roles('HS', 'SPV', 'CSO')
+  async removeAssignment(@Param('id') id: string, @Body() dto: RemoveAssignmentDto) {
+    return this.opnameService.removeAssignment(id, dto.userId, dto.categoryId);
   }
 
   /** IGDERP-234 (OP2): unknown-barcode exception log. */

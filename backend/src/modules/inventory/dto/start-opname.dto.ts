@@ -1,4 +1,6 @@
-import { IsUUID, IsDateString, IsOptional, IsIn, IsArray, ArrayUnique } from 'class-validator';
+import { IsUUID, IsDateString, IsOptional, IsIn, IsArray, ArrayUnique, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+import { StartAssignmentDto } from './start-assignment.dto';
 
 export class StartOpnameDto {
   @IsUUID()
@@ -31,4 +33,11 @@ export class StartOpnameDto {
   @IsUUID('4', { each: true })
   @IsOptional()
   categoryIds?: string[];
+
+  // IGDERP-260: members on creation — created with the session, removable later
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => StartAssignmentDto)
+  @IsOptional()
+  assignments?: StartAssignmentDto[];
 }

@@ -5,24 +5,18 @@ import {
 } from './opname-freeze.guard';
 
 function guardPrisma(opts: {
-  outletId?: string | null;
+  warehouseId?: string;
   session?: any;
 }) {
   return {
     warehouse: {
-      findUnique: jest.fn().mockResolvedValue(
-        opts.outletId === undefined
-          ? null
-          : opts.outletId === null
-            ? { id: 'wh-x', outletId: null }
-            : { id: 'wh-x', outletId: opts.outletId },
-      ),
+      findUnique: jest.fn(),
     },
     stockOpname: {
       findFirst: jest.fn().mockImplementation(async ({ where }: any) => {
         if (
           opts.session &&
-          where.branchId === opts.session.branchId &&
+          where.warehouseId === opts.session.warehouseId &&
           (!where.opnameType || where.opnameType === opts.session.opnameType) &&
           (!where.status?.in || where.status.in.includes(opts.session.status))
         ) {
@@ -37,41 +31,42 @@ function guardPrisma(opts: {
 const freezeSession = (over: any = {}) => ({
   opnameNumber: 'OP-1',
   code: 'CODE1',
-  branchId: 'outlet-A',
+  warehouseId: 'wh-x',
   opnameType: 'FREEZE',
   status: 'counting',
   ...over,
 });
 
-describe('assertNoFreezeOpname (outlet-wide)', () => {
+describe('assertNoFreezeOpname (per-warehouse, IGDERP-259)', () => {
   it('no-ops when no warehouse is given', async () => {
-    const prisma = guardPrisma({ outletId: 'outlet-A', session: freezeSession() });
+    const prisma = guardPrisma({ session: freezeSession() });
     await expect(assertNoFreezeOpname(prisma as any, null)).resolves.toBeUndefined();
-    expect(prisma.warehouse.findUnique).not.toHaveBeenCalled();
-  });
-
-  it('no-ops for system warehouses with no outlet (e.g. Central BAD)', async () => {
-    const prisma = guardPrisma({ outletId: null, session: freezeSession() });
-    await expect(assertNoFreezeOpname(prisma as any, 'wh-bad')).resolves.toBeUndefined();
     expect(prisma.stockOpname.findFirst).not.toHaveBeenCalled();
   });
 
-  it('blocks a sale from the SAME warehouse as the session', async () => {
-    const prisma = guardPrisma({ outletId: 'outlet-A', session: freezeSession() });
+  it('freezes the central SYSTEM warehouse too (IGDERP-259)', async () => {
+    const prisma = guardPrisma({ warehouseId: 'wh-central', session: freezeSession({ warehouseId: 'wh-central' }) });
     await expect(
-      assertNoFreezeOpname(prisma as any, 'wh-session', 'complete a sale'),
-    ).rejects.toThrow(BadRequestException);
-  });
-
-  it('blocks a sale from a SIBLING warehouse of the same outlet', async () => {
-    const prisma = guardPrisma({ outletId: 'outlet-A', session: freezeSession() });
-    await expect(
-      assertNoFreezeOpname(prisma as any, 'wh-sibling', 'complete a sale'),
+      assertNoFreezeOpname(prisma as any, 'wh-central', 'receive stock'),
     ).rejects.toThrow(/frozen for opname OP-1/);
   });
 
-  it('allows sales at a DIFFERENT outlet', async () => {
-    const prisma = guardPrisma({ outletId: 'outlet-B', session: freezeSession() });
+  it('blocks a move on the SAME warehouse as the session', async () => {
+    const prisma = guardPrisma({ session: freezeSession() });
+    await expect(
+      assertNoFreezeOpname(prisma as any, 'wh-x', 'complete a sale'),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('allows moves on a SIBLING warehouse of the same outlet (per-gudang)', async () => {
+    const prisma = guardPrisma({ session: freezeSession() });
+    await expect(
+      assertNoFreezeOpname(prisma as any, 'wh-sibling'),
+    ).resolves.toBeUndefined();
+  });
+
+  it('allows moves on a DIFFERENT warehouse', async () => {
+    const prisma = guardPrisma({ warehouseId: 'wh-other', session: freezeSession() });
     await expect(
       assertNoFreezeOpname(prisma as any, 'wh-other'),
     ).resolves.toBeUndefined();
@@ -79,7 +74,6 @@ describe('assertNoFreezeOpname (outlet-wide)', () => {
 
   it('allows sales while the session is OPEN (not FREEZE)', async () => {
     const prisma = guardPrisma({
-      outletId: 'outlet-A',
       session: freezeSession({ opnameType: 'OPEN' }),
     });
     await expect(
@@ -88,7 +82,7 @@ describe('assertNoFreezeOpname (outlet-wide)', () => {
   });
 
   it('allows sales with no active session', async () => {
-    const prisma = guardPrisma({ outletId: 'outlet-A' });
+    const prisma = guardPrisma({});
     await expect(
       assertNoFreezeOpname(prisma as any, 'wh-x'),
     ).resolves.toBeUndefined();
@@ -96,7 +90,6 @@ describe('assertNoFreezeOpname (outlet-wide)', () => {
 
   it('keeps blocking while counted-but-unapproved (completed)', async () => {
     const prisma = guardPrisma({
-      outletId: 'outlet-A',
       session: freezeSession({ status: 'completed' }),
     });
     await expect(

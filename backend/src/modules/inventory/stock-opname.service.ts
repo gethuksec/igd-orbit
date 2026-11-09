@@ -169,7 +169,7 @@ export class StockOpnameService {
   }
 
   async startOpname(dto: StartOpnameDto, userId: string) {
-    const { warehouseId, branchId: legacyBranchId, opnameDate, notes, approverId } = dto;
+    const { warehouseId, branchId: legacyBranchId, opnameDate, notes, approverId, assignments } = dto;
     // IGDERP-233 (OP1): default FREEZE preserves the old implicit-freeze behaviour
     const opnameType = dto.opnameType ?? 'FREEZE';
     const categoryIds = dto.categoryIds?.length ? dto.categoryIds : undefined;
@@ -205,24 +205,44 @@ export class StockOpnameService {
     // Explicit approverId from the start form always wins.
     const resolvedApproverId = approverId ?? (await this.resolveOutletApprover(effectiveBranchId));
 
-    // One active opname (draft/counting/completed) per outlet — outlet-wide,
-    // like the FREEZE guard: a session on a sibling warehouse still counts
-    // the same outlet truth, so a second session must wait for approval/cancel.
+    // IGDERP-259/260 (warehouse PoV): one active opname per warehouse +
+    // category scope. Full-warehouse (no categoryIds) blocks everything on
+    // that gudang; a scoped session only collides with actives whose counted
+    // categories overlap. Scope of an active is read from its items'
+    // product categories (creation filter is baked into the snapshot).
     // 'completed' blocks too: a counted-but-unapproved session must be
     // approved or cancelled first — otherwise two overlapping truths.
-    const activeOpname = await this.prisma.stockOpname.findFirst({
+    const actives: any[] = await this.prisma.stockOpname.findMany({
       where: {
-        branchId: effectiveBranchId,
-        status: {
-          in: ['draft', 'counting', 'completed'],
+        warehouseId: warehouse.id,
+        status: { in: ['draft', 'counting', 'completed'] },
+      },
+      include: {
+        items: {
+          where: { deletedAt: null },
+          include: { product: { select: { categoryId: true } } },
         },
       },
     });
 
-    if (activeOpname) {
-      throw new BadRequestException(
-        `There is an active opname (${activeOpname.opnameNumber}) for this outlet. Please complete or cancel it first.`,
+    const overlaps = (activeScope: Set<string> | null): boolean => {
+      if (!categoryIds) return true; // new full-warehouse collides with anything
+      if (activeScope === null) return true; // active scope unknown/empty → be safe
+      return categoryIds.some((c) => activeScope.has(c));
+    };
+
+    for (const active of actives) {
+      const cats = new Set<string>(
+        (active.items ?? [])
+          .map((i: any) => i.product?.categoryId)
+          .filter((c: any) => !!c),
       );
+      const scope: Set<string> | null = cats.size > 0 ? cats : null;
+      if (overlaps(scope)) {
+        throw new BadRequestException(
+          `There is an active opname (${active.opnameNumber}) for this warehouse. Please complete or cancel it first.`,
+        );
+      }
     }
 
     // Get all products with stock in this warehouse (optionally scoped to categories)
@@ -239,6 +259,32 @@ export class StockOpnameService {
         product: true,
       },
     });
+
+    // Validate initial members (IGDERP-260) before the tx — users +
+    // categories must exist, and member categories must sit inside the
+    // snapshot scope when the session itself is category-scoped.
+    // Members carry no category pick in the UI: omitted categoryIds
+    // resolves to the whole session scope.
+    if (assignments?.length) {
+      const userIds = [...new Set(assignments.map((a) => a.userId))];
+      const users = await this.prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true } });
+      if (users.length !== userIds.length) {
+        throw new BadRequestException('One or more assigned users do not exist');
+      }
+      const memberCats = [...new Set(assignments.flatMap((a) => a.categoryIds ?? []))];
+      if (memberCats.length > 0) {
+        const cats = await this.prisma.category.findMany({ where: { id: { in: memberCats } }, select: { id: true } });
+        if (cats.length !== memberCats.length) {
+          throw new BadRequestException('One or more assigned categories do not exist');
+        }
+        if (categoryIds) {
+          const outside = memberCats.filter((c) => !categoryIds.includes(c));
+          if (outside.length > 0) {
+            throw new BadRequestException('Member categories must be inside the opname category scope');
+          }
+        }
+      }
+    }
 
     // Create opname with items
     const code = await this.generateUniqueOpnameCode(this.prisma);
@@ -278,8 +324,27 @@ export class StockOpnameService {
             },
           },
           branch: true,
+          warehouse: true,
         },
       });
+
+      // IGDERP-260: initial members ride in the same tx (deduped per user×category).
+      // No category pick in the UI → member defaults to the session scope.
+      if (assignments?.length) {
+        const defaultScope =
+          categoryIds ??
+          [...new Set(stocks.map((s: any) => s.product?.categoryId).filter((c: any) => !!c))];
+        const seen = new Set<string>();
+        for (const a of assignments) {
+          const cats = a.categoryIds?.length ? a.categoryIds : defaultScope;
+          for (const categoryId of cats) {
+            const key = `${a.userId}::${categoryId}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            await tx.opnameAssignment.create({ data: { opnameId: opname.id, userId: a.userId, categoryId } });
+          }
+        }
+      }
 
       // Update status to counting
       return tx.stockOpname.update({
@@ -300,6 +365,7 @@ export class StockOpnameService {
             },
           },
           branch: true,
+          warehouse: true,
         },
       });
     });
@@ -340,6 +406,7 @@ export class StockOpnameService {
           },
         },
         branch: true,
+        warehouse: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -366,6 +433,7 @@ export class StockOpnameService {
           },
         },
         branch: true,
+        warehouse: true,
       },
     });
 
@@ -487,11 +555,22 @@ export class StockOpnameService {
     }
     this.assertActive(opname, 'change assignments in');
 
-    const cats = await this.prisma.category.findMany({ where: { id: { in: dto.categoryIds } } });
-    if (cats.length !== dto.categoryIds.length) {
+    // No category pick in the UI (IGDERP-260) → member joins the whole
+    // session scope (the opname's counted categories).
+    let categoryIds = dto.categoryIds;
+    if (!categoryIds?.length) {
+      const items: any[] = await this.prisma.stockOpnameItem.findMany({
+        where: { opnameId, deletedAt: null },
+        include: { product: { select: { categoryId: true } } },
+      });
+      categoryIds = [...new Set(items.map((i) => i.product?.categoryId).filter((c) => !!c))];
+    }
+
+    const cats = await this.prisma.category.findMany({ where: { id: { in: categoryIds } } });
+    if (cats.length !== categoryIds.length) {
       throw new BadRequestException('One or more categories do not exist');
     }
-    for (const categoryId of dto.categoryIds) {
+    for (const categoryId of categoryIds) {
       const existing = await this.prisma.opnameAssignment.findFirst({
         where: { opnameId, userId: dto.userId, categoryId },
       });
@@ -515,6 +594,32 @@ export class StockOpnameService {
       include: { category: true },
       orderBy: { createdAt: 'asc' },
     });
+  }
+
+  /**
+   * IGDERP-260: remove a member mid-session. categoryId omitted = remove
+   * the user entirely. Items they already counted keep countedBy + scans
+   * stay — removal never deletes count history.
+   */
+  async removeAssignment(opnameId: string, userId: string, categoryId?: string) {
+    const opname = await this.prisma.stockOpname.findUnique({ where: { id: opnameId } });
+    if (!opname) {
+      throw new NotFoundException('Opname not found');
+    }
+    this.assertActive(opname, 'change assignments in');
+
+    if (categoryId) {
+      const existing = await this.prisma.opnameAssignment.findFirst({
+        where: { opnameId, userId, categoryId },
+      });
+      if (!existing) {
+        throw new NotFoundException('Assignment not found');
+      }
+      await this.prisma.opnameAssignment.delete({ where: { id: existing.id } });
+    } else {
+      await this.prisma.opnameAssignment.deleteMany({ where: { opnameId, userId } });
+    }
+    return this.listAssignments(opnameId);
   }
 
   /**
@@ -813,6 +918,7 @@ export class StockOpnameService {
         items: { where: { deletedAt: null }, include: { product: { include: { category: true } } } },
         movements: { orderBy: { createdAt: 'asc' } },
         branch: true,
+        warehouse: true,
       },
     });
     if (!opname) {
@@ -1133,6 +1239,7 @@ export class StockOpnameService {
           },
         },
         branch: true,
+        warehouse: true,
       },
     });
   }
@@ -1390,6 +1497,7 @@ export class StockOpnameService {
           },
         },
         branch: true,
+        warehouse: true,
       },
     });
   }
@@ -1421,6 +1529,7 @@ export class StockOpnameService {
           },
         },
         branch: true,
+        warehouse: true,
       },
     });
 
@@ -1551,6 +1660,7 @@ export class StockOpnameService {
             },
           },
           branch: true,
+          warehouse: true,
         },
       });
     });

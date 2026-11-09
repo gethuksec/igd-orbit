@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { inventoryService } from '../../services/inventory.service';
 import { toast } from 'sonner';
+import { api } from '@/services/api';
 
 export default function StockOpnameDetail() {
   const { id } = useParams<{ id: string }>();
@@ -51,6 +52,49 @@ export default function StockOpnameDetail() {
     enabled: !!id,
     retry: false,
   });
+
+  // IGDERP-260: members — add/remove mid-session, counts/scans stay
+  const [memberPick, setMemberPick] = useState('');
+  const { data: assignments } = useQuery({
+    queryKey: ['inventory-opname-assignments', id],
+    queryFn: () => inventoryService.listAssignments(id!),
+    enabled: !!id,
+    retry: false,
+  });
+  const { data: usersData } = useQuery({
+    queryKey: ['users-all'],
+    queryFn: async () => {
+      const res = await api.get('/users', { params: { page: 1, limit: 100 } });
+      return res.data.data || res.data || [];
+    },
+    retry: false,
+  });
+  const memberIds: string[] = [...new Set((assignments || []).map((a: any) => a.userId))];
+  const memberOptions: any[] = (Array.isArray(usersData) ? usersData : []).filter(
+    (u: any) => !memberIds.includes(u.id),
+  );
+  const addMemberMutation = useMutation({
+    mutationFn: (userId: string) => inventoryService.addAssignments(id!, { userId }),
+    onSuccess: () => {
+      toast.success('Anggota ditambahkan');
+      setMemberPick('');
+      queryClient.invalidateQueries({ queryKey: ['inventory-opname-assignments', id] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Gagal menambahkan anggota');
+    },
+  });
+  const removeMemberMutation = useMutation({
+    mutationFn: (userId: string) => inventoryService.removeAssignment(id!, { userId }),
+    onSuccess: () => {
+      toast.success('Anggota dihapus — hasil scan tetap tersimpan');
+      queryClient.invalidateQueries({ queryKey: ['inventory-opname-assignments', id] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Gagal menghapus anggota');
+    },
+  });
+  const isActiveOpname = opname && (opname.status === 'draft' || opname.status === 'counting');
 
   const completeMutation = useMutation({
     mutationFn: () => inventoryService.completeOpname(id!),
@@ -331,6 +375,17 @@ export default function StockOpnameDetail() {
           </h2>
           <div className="space-y-3">
             <div>
+              <p className="text-sm text-gray-600">Gudang</p>
+              <p className="text-base font-semibold text-gray-900">
+                {opname.warehouse ? `${opname.warehouse.name} (${opname.warehouse.code})` : '-'}
+              </p>
+              {opname.warehouse && (
+                <p className="text-xs text-gray-500">
+                  {opname.warehouse.scope === 'SYSTEM' ? 'Central' : 'Outlet'} · {opname.warehouse.type}
+                </p>
+              )}
+            </div>
+            <div>
               <p className="text-sm text-gray-600">Cabang</p>
               <p className="text-base font-semibold text-gray-900">{opname.branch?.name || '-'}</p>
             </div>
@@ -381,6 +436,63 @@ export default function StockOpnameDetail() {
                 </p>
               </div>
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* IGDERP-260: members — add/remove mid-session, history stays */}
+      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-1">Anggota Counting</h2>
+        <p className="text-xs text-gray-500 mb-4">Hasil scan anggota yang dihapus tetap tersimpan.</p>
+        <div className="flex flex-wrap gap-2">
+          {memberIds.length === 0 && (
+            <span className="text-sm text-gray-400">Belum ada anggota tambahan.</span>
+          )}
+          {memberIds.map((uid: string) => {
+            const u = (Array.isArray(usersData) ? usersData : []).find((x: any) => x.id === uid);
+            return (
+              <span
+                key={uid}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium bg-primary-50 text-primary-700 border border-primary-200"
+              >
+                {u ? u.fullName || u.username : uid.slice(0, 8)}
+                {isActiveOpname && (
+                  <button
+                    type="button"
+                    onClick={() => removeMemberMutation.mutate(uid)}
+                    disabled={removeMemberMutation.isPending}
+                    className="font-bold hover:text-red-600 disabled:opacity-50"
+                    title="Hapus anggota"
+                  >
+                    ✕
+                  </button>
+                )}
+              </span>
+            );
+          })}
+        </div>
+        {isActiveOpname && (
+          <div className="flex gap-2 mt-4">
+            <select
+              value={memberPick}
+              onChange={(e) => setMemberPick(e.target.value)}
+              className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+            >
+              <option value="">+ Tambah anggota…</option>
+              {memberOptions.map((u: any) => (
+                <option key={u.id} value={u.id}>
+                  {u.fullName || u.username}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => memberPick && addMemberMutation.mutate(memberPick)}
+              disabled={!memberPick || addMemberMutation.isPending}
+              className="px-5 py-2.5 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 disabled:opacity-50 text-sm"
+            >
+              Tambah
+            </button>
           </div>
         )}
       </div>
