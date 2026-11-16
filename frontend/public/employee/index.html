@@ -79,6 +79,26 @@ table.slip{width:100%;font-size:12.5px;border-collapse:collapse}
 table.slip td{padding:6px 0;border-bottom:1px dashed var(--border)}
 table.slip tr.total td{border-bottom:0;font-weight:800;font-size:14px}
 .badge-n{position:absolute;top:2px;right:14px;background:var(--primary);color:#fff;font-size:10px;font-weight:800;border-radius:99px;padding:1px 6px}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px dashed var(--border);font-size:13px}
+.kv:last-child{border-bottom:0}
+.kv .k{color:var(--muted)}
+.kv .v{font-weight:600;text-align:right}
+.attach{border:1px dashed var(--border);border-radius:12px;background:linear-gradient(135deg,#FCA5A5,#EF4444);color:#fff;text-align:center;padding:22px 12px;font-size:13px;font-weight:700}
+.reqtype{display:flex;align-items:center;gap:12px;width:100%;background:#fff;border:1px solid var(--border);border-radius:12px;padding:13px 14px;cursor:pointer;text-align:left;font-size:14px;color:var(--fg)}
+.reqrow{display:flex;align-items:center;gap:12px;width:100%;background:#fff;border:1px solid var(--border);border-radius:12px;padding:13px 14px;cursor:pointer;text-align:left}
+.carousel{display:flex;gap:10px;overflow-x:auto;padding:2px 0 8px;scroll-snap-type:x mandatory;-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent)}
+.qcard{width:148px;flex-shrink:0;scroll-snap-align:start;background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px;cursor:pointer;text-align:left;font-size:13px;color:var(--fg)}
+.qcard b{display:block;font-size:13.5px;margin-bottom:6px}
+.qcard.sel{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:none;align-items:flex-end;justify-content:center}
+.modal.open{display:flex}
+.map-sheet{background:#fff;width:100%;max-width:480px;border-radius:20px 20px 0 0;padding:16px 16px 26px}
+.map-pin{width:100%;height:220px;border-radius:12px;background:#E8EEF4}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px}
+.stat b{display:block;font-size:20px;margin-bottom:2px}
+.upload{border:1.5px dashed var(--border);border-radius:12px;background:#F8FAFC;text-align:center;padding:20px 12px;cursor:pointer;color:var(--muted);font-size:13px}
+.upload b{display:block;color:var(--fg);margin-bottom:4px}
 .shot-note{display:none}
 body.shot .app{margin:0 auto}
 body.shot .screen{min-height:0}
@@ -95,9 +115,9 @@ body.shot .tabbar{position:static;transform:none}
     <h2 class="brand-title">IGD Employee</h2>
     <p class="muted">Masuk dengan akun IGD-ERP kamu</p>
     <div class="login-form">
-      <div class="field"><label class="lbl">NIK</label><input class="input" value="10248"></div>
+      <div class="field"><label class="lbl">Email</label><input class="input" id="loginEmail" value="staff@orbit.com"></div>
       <div class="field"><label class="lbl">Password</label><input class="input" type="password" value="password"></div>
-      <button class="big-btn" onclick="go('beranda')">Masuk</button>
+      <button class="big-btn" onclick="doLogin()">Masuk</button>
       <p class="muted" style="text-align:center">Lupa password? Hubungi HRD</p>
     </div>
   </div>
@@ -106,30 +126,23 @@ body.shot .tabbar{position:static;transform:none}
 <!-- 2 BERANDA -->
 <section class="screen" data-id="beranda" data-title="Beranda">
   <div class="apphead">
-    <div class="hello">Selamat pagi,</div><h2>Ayu Lestari</h2>
-    <div class="sub">Kasir · Outlet Tebet · NIK 10248</div>
+    <div class="row"><div><div class="hello">Selamat pagi,</div><h2 id="homeName">Ayu Lestari</h2>
+    <div class="sub" id="homeSub">Kasir · Outlet Tebet</div></div><div class="avatar lg" id="homeAvatar" onclick="go('profil')" style="cursor:pointer">AL</div></div>
     <div class="row mt8"><span class="pill p-green" style="background:#fff;color:var(--green)">● Shift Pagi · 08:00–16:00</span><span style="font-size:12px">📍 Dalam radius outlet</span></div>
   </div>
   <div class="body">
-    <div class="card row"><div><b>Belum check-in hari ini</b><div class="muted">Rabu, 11 Nov 2026 · 08:42</div></div><button class="big-btn btn-inline" onclick="go('checkin')">Check-in</button></div>
+    <div class="card row"><div><b id="todayTitle">Belum check-in hari ini</b><div class="muted">Rabu, 11 Nov 2026 · 08:42</div></div><button class="big-btn btn-inline" onclick="go('absensi')">Check-in</button></div>
     <div class="menu-grid">
-      <div class="menu" onclick="go('checkin')"> <div class="ic">📍</div><b>Absensi</b><span>GPS + selfie</span></div>
-      <div class="menu" onclick="go('cuti')"><div class="ic">🌴</div><b>Cuti</b><span>saldo 8 hari</span></div>
-      <div class="menu" onclick="go('jadwal')"><div class="ic">🗓️</div><b>Jadwal Shift</b><span>minggu ini</span></div>
-      <div class="menu" onclick="go('shift')"><div class="ic">🔄</div><b>Tukar / Lembur</b><span>request</span></div>
-      <div class="menu" onclick="go('slip')"><div class="ic">💰</div><b>Slip Gaji</b><span>Oktober 2026</span></div>
-      <div class="menu" onclick="go('profil')"><div class="ic">👤</div><b>Profil</b><span>data & dokumen</span></div>
+      <div class="menu" onclick="go('absensi')"><div class="ic">📍</div><b>Absensi</b><span>clock-in & riwayat</span></div>
+      <div class="menu" onclick="go('request')"><div class="ic">📝</div><b>Request</b><span>cuti · shift · lembur</span></div>
+      <div class="menu" id="tileApproval" style="display:none" onclick="go('approval')"><div class="ic">✅</div><b>Approval</b><span>3 menunggu</span></div>
+      <div class="menu" onclick="go('payroll')"><div class="ic">💰</div><b>Payroll</b><span>Oktober 2026</span></div>
     </div>
-    <div class="card"><div class="row"><b>Persetujuan saya</b><span class="pill p-amber">2 pending</span></div>
-      <div class="muted" style="margin:6px 0">Cuti 14–15 Nov · menunggu persetujuan</div>
-      <button class="ghost-btn" onclick="go('cuti')">Lihat status</button></div>
-    <div class="card" id="teamCard" style="display:none"><div class="row"><b>Persetujuan tim</b><span class="pill p-red">3 menunggu</span></div>
-      <button class="big-btn mt8" onclick="go('approval')">Buka persetujuan</button></div>
   </div>
 </section>
 
-<!-- 3 CHECKIN -->
-<section class="screen" data-id="checkin" data-title="Absensi (GPS + Selfie)">
+<!-- 3 ABSENSI -->
+<section class="screen" data-id="absensi" data-title="Absensi">
   <div class="apphead plain"><h2>Absensi</h2><div class="muted">Rabu, 11 Nov 2026 · Shift Pagi 08:00–16:00</div></div>
   <div class="body">
     <div class="checkin-visual">📍 Outlet Tebet terdeteksi
@@ -139,85 +152,76 @@ body.shot .tabbar{position:static;transform:none}
     </div>
     <div class="card row"><div><b>Check-in</b><div class="muted">Rabu, 11 Nov · 08:42</div></div><span class="pill p-green">Hadir</span></div>
     <button class="big-btn" onclick="this.textContent='Checked-in 08:42';this.style.background='var(--green)'">Check-in Sekarang</button>
-    <button class="ghost-btn" onclick="go('riwayat')">Lihat riwayat absensi</button>
-    <div class="card"><b>Check-out</b><div class="muted" style="margin:4px 0">Tersedia pukul 16:00</div></div>
+    <button class="ghost-btn" onclick="go('riwayat')">Riwayat bulan ini</button>
+    <div class="card"><b>Check-out</b><div class="muted card-sub">Tersedia pukul 16:00</div></div>
   </div>
 </section>
 
 <!-- 4 RIWAYAT -->
 <section class="screen" data-id="riwayat" data-title="Riwayat Absensi">
-  <div class="apphead plain"><h2>Riwayat Absensi</h2><div class="muted">November 2026 · kehadiran 92%</div></div>
+  <div class="apphead plain"><h2>Riwayat Absensi</h2><div class="muted">November 2026 · 6 catatan</div></div>
   <div class="body">
-    <div class="seg"><button class="on">Minggu ini</button><button>Bulan ini</button><button>Bulan lalu</button></div>
-    <div class="card">
-      <div class="timeline-item"><span class="tdot"></span><div class="grow"><div class="row"><b>Hari ini · Shift Pagi</b><span class="pill p-green">Hadir</span></div><div class="muted">In 08:42 · belum out</div></div></div>
-      <div class="timeline-item"><span class="tdot"></span><div class="grow"><div class="row"><b>Sel, 10 Nov · Shift Pagi</b><span class="pill p-green">Hadir</span></div><div class="muted">In 07:58 · Out 16:05</div></div></div>
-      <div class="timeline-item"><span class="tdot" style="background:var(--amber)"></span><div class="grow"><div class="row"><b>Sen, 9 Nov · Shift Siang</b><span class="pill p-amber">Terlambat 12 mnt</span></div><div class="muted">In 14:12 · Out 22:01</div></div></div>
-      <div class="timeline-item"><span class="tdot" style="background:var(--blue)"></span><div class="grow"><div class="row"><b>Min, 8 Nov</b><span class="pill p-blue">Libur</span></div><div class="muted">—</div></div></div>
+    <div class="stats">
+      <div class="stat"><b>9</b><div class="muted">Hari hadir</div></div>
+      <div class="stat"><b>8</b><div class="muted">Tepat waktu</div></div>
+      <div class="stat"><b style="color:var(--amber)">1</b><div class="muted">Terlambat</div></div>
+      <div class="stat"><b style="color:var(--green)">92%</b><div class="muted">Kehadiran</div></div>
     </div>
-    <div class="card row"><div><b>Rekap bulan ini</b><div class="muted">Hadir 9 · Telat 1 · Izin 1 · Alpa 0</div></div><b style="color:var(--green)">92%</b></div>
+    <div class="field mt8" id="absenList"></div>
   </div>
 </section>
 
-<!-- 5 JADWAL -->
-<section class="screen" data-id="jadwal" data-title="Jadwal Shift">
-  <div class="apphead plain"><h2>Jadwal Shift</h2><div class="muted">9 – 15 Nov 2026 · Outlet Tebet</div></div>
-  <div class="body">
-    <div class="seg"><button class="on">Minggu ini</button><button>Depan</button></div>
-    <div class="card">
-      <div class="timeline-item"><span class="tdot"></span><div class="grow"><div class="row"><b>Sen 9 · Siang 14–22</b><button class="ghost-btn btn-inline" onclick="go('shift')">Tukar</button></div></div></div>
-      <div class="timeline-item"><span class="tdot"></span><div class="grow"><div class="row"><b>Sel 10 · Pagi 08–16</b><span class="pill p-green">Selesai</span></div></div></div>
-      <div class="timeline-item"><span class="tdot" style="background:var(--primary)"></span><div class="grow"><div class="row"><b>Rab 11 · Pagi 08–16</b><span class="pill p-red">Hari ini</span></div></div></div>
-      <div class="timeline-item"><span class="tdot" style="background:#CBD5E1"></span><div class="grow"><div class="row"><b>Kam 12 · Pagi 08–16</b><button class="ghost-btn btn-inline" onclick="go('shift')">Tukar</button></div></div></div>
-      <div class="timeline-item"><span class="tdot" style="background:#CBD5E1"></span><div class="grow"><div class="row"><b>Sab 14 · Libur (cuti)</b><span class="pill p-amber">Pengajuan</span></div></div></div>
-    </div>
-    <div class="card"><b>Shift berikutnya</b><div class="muted">Kamis · 08:00 – 16:00</div></div>
-  </div>
+<!-- 4b ABSEN DETAIL -->
+<section class="screen" data-id="absen-detail" data-title="Detail Absensi">
+  <div class="apphead plain"><h2 id="adTitle">Detail Absensi</h2><div class="muted" id="adSub"></div></div>
+  <div class="body" id="adBody"></div>
 </section>
 
-<!-- 6 CUTI -->
-<section class="screen" data-id="cuti" data-title="Cuti">
-  <div class="apphead plain"><h2>Pengajuan Cuti</h2><div class="muted">Saldo tahunan tersisa <b>8 hari</b></div></div>
+<!-- 5 REQUEST (jenis) -->
+<section class="screen" data-id="request" data-title="Request">
+  <div class="apphead plain"><h2>Request</h2><div class="muted">Cuti, tukar shift, lembur, dan libur</div></div>
   <div class="body">
-    <div class="card row"><div><div class="muted">Cuti tahunan</div><div class="saldo">8 <span class="muted" style="font-size:13px">hari</span></div></div><div><div class="muted">Sakit (terpakai 2)</div><div class="saldo">10 <span class="muted" style="font-size:13px">hari</span></div></div><span class="pill p-amber">1 pending</span></div>
-    <div class="card"><label class="lbl">Form cuti baru</label>
-      <div class="field mt8">
-      <div class="seg"><button class="on">Tahunan</button><button>Sakit</button><button>Melahirkan</button></div>
-      <div class="row"><input class="input" value="2026-11-14"><span class="muted">→</span><input class="input" value="2026-11-15"></div>
-      <input class="input" placeholder="Alasan (wajib diisi)" value="Acara keluarga di Bandung">
-      <button class="big-btn" onclick="this.textContent='Pengajuan terkirim'">Kirim Pengajuan</button></div>
-    </div>
-    <div class="card"><b>Riwayat</b>
-      <div class="timeline-item"><span class="tdot" style="background:var(--amber)"></span><div class="grow"><div class="row"><b>14–15 Nov · Tahunan</b><span class="pill p-amber">Menunggu</span></div><div class="muted">Dikirim 10 Nov</div></div></div>
-      <div class="timeline-item"><span class="tdot"></span><div class="grow"><div class="row"><b>3 Okt · Sakit 1 hari</b><span class="pill p-green">Disetujui</span></div><div class="muted">Selesai 4 Okt</div></div></div>
+    <div class="field">
+      <button class="reqtype" onclick="openReq('cuti')"><div class="avatar">🌴</div><div class="grow"><b>Cuti</b><div class="muted">Tahunan · sakit · melahirkan</div></div><b>›</b></button>
+      <button class="reqtype" onclick="openReq('shift')"><div class="avatar b">🔄</div><div class="grow"><b>Tukar shift</b><div class="muted">Tukar jadwal dengan rekan</div></div><b>›</b></button>
+      <button class="reqtype" onclick="openReq('lembur')"><div class="avatar g">⏱️</div><div class="grow"><b>Lembur</b><div class="muted">Kerja di luar jam shift</div></div><b>›</b></button>
+      <button class="reqtype" onclick="openReq('libur')"><div class="avatar" style="background:var(--amber-soft);color:var(--amber)">🏖️</div><div class="grow"><b>Libur</b><div class="muted">Permintaan hari libur</div></div><b>›</b></button>
     </div>
   </div>
 </section>
 
-<!-- 7 SHIFT/LEMBUR -->
-<section class="screen" data-id="shift" data-title="Tukar Shift & Lembur">
-  <div class="apphead plain"><h2>Tukar Shift & Lembur</h2><div class="muted">Tukar jadwal, lembur, dan izin dalam satu tempat</div></div>
+<!-- 6 REQUEST LIST -->
+<section class="screen" data-id="request-list" data-title="Daftar Request">
+  <div class="apphead plain"><h2 id="rlTitle">Request</h2><div class="muted" id="rlSub"></div></div>
   <div class="body">
-    <div class="seg"><button class="on">Tukar shift</button><button>Lembur</button><button>Izin keluar</button></div>
-    <div class="card"><label class="lbl">Tukar shift</label>
-      <div class="field mt8">
-      <input class="input" value="Kam 12 Nov · Pagi → ingin Siang">
-      <input class="input" value="Tukar dengan: Budi (Siang)">
-      <input class="input" placeholder="Alasan" value="Antar anak imunisasi pagi">
-      <button class="big-btn" onclick="this.textContent='Pengajuan terkirim'">Kirim</button></div>
-    </div>
-    <div class="card"><label class="lbl">Lembur</label>
-      <div class="field mt8">
-      <div class="row"><input class="input" value="2026-11-11"><input class="input" value="2 jam"></div>
-      <button class="ghost-btn" onclick="this.textContent='Lembur terkirim'">Ajukan lembur</button></div>
-    </div>
-    <div class="card"><div class="row"><b>Status request</b><span class="pill p-amber">1 pending</span></div><div class="muted card-sub">Tukar 12 Nov · menunggu konfirmasi Budi</div></div>
+    <div class="card" id="rlQuotaWrap"><div class="row"><b id="rlQuotaLabel">Kuota</b><span class="pill p-green" id="rlQuotaPill"></span></div>
+      <div class="muted card-sub" id="rlQuotaSub"></div></div>
+    <div class="carousel" id="reqCarousel" style="display:none"></div>
+    <div class="field" id="reqList"></div>
+    <button class="big-btn" id="rlNewBtn" onclick="openReqForm()">Ajukan baru</button>
   </div>
 </section>
 
-<!-- 8 SLIP -->
-<section class="screen" data-id="slip" data-title="Slip Gaji">
-  <div class="apphead plain"><h2>Slip Gaji</h2><div class="muted">2026</div></div>
+<!-- 7 REQUEST DETAIL -->
+<section class="screen" data-id="request-detail" data-title="Detail Request">
+  <div class="apphead plain"><h2 id="rdTitle">Detail</h2><div class="muted" id="rdSub"></div></div>
+  <div class="body" id="rdBody"></div>
+</section>
+
+<!-- 7b REQUEST FORM -->
+<section class="screen" data-id="request-form" data-title="Request Baru">
+  <div class="apphead plain"><h2 id="rfTitle">Request Baru</h2><div class="muted" id="rfSub"></div></div>
+  <div class="body">
+    <div class="card" id="rfQuotaWrap"><div class="row"><b>Kuota</b><span class="pill p-green" id="rfQuotaPill"></span></div>
+      <div class="muted card-sub" id="rfQuotaSub"></div></div>
+    <div class="card"><div class="field" id="rfFields"></div></div>
+    <button class="big-btn" onclick="submitReq()">Kirim pengajuan</button>
+  </div>
+</section>
+
+<!-- 8 PAYROLL -->
+<section class="screen" data-id="payroll" data-title="Payroll">
+  <div class="apphead plain"><h2>Payroll</h2><div class="muted">Slip gaji 2026</div></div>
   <div class="body">
     <div class="card row" onclick="go('slipdetail')" style="cursor:pointer"><div class="row gap10"><div class="avatar g">💰</div><div><b>Oktober 2026</b><div class="muted">Gaji pokok + tunjangan + lembur</div></div></div><b>›</b></div>
     <div class="card row"><div class="row gap10"><div class="avatar">💰</div><div><b>September 2026</b><div class="muted">Sudah diunduh</div></div></div><b>›</b></div>
@@ -239,7 +243,7 @@ body.shot .tabbar{position:static;transform:none}
       <tr class="total"><td>Total bersih</td><td align="right">Rp 4.850.000</td></tr>
     </table></div>
     <button class="ghost-btn">⬇ Unduh PDF</button>
-    <button class="ghost-btn" onclick="go('slip')">← Kembali ke daftar</button>
+    <button class="ghost-btn" onclick="go('payroll')">← Kembali ke daftar</button>
   </div>
 </section>
 
@@ -249,13 +253,31 @@ body.shot .tabbar{position:static;transform:none}
   <div class="body">
     <div class="card"><b>Data diri</b><div class="muted card-sub">📞 0812-xxxx-4471 · ayu.l@igd.id<br>🏠 Jl. Tebet Dalam III · Gabung 3 Mar 2024<br>👔 Atasan: Rina (Manager) · Kontrak: Tetap</div></div>
     <div class="card"><b>Dokumen</b><div class="muted card-sub">✅ KTP · ✅ KK · ✅ Rekening BCA · ⚠ NPWP (belum upload)</div><button class="ghost-btn mt8">Upload NPWP</button></div>
-    <div class="card"><div class="row"><div><b>Mode Manager</b><div class="muted">Kelola persetujuan tim</div></div><button id="mgrSwitch" class="ghost-btn btn-inline" onclick="toggleMgr()">Aktifkan</button></div></div>
     <div class="card"><div class="row"><div><b>Ganti password</b></div><b>›</b></div></div>
     <button class="ghost-btn" onclick="go('login')" style="color:var(--primary-dark)">Keluar</button>
   </div>
 </section>
 
-<!-- 11 APPROVAL -->
+<!-- 11 EMPLOYEE -->
+<section class="screen" data-id="employee" data-title="Employee">
+  <div class="apphead plain"><h2>Employee</h2><div class="muted">Outlet Tebet · 8 karyawan</div></div>
+  <div class="body">
+    <div class="field" id="empList"></div>
+  </div>
+</section>
+
+<!-- 12 INBOX -->
+<section class="screen" data-id="inbox" data-title="Inbox">
+  <div class="apphead plain"><h2>Inbox</h2><div class="muted">3 belum dibaca</div></div>
+  <div class="body">
+    <div class="field">
+      <div class="card"><b>Cuti 14 Nov disetujui</b><div class="muted card-sub">Rina · 5 mnt lalu</div></div>
+      <div class="card"><b>Jadwal minggu depan terbit</b><div class="muted card-sub">HR · 1 jam lalu</div></div>
+      <div class="card"><b>Slip Oktober tersedia</b><div class="muted card-sub">Payroll · kemarin</div></div>
+      <div class="card"><b>Check-out tersedia pukul 16:00</b><div class="muted card-sub">Sistem</div></div>
+    </div>
+  </div>
+</section>
 <section class="screen" data-id="approval" data-title="Persetujuan Manager">
   <div class="apphead"><div class="hello">Halo, Rina</div><h2>Persetujuan Tim</h2><div class="sub">3 menunggu persetujuan</div></div>
   <div class="body">
@@ -269,50 +291,208 @@ body.shot .tabbar{position:static;transform:none}
     </div>
 </section>
 
-<!-- 12 TIM -->
-<section class="screen" data-id="tim" data-title="Kehadiran Tim">
-  <div class="apphead plain"><h2>Tim Hari Ini</h2><div class="muted">Outlet Tebet · 11 Nov · 8 staf terjadwal</div></div>
-  <div class="body">
-    <div class="card row"><div><b>Hadir 6/8</b><div class="muted">2 belum check-in · 1 telat</div></div><span class="pill p-green">75%</span></div>
-    <div class="card">
-      <div class="timeline-item"><div class="avatar sm">AL</div><div class="grow"><div class="row"><b>Ayu · Pagi</b><span class="pill p-green">In 08:42</span></div></div></div>
-      <div class="timeline-item"><div class="avatar b sm">BS</div><div class="grow"><div class="row"><b>Budi · Siang</b><span class="pill p-gray">Masuk 14:00</span></div></div></div>
-      <div class="timeline-item"><div class="avatar g sm">DS</div><div class="grow"><div class="row"><b>Dewi · Pagi</b><span class="pill p-amber">Telat 12 mnt</span></div></div></div>
-      <div class="timeline-item"><div class="avatar sm">+5</div><div class="grow"><div class="row"><b>5 staf lain</b><span class="pill p-green">Hadir</span></div></div></div>
-    </div>
-    <button class="ghost-btn" onclick="go('approval')">Buka persetujuan (3)</button>
+<div class="modal" id="mapModal" onclick="if(event.target===this)closeMap()">
+  <div class="map-sheet">
+    <div class="row"><div><b id="mapTitle">Lokasi</b><div class="muted" id="mapSub"></div></div><button class="ghost-btn btn-inline" onclick="closeMap()">Tutup</button></div>
+    <div class="map-pin mt8" id="mapSvg"></div>
+    <div class="muted" style="margin-top:8px">📍 Outlet Tebet · Jl. Tebet Raya No. 12 · kehadiran valid dalam radius outlet</div>
   </div>
-</section>
-
-<!-- 13 NOTIF -->
-<section class="screen" data-id="notif" data-title="Notifikasi">
-  <div class="apphead plain"><h2>Notifikasi</h2><div class="muted">3 belum dibaca</div></div>
-  <div class="body">
-    <div class="card"><b>Cuti 14 Nov disetujui</b><div class="muted">Rina · 5 mnt lalu</div></div>
-    <div class="card"><b>Jadwal minggu depan terbit</b><div class="muted">HR · 1 jam lalu</div></div>
-    <div class="card"><b>Slip Oktober tersedia</b><div class="muted">Payroll · kemarin</div></div>
-    <div class="card"><b>Check-out tersedia pukul 16:00</b><div class="muted">Sistem</div></div>
-  </div>
-</section>
-
+</div>
 <div class="tabbar" id="tabbar">
-  <button data-tab="beranda" onclick="go('beranda')"> <span class="tic">🏠</span>Beranda</button>
-  <button data-tab="jadwal" onclick="go('jadwal')"><span class="tic">🗓️</span>Jadwal</button>
-  <button data-tab="cuti" onclick="go('cuti')"><span class="tic">📝</span>Request</button>
-  <button data-tab="slip" onclick="go('slip')"><span class="tic">💰</span>Slip</button>
-  <button data-tab="tim" id="tabTim" style="display:none" onclick="go('tim')"><span class="tic">👥</span>Tim</button>
-  <button data-tab="profil" onclick="go('profil')"><span class="tic">👤</span>Profil</button>
+  <button data-tab="home" onclick="nav('beranda')"><span class="tic">🏠</span>Home</button>
+  <button data-tab="employee" onclick="nav('employee')"><span class="tic">👥</span>Employee</button>
+  <button data-tab="request" onclick="nav('request')"><span class="tic">📝</span>Request</button>
+  <button data-tab="inbox" onclick="nav('inbox')"><span class="tic">📥</span>Inbox</button>
+  <button data-tab="profile" onclick="nav('profil')"><span class="tic">👤</span>Profile</button>
 </div>
 </div>
 <script>
+var ROLE='kar';
+var ME={kar:{name:'Ayu Lestari',sub:'Kasir · Outlet Tebet',ava:'AL',email:'staff@orbit.com'},
+        mgr:{name:'Rina Wulandari',sub:'Manager · Outlet Tebet',ava:'RW',email:'manager@orbit.com'}};
+var HIST=[
+ {d:'Rab, 11 Nov · Shift Pagi',s:'Hadir',pc:'p-green',in:'08:42',out:'—',sched:'08:00 – 16:00',locIn:'Outlet Tebet · radius 25 m',locOut:'—',photo:'Selfie 08:42 · terverifikasi'},
+ {d:'Sel, 10 Nov · Shift Pagi',s:'Hadir',pc:'p-green',in:'07:58',out:'16:05',sched:'08:00 – 16:00',locIn:'Outlet Tebet · radius 18 m',locOut:'Outlet Tebet · radius 20 m',photo:'Selfie 07:58 · terverifikasi'},
+ {d:'Sen, 9 Nov · Shift Siang',s:'Terlambat 12 mnt',pc:'p-amber',in:'14:12',out:'22:01',sched:'14:00 – 22:00',locIn:'Outlet Tebet · radius 40 m',locOut:'Outlet Tebet · radius 15 m',photo:'Selfie 14:12 · terverifikasi'},
+ {d:'Min, 8 Nov',s:'Libur',pc:'p-blue',in:'—',out:'—',sched:'Libur',locIn:'—',locOut:'—',photo:'—'},
+ {d:'Sab, 7 Nov · Shift Pagi',s:'Hadir',pc:'p-green',in:'08:05',out:'16:02',sched:'08:00 – 16:00',locIn:'Outlet Tebet · radius 22 m',locOut:'Outlet Tebet · radius 19 m',photo:'Selfie 08:05 · terverifikasi'},
+ {d:'Jum, 6 Nov · Shift Pagi',s:'Hadir',pc:'p-green',in:'07:55',out:'16:10',sched:'08:00 – 16:00',locIn:'Outlet Tebet · radius 16 m',locOut:'Outlet Tebet · radius 21 m',photo:'Selfie 07:55 · terverifikasi'}];
+var REQ={
+ cuti:{title:'Cuti',sub:'Tahunan · sakit · melahirkan',quota:{label:'Cuti tahunan',pill:'Sisa 8 dari 12 hari',sub:'Terpakai 4 hari · pengajuan menunggu di luar kuota'},
+  subs:[
+   {name:'Tahunan',pill:'Sisa 8/12',sub:'Terpakai 4 hari'},
+   {name:'Sakit',pill:'Sisa 10/12',sub:'Terpakai 2 hari'},
+   {name:'Melahirkan',pill:'90 hari',sub:'Sesuai ketentuan'}],
+  items:[
+   {t:'14–15 Nov · Tahunan (2 hari)',d:'Dikirim 10 Nov · Acara keluarga',s:'Menunggu',pc:'p-amber',sub:'Tahunan'},
+   {t:'3 Okt · Sakit (1 hari)',d:'Selesai 4 Okt · Disetujui Rina',s:'Disetujui',pc:'p-green',sub:'Sakit'}]},
+ shift:{title:'Tukar shift',sub:'Tukar jadwal dengan rekan',quota:null,
+  items:[
+   {t:'Kam 12 Nov · Pagi → Siang',d:'Tukar dengan Budi (Siang) · menunggu konfirmasi',s:'Menunggu',pc:'p-amber'},
+   {t:'28 Okt · Siang → Pagi',d:'Disetujui · tukar dengan Dewi',s:'Disetujui',pc:'p-green'}]},
+ lembur:{title:'Lembur',sub:'Kerja di luar jam shift',quota:null,
+  items:[
+   {t:'11 Nov · 2 jam',d:'Stock opname · menunggu persetujuan',s:'Menunggu',pc:'p-amber'},
+   {t:'10 Nov · 3 jam',d:'Stock opname · disetujui',s:'Disetujui',pc:'p-green'}]},
+ libur:{title:'Libur',sub:'Permintaan hari libur',quota:{label:'Libur November',pill:'Sisa 3 dari 4 hari',sub:'Terpakai 1 hari · ajukan maks H-3'},
+  subs:[
+   {name:'Libur rutin',pill:'Sisa 3/4',sub:'Bulan November'},
+   {name:'Libur nasional',pill:'12 hari',sub:'Kalender 2026'},
+   {name:'Cuti bersama',pill:'Sisa 5/7',sub:'SKB 2026'}],
+  items:[
+   {t:'22 Nov · Libur rutin',d:'Dikirim 9 Nov · menunggu persetujuan',s:'Menunggu',pc:'p-amber',sub:'Libur rutin'},
+   {t:'25 Okt · Libur rutin',d:'Disetujui · manager',s:'Disetujui',pc:'p-green',sub:'Libur rutin'}]}};
+var CUR_REQ='cuti', CUR_REQ_IDX=0, CUR_SUB=0;
 var screens=[...document.querySelectorAll('.screen')];
+var TABMAP={beranda:'home',employee:'employee',request:'request','request-list':'request','request-detail':'request','request-form':'request',inbox:'inbox',profil:'profile',absensi:null,riwayat:null,'absen-detail':null,approval:null,payroll:null,slipdetail:null,login:null};
 function go(id){
   screens.forEach(function(s){s.classList.toggle('active',s.dataset.id===id)});
-  document.querySelectorAll('#tabbar button').forEach(function(b){b.classList.toggle('on',b.dataset.tab===id||(id==='checkin'||id==='riwayat')&&b.dataset.tab==='beranda'||(id==='shift')&&b.dataset.tab==='cuti'||(id==='slipdetail')&&b.dataset.tab==='slip'||((id==='approval')&&b.dataset.tab==='tim'))});
+  var tab=TABMAP[id];
+  document.querySelectorAll('#tabbar button').forEach(function(b){b.classList.toggle('on',b.dataset.tab===tab)});
   document.getElementById('app').scrollTop=0;
   var sc=document.querySelector('.screen.active');if(sc)sc.scrollTop=0;
   document.getElementById('tabbar').style.display=(id==='login')?'none':'flex';
   try{history.replaceState(null,'','#/'+id)}catch(e){}
+}
+function nav(id){
+  var cur=document.querySelector('#tabbar button.on');
+  if(cur&&cur.dataset.tab===id){go('beranda');return;}
+  go(id);
+}
+function doLogin(){
+  var email=(document.getElementById('loginEmail').value||'').toLowerCase();
+  setRole(email.indexOf('manager@')!==-1?'mgr':'kar');
+  go('beranda');
+}
+function setRole(r){
+  ROLE=r;var me=ME[r],mgr=(r==='mgr');
+  document.getElementById('homeName').textContent=me.name;
+  document.getElementById('homeSub').textContent=me.sub;
+  document.getElementById('homeAvatar').textContent=me.ava;
+  document.getElementById('tileApproval').style.display=mgr?'block':'none';
+  renderAbsen();renderEmp();
+}
+var EMP=[
+ {ava:'RW',cls:'',name:'Rina Wulandari',role:'Manager',email:'manager@orbit.com',phone:'0812-1000-0001',off:null},
+ {ava:'BS',cls:'b',name:'Budi Santoso',role:'Kasir',email:'budi@orbit.com',phone:'0812-1000-0002',off:null},
+ {ava:'DA',cls:'g',name:'Dewi Anggraini',role:'Kasir',email:'dewi@orbit.com',phone:'0812-1000-0003',off:null},
+ {ava:'AL',cls:'',name:'Ayu Lestari',role:'Kasir',email:'staff@orbit.com',phone:'0812-1000-0004',off:null},
+ {ava:'AP',cls:'b',name:'Agus Prasetyo',role:'Staf Gudang',email:'agus@orbit.com',phone:'0812-1000-0005',off:{t:'Cuti',pc:'p-amber'}},
+ {ava:'SP',cls:'g',name:'Sari Puspita',role:'Kasir',email:'sari@orbit.com',phone:'0812-1000-0006',off:null},
+ {ava:'DH',cls:'',name:'Dedi Hermawan',role:'Security',email:'dedi@orbit.com',phone:'0812-1000-0007',off:null},
+ {ava:'NL',cls:'b',name:'Nina Larasati',role:'Admin Outlet',email:'nina@orbit.com',phone:'0812-1000-0008',off:{t:'Libur',pc:'p-gray'}}];
+function renderEmp(){
+  document.getElementById('empList').innerHTML=EMP.map(function(e,i){
+    var pill=e.off?'<span class="pill '+e.off.pc+'">'+e.off.t+'</span>':'';
+    return '<button class="reqrow" onclick="toggleEmp('+i+',this)"><div class="avatar '+e.cls+'">'+e.ava+'</div><div class="grow"><b>'+e.name+'</b><div class="muted">'+e.role+'</div><div class="emp-contact" style="display:none;margin-top:6px;font-size:13px">✉️ '+e.email+'<br>📞 '+e.phone+'</div></div>'+pill+'<b>›</b></button>';
+  }).join('');
+}
+function toggleEmp(i,btn){
+  var c=btn.querySelector('.emp-contact');
+  c.style.display=(c.style.display==='none')?'block':'none';
+}
+function renderAbsen(){
+  document.getElementById('absenList').innerHTML=HIST.map(function(h,i){
+    return '<button class="reqrow" onclick="openAbsen('+i+')"><div class="grow"><b>'+h.d+'</b><div class="muted">'+(h.in==='—'?'—':'In '+h.in+(h.out==='—'?' · belum out':' · Out '+h.out))+'</div></div><span class="pill '+h.pc+'">'+h.s+'</span><b>›</b></button>';
+  }).join('');
+}
+function openAbsen(i){
+  var h=HIST[i];
+  document.getElementById('adTitle').textContent=h.d;
+  document.getElementById('adSub').textContent='Jadwal '+h.sched;
+  document.getElementById('adBody').innerHTML=
+   '<div class="card"><div class="row"><b>Status</b><span class="pill '+h.pc+'">'+h.s+'</span></div></div>'+
+   '<div class="card"><b>Jadwal vs realisasi</b><div class="mt8">'+
+   '<div class="kv"><span class="k">Check-in terjadwal</span><span class="v">'+h.sched.split('–')[0].trim()+'</span></div>'+
+   '<div class="kv"><span class="k">Check-out terjadwal</span><span class="v">'+(h.sched.indexOf('–')!==-1?h.sched.split('–')[1].trim():'—')+'</span></div>'+
+   '<div class="kv"><span class="k">Check-in aktual</span><span class="v">'+h.in+'</span></div>'+
+   '<div class="kv"><span class="k">Check-out aktual</span><span class="v">'+h.out+'</span></div></div></div>'+
+   '<div class="card"><b>Lokasi</b><div class="muted card-sub">Ketuk untuk melihat peta</div><div class="mt8">'+
+   '<div class="kv"><span class="k">Saat check-in</span><span class="v"><a href="#" onclick="openMap(\''+h.locIn+'\');return false" style="color:var(--primary-dark);font-weight:700">'+h.locIn+' 🗺️</a></span></div>'+
+   '<div class="kv"><span class="k">Saat check-out</span><span class="v">'+(h.locOut==='—'?'—':'<a href="#" onclick="openMap(\''+h.locOut+'\');return false" style="color:var(--primary-dark);font-weight:700">'+h.locOut+' 🗺️</a>')+'</span></div></div></div>'+
+   '<div class="card"><b>Lampiran</b><div class="attach mt8">📷 '+h.photo+'</div></div>'+
+   '<button class="ghost-btn" onclick="go(\'riwayat\')">← Kembali ke riwayat</button>';
+  go('absen-detail');
+}
+function openReq(type){
+  CUR_REQ=type;CUR_SUB=0;var R=REQ[type];
+  document.getElementById('rlTitle').textContent=R.title;
+  document.getElementById('rlSub').textContent=R.sub;
+  var car=document.getElementById('reqCarousel');
+  if(R.subs){car.style.display='flex';renderCarousel();}
+  else car.style.display='none';
+  document.getElementById('rlQuotaWrap').style.display='none';
+  renderReqList();
+  go('request-list');
+}
+function renderCarousel(){
+  var R=REQ[CUR_REQ];if(!R.subs)return;
+  document.getElementById('reqCarousel').innerHTML=R.subs.map(function(s,i){
+    return '<button class="qcard'+(i===CUR_SUB?' sel':'')+'" onclick="selSub('+i+')"><b>'+s.name+'</b><span class="pill p-green">'+s.pill+'</span><div class="muted" style="margin-top:6px">'+s.sub+'</div></button>';
+  }).join('');
+}
+function selSub(i){
+  CUR_SUB=i;renderCarousel();renderReqList();
+}
+function reqSub(){var R=REQ[CUR_REQ];return R.subs?R.subs[CUR_SUB].name:null;}
+function reqPill(s,pc){return '<span class="pill '+pc+'">'+s+'</span>';}
+function openMap(label){
+  document.getElementById('mapTitle').textContent='Lokasi check-in';
+  document.getElementById('mapSub').textContent=label;
+  document.getElementById('mapSvg').innerHTML='<svg viewBox="0 0 360 220" width="100%" height="220"><rect width="360" height="220" fill="#E8EEF4"/>'+
+   '<g stroke="#FFFFFF" stroke-width="10"><line x1="0" y1="60" x2="360" y2="60"/><line x1="0" y1="150" x2="360" y2="150"/><line x1="90" y1="0" x2="90" y2="220"/><line x1="230" y1="0" x2="230" y2="220"/></g>'+
+   '<g stroke="#C9D4DE" stroke-width="3"><line x1="0" y1="105" x2="360" y2="105"/><line x1="160" y1="0" x2="160" y2="220"/></g>'+
+   '<rect x="100" y="70" width="120" height="70" rx="6" fill="#DCE7F0"/>'+
+   '<circle cx="180" cy="105" r="34" fill="#EF4444" opacity="0.15"/><circle cx="180" cy="105" r="20" fill="#EF4444" opacity="0.25"/>'+
+   '<g transform="translate(180,105)"><path d="M0,-22 C-12,-22 -18,-13 -18,-5 C-18,5 0,18 0,18 C0,18 18,5 18,-5 C18,-13 12,-22 0,-22 Z" fill="#EF4444"/><circle r="6" cy="-6" fill="#fff"/></g>'+
+   '<text x="180" y="180" text-anchor="middle" font-size="12" font-weight="700" fill="#1F2937">Outlet Tebet</text>'+
+   '<text x="180" y="196" text-anchor="middle" font-size="10" fill="#6B7280">Jl. Tebet Raya No. 12</text></svg>';
+  document.getElementById('mapModal').classList.add('open');
+}
+function closeMap(){document.getElementById('mapModal').classList.remove('open');}
+function renderReqList(){
+  var R=REQ[CUR_REQ],sub=reqSub();
+  var items=R.items.map(function(it,i){return {it:it,i:i};}).filter(function(x){return !sub||!x.it.sub||x.it.sub===sub;});
+  document.getElementById('reqList').innerHTML=items.map(function(x){
+    return '<button class="reqrow" onclick="openReqDetail('+x.i+')"><div class="grow"><b>'+x.it.t+'</b><div class="muted">'+x.it.d+'</div></div>'+reqPill(x.it.s,x.it.pc)+'<b>›</b></button>';
+  }).join('')||'<div class="card"><div class="muted">Belum ada pengajuan '+sub+'.</div></div>';
+}
+function openReqDetail(i){
+  CUR_REQ_IDX=i;var R=REQ[CUR_REQ],it=R.items[i];
+  document.getElementById('rdTitle').textContent=R.title;
+  document.getElementById('rdSub').textContent=it.t;
+  document.getElementById('rdBody').innerHTML=
+   '<div class="card"><div class="row"><b>Status</b>'+reqPill(it.s,it.pc)+'</div><div class="muted card-sub">'+it.d+'</div></div>'+
+   (R.quota?'<div class="card"><div class="row"><b>'+R.quota.label+'</b><span class="pill p-green">'+R.quota.pill+'</span></div><div class="muted card-sub">'+R.quota.sub+'</div></div>':'')+
+   '<button class="ghost-btn" onclick="openReq(CUR_REQ)">← Kembali ke daftar</button>';
+  go('request-detail');
+}
+function openReqForm(){
+  var R=REQ[CUR_REQ],sub=reqSub();
+  document.getElementById('rfTitle').textContent=(sub||R.title)+' baru';
+  document.getElementById('rfSub').textContent=R.sub;
+  var q=document.getElementById('rfQuotaWrap');
+  if(R.quota){q.style.display='block';document.getElementById('rfQuotaPill').textContent=R.quota.pill;document.getElementById('rfQuotaSub').textContent=R.quota.sub;}
+  else q.style.display='none';
+  var f='';
+  if(CUR_REQ==='cuti')f='<div class="field"><label class="lbl">Jenis cuti</label><select class="input" id="rfJenis" onchange="CUR_SUB=this.selectedIndex">'+R.subs.map(function(s,i){return '<option'+(i===CUR_SUB?' selected':'')+'>'+s.name+'</option>';}).join('')+'</select></div><div class="field"><label class="lbl">Tanggal</label><div class="row"><input class="input" value="2026-12-01"><span class="muted">→</span><input class="input" value="2026-12-02"></div></div><div class="field"><label class="lbl">Alasan</label><input class="input" id="rfNote" placeholder="Alasan (wajib diisi)"></div><div class="field"><label class="lbl">Dokumen pendukung</label><div class="upload" onclick="this.querySelector(\'input\').click()"><b>📄 Ketuk untuk mengunggah</b>JPG · PNG · PDF · maks 5 MB<input type="file" style="display:none" accept=".jpg,.png,.pdf"></div></div>';
+  else if(CUR_REQ==='libur')f='<div class="field"><label class="lbl">Jenis libur</label><select class="input" id="rfJenis" onchange="CUR_SUB=this.selectedIndex">'+R.subs.map(function(s,i){return '<option'+(i===CUR_SUB?' selected':'')+'>'+s.name+'</option>';}).join('')+'</select></div><div class="field"><label class="lbl">Tanggal libur</label><input class="input" value="2026-11-29"></div><div class="field"><label class="lbl">Alasan</label><input class="input" id="rfNote" placeholder="Alasan"></div>';
+  else if(CUR_REQ==='shift')f='<div class="field"><label class="lbl">Tanggal saya</label><input class="input" id="rfFrom" value="2026-11-12" onchange="fillShiftMates()"></div><div class="field"><label class="lbl">Tanggal tujuan</label><input class="input" id="rfTo" value="2026-11-13" onchange="fillShiftMates()"></div><div class="field"><label class="lbl">Tukar dengan</label><select class="input" id="rfMate"></select></div><div class="field"><label class="lbl">Alasan</label><input class="input" id="rfNote" placeholder="Alasan"></div>';
+  else f='<div class="field"><label class="lbl">Tanggal</label><input class="input" value="2026-11-11"></div><div class="field"><label class="lbl">Jam</label><div class="row"><input class="input" value="17:00"><span class="muted">→</span><input class="input" value="20:00"></div></div><div class="field"><label class="lbl">Catatan pekerjaan</label><input class="input" id="rfNote" placeholder="Contoh: stock opname"></div><div class="field"><label class="lbl">Lampiran</label><div class="upload" onclick="this.querySelector(\'input\').click()"><b>📄 Ketuk untuk mengunggah</b>Foto hasil lembur · JPG · PNG<input type="file" style="display:none" accept=".jpg,.png"></div></div>';
+  document.getElementById('rfFields').innerHTML=f;
+  if(CUR_REQ==='shift')fillShiftMates();
+  go('request-form');
+}
+function fillShiftMates(){
+  var mates={'2026-11-13':['Budi Santoso · Siang','Sari Puspita · Siang'],'2026-11-14':['Dewi Anggraini · Pagi','Agus Prasetyo · Gudang'],'2026-11-15':['Budi Santoso · Pagi','Dedi Hermawan · Security']};
+  var to=(document.getElementById('rfTo')||{}).value;
+  var list=mates[to]||['Budi Santoso · Siang','Dewi Anggraini · Pagi'];
+  document.getElementById('rfMate').innerHTML=list.map(function(m){return '<option>'+m+'</option>';}).join('');
+}
+function submitReq(){
+  var note=(document.getElementById('rfNote')||{}).value||'Pengajuan baru';
+  REQ[CUR_REQ].items.unshift({t:note.length>34?note.slice(0,34)+'…':note,d:'Dikirim hari ini · menunggu persetujuan',s:'Menunggu',pc:'p-amber',sub:reqSub()});
+  renderCarousel();renderReqList();go('request-list');
 }
 function decide(btn,name){
   var card=btn.closest('.card');
@@ -320,21 +500,21 @@ function decide(btn,name){
   card.style.borderColor=ok?'var(--green)':'var(--primary)';
   card.querySelector('.btn-row').innerHTML='<div class="pill '+(ok?'p-green':'p-red')+'" style="font-size:13px">'+(ok?'✅ '+name+' — disetujui':'❌ '+name+' — ditolak')+'</div>';
 }
-function toggleMgr(){
-  var m=document.body.classList.toggle('manager');
-  document.getElementById('tabTim').style.display=m?'flex':'none';
-  document.getElementById('teamCard').style.display=m?'block':'none';
-  document.getElementById('mgrSwitch').textContent=m?'Matikan':'Aktifkan';
-  go(m?'approval':'beranda');
-}
 (function init(){
+  setRole('kar');
   var qs=new URLSearchParams(location.search);
   var single=qs.get('s');
   if(single){document.body.classList.add('shot');}
+  var role=qs.get('role');if(role==='mgr')setRole('mgr');
   var hash=(location.hash||'').replace('#/','').replace('#','');
-  var start=single||hash||'beranda';
-  if(!document.querySelector('.screen[data-id="'+start+'"]'))start='beranda';
-  go(start);
+  var start=single||hash||'login';
+  if(!document.querySelector('.screen[data-id="'+start+'"]'))start='login';
+  if(start==='request-list')openReq('cuti');
+  else if(start==='request-detail'){openReq('cuti');openReqDetail(0);}
+  else if(start==='request-form'){var ft=(qs.get('f')||'cuti');if(REQ[ft]){openReq(ft);}openReqForm();}
+  else if(start==='absen-detail'){openAbsen(0);}
+  else go(start);
+  if(qs.get('map'))openMap('Outlet Tebet · radius 25 m');
 })();
 </script>
 </body>
