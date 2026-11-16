@@ -7,7 +7,10 @@ import {
   IsNumber,
   IsArray,
   IsEmail,
+  IsIn,
 } from 'class-validator';
+
+export const INTAKE_STATUSES = ['draft', 'active'] as const;
 
 export class IntakeContractDto {
   @IsString()
@@ -78,4 +81,9 @@ export class IntakeContractDto {
   @IsUUID('4')
   @IsOptional()
   roleId?: string;
+
+  @IsString()
+  @IsIn([...INTAKE_STATUSES] as string[])
+  @IsOptional()
+  status?: string;
 }

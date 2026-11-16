@@ -19,6 +19,10 @@ export class CreateContractDto {
   employeeId!: string;
 
   @IsString()
+  @IsOptional()
+  contractNumber?: string;
+
+  @IsString()
   @IsIn([...CONTRACT_TYPES] as string[])
   @IsNotEmpty({ message: 'Contract type is required' })
   type!: string;
