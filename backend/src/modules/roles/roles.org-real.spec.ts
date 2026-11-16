@@ -12,6 +12,7 @@ import { PrismaService } from '../../shared/services/prisma.service';
 import {
   ORG_DEPARTMENTS,
   RETIRED_ROLE_CODES,
+  RETIRED_DEPARTMENT_CODES,
   ROLE_TREE,
 } from '../../../prisma/org-tree';
 
@@ -79,11 +80,17 @@ describe('ORG-REAL role tree contract', () => {
     }
   });
 
-  it('defines 5 company-wide departments with unique codes', () => {
-    expect(ORG_DEPARTMENTS).toHaveLength(5);
-    expect(new Set(ORG_DEPARTMENTS.map((d) => d.code)).size).toBe(5);
+  it('defines 3 company-wide departments with unique codes (IGDERP-277)', () => {
+    expect(ORG_DEPARTMENTS).toHaveLength(3);
+    expect(new Set(ORG_DEPARTMENTS.map((d) => d.code)).size).toBe(3);
     expect(ORG_DEPARTMENTS.map((d) => d.code).sort()).toEqual(
-      ['DEPT-FIN', 'DEPT-HRD', 'DEPT-MKT', 'DEPT-OPS', 'DEPT-SC'].sort(),
+      ['DEPT-MKT', 'DEPT-OPS', 'DEPT-SUP'].sort(),
+    );
+  });
+
+  it('retires SC/FIN/HRD as departments (IGDERP-277)', () => {
+    expect(RETIRED_DEPARTMENT_CODES.sort()).toEqual(
+      ['DEPT-FIN', 'DEPT-HRD', 'DEPT-SC'].sort(),
     );
   });
 });

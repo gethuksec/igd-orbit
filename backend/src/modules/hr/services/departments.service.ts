@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../shared/services/prisma.service';
 import { CreateDepartmentDto } from '../dto/create-department.dto';
 import { UpdateDepartmentDto } from '../dto/update-department.dto';
@@ -71,10 +71,12 @@ export class DepartmentsService {
   }
 
   async create(dto: CreateDepartmentDto) {
+    const level = await this.resolveLevel(dto.parentDepartmentId, dto.level);
     const department = await this.prisma.department.create({
       data: {
         code: dto.code,
         name: dto.name,
+        level,
         parentDepartmentId: dto.parentDepartmentId,
         branchId: dto.branchId,
         isActive: dto.isActive ?? true,
@@ -92,10 +94,16 @@ export class DepartmentsService {
     if (!existing) {
       throw new NotFoundException('Department not found');
     }
+    const parentId = dto.parentDepartmentId !== undefined ? dto.parentDepartmentId : existing.parentDepartmentId;
+    const level =
+      dto.parentDepartmentId !== undefined || dto.level !== undefined
+        ? await this.resolveLevel(parentId, dto.level)
+        : undefined;
     const department = await this.prisma.department.update({
       where: { id },
       data: {
         name: dto.name,
+        level,
         parentDepartmentId: dto.parentDepartmentId,
         branchId: dto.branchId,
         isActive: dto.isActive,
@@ -106,6 +114,25 @@ export class DepartmentsService {
       },
     });
     return department;
+  }
+
+  /**
+   * IGDERP-277: roots are level 1 (level 0 reserved for owner tier),
+   * children must be exactly parent + 1.
+   */
+  private async resolveLevel(parentId: string | null | undefined, level?: number): Promise<number> {
+    if (!parentId) {
+      return level ?? 1;
+    }
+    const parent = await this.prisma.department.findUnique({ where: { id: parentId } });
+    if (!parent) {
+      throw new BadRequestException('Parent department not found');
+    }
+    const expected = parent.level + 1;
+    if (level !== undefined && level !== expected) {
+      throw new BadRequestException(`Child department level must be parent + 1 (${expected})`);
+    }
+    return expected;
   }
 
   async remove(id: string) {

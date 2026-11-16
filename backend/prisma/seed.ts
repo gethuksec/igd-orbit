@@ -2,6 +2,13 @@ import { PrismaClient } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import * as bcrypt from 'bcrypt';
 import { RETIRED_ROLE_CODES, ROLE_TREE } from './org-tree';
+import {
+  ORG_DEPARTMENTS,
+  RETIRED_DEPARTMENT_CODES,
+  ORG_DIVISIONS,
+  ORG_GRADES,
+  ORG_POSITION_TITLES,
+} from './org-structure';
 
 const prisma = new PrismaClient();
 
@@ -1566,33 +1573,114 @@ async function main() {
   }
   console.log('✅ Chart of Accounts seeded');
 
-  // 16. Create Departments — ORG-REAL (IGDERP-237)
+  // 16. Create Departments — ORG-DEPT-DIV-GRADE (IGDERP-277)
+  // 3 roots (level 1): Marketing / Operasional & Toko / Support.
+  // SC/FIN/HRD retire as departments → divisions under Support.
   console.log('🏢 Creating departments...');
-  await prisma.department.upsert({
-    where: { code: 'DEPT-MKT' },
-    update: { name: 'Marketing', isActive: true },
-    create: { code: 'DEPT-MKT', name: 'Marketing', isActive: true },
-  });
-  await prisma.department.upsert({
-    where: { code: 'DEPT-OPS' },
-    update: { name: 'Operasional & Toko', isActive: true },
-    create: { code: 'DEPT-OPS', name: 'Operasional & Toko', isActive: true },
-  });
-  await prisma.department.upsert({
-    where: { code: 'DEPT-SC' },
-    update: { name: 'Supply Chain', isActive: true },
-    create: { code: 'DEPT-SC', name: 'Supply Chain', isActive: true },
-  });
-  await prisma.department.upsert({
-    where: { code: 'DEPT-FIN' },
-    update: { name: 'Finance & Accounting', isActive: true },
-    create: { code: 'DEPT-FIN', name: 'Finance & Accounting', isActive: true },
-  });
-  await prisma.department.upsert({
-    where: { code: 'DEPT-HRD' },
-    update: { name: 'Human Resource Development', isActive: true },
-    create: { code: 'DEPT-HRD', name: 'Human Resource Development', isActive: true },
-  });
+  const deptByCode = new Map<string, { id: string }>();
+  for (const d of ORG_DEPARTMENTS) {
+    const saved = await prisma.department.upsert({
+      where: { code: d.code },
+      update: { name: d.name, level: 1, parentDepartmentId: null, isActive: true },
+      create: { code: d.code, name: d.name, level: 1, isActive: true },
+    });
+    deptByCode.set(d.code, saved);
+  }
+  // Divisions seed before the remap (employees moving off retired
+  // departments land in their matching Support division).
+  console.log('🏗️ Creating divisions...');
+  const divByCode = new Map<string, { id: string }>();
+  for (const d of ORG_DIVISIONS) {
+    const dept = deptByCode.get(d.department)!;
+    const saved = await prisma.division.upsert({
+      where: { code: d.code },
+      update: { name: d.name, departmentId: dept.id, isActive: true },
+      create: { code: d.code, name: d.name, departmentId: dept.id, isActive: true },
+    });
+    divByCode.set(d.code, saved);
+  }
+  // FK-safe remap off the retired departments before deactivating them.
+  const supportDept = deptByCode.get('DEPT-SUP')!;
+  const retiredRemap: Record<string, { department: string; division: string }> = {
+    'DEPT-SC': { department: 'DEPT-SUP', division: 'DIV-SUP-SC' },
+    'DEPT-FIN': { department: 'DEPT-SUP', division: 'DIV-SUP-FIN' },
+    'DEPT-HRD': { department: 'DEPT-SUP', division: 'DIV-SUP-HRD' },
+  };
+  for (const [oldCode, target] of Object.entries(retiredRemap)) {
+    const old = await prisma.department.findUnique({ where: { code: oldCode } });
+    if (!old || !old.isActive) continue;
+    // Divisions land first (needed for the employee remap below).
+    const targetDiv = await prisma.division.findUnique({ where: { code: target.division } });
+    await prisma.employee.updateMany({
+      where: { departmentId: old.id },
+      data: { departmentId: supportDept.id, divisionId: targetDiv?.id ?? null },
+    });
+    await prisma.expense.updateMany({
+      where: { departmentId: old.id },
+      data: { departmentId: supportDept.id },
+    });
+    await prisma.journalEntryLine.updateMany({
+      where: { departmentId: old.id },
+      data: { departmentId: supportDept.id },
+    });
+    await prisma.position.updateMany({
+      where: { departmentId: old.id },
+      data: { departmentId: supportDept.id },
+    });
+    await prisma.department.update({ where: { id: old.id }, data: { isActive: false } });
+    console.log(`🚫 Retired department ${oldCode} → ${target.division}`);
+  }
+  console.log('🚫 Retired department codes:', RETIRED_DEPARTMENT_CODES.join(', '));
+
+  // 16b. Grades + Positions (IGDERP-277)
+  console.log('🏗️ Creating grades, positions...');
+  const gradeByCode = new Map<string, { id: string }>();
+  for (const g of ORG_GRADES) {
+    const saved = await prisma.grade.upsert({
+      where: { code: g.code },
+      update: { name: g.name, rank: g.rank, isActive: true },
+      create: { code: g.code, name: g.name, rank: g.rank, isActive: true },
+    });
+    gradeByCode.set(g.code, saved);
+  }
+  let positionCount = 0;
+  for (const t of ORG_POSITION_TITLES) {
+    const divisionId = t.division ? divByCode.get(t.division)!.id : null;
+    const departmentId = t.department ? deptByCode.get(t.department)!.id : null;
+    const defaultRoleId = roleByCode.get(t.titleCode)?.id ?? null;
+    if (t.rank === 6) {
+      // Staff titles expand to one row per grade (e.g. CR-1..CR-6).
+      for (const g of ORG_GRADES) {
+        await prisma.position.upsert({
+          where: { code: `${t.titleCode}-${g.rank}` },
+          update: {
+            name: `${t.name} ${g.rank}`, rank: 6, divisionId, departmentId,
+            gradeId: gradeByCode.get(g.code)!.id, defaultRoleId, isActive: true,
+          },
+          create: {
+            code: `${t.titleCode}-${g.rank}`, name: `${t.name} ${g.rank}`, rank: 6,
+            divisionId, departmentId, gradeId: gradeByCode.get(g.code)!.id,
+            defaultRoleId, isActive: true,
+          },
+        });
+        positionCount++;
+      }
+    } else {
+      await prisma.position.upsert({
+        where: { code: t.titleCode },
+        update: {
+          name: t.name, rank: t.rank, divisionId, departmentId,
+          gradeId: null, defaultRoleId, isActive: true,
+        },
+        create: {
+          code: t.titleCode, name: t.name, rank: t.rank, divisionId, departmentId,
+          defaultRoleId, isActive: true,
+        },
+      });
+      positionCount++;
+    }
+  }
+  console.log(`✅ Positions seeded: ${positionCount} rows`);
   // 16b. HR master data — IGDERP-261 (7-Nov agreed rules; nominal HR fills denda amounts)
   console.log('📋 Creating HR master data...');
   const leaveTypes = [

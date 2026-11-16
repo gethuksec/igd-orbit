@@ -1,9 +1,14 @@
-import { IsOptional, IsString, IsUUID, IsBoolean } from 'class-validator';
+import { IsOptional, IsString, IsUUID, IsBoolean, IsInt, Min } from 'class-validator';
 
 export class UpdateDepartmentDto {
   @IsString()
   @IsOptional()
   name?: string;
+
+  @IsInt({ message: 'Level must be an integer (root = 1, child = parent + 1, 0 reserved)' })
+  @Min(1, { message: 'Level 0 is reserved — roots start at 1' })
+  @IsOptional()
+  level?: number;
 
   @IsUUID('4')
   @IsOptional()

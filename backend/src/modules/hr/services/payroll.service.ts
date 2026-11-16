@@ -72,6 +72,7 @@ export class PayrollService {
         user: true,
         branch: true,
         department: true,
+        position: { include: { grade: true } },
       },
     });
 
@@ -142,10 +143,13 @@ export class PayrollService {
       }
 
       // Position allowance (TUNJANGAN JABATAN) - based on position
+      // IGDERP-277: reads the Position relation name (same substring behavior as
+      // before — the allowance move onto the Position row itself is IGDERP-271).
       // Example: HEADSTORE = 1,500,000, ASSISTANT = 700,000, TEKNISI-1 = 700,000
       let positionAllowance = new Decimal(0);
-      if (employee.position) {
-        const positionLower = employee.position.toLowerCase();
+      const positionName = (employee as any).position?.name as string | undefined;
+      if (positionName) {
+        const positionLower = positionName.toLowerCase();
         if (positionLower.includes('headstore') || positionLower.includes('head store')) {
           positionAllowance = new Decimal(1500000);
         } else if (positionLower.includes('assistant')) {
@@ -162,7 +166,7 @@ export class PayrollService {
           type: 'earning',
           name: 'Tunjangan Jabatan',
           amount: positionAllowance,
-          formula: employee.position ? `Position: ${employee.position}` : '10% of basic salary',
+          formula: positionName ? `Position: ${positionName}` : '10% of basic salary',
         });
       }
 

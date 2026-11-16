@@ -83,7 +83,8 @@ export class UsersService {
         employee: {
           select: {
             employeeCode: true,
-            position: true,
+            positionId: true,
+            position: { select: { name: true } },
           },
         },
       },
@@ -95,7 +96,7 @@ export class UsersService {
       email: u.email,
       phone: u.phone,
       employeeCode: u.employee?.employeeCode ?? null,
-      position: u.employee?.position ?? null,
+      position: (u.employee as any)?.position?.name ?? null,
     }));
   }
 
@@ -211,6 +212,22 @@ export class UsersService {
                 select: {
                   id: true,
                   name: true,
+                },
+              },
+              division: {
+                select: {
+                  id: true,
+                  code: true,
+                  name: true,
+                },
+              },
+              position: {
+                select: {
+                  id: true,
+                  code: true,
+                  name: true,
+                  rank: true,
+                  grade: { select: { id: true, code: true, name: true, rank: true } },
                 },
               },
             },
@@ -406,7 +423,8 @@ export class UsersService {
           employeeCode,
           branchId: createUserDto.departmentId ? null : null, // Will be set later if needed
           departmentId: createUserDto.departmentId || null,
-          position: null, // Will be set later if needed
+          divisionId: null, // Will be set later if needed
+          positionId: null, // Will be set later if needed
           isActive: true,
         },
       });
@@ -429,6 +447,22 @@ export class UsersService {
                   id: true,
                   code: true,
                   name: true,
+                },
+              },
+              division: {
+                select: {
+                  id: true,
+                  code: true,
+                  name: true,
+                },
+              },
+              position: {
+                select: {
+                  id: true,
+                  code: true,
+                  name: true,
+                  rank: true,
+                  grade: { select: { id: true, code: true, name: true, rank: true } },
                 },
               },
             },
@@ -562,8 +596,10 @@ export class UsersService {
         employeeUpdateData.branchId = updateUserDto.branchId || null;
       if (updateUserDto.departmentId !== undefined)
         employeeUpdateData.departmentId = updateUserDto.departmentId || null;
-      if (updateUserDto.position !== undefined)
-        employeeUpdateData.position = updateUserDto.position;
+      if (updateUserDto.divisionId !== undefined)
+        employeeUpdateData.divisionId = updateUserDto.divisionId || null;
+      if (updateUserDto.positionId !== undefined)
+        employeeUpdateData.positionId = updateUserDto.positionId || null;
       if (updateUserDto.hireDate !== undefined)
         employeeUpdateData.hireDate = updateUserDto.hireDate
           ? new Date(updateUserDto.hireDate)
@@ -616,6 +652,22 @@ export class UsersService {
               select: {
                 id: true,
                 name: true,
+              },
+            },
+            division: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+              },
+            },
+            position: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+                rank: true,
+                grade: { select: { id: true, code: true, name: true, rank: true } },
               },
             },
           },
