@@ -1,6 +1,6 @@
 // IGD Employee PWA service worker (UI-only phase: caches the app shell).
 // Scoped per-host via nginx: served as /sw.js on employee.igd.ad8ya.cloud.
-const CACHE = 'igd-employee-v1';
+const CACHE = 'igd-employee-v2';
 const SHELL = ['/', '/manifest.json', '/logo/igd-mark-512.png'];
 
 self.addEventListener('install', (event) => {
