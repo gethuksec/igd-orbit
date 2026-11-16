@@ -1,0 +1,26 @@
+{
+  "name": "IGD Employee",
+  "short_name": "IGD Employee",
+  "description": "Aplikasi karyawan IGD Group: absensi, cuti, shift, slip gaji",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F9FAFB",
+  "theme_color": "#EF4444",
+  "orientation": "portrait-primary",
+  "lang": "id",
+  "icons": [
+    {
+      "src": "/logo/igd-mark-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo/igd-mark-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

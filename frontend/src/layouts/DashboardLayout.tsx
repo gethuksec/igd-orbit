@@ -774,6 +774,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 </a>
               </Button>
             )}
+            {hasQuickAccess('Employee') && (
+              <Button asChild variant="outline" size="sm" className="hidden md:inline-flex items-center gap-1.5 font-semibold">
+                <a href="https://employee.igd.ad8ya.cloud" target="_blank" rel="noopener noreferrer">
+                  <Users className="w-4 h-4" />
+                  Employee
+                </a>
+              </Button>
+            )}
 
             {/* Notifications */}
               <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">

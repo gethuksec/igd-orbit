@@ -469,4 +469,18 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
       },
     ],
   },
+
+  // ── Employee App (PWA subdomain, IGDERP-274) ──
+  // Gates the Employee quick-access header button (subdomain link).
+  {
+    label: 'Employee',
+    children: [
+      {
+        label: 'Employee App',
+        children: [
+          { label: 'Akses Employee App', key: 'action.employee.access' },
+        ],
+      },
+    ],
+  },
 ];
