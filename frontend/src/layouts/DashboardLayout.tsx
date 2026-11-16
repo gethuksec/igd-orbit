@@ -294,18 +294,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             { icon: Smartphone, label: 'Tipe Perangkat', path: '/device-types', permission: 'service.checkpoint.view', roles: ['SUPERADMIN', 'OWNER', 'MGR', 'CS', 'HS', 'SPV'] },
           ],
         },
-        {
-          icon: UserCog,
-          label: 'Staff',
-          children: [
-            { icon: CalendarDays, label: 'Cuti', path: '/master-data/staff/cuti', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
-            { icon: Gavel, label: 'Denda', path: '/master-data/staff/denda', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
-            { icon: Building2, label: 'Divisi', path: '/master-data/staff/divisi', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
-            { icon: Award, label: 'Grade', path: '/master-data/staff/grade', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
-            { icon: Briefcase, label: 'Jabatan', path: '/master-data/staff/jabatan', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
-            { icon: MapPin, label: 'Working Location', path: '/master-data/staff/working-location', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
-          ],
-        },
       ],
     },
     {
@@ -387,13 +375,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       children: [
         { icon: Users, label: 'Data Karyawan', path: '/hr/employees', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: Clock, label: 'Presensi', path: '/hr/attendance', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
-        { icon: Wallet, label: 'Kasbon', path: '/hr/kasbon', permission: 'hr.kasbon.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: Building2, label: 'Departemen', path: '/hr/departments', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
-        { icon: ClipboardList, label: 'Divisi', path: '/hr/divisions', permission: 'hr.division.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: ScrollText, label: 'Kontrak', path: '/hr/contracts', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
-        { icon: CalendarDays, label: 'Cuti', path: '/hr/leave', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: Target, label: 'KPI', path: '/hr/kpi', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: Banknote, label: 'Payroll', path: '/hr/payroll', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+        { icon: CalendarDays, label: 'Cuti', path: '/master-data/staff/cuti', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
+        { icon: Gavel, label: 'Denda', path: '/master-data/staff/denda', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
+        { icon: Building2, label: 'Divisi', path: '/master-data/staff/divisi', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
+        { icon: Award, label: 'Grade', path: '/master-data/staff/grade', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
+        { icon: Briefcase, label: 'Jabatan', path: '/master-data/staff/jabatan', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
+        { icon: MapPin, label: 'Working Location', path: '/master-data/staff/working-location', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
       ],
     },
     {
