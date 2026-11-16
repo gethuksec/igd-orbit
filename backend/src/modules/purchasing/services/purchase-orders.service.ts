@@ -5,6 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../shared/services/prisma.service';
+import { outletOnlyWhere } from '../../../shared/utils/outlet-scope';
 import { CreatePurchaseOrderDto } from '../dto/create-purchase-order.dto';
 import { UpdatePurchaseOrderDto } from '../dto/update-purchase-order.dto';
 import { ApprovePurchaseOrderDto } from '../dto/approve-purchase-order.dto';
@@ -173,7 +174,7 @@ export class PurchaseOrdersService {
       branchId = userBranch?.branchId;
       if (!branchId) {
         const fallbackBranch = await this.prisma.branch.findFirst({
-          where: { isActive: true },
+          where: outletOnlyWhere(),
           orderBy: { createdAt: 'asc' },
           select: { id: true },
         });

@@ -2,6 +2,7 @@ import { Controller, Get, Param, HttpException, HttpStatus } from '@nestjs/commo
 import { ServiceTypesService } from '../service/service-types.service';
 import { ServiceOrdersService } from '../service/service-orders.service';
 import { PrismaService } from '../../shared/services/prisma.service';
+import { outletOnlyWhere } from '../../shared/utils/outlet-scope';
 import { Public } from '../../shared/decorators/public.decorator';
 
 /**
@@ -50,7 +51,7 @@ export class PublicController {
   @Get('branches')
   async getBranches() {
     return this.prisma.branch.findMany({
-      where: { isActive: true },
+      where: outletOnlyWhere(),
       select: {
         id: true,
         code: true,

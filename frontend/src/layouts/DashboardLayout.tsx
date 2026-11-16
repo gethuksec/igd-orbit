@@ -49,6 +49,8 @@ import {
   RotateCcw,
   ScanBarcode,
   Zap,
+  MapPin,
+  ScrollText,
 } from 'lucide-react';
 import type { Branch } from '@/services/public.service';
 import { publicService } from '@/services/public.service';
@@ -301,6 +303,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             { icon: Building2, label: 'Divisi', path: '/master-data/staff/divisi', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
             { icon: Award, label: 'Grade', path: '/master-data/staff/grade', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
             { icon: Briefcase, label: 'Jabatan', path: '/master-data/staff/jabatan', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
+            { icon: MapPin, label: 'Working Location', path: '/master-data/staff/working-location', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
           ],
         },
       ],
@@ -387,6 +390,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         { icon: Wallet, label: 'Kasbon', path: '/hr/kasbon', permission: 'hr.kasbon.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: Building2, label: 'Departemen', path: '/hr/departments', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: ClipboardList, label: 'Divisi', path: '/hr/divisions', permission: 'hr.division.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+        { icon: ScrollText, label: 'Kontrak', path: '/hr/contracts', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: CalendarDays, label: 'Cuti', path: '/hr/leave', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: Target, label: 'KPI', path: '/hr/kpi', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: Banknote, label: 'Payroll', path: '/hr/payroll', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },

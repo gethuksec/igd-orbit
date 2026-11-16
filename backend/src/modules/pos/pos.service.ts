@@ -3,6 +3,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services';
+import { outletOnlyWhere } from '../../shared/utils/outlet-scope';
 import { assertNoFreezeOpname, FREEZE_BLOCKED_STATUSES } from '../inventory/opname-freeze.guard';
 import { recordOpenOpnameMovements } from '../inventory/opname-movement.recorder';
 import type { OpenMovementEntry } from '../inventory/opname-movement.recorder';
@@ -363,7 +364,7 @@ export class PosService {
 
   async listBranches() {
     return this.prisma.branch.findMany({
-      where: { isActive: true },
+      where: outletOnlyWhere(),
       select: { id: true, name: true, code: true },
       orderBy: { name: 'asc' },
     });

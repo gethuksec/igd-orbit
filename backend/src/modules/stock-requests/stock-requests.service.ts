@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../../shared/services/prisma.service';
+import { outletOnlyWhere } from '../../shared/utils/outlet-scope';
 import { slugifyBranchName, shortToken } from '../branches/branches.service';
 import { CreateStockRequestDto } from './dto/create-stock-request.dto';
 import { UpdateStockRequestStatusDto } from './dto/update-stock-request-status.dto';
@@ -556,7 +557,7 @@ export class StockRequestsService {
   /** Active outlet intake links for the SODO review page (tokens stay server-side until here). */
   async listIntakeLinks() {
     const branches = await this.prisma.branch.findMany({
-      where: { isActive: true },
+      where: outletOnlyWhere(),
       select: { id: true, code: true, name: true, intakeToken: true, intakeSlug: true },
       orderBy: { code: 'asc' },
     });

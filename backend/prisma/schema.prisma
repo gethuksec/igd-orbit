@@ -177,6 +177,8 @@ model Branch {
   pettyCash          PettyCash[]
   employees          Employee[]
   attendances        Attendance[]
+  workingLocations   WorkingLocation[]
+  contractBranches   ContractBranch[]
 
   @@index([code])
   @@index([isActive])
@@ -241,6 +243,7 @@ model Department {
   employees         Employee[]
   divisions         Division[]
   positions         Position[]
+  contracts         Contract[]
 
   @@index([code])
   @@index([level])
@@ -266,6 +269,7 @@ model Division {
   department Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
   employees  Employee[]
   positions  Position[]
+  contracts  Contract[]
 
   @@index([code])
   @@index([departmentId])
@@ -316,6 +320,7 @@ model Position {
   grade       Grade?      @relation(fields: [gradeId], references: [id], onDelete: SetNull)
   defaultRole Role?       @relation("PositionDefaultRole", fields: [defaultRoleId], references: [id], onDelete: SetNull)
   employees   Employee[]
+  contracts   Contract[]
 
   @@index([code])
   @@index([rank])
@@ -889,6 +894,7 @@ model Employee {
   overtimeRequests OvertimeRequest[]
   payrolls         Payroll[]
   kpiRecords       KPIRecord[]
+  contracts        Contract[]
 
   @@index([userId])
   @@index([employeeCode])
@@ -2121,6 +2127,90 @@ model PenaltyType {
   @@index([code])
   @@index([isActive])
   @@map("penalty_types")
+}
+
+// ============================================
+// 10b. HR CONTRACTS (IGDERP-270)
+// Contract stage pipeline trial → probation → PKWT → PKWTT (company-specific,
+// intentionally non-statutory) + WorkingLocation master for HQ-like sites.
+// Branches stay outlet-only by construction; HQ-like sites live here.
+// ============================================
+
+model WorkingLocation {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  name      String
+  address   String?
+  branchId  String?  @map("branch_id") // optional link to an outlet branch
+  latitude  Decimal? @map("latitude") @db.Decimal(10, 7)
+  longitude Decimal? @map("longitude") @db.Decimal(10, 7)
+  radiusM   Int      @default(100) @map("radius_m") // clock-in validation radius, meters
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  branch    Branch?    @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  contracts Contract[]
+
+  @@index([code])
+  @@index([isActive])
+  @@index([branchId])
+  @@map("working_locations")
+}
+
+model Contract {
+  id                 String    @id @default(uuid())
+  contractNumber     String    @unique @map("contract_number") // CTR-YYYYMM-XXXXXX
+  employeeId         String    @map("employee_id")
+  workingLocationId  String?   @map("working_location_id")
+  type               String // 'trial' | 'probation' | 'pkwt' | 'pkwtt'
+  startDate          DateTime  @map("start_date") @db.Date
+  endDate            DateTime? @map("end_date") @db.Date // null = permanent (PKWTT tetap)
+  probationEndDate   DateTime? @map("probation_end_date") @db.Date
+  basicSalary        Decimal?  @map("basic_salary") @db.Decimal(15, 2) // snapshot only, never rewritten by access edits
+  positionId         String?   @map("position_id") // snapshot against the 277 org shape
+  divisionId         String?   @map("division_id") // snapshot
+  departmentId       String?   @map("department_id") // snapshot
+  changeReason       String?   @map("change_reason") // 'initial' | 'promotion' | 'demotion' | 'rotation' | 'renewal' | 'adjustment'
+  status             String    @default("draft") @map("status") // 'draft' | 'active' | 'expired' | 'terminated' | 'renewed'
+  previousContractId String?   @map("previous_contract_id") // career-history chain
+  approvedBy         String?   @map("approved_by") // CHR user id
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  employee          Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  workingLocation   WorkingLocation? @relation(fields: [workingLocationId], references: [id], onDelete: SetNull)
+  position          Position?        @relation(fields: [positionId], references: [id], onDelete: SetNull)
+  division          Division?        @relation(fields: [divisionId], references: [id], onDelete: SetNull)
+  department        Department?      @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  previousContract  Contract?        @relation("ContractChain", fields: [previousContractId], references: [id], onDelete: SetNull)
+  nextContracts     Contract[]       @relation("ContractChain")
+  contractBranches  ContractBranch[]
+
+  @@index([contractNumber])
+  @@index([employeeId])
+  @@index([status])
+  @@index([type])
+  @@map("contracts")
+}
+
+model ContractBranch {
+  id         String   @id @default(uuid())
+  contractId String   @map("contract_id")
+  branchId   String   @map("branch_id") // outlet only
+  isPrimary  Boolean  @default(false) @map("is_primary")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // Relations
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  branch   Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([contractId, branchId])
+  @@index([contractId])
+  @@index([branchId])
+  @@map("contract_branches")
 }
 
 

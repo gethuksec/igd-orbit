@@ -2,8 +2,9 @@ import { useParams, Link } from 'react-router-dom';
 import { BreadcrumbHeader } from '@/components/shared';
 import { useQuery } from '@tanstack/react-query';
 import { Building2, Briefcase, Calendar, Mail, Phone, CheckCircle, XCircle, AlertCircle, DollarSign } from 'lucide-react';
-import { api } from '@/services/api';
-import { formatDate, formatCurrency } from '@/utils/format';
+import { api } from "@/services/api";
+import { contractsService } from "@/services/contracts.service";
+import { formatDate, formatCurrency } from "@/utils/format";
 
 export default function EmployeeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -15,6 +16,13 @@ export default function EmployeeDetail() {
       return response.data.data || response.data;
     },
     enabled: !!id,
+  });
+
+  const employeeId = (user as any)?.employee?.id as string | undefined;
+  const { data: chainData } = useQuery({
+    queryKey: ["contract-chain", employeeId],
+    queryFn: () => contractsService.getChain(employeeId as string),
+    enabled: !!employeeId,
   });
 
   if (isLoading) {
@@ -43,11 +51,27 @@ export default function EmployeeDetail() {
   }
 
   const employee = user.employee;
+  const chain = chainData?.data ?? [];
+  const activeContract = chain.find((c) => c.status === "active");
+
+  const STAGE_BADGE: Record<string, string> = {
+    trial: "bg-amber-100 text-amber-800 border-amber-200",
+    probation: "bg-blue-100 text-blue-800 border-blue-200",
+    pkwt: "bg-indigo-100 text-indigo-800 border-indigo-200",
+    pkwtt: "bg-green-100 text-green-800 border-green-200",
+  };
 
   return (
     <div className="w-full space-y-6">
       {/* Header */}
-      <BreadcrumbHeader title="Detail Karyawan" subtitle={user.fullName || user.email} />
+      <BreadcrumbHeader title="Detail Karyawan" subtitle={user.fullName || user.email}>
+        {activeContract && (
+          <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border bg-green-100 text-green-800 border-green-200">
+            Kontrak aktif: {activeContract.type.toUpperCase()}
+            {activeContract.endDate ? ` · s.d. ${formatDate(activeContract.endDate)}` : " · tetap"}
+          </span>
+        )}
+      </BreadcrumbHeader>
 
       {/* Info Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -219,6 +243,45 @@ export default function EmployeeDetail() {
                 <p className="text-base font-semibold text-gray-900">{employee.bpjsNumber}</p>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Contract Timeline */}
+      {chain.length > 0 && (
+        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Timeline Kontrak</h2>
+          <div className="relative pl-6">
+            <div className="absolute left-2 top-2 bottom-2 w-0.5 bg-red-200" />
+            <div className="space-y-3">
+              {chain.map((c) => (
+                <div key={c.id} className="relative">
+                  <div
+                    className={`absolute -left-6 top-1.5 w-3 h-3 rounded-full border-2 border-white ${
+                      c.status === "active" ? "bg-green-500" : "bg-red-400"
+                    }`}
+                  />
+                  <div className="border border-gray-100 rounded-lg p-3">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold border ${STAGE_BADGE[c.type] ?? "bg-gray-100 text-gray-800 border-gray-200"}`}>
+                        {c.type.toUpperCase()}
+                      </span>
+                      <span className="font-mono text-xs text-gray-700">{c.contractNumber}</span>
+                      <span className="text-xs font-semibold text-gray-500">{c.status}</span>
+                      {c.changeReason && c.changeReason !== "initial" && (
+                        <span className="text-xs text-purple-700">{c.changeReason}</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      {formatDate(c.startDate)} – {c.endDate ? formatDate(c.endDate) : "tetap"}
+                      {c.position?.name ? ` · ${c.position.name}` : ""}
+                      {c.workingLocation?.name ? ` · ${c.workingLocation.name}` : ""}
+                      {c.basicSalary != null ? ` · ${formatCurrency(c.basicSalary)}` : ""}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
