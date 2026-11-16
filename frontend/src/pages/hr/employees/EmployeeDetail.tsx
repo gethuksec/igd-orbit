@@ -102,13 +102,20 @@ export default function EmployeeDetail() {
               <p className="text-sm text-gray-600">Employee Code</p>
               <p className="text-base font-mono font-semibold text-gray-900">{employee.employeeCode}</p>
             </div>
-            {employee.position && (
+            {(employee.position || (employee as any).positionDetail) && (
               <div>
                 <p className="text-sm text-gray-600 flex items-center gap-2">
                   <Briefcase className="w-4 h-4" />
-                  Posisi
+                  Jabatan
                 </p>
-                <p className="text-base font-semibold text-gray-900">{employee.position}</p>
+                <p className="text-base font-semibold text-gray-900">
+                  {employee.position || (employee as any).positionDetail?.name}
+                  {(employee as any).positionDetail?.grade && (
+                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+                      G{(employee as any).positionDetail.grade.rank}
+                    </span>
+                  )}
+                </p>
               </div>
             )}
             {employee.branch && (
@@ -127,6 +134,12 @@ export default function EmployeeDetail() {
               <div>
                 <p className="text-sm text-gray-600">Departemen</p>
                 <p className="text-base font-semibold text-gray-900">{employee.department.name}</p>
+              </div>
+            )}
+            {(employee as any).division && (
+              <div>
+                <p className="text-sm text-gray-600">Divisi</p>
+                <p className="text-base font-semibold text-gray-900">{(employee as any).division.name}</p>
               </div>
             )}
             {employee.hireDate && (

@@ -72,7 +72,7 @@ export interface TransformedUser {
     branch?: { id: string; code: string; name: string } | null;
     department?: { id: string; name: string } | null;
     division?: { id: string; code: string; name: string } | null;
-    positionDetail?: { id: string; code: string; name: string; rank: number } | null;
+    positionDetail?: { id: string; code: string; name: string; rank: number; minSalary?: any; grade?: { id: string; code: string; name: string; rank: number } | null } | null;
   } | null;
   roles: Array<{
     id: string;

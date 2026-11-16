@@ -43,6 +43,7 @@ import {
   Clock,
   CalendarDays,
   Gavel,
+  Briefcase,
   Banknote,
   Target,
   RotateCcw,
@@ -297,6 +298,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           children: [
             { icon: CalendarDays, label: 'Cuti', path: '/master-data/staff/cuti', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
             { icon: Gavel, label: 'Denda', path: '/master-data/staff/denda', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
+            { icon: Building2, label: 'Divisi', path: '/master-data/staff/divisi', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
+            { icon: Award, label: 'Grade', path: '/master-data/staff/grade', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
+            { icon: Briefcase, label: 'Jabatan', path: '/master-data/staff/jabatan', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
           ],
         },
       ],

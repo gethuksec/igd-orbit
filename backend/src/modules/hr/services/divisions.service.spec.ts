@@ -33,6 +33,15 @@ describe('DivisionsService (IGDERP-277)', () => {
     expect(res.isActive).toBe(true);
   });
 
+  it('auto-generates a code when omitted', async () => {
+    const { service, prisma }: any = await boot();
+    prisma.division.findUnique.mockResolvedValue(null);
+    prisma.department.findUnique.mockResolvedValue({ id: 'd1', isActive: true });
+    prisma.division.create.mockImplementation(async ({ data }: any) => ({ id: 'div-2', ...data }));
+    const res: any = await service.create({ name: 'Baru', departmentId: 'd1' });
+    expect(res.code).toMatch(/^DIV-[0-9A-F]{8}$/);
+  });
+
   it('rejects duplicate code', async () => {
     const { service, prisma }: any = await boot();
     prisma.division.findUnique.mockResolvedValue({ id: 'dup' });

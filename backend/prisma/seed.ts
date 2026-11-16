@@ -1,10 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import * as bcrypt from 'bcrypt';
-import { RETIRED_ROLE_CODES, ROLE_TREE } from './org-tree';
+import { RETIRED_ROLE_CODES, ROLE_TREE, ORG_DEPARTMENTS, RETIRED_DEPARTMENT_CODES } from './org-tree';
 import {
-  ORG_DEPARTMENTS,
-  RETIRED_DEPARTMENT_CODES,
   ORG_DIVISIONS,
   ORG_GRADES,
   ORG_POSITION_TITLES,

@@ -97,6 +97,9 @@ import CustomerTypeDetail from './pages/customer-types/CustomerTypeDetail';
 // Master Data - Staff (HR masters, IGDERP-261)
 import LeaveTypeList from './pages/master-data/staff/LeaveTypeList';
 import PenaltyTypeList from './pages/master-data/staff/PenaltyTypeList';
+import DivisionList from './pages/master-data/staff/DivisionList';
+import GradeList from './pages/master-data/staff/GradeList';
+import PositionList from './pages/master-data/staff/PositionList';
 // Master Data - Service Types
 import CustomerTierList from "./pages/master-data/customer-tiers/CustomerTierList";
 import ServiceTypeList from './pages/service-types/ServiceTypeList';
@@ -536,6 +539,10 @@ function App() {
             {/* Master Data - Staff (HR masters, IGDERP-261) */}
             <Route path="/master-data/staff/cuti" element={<ProtectedRoute><DashboardLayout><LeaveTypeList /></DashboardLayout></ProtectedRoute>} />
             <Route path="/master-data/staff/denda" element={<ProtectedRoute><DashboardLayout><PenaltyTypeList /></DashboardLayout></ProtectedRoute>} />
+            {/* Master Data - Staff (org masters, IGDERP-277) */}
+            <Route path="/master-data/staff/divisi" element={<ProtectedRoute><DashboardLayout><DivisionList /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/master-data/staff/grade" element={<ProtectedRoute><DashboardLayout><GradeList /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/master-data/staff/jabatan" element={<ProtectedRoute><DashboardLayout><PositionList /></DashboardLayout></ProtectedRoute>} />
 
             {/* Master Data - Payment Terms */}
             <Route path="/payment-terms" element={<ProtectedRoute><DashboardLayout><PaymentTermList /></DashboardLayout></ProtectedRoute>} />
@@ -1711,7 +1718,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <PlaceholderPage title="Divisi" description="Kelola divisi karyawan" />
+                    <DivisionList />
                   </DashboardLayout>
                 </ProtectedRoute>
               }

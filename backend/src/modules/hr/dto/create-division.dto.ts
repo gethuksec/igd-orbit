@@ -2,8 +2,8 @@ import { IsNotEmpty, IsOptional, IsString, IsUUID, IsBoolean } from 'class-valid
 
 export class CreateDivisionDto {
   @IsString()
-  @IsNotEmpty({ message: 'Division code is required' })
-  code!: string;
+  @IsOptional()
+  code?: string;
 
   @IsString()
   @IsNotEmpty({ message: 'Division name is required' })

@@ -3,6 +3,8 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsNumber,
+  Min,
   MinLength,
   Matches,
   IsUUID,
@@ -57,4 +59,17 @@ export class CreateUserDto {
   @IsUUID('4', { message: 'Department ID must be a valid UUID' })
   @IsOptional()
   departmentId?: string;
+
+  @IsUUID('4', { message: 'Division ID must be a valid UUID' })
+  @IsOptional()
+  divisionId?: string;
+
+  @IsUUID('4', { message: 'Position ID must be a valid UUID' })
+  @IsOptional()
+  positionId?: string;
+
+  @IsNumber({}, { message: 'Basic salary must be a number' })
+  @Min(0, { message: 'Basic salary cannot be negative' })
+  @IsOptional()
+  basicSalary?: number;
 }

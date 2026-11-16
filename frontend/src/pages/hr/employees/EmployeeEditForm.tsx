@@ -21,7 +21,8 @@ export default function EmployeeEditForm() {
     employeeCode: '',
     branchId: '',
     departmentId: '',
-    position: '',
+    divisionId: '',
+    positionId: '',
     hireDate: '',
     employmentType: '' as 'PKWT' | 'PKWTT' | '',
     endDate: '',
@@ -55,6 +56,25 @@ export default function EmployeeEditForm() {
     },
   });
 
+  // Divisions + positions for pickers (IGDERP-277)
+  const { data: divisions } = useQuery({
+    queryKey: ['divisions-options'],
+    queryFn: async () => {
+      const response = await api.get('/divisions');
+      return response.data?.data || [];
+    },
+  });
+  const { data: positions } = useQuery({
+    queryKey: ['positions-options'],
+    queryFn: async () => {
+      const response = await api.get('/positions', { params: { limit: 200 } });
+      return response.data?.data || [];
+    },
+  });
+  const selectedPosition = (positions || []).find((p: any) => p.id === formData.positionId);
+  const minSalary = selectedPosition?.minSalary != null ? Number(selectedPosition.minSalary) : null;
+  const belowMin = minSalary !== null && Number(formData.basicSalary) > 0 && Number(formData.basicSalary) < minSalary;
+
   // Populate form when user data is loaded
   useEffect(() => {
     if (user && user.employee) {
@@ -65,7 +85,8 @@ export default function EmployeeEditForm() {
         employeeCode: user.employee.employeeCode || '',
         branchId: user.employee.branchId || '',
         departmentId: user.employee.departmentId || '',
-        position: user.employee.position || '',
+        divisionId: user.employee.divisionId || '',
+        positionId: user.employee.positionId || '',
         hireDate: user.employee.hireDate ? formatDateForInput(user.employee.hireDate) : '',
         employmentType: (user.employee.employmentType as 'PKWT' | 'PKWTT') || '',
         endDate: user.employee.endDate ? formatDateForInput(user.employee.endDate) : '',
@@ -268,14 +289,40 @@ export default function EmployeeEditForm() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Posisi</label>
-              <input
-                type="text"
-                value={formData.position}
-                onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Jabatan</label>
+              <select
+                value={formData.positionId}
+                onChange={(e) => setFormData({ ...formData, positionId: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                placeholder="e.g., Manager, Staff"
-              />
+              >
+                <option value="">Pilih Jabatan (Opsional)</option>
+                {(positions || []).map((p: any) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}{p.grade ? ` — G${p.grade.rank}` : ''} (L{p.rank})
+                  </option>
+                ))}
+              </select>
+              {belowMin && (
+                <p className="text-xs text-amber-600 mt-1">
+                  Di bawah min. jabatan ({selectedPosition.name}: Rp {minSalary!.toLocaleString('id-ID')}) — bisa disimpan, tapi cek lagi.
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Divisi</label>
+              <select
+                value={formData.divisionId}
+                onChange={(e) => setFormData({ ...formData, divisionId: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              >
+                <option value="">Pilih Divisi (Opsional)</option>
+                {(divisions || []).map((d: any) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>

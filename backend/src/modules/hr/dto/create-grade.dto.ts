@@ -2,8 +2,8 @@ import { IsNotEmpty, IsOptional, IsString, IsBoolean, IsInt, Min, Max } from 'cl
 
 export class CreateGradeDto {
   @IsString()
-  @IsNotEmpty({ message: 'Grade code is required' })
-  code!: string;
+  @IsOptional()
+  code?: string;
 
   @IsString()
   @IsNotEmpty({ message: 'Grade name is required' })

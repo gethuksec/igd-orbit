@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ConflictException, BadRequestException }
 import { PrismaService } from '../../../shared/services/prisma.service';
 import { CreateGradeDto } from '../dto/create-grade.dto';
 import { UpdateGradeDto } from '../dto/update-grade.dto';
+import { randomBytes } from 'crypto';
 
 /**
  * Grades Service (IGDERP-277)
@@ -61,7 +62,8 @@ export class GradesService {
   }
 
   async create(dto: CreateGradeDto) {
-    const existing = await this.prisma.grade.findUnique({ where: { code: dto.code } });
+    const code = dto.code ?? (await this.generateCode());
+    const existing = await this.prisma.grade.findUnique({ where: { code } });
     if (existing) {
       throw new ConflictException('Grade code already exists');
     }
@@ -71,7 +73,7 @@ export class GradesService {
     }
     return this.prisma.grade.create({
       data: {
-        code: dto.code,
+        code,
         name: dto.name,
         rank: dto.rank,
         isActive: dto.isActive ?? true,
@@ -113,5 +115,14 @@ export class GradesService {
       where: { id },
       data: { isActive: false },
     });
+  }
+
+  private async generateCode(): Promise<string> {
+    for (let i = 0; i < 10; i++) {
+      const code = `GRD-${randomBytes(4).toString('hex').toUpperCase()}`;
+      const existing = await this.prisma.grade.findUnique({ where: { code } });
+      if (!existing) return code;
+    }
+    throw new BadRequestException('Failed to generate unique code after multiple attempts');
   }
 }

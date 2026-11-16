@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ConflictException, BadRequestException }
 import { PrismaService } from '../../../shared/services/prisma.service';
 import { CreateDivisionDto } from '../dto/create-division.dto';
 import { UpdateDivisionDto } from '../dto/update-division.dto';
+import { randomBytes } from 'crypto';
 
 /**
  * Divisions Service (IGDERP-277)
@@ -66,7 +67,8 @@ export class DivisionsService {
   }
 
   async create(dto: CreateDivisionDto) {
-    const existing = await this.prisma.division.findUnique({ where: { code: dto.code } });
+    const code = dto.code ?? (await this.generateCode());
+    const existing = await this.prisma.division.findUnique({ where: { code } });
     if (existing) {
       throw new ConflictException('Division code already exists');
     }
@@ -78,7 +80,7 @@ export class DivisionsService {
     }
     return this.prisma.division.create({
       data: {
-        code: dto.code,
+        code,
         name: dto.name,
         departmentId: dto.departmentId,
         isActive: dto.isActive ?? true,
@@ -128,5 +130,14 @@ export class DivisionsService {
       where: { id },
       data: { isActive: false },
     });
+  }
+
+  private async generateCode(): Promise<string> {
+    for (let i = 0; i < 10; i++) {
+      const code = `DIV-${randomBytes(4).toString('hex').toUpperCase()}`;
+      const existing = await this.prisma.division.findUnique({ where: { code } });
+      if (!existing) return code;
+    }
+    throw new BadRequestException('Failed to generate unique code after multiple attempts');
   }
 }

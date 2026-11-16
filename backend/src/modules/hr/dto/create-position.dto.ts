@@ -12,8 +12,8 @@ import {
 
 export class CreatePositionDto {
   @IsString()
-  @IsNotEmpty({ message: 'Position code is required' })
-  code!: string;
+  @IsOptional()
+  code?: string;
 
   @IsString()
   @IsNotEmpty({ message: 'Position name is required' })

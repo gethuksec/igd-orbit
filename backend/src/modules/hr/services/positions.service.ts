@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../../../shared/services/prisma.service';
 import { CreatePositionDto } from '../dto/create-position.dto';
 import { UpdatePositionDto } from '../dto/update-position.dto';
+import { randomBytes } from 'crypto';
 
 /**
  * Positions Service (IGDERP-277)
@@ -115,7 +116,8 @@ export class PositionsService {
   }
 
   async create(dto: CreatePositionDto) {
-    const existing = await this.prisma.position.findUnique({ where: { code: dto.code } });
+    const code = dto.code ?? (await this.generateCode());
+    const existing = await this.prisma.position.findUnique({ where: { code } });
     if (existing) {
       throw new ConflictException('Position code already exists');
     }
@@ -123,7 +125,7 @@ export class PositionsService {
     await this.assertRefsExist(dto);
     return this.prisma.position.create({
       data: {
-        code: dto.code,
+        code,
         name: dto.name,
         rank: dto.rank,
         divisionId: dto.divisionId,
@@ -179,5 +181,14 @@ export class PositionsService {
       where: { id },
       data: { isActive: false },
     });
+  }
+
+  private async generateCode(): Promise<string> {
+    for (let i = 0; i < 10; i++) {
+      const code = `POS-${randomBytes(4).toString('hex').toUpperCase()}`;
+      const existing = await this.prisma.position.findUnique({ where: { code } });
+      if (!existing) return code;
+    }
+    throw new BadRequestException('Failed to generate unique code after multiple attempts');
   }
 }
