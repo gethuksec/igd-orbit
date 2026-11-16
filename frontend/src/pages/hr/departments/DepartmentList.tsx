@@ -67,7 +67,7 @@ export default function DepartmentList() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: FormData }) => api.put("/departments/" + id, data),
+    mutationFn: ({ id, data }: { id: string; data: Omit<FormData, 'parentDepartmentId'> & { parentDepartmentId?: string } }) => api.put("/departments/" + id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["departments-list"] });
       queryClient.invalidateQueries({ queryKey: ["departments"] });
