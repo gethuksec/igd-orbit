@@ -278,7 +278,12 @@ export class ContractsService {
     }
     await this.assertRefs(dto);
     await this.assertCaps(dto.employeeId, dto.type, startDate, endDate);
-    const contractNumber = await this.generateContractNumber(new Date());
+    const manualNumber = dto.contractNumber?.trim() || null;
+    if (manualNumber) {
+      const taken = await this.prisma.contract.findUnique({ where: { contractNumber: manualNumber } });
+      if (taken) throw new ConflictException(`Contract number ${manualNumber} is already used`);
+    }
+    const contractNumber = manualNumber ?? (await this.generateContractNumber(new Date()));
     const created = await this.prisma.contract.create({
       data: {
         contractNumber,
@@ -481,7 +486,7 @@ export class ContractsService {
           divisionId: dto.divisionId ?? null,
           departmentId: dto.departmentId ?? null,
           changeReason: 'initial',
-          status: 'active',
+          status: dto.status ?? 'active',
           contractBranches:
             branchIds.length > 0
               ? {

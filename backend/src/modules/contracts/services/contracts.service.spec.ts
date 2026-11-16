@@ -136,6 +136,38 @@ describe('ContractsService caps (IGDERP-270)', () => {
     expect(res.changeReason).toBe('initial');
   });
 
+  it('uses a manual contract number when provided', async () => {
+    const { service, prisma }: any = await boot();
+    prisma.employee.findUnique.mockResolvedValue({ id: EMP });
+    prisma.contract.count.mockResolvedValue(0);
+    prisma.contract.findUnique.mockResolvedValue(null);
+    prisma.contract.create.mockImplementation(async ({ data }: any) => ({ id: 'c-1', ...data }));
+    const res: any = await service.create({
+      employeeId: EMP,
+      type: 'trial',
+      startDate: '2026-01-05',
+      endDate: '2026-02-04',
+      contractNumber: 'CTR-MANUAL-001',
+    } as any);
+    expect(res.contractNumber).toBe('CTR-MANUAL-001');
+  });
+
+  it('rejects a duplicate manual contract number', async () => {
+    const { service, prisma }: any = await boot();
+    prisma.employee.findUnique.mockResolvedValue({ id: EMP });
+    prisma.contract.count.mockResolvedValue(0);
+    prisma.contract.findUnique.mockResolvedValue({ id: 'c-taken', contractNumber: 'CTR-MANUAL-001' });
+    await expect(
+      service.create({
+        employeeId: EMP,
+        type: 'trial',
+        startDate: '2026-01-05',
+        endDate: '2026-02-04',
+        contractNumber: 'CTR-MANUAL-001',
+      } as any),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
   it('marks the previous row renewed on renewal', async () => {
     const { service, prisma }: any = await boot();
     prisma.employee.findUnique.mockResolvedValue({ id: EMP });

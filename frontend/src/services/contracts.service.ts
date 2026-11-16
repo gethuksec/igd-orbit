@@ -51,6 +51,7 @@ export interface IntakePayload {
   branchIds?: string[];
   primaryBranchId?: string;
   roleId?: string;
+  status?: string;
 }
 
 const emptyMeta = (page = 1, limit = 20) => ({ page, limit, total: 0, totalPages: 0 });
@@ -112,6 +113,7 @@ export const contractsService = {
     employeeId: string;
     type: ContractType;
     startDate: string;
+    contractNumber?: string;
     branchIds?: string[];
     primaryBranchId?: string;
     changeReason?: string;
