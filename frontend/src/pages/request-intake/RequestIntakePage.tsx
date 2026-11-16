@@ -264,7 +264,6 @@ export default function RequestIntakePage() {
   const [quickErr, setQuickErr] = useState('');
   const [rows, setRows] = useState<RowState[]>([emptyRow()]);
   const [requestType, setRequestType] = useState<'EXIT' | 'LIMIT' | ''>('');
-  const [customerName, setCustomerName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<{ no: string; summary: string[]; customerName: string; requestType: string } | null>(null);
   const [formErr, setFormErr] = useState('');
@@ -354,7 +353,6 @@ export default function RequestIntakePage() {
         staffName,
         requestType,
         ...(customer ? { customerId: customer.id } : {}),
-        ...(!customer && customerName.trim() ? { customerName: customerName.trim() } : {}),
         items: rows.map((r) => ({
           barcode: r.barcode.trim(),
           listing: r.listing,
@@ -371,7 +369,7 @@ export default function RequestIntakePage() {
         summary: (res.items || []).map(
           (it) => `${it.productName}${it.listing === 'NEW' ? ' NEW' : ''}${it.note ? ` — ${it.note}` : ''}`,
         ),
-        customerName: customer?.name || customerName.trim() || '—',
+        customerName: customer?.name || '—',
         requestType,
       });
       window.scrollTo(0, 0);
@@ -443,7 +441,6 @@ export default function RequestIntakePage() {
                 setStaffName('');
                 setRequestType('');
                 setCustomer(null);
-                setCustomerName('');
                 setCustSearch('');
                 window.scrollTo(0, 0);
               }}
@@ -487,21 +484,27 @@ export default function RequestIntakePage() {
               <h2 className="text-xs uppercase tracking-wide text-gray-500 font-bold">Tipe Request</h2>
               <div>
                 <Label className="text-[13.5px] font-semibold">Tipe <span className="text-red-600">*</span></Label>
-                <div className="flex bg-gray-100 rounded-lg p-1 gap-1 mt-1">
+                <div className="space-y-2 mt-2" role="radiogroup" aria-label="Tipe request">
                   {([
                     { v: 'EXIT', label: 'Tidak jadi beli' },
                     { v: 'LIMIT', label: 'Stok habis' },
                   ] as const).map((o) => (
-                    <button
+                    <label
                       key={o.v}
-                      type="button"
-                      onClick={() => setRequestType(o.v)}
-                      className={`flex-1 rounded-md min-h-[42px] text-sm font-semibold ${
-                        requestType === o.v ? 'bg-white text-red-600 shadow-sm' : 'text-gray-500'
+                      className={`flex items-center gap-3 rounded-lg border-[1.5px] px-3 min-h-[46px] text-[15px] cursor-pointer ${
+                        requestType === o.v ? 'border-red-600 bg-red-50 font-semibold' : 'border-gray-300 bg-white'
                       }`}
                     >
+                      <input
+                        type="radio"
+                        name="request-type"
+                        value={o.v}
+                        checked={requestType === o.v}
+                        onChange={() => setRequestType(o.v)}
+                        className="w-4 h-4 accent-red-600"
+                      />
                       {o.label}
-                    </button>
+                    </label>
                   ))}
                 </div>
               </div>
@@ -512,7 +515,7 @@ export default function RequestIntakePage() {
             <CardContent className="p-4 space-y-3">
               <h2 className="text-xs uppercase tracking-wide text-gray-500 font-bold">Customer</h2>
               <div>
-                <Label className="text-[13.5px] font-semibold">Nama</Label>
+                <Label className="text-[13.5px] font-semibold">Nama <span className="font-normal text-gray-400">(opsional)</span></Label>
                 <div className="flex gap-2 mt-1">
                   {customer ? (
                     <div className="flex-1 min-h-[46px] text-[15px] border-[1.5px] border-gray-300 rounded-md bg-white px-3 flex items-center gap-2">
@@ -582,17 +585,6 @@ export default function RequestIntakePage() {
                 )}
                 {custErr && <p className="text-[12.5px] text-red-600 mt-1.5">{custErr}</p>}
               </div>
-              {!customer && (
-                <div>
-                  <Label className="text-[13.5px] font-semibold">Atau ketik nama (opsional)</Label>
-                  <Input
-                    className={`${inputCls} mt-1`}
-                    placeholder="cth: Budi"
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                  />
-                </div>
-              )}
             </CardContent>
           </Card>
 
