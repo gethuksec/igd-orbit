@@ -263,8 +263,10 @@ export default function RequestIntakePage() {
   const [quickSaving, setQuickSaving] = useState(false);
   const [quickErr, setQuickErr] = useState('');
   const [rows, setRows] = useState<RowState[]>([emptyRow()]);
+  const [requestType, setRequestType] = useState<'EXIT' | 'LIMIT' | ''>('');
+  const [customerName, setCustomerName] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [done, setDone] = useState<{ no: string; summary: string[]; customerName: string } | null>(null);
+  const [done, setDone] = useState<{ no: string; summary: string[]; customerName: string; requestType: string } | null>(null);
   const [formErr, setFormErr] = useState('');
 
   const ctx = useQuery({
@@ -334,8 +336,8 @@ export default function RequestIntakePage() {
       setFormErr('Pilih nama pengaju dulu.');
       return;
     }
-    if (!customer) {
-      setFormErr('Pilih pelanggan dulu (cari atau tambah baru).');
+    if (!requestType) {
+      setFormErr('Pilih tipe request dulu (Tidak jadi beli / Stok habis).');
       return;
     }
     for (let i = 0; i < rows.length; i++) {
@@ -350,7 +352,9 @@ export default function RequestIntakePage() {
     try {
       const res = await stockRequestsService.createIntake(token, {
         staffName,
-        customerId: customer.id,
+        requestType,
+        ...(customer ? { customerId: customer.id } : {}),
+        ...(!customer && customerName.trim() ? { customerName: customerName.trim() } : {}),
         items: rows.map((r) => ({
           barcode: r.barcode.trim(),
           listing: r.listing,
@@ -367,7 +371,8 @@ export default function RequestIntakePage() {
         summary: (res.items || []).map(
           (it) => `${it.productName}${it.listing === 'NEW' ? ' NEW' : ''}${it.note ? ` — ${it.note}` : ''}`,
         ),
-        customerName: customer.name,
+        customerName: customer?.name || customerName.trim() || '—',
+        requestType,
       });
       window.scrollTo(0, 0);
     } catch (e: any) {
@@ -424,7 +429,7 @@ export default function RequestIntakePage() {
             </div>
           </div>
           <ul className="bg-white border border-gray-200 rounded-xl mx-3 mt-4 px-4 py-2 text-sm list-disc">
-            <li className="ml-4 my-2"><b>Pengaju:</b> {staffName} • <b>Customer:</b> {done.customerName}</li>
+            <li className="ml-4 my-2"><b>Pengaju:</b> {staffName} • <b>Tipe:</b> {done.requestType === 'EXIT' ? 'Tidak jadi beli' : 'Stok habis'} • <b>Customer:</b> {done.customerName}</li>
             {done.summary.map((s, i) => (
               <li key={i} className="ml-4 my-2">{s}</li>
             ))}
@@ -436,7 +441,9 @@ export default function RequestIntakePage() {
                 setDone(null);
                 setRows([emptyRow()]);
                 setStaffName('');
+                setRequestType('');
                 setCustomer(null);
+                setCustomerName('');
                 setCustSearch('');
                 window.scrollTo(0, 0);
               }}
@@ -477,9 +484,35 @@ export default function RequestIntakePage() {
 
           <Card>
             <CardContent className="p-4 space-y-3">
+              <h2 className="text-xs uppercase tracking-wide text-gray-500 font-bold">Tipe Request</h2>
+              <div>
+                <Label className="text-[13.5px] font-semibold">Tipe <span className="text-red-600">*</span></Label>
+                <div className="flex bg-gray-100 rounded-lg p-1 gap-1 mt-1">
+                  {([
+                    { v: 'EXIT', label: 'Tidak jadi beli' },
+                    { v: 'LIMIT', label: 'Stok habis' },
+                  ] as const).map((o) => (
+                    <button
+                      key={o.v}
+                      type="button"
+                      onClick={() => setRequestType(o.v)}
+                      className={`flex-1 rounded-md min-h-[42px] text-sm font-semibold ${
+                        requestType === o.v ? 'bg-white text-red-600 shadow-sm' : 'text-gray-500'
+                      }`}
+                    >
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4 space-y-3">
               <h2 className="text-xs uppercase tracking-wide text-gray-500 font-bold">Customer</h2>
               <div>
-                <Label className="text-[13.5px] font-semibold">Cari pelanggan <span className="text-red-600">*</span></Label>
+                <Label className="text-[13.5px] font-semibold">Nama</Label>
                 <div className="flex gap-2 mt-1">
                   {customer ? (
                     <div className="flex-1 min-h-[46px] text-[15px] border-[1.5px] border-gray-300 rounded-md bg-white px-3 flex items-center gap-2">
@@ -549,6 +582,17 @@ export default function RequestIntakePage() {
                 )}
                 {custErr && <p className="text-[12.5px] text-red-600 mt-1.5">{custErr}</p>}
               </div>
+              {!customer && (
+                <div>
+                  <Label className="text-[13.5px] font-semibold">Atau ketik nama (opsional)</Label>
+                  <Input
+                    className={`${inputCls} mt-1`}
+                    placeholder="cth: Budi"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
 

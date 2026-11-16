@@ -61,7 +61,9 @@ export interface IntakeItemPayload {
 
 export interface CreateIntakePayload {
   staffName: string;
+  requestType: 'EXIT' | 'LIMIT';
   customerId?: string;
+  customerName?: string;
   /** @deprecated Backwards compat — frontend picker sends customerId instead. */
   customerType?: 'USER' | 'MEMBER';
   memberRef?: string;
@@ -86,6 +88,8 @@ export interface StockRequest {
   requestNumber: string;
   branchId: string;
   staffName: string;
+  requestType?: string;
+  customerName?: string | null;
   customerType: string;
   memberRef: string | null;
   status: string;
@@ -163,6 +167,7 @@ export const stockRequestsService = {
     search?: string;
     status?: string;
     branchId?: string;
+    requestType?: string;
   }): Promise<{ data: StockRequest[]; meta: { total: number; page: number; totalPages: number } }> {
     return api.get('/stock-requests', { params }).then((res) => res.data);
   },

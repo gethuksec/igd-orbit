@@ -2455,6 +2455,8 @@ model StockRequest {
   branchId      String   @map("branch_id") // outlet, plain ref (no FK)
   staffName     String   @map("staff_name") // ASA/CS display name as selected on intake
   staffUserId   String?  @map("staff_user_id") // resolved users.id (best effort, nullable)
+  requestType   String   @map("request_type") // EXIT (tidak jadi beli) | LIMIT (stok habis)
+  customerName  String?  @map("customer_name") // free-text nama, non-mandatory
   customerType  String   @map("customer_type") // USER | MEMBER
   memberId      String?  @map("member_id") // resolved customers.id on exact code match
   memberRef     String?  @map("member_ref") // free text typed on intake

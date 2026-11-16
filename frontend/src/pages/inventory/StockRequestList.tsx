@@ -219,8 +219,16 @@ function DetailDrawer({ id, onClose }: { id: string | null; onClose: () => void 
               <div className="text-sm space-y-1">
                 <div className="flex justify-between"><span className="text-gray-500">Nama</span><b>{doc.staffName}</b></div>
                 <div className="flex justify-between">
+                  <span className="text-gray-500">Tipe request</span>
+                  <b>{doc.requestType === 'EXIT' ? 'Tidak jadi beli' : doc.requestType === 'LIMIT' ? 'Stok habis' : doc.requestType || '-'}</b>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Customer</span>
+                  <b>{doc.customerName || (doc.customerType === 'MEMBER' ? `Member${doc.memberRef ? ` (${doc.memberRef})` : ''}` : doc.memberRef) || '-'}</b>
+                </div>
+                <div className="flex justify-between">
                   <span className="text-gray-500">Tipe customer</span>
-                  <b>{doc.customerType === 'MEMBER' ? `Member${doc.memberRef ? ` (${doc.memberRef})` : ''}` : 'User'}</b>
+                  <b>{doc.customerType === 'MEMBER' ? 'Member' : 'User'}</b>
                 </div>
                 {doc.poNumber && (
                   <div className="flex justify-between"><span className="text-gray-500">No. PO</span><b>{doc.poNumber}</b></div>
@@ -381,6 +389,7 @@ export default function StockRequestList() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [branchId, setBranchId] = useState('');
+  const [requestType, setRequestType] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
   const { hasPermission } = usePermissions();
   const canApprove = hasPermission('inventory.request.approve');
@@ -399,7 +408,7 @@ export default function StockRequestList() {
   });
 
   const list = useQuery({
-    queryKey: ['stock-requests', page, search, status, branchId],
+    queryKey: ['stock-requests', page, search, status, branchId, requestType],
     queryFn: () =>
       stockRequestsService.list({
         page,
@@ -407,6 +416,7 @@ export default function StockRequestList() {
         search: search || undefined,
         status: status || undefined,
         branchId: branchId || undefined,
+        requestType: requestType || undefined,
       }),
   });
 
@@ -468,6 +478,18 @@ export default function StockRequestList() {
         </select>
         <select
           className="min-h-[42px] px-3 border border-gray-300 rounded-md bg-white text-sm"
+          value={requestType}
+          onChange={(e) => {
+            setRequestType(e.target.value);
+            setPage(1);
+          }}
+        >
+          <option value="">Semua tipe</option>
+          <option value="EXIT">Tidak jadi beli</option>
+          <option value="LIMIT">Stok habis</option>
+        </select>
+        <select
+          className="min-h-[42px] px-3 border border-gray-300 rounded-md bg-white text-sm"
           value={branchId}
           onChange={(e) => {
             setBranchId(e.target.value);
@@ -507,7 +529,7 @@ export default function StockRequestList() {
                     </TableCell>
                     <TableCell>
                       {d.outlet ? `${d.outlet.name} (${d.outlet.code})` : '-'}
-                      <div className="text-xs text-gray-500">{d.staffName} • {d.customerType === 'MEMBER' ? 'Member' : 'User'}</div>
+                      <div className="text-xs text-gray-500">{d.staffName} • {d.requestType === 'EXIT' ? 'Tidak jadi beli' : d.requestType === 'LIMIT' ? 'Stok habis' : d.requestType || '-'} • {d.customerName || d.memberRef || (d.customerType === 'MEMBER' ? 'Member' : 'User')}</div>
                     </TableCell>
                     <TableCell>{d.itemCount ?? d.items?.length ?? '-'}</TableCell>
                     <TableCell>
