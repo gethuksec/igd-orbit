@@ -3,9 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#EF4444">
-<link rel="manifest" href="/manifest.json">
-<link rel="apple-touch-icon" href="/logo/igd-mark-512.png">
 <title>IGD Employee</title>
 <style>
 :root{
@@ -16,23 +13,9 @@
   --radius:.5rem;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:#E5E7EB;color:var(--fg);min-height:100vh}
-.topbar{background:#111827;color:#fff;padding:10px 20px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:50}
-.topbar .dot{width:10px;height:10px;border-radius:50%;background:var(--primary);display:inline-block}
-.topbar b{font-size:14px}.topbar span{font-size:12px;color:#9CA3AF}
-.layout{display:flex;gap:24px;max-width:1100px;margin:20px auto;padding:0 20px 40px;align-items:flex-start}
-.index{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;width:250px;position:sticky;top:64px}
-.index h3{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
-.index a{display:flex;gap:8px;align-items:center;padding:8px 10px;border-radius:8px;font-size:13.5px;color:var(--fg);text-decoration:none;cursor:pointer}
-.index a:hover{background:#F3F4F6}.index a.active{background:var(--primary-soft);color:var(--primary-dark);font-weight:600}
-.index .num{background:#F3F4F6;border-radius:6px;font-size:11px;padding:1px 7px;color:var(--muted)}
-.index a.active .num{background:#fff;color:var(--primary-dark)}
-.role-toggle{display:flex;background:#F3F4F6;border-radius:10px;padding:3px;margin-bottom:12px}
-.role-toggle button{flex:1;border:0;background:transparent;padding:7px;border-radius:8px;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer}
-.role-toggle button.on{background:#fff;color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.12)}
-.phone{width:390px;min-width:390px;height:844px;background:var(--bg);border:10px solid #111827;border-radius:44px;overflow:hidden;position:relative;box-shadow:0 25px 60px rgba(0,0,0,.25);display:flex;flex-direction:column}
-.notch{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:120px;height:26px;background:#111827;border-radius:20px;z-index:30}
-.screen{display:none;flex-direction:column;height:100%;overflow-y:auto;padding-bottom:90px}
+body{font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--fg);min-height:100vh}
+.app{width:100%;max-width:480px;margin:0 auto;min-height:100dvh;background:var(--bg);position:relative;display:flex;flex-direction:column;overflow:hidden}
+.screen{display:none;flex-direction:column;min-height:100dvh;padding-bottom:90px;overflow-y:auto}
 .screen.active{display:flex}
 .apphead{background:var(--primary);color:#fff;padding:52px 18px 16px;border-radius:0 0 20px 20px}
 .apphead.plain{background:#fff;color:var(--fg);padding-top:52px;border-bottom:1px solid var(--border);border-radius:0}
@@ -73,7 +56,7 @@ label.lbl{font-size:12px;font-weight:700;color:var(--muted);text-transform:upper
 .avatar{width:42px;height:42px;border-radius:50%;background:var(--primary-soft);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--primary-dark);flex-shrink:0}
 .avatar.b{background:var(--blue-soft);color:var(--blue)}
 .avatar.g{background:var(--green-soft);color:var(--green)}
-.tabbar{position:absolute;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);display:flex;padding:8px 4px 20px;z-index:20}
+.tabbar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:1px solid var(--border);display:flex;padding:8px 4px 20px;z-index:20}
 .tabbar button{flex:1;border:0;background:none;font-size:10.5px;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font-weight:600}
 .tabbar button.on{color:var(--primary)}
 .tabbar .tic{font-size:19px}
@@ -85,29 +68,13 @@ table.slip td{padding:6px 0;border-bottom:1px dashed var(--border)}
 table.slip tr.total td{border-bottom:0;font-weight:800;font-size:14px}
 .badge-n{position:absolute;top:2px;right:14px;background:var(--primary);color:#fff;font-size:10px;font-weight:800;border-radius:99px;padding:1px 6px}
 .shot-note{display:none}
-body.shot{background:var(--bg)}
-body.shot .topbar,body.shot .index{display:none}
-body.shot .layout{margin:0;padding:0;max-width:none}
-body.shot .phone{border:0;border-radius:0;width:390px;min-width:390px;height:auto;box-shadow:none;margin:0 auto}
-body.shot .tabbar{position:static}
-body.demo{background:var(--bg)}
-body.demo .topbar,body.demo .index{display:none}
-body.demo .layout{margin:0;padding:0;max-width:none;justify-content:center}
-body.demo:not(.shot) .phone{border:0;border-radius:0;min-width:0;width:100%;max-width:480px;height:100dvh;box-shadow:none}
-body.demo:not(.shot) .notch{display:none}
-@media(max-width:800px){.index{display:none}.layout{justify-content:center}.phone{min-width:0;width:100%;max-width:390px}}
+body.shot .app{margin:0 auto}
+body.shot .screen{min-height:0}
+body.shot .tabbar{position:static;transform:none}
 </style>
 </head>
 <body>
-<div class="topbar"><span class="dot"></span><b>IGD Employee App — Mock PWA</b><span>klikable · 13 layar · gaya IGD-ERP (merah primary) · B. Indonesia</span></div>
-<div class="layout">
-<nav class="index" id="indexNav">
-  <div class="role-toggle"><button id="roleKar" class="on" onclick="setRole('kar')">Karyawan</button><button id="roleMgr" onclick="setRole('mgr')">Manager</button></div>
-  <h3>Layar mock</h3>
-  <div id="indexLinks"></div>
-  <p class="muted" style="margin-top:10px">Alur: Karyawan → Manager → HR · Login NIK + password · Absen GPS + selfie</p>
-</nav>
-<div class="phone"><div class="notch"></div>
+<div class="app" id="app">
 
 <!-- 1 LOGIN -->
 <section class="screen" data-id="login" data-title="Login">
@@ -325,21 +292,12 @@ body.demo:not(.shot) .notch{display:none}
   <button data-tab="profil" onclick="go('profil')"><span class="tic">👤</span>Profil</button>
 </div>
 </div>
-</div>
 <script>
 var screens=[...document.querySelectorAll('.screen')];
-var links=document.getElementById('indexLinks');
-screens.forEach(function(s,i){
-  var a=document.createElement('a');
-  a.innerHTML='<span class="num">'+(i+1)+'</span> '+s.dataset.title;
-  a.onclick=function(){go(s.dataset.id)};
-  a.id='idx-'+s.dataset.id;links.appendChild(a);
-});
 function go(id){
   screens.forEach(function(s){s.classList.toggle('active',s.dataset.id===id)});
-  document.querySelectorAll('#indexLinks a').forEach(function(a){a.classList.toggle('active',a.id==='idx-'+id)});
   document.querySelectorAll('#tabbar button').forEach(function(b){b.classList.toggle('on',b.dataset.tab===id||(id==='checkin'||id==='riwayat')&&b.dataset.tab==='beranda'||(id==='shift')&&b.dataset.tab==='cuti'||(id==='slipdetail')&&b.dataset.tab==='slip'||((id==='approval')&&b.dataset.tab==='tim'))});
-  document.querySelector('.phone').scrollTop=0;
+  document.getElementById('app').scrollTop=0;
   var sc=document.querySelector('.screen.active');if(sc)sc.scrollTop=0;
   document.getElementById('tabbar').style.display=(id==='login')?'none':'flex';
   try{history.replaceState(null,'','#/'+id)}catch(e){}
@@ -350,11 +308,6 @@ function decide(btn,name){
   card.style.borderColor=ok?'var(--green)':'var(--primary)';
   card.querySelector('.btn-row').innerHTML='<div class="pill '+(ok?'p-green':'p-red')+'" style="font-size:13px">'+(ok?'✅ '+name+' — disetujui':'❌ '+name+' — ditolak')+'</div>';
 }
-function setRole(r){
-  document.getElementById('roleKar').classList.toggle('on',r==='kar');
-  document.getElementById('roleMgr').classList.toggle('on',r==='mgr');
-  go(r==='mgr'?'approval':'beranda');
-}
 function toggleMgr(){
   var m=document.body.classList.toggle('manager');
   document.getElementById('tabTim').style.display=m?'flex':'none';
@@ -363,7 +316,6 @@ function toggleMgr(){
   go(m?'approval':'beranda');
 }
 (function init(){
-  if(location.pathname.indexOf('demo')!==-1)document.body.classList.add('demo');
   var qs=new URLSearchParams(location.search);
   var single=qs.get('s');
   if(single){document.body.classList.add('shot');}
@@ -372,13 +324,6 @@ function toggleMgr(){
   if(!document.querySelector('.screen[data-id="'+start+'"]'))start='beranda';
   go(start);
 })();
-</script>
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function () {
-    navigator.serviceWorker.register('/sw.js').catch(function () {});
-  });
-}
 </script>
 </body>
 </html>
