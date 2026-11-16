@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#EF4444">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/logo/igd-mark-512.png">
+<title>IGD Employee</title>
+<style>
+:root{
+  --primary:#EF4444; --primary-dark:#DC2626; --primary-soft:#FEE2E2;
+  --bg:#F9FAFB; --card:#FFFFFF; --fg:#0F172A; --muted:#64748B;
+  --border:#E2E8F0; --green:#16A34A; --green-soft:#DCFCE7;
+  --amber:#D97706; --amber-soft:#FEF3C7; --blue:#2563EB; --blue-soft:#DBEAFE;
+  --radius:.5rem;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:#E5E7EB;color:var(--fg);min-height:100vh}
+.topbar{background:#111827;color:#fff;padding:10px 20px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:50}
+.topbar .dot{width:10px;height:10px;border-radius:50%;background:var(--primary);display:inline-block}
+.topbar b{font-size:14px}.topbar span{font-size:12px;color:#9CA3AF}
+.layout{display:flex;gap:24px;max-width:1100px;margin:20px auto;padding:0 20px 40px;align-items:flex-start}
+.index{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;width:250px;position:sticky;top:64px}
+.index h3{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.index a{display:flex;gap:8px;align-items:center;padding:8px 10px;border-radius:8px;font-size:13.5px;color:var(--fg);text-decoration:none;cursor:pointer}
+.index a:hover{background:#F3F4F6}.index a.active{background:var(--primary-soft);color:var(--primary-dark);font-weight:600}
+.index .num{background:#F3F4F6;border-radius:6px;font-size:11px;padding:1px 7px;color:var(--muted)}
+.index a.active .num{background:#fff;color:var(--primary-dark)}
+.role-toggle{display:flex;background:#F3F4F6;border-radius:10px;padding:3px;margin-bottom:12px}
+.role-toggle button{flex:1;border:0;background:transparent;padding:7px;border-radius:8px;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer}
+.role-toggle button.on{background:#fff;color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.phone{width:390px;min-width:390px;height:844px;background:var(--bg);border:10px solid #111827;border-radius:44px;overflow:hidden;position:relative;box-shadow:0 25px 60px rgba(0,0,0,.25);display:flex;flex-direction:column}
+.notch{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:120px;height:26px;background:#111827;border-radius:20px;z-index:30}
+.screen{display:none;flex-direction:column;height:100%;overflow-y:auto;padding-bottom:90px}
+.screen.active{display:flex}
+.apphead{background:var(--primary);color:#fff;padding:52px 18px 16px;border-radius:0 0 20px 20px}
+.apphead.plain{background:#fff;color:var(--fg);padding-top:52px;border-bottom:1px solid var(--border);border-radius:0}
+.apphead .hello{font-size:13px;opacity:.9}
+.apphead h2{font-size:19px;margin:2px 0}
+.apphead .sub{font-size:12.5px;opacity:.9}
+.body{padding:14px 14px 0;display:flex;flex-direction:column;gap:12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:13px 14px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.pill{font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px;display:inline-block}
+.p-green{background:var(--green-soft);color:var(--green)}
+.p-amber{background:var(--amber-soft);color:var(--amber)}
+.p-blue{background:var(--blue-soft);color:var(--blue)}
+.p-red{background:var(--primary-soft);color:var(--primary-dark)}
+.p-gray{background:#F3F4F6;color:var(--muted)}
+.muted{color:var(--muted);font-size:12.5px}
+.big-btn{background:var(--primary);color:#fff;border:0;border-radius:12px;padding:14px;font-size:15px;font-weight:700;width:100%;cursor:pointer}
+.big-btn:active{background:var(--primary-dark)}
+.ghost-btn{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px;font-size:13.5px;font-weight:600;width:100%;cursor:pointer;color:var(--fg)}
+.btn-row{display:flex;gap:8px}
+.btn-ok{flex:1;background:var(--green);color:#fff;border:0;border-radius:10px;padding:10px;font-weight:700;font-size:13px;cursor:pointer}
+.btn-no{flex:1;background:#fff;color:var(--primary-dark);border:1px solid var(--primary);border-radius:10px;padding:10px;font-weight:700;font-size:13px;cursor:pointer}
+.menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.menu{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:14px 10px;text-align:center;cursor:pointer}
+.menu:hover{border-color:var(--primary)}
+.menu .ic{font-size:22px}.menu b{display:block;font-size:12.5px;margin-top:6px}.menu span{font-size:11px;color:var(--muted)}
+.input{width:100%;border:1px solid var(--border);border-radius:10px;padding:11px 12px;font-size:13.5px;background:#fff;color:var(--fg)}
+label.lbl{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.seg{display:flex;background:#F3F4F6;border-radius:10px;padding:3px}
+.seg button{flex:1;border:0;background:transparent;padding:8px;border-radius:8px;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer}
+.seg button.on{background:#fff;color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.checkin-visual{background:linear-gradient(135deg,#1F2937,#374151);border-radius:var(--radius);color:#fff;padding:16px;text-align:center}
+.selfie{width:110px;height:110px;border-radius:50%;margin:8px auto;background:linear-gradient(135deg,#FCA5A5,#EF4444);display:flex;align-items:center;justify-content:center;font-size:44px;border:4px solid #fff}
+.gps{background:rgba(255,255,255,.12);border-radius:10px;padding:9px;font-size:12.5px;margin-top:10px}
+.timeline-item{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px dashed var(--border)}
+.timeline-item:last-child{border-bottom:0}
+.tdot{width:10px;height:10px;border-radius:50%;background:var(--green);margin-top:4px;flex-shrink:0}
+.avatar{width:42px;height:42px;border-radius:50%;background:var(--primary-soft);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--primary-dark);flex-shrink:0}
+.avatar.b{background:var(--blue-soft);color:var(--blue)}
+.avatar.g{background:var(--green-soft);color:var(--green)}
+.tabbar{position:absolute;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);display:flex;padding:8px 4px 20px;z-index:20}
+.tabbar button{flex:1;border:0;background:none;font-size:10.5px;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font-weight:600}
+.tabbar button.on{color:var(--primary)}
+.tabbar .tic{font-size:19px}
+.login-wrap{display:flex;flex-direction:column;align-items:center;padding:70px 24px 24px;text-align:center}
+.logo{width:74px;height:74px;border-radius:22px;background:var(--primary);color:#fff;font-size:34px;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 25px rgba(239,68,68,.4)}
+.saldo{font-size:26px;font-weight:800}
+table.slip{width:100%;font-size:12.5px;border-collapse:collapse}
+table.slip td{padding:6px 0;border-bottom:1px dashed var(--border)}
+table.slip tr.total td{border-bottom:0;font-weight:800;font-size:14px}
+.badge-n{position:absolute;top:2px;right:14px;background:var(--primary);color:#fff;font-size:10px;font-weight:800;border-radius:99px;padding:1px 6px}
+.shot-note{display:none}
+body.shot{background:var(--bg)}
+body.shot .topbar,body.shot .index{display:none}
+body.shot .layout{margin:0;padding:0;max-width:none}
+body.shot .phone{border:0;border-radius:0;width:390px;min-width:390px;height:auto;box-shadow:none;margin:0 auto}
+body.shot .tabbar{position:static}
+body.demo{background:var(--bg)}
+body.demo .topbar,body.demo .index{display:none}
+body.demo .layout{margin:0;padding:0;max-width:none;justify-content:center}
+body.demo:not(.shot) .phone{border:0;border-radius:0;min-width:0;width:100%;max-width:480px;height:100dvh;box-shadow:none}
+body.demo:not(.shot) .notch{display:none}
+@media(max-width:800px){.index{display:none}.layout{justify-content:center}.phone{min-width:0;width:100%;max-width:390px}}
+</style>
+</head>
+<body>
+<div class="topbar"><span class="dot"></span><b>IGD Employee App — Mock PWA</b><span>klikable · 13 layar · gaya IGD-ERP (merah primary) · B. Indonesia</span></div>
+<div class="layout">
+<nav class="index" id="indexNav">
+  <div class="role-toggle"><button id="roleKar" class="on" onclick="setRole('kar')">Karyawan</button><button id="roleMgr" onclick="setRole('mgr')">Manager</button></div>
+  <h3>Layar mock</h3>
+  <div id="indexLinks"></div>
+  <p class="muted" style="margin-top:10px">Alur: Karyawan → Manager → HR · Login NIK + password · Absen GPS + selfie</p>
+</nav>
+<div class="phone"><div class="notch"></div>
+
+<!-- 1 LOGIN -->
+<section class="screen" data-id="login" data-title="Login">
+  <div class="login-wrap">
+    <div class="logo">IG</div>
+    <h2 style="margin:14px 0 2px">IGD Employee</h2>
+    <p class="muted">Masuk dengan akun IGD-ERP kamu</p>
+    <div style="width:100%;display:flex;flex-direction:column;gap:10px;margin-top:22px;text-align:left">
+      <div><label class="lbl">NIK</label><input class="input" value="10248" style="margin-top:5px"></div>
+      <div><label class="lbl">Password</label><input class="input" type="password" value="password" style="margin-top:5px"></div>
+      <button class="big-btn" onclick="go('beranda')">Masuk</button>
+      <p class="muted" style="text-align:center">Lupa password? Hubungi HRD</p>
+    </div>
+  </div>
+</section>
+
+<!-- 2 BERANDA -->
+<section class="screen" data-id="beranda" data-title="Beranda">
+  <div class="apphead">
+    <div class="hello">Selamat pagi,</div><h2>Ayu Lestari</h2>
+    <div class="sub">Kasir · Outlet Tebet · NIK 10248</div>
+    <div class="row" style="margin-top:10px"><span class="pill p-green" style="background:#fff;color:var(--green)">● Shift Pagi · 08:00–16:00</span><span style="font-size:12px">📍 Dalam radius outlet</span></div>
+  </div>
+  <div class="body">
+    <div class="card row"><div><b>Belum check-in hari ini</b><div class="muted">Rabu, 11 Nov 2026 · 08:42</div></div><button class="big-btn" style="width:auto;padding:12px 22px" onclick="go('checkin')">Check-in</button></div>
+    <div class="menu-grid">
+      <div class="menu" onclick="go('checkin')"> <div class="ic">📍</div><b>Absensi</b><span>GPS + selfie</span></div>
+      <div class="menu" onclick="go('cuti')"><div class="ic">🌴</div><b>Cuti</b><span>saldo 8 hari</span></div>
+      <div class="menu" onclick="go('jadwal')"><div class="ic">🗓️</div><b>Jadwal Shift</b><span>minggu ini</span></div>
+      <div class="menu" onclick="go('shift')"><div class="ic">🔄</div><b>Tukar / Lembur</b><span>request</span></div>
+      <div class="menu" onclick="go('slip')"><div class="ic">💰</div><b>Slip Gaji</b><span>Oktober 2026</span></div>
+      <div class="menu" onclick="go('profil')"><div class="ic">👤</div><b>Profil</b><span>data & dokumen</span></div>
+    </div>
+    <div class="card"><div class="row"><b>Persetujuan saya</b><span class="pill p-amber">2 pending</span></div>
+      <div class="muted" style="margin:6px 0">Cuti 14–15 Nov · menunggu persetujuan</div>
+      <button class="ghost-btn" onclick="go('cuti')">Lihat status</button></div>
+    <div class="card" id="teamCard" style="display:none"><div class="row"><b>Persetujuan tim</b><span class="pill p-red">3 menunggu</span></div>
+      <button class="big-btn" style="margin-top:8px" onclick="go('approval')">Buka persetujuan</button></div>
+  </div>
+</section>
+
+<!-- 3 CHECKIN -->
+<section class="screen" data-id="checkin" data-title="Absensi (GPS + Selfie)">
+  <div class="apphead plain"><h2>Absensi</h2><div class="muted">Rabu, 11 Nov 2026 · Shift Pagi 08:00–16:00</div></div>
+  <div class="body">
+    <div class="checkin-visual">📍 Outlet Tebet terdeteksi
+      <div class="selfie" style="font-size:34px;font-weight:800">AL</div>
+      <div style="font-size:13px">Lokasi terkonfirmasi</div>
+      <div class="gps">Jl. Tebet Raya No. 12 · Outlet Tebet</div>
+    </div>
+    <div class="card row"><div><b>Check-in</b><div class="muted">Rabu, 11 Nov · 08:42</div></div><span class="pill p-green">Hadir</span></div>
+    <button class="big-btn" onclick="this.textContent='Checked-in 08:42';this.style.background='var(--green)'">Check-in Sekarang</button>
+    <button class="ghost-btn" onclick="go('riwayat')">Lihat riwayat absensi</button>
+    <div class="card"><b>Check-out</b><div class="muted" style="margin:4px 0">Tersedia pukul 16:00</div></div>
+  </div>
+</section>
+
+<!-- 4 RIWAYAT -->
+<section class="screen" data-id="riwayat" data-title="Riwayat Absensi">
+  <div class="apphead plain"><h2>Riwayat Absensi</h2><div class="muted">November 2026 · kehadiran 92%</div></div>
+  <div class="body">
+    <div class="seg"><button class="on">Minggu ini</button><button>Bulan ini</button><button>Bulan lalu</button></div>
+    <div class="card">
+      <div class="timeline-item"><span class="tdot"></span><div style="flex:1"><div class="row"><b>Hari ini · Shift Pagi</b><span class="pill p-green">Hadir</span></div><div class="muted">In 08:42 · belum out</div></div></div>
+      <div class="timeline-item"><span class="tdot"></span><div style="flex:1"><div class="row"><b>Sel, 10 Nov · Shift Pagi</b><span class="pill p-green">Hadir</span></div><div class="muted">In 07:58 · Out 16:05</div></div></div>
+      <div class="timeline-item"><span class="tdot" style="background:var(--amber)"></span><div style="flex:1"><div class="row"><b>Sen, 9 Nov · Shift Siang</b><span class="pill p-amber">Terlambat 12 mnt</span></div><div class="muted">In 14:12 · Out 22:01</div></div></div>
+      <div class="timeline-item"><span class="tdot" style="background:var(--blue)"></span><div style="flex:1"><div class="row"><b>Min, 8 Nov</b><span class="pill p-blue">Libur</span></div><div class="muted">—</div></div></div>
+    </div>
+    <div class="card row"><div><b>Rekap bulan ini</b><div class="muted">Hadir 9 · Telat 1 · Izin 1 · Alpa 0</div></div><b style="color:var(--green)">92%</b></div>
+  </div>
+</section>
+
+<!-- 5 JADWAL -->
+<section class="screen" data-id="jadwal" data-title="Jadwal Shift">
+  <div class="apphead plain"><h2>Jadwal Shift</h2><div class="muted">9 – 15 Nov 2026 · Outlet Tebet</div></div>
+  <div class="body">
+    <div class="seg"><button class="on">Minggu ini</button><button>Depan</button></div>
+    <div class="card">
+      <div class="timeline-item"><span class="tdot"></span><div style="flex:1"><div class="row"><b>Sen 9 · Siang 14–22</b><button class="ghost-btn" style="width:auto;padding:6px 12px" onclick="go('shift')">Tukar</button></div></div></div>
+      <div class="timeline-item"><span class="tdot"></span><div style="flex:1"><div class="row"><b>Sel 10 · Pagi 08–16</b><span class="pill p-green">Selesai</span></div></div></div>
+      <div class="timeline-item"><span class="tdot" style="background:var(--primary)"></span><div style="flex:1"><div class="row"><b>Rab 11 · Pagi 08–16</b><span class="pill p-red">Hari ini</span></div></div></div>
+      <div class="timeline-item"><span class="tdot" style="background:#CBD5E1"></span><div style="flex:1"><div class="row"><b>Kam 12 · Pagi 08–16</b><button class="ghost-btn" style="width:auto;padding:6px 12px" onclick="go('shift')">Tukar</button></div></div></div>
+      <div class="timeline-item"><span class="tdot" style="background:#CBD5E1"></span><div style="flex:1"><div class="row"><b>Sab 14 · Libur (cuti)</b><span class="pill p-amber">Pengajuan</span></div></div></div>
+    </div>
+    <div class="card"><b>Shift berikutnya</b><div class="muted">Kamis · 08:00 – 16:00</div></div>
+  </div>
+</section>
+
+<!-- 6 CUTI -->
+<section class="screen" data-id="cuti" data-title="Cuti">
+  <div class="apphead plain"><h2>Pengajuan Cuti</h2><div class="muted">Saldo tahunan tersisa <b>8 hari</b></div></div>
+  <div class="body">
+    <div class="card row"><div><div class="muted">Cuti tahunan</div><div class="saldo">8 <span class="muted" style="font-size:13px">hari</span></div></div><div><div class="muted">Sakit (terpakai 2)</div><div class="saldo">10 <span class="muted" style="font-size:13px">hari</span></div></div><span class="pill p-amber">1 pending</span></div>
+    <div class="card"><label class="lbl">Form cuti baru</label>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+      <div class="seg"><button class="on">Tahunan</button><button>Sakit</button><button>Melahirkan</button></div>
+      <div class="row"><input class="input" value="2026-11-14"><span class="muted">→</span><input class="input" value="2026-11-15"></div>
+      <input class="input" placeholder="Alasan (wajib diisi)" value="Acara keluarga di Bandung">
+      <button class="big-btn" onclick="this.textContent='Pengajuan terkirim'">Kirim Pengajuan</button></div>
+    </div>
+    <div class="card"><b>Riwayat</b>
+      <div class="timeline-item"><span class="tdot" style="background:var(--amber)"></span><div style="flex:1"><div class="row"><b>14–15 Nov · Tahunan</b><span class="pill p-amber">Menunggu</span></div><div class="muted">Dikirim 10 Nov</div></div></div>
+      <div class="timeline-item"><span class="tdot"></span><div style="flex:1"><div class="row"><b>3 Okt · Sakit 1 hari</b><span class="pill p-green">Disetujui</span></div><div class="muted">Selesai 4 Okt</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 7 SHIFT/LEMBUR -->
+<section class="screen" data-id="shift" data-title="Tukar Shift & Lembur">
+  <div class="apphead plain"><h2>Tukar Shift & Lembur</h2><div class="muted">Tukar jadwal, lembur, dan izin dalam satu tempat</div></div>
+  <div class="body">
+    <div class="seg"><button class="on">Tukar shift</button><button>Lembur</button><button>Izin keluar</button></div>
+    <div class="card"><label class="lbl">Tukar shift</label>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+      <input class="input" value="Kam 12 Nov · Pagi → ingin Siang">
+      <input class="input" value="Tukar dengan: Budi (Siang)">
+      <input class="input" placeholder="Alasan" value="Antar anak imunisasi pagi">
+      <button class="big-btn" onclick="this.textContent='Pengajuan terkirim'">Kirim</button></div>
+    </div>
+    <div class="card"><label class="lbl">Lembur</label>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+      <div class="row"><input class="input" value="2026-11-11"><input class="input" value="2 jam"></div>
+      <button class="ghost-btn" onclick="this.textContent='Lembur terkirim'">Ajukan lembur</button></div>
+    </div>
+    <div class="card"><div class="row"><b>Status request</b><span class="pill p-amber">1 pending</span></div><div class="muted" style="margin-top:4px">Tukar 12 Nov · menunggu konfirmasi Budi</div></div>
+  </div>
+</section>
+
+<!-- 8 SLIP -->
+<section class="screen" data-id="slip" data-title="Slip Gaji">
+  <div class="apphead plain"><h2>Slip Gaji</h2><div class="muted">2026</div></div>
+  <div class="body">
+    <div class="card row" onclick="go('slipdetail')" style="cursor:pointer"><div class="row" style="gap:10px"><div class="avatar g">💰</div><div><b>Oktober 2026</b><div class="muted">Gaji pokok + tunjangan + lembur</div></div></div><b>›</b></div>
+    <div class="card row"><div class="row" style="gap:10px"><div class="avatar">💰</div><div><b>September 2026</b><div class="muted">Sudah diunduh</div></div></div><b>›</b></div>
+    <div class="card row"><div class="row" style="gap:10px"><div class="avatar b">💰</div><div><b>Agustus 2026</b><div class="muted">Sudah diunduh</div></div></div><b>›</b></div>
+  </div>
+</section>
+
+<!-- 9 SLIP DETAIL -->
+<section class="screen" data-id="slipdetail" data-title="Slip Gaji Detail">
+  <div class="apphead plain"><h2>Slip · Okt 2026</h2><div class="muted">Ayu Lestari · Kasir · NIK 10248</div></div>
+  <div class="body">
+    <div class="card"><div class="muted">Gaji bersih</div><div class="saldo">Rp 4.850.000</div><div class="muted">Transfer BCA •• 8812 · 31 Okt</div></div>
+    <div class="card"><table class="slip">
+      <tr><td>Gaji pokok</td><td align="right">Rp 4.200.000</td></tr>
+      <tr><td>Tunjangan outlet</td><td align="right">Rp 500.000</td></tr>
+      <tr><td>Lembur (6 jam)</td><td align="right">Rp 300.000</td></tr>
+      <tr><td>BPJS Kesehatan</td><td align="right" style="color:var(--primary)">−Rp 84.000</td></tr>
+      <tr><td>BPJS Ketenagakerjaan</td><td align="right" style="color:var(--primary)">−Rp 66.000</td></tr>
+      <tr class="total"><td>Total bersih</td><td align="right">Rp 4.850.000</td></tr>
+    </table></div>
+    <button class="ghost-btn">⬇ Unduh PDF</button>
+    <button class="ghost-btn" onclick="go('slip')">← Kembali ke daftar</button>
+  </div>
+</section>
+
+<!-- 10 PROFIL -->
+<section class="screen" data-id="profil" data-title="Profil">
+  <div class="apphead"><div class="row"><div><div class="hello">Profil karyawan</div><h2>Ayu Lestari</h2><div class="sub">Kasir · Outlet Tebet · NIK 10248</div></div><div class="selfie" style="width:64px;height:64px;font-size:28px;margin:0">👩</div></div></div>
+  <div class="body">
+    <div class="card"><b>Data diri</b><div class="muted" style="margin-top:4px">📞 0812-xxxx-4471 · ayu.l@igd.id<br>🏠 Jl. Tebet Dalam III · Gabung 3 Mar 2024<br>👔 Atasan: Rina (Manager) · Kontrak: Tetap</div></div>
+    <div class="card"><b>Dokumen</b><div class="muted" style="margin-top:4px">✅ KTP · ✅ KK · ✅ Rekening BCA · ⚠ NPWP (belum upload)</div><button class="ghost-btn" style="margin-top:8px">Upload NPWP</button></div>
+    <div class="card"><div class="row"><div><b>Mode Manager</b><div class="muted">Kelola persetujuan tim</div></div><button class="ghost-btn" id="mgrSwitch" style="width:auto;padding:8px 18px" onclick="toggleMgr()">Aktifkan</button></div></div>
+    <div class="card"><div class="row"><div><b>Ganti password</b></div><b>›</b></div></div>
+    <button class="ghost-btn" onclick="go('login')" style="color:var(--primary-dark)">Keluar</button>
+  </div>
+</section>
+
+<!-- 11 APPROVAL -->
+<section class="screen" data-id="approval" data-title="Persetujuan Manager">
+  <div class="apphead"><div class="hello">Halo, Rina</div><h2>Persetujuan Tim</h2><div class="sub">3 menunggu persetujuan</div></div>
+  <div class="body">
+    <div class="seg"><button class="on">Menunggu (3)</button><button>Riwayat</button></div>
+    <div class="card"><div class="row"><div class="row" style="gap:10px"><div class="avatar">AL</div><div><b>Ayu · Cuti tahunan</b><div class="muted">14–15 Nov (2 hari) · "Acara keluarga"</div></div></div><span class="pill p-amber">Cuti</span></div>
+      <div class="btn-row" style="margin-top:10px"><button class="btn-ok" onclick="decide(this,'Ayu')">Setujui</button><button class="btn-no" onclick="decide(this,'Ayu')">Tolak</button></div></div>
+    <div class="card"><div class="row"><div class="row" style="gap:10px"><div class="avatar b">BS</div><div><b>Budi · Tukar shift</b><div class="muted">Kam 12 Nov Pagi ⇄ Siang dg Ayu</div></div></div><span class="pill p-blue">Shift</span></div>
+      <div class="btn-row" style="margin-top:10px"><button class="btn-ok" onclick="decide(this,'Budi')">Setujui</button><button class="btn-no" onclick="decide(this,'Budi')">Tolak</button></div></div>
+    <div class="card"><div class="row"><div class="row" style="gap:10px"><div class="avatar g">DS</div><div><b>Dewi · Lembur 3 jam</b><div class="muted">10 Nov · stock opname</div></div></div><span class="pill p-green">Lembur</span></div>
+      <div class="btn-row" style="margin-top:10px"><button class="btn-ok" onclick="decide(this,'Dewi')">Setujui</button><button class="btn-no" onclick="decide(this,'Dewi')">Tolak</button></div></div>
+    </div>
+</section>
+
+<!-- 12 TIM -->
+<section class="screen" data-id="tim" data-title="Kehadiran Tim">
+  <div class="apphead plain"><h2>Tim Hari Ini</h2><div class="muted">Outlet Tebet · 11 Nov · 8 staf terjadwal</div></div>
+  <div class="body">
+    <div class="card row"><div><b>Hadir 6/8</b><div class="muted">2 belum check-in · 1 telat</div></div><span class="pill p-green">75%</span></div>
+    <div class="card">
+      <div class="timeline-item"><div class="avatar" style="width:34px;height:34px;font-size:12px">AL</div><div style="flex:1"><div class="row"><b>Ayu · Pagi</b><span class="pill p-green">In 08:42</span></div></div></div>
+      <div class="timeline-item"><div class="avatar b" style="width:34px;height:34px;font-size:12px">BS</div><div style="flex:1"><div class="row"><b>Budi · Siang</b><span class="pill p-gray">Masuk 14:00</span></div></div></div>
+      <div class="timeline-item"><div class="avatar g" style="width:34px;height:34px;font-size:12px">DS</div><div style="flex:1"><div class="row"><b>Dewi · Pagi</b><span class="pill p-amber">Telat 12 mnt</span></div></div></div>
+      <div class="timeline-item"><div class="avatar" style="width:34px;height:34px;font-size:12px">+5</div><div style="flex:1"><div class="row"><b>5 staf lain</b><span class="pill p-green">Hadir</span></div></div></div>
+    </div>
+    <button class="ghost-btn" onclick="go('approval')">Buka persetujuan (3)</button>
+  </div>
+</section>
+
+<!-- 13 NOTIF -->
+<section class="screen" data-id="notif" data-title="Notifikasi">
+  <div class="apphead plain"><h2>Notifikasi</h2><div class="muted">3 belum dibaca</div></div>
+  <div class="body">
+    <div class="card"><b>Cuti 14 Nov disetujui</b><div class="muted">Rina · 5 mnt lalu</div></div>
+    <div class="card"><b>Jadwal minggu depan terbit</b><div class="muted">HR · 1 jam lalu</div></div>
+    <div class="card"><b>Slip Oktober tersedia</b><div class="muted">Payroll · kemarin</div></div>
+    <div class="card"><b>Check-out tersedia pukul 16:00</b><div class="muted">Sistem</div></div>
+  </div>
+</section>
+
+<div class="tabbar" id="tabbar">
+  <button data-tab="beranda" onclick="go('beranda')"> <span class="tic">🏠</span>Beranda</button>
+  <button data-tab="jadwal" onclick="go('jadwal')"><span class="tic">🗓️</span>Jadwal</button>
+  <button data-tab="cuti" onclick="go('cuti')"><span class="tic">📝</span>Request</button>
+  <button data-tab="slip" onclick="go('slip')"><span class="tic">💰</span>Slip</button>
+  <button data-tab="tim" id="tabTim" style="display:none" onclick="go('tim')"><span class="tic">👥</span>Tim</button>
+  <button data-tab="profil" onclick="go('profil')"><span class="tic">👤</span>Profil</button>
+</div>
+</div>
+</div>
+<script>
+var screens=[...document.querySelectorAll('.screen')];
+var links=document.getElementById('indexLinks');
+screens.forEach(function(s,i){
+  var a=document.createElement('a');
+  a.innerHTML='<span class="num">'+(i+1)+'</span> '+s.dataset.title;
+  a.onclick=function(){go(s.dataset.id)};
+  a.id='idx-'+s.dataset.id;links.appendChild(a);
+});
+function go(id){
+  screens.forEach(function(s){s.classList.toggle('active',s.dataset.id===id)});
+  document.querySelectorAll('#indexLinks a').forEach(function(a){a.classList.toggle('active',a.id==='idx-'+id)});
+  document.querySelectorAll('#tabbar button').forEach(function(b){b.classList.toggle('on',b.dataset.tab===id||(id==='checkin'||id==='riwayat')&&b.dataset.tab==='beranda'||(id==='shift')&&b.dataset.tab==='cuti'||(id==='slipdetail')&&b.dataset.tab==='slip'||((id==='approval')&&b.dataset.tab==='tim'))});
+  document.querySelector('.phone').scrollTop=0;
+  var sc=document.querySelector('.screen.active');if(sc)sc.scrollTop=0;
+  document.getElementById('tabbar').style.display=(id==='login')?'none':'flex';
+  try{history.replaceState(null,'','#/'+id)}catch(e){}
+}
+function decide(btn,name){
+  var card=btn.closest('.card');
+  var ok=btn.classList.contains('btn-ok');
+  card.style.borderColor=ok?'var(--green)':'var(--primary)';
+  card.querySelector('.btn-row').innerHTML='<div class="pill '+(ok?'p-green':'p-red')+'" style="font-size:13px">'+(ok?'✅ '+name+' — disetujui':'❌ '+name+' — ditolak')+'</div>';
+}
+function setRole(r){
+  document.getElementById('roleKar').classList.toggle('on',r==='kar');
+  document.getElementById('roleMgr').classList.toggle('on',r==='mgr');
+  go(r==='mgr'?'approval':'beranda');
+}
+function toggleMgr(){
+  var m=document.body.classList.toggle('manager');
+  document.getElementById('tabTim').style.display=m?'flex':'none';
+  document.getElementById('teamCard').style.display=m?'block':'none';
+  document.getElementById('mgrSwitch').textContent=m?'Matikan':'Aktifkan';
+  go(m?'approval':'beranda');
+}
+(function init(){
+  if(location.pathname.indexOf('demo')!==-1)document.body.classList.add('demo');
+  var qs=new URLSearchParams(location.search);
+  var single=qs.get('s');
+  if(single){document.body.classList.add('shot');}
+  var hash=(location.hash||'').replace('#/','').replace('#','');
+  var start=single||hash||'beranda';
+  if(!document.querySelector('.screen[data-id="'+start+'"]'))start='beranda';
+  go(start);
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/sw.js').catch(function () {});
+  });
+}
+</script>
+</body>
+</html>

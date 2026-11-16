@@ -29,6 +29,9 @@ export const PERMISSION_LABELS: Record<string, string> = {
   'action.service.assign': 'Assign Servis ke Teknisi',
   'action.service.smart_repair.create': 'Buat Smart Repair',
 
+  // Employee App (PWA subdomain)
+  'action.employee.access': 'Akses Employee App',
+
   // Dashboard
   'dashboard.view': 'Akses Dashboard',
   'dashboard.*.view': 'Akses Dashboard (semua sub-halaman)',

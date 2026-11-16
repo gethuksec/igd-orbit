@@ -161,6 +161,8 @@ export const PERMISSION_CATALOG: string[] = [
   'action.service.delete',
   'action.service.assign',
   'action.service.smart_repair.create',
+  // Employee App (PWA subdomain, IGDERP-274)
+  'action.employee.access',
   // Dashboard
   'dashboard.view',
   'dashboard.*.view',
