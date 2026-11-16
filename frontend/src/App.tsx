@@ -20,6 +20,7 @@ import {
 } from './pages/dashboard';
 import { InstallPrompt } from './components/InstallPrompt';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { getHostApp } from './utils/hostApp';
 import { initAnalytics } from './utils/analytics';
 // Master Data
 import ProductList from './pages/products/ProductList';
@@ -187,6 +188,21 @@ const queryClient = new QueryClient({
   },
 });
 
+// Opt-1 multi-host landing: subdomains boot into their module, main host keeps LandingPage.
+// All routes stay reachable on every host — entry point differs, the app is the same.
+function HostLanding() {
+  switch (getHostApp()) {
+    case 'pos':
+      return <Navigate to="/pos" replace />;
+    case 'repair':
+      return <Navigate to="/services/smart-repair" replace />;
+    case 'employee':
+      return <Navigate to="/employees" replace />;
+    default:
+      return <LandingPage />;
+  }
+}
+
 function App() {
   useEffect(() => {
     // Initialize Google Analytics if measurement ID is provided
@@ -208,7 +224,7 @@ function App() {
           <OfflineIndicator />
           <Routes>
             {/* Public Routes */}
-            <Route path="/" element={<LandingPage />} />
+            <Route path="/" element={<HostLanding />} />
             <Route path="/login" element={<Login />} />
             <Route path="/track" element={<ServiceTracking />} />
             <Route path="/track/:serviceNumber" element={<ServiceTracking />} />

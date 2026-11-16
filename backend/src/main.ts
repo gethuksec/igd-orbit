@@ -16,9 +16,15 @@ async function bootstrap(): Promise<void> {
   // signed GET /api/v1/files/:kind/:id (FilesController), static URLs were
   // unauthenticated. StorageService creates dirs on demand.
 
-  // Enable CORS for frontend
+  // Enable CORS for frontend. FRONTEND_URL accepts a comma-separated list
+  // (Opt-1 multi-host: main + employee/pos/sr subdomains). Single value
+  // behaves exactly as before.
+  const frontendOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: frontendOrigins.length === 1 ? frontendOrigins[0] : frontendOrigins,
     credentials: true,
   });
 

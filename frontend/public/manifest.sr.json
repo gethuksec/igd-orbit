@@ -1,0 +1,27 @@
+{
+  "name": "IGD Smart Repair",
+  "short_name": "IGD Repair",
+  "description": "Smart Repair intake & tracking — IGD Group",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#dc2626",
+  "theme_color": "#dc2626",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon-igd-v2.png",
+      "sizes": "64x64",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo/igd-mark-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "id-ID",
+  "dir": "ltr"
+}
