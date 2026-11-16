@@ -130,7 +130,16 @@ export default function ContractList() {
     {
       key: "position",
       header: "Posisi",
-      cell: (row) => <span className="text-sm">{row.position?.name ?? "-"}</span>,
+      cell: (row) => (
+        <div>
+          <span className="text-sm">{row.position?.name ?? "-"}</span>
+          {row.grade && (
+            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+              {row.grade.code}
+            </span>
+          )}
+        </div>
+      ),
     },
     {
       key: "location",

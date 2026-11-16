@@ -1,159 +1,132 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Edit, Trash2, Award, AlertTriangle } from "lucide-react";
-import { gradesService, type Grade } from "@/services/grades.service";
+import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Award, Check, Plus } from "lucide-react";
+import { gradesService } from "@/services/grades.service";
 import { api } from "@/services/api";
-import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable } from "@/components/shared";
-import type { Column } from "@/components/shared";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { BreadcrumbHeader, StatCard, FilterToolbar } from "@/components/shared";
 import { toast } from "sonner";
 
-type StatusFilter = "all" | "active" | "inactive";
-
-interface FormData {
+interface StaffRow {
+  id: string;
+  code: string;
   name: string;
-  rank: string;
+  rank: number;
+  gradeId: string | null;
+  isActive: boolean;
+  divisionId: string | null;
+  departmentId: string | null;
+  defaultRoleId: string | null;
+  minSalary: number | string | null;
 }
 
-const defaultForm: FormData = { name: "", rank: "1" };
+const familyKeyOf = (code: string) => {
+  const m = code.match(/^(.*)-\d$/);
+  return m ? m[1] : code;
+};
 
+const familyLabelOf = (name: string) => name.replace(/\s\d$/, "");
+
+/**
+ * Grade master as title × grade assignment (IGDERP-270). Staff titles
+ * (rank 6) expand to one row per rung; toggling a cell creates, removes
+ * (soft-deactivates), or reactivates the matching position row.
+ * Grade definitions (G1–G6) are fixed and shown read-only.
+ */
 export default function GradeList() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
-  const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const limit = 20;
+  const [pending, setPending] = useState<string | null>(null);
 
-  const [formModalOpen, setFormModalOpen] = useState(false);
-  const [editing, setEditing] = useState<Grade | null>(null);
-  const [formData, setFormData] = useState<FormData>(defaultForm);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [toDelete, setToDelete] = useState<{ id: string; name: string } | null>(null);
-
-  const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["grades", page, searchTerm, statusFilter],
-    queryFn: () =>
-      gradesService.getAll({ page, limit, search: searchTerm || undefined }),
-  });
-
-  useEffect(() => {
-    const debounce = setTimeout(() => {
-      setPage(1);
-      refetch();
-    }, 500);
-    return () => clearTimeout(debounce);
-  }, [searchTerm, refetch]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [statusFilter]);
-
-  const allRows = data?.data || [];
-  const rows =
-    statusFilter === "all"
-      ? allRows
-      : allRows.filter((d) => (statusFilter === "active" ? d.isActive : !d.isActive));
-  const total = data?.meta?.total ?? data?.total ?? rows.length;
-  const totalPages = data?.meta?.totalPages ?? 1;
-  const curPage = data?.meta?.page ?? page;
-  const activeCount = allRows.filter((d) => d.isActive).length;
-
-  const saveMutation = useMutation({
-    mutationFn: (payload: any) => {
-      if (editing) return api.put(`/grades/${editing.id}`, payload);
-      return api.post("/grades", payload);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["grades"] });
-      toast.success(editing ? "Grade berhasil diupdate" : "Grade berhasil ditambahkan");
-      setFormModalOpen(false);
-      setEditing(null);
-      setFormData(defaultForm);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Terjadi kesalahan");
+  const { data: grades = [], isLoading: gradesLoading } = useQuery({
+    queryKey: ["grades-definitions"],
+    queryFn: async () => {
+      const res = await gradesService.getAll({ limit: 100 });
+      return res.data;
     },
   });
 
-  const openCreateModal = () => {
-    setEditing(null);
-    setFormData(defaultForm);
-    setFormModalOpen(true);
+  const {
+    data: staffRows = [],
+    isLoading: rowsLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["grade-matrix"],
+    queryFn: async () => {
+      const res = await api.get("/positions", {
+        params: { limit: 500, rank: 6, includeInactive: true },
+      });
+      const body = res.data;
+      const rows = body?.data?.data ?? body?.data ?? [];
+      return (Array.isArray(rows) ? rows : []) as StaffRow[];
+    },
+  });
+
+  const isLoading = gradesLoading || rowsLoading;
+
+  const families = useMemo(() => {
+    const map = new Map<string, { key: string; label: string; rows: StaffRow[] }>();
+    for (const r of staffRows) {
+      const key = familyKeyOf(r.code);
+      if (!map.has(key)) map.set(key, { key, label: familyLabelOf(r.name), rows: [] });
+      map.get(key)!.rows.push(r);
+      // Prefer an active row's name for the family label.
+      if (r.isActive) map.get(key)!.label = familyLabelOf(r.name);
+    }
+    const q = searchTerm.trim().toLowerCase();
+    const all = [...map.values()].sort((a, b) => a.label.localeCompare(b.label));
+    if (!q) return all;
+    return all.filter(
+      (f) => f.label.toLowerCase().includes(q) || f.key.toLowerCase().includes(q)
+    );
+  }, [staffRows, searchTerm]);
+
+  const activeRungs = staffRows.filter((r) => r.isActive).length;
+  const busy = pending !== null;
+
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["positions-options"] });
+    refetch();
   };
 
-  const openEditModal = (row: Grade) => {
-    setEditing(row);
-    setFormData({ name: row.name || "", rank: String(row.rank ?? 1) });
-    setFormModalOpen(true);
+  const toggle = async (familyKey: string, gradeId: string, gradeRank: number) => {
+    const fam = families.find((f) => f.key === familyKey);
+    if (!fam) return;
+    const row = fam.rows.find((r) => r.gradeId === gradeId);
+    const cellKey = `${familyKey}:${gradeId}`;
+    setPending(cellKey);
+    try {
+      if (row && row.isActive) {
+        await api.delete(`/positions/${row.id}`);
+        toast.success("Rung dinonaktifkan");
+      } else if (row && !row.isActive) {
+        await api.put(`/positions/${row.id}`, { isActive: true });
+        toast.success("Rung diaktifkan");
+      } else {
+        const donor = fam.rows.find((r) => r.isActive) ?? fam.rows[0];
+        await api.post("/positions", {
+          code: `${familyKey}-${gradeRank}`,
+          name: `${fam.label} ${gradeRank}`,
+          rank: 6,
+          gradeId,
+          divisionId: donor?.divisionId ?? undefined,
+          departmentId: donor?.departmentId ?? undefined,
+          defaultRoleId: donor?.defaultRoleId ?? undefined,
+          minSalary: donor?.minSalary !== null && donor?.minSalary !== undefined ? Number(donor.minSalary) : undefined,
+        });
+        toast.success("Rung ditambahkan");
+      }
+      refresh();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || "Gagal mengubah rung");
+    } finally {
+      setPending(null);
+    }
   };
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/grades/${id}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["grades"] });
-      toast.success("Grade berhasil dinonaktifkan");
-      setDeleteModalOpen(false);
-      setToDelete(null);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || "Gagal menonaktifkan grade");
-    },
-  });
-
-  const columns: Column<Grade>[] = [
-    {
-      key: "name",
-      header: "Nama",
-      cell: (row) => (
-        <div>
-          <div className="text-base font-semibold text-foreground">{row.name}</div>
-          <div className="text-xs text-muted-foreground mt-1 font-mono">{row.code || "-"}</div>
-        </div>
-      ),
-    },
-    {
-      key: "rank",
-      header: "Tingkat",
-      cell: (row) => (
-        <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border bg-blue-100 text-blue-800 border-blue-200">
-          G{row.rank}
-        </span>
-      ),
-    },
-    {
-      key: "positions",
-      header: "Jabatan",
-      cell: (row) => <span>{row._count?.positions ?? "-"}</span>,
-    },
-    {
-      key: "isActive",
-      header: "Status",
-      cell: (row) => (
-        <span
-          className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${
-            row.isActive
-              ? "bg-green-100 text-green-800 border-green-200"
-              : "bg-gray-100 text-gray-800 border-gray-200"
-          }`}
-        >
-          {row.isActive ? "Aktif" : "Tidak Aktif"}
-        </span>
-      ),
-    },
-  ];
 
   return (
     <div className="w-full space-y-3">
-      <BreadcrumbHeader title="Grade" subtitle="Tangga tier 1–6 khusus jabatan staff">
-        <Button
-          onClick={openCreateModal}
-          className="flex items-center gap-2 bg-white text-primary-600 border border-gray-200 hover:bg-primary-50"
-        >
-          <Plus className="w-5 h-5" />
-          <span>Tambah Grade</span>
-        </Button>
-      </BreadcrumbHeader>
+      <BreadcrumbHeader title="Grade" subtitle="Penetapan grade per jabatan staff" />
 
       {error && (
         <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
@@ -165,195 +138,128 @@ export default function GradeList() {
         <StatCard
           icon={<Award className="w-6 h-6 text-white" />}
           iconBg="from-primary-500 to-primary-600"
-          label="Total Grade"
-          value={isLoading ? "-" : total}
-          subtitle="Semua grade terdaftar"
+          label="Jabatan Staff"
+          value={isLoading ? "-" : families.length}
         />
         <StatCard
           icon={<Award className="w-6 h-6 text-white" />}
-          iconBg="from-blue-500 to-blue-600"
-          label="Ditampilkan"
-          value={isLoading ? "-" : rows.length}
-          subtitle="Grade pada halaman ini"
+          iconBg="from-purple-500 to-purple-600"
+          label="Total Rung"
+          value={isLoading ? "-" : staffRows.length}
         />
         <StatCard
           icon={<Award className="w-6 h-6 text-white" />}
           iconBg="from-green-500 to-green-600"
-          label="Grade Aktif"
-          value={isLoading ? "-" : activeCount}
+          label="Rung Aktif"
+          value={isLoading ? "-" : activeRungs}
           badge={{ text: "Active", className: "bg-green-100 text-green-800" }}
         />
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 px-4 py-3 flex flex-wrap gap-2 items-center">
+        {grades.map((g) => (
+          <span
+            key={g.id}
+            className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border bg-purple-50 text-purple-700 border-purple-200"
+          >
+            {g.code} — {g.name}
+          </span>
+        ))}
       </div>
 
       <FilterToolbar
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
-        searchPlaceholder="Cari nama grade..."
-        fields={[
-          {
-            key: "status",
-            label: "Status",
-            type: "select",
-            options: [
-              { value: "active", label: "Aktif" },
-              { value: "inactive", label: "Tidak Aktif" },
-            ],
-          },
-        ]}
-        values={{ status: statusFilter === "all" ? "" : statusFilter }}
-        onFieldChange={(key, v) => {
-          if (key === "status") {
-            setStatusFilter((v || "all") as StatusFilter);
-            setPage(1);
-          }
-        }}
-        onReset={() => {
-          setStatusFilter("all");
-          setPage(1);
-        }}
+        searchPlaceholder="Cari jabatan staff..."
+        fields={[]}
+        values={{}}
+        onFieldChange={() => {}}
+        onReset={() => setSearchTerm("")}
       />
 
-      <DataTable
-        columns={columns}
-        data={rows}
-        keyExtractor={(t: Grade) => t.id}
-        isLoading={isLoading}
-        emptyMessage="Tidak ada grade ditemukan"
-        emptyIcon={<Award className="w-16 h-16" />}
-        actions={(row: Grade) => (
-          <div className="flex items-center justify-end gap-1">
-            <Button variant="ghost" size="sm" onClick={() => openEditModal(row)} title="Edit">
-              <Edit className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-red-600 hover:bg-red-50"
-              title="Nonaktifkan"
-              onClick={() => {
-                setToDelete({ id: row.id, name: row.name });
-                setDeleteModalOpen(true);
-              }}
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          </div>
-        )}
-      />
-
-      {!isLoading && rows.length > 0 && (
-        <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 rounded-lg border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">
-              Menampilkan <span className="font-bold text-foreground">{rows.length}</span> dari{" "}
-              <span className="font-bold text-foreground">{total}</span> grade
-              <span className="ml-2 text-muted-foreground">
-                (Halaman {curPage} dari {totalPages})
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setPage(page - 1)} disabled={page === 1}>
-                Sebelumnya
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(page + 1)}
-                disabled={page >= totalPages}
-              >
-                Selanjutnya
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <Dialog
-        open={formModalOpen}
-        onOpenChange={(open) => {
-          if (!open) {
-            setFormModalOpen(false);
-            setEditing(null);
-            setFormData(defaultForm);
-          }
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editing ? "Edit Grade" : "Tambah Grade"}</DialogTitle>
-          </DialogHeader>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              saveMutation.mutate({ name: formData.name, rank: Number(formData.rank) });
-            }}
-            className="space-y-4"
-          >
-            <div>
-              <label className="block text-sm font-medium mb-1">Nama Grade</label>
-              <input
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
-                placeholder="mis. Grade 1"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Tingkat (1–6)</label>
-              <select
-                value={formData.rank}
-                onChange={(e) => setFormData({ ...formData, rank: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
-              >
-                {[1, 2, 3, 4, 5, 6].map((r) => (
-                  <option key={r} value={String(r)}>
-                    {r}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-muted-foreground mt-1">
-                Grade hanya untuk jabatan staff — tiap tingkat harus unik.
-              </p>
-            </div>
-            <div className="flex gap-2 pt-2">
-              <Button type="button" variant="outline" className="flex-1" onClick={() => setFormModalOpen(false)}>
-                Batal
-              </Button>
-              <Button type="submit" className="flex-1" disabled={saveMutation.isPending}>
-                {saveMutation.isPending ? "Menyimpan..." : editing ? "Simpan" : "Tambah"}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Nonaktifkan Grade</DialogTitle>
-          </DialogHeader>
-          <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-lg p-3">
-            <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5" />
-            <p className="text-sm text-amber-800">
-              Grade <b>{toDelete?.name}</b> akan dinonaktifkan. Grade yang masih dipakai jabatan tidak
-              bisa dinonaktifkan — pindahkan dulu.
-            </p>
-          </div>
-          <div className="flex gap-2 pt-2">
-            <Button type="button" variant="outline" className="flex-1" onClick={() => setDeleteModalOpen(false)}>
-              Batal
-            </Button>
-            <Button
-              className="flex-1 bg-red-600 hover:bg-red-700 text-white"
-              disabled={deleteMutation.isPending}
-              onClick={() => toDelete && deleteMutation.mutate(toDelete.id)}
-            >
-              {deleteMutation.isPending ? "Memproses..." : "Nonaktifkan"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-100 text-left text-xs uppercase tracking-wide text-gray-400">
+              <th className="px-4 py-3 font-bold">Jabatan</th>
+              {grades.map((g) => (
+                <th key={g.id} className="px-2 py-3 font-bold text-center w-16">
+                  {g.code}
+                </th>
+              ))}
+              <th className="px-4 py-3 font-bold text-center">Rung</th>
+            </tr>
+          </thead>
+          <tbody>
+            {families.map((f) => {
+              const activeCount = f.rows.filter((r) => r.isActive).length;
+              return (
+                <tr key={f.key} className="border-b border-gray-50 last:border-0">
+                  <td className="px-4 py-2.5">
+                    <div className="font-semibold text-gray-900">{f.label}</div>
+                    <div className="text-xs text-muted-foreground font-mono">{f.key}</div>
+                  </td>
+                  {grades.map((g) => {
+                    const row = f.rows.find((r) => r.gradeId === g.id);
+                    return (
+                      <td key={g.id} className="px-2 py-2.5 text-center">
+                        {row && row.isActive ? (
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => toggle(f.key, g.id, g.rank)}
+                            title={`${row.code} — aktif, klik untuk nonaktifkan`}
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-green-100 text-green-700 border border-green-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors disabled:opacity-50"
+                          >
+                            <Check className="w-4 h-4" />
+                          </button>
+                        ) : row && !row.isActive ? (
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => toggle(f.key, g.id, g.rank)}
+                            title={`${row.code} — nonaktif, klik untuk aktifkan`}
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 text-gray-400 border border-gray-200 hover:bg-green-50 hover:text-green-700 hover:border-green-200 transition-colors disabled:opacity-50"
+                          >
+                            <Check className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => toggle(f.key, g.id, g.rank)}
+                            title={`Tambah rung ${g.code}`}
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-dashed border-gray-300 text-gray-300 hover:border-primary-400 hover:text-primary-500 transition-colors disabled:opacity-50"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        )}
+                      </td>
+                    );
+                  })}
+                  <td className="px-4 py-2.5 text-center font-mono text-xs text-gray-500">
+                    {activeCount}/{f.rows.length}
+                  </td>
+                </tr>
+              );
+            })}
+            {!isLoading && families.length === 0 && (
+              <tr>
+                <td colSpan={grades.length + 2} className="px-4 py-8 text-center text-muted-foreground">
+                  Tidak ada jabatan staff ditemukan
+                </td>
+              </tr>
+            )}
+            {isLoading && (
+              <tr>
+                <td colSpan={grades.length + 2} className="px-4 py-8 text-center text-muted-foreground">
+                  Memuat…
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

@@ -268,6 +268,9 @@ export default function EmployeeDetail() {
                       </span>
                       <span className="font-mono text-xs text-gray-700">{c.contractNumber}</span>
                       <span className="text-xs font-semibold text-gray-500">{c.status}</span>
+                      {c.grade && (
+                        <span className="text-xs font-semibold text-purple-700">{c.grade.code}</span>
+                      )}
                       {c.changeReason && c.changeReason !== "initial" && (
                         <span className="text-xs text-purple-700">{c.changeReason}</span>
                       )}

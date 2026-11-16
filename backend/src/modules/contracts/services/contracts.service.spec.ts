@@ -28,6 +28,7 @@ async function boot(overrides: any = {}) {
     employee: mockDelegate(),
     workingLocation: mockDelegate(),
     position: mockDelegate(),
+    grade: mockDelegate(),
     division: mockDelegate(),
     department: mockDelegate(),
     branch: mockDelegate(),
@@ -166,6 +167,38 @@ describe('ContractsService caps (IGDERP-270)', () => {
         contractNumber: 'CTR-MANUAL-001',
       } as any),
     ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('persists a grade snapshot when provided', async () => {
+    const { service, prisma }: any = await boot();
+    prisma.employee.findUnique.mockResolvedValue({ id: EMP });
+    prisma.grade.findUnique.mockResolvedValue({ id: 'g-3', code: 'G3' });
+    prisma.contract.count.mockResolvedValue(0);
+    prisma.contract.findUnique.mockResolvedValue(null);
+    prisma.contract.create.mockImplementation(async ({ data }: any) => ({ id: 'c-1', ...data }));
+    const res: any = await service.create({
+      employeeId: EMP,
+      type: 'pkwt',
+      startDate: '2026-01-01',
+      endDate: '2026-12-01',
+      gradeId: 'g-3',
+    } as any);
+    expect(res.gradeId).toBe('g-3');
+  });
+
+  it('rejects an unknown grade', async () => {
+    const { service, prisma }: any = await boot();
+    prisma.employee.findUnique.mockResolvedValue({ id: EMP });
+    prisma.grade.findUnique.mockResolvedValue(null);
+    await expect(
+      service.create({
+        employeeId: EMP,
+        type: 'pkwt',
+        startDate: '2026-01-01',
+        endDate: '2026-12-01',
+        gradeId: 'g-nope',
+      } as any),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('marks the previous row renewed on renewal', async () => {

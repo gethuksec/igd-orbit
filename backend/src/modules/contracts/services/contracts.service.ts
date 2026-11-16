@@ -94,6 +94,7 @@ export class ContractsService {
     employee: { select: { id: true, userId: true, employeeCode: true } },
     workingLocation: { select: { id: true, code: true, name: true } },
     position: { select: { id: true, code: true, name: true } },
+    grade: { select: { id: true, code: true, name: true } },
     division: { select: { id: true, code: true, name: true } },
     department: { select: { id: true, code: true, name: true } },
     contractBranches: {
@@ -209,6 +210,7 @@ export class ContractsService {
     employeeId: string;
     workingLocationId?: string | null;
     positionId?: string | null;
+    gradeId?: string | null;
     divisionId?: string | null;
     departmentId?: string | null;
     previousContractId?: string | null;
@@ -223,6 +225,7 @@ export class ContractsService {
     }
     for (const [key, model] of [
       ['positionId', 'position'],
+      ['gradeId', 'grade'],
       ['divisionId', 'division'],
       ['departmentId', 'department'],
     ] as const) {
@@ -295,6 +298,7 @@ export class ContractsService {
         probationEndDate: dto.probationEndDate ? new Date(dto.probationEndDate) : null,
         basicSalary: dto.basicSalary !== undefined ? new Decimal(dto.basicSalary) : null,
         positionId: dto.positionId ?? null,
+        gradeId: dto.gradeId ?? null,
         divisionId: dto.divisionId ?? null,
         departmentId: dto.departmentId ?? null,
         changeReason: dto.changeReason ?? (dto.previousContractId ? 'renewal' : 'initial'),
@@ -483,6 +487,7 @@ export class ContractsService {
           probationEndDate: dto.probationEndDate ? new Date(dto.probationEndDate) : null,
           basicSalary: dto.basicSalary !== undefined ? new Decimal(dto.basicSalary) : null,
           positionId: dto.positionId ?? null,
+          gradeId: dto.gradeId ?? null,
           divisionId: dto.divisionId ?? null,
           departmentId: dto.departmentId ?? null,
           changeReason: 'initial',

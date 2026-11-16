@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { contractsService, type ContractType } from "@/services/contracts.service";
@@ -146,12 +146,6 @@ export default function IntakeDialog({ open, mode, onClose, onSuccess, defaultEm
     enabled: open && mode === "kontrak" && !!form.employeeId,
   });
 
-  const selectedPosition = useMemo(
-    () => positions.find((p) => p.id === form.positionId) ?? null,
-    [positions, form.positionId]
-  );
-  const isStaffTitle = (selectedPosition?.rank ?? 0) === 6;
-
   const autoStatus = form.startDate && form.startDate <= todayISO() ? "active" : "draft";
 
   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
@@ -172,7 +166,12 @@ export default function IntakeDialog({ open, mode, onClose, onSuccess, defaultEm
 
   const onPositionChange = async (positionId: string) => {
     const pos = positions.find((p) => p.id === positionId) ?? null;
-    setForm((f) => ({ ...f, positionId, gradeId: pos?.gradeId ?? "" }));
+    // Staff rows carry their rung; non-staff titles keep the chosen grade.
+    setForm((f) => ({
+      ...f,
+      positionId,
+      gradeId: pos && pos.rank === 6 ? (pos.gradeId ?? f.gradeId) : f.gradeId,
+    }));
     if (mode !== "karyawan" || roleTouched || !positionId) return;
     try {
       const res = await contractsService.suggestRole(positionId);
@@ -183,13 +182,15 @@ export default function IntakeDialog({ open, mode, onClose, onSuccess, defaultEm
   };
 
   const onGradeChange = (gradeId: string) => {
-    if (!selectedPosition) {
+    const pos = positions.find((p) => p.id === form.positionId) ?? null;
+    if (!pos || pos.rank !== 6) {
+      // Non-staff titles: grade rides along as a snapshot, position untouched.
       set("gradeId", gradeId);
       return;
     }
-    const family = familyOf(selectedPosition.code);
+    const family = familyOf(pos.code);
     const match = positions.find(
-      (p) => p.id !== selectedPosition.id && familyOf(p.code) === family && p.gradeId === gradeId
+      (p) => p.id !== pos.id && familyOf(p.code) === family && p.gradeId === gradeId
     );
     if (match) {
       setForm((f) => ({ ...f, gradeId, positionId: match.id }));
@@ -218,6 +219,7 @@ export default function IntakeDialog({ open, mode, onClose, onSuccess, defaultEm
           workingLocationId: norm(form.workingLocationId),
           basicSalary: form.basicSalary === "" ? undefined : Number(form.basicSalary),
           positionId: norm(form.positionId),
+          gradeId: norm(form.gradeId),
           branchIds: form.branchIds,
           primaryBranchId: norm(form.primaryBranchId),
           roleId: norm(form.roleId),
@@ -247,6 +249,7 @@ export default function IntakeDialog({ open, mode, onClose, onSuccess, defaultEm
           workingLocationId: norm(form.workingLocationId),
           basicSalary: form.basicSalary === "" ? undefined : Number(form.basicSalary),
           positionId: norm(form.positionId),
+          gradeId: norm(form.gradeId),
           status: autoStatus as any,
           branchIds: form.branchIds,
           primaryBranchId: norm(form.primaryBranchId),
@@ -389,16 +392,14 @@ export default function IntakeDialog({ open, mode, onClose, onSuccess, defaultEm
               options={positionOptions}
             />
           </div>
-          {isStaffTitle && (
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Grade</label>
-              <SearchableSelect
-                value={form.gradeId}
-                onChange={onGradeChange}
-                options={gradeOptions}
-              />
-            </div>
-          )}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Grade</label>
+            <SearchableSelect
+              value={form.gradeId}
+              onChange={onGradeChange}
+              options={gradeOptions}
+            />
+          </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Tipe kontrak</label>
             <select value={form.type} onChange={(e) => {
