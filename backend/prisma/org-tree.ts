@@ -72,7 +72,9 @@ export const RETIRED_ROLE_CODES = ['CFO', 'CSO', 'CMO', 'CHR', 'MGR', 'SPV', 'AR
 export const ORG_DEPARTMENTS = [
   { code: 'DEPT-MKT', name: 'Marketing' },
   { code: 'DEPT-OPS', name: 'Operasional & Toko' },
-  { code: 'DEPT-SC', name: 'Supply Chain' },
-  { code: 'DEPT-FIN', name: 'Finance & Accounting' },
-  { code: 'DEPT-HRD', name: 'Human Resource Development' },
+  { code: 'DEPT-SUP', name: 'Support' },
 ];
+
+// Retired 2026-11-16 (IGDERP-277): SC/FIN/HRD stop being departments and
+// become divisions under Support. Seed deactivates them after remapping FKs.
+export const RETIRED_DEPARTMENT_CODES = ['DEPT-SC', 'DEPT-FIN', 'DEPT-HRD'];

@@ -67,9 +67,13 @@ export class UpdateUserDto {
   @IsOptional()
   branchId?: string;
 
-  @IsString({ message: 'Position must be a string' })
+  @IsUUID('4', { message: 'Division ID must be a valid UUID' })
   @IsOptional()
-  position?: string;
+  divisionId?: string;
+
+  @IsUUID('4', { message: 'Position ID must be a valid UUID' })
+  @IsOptional()
+  positionId?: string;
 
   @IsDateString()
   @IsOptional()

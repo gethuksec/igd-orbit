@@ -12,6 +12,8 @@ interface Department {
   code: string;
   name: string;
   description?: string;
+  level?: number;
+  parentDepartmentId?: string | null;
   isActive: boolean;
   parentDepartment?: { id: string; name: string } | null;
   branch?: { id: string; name: string } | null;
@@ -21,12 +23,14 @@ interface Department {
 interface FormData {
   code: string;
   name: string;
+  parentDepartmentId: string;
   isActive: boolean;
 }
 
 const defaultForm: FormData = {
   code: "",
   name: "",
+  parentDepartmentId: "",
   isActive: true,
 };
 
@@ -100,6 +104,7 @@ export default function DepartmentList() {
     setForm({
       code: dept.code,
       name: dept.name,
+      parentDepartmentId: dept.parentDepartment?.id || (dept as any).parentDepartmentId || '',
       isActive: dept.isActive,
     });
     setShowModal(true);
@@ -107,10 +112,16 @@ export default function DepartmentList() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const payload = {
+      code: form.code,
+      name: form.name,
+      parentDepartmentId: form.parentDepartmentId || undefined,
+      isActive: form.isActive,
+    };
     if (editing) {
-      updateMutation.mutate({ id: editing.id, data: form });
+      updateMutation.mutate({ id: editing.id, data: payload });
     } else {
-      createMutation.mutate(form);
+      createMutation.mutate(payload as any);
     }
   };
 
@@ -147,6 +158,8 @@ export default function DepartmentList() {
               <tr>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Kode</th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Nama</th>
+                <th className="text-center px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Level</th>
+                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Induk</th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Cabang</th>
                 <th className="text-center px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Jml Karyawan</th>
                 <th className="text-center px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Status</th>
@@ -158,6 +171,12 @@ export default function DepartmentList() {
               <tr key={dept.id} className="hover:bg-gray-50">
               <td className="px-6 py-4 text-sm font-mono text-gray-500">{dept.code}</td>
               <td className="px-6 py-4 text-sm font-medium text-gray-900">{dept.name}</td>
+              <td className="px-6 py-4 text-sm text-center">
+                <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-700">
+                  L{dept.level ?? 1}
+                </span>
+              </td>
+              <td className="px-6 py-4 text-sm text-gray-500">{dept.parentDepartment?.name || "—"}</td>
               <td className="px-6 py-4 text-sm text-gray-500">{dept.branch?.name || "-"}</td>
                   <td className="px-6 py-4 text-sm text-center text-gray-500">{dept._count?.employees || 0}</td>
                   <td className="px-6 py-4 text-center">
@@ -225,6 +244,20 @@ export default function DepartmentList() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
               placeholder="Contoh: Sales & Marketing, Finance"
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Induk (Opsional)</label>
+            <select
+              value={form.parentDepartmentId}
+              onChange={(e) => setForm({ ...form, parentDepartmentId: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="">Tanpa induk (level 1)</option>
+              {(data?.data || []).filter((d: Department) => !editing || d.id !== editing.id).map((d: Department) => (
+                <option key={d.id} value={d.id}>{d.name} (L{d.level ?? 1})</option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">Level anak = induk + 1 (level 0 dicadangkan).</p>
           </div>
           <div className="flex items-center gap-2">
             <input

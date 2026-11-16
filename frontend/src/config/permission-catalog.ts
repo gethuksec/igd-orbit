@@ -81,6 +81,9 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
         children: [
           { label: 'Cuti', key: 'master_data.attribute.view' },
           { label: 'Denda', key: 'master_data.attribute.view' },
+          { label: 'Divisi', key: 'master_data.attribute.view' },
+          { label: 'Grade', key: 'master_data.attribute.view' },
+          { label: 'Jabatan', key: 'master_data.attribute.view' },
         ],
       },
     ],

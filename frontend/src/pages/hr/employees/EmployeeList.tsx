@@ -16,7 +16,9 @@ const emptyForm = {
   password: '',
   branchId: '',
   departmentId: '',
-  position: '',
+  divisionId: '',
+  positionId: '',
+  basicSalary: '',
   hireDate: '',
   employmentType: '' as 'PKWT' | 'PKWTT' | '',
   endDate: '',
@@ -65,6 +67,26 @@ export default function EmployeeList() {
     },
   });
 
+  // Divisions + positions for pickers (IGDERP-277)
+  const { data: divisions } = useQuery({
+    queryKey: ['divisions-options'],
+    queryFn: async () => {
+      const response = await api.get('/divisions');
+      return response.data?.data || [];
+    },
+  });
+  const { data: positions } = useQuery({
+    queryKey: ['positions-options'],
+    queryFn: async () => {
+      const response = await api.get('/positions', { params: { limit: 200 } });
+      return response.data?.data || [];
+    },
+  });
+  const selectedPosition = (positions || []).find((p: any) => p.id === form.positionId);
+  const minSalary = selectedPosition?.minSalary != null ? Number(selectedPosition.minSalary) : null;
+  const salaryNum = form.basicSalary === '' ? null : Number(form.basicSalary);
+  const belowMin = minSalary !== null && salaryNum !== null && !Number.isNaN(salaryNum) && salaryNum < minSalary;
+
   const users = data?.data || [];
   const pagination = data?.meta || { page: 1, limit: 20, total: 0, totalPages: 1 };
 
@@ -98,7 +120,7 @@ export default function EmployeeList() {
 
   // Create mutation
   const createMutation = useMutation({
-    mutationFn: async (data: typeof emptyForm) => {
+    mutationFn: async (data: any) => {
       const response = await api.post('/users', data);
       return response.data.data || response.data;
     },
@@ -114,7 +136,7 @@ export default function EmployeeList() {
 
   // Update mutation (for editing from modal)
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: typeof emptyForm }) => {
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
       const { password, ...updateData } = data;
       const response = await api.put(`/users/${id}`, updateData);
       return response.data.data || response.data;
@@ -150,7 +172,9 @@ export default function EmployeeList() {
       password: '',
       branchId: user.employee?.branchId || '',
       departmentId: user.employee?.departmentId || '',
-      position: user.employee?.position || '',
+      divisionId: user.employee?.divisionId || '',
+      positionId: user.employee?.positionId || '',
+      basicSalary: user.employee?.basicSalary?.toString() ?? '',
       hireDate: user.employee?.hireDate ? formatDateForInput(user.employee.hireDate) : '',
       employmentType: (user.employee?.employmentType as 'PKWT' | 'PKWTT') || '',
       endDate: user.employee?.endDate ? formatDateForInput(user.employee.endDate) : '',
@@ -161,10 +185,22 @@ export default function EmployeeList() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const norm = (v: any) => (v === '' ? undefined : v);
+    const payload = {
+      ...form,
+      branchId: norm(form.branchId),
+      departmentId: norm(form.departmentId),
+      divisionId: norm(form.divisionId),
+      positionId: norm(form.positionId),
+      basicSalary: form.basicSalary === '' ? undefined : Number(form.basicSalary),
+      hireDate: norm(form.hireDate),
+      endDate: norm(form.endDate),
+      employmentType: norm(form.employmentType),
+    };
     if (editId) {
-      updateMutation.mutate({ id: editId, data: form });
+      updateMutation.mutate({ id: editId, data: payload });
     } else {
-      createMutation.mutate(form);
+      createMutation.mutate(payload);
     }
   };
 
@@ -303,7 +339,12 @@ export default function EmployeeList() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           <Briefcase className="w-4 h-4 text-gray-400" />
-                          <div className="text-sm font-semibold text-gray-900">{user.employee?.position || '-'}</div>
+                          <div className="text-sm font-semibold text-gray-900">{user.employee?.position || user.employee?.positionDetail?.name || '-'}</div>
+                          {(user.employee?.positionDetail as any)?.grade && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+                              G{(user.employee.positionDetail as any).grade.rank}
+                            </span>
+                          )}
                         </div>
                         {user.employee?.department && (
                           <div className="text-xs text-gray-500 mt-1">{user.employee.department.name}</div>
@@ -450,12 +491,44 @@ export default function EmployeeList() {
               <Briefcase className="w-4 h-4" /> Informasi Karyawan
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {/* Posisi */}
+              {/* Jabatan (picker, IGDERP-277) */}
               <div>
-                <label className="block text-sm font-medium mb-1">Posisi</label>
-                <input type="text" value={form.position}
-                  onChange={(e) => setForm({ ...form, position: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm" placeholder="e.g., Manager, Staff" />
+                <label className="block text-sm font-medium mb-1">Jabatan</label>
+                <select value={form.positionId}
+                  onChange={(e) => setForm({ ...form, positionId: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">
+                  <option value="">Pilih Jabatan (Opsional)</option>
+                  {(positions || []).map((p: any) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}{p.grade ? ` — G${p.grade.rank}` : ''} (L{p.rank})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {/* Divisi */}
+              <div>
+                <label className="block text-sm font-medium mb-1">Divisi</label>
+                <select value={form.divisionId}
+                  onChange={(e) => setForm({ ...form, divisionId: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">
+                  <option value="">Pilih Divisi (Opsional)</option>
+                  {(divisions || []).map((d: any) => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+              </div>
+              {/* Gaji Pokok + below-min warn */}
+              <div>
+                <label className="block text-sm font-medium mb-1">Gaji Pokok (Rp)</label>
+                <input type="number" min={0} value={form.basicSalary}
+                  onChange={(e) => setForm({ ...form, basicSalary: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
+                  placeholder="mis. 3500000" />
+                {belowMin && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Di bawah min. jabatan ({selectedPosition.name}: Rp {Number(minSalary).toLocaleString('id-ID')}) — bisa disimpan, tapi cek lagi.
+                  </p>
+                )}
               </div>
               {/* Tipe Karyawan */}
               <div>

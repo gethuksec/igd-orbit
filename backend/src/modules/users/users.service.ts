@@ -83,7 +83,8 @@ export class UsersService {
         employee: {
           select: {
             employeeCode: true,
-            position: true,
+            positionId: true,
+            position: { select: { name: true } },
           },
         },
       },
@@ -95,7 +96,7 @@ export class UsersService {
       email: u.email,
       phone: u.phone,
       employeeCode: u.employee?.employeeCode ?? null,
-      position: u.employee?.position ?? null,
+      position: (u.employee as any)?.position?.name ?? null,
     }));
   }
 
@@ -211,6 +212,23 @@ export class UsersService {
                 select: {
                   id: true,
                   name: true,
+                },
+              },
+              division: {
+                select: {
+                  id: true,
+                  code: true,
+                  name: true,
+                },
+              },
+              position: {
+                select: {
+                  id: true,
+                  code: true,
+                  name: true,
+                  rank: true,
+                  minSalary: true,
+                  grade: { select: { id: true, code: true, name: true, rank: true } },
                 },
               },
             },
@@ -384,6 +402,24 @@ export class UsersService {
       }
     }
 
+    // Validate division/position refs (IGDERP-277) before the transactional create
+    if (createUserDto.divisionId) {
+      const division = await this.prisma.division.findUnique({
+        where: { id: createUserDto.divisionId },
+      });
+      if (!division || !division.isActive) {
+        throw new BadRequestException('Division not found or inactive');
+      }
+    }
+    if (createUserDto.positionId) {
+      const position = await this.prisma.position.findUnique({
+        where: { id: createUserDto.positionId },
+      });
+      if (!position || !position.isActive) {
+        throw new BadRequestException('Position not found or inactive');
+      }
+    }
+
     // Create user and employee in transaction
     const result = await this.prisma.$transaction(async (tx) => {
       // Create user
@@ -406,7 +442,12 @@ export class UsersService {
           employeeCode,
           branchId: createUserDto.departmentId ? null : null, // Will be set later if needed
           departmentId: createUserDto.departmentId || null,
-          position: null, // Will be set later if needed
+          divisionId: createUserDto.divisionId || null,
+          positionId: createUserDto.positionId || null,
+          basicSalary:
+            createUserDto.basicSalary !== undefined && createUserDto.basicSalary !== null
+              ? new Decimal(createUserDto.basicSalary)
+              : null,
           isActive: true,
         },
       });
@@ -429,6 +470,23 @@ export class UsersService {
                   id: true,
                   code: true,
                   name: true,
+                },
+              },
+              division: {
+                select: {
+                  id: true,
+                  code: true,
+                  name: true,
+                },
+              },
+              position: {
+                select: {
+                  id: true,
+                  code: true,
+                  name: true,
+                  rank: true,
+                  minSalary: true,
+                  grade: { select: { id: true, code: true, name: true, rank: true } },
                 },
               },
             },
@@ -562,8 +620,10 @@ export class UsersService {
         employeeUpdateData.branchId = updateUserDto.branchId || null;
       if (updateUserDto.departmentId !== undefined)
         employeeUpdateData.departmentId = updateUserDto.departmentId || null;
-      if (updateUserDto.position !== undefined)
-        employeeUpdateData.position = updateUserDto.position;
+      if (updateUserDto.divisionId !== undefined)
+        employeeUpdateData.divisionId = updateUserDto.divisionId || null;
+      if (updateUserDto.positionId !== undefined)
+        employeeUpdateData.positionId = updateUserDto.positionId || null;
       if (updateUserDto.hireDate !== undefined)
         employeeUpdateData.hireDate = updateUserDto.hireDate
           ? new Date(updateUserDto.hireDate)
@@ -591,6 +651,24 @@ export class UsersService {
       if (updateUserDto.isActive !== undefined)
         employeeUpdateData.isActive = updateUserDto.isActive;
 
+      // Validate division/position refs (IGDERP-277) — avoid raw FK violations
+      if (employeeUpdateData.divisionId) {
+        const division = await this.prisma.division.findUnique({
+          where: { id: employeeUpdateData.divisionId },
+        });
+        if (!division || !division.isActive) {
+          throw new BadRequestException('Division not found or inactive');
+        }
+      }
+      if (employeeUpdateData.positionId) {
+        const position = await this.prisma.position.findUnique({
+          where: { id: employeeUpdateData.positionId },
+        });
+        if (!position || !position.isActive) {
+          throw new BadRequestException('Position not found or inactive');
+        }
+      }
+
       if (Object.keys(employeeUpdateData).length > 0) {
         await this.prisma.employee.update({
           where: { id: updatedUser.employee.id },
@@ -616,6 +694,23 @@ export class UsersService {
               select: {
                 id: true,
                 name: true,
+              },
+            },
+            division: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+              },
+            },
+            position: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+                rank: true,
+                minSalary: true,
+                grade: { select: { id: true, code: true, name: true, rank: true } },
               },
             },
           },

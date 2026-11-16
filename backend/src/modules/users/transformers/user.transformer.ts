@@ -18,7 +18,10 @@ type UserWithRelations = User & {
     employeeCode: string;
     branchId: string | null;
     departmentId: string | null;
-    position: string | null;
+    divisionId: string | null;
+    positionId: string | null;
+    position?: { id: string; code: string; name: string; rank: number; grade?: { code: string; name: string } | null } | null;
+    division?: { id: string; code: string; name: string } | null;
     hireDate: Date | null;
     employmentType: string | null;
     basicSalary: any;
@@ -54,6 +57,8 @@ export interface TransformedUser {
     employeeCode: string;
     branchId: string | null;
     departmentId: string | null;
+    divisionId: string | null;
+    positionId: string | null;
     position: string | null;
     hireDate: Date | null;
     employmentType: string | null;
@@ -66,6 +71,8 @@ export interface TransformedUser {
     isActive: boolean;
     branch?: { id: string; code: string; name: string } | null;
     department?: { id: string; name: string } | null;
+    division?: { id: string; code: string; name: string } | null;
+    positionDetail?: { id: string; code: string; name: string; rank: number; minSalary?: any; grade?: { id: string; code: string; name: string; rank: number } | null } | null;
   } | null;
   roles: Array<{
     id: string;
@@ -124,7 +131,9 @@ export class UserTransformer {
           employeeCode: user.employee.employeeCode,
           branchId: user.employee.branchId,
           departmentId: user.employee.departmentId,
-          position: user.employee.position,
+          divisionId: user.employee.divisionId ?? null,
+          positionId: user.employee.positionId ?? null,
+          position: (user.employee as any).position?.name ?? null,
           hireDate: user.employee.hireDate,
           employmentType: user.employee.employmentType,
           basicSalary: user.employee.basicSalary
@@ -144,6 +153,8 @@ export class UserTransformer {
           isActive: user.employee.isActive,
           branch: user.employee.branch || null,
           department: user.employee.department || null,
+          division: (user.employee as any).division || null,
+          positionDetail: (user.employee as any).position || null,
         }
       : null;
 

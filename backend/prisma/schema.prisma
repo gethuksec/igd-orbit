@@ -95,6 +95,7 @@ model Role {
   userBranches UserBranch[]
   parentRole   Role?        @relation("RoleHierarchy", fields: [parentRoleId], references: [id], onDelete: SetNull)
   childRoles   Role[]       @relation("RoleHierarchy")
+  defaultForPositions Position[] @relation("PositionDefaultRole")
 
   @@index([code])
   @@index([level])
@@ -224,6 +225,7 @@ model Department {
   id                 String   @id @default(uuid())
   code               String   @unique
   name               String
+  level              Int      @default(1) @map("level") // L2 org = 1 root (Marketing/Operation/Support); child = parent + 1; 0 reserved
   parentDepartmentId String?  @map("parent_department_id") // For hierarchical structure
   branchId           String?  @map("branch_id") // null = company-wide department
   isActive           Boolean  @default(true) @map("is_active")
@@ -237,12 +239,91 @@ model Department {
   journalEntryLines JournalEntryLine[]
   expenses          Expense[]
   employees         Employee[]
+  divisions         Division[]
+  positions         Position[]
 
   @@index([code])
+  @@index([level])
   @@index([parentDepartmentId])
   @@index([branchId])
   @@index([isActive])
   @@map("departments")
+}
+
+// ORG-DEPT-DIV-GRADE (IGDERP-277): Division = layer below Department
+// (6 seeded rows, structure editable via departmentId). Employees attach
+// to divisions; contract snapshots (IGDERP-270) carry division history.
+model Division {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  name         String
+  departmentId String   @map("department_id")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  employees  Employee[]
+  positions  Position[]
+
+  @@index([code])
+  @@index([departmentId])
+  @@index([isActive])
+  @@map("divisions")
+}
+
+// ORG-DEPT-DIV-GRADE (IGDERP-277): Grade = staff-only tier ladder G1-G6.
+// One band per title lives on Position.minSalary; grade is the rung inside it.
+model Grade {
+  id        String   @id @default(uuid())
+  code      String   @unique // G1..G6
+  name      String
+  rank      Int      @map("rank") // 1-6
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  positions Position[]
+
+  @@index([code])
+  @@index([rank])
+  @@index([isActive])
+  @@map("grades")
+}
+
+// ORG-DEPT-DIV-GRADE (IGDERP-277): Position = job-title master (replaces
+// Employee.position free text). Staff titles (rank 6) expand to one row per
+// grade (e.g. CS-1..CS-6); L0-L5 titles are single rows with gradeId null.
+model Position {
+  id            String   @id @default(uuid())
+  code          String   @unique
+  name          String
+  rank          Int      @map("rank") // chart level L0-L6 (ordering only, like Role.level)
+  divisionId    String?  @map("division_id")
+  departmentId  String?  @map("department_id")
+  gradeId       String?  @map("grade_id") // staff-only (rank 6), null otherwise
+  minSalary     Decimal? @map("min_salary") @db.Decimal(15, 2) // band floor, open ceiling; set at title create, editable
+  defaultRoleId String?  @map("default_role_id") // suggests Role at intake (IGDERP-270), admin can override
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  division    Division?   @relation(fields: [divisionId], references: [id], onDelete: SetNull)
+  department  Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  grade       Grade?      @relation(fields: [gradeId], references: [id], onDelete: SetNull)
+  defaultRole Role?       @relation("PositionDefaultRole", fields: [defaultRoleId], references: [id], onDelete: SetNull)
+  employees   Employee[]
+
+  @@index([code])
+  @@index([rank])
+  @@index([divisionId])
+  @@index([departmentId])
+  @@index([gradeId])
+  @@index([isActive])
+  @@map("positions")
 }
 
 // ============================================
@@ -782,7 +863,8 @@ model Employee {
   employeeCode   String    @unique @map("employee_code") // EMP-XXXX
   branchId       String?   @map("branch_id")
   departmentId   String?   @map("department_id")
-  position       String? // Job title
+  divisionId     String?   @map("division_id") // IGDERP-277: division below department
+  positionId     String?   @map("position_id") // IGDERP-277: FK to Position master (replaces free-text position)
   hireDate       DateTime? @map("hire_date")
   employmentType String?   @map("employment_type") // 'full-time', 'part-time', 'contract'
   basicSalary    Decimal?  @map("basic_salary") @db.Decimal(15, 2)
@@ -800,6 +882,8 @@ model Employee {
   user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   branch           Branch?           @relation(fields: [branchId], references: [id], onDelete: SetNull)
   department       Department?       @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  division         Division?         @relation(fields: [divisionId], references: [id], onDelete: SetNull)
+  position         Position?         @relation(fields: [positionId], references: [id], onDelete: SetNull)
   attendances      Attendance[]
   leaveRequests    LeaveRequest[]
   overtimeRequests OvertimeRequest[]
@@ -810,6 +894,8 @@ model Employee {
   @@index([employeeCode])
   @@index([branchId])
   @@index([departmentId])
+  @@index([divisionId])
+  @@index([positionId])
   @@index([isActive])
   @@map("employees")
 }
