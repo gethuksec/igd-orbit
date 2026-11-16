@@ -59,6 +59,16 @@ export class CreateStockRequestDto {
   @IsNotEmpty({ message: 'staffName is required' })
   staffName!: string;
 
+  /** Tipe request: EXIT (tidak jadi beli) | LIMIT (stok habis). Mandatory. */
+  @IsString()
+  @IsIn(['EXIT', 'LIMIT'], { message: 'requestType must be EXIT or LIMIT' })
+  requestType!: string;
+
+  /** Free-text nama pelanggan. Non-mandatory — either this or customerId, or neither. */
+  @IsOptional()
+  @IsString()
+  customerName?: string;
+
   /** Preferred: picker-selected customer. Falls back to legacy customerType/memberRef. */
   @IsOptional()
   @IsUUID('4', { message: 'customerId must be a valid UUID' })
