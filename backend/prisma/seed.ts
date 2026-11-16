@@ -1701,6 +1701,14 @@ async function main() {
   for (const pt of penaltyTypes) {
     await prisma.penaltyType.upsert({ where: { code: pt.code }, update: { ...pt, isActive: true }, create: pt as any });
   }
+  // 16c. Working locations (IGDERP-270) — HQ seed. HQ-like sites live here,
+  // never as branches, so outlet dropdowns stay pure. Supports N HQ-like rows.
+  console.log('📍 Creating working locations...');
+  await prisma.workingLocation.upsert({
+    where: { code: 'HQ-JBR' },
+    update: { name: 'HQ Jember', address: 'Jl. Sudirman No. 123, Jember', latitude: -8.1845, longitude: 113.6687, radiusM: 100, isActive: true },
+    create: { code: 'HQ-JBR', name: 'HQ Jember', address: 'Jl. Sudirman No. 123, Jember', latitude: -8.1845, longitude: 113.6687, radiusM: 100, isActive: true },
+  });
   console.log('🔄 Creating service returns...');
   if (createdServiceOrders.length > 0) {
     // Find a completed/delivered service order for return

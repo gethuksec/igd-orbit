@@ -101,6 +101,10 @@ export class AuthService {
       );
     }
 
+    // IGDERP-270: employees need an active contract to log in. Bare system
+    // accounts (no employee row) and SUPERADMIN bypass the block.
+    await this.assertActiveContract(user);
+
     // Verify password
     console.log('🔑 Login attempt:', { email, passwordLen: password.length, password });
     const isPasswordValid = await this.passwordService.comparePassword(
@@ -160,6 +164,37 @@ export class AuthService {
     }
 
     return user;
+  }
+
+  /**
+   * IGDERP-270 login gate: an employee-linked user must hold an active
+   * contract covering today. SUPERADMIN and bare system accounts (no
+   * employee row) bypass. Defensive delegate access: hand-rolled test
+   * doubles that predate the contracts table skip the gate instead of
+   * crashing; the real Prisma client always carries both delegates.
+   */
+  private async assertActiveContract(user: {
+    id: string;
+    userBranches?: { role?: { code?: string } | null }[] | null;
+  }) {
+    if ((user.userBranches ?? []).some((ur) => ur?.role?.code === 'SUPERADMIN')) return;
+    const employeeDelegate = (this.prisma as any).employee;
+    const contractDelegate = (this.prisma as any).contract;
+    if (!employeeDelegate?.findUnique || !contractDelegate?.findFirst) return;
+    const employee = await employeeDelegate.findUnique({ where: { userId: user.id } });
+    if (!employee) return;
+    const now = new Date();
+    const active = await contractDelegate.findFirst({
+      where: {
+        employeeId: employee.id,
+        status: 'active',
+        startDate: { lte: now },
+        OR: [{ endDate: null }, { endDate: { gte: now } }],
+      },
+    });
+    if (!active) {
+      throw new UnauthorizedException('No active employment contract. Contact HR.');
+    }
   }
 
   /**

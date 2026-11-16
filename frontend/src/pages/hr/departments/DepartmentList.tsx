@@ -23,7 +23,7 @@ interface Department {
 interface FormData {
   code: string;
   name: string;
-  parentDepartmentId: string;
+  parentDepartmentId: string | undefined;
   isActive: boolean;
 }
 
@@ -248,7 +248,7 @@ export default function DepartmentList() {
           <div>
             <label className="block text-sm font-medium mb-1">Induk (Opsional)</label>
             <select
-              value={form.parentDepartmentId}
+              value={form.parentDepartmentId ?? ""}
               onChange={(e) => setForm({ ...form, parentDepartmentId: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
             >

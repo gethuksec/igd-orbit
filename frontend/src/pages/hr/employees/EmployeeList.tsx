@@ -7,6 +7,7 @@ import { formatDate, formatDateForInput } from '@/utils/format';
 import { useBranchStore } from '@/stores/branchStore';
 import { api } from '@/services/api';
 import { Modal } from '@/components/ui/modal';
+import IntakeDialog from '@/components/hr/IntakeDialog';
 import { toast } from 'sonner';
 
 const emptyForm = {
@@ -36,6 +37,7 @@ export default function EmployeeList() {
 
   // Modal state
   const [showAddModal, setShowAddModal] = useState(false);
+  const [intakeOpen, setIntakeOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({ ...emptyForm });
 
@@ -118,22 +120,6 @@ export default function EmployeeList() {
     return () => clearTimeout(debounce);
   }, [searchTerm, statusFilter, selectedBranchId]);
 
-  // Create mutation
-  const createMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const response = await api.post('/users', data);
-      return response.data.data || response.data;
-    },
-    onSuccess: () => {
-      toast.success('Karyawan berhasil ditambahkan');
-      queryClient.invalidateQueries({ queryKey: ['employees'] });
-      closeAddModal();
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Gagal menambahkan karyawan');
-    },
-  });
-
   // Update mutation (for editing from modal)
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
@@ -155,12 +141,6 @@ export default function EmployeeList() {
     setShowAddModal(false);
     setEditId(null);
     setForm({ ...emptyForm });
-  };
-
-  const openAddModal = () => {
-    setForm({ ...emptyForm });
-    setEditId(null);
-    setShowAddModal(true);
   };
 
   const openEditModal = async (user: any) => {
@@ -199,23 +179,21 @@ export default function EmployeeList() {
     };
     if (editId) {
       updateMutation.mutate({ id: editId, data: payload });
-    } else {
-      createMutation.mutate(payload);
     }
   };
 
-  const isPending = createMutation.isPending || updateMutation.isPending;
+  const isPending = updateMutation.isPending;
 
   return (
     <div className="w-full space-y-6">
       {/* Header */}
       <BreadcrumbHeader title="Data Karyawan" subtitle="Kelola data karyawan dan informasi HR">
         <button
-            onClick={openAddModal}
+            onClick={() => setIntakeOpen(true)}
             className="px-6 py-3 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-semibold transition-all flex items-center gap-2"
           >
             <Plus className="w-5 h-5" />
-            Tambah Karyawan
+            Karyawan Baru
           </button>
       </BreadcrumbHeader>
 
@@ -439,7 +417,7 @@ export default function EmployeeList() {
       </div>
 
       {/* Add/Edit Employee Modal */}
-      <Modal open={showAddModal} onClose={closeAddModal} title={editId ? "Edit Karyawan" : "Tambah Karyawan"} size="xl">
+      <Modal open={showAddModal} onClose={closeAddModal} title="Edit Karyawan" size="xl">
         <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
           {/* Personal Information */}
           <div>
@@ -605,6 +583,13 @@ export default function EmployeeList() {
           </div>
         </form>
       </Modal>
+
+      <IntakeDialog
+        open={intakeOpen}
+        mode="karyawan"
+        onClose={() => setIntakeOpen(false)}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['employees'] })}
+      />
     </div>
   );
 }

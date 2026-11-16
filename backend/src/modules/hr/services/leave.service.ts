@@ -5,6 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../shared/services/prisma.service';
+import { resolveTenureAnchor } from '../../contracts/services/contracts.service';
 import { LeaveRequestDto } from '../dto/leave-request.dto';
 import { ApproveLeaveDto } from '../dto/approve-leave.dto';
 import { RejectLeaveDto } from '../dto/reject-leave.dto';
@@ -173,11 +174,14 @@ export class LeaveService {
     // Resolve leave type against leave_types master (IGDERP-261)
     const leaveType = await this.resolveLeaveType(dto.leave_type);
 
-    // Minimum working time (masa kerja minimum, e.g. cuti tahunan after 12 months)
-    if (leaveType.minTenureMonths !== null && leaveType.minTenureMonths !== undefined && employee.hireDate) {
+    // Minimum working time — anchored to the earliest start of the unbroken
+    // contract chain (IGDERP-270 renewals never reset it; only a real service
+    // gap does), falling back to hireDate for pre-contract employees.
+    const tenureAnchor = await resolveTenureAnchor(this.prisma, employee.id, employee.hireDate ?? null);
+    if (leaveType.minTenureMonths !== null && leaveType.minTenureMonths !== undefined && tenureAnchor) {
       const monthsWorked =
-        (startDate.getFullYear() - employee.hireDate.getFullYear()) * 12 +
-        (startDate.getMonth() - employee.hireDate.getMonth());
+        (startDate.getFullYear() - tenureAnchor.getFullYear()) * 12 +
+        (startDate.getMonth() - tenureAnchor.getMonth());
       if (monthsWorked < leaveType.minTenureMonths) {
         throw new BadRequestException(
           `Leave type '${leaveType.name}' requires at least ${leaveType.minTenureMonths} months of employment`,

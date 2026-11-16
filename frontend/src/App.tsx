@@ -100,6 +100,7 @@ import PenaltyTypeList from './pages/master-data/staff/PenaltyTypeList';
 import DivisionList from './pages/master-data/staff/DivisionList';
 import GradeList from './pages/master-data/staff/GradeList';
 import PositionList from './pages/master-data/staff/PositionList';
+import WorkingLocationList from './pages/master-data/staff/WorkingLocationList';
 // Master Data - Service Types
 import CustomerTierList from "./pages/master-data/customer-tiers/CustomerTierList";
 import ServiceTypeList from './pages/service-types/ServiceTypeList';
@@ -158,6 +159,7 @@ import EmployeeList from './pages/hr/employees/EmployeeList';
 import EmployeeDetail from './pages/hr/employees/EmployeeDetail';
 import EmployeeEditForm from './pages/hr/employees/EmployeeEditForm';
 import DepartmentList from './pages/hr/departments/DepartmentList';
+import ContractList from './pages/hr/contracts/ContractList';
 import LeaveList from './pages/hr/leave/LeaveList';
 import LeaveDetail from './pages/hr/leave/LeaveDetail';
 import LeaveRequestForm from './pages/hr/leave/LeaveRequestForm';
@@ -543,6 +545,7 @@ function App() {
             <Route path="/master-data/staff/divisi" element={<ProtectedRoute><DashboardLayout><DivisionList /></DashboardLayout></ProtectedRoute>} />
             <Route path="/master-data/staff/grade" element={<ProtectedRoute><DashboardLayout><GradeList /></DashboardLayout></ProtectedRoute>} />
             <Route path="/master-data/staff/jabatan" element={<ProtectedRoute><DashboardLayout><PositionList /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/master-data/staff/working-location" element={<ProtectedRoute><DashboardLayout><WorkingLocationList /></DashboardLayout></ProtectedRoute>} />
 
             {/* Master Data - Payment Terms */}
             <Route path="/payment-terms" element={<ProtectedRoute><DashboardLayout><PaymentTermList /></DashboardLayout></ProtectedRoute>} />
@@ -1719,6 +1722,16 @@ function App() {
                 <ProtectedRoute>
                   <DashboardLayout>
                     <DivisionList />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr/contracts"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <ContractList />
                   </DashboardLayout>
                 </ProtectedRoute>
               }

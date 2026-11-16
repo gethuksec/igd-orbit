@@ -6,6 +6,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services';
+import { outletOnlyWhere } from '../../shared/utils/outlet-scope';
 import { buildPerWordSearch } from '../../shared/services/search.utils';
 import { PasswordService } from '../../shared/services';
 import {
@@ -878,7 +879,7 @@ export class UsersService {
     let resolvedBranchId = assignRoleDto.branchId;
     if (!resolvedBranchId) {
       const firstBranch = await this.prisma.branch.findFirst({
-        where: { isActive: true },
+        where: outletOnlyWhere(),
         orderBy: [{ createdAt: 'asc' }, { code: 'asc' }],
       });
       if (!firstBranch) {
