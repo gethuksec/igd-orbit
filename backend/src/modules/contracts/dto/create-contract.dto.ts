@@ -60,7 +60,6 @@ export class CreateContractDto {
   departmentId?: string;
 
   @IsString()
-  @IsIn([...CHANGE_REASONS] as string[])
   @IsOptional()
   changeReason?: string;
 

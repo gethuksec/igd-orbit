@@ -53,7 +53,7 @@ const emptyForm = {
   branchIds: [] as string[],
   primaryBranchId: "",
   roleId: "",
-  changeReason: "renewal",
+  changeReason: "",
 };
 
 /**
@@ -239,7 +239,7 @@ export default function IntakeDialog({ open, mode, onClose, onSuccess, defaultEm
             ? { contractNumber: norm(form.contractNumber) }
             : {
                 previousContractId: form.previousContractId,
-                changeReason: form.changeReason,
+                changeReason: norm(form.changeReason),
               }),
           type: form.type,
           startDate: form.startDate,
@@ -309,6 +309,11 @@ export default function IntakeDialog({ open, mode, onClose, onSuccess, defaultEm
             </div>
           )}
 
+          <div className="md:col-span-2 pt-1 border-t border-gray-100">
+            <h4 className="text-xs font-bold uppercase tracking-wide text-gray-400">
+              {mode === "karyawan" ? "Data karyawan" : "Karyawan"}
+            </h4>
+          </div>
           {mode === "karyawan" ? (
             <>
               <div>
@@ -365,20 +370,17 @@ export default function IntakeDialog({ open, mode, onClose, onSuccess, defaultEm
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1">Alasan</label>
-                    <select value={form.changeReason} onChange={(e) => set("changeReason", e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">
-                      <option value="renewal">Perpanjangan</option>
-                      <option value="promotion">Promosi</option>
-                      <option value="demotion">Demosi</option>
-                      <option value="rotation">Rotasi</option>
-                      <option value="adjustment">Penyesuaian</option>
-                    </select>
+                    <input value={form.changeReason} onChange={(e) => set("changeReason", e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm" />
                   </div>
                 </>
               )}
             </>
           )}
 
+          <div className="md:col-span-2 pt-1 border-t border-gray-100">
+            <h4 className="text-xs font-bold uppercase tracking-wide text-gray-400">Kontrak</h4>
+          </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Posisi</label>
             <SearchableSelect
@@ -399,7 +401,10 @@ export default function IntakeDialog({ open, mode, onClose, onSuccess, defaultEm
           )}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Tipe kontrak</label>
-            <select value={form.type} onChange={(e) => set("type", e.target.value as ContractType)}
+            <select value={form.type} onChange={(e) => {
+              const t = e.target.value as ContractType;
+              setForm((f) => ({ ...f, type: t, endDate: t === "pkwtt" ? "" : f.endDate }));
+            }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">
               <option value="trial">Trial</option>
               <option value="probation">Probation</option>
@@ -412,22 +417,15 @@ export default function IntakeDialog({ open, mode, onClose, onSuccess, defaultEm
             <input type="date" value={form.startDate} onChange={(e) => set("startDate", e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm" />
           </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Tanggal selesai</label>
-            <input type="date" value={form.endDate} onChange={(e) => set("endDate", e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm" />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Status</label>
-            <div className="px-3 py-2 text-sm">
-              <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold border ${
-                autoStatus === "active"
-                  ? "bg-green-100 text-green-800 border-green-200"
-                  : "bg-gray-100 text-gray-800 border-gray-200"
-              }`}>
-                {autoStatus === "active" ? "Aktif" : "Draft"} · otomatis
-              </span>
+          {form.type !== "pkwtt" && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Tanggal selesai</label>
+              <input type="date" value={form.endDate} onChange={(e) => set("endDate", e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm" />
             </div>
+          )}
+          <div className="md:col-span-2 pt-1 border-t border-gray-100">
+            <h4 className="text-xs font-bold uppercase tracking-wide text-gray-400">Penempatan</h4>
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Working location</label>
