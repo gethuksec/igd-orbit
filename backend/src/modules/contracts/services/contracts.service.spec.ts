@@ -172,7 +172,7 @@ describe('ContractsService caps (IGDERP-270)', () => {
   it('persists a grade snapshot when provided', async () => {
     const { service, prisma }: any = await boot();
     prisma.employee.findUnique.mockResolvedValue({ id: EMP });
-    prisma.grade.findUnique.mockResolvedValue({ id: 'g-3', code: 'G3' });
+    prisma.grade.findUnique.mockResolvedValue({ id: '11111111-1111-4111-8111-111111111111', code: 'G3' });
     prisma.contract.count.mockResolvedValue(0);
     prisma.contract.findUnique.mockResolvedValue(null);
     prisma.contract.create.mockImplementation(async ({ data }: any) => ({ id: 'c-1', ...data }));
@@ -181,9 +181,9 @@ describe('ContractsService caps (IGDERP-270)', () => {
       type: 'pkwt',
       startDate: '2026-01-01',
       endDate: '2026-12-01',
-      gradeId: 'g-3',
+      gradeId: '11111111-1111-4111-8111-111111111111',
     } as any);
-    expect(res.gradeId).toBe('g-3');
+    expect(res.gradeId).toBe('11111111-1111-4111-8111-111111111111');
   });
 
   it('rejects an unknown grade', async () => {
