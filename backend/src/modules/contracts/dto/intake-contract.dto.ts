@@ -63,6 +63,10 @@ export class IntakeContractDto {
 
   @IsUUID('4')
   @IsOptional()
+  gradeId?: string;
+
+  @IsUUID('4')
+  @IsOptional()
   divisionId?: string;
 
   @IsUUID('4')

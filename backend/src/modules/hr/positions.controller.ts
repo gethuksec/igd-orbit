@@ -37,6 +37,7 @@ export class PositionsController {
     @Query('limit') limit?: string,
     @Query('search') search?: string,
     @Query('rank') rank?: string,
+    @Query('includeInactive') includeInactive?: string,
   ) {
     if (page || limit || rank) {
       return this.svc.findAllPaginated(
@@ -44,6 +45,7 @@ export class PositionsController {
         limit ? parseInt(limit) : 20,
         search,
         rank !== undefined ? parseInt(rank) : undefined,
+        includeInactive === 'true',
       );
     }
     return this.svc.findAll();

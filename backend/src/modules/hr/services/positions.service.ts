@@ -37,9 +37,9 @@ export class PositionsService {
     return { data: positions, total: positions.length };
   }
 
-  async findAllPaginated(page: number, limit: number, search?: string, rank?: number) {
+  async findAllPaginated(page: number, limit: number, search?: string, rank?: number, includeInactive?: boolean) {
     const skip = (page - 1) * limit;
-    const where: any = { isActive: true };
+    const where: any = includeInactive ? {} : { isActive: true };
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },

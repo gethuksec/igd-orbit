@@ -14,6 +14,7 @@ export interface Contract {
   probationEndDate: string | null;
   basicSalary: number | null;
   positionId: string | null;
+  gradeId: string | null;
   divisionId: string | null;
   departmentId: string | null;
   changeReason: string | null;
@@ -23,6 +24,7 @@ export interface Contract {
   employee?: { id: string; userId: string; employeeCode: string } | null;
   workingLocation?: { id: string; code: string; name: string } | null;
   position?: { id: string; code: string; name: string } | null;
+  grade?: { id: string; code: string; name: string } | null;
   division?: { id: string; code: string; name: string } | null;
   department?: { id: string; code: string; name: string } | null;
   contractBranches?: { branch: { id: string; code: string; name: string }; isPrimary: boolean }[];
@@ -46,6 +48,7 @@ export interface IntakePayload {
   workingLocationId?: string;
   basicSalary?: number;
   positionId?: string;
+  gradeId?: string;
   divisionId?: string;
   departmentId?: string;
   branchIds?: string[];
@@ -114,6 +117,7 @@ export const contractsService = {
     type: ContractType;
     startDate: string;
     contractNumber?: string;
+    gradeId?: string;
     branchIds?: string[];
     primaryBranchId?: string;
     changeReason?: string;

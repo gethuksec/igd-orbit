@@ -290,6 +290,7 @@ model Grade {
 
   // Relations
   positions Position[]
+  contracts Contract[]
 
   @@index([code])
   @@index([rank])
@@ -2170,6 +2171,7 @@ model Contract {
   probationEndDate   DateTime? @map("probation_end_date") @db.Date
   basicSalary        Decimal?  @map("basic_salary") @db.Decimal(15, 2) // snapshot only, never rewritten by access edits
   positionId         String?   @map("position_id") // snapshot against the 277 org shape
+  gradeId            String?   @map("grade_id") // snapshot of the assigned grade rung (G1-G6), staff or otherwise
   divisionId         String?   @map("division_id") // snapshot
   departmentId       String?   @map("department_id") // snapshot
   changeReason       String?   @map("change_reason") // 'initial' | 'promotion' | 'demotion' | 'rotation' | 'renewal' | 'adjustment'
@@ -2183,6 +2185,7 @@ model Contract {
   employee          Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   workingLocation   WorkingLocation? @relation(fields: [workingLocationId], references: [id], onDelete: SetNull)
   position          Position?        @relation(fields: [positionId], references: [id], onDelete: SetNull)
+  grade             Grade?           @relation(fields: [gradeId], references: [id], onDelete: SetNull)
   division          Division?        @relation(fields: [divisionId], references: [id], onDelete: SetNull)
   department        Department?      @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   previousContract  Contract?        @relation("ContractChain", fields: [previousContractId], references: [id], onDelete: SetNull)
@@ -2191,6 +2194,7 @@ model Contract {
 
   @@index([contractNumber])
   @@index([employeeId])
+  @@index([gradeId])
   @@index([status])
   @@index([type])
   @@map("contracts")
