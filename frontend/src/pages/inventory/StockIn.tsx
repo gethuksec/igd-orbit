@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Download, Plus, Upload } from 'lucide-react';
-import { BreadcrumbHeader, FilterToolbar } from '@/components/shared';
+import { Plus, Upload } from 'lucide-react';
+import { BreadcrumbHeader, FilterToolbar, ExportButton } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -10,7 +10,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { toast } from 'sonner';
 import { inventoryService } from '../../services/inventory.service';
 import type { StockIn } from '../../services/inventory.service';
 import StockInForm from './StockInForm';
@@ -64,31 +63,7 @@ export default function StockIn() {
   // IGDERP-97 (I4): Excel import/export lives on the list (next to Buat),
   // not inside the create modal — same template, round-trip.
   const [importOpen, setImportOpen] = useState(false);
-  const [exporting, setExporting] = useState(false);
   const queryClient = useQueryClient();
-
-  const handleExport = async () => {
-    if (!warehouseId) {
-      toast.error('Pilih gudang terlebih dahulu (filter Gudang)');
-      return;
-    }
-    setExporting(true);
-    try {
-      const blob = await inventoryService.exportStockSnapshot('in', warehouseId);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `stok-masuk-${warehouseId.slice(0, 8)}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch {
-      toast.error('Gagal mengunduh export');
-    } finally {
-      setExporting(false);
-    }
-  };
 
   const { data: warehouses = [] } = useQuery({
     queryKey: ['stock-in-filter-warehouses', branchId],
@@ -159,15 +134,13 @@ export default function StockIn() {
             <Upload className="w-4 h-4 mr-2" />
             Import Excel
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleExport}
-            disabled={!warehouseId || exporting}
-          >
-            <Download className="w-4 h-4 mr-2" />
-            {exporting ? 'Mengunduh…' : 'Export Excel'}
-          </Button>
+          <ExportButton
+            label="Export Excel"
+            filename={`stok-masuk-${(warehouseId || '').slice(0, 8)}.xlsx`}
+            onExport={() => inventoryService.exportStockSnapshot('in', warehouseId!)}
+            disabled={!warehouseId}
+            title={!warehouseId ? 'Pilih gudang terlebih dahulu (filter Gudang)' : undefined}
+          />
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Buat Stok Masuk

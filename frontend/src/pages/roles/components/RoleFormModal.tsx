@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Save, Lock, KeyRound } from 'lucide-react';
 import { rolesService, type Role } from '../../../services/roles.service';
 import { toast } from 'sonner';
-import { Modal } from '../../../components/ui/modal';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../components/ui/dialog';
 
 interface RoleFormModalProps {
   open: boolean;
@@ -81,7 +81,11 @@ export function RoleFormModal({ open, role, onClose }: RoleFormModalProps) {
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={isEdit ? 'Edit Role' : 'Tambah Role Baru'} size="md">
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{isEdit ? 'Edit Role' : 'Tambah Role Baru'}</DialogTitle>
+        </DialogHeader>
       {isSuperAdminRole && (
         <div className="rounded-xl border-2 border-yellow-200 bg-yellow-50 p-4 mb-4 text-center">
           <Lock className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
@@ -244,6 +248,7 @@ export function RoleFormModal({ open, role, onClose }: RoleFormModalProps) {
           )}
         </div>
       </form>
-    </Modal>
+      </DialogContent>
+    </Dialog>
   );
 }

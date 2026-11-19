@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { Button } from "@/components/ui/button";
-import { Modal } from "@/components/ui/modal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { BreadcrumbHeader, FilterToolbar } from "@/components/shared";
 import { Loader2, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -221,7 +221,11 @@ export default function DepartmentList() {
         </div>
       )}
 
-      <Modal open={showModal} onClose={closeModal} title={editing ? "Edit Departemen" : "Tambah Departemen"} size="md">
+      <Dialog open={showModal} onOpenChange={(o) => { if (!o) closeModal(); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editing ? "Edit Departemen" : "Tambah Departemen"}</DialogTitle>
+          </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1">Kode Departemen *</label>
@@ -276,7 +280,8 @@ export default function DepartmentList() {
             </Button>
           </div>
         </form>
-      </Modal>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
