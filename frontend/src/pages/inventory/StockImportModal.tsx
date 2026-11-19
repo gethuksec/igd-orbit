@@ -31,23 +31,13 @@ import {
   CommandList,
 } from '@/components/ui/command';
 import { toast } from 'sonner';
+import { saveBlob } from '@/components/shared';
 import { inventoryService } from '../../services/inventory.service';
 import type {
   StockImportPreview,
   StockImportPreviewRow,
 } from '../../services/inventory.service';
 import { api } from '../../services/api';
-
-function saveBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
 
 interface PickerItem {
   id: string;

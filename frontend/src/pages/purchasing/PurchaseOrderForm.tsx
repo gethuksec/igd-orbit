@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Modal } from '@/components/ui/modal';
 import {
   Dialog,
   DialogContent,
@@ -875,12 +874,14 @@ export default function PurchaseOrderForm() {
 
       {/* D1 (8 Sep): invoice-total confirmation modal — no value input, a human
           confirmation against the uploaded supplier invoice. */}
-      <Modal
+      <Dialog
         open={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
-        title="Konfirmasi Total Invoice"
-        size="md"
+        onOpenChange={(o) => { if (!o) setConfirmOpen(false); }}
       >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Konfirmasi Total Invoice</DialogTitle>
+          </DialogHeader>
         <div className="space-y-4">
           <div className="rounded-lg border bg-muted/30 p-4 text-center">
             <p className="text-sm text-muted-foreground mb-1">Total PO</p>
@@ -915,7 +916,8 @@ export default function PurchaseOrderForm() {
             </Button>
           </div>
         </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
 
       {/* Quick add product — reuse Item entry shortcut (8 Sep §5) */}
       <Dialog open={quickAddOpen} onOpenChange={setQuickAddOpen}>

@@ -6,7 +6,7 @@ import { Users, User, Building2, Briefcase, Calendar, CheckCircle, XCircle, Aler
 import { formatDate, formatDateForInput } from '@/utils/format';
 import { useBranchStore } from '@/stores/branchStore';
 import { api } from '@/services/api';
-import { Modal } from '@/components/ui/modal';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import IntakeDialog from '@/components/hr/IntakeDialog';
 import { toast } from 'sonner';
 
@@ -417,7 +417,11 @@ export default function EmployeeList() {
       </div>
 
       {/* Add/Edit Employee Modal */}
-      <Modal open={showAddModal} onClose={closeAddModal} title="Edit Karyawan" size="xl">
+      <Dialog open={showAddModal} onOpenChange={(o) => { if (!o) closeAddModal(); }}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Edit Karyawan</DialogTitle>
+          </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
           {/* Personal Information */}
           <div>
@@ -582,7 +586,8 @@ export default function EmployeeList() {
             </button>
           </div>
         </form>
-      </Modal>
+        </DialogContent>
+      </Dialog>
 
       <IntakeDialog
         open={intakeOpen}

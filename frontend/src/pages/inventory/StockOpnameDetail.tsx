@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { BreadcrumbHeader } from '@/components/shared';
+import { BreadcrumbHeader, ExportButton } from '@/components/shared';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
@@ -12,7 +12,6 @@ import {
   AlertTriangle,
   TrendingUp,
   TrendingDown,
-  Download,
 } from 'lucide-react';
 import { inventoryService } from '../../services/inventory.service';
 import { toast } from 'sonner';
@@ -133,9 +132,6 @@ export default function StockOpnameDetail() {
     },
   });
 
-  // IGDERP-177: Excel export state (hooks above early returns).
-  const [exporting, setExporting] = useState(false);
-
   if (isLoading) {
     return (
       <div className="w-full flex items-center justify-center min-h-[400px]">
@@ -242,25 +238,6 @@ export default function StockOpnameDetail() {
   const belumGroup: any[] = review?.belumDihitung ?? [];
   const blindCounted: any[] = !hasVariance && review ? [...selisihGroup, ...cocokGroup] : [];
 
-  const handleExport = async () => {
-    try {
-      setExporting(true);
-      const blob = await inventoryService.exportOpnameExcel(opname.id);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `opname-${opname.opnameNumber}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-    } catch {
-      toast.error('Gagal mengekspor hasil opname');
-    } finally {
-      setExporting(false);
-    }
-  };
-
   return (
     <div className="w-full space-y-3">
       {/* Header */}
@@ -273,14 +250,11 @@ export default function StockOpnameDetail() {
           {getStatusLabel(opname.status)}
         </span>
         {/* IGDERP-177: result document export (Excel-only) */}
-        <button
-          onClick={handleExport}
-          disabled={exporting}
-          className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
-        >
-          <Download className="w-4 h-4" />
-          {exporting ? 'Mengekspor…' : 'Export Excel'}
-        </button>
+        <ExportButton
+          label="Export Excel"
+          filename={`opname-${opname.opnameNumber}.xlsx`}
+          onExport={() => inventoryService.exportOpnameExcel(opname.id)}
+        />
         {/* IGDERP-177: signed result document (print/PDF) */}
         <Link
           to={`/inventory/opname/${opname.id}/dokumen`}

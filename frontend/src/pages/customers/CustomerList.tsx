@@ -10,13 +10,12 @@ import {
   AlertTriangle,
   Loader2,
   Upload,
-  Download,
   Phone,
   Mail,
 } from 'lucide-react';
 import { customersService } from '../../services/customers.service';
 import { toast } from 'sonner';
-import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable, RowsPerPageSelect } from '@/components/shared';
+import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable, RowsPerPageSelect, ExportButton, datedFilename } from '@/components/shared';
 import type { Column } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -93,15 +92,6 @@ export default function CustomerList() {
       toast.error(error.response?.data?.message || 'Gagal menghapus pelanggan');
     },
   });
-
-  const handleExport = async () => {
-    try {
-      await customersService.export({ page, limit, search: searchTerm || undefined });
-      toast.success('Data berhasil diekspor');
-    } catch {
-      toast.error('Gagal mengekspor data');
-    }
-  };
 
   const handleSort = (column: string) => {
     if (sortBy === column) {
@@ -229,15 +219,11 @@ export default function CustomerList() {
           <Upload className="w-4 h-4 mr-1" />
           Import
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleExport}
-
-        >
-          <Download className="w-4 h-4 mr-1" />
-          Export
-        </Button>
+        <ExportButton
+          label="Export"
+          filename={() => datedFilename('customers')}
+          onExport={() => customersService.exportCustomersXlsx()}
+        />
         <Button
           onClick={() => setShowFormModal(true)}
           className="flex items-center gap-2 bg-white text-primary-600 border border-gray-200 hover:bg-primary-50"

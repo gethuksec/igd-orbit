@@ -9,7 +9,6 @@ import {
   Package,
   DollarSign,
   Barcode,
-  Download,
   Loader2,
   AlertTriangle,
   CheckCircle2,
@@ -22,7 +21,7 @@ import ProductImportModal from './ProductImportModal';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from '../../components/ui/button';
-import { BreadcrumbHeader, StatCard, DataTable, FilterToolbar } from '@/components/shared';
+import { BreadcrumbHeader, StatCard, DataTable, FilterToolbar, ExportButton, datedFilename } from '@/components/shared';
 import type { Column } from '@/components/shared';
 
 export default function ProductList() {
@@ -194,33 +193,6 @@ export default function ProductList() {
   const [productToDelete, setProductToDelete] = useState<{ id: string; name: string } | null>(null);
   const queryClient = useQueryClient();
 
-  const handleExport = async () => {
-    try {
-      const response = await api.get('/products/export', {
-        params: {
-          page,
-          limit,
-          search: searchTerm || undefined,
-          'filter[status]': selectedStatus,
-          'filter[category]': selectedCategory || undefined,
-        },
-        responseType: 'blob',
-      });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `products_${new Date().toISOString().split('T')[0]}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    } catch (err: any) {
-      console.error('Export failed:', err);
-      if (err.response?.status === 404) {
-        toast.error('Fitur export belum tersedia. Silakan hubungi administrator.');
-      }
-    }
-  };
-
   const deleteMutation = useMutation({
     mutationFn: (id: string) => productsService.delete(id),
     onSuccess: () => {
@@ -384,16 +356,11 @@ export default function ProductList() {
           <Upload className="w-4 h-4 mr-1" />
           Import
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleExport}
-          disabled={isLoading}
-
-        >
-          <Download className="w-4 h-4 mr-1" />
-          Export
-        </Button>
+        <ExportButton
+          label="Export"
+          filename={() => datedFilename('products')}
+          onExport={() => productsService.exportProductsXlsx()}
+        />
         <Link to="/products/new">
           <Button className="flex items-center gap-2 bg-white text-primary-600 border border-gray-200 hover:bg-primary-50">
             <Plus className="w-5 h-5" />

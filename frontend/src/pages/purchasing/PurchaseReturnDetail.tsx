@@ -6,7 +6,7 @@ import { BreadcrumbHeader } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Modal } from '@/components/ui/modal';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   Table,
   TableBody,
@@ -239,12 +239,14 @@ export default function PurchaseReturnDetail() {
       </Card>
 
       {/* Completion modal — same pattern as the create-PO total confirmation. */}
-      <Modal
+      <Dialog
         open={completeOpen}
-        onClose={() => setCompleteOpen(false)}
-        title="Konfirmasi Retur Selesai"
-        size="md"
+        onOpenChange={(o) => { if (!o) setCompleteOpen(false); }}
       >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Konfirmasi Retur Selesai</DialogTitle>
+          </DialogHeader>
         <div className="space-y-4">
           <div className="rounded-lg border bg-muted/30 p-4 text-center">
             <p className="text-sm text-muted-foreground mb-1">Total Qty Retur</p>
@@ -274,7 +276,8 @@ export default function PurchaseReturnDetail() {
             </Button>
           </div>
         </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

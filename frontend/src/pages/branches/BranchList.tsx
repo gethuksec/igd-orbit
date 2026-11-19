@@ -16,7 +16,7 @@ import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable } from '@/componen
 import type { Column } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Modal } from '../../components/ui/modal';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { toast } from 'sonner';
 
 type StatusFilter = 'all' | 'active' | 'inactive';
@@ -367,16 +367,20 @@ export default function BranchList() {
       )}
 
       {/* Form Modal */}
-      <Modal
+      <Dialog
         open={showFormModal}
-        onClose={() => {
-          setShowFormModal(false);
-          setEditingBranch(null);
-          setFormData(defaultForm);
+        onOpenChange={(o) => {
+          if (!o) {
+            setShowFormModal(false);
+            setEditingBranch(null);
+            setFormData(defaultForm);
+          }
         }}
-        title={editingBranch ? 'Edit Cabang' : 'Tambah Cabang'}
-        size="md"
       >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingBranch ? 'Edit Cabang' : 'Tambah Cabang'}</DialogTitle>
+          </DialogHeader>
         <form onSubmit={handleFormSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -503,17 +507,23 @@ export default function BranchList() {
             </button>
           </div>
         </form>
-      </Modal>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Modal */}
-      <Modal
+      <Dialog
         open={deleteModalOpen}
-        onClose={() => {
-          setDeleteModalOpen(false);
-          setBranchToDelete(null);
+        onOpenChange={(o) => {
+          if (!o) {
+            setDeleteModalOpen(false);
+            setBranchToDelete(null);
+          }
         }}
-        title="Hapus Cabang"
       >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Hapus Cabang</DialogTitle>
+          </DialogHeader>
         <div className="space-y-4">
           <div className="flex items-center gap-3 p-4 bg-red-50 rounded-lg border border-red-200">
             <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0" />
@@ -549,7 +559,8 @@ export default function BranchList() {
             </button>
           </div>
         </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

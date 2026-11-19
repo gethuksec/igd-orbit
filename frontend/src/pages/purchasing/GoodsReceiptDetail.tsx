@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/table';
 import { formatDate } from '@/utils/format';
 import { toast } from 'sonner';
-import { Modal } from '@/components/ui/modal';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { purchasingService } from '@/services/purchasing.service';
 import { labelPrintingService } from '@/services/labelPrinting.service';
 import AttachmentPanel from '@/components/purchasing/AttachmentPanel';
@@ -565,7 +565,8 @@ export default function GoodsReceiptDetail() {
       </Card>
 
       {/* Approve modal */}
-      <Modal open={approveModalOpen} onClose={() => setApproveModalOpen(false)}>
+      <Dialog open={approveModalOpen} onOpenChange={(o) => { if (!o) setApproveModalOpen(false); }}>
+        <DialogContent>
         <h2 className="text-xl font-bold mb-4">Approve Goods Receipt</h2>
         <div className="space-y-4">
           <div>
@@ -594,10 +595,12 @@ export default function GoodsReceiptDetail() {
             Setujui &amp; Masukkan Stok
           </Button>
         </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
 
       {/* Revisit modal */}
-      <Modal open={revisitModalOpen} onClose={() => setRevisitModalOpen(false)}>
+      <Dialog open={revisitModalOpen} onOpenChange={(o) => { if (!o) setRevisitModalOpen(false); }}>
+        <DialogContent>
         <h2 className="text-xl font-bold mb-4">Revisit — Kembalikan ke SODO</h2>
         <div className="space-y-3">
           <label className="text-sm font-semibold">Alasan</label>
@@ -645,10 +648,12 @@ export default function GoodsReceiptDetail() {
             Kembalikan ke SODO
           </Button>
         </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
 
       {/* Reject modal */}
-      <Modal open={rejectModalOpen} onClose={() => setRejectModalOpen(false)}>
+      <Dialog open={rejectModalOpen} onOpenChange={(o) => { if (!o) setRejectModalOpen(false); }}>
+        <DialogContent>
         <h2 className="text-xl font-bold text-destructive mb-4">Reject Goods Receipt</h2>
         <div>
           <label className="text-sm font-semibold">Alasan penolakan (wajib)</label>
@@ -672,10 +677,12 @@ export default function GoodsReceiptDetail() {
             Reject
           </Button>
         </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
 
       {/* Cancel modal */}
-      <Modal open={cancelModalOpen} onClose={() => setCancelModalOpen(false)}>
+      <Dialog open={cancelModalOpen} onOpenChange={(o) => { if (!o) setCancelModalOpen(false); }}>
+        <DialogContent>
         <h2 className="text-xl font-bold text-destructive mb-4">Cancel Goods Receipt</h2>
         <div>
           <label className="text-sm font-semibold">Alasan (opsional)</label>
@@ -698,7 +705,8 @@ export default function GoodsReceiptDetail() {
             Cancel
           </Button>
         </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
