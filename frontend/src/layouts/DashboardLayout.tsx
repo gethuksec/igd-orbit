@@ -42,14 +42,11 @@ import {
   BarChart3,
   Clock,
   CalendarDays,
-  Gavel,
-  Briefcase,
   Banknote,
   Target,
   RotateCcw,
   ScanBarcode,
   Zap,
-  MapPin,
   ScrollText,
 } from 'lucide-react';
 import type { Branch } from '@/services/public.service';
@@ -292,18 +289,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             { icon: Wrench, label: 'Layanan', path: '/service-types', permission: 'master_data.service_type.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS'] },
             { icon: ClipboardList, label: 'Kelengkapan', path: '/service-checkpoints', permission: 'service.checkpoint.view', roles: ['SUPERADMIN', 'OWNER', 'MGR', 'CS', 'HS', 'SPV'] },
             { icon: Smartphone, label: 'Tipe Perangkat', path: '/device-types', permission: 'service.checkpoint.view', roles: ['SUPERADMIN', 'OWNER', 'MGR', 'CS', 'HS', 'SPV'] },
-          ],
-        },
-        {
-          icon: UserCog,
-          label: 'Staff',
-          children: [
-            { icon: CalendarDays, label: 'Cuti', path: '/master-data/staff/cuti', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
-            { icon: Gavel, label: 'Denda', path: '/master-data/staff/denda', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
-            { icon: Building2, label: 'Divisi', path: '/master-data/staff/divisi', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
-            { icon: Award, label: 'Grade', path: '/master-data/staff/grade', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
-            { icon: Briefcase, label: 'Jabatan', path: '/master-data/staff/jabatan', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
-            { icon: MapPin, label: 'Working Location', path: '/master-data/staff/working-location', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
           ],
         },
       ],
