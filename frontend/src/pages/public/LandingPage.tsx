@@ -7,9 +7,7 @@ import {
   Wrench,
   MapPin,
   Phone,
-  Star,
   Award,
-  Sparkles,
   Instagram,
   Facebook,
 } from 'lucide-react';
@@ -65,7 +63,7 @@ export default function LandingPage() {
             <div className="flex items-center gap-4">
               <div className="hidden md:flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
                 <div className="flex items-center gap-2">
-                  <span className="inline-block w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
                   <span>Buka setiap hari 08.00 – 21.00 WIB</span>
                 </div>
               </div>
@@ -80,31 +78,27 @@ export default function LandingPage() {
         </header>
 
         {/* Hero Section - Enhanced */}
-        <section className="relative bg-gradient-to-r from-[#b9051f] via-[#e11b22] to-[#b9051f] text-white py-24 overflow-hidden">
-          {/* Animated Background Elements */}
-          <div className="absolute inset-0 overflow-hidden">
+        <section className="relative bg-gradient-to-r from-[#b9051f] via-[#e11b22] to-[#b9051f] dark:bg-none dark:bg-red-950 text-white py-24 overflow-hidden">
+          {/* Soft light accents (light mode only) */}
+          <div className="absolute inset-0 overflow-hidden dark:hidden" aria-hidden="true">
             <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
             <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-white/5 rounded-full blur-3xl"></div>
           </div>
 
           <div className="container mx-auto px-4 text-center relative z-10">
             {/* Brand */}
-            <div className="flex items-center justify-center gap-4 mb-6 animate-fade-in">
+            <div className="flex items-center justify-center gap-4 mb-6">
               <div>
-                <h1 className="text-5xl md:text-6xl font-extrabold mb-2 tracking-tight bg-gradient-to-r from-white dark:from-gray-900 to-red-100 dark:to-red-950 bg-clip-text text-transparent">
+                <h1 className="text-5xl md:text-6xl font-medium mb-2 tracking-tight text-white">
                   ORBIT
                 </h1>
                 <div className="flex flex-wrap items-center justify-center gap-2 text-red-50">
-                  <Star className="w-4 h-4 fill-current" />
-                  <span className="text-sm font-medium uppercase tracking-wide">Servis • Aksesoris • Sparepart</span>
-                  <Star className="w-4 h-4 fill-current" />
+                  <span className="text-sm font-medium">Servis · Aksesoris · Sparepart</span>
                 </div>
               </div>
             </div>
 
-            <p className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-sm font-semibold text-red-50 mb-4">
-              <Sparkles className="w-4 h-4" />
+            <p className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-sm font-medium text-red-50 mb-4">
               Servis handphone, sparepart & aksesoris di Jember & Kalisat
             </p>
             <p className="text-2xl mb-4 text-red-50 font-semibold">
@@ -125,19 +119,19 @@ export default function LandingPage() {
             {/* Stats Bar */}
             <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
               <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20">
-                <div className="text-3xl font-bold mb-1">10K+</div>
+                <div className="text-3xl font-medium tabular-nums mb-1">10K+</div>
                 <div className="text-sm text-primary-100">Pelanggan Puas</div>
               </div>
               <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20">
-                <div className="text-3xl font-bold mb-1">50K+</div>
+                <div className="text-3xl font-medium tabular-nums mb-1">50K+</div>
                 <div className="text-sm text-primary-100">Produk Tersedia</div>
               </div>
               <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20">
-                <div className="text-3xl font-bold mb-1">15+</div>
+                <div className="text-3xl font-medium tabular-nums mb-1">15+</div>
                 <div className="text-sm text-primary-100">Cabang</div>
               </div>
               <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20">
-                <div className="text-3xl font-bold mb-1">98%</div>
+                <div className="text-3xl font-medium tabular-nums mb-1">98%</div>
                 <div className="text-sm text-primary-100">Kepuasan</div>
               </div>
             </div>
@@ -148,7 +142,7 @@ export default function LandingPage() {
         <section className="py-20 bg-white dark:bg-gray-900">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
-              <h2 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">Layanan Kami</h2>
+              <h2 className="text-4xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Layanan Kami</h2>
               <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
                 Layanan perbaikan profesional dengan garansi dan teknisi berpengalaman
               </p>
@@ -158,13 +152,13 @@ export default function LandingPage() {
                 serviceTypes.map((service, index) => (
                   <div
                     key={service.id}
-                    className="group bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 rounded-2xl p-8 hover:border-primary-300 dark:hover:border-primary-700 hover:shadow-2xl transition-all duration-300 hover:-translate-y-2"
+                    className="bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 rounded-2xl p-8 hover:border-primary-300 dark:hover:border-primary-700 transition-colors"
                     style={{ animationDelay: `${index * 100}ms` }}
                   >
-                    <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                    <div className="w-16 h-16 bg-primary-600 rounded-xl flex items-center justify-center mb-6">
                       <Wrench className="w-8 h-8 text-white" />
                     </div>
-                    <h3 className="text-2xl font-bold mb-3 text-gray-900 dark:text-gray-100">{service.name}</h3>
+                    <h3 className="text-2xl font-semibold mb-3 text-gray-900 dark:text-gray-100">{service.name}</h3>
                     {service.description && (
                       <p className="text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">{service.description}</p>
                     )}
@@ -214,7 +208,7 @@ export default function LandingPage() {
                     popularProducts.map((product) => (
                       <div
                         key={product.id}
-                        className="min-w-[240px] max-w-xs bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all duration-200 flex-shrink-0"
+                        className="min-w-[240px] max-w-xs bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-shadow duration-200 flex-shrink-0"
                       >
                         <div className="aspect-square bg-gray-100 dark:bg-gray-800 rounded-t-2xl overflow-hidden">
                           <img
@@ -253,10 +247,10 @@ export default function LandingPage() {
         </section>
 
         {/* Why Choose Us - Enhanced */}
-        <section className="py-20 bg-gradient-to-br from-primary-50 dark:from-primary-950 via-white dark:via-gray-900 to-accent-50 dark:to-gray-950">
+        <section className="py-20 bg-gradient-to-br from-primary-50 via-white to-accent-50 dark:bg-none dark:bg-gray-900">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
-              <h2 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">Mengapa Memilih Kami?</h2>
+              <h2 className="text-4xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Mengapa Memilih Kami?</h2>
               <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
                 Komitmen kami untuk memberikan layanan terbaik dengan standar kualitas tinggi
               </p>
@@ -267,35 +261,31 @@ export default function LandingPage() {
                   icon: Wrench,
                   title: 'Teknisi Profesional',
                   description: 'Teknisi bersertifikat dan berpengalaman di bidangnya',
-                  color: 'from-blue-500 to-blue-600',
                 },
                 {
                   icon: Shield,
                   title: 'Sparepart Asli',
                   description: 'Hanya menggunakan sparepart original dan berkualitas',
-                  color: 'from-green-500 to-green-600',
                 },
                 {
                   icon: Award,
                   title: 'Garansi 30 Hari',
                   description: 'Garansi 30 hari untuk semua perbaikan yang dilakukan',
-                  color: 'from-yellow-500 to-yellow-600',
                 },
                 {
                   icon: Clock,
                   title: 'Cepat & Tepat',
                   description: 'Layanan cepat dengan jaminan SLA yang terpenuhi',
-                  color: 'from-purple-500 to-purple-600',
                 },
               ].map((feature, index) => (
                 <div
                   key={index}
-                  className="group text-center bg-white dark:bg-gray-900 rounded-2xl p-8 hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border border-gray-100 dark:border-gray-800"
+                  className="text-center bg-white dark:bg-gray-900 rounded-2xl p-8 border border-gray-100 dark:border-gray-800 hover:border-primary-300 dark:hover:border-primary-700 transition-colors"
                 >
-                  <div className={`w-20 h-20 bg-gradient-to-br ${feature.color} rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform shadow-lg`}>
+                  <div className="w-20 h-20 bg-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
                     <feature.icon className="w-10 h-10 text-white" />
                   </div>
-                  <h3 className="text-xl font-bold mb-3 text-gray-900 dark:text-gray-100">{feature.title}</h3>
+                  <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-gray-100">{feature.title}</h3>
                   <p className="text-gray-600 dark:text-gray-400 leading-relaxed">{feature.description}</p>
                 </div>
               ))}

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LogIn, Mail, Lock, AlertCircle } from 'lucide-react';
+import { LogIn, Mail, Lock, AlertCircle, Crown } from 'lucide-react';
 import { api } from '../../services/api';
 
 const getDefaultRouteForUser = (user: any): string => {
@@ -89,7 +89,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 dark:from-primary-950 via-white dark:via-gray-900 to-accent-50 dark:to-gray-950 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-accent-50 dark:bg-none dark:bg-gray-950 flex items-center justify-center p-6">
       <div className="max-w-md w-full">
         {/* Logo & Title */}
         <div className="text-center mb-8">
@@ -98,7 +98,7 @@ export default function Login() {
             alt="IGD Group"
             className="h-24 w-auto mx-auto mb-4 object-contain"
           />
-          <h1 className="text-3xl font-display font-bold text-gray-900 dark:text-gray-100">ORBIT</h1>
+          <h1 className="text-3xl font-semibold text-gray-900 dark:text-gray-100">ORBIT</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">Login karyawan untuk mengakses dashboard internal</p>
         </div>
 
@@ -138,7 +138,7 @@ export default function Login() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors"
                   placeholder="admin@igd.com"
                   required
                 />
@@ -156,7 +156,7 @@ export default function Login() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors"
                   placeholder="••••••••"
                   required
                 />
@@ -178,7 +178,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-primary-600 to-primary-500 text-white rounded-lg font-semibold hover:from-primary-700 hover:to-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 shadow-lg transition-all disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 shadow-lg transition-colors disabled:opacity-50"
             >
               {isLoading ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -206,48 +206,40 @@ export default function Login() {
               </div>
 
               {/* Demo Credentials - bootstrap accounts only */}
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {/* Tier 0 - Super Admin */}
-                <div className="bg-gradient-to-br from-purple-50 dark:from-purple-950 to-purple-100 dark:to-purple-950 rounded-lg p-4 border border-purple-300 dark:border-purple-700">
-                  <p className="text-xs font-bold text-purple-900 dark:text-purple-100 mb-3 flex items-center gap-2">
-                    <span className="w-2 h-2 bg-purple-600 rounded-full animate-pulse"></span>
-                    🟣 TIER 0 - SUPER ADMIN (Password: SuperAdmin@1234)
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('superadmin@igdgroup.com');
+                    setPassword('SuperAdmin@1234');
+                  }}
+                  className="w-full text-left px-3 py-2.5 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg transition-colors"
+                >
+                  <p className="flex items-center gap-2 text-xs font-medium text-gray-900 dark:text-gray-100">
+                    <Crown className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
+                    Super Administrator (Full Access)
+                    <span className="ml-auto font-mono font-normal text-gray-500 dark:text-gray-400">Tier 0</span>
                   </p>
-                  <div className="grid grid-cols-1 gap-2 text-xs">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEmail('superadmin@igdgroup.com');
-                        setPassword('SuperAdmin@1234');
-                      }}
-                      className="text-left px-3 py-2 bg-white dark:bg-gray-900 hover:bg-purple-50 dark:hover:bg-purple-950 border border-purple-300 dark:border-purple-700 rounded-lg transition-all"
-                    >
-                      <p className="font-semibold text-purple-800 dark:text-purple-200">👑 Super Administrator (Full Access)</p>
-                      <p className="text-gray-600 dark:text-gray-400">superadmin@igdgroup.com</p>
-                    </button>
-                  </div>
-                </div>
+                  <p className="mt-1 font-mono text-xs text-gray-500 dark:text-gray-400">superadmin@igdgroup.com · SuperAdmin@1234</p>
+                </button>
 
                 {/* Tier 1 - Executive */}
-                <div className="bg-gradient-to-br from-red-50 dark:from-red-950 to-red-100 dark:to-red-950 rounded-lg p-4 border border-red-200 dark:border-red-800">
-                  <p className="text-xs font-bold text-red-800 dark:text-red-200 mb-3 flex items-center gap-2">
-                    <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                    🔴 TIER 1 - EXECUTIVE (Password: Owner@1234)
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('owner@igdgroup.com');
+                    setPassword('Owner@1234');
+                  }}
+                  className="w-full text-left px-3 py-2.5 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg transition-colors"
+                >
+                  <p className="flex items-center gap-2 text-xs font-medium text-gray-900 dark:text-gray-100">
+                    <Crown className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
+                    Owner (Semua Cabang)
+                    <span className="ml-auto font-mono font-normal text-gray-500 dark:text-gray-400">Tier 1</span>
                   </p>
-                  <div className="grid grid-cols-1 gap-2 text-xs">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEmail('owner@igdgroup.com');
-                        setPassword('Owner@1234');
-                      }}
-                      className="text-left px-3 py-2 bg-white dark:bg-gray-900 hover:bg-red-50 dark:hover:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg transition-all"
-                    >
-                      <p className="font-semibold text-red-700 dark:text-red-300">👑 Owner (Semua Cabang)</p>
-                      <p className="text-gray-600 dark:text-gray-400">owner@igdgroup.com</p>
-                    </button>
-                  </div>
-                </div>
+                  <p className="mt-1 font-mono text-xs text-gray-500 dark:text-gray-400">owner@igdgroup.com · Owner@1234</p>
+                </button>
               </div>
             </>
           )}
