@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Edit, Trash2, Save, Loader2, ClipboardCheck, AlertTriangle, ListOrdered } from "lucide-react";
 import { serviceCheckpointsService } from "../../services/service-checkpoints.service";
-import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable } from "@/components/shared";
+import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable, StatusDot } from "@/components/shared";
 import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -117,11 +117,11 @@ export default function ServiceCheckpointList() {
       key: "name",
       header: "Nama Item",
       cell: (item) => (
-        <div className="flex items-center gap-3">
-          <div className="flex-shrink-0 h-10 w-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center text-white shadow-sm">
-            <ClipboardCheck className="w-5 h-5" />
+        <div className="flex items-center gap-4">
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
+            <ClipboardCheck className="h-5 w-5" />
           </div>
-          <div className="text-sm font-semibold text-foreground">{item.name}</div>
+          <div className="text-[15px] font-medium text-foreground">{item.name}</div>
         </div>
       ),
     },
@@ -129,15 +129,9 @@ export default function ServiceCheckpointList() {
       key: "isActive",
       header: "Status",
       cell: (item) => (
-        <span
-          className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${
-            item.isActive
-              ? "bg-green-100 text-green-800 border-green-200"
-              : "bg-gray-100 text-gray-800 border-gray-200"
-          }`}
-        >
+        <StatusDot tone={item.isActive ? "ok" : "off"}>
           {item.isActive ? "Aktif" : "Tidak Aktif"}
-        </span>
+        </StatusDot>
       ),
     },
     {
@@ -170,9 +164,9 @@ export default function ServiceCheckpointList() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <StatCard icon={<ClipboardCheck className="w-6 h-6 text-white" />} iconBg="from-primary-500 to-primary-600" label="Total Item" value={isLoading ? "-" : pagination.total} subtitle="Semua kelengkapan terdaftar" />
-        <StatCard icon={<ClipboardCheck className="w-6 h-6 text-white" />} iconBg="from-green-500 to-green-600" label="Item Aktif" value={isLoading ? "-" : activeCount} badge={{ text: "Active", className: "bg-green-100 text-green-800" }} />
-        <StatCard icon={<ClipboardCheck className="w-6 h-6 text-white" />} iconBg="from-gray-500 to-gray-600" label="Item Non-Aktif" value={isLoading ? "-" : inactiveCount} />
+        <StatCard icon={<ClipboardCheck className="h-5 w-5" />} label="Total Item" value={isLoading ? "-" : pagination.total} subtitle="Semua kelengkapan terdaftar" />
+        <StatCard icon={<ClipboardCheck className="h-5 w-5" />} label="Item Aktif" value={isLoading ? "-" : activeCount} />
+        <StatCard icon={<ClipboardCheck className="h-5 w-5" />} label="Item Non-Aktif" value={isLoading ? "-" : inactiveCount} />
       </div>
 
       <FilterToolbar
@@ -211,25 +205,29 @@ export default function ServiceCheckpointList() {
         emptyMessage="Tidak ada kelengkapan ditemukan"
         emptyIcon={<ClipboardCheck className="w-16 h-16" />}
         actions={(item: any) => (
-          <div className="flex items-center justify-end gap-1">
+          <div className="flex items-center justify-end gap-2">
             {hasPermission('service.checkpoint.edit') && (
-              <Button variant="ghost" size="sm" onClick={() => openEditModal(item)} title="Edit">
-                <Edit className="w-4 h-4" />
-              </Button>
+              <button
+                type="button"
+                title="Edit"
+                onClick={() => openEditModal(item)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <Edit className="h-4 w-4" />
+              </button>
             )}
             {hasPermission('service.checkpoint.delete') && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-red-600 hover:bg-red-50"
+              <button
+                type="button"
                 title="Hapus"
                 onClick={() => {
                   setItemToDelete({ id: item.id, name: item.name });
                   setDeleteModalOpen(true);
                 }}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
               >
-                <Trash2 className="w-4 h-4" />
-              </Button>
+                <Trash2 className="h-4 w-4" />
+              </button>
             )}
           </div>
         )}
