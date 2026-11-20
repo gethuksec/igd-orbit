@@ -39,9 +39,10 @@ export class CreateContractDto {
   @IsOptional()
   probationEndDate?: string;
 
-  @IsUUID('4')
+  @IsArray()
+  @IsUUID('4', { each: true })
   @IsOptional()
-  workingLocationId?: string;
+  workingLocationIds?: string[];
 
   @IsNumber()
   @IsOptional()

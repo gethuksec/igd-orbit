@@ -7,6 +7,7 @@ import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable } from "@/componen
 import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import IntakeDialog from "@/components/hr/IntakeDialog";
+import { ContractImportButton } from "./ContractImportDialog";
 
 const STAGE_LABEL: Record<string, string> = {
   trial: "Trial",
@@ -144,7 +145,11 @@ export default function ContractList() {
     {
       key: "location",
       header: "Lokasi",
-      cell: (row) => <span className="text-sm">{row.workingLocation?.name ?? "-"}</span>,
+      cell: (row) => (
+        <span className="text-sm">
+          {(row.contractWorkingLocations ?? []).map((c) => c.workingLocation.name).join(", ") || "-"}
+        </span>
+      ),
     },
     {
       key: "status",
@@ -160,10 +165,13 @@ export default function ContractList() {
   return (
     <div className="w-full space-y-3">
       <BreadcrumbHeader title="Kontrak Karyawan" subtitle="Kontrak kerja — trial, probation, PKWT, PKWTT">
-        <Button onClick={() => setIntakeOpen(true)} className="flex items-center gap-2">
-          <Plus className="w-5 h-5" />
-          <span>Kontrak Baru</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <ContractImportButton onImported={() => queryClient.invalidateQueries({ queryKey: ["contracts"] })} />
+          <Button onClick={() => setIntakeOpen(true)} className="flex items-center gap-2">
+            <Plus className="w-5 h-5" />
+            <span>Kontrak Baru</span>
+          </Button>
+        </div>
       </BreadcrumbHeader>
 
       {error && (

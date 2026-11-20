@@ -11,7 +11,7 @@ export interface WorkingLocation {
   radiusM: number;
   isActive: boolean;
   branch?: { id: string; code: string; name: string } | null;
-  _count?: { contracts: number };
+  _count?: { contractWorkingLocations: number };
   createdAt: string;
   updatedAt: string;
 }

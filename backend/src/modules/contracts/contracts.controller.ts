@@ -8,10 +8,15 @@ import {
   Param,
   Query,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ContractsService } from './services/contracts.service';
+import { ContractsImportService } from './services/contracts-import.service';
 import { JwtAuthGuard, RolesGuard } from '../../shared/guards';
 import { Roles } from '../../shared/decorators';
 import { CreateContractDto } from './dto/create-contract.dto';
@@ -28,7 +33,10 @@ const WRITE_ROLES = ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS'];
 @Controller('contracts')
 @UseGuards(JwtAuthGuard)
 export class ContractsController {
-  constructor(private readonly svc: ContractsService) {}
+  constructor(
+    private readonly svc: ContractsService,
+    private readonly importSvc: ContractsImportService,
+  ) {}
 
   @Get()
   @UseGuards(RolesGuard)
@@ -71,6 +79,27 @@ export class ContractsController {
   @Roles(...READ_ROLES)
   async tenureAnchor(@Param('employeeId') employeeId: string) {
     return this.svc.tenureAnchor(employeeId);
+  }
+
+  // Static routes above ':id' (Express matches in registration order).
+  @Post('import/dry-run')
+  @UseGuards(RolesGuard)
+  @Roles(...WRITE_ROLES)
+  @UseInterceptors(FileInterceptor('file'))
+  @HttpCode(HttpStatus.OK)
+  async importDryRun(@UploadedFile() file: any) {
+    if (!file?.buffer) throw new BadRequestException('File Excel wajib diunggah');
+    return this.importSvc.dryRun(file.buffer);
+  }
+
+  @Post('import/commit')
+  @UseGuards(RolesGuard)
+  @Roles(...WRITE_ROLES)
+  @UseInterceptors(FileInterceptor('file'))
+  @HttpCode(HttpStatus.CREATED)
+  async importCommit(@UploadedFile() file: any) {
+    if (!file?.buffer) throw new BadRequestException('File Excel wajib diunggah');
+    return this.importSvc.commit(file.buffer);
   }
 
   @Post('intake')
