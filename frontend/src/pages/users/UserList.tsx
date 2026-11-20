@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Eye, Edit, Trash2, Users, Mail, Phone, Shield, CheckCircle, XCircle, RefreshCw, Loader2, AlertTriangle } from 'lucide-react';
 import { usersService, type User } from '../../services/users.service';
 import { toast } from 'sonner';
-import { BreadcrumbHeader, StatCard, SearchFilter, DataTable } from '@/components/shared';
+import { BreadcrumbHeader, StatCard, SearchFilter, DataTable, StatusDot } from '@/components/shared';
 import type { Column } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -128,11 +128,11 @@ export default function UserList() {
       sortable: true,
       cell: (user) => (
         <Link to={`/users/${user.id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-          <div className="flex-shrink-0 h-10 w-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center text-white font-bold shadow-sm">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-sm font-medium text-muted-foreground">
             {user.fullName?.charAt(0).toUpperCase() || '?'}
           </div>
           <div>
-            <div className="text-sm font-semibold text-foreground hover:text-primary-600 transition-colors">
+            <div className="text-[15px] font-medium text-foreground hover:text-primary-600 transition-colors">
               {user.fullName}
             </div>
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
@@ -182,18 +182,11 @@ export default function UserList() {
     {
       key: 'isActive',
       header: 'Status',
-      cell: (user) =>
-        user.isActive ? (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-100 text-green-700 border border-green-200 rounded-lg text-xs font-semibold">
-            <CheckCircle className="w-3 h-3" />
-            Aktif
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-50 text-red-600 border border-red-200 rounded-lg text-xs font-semibold">
-            <XCircle className="w-3 h-3" />
-            Dibanned
-          </span>
-        ),
+      cell: (user) => (
+        <StatusDot tone={user.isActive ? 'ok' : 'bad'}>
+          {user.isActive ? 'Aktif' : 'Dibanned'}
+        </StatusDot>
+      ),
     },
     {
       key: 'createdAt',
@@ -233,21 +226,19 @@ export default function UserList() {
       {/* Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard
-          icon={<Users className="w-6 h-6 text-white" />}
+          icon={<Users className="h-5 w-5" />}
           label="Total Pengguna"
           value={isLoading ? '-' : pagination.total}
           subtitle="Semua pengguna terdaftar"
         />
         <StatCard
-          icon={<CheckCircle className="w-6 h-6 text-white" />}
-          iconBg="from-green-500 to-green-600"
+          icon={<CheckCircle className="h-5 w-5" />}
           label="Pengguna Aktif"
           value={isLoading ? '-' : activeCount}
           subtitle="Pengguna yang aktif"
         />
         <StatCard
-          icon={<XCircle className="w-6 h-6 text-white" />}
-          iconBg="from-gray-500 to-gray-600"
+          icon={<XCircle className="h-5 w-5" />}
           label="Pengguna Non-Aktif"
           value={isLoading ? '-' : inactiveCount}
           subtitle="Pengguna yang dinonaktifkan"
@@ -289,50 +280,49 @@ export default function UserList() {
         sortDirection={sortOrder}
         onSort={handleSort}
         actions={(user) => (
-          <>
-            <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-50" title="Lihat Detail">
-              <Link to={`/users/${user.id}`}>
-                <Eye className="w-4 h-4" />
-              </Link>
-            </Button>
+          <div className="flex items-center justify-end gap-2">
+            <Link
+              to={`/users/${user.id}`}
+              title="Lihat Detail"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <Eye className="h-4 w-4" />
+            </Link>
             {!user.isActive && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-amber-600 hover:bg-amber-50"
+              <button
+                type="button"
                 title="Reaktivasi"
                 disabled={reactivateMutation.isPending}
                 onClick={() => reactivateMutation.mutate(user.id)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
-                <RefreshCw className={`w-4 h-4 ${reactivateMutation.isPending ? 'animate-spin' : ''}`} />
-              </Button>
+                <RefreshCw className={`h-4 w-4 ${reactivateMutation.isPending ? 'animate-spin' : ''}`} />
+              </button>
             )}
             <RequirePermission permission="users.update" fallbackRoles={['SUPERADMIN', 'CHR']}>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-green-600 hover:bg-green-50"
+              <button
+                type="button"
                 title="Edit"
                 onClick={() => setFormModal({ open: true, user })}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
-                <Edit className="w-4 h-4" />
-              </Button>
+                <Edit className="h-4 w-4" />
+              </button>
             </RequirePermission>
             <RequirePermission permission="users.delete" fallbackRoles={['SUPERADMIN']}>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-red-600 hover:bg-red-50"
+              <button
+                type="button"
                 title="Hapus"
                 onClick={() => {
                   setUserToDelete({ id: user.id, fullName: user.fullName });
                   setDeleteModalOpen(true);
                 }}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
               >
-                <Trash2 className="w-4 h-4" />
-              </Button>
+                <Trash2 className="h-4 w-4" />
+              </button>
             </RequirePermission>
-          </>
+          </div>
         )}
       />
 
@@ -340,8 +330,8 @@ export default function UserList() {
       {!isLoading && users.length > 0 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Menampilkan <span className="font-bold text-foreground">{filteredUsers.length}</span> dari{' '}
-            <span className="font-bold text-foreground">{pagination.total}</span> pengguna
+            Menampilkan <span className="font-medium tabular-nums text-foreground">{filteredUsers.length}</span> dari{' '}
+            <span className="font-medium tabular-nums text-foreground">{pagination.total}</span> pengguna
             <span className="ml-2 text-muted-foreground/70">
               (Halaman {pagination.page} dari {pagination.totalPages})
             </span>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Plus,
@@ -142,11 +142,11 @@ export default function CustomerList() {
           className="flex items-center gap-4 cursor-pointer"
           onClick={() => navigate(`/customers/${customer.id}`)}
         >
-          <div className="flex-shrink-0 h-14 w-14 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-sm font-medium text-muted-foreground">
             {customer.name.charAt(0).toUpperCase()}
           </div>
           <div>
-            <div className="text-base font-semibold text-foreground hover:text-primary-600 transition-colors">
+            <div className="text-[15px] font-medium text-foreground hover:text-primary-600 transition-colors">
               {customer.name}
             </div>
             <div className="text-xs text-muted-foreground mt-1 font-mono">{customer.customerCode}</div>
@@ -248,7 +248,7 @@ export default function CustomerList() {
 
       <div className="grid grid-cols-1 md:grid-cols-1 gap-3">
         <StatCard
-          icon={<Users className="w-6 h-6 text-white" />}
+          icon={<Users className="h-5 w-5" />}
           iconBg="from-primary-500 to-primary-600"
           label="Total Pelanggan"
           value={isLoading ? '-' : totalCustomers}
@@ -259,7 +259,7 @@ export default function CustomerList() {
       <FilterToolbar
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
-        searchPlaceholder="Cari nama, telepon, email, atau kode pelanggan..."
+        searchPlaceholder="Cari nama, telepon, email, kode..."
         fields={[
           {
             key: 'type',
@@ -310,38 +310,36 @@ export default function CustomerList() {
         sortDirection={sortOrder}
         onSort={handleSort}
         actions={(customer: any) => (
-          <div className="flex items-center justify-end gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate(`/customers/${customer.id}`)}
+          <div className="flex items-center justify-end gap-2">
+            <Link
+              to={`/customers/${customer.id}`}
               title="Lihat Detail"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
-              <Eye className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
+              <Eye className="h-4 w-4" />
+            </Link>
+            <button
+              type="button"
               onClick={() => {
                 setEditingCustomerId(customer.id);
                 setShowFormModal(true);
               }}
               title="Edit"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
-              <Edit className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-red-600 hover:bg-red-50"
+              <Edit className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
               onClick={() => {
                 setCustomerToDelete({ id: customer.id, name: customer.name });
                 setDeleteModalOpen(true);
               }}
               title="Hapus"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
             >
-              <Trash2 className="w-4 h-4" />
-            </Button>
+              <Trash2 className="h-4 w-4" />
+            </button>
           </div>
         )}
       />
@@ -359,7 +357,7 @@ export default function CustomerList() {
           />
           <div className="text-sm text-gray-700">
             Menampilkan {customers.length} dari{' '}
-            <span className="font-semibold">{pagination.total}</span> pelanggan
+            <span className="font-medium tabular-nums">{pagination.total}</span> pelanggan
             <span className="ml-2 text-gray-500">
               (Halaman {pagination.page} dari {pagination.totalPages})
             </span>

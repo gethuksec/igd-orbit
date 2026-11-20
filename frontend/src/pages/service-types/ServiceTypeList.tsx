@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Plus,
@@ -16,11 +16,10 @@ import { serviceTypesService } from '../../services/service-types.service';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable } from '@/components/shared';
+import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable, StatusDot } from '@/components/shared';
 import type { Column } from '@/components/shared';
 
 export default function ServiceTypeList() {
-  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [serviceTypeToDelete, setServiceTypeToDelete] = useState<{ id: string; name: string } | null>(null);
@@ -166,11 +165,11 @@ export default function ServiceTypeList() {
       header: 'Layanan',
       cell: (st) => (
         <div className="flex items-center gap-4">
-          <div className="flex-shrink-0 h-14 w-14 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white shadow-md">
-            <Wrench className="w-7 h-7" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
+            <Wrench className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-base font-semibold text-foreground">{st.name}</div>
+            <div className="text-[15px] font-medium text-foreground">{st.name}</div>
             <div className="text-xs text-muted-foreground mt-1 font-mono">{st.code}</div>
           </div>
         </div>
@@ -183,13 +182,13 @@ export default function ServiceTypeList() {
         <div className="text-sm">
           {st.minPrice && st.maxPrice ? (
             <div>
-              <div className="font-semibold text-foreground">
+              <div className="font-medium tabular-nums text-foreground">
                 {formatPrice(st.minPrice)} - {formatPrice(st.maxPrice)}
               </div>
               <div className="text-xs text-muted-foreground">Base: {formatPrice(st.basePrice)}</div>
             </div>
           ) : (
-            <div className="font-semibold text-foreground">{formatPrice(st.basePrice)}</div>
+            <div className="font-medium tabular-nums text-foreground">{formatPrice(st.basePrice)}</div>
           )}
         </div>
       ),
@@ -198,29 +197,23 @@ export default function ServiceTypeList() {
       key: 'sla',
       header: 'SLA',
       cell: (st) => (
-        <div className="text-sm font-semibold text-foreground">{formatSLA(st.slaHours)}</div>
+        <div className="text-sm font-medium tabular-nums text-foreground">{formatSLA(st.slaHours)}</div>
       ),
     },
     {
       key: 'serviceOrderCount',
       header: 'Service Order',
       cell: (st) => (
-        <div className="text-sm font-semibold text-foreground">{st.serviceOrderCount || 0}</div>
+        <div className="text-sm font-medium tabular-nums text-foreground">{st.serviceOrderCount || 0}</div>
       ),
     },
     {
       key: 'isActive',
       header: 'Status',
       cell: (st) => (
-        <span
-          className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${
-            st.isActive
-              ? 'bg-green-100 text-green-800 border-green-200'
-              : 'bg-gray-100 text-gray-800 border-gray-200'
-          }`}
-        >
+        <StatusDot tone={st.isActive ? 'ok' : 'off'}>
           {st.isActive ? 'Aktif' : 'Tidak Aktif'}
-        </span>
+        </StatusDot>
       ),
     },
   ];
@@ -245,32 +238,28 @@ export default function ServiceTypeList() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <StatCard
-          icon={<Wrench className="w-6 h-6 text-white" />}
-          iconBg="from-primary-500 to-primary-600"
+          icon={<Wrench className="h-5 w-5" />}
           label="Total Layanan"
           value={isLoading ? '-' : serviceTypes.length}
           subtitle="Semua layanan terdaftar"
         />
         <StatCard
-          icon={<Clock className="w-6 h-6 text-white" />}
-          iconBg="from-green-500 to-green-600"
+          icon={<Clock className="h-5 w-5" />}
           label="Total Service Order"
           value={isLoading ? '-' : totalServiceOrders}
           subtitle="Dari semua layanan"
         />
         <StatCard
-          icon={<Wrench className="w-6 h-6 text-white" />}
-          iconBg="from-blue-500 to-blue-600"
+          icon={<Wrench className="h-5 w-5" />}
           label="Layanan Aktif"
           value={isLoading ? '-' : activeCount}
-          badge={{ text: 'Active', className: 'bg-green-100 text-green-800' }}
         />
       </div>
 
       <FilterToolbar
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
-        searchPlaceholder="Cari nama layanan, kode, atau deskripsi..."
+        searchPlaceholder="Cari nama layanan, kode, deskripsi"
         fields={[
           {
             key: "status",
@@ -302,35 +291,33 @@ export default function ServiceTypeList() {
         emptyIcon={<Wrench className="w-16 h-16" />}
         actions={(st: any) => (
           <div className="flex items-center justify-end gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate(`/service-types/${st.id}`)}
+            <Link
+              to={`/service-types/${st.id}`}
               title="Lihat Detail"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
-              <Eye className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
+              <Eye className="h-4 w-4" />
+            </Link>
+            <button
+              type="button"
               onClick={() => openEditModal(st)}
               title="Edit"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
-              <Edit className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-red-600 hover:bg-red-50"
+              <Edit className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 setServiceTypeToDelete({ id: st.id, name: st.name });
                 setDeleteModalOpen(true);
               }}
               title="Hapus"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
             >
-              <Trash2 className="w-4 h-4" />
-            </Button>
+              <Trash2 className="h-4 w-4" />
+            </button>
           </div>
         )}
       />
