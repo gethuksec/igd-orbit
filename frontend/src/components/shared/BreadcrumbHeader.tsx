@@ -56,7 +56,7 @@ export function BreadcrumbHeader({ title, subtitle, children, trail, className }
       )}
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">{title}</h1>
+          <h1 className="text-2xl font-medium tracking-tight text-foreground">{title}</h1>
           {subtitle && <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>}
         </div>
         {children && <div className="flex shrink-0 items-center gap-2">{children}</div>}

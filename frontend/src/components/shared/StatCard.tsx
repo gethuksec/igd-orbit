@@ -1,6 +1,5 @@
 import { type ReactNode } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
 
 interface StatCardProps {
   icon: ReactNode;
@@ -11,22 +10,22 @@ interface StatCardProps {
   badge?: { text: string; className: string };
 }
 
-export function StatCard({ icon, iconBg = 'from-primary-500 to-primary-600', label, value, subtitle, badge }: StatCardProps) {
+export function StatCard({ icon, label, value, subtitle, badge }: StatCardProps) {
   return (
-    <Card className="hover:shadow-lg transition-all duration-300 group">
+    <Card>
       <CardContent className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className={cn('p-3 rounded-xl bg-gradient-to-br group-hover:scale-110 transition-transform', iconBg)}>
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground [&_svg]:text-muted-foreground">
             {icon}
           </div>
           {badge && (
-            <span className={cn('px-2 py-1 rounded-full text-xs font-semibold', badge.className)}>
+            <span className="text-xs text-muted-foreground">
               {badge.text}
             </span>
           )}
         </div>
-        <p className="text-sm font-medium text-muted-foreground mb-1">{label}</p>
-        <h3 className="text-2xl font-bold text-foreground mb-1">{value}</h3>
+        <p className="mb-1 text-sm text-muted-foreground">{label}</p>
+        <h3 className="mb-1 font-mono text-[28px] font-medium tabular-nums leading-none">{value}</h3>
         {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
       </CardContent>
     </Card>
