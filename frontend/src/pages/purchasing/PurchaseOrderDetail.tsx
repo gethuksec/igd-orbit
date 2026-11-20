@@ -18,7 +18,7 @@ import {
 import { purchasingService } from '@/services/purchasing.service';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { toast } from 'sonner';
-import { Modal } from '@/components/ui/modal';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AttachmentPanel from '@/components/purchasing/AttachmentPanel';
 import { usePermissions } from '@/hooks/usePermissions';
 
@@ -398,15 +398,19 @@ export default function PurchaseOrderDetail() {
       )}
 
       {/* Approve Modal */}
-      <Modal
+      <Dialog
         open={approveModalOpen}
-        onClose={() => {
-          setApproveModalOpen(false);
-          setApproveNotes('');
+        onOpenChange={(o) => {
+          if (!o) {
+            setApproveModalOpen(false);
+            setApproveNotes('');
+          }
         }}
-        title="Setujui Purchase Order"
-        size="md"
       >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Setujui Purchase Order</DialogTitle>
+          </DialogHeader>
         <div className="space-y-4">
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0 p-2 bg-blue-100 rounded-full">
@@ -451,18 +455,23 @@ export default function PurchaseOrderDetail() {
             </Button>
           </div>
         </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
 
       {/* Reject Modal */}
-      <Modal
+      <Dialog
         open={rejectModalOpen}
-        onClose={() => {
-          setRejectModalOpen(false);
-          setRejectReason('');
+        onOpenChange={(o) => {
+          if (!o) {
+            setRejectModalOpen(false);
+            setRejectReason('');
+          }
         }}
-        title="Tolak Purchase Order"
-        size="md"
       >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Tolak Purchase Order</DialogTitle>
+          </DialogHeader>
         <div className="space-y-4">
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
@@ -514,7 +523,8 @@ export default function PurchaseOrderDetail() {
             </Button>
           </div>
         </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
 
       {/* IGDERP-81: supplier invoice / order confirmation documents */}
       {po && <AttachmentPanel entityType="PURCHASE_ORDER" entityId={po.id} title="Lampiran Invoice / Konfirmasi PO" />}

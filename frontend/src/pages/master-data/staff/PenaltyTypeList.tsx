@@ -4,7 +4,7 @@ import { Plus, Edit, Trash2, Save, Loader2, Gavel, AlertTriangle } from "lucide-
 import { penaltyTypesService, type PenaltyType } from "@/services/penalty-types.service";
 import { rolesService, type Role } from "@/services/roles.service";
 import { api } from "@/services/api";
-import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable } from "@/components/shared";
+import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable, StatusDot } from "@/components/shared";
 import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -168,7 +168,7 @@ export default function PenaltyTypeList() {
       header: "Nama",
       cell: (row) => (
         <div>
-          <div className="text-base font-semibold text-foreground">{row.name}</div>
+          <div className="text-[15px] font-medium text-foreground">{row.name}</div>
           {row.description && (
             <div className="text-xs text-muted-foreground mt-1 font-mono">{row.description}</div>
           )}
@@ -208,15 +208,9 @@ export default function PenaltyTypeList() {
       key: "isActive",
       header: "Status",
       cell: (row) => (
-        <span
-          className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${
-            row.isActive
-              ? "bg-green-100 text-green-800 border-green-200"
-              : "bg-gray-100 text-gray-800 border-gray-200"
-          }`}
-        >
+        <StatusDot tone={row.isActive ? "ok" : "off"}>
           {row.isActive ? "Aktif" : "Tidak Aktif"}
-        </span>
+        </StatusDot>
       ),
     },
   ];
@@ -241,25 +235,21 @@ export default function PenaltyTypeList() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <StatCard
-          icon={<Gavel className="w-6 h-6 text-white" />}
-          iconBg="from-primary-500 to-primary-600"
+          icon={<Gavel className="h-5 w-5" />}
           label="Total Denda"
           value={isLoading ? "-" : pagination.total}
           subtitle="Semua jenis denda terdaftar"
         />
         <StatCard
-          icon={<Gavel className="w-6 h-6 text-white" />}
-          iconBg="from-blue-500 to-blue-600"
+          icon={<Gavel className="h-5 w-5" />}
           label="Ditampilkan"
           value={isLoading ? "-" : rows.length}
           subtitle="Denda pada halaman ini"
         />
         <StatCard
-          icon={<Gavel className="w-6 h-6 text-white" />}
-          iconBg="from-green-500 to-green-600"
+          icon={<Gavel className="h-5 w-5" />}
           label="Denda Aktif"
           value={isLoading ? "-" : activeCount}
-          badge={{ text: "Active", className: "bg-green-100 text-green-800" }}
         />
       </div>
 
@@ -300,21 +290,20 @@ export default function PenaltyTypeList() {
         emptyIcon={<Gavel className="w-16 h-16" />}
         actions={(row: PenaltyType) => (
           <div className="flex items-center justify-end gap-1">
-            <Button variant="ghost" size="sm" onClick={() => openEditModal(row)} title="Edit">
-              <Edit className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-red-600 hover:bg-red-50"
+            <button type="button" onClick={() => openEditModal(row)} title="Edit" className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+              <Edit className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
               title="Hapus"
               onClick={() => {
                 setToDelete({ id: row.id, name: row.name });
                 setDeleteModalOpen(true);
               }}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
             >
-              <Trash2 className="w-4 h-4" />
-            </Button>
+              <Trash2 className="h-4 w-4" />
+            </button>
           </div>
         )}
       />

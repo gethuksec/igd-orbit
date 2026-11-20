@@ -5,7 +5,7 @@ import { usersService, type User, type UserRole } from '../../../services/users.
 import { rolesService } from '../../../services/roles.service';
 import { publicService } from '../../../services/public.service';
 import { toast } from 'sonner';
-import { Modal } from '../../../components/ui/modal';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../components/ui/dialog';
 import { labelForPermission } from '../../../utils/permissionLabels';
 
 interface PenugasanRow {
@@ -219,7 +219,11 @@ export function UserFormModal({ open, user, onClose, onSaved }: UserFormModalPro
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={isEdit ? 'Edit Pengguna' : 'Tambah Pengguna Baru'} size="lg">
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? 'Edit Pengguna' : 'Tambah Pengguna Baru'}</DialogTitle>
+        </DialogHeader>
       <form onSubmit={handleSubmit} className="space-y-5 max-h-[75vh] overflow-y-auto pr-1">
         {/* Basic info */}
         <div className="space-y-3">
@@ -527,6 +531,7 @@ export function UserFormModal({ open, user, onClose, onSaved }: UserFormModalPro
           </button>
         </div>
       </form>
-    </Modal>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -6,7 +6,7 @@ import { CheckCircle, XCircle, Clock, AlertCircle, DollarSign, FileText } from '
 import { hrService } from '@/services/hr.service';
 import { formatCurrency } from '@/utils/format';
 import { toast } from 'sonner';
-import { Modal } from '@/components/ui/modal';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const getCurrentUser = () => {
   try {
@@ -369,15 +369,19 @@ export default function PayrollDetail() {
       )}
 
       {/* Cancel Modal */}
-      <Modal
+      <Dialog
         open={cancelModalOpen}
-        onClose={() => {
-          setCancelModalOpen(false);
-          setCancelReason('');
+        onOpenChange={(o) => {
+          if (!o) {
+            setCancelModalOpen(false);
+            setCancelReason('');
+          }
         }}
-        title="Batalkan Payroll"
-        size="md"
       >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Batalkan Payroll</DialogTitle>
+          </DialogHeader>
         <div className="space-y-4">
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
@@ -427,7 +431,8 @@ export default function PayrollDetail() {
             </button>
           </div>
         </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -92,7 +92,9 @@ export class ContractsService {
 
   private include = {
     employee: { select: { id: true, userId: true, employeeCode: true } },
-    workingLocation: { select: { id: true, code: true, name: true } },
+    contractWorkingLocations: {
+      include: { workingLocation: { select: { id: true, code: true, name: true } } },
+    },
     position: { select: { id: true, code: true, name: true } },
     grade: { select: { id: true, code: true, name: true } },
     division: { select: { id: true, code: true, name: true } },
@@ -208,7 +210,7 @@ export class ContractsService {
 
   private async assertRefs(dto: {
     employeeId: string;
-    workingLocationId?: string | null;
+    workingLocationIds?: string[];
     positionId?: string | null;
     gradeId?: string | null;
     divisionId?: string | null;
@@ -219,9 +221,12 @@ export class ContractsService {
   }) {
     const employee = await this.prisma.employee.findUnique({ where: { id: dto.employeeId } });
     if (!employee) throw new BadRequestException('Employee not found');
-    if (dto.workingLocationId) {
-      const wl = await this.prisma.workingLocation.findUnique({ where: { id: dto.workingLocationId } });
-      if (!wl || !wl.isActive) throw new BadRequestException('Working location not found or inactive');
+    const wlIds = dto.workingLocationIds ?? [];
+    if (wlIds.length > 0) {
+      const wls = await this.prisma.workingLocation.findMany({ where: { id: { in: wlIds } } });
+      const found = new Set(wls.filter((w: any) => w.isActive).map((w: any) => w.id));
+      const missing = wlIds.filter((id) => !found.has(id));
+      if (missing.length > 0) throw new BadRequestException('Working location not found or inactive');
     }
     for (const [key, model] of [
       ['positionId', 'position'],
@@ -265,7 +270,7 @@ export class ContractsService {
     throw new ConflictException('Could not generate a unique contract number');
   }
 
-  async create(dto: CreateContractDto) {
+  async create(dto: CreateContractDto, opts?: { deferCaps?: boolean }) {
     const startDate = new Date(dto.startDate);
     const endDate = dto.endDate ? new Date(dto.endDate) : null;
     if (dto.probationEndDate && dto.type !== 'trial' && dto.type !== 'probation') {
@@ -280,7 +285,10 @@ export class ContractsService {
       }
     }
     await this.assertRefs(dto);
-    await this.assertCaps(dto.employeeId, dto.type, startDate, endDate);
+    // Import lands drafts with caps deferred — enforced at activation instead.
+    if (!opts?.deferCaps) {
+      await this.assertCaps(dto.employeeId, dto.type, startDate, endDate);
+    }
     const manualNumber = dto.contractNumber?.trim() || null;
     if (manualNumber) {
       const taken = await this.prisma.contract.findUnique({ where: { contractNumber: manualNumber } });
@@ -291,7 +299,6 @@ export class ContractsService {
       data: {
         contractNumber,
         employeeId: dto.employeeId,
-        workingLocationId: dto.workingLocationId ?? null,
         type: dto.type,
         startDate,
         endDate,
@@ -305,6 +312,15 @@ export class ContractsService {
         status: dto.status ?? 'draft',
         previousContractId: dto.previousContractId ?? null,
         approvedBy: dto.approvedBy ?? null,
+        ...(dto.workingLocationIds && dto.workingLocationIds.length > 0
+          ? {
+              contractWorkingLocations: {
+                create: dto.workingLocationIds.map((workingLocationId) => ({
+                  workingLocationId,
+                })),
+              },
+            }
+          : {}),
         ...(dto.branchIds && dto.branchIds.length > 0
           ? {
               contractBranches: {
@@ -327,6 +343,45 @@ export class ContractsService {
     return created;
   }
 
+  /**
+   * Activation gate (IGDERP-271): draft → active requires a complete row
+   * (≥1 working location, position, salary, ≥1 penempatan branch) and
+   * passes the stage caps. Imports land incomplete drafts; HR completes
+   * them here (draft-only ref edits) and activates.
+   */
+  private async assertActivationCompleteness(
+    existing: any,
+    dto: UpdateContractDto,
+  ): Promise<{ workingLocationIds: string[]; branchIds: string[] }> {
+    const workingLocationIds =
+      dto.workingLocationIds ??
+      (existing.contractWorkingLocations ?? []).map((c: any) => c.workingLocationId);
+    const branchIds =
+      dto.branchIds ?? (existing.contractBranches ?? []).map((c: any) => c.branchId);
+    const positionId = dto.positionId !== undefined ? dto.positionId : existing.positionId;
+    const gradeId = dto.gradeId !== undefined ? dto.gradeId : existing.gradeId;
+    const basicSalary = dto.basicSalary !== undefined ? dto.basicSalary : existing.basicSalary;
+    const missing: string[] = [];
+    if (workingLocationIds.length === 0) missing.push('working locations');
+    if (!positionId) missing.push('position');
+    if (!gradeId) missing.push('grade');
+    if (basicSalary === null || basicSalary === undefined) missing.push('basic salary');
+    if (branchIds.length === 0) missing.push('penempatan (branches)');
+    if (missing.length > 0) {
+      throw new BadRequestException(`Cannot activate: incomplete — missing: ${missing.join(', ')}`);
+    }
+    const endDate =
+      dto.endDate !== undefined
+        ? dto.endDate
+          ? new Date(dto.endDate)
+          : null
+        : existing.endDate
+          ? new Date(existing.endDate)
+          : null;
+    await this.assertCaps(existing.employeeId, existing.type, new Date(existing.startDate), endDate);
+    return { workingLocationIds, branchIds };
+  }
+
   async update(id: string, dto: UpdateContractDto) {
     const existing = await this.findById(id);
     if (TERMINAL_STATUSES.includes(existing.status)) {
@@ -342,11 +397,135 @@ export class ContractsService {
         throw new BadRequestException(`Status transition ${from} → ${dto.status} is not allowed`);
       }
     }
+    // Reference snapshots + assignments are draft-only edits — an active
+    // contract changes via a new row (promotion / adjustment), never rewrite.
+    const touchesRefs =
+      dto.workingLocationIds !== undefined ||
+      dto.branchIds !== undefined ||
+      dto.primaryBranchId !== undefined ||
+      dto.positionId !== undefined ||
+      dto.gradeId !== undefined ||
+      dto.divisionId !== undefined ||
+      dto.departmentId !== undefined;
+    if (touchesRefs && existing.status !== 'draft') {
+      throw new BadRequestException(
+        'Only drafts can edit references — mint a new row (promotion / adjustment) instead',
+      );
+    }
+    if (touchesRefs) {
+      await this.assertRefs({
+        employeeId: existing.employeeId,
+        workingLocationIds: dto.workingLocationIds,
+        positionId: dto.positionId,
+        gradeId: dto.gradeId,
+        divisionId: dto.divisionId,
+        departmentId: dto.departmentId,
+        branchIds: dto.branchIds,
+        primaryBranchId: dto.primaryBranchId ?? null,
+      });
+    }
     if (dto.endDate !== undefined) {
       // Same-stage extension: editing endDate keeps the cap check on the new span.
       const startDate = new Date(existing.startDate);
       const endDate = dto.endDate ? new Date(dto.endDate) : null;
       await this.assertCaps(existing.employeeId, existing.type, startDate, endDate);
+    }
+
+    const isActivation = dto.status === 'active' && existing.status === 'draft';
+    if (isActivation) {
+      await this.assertActivationCompleteness(existing, dto);
+      // Chain-link at activation: previous = latest non-draft row at/before
+      // this start; flip it to renewed only when it is still active.
+      return this.prisma.$transaction(async (tx: any) => {
+        if (dto.workingLocationIds !== undefined) {
+          await tx.contractWorkingLocation.deleteMany({ where: { contractId: id } });
+          if (dto.workingLocationIds.length > 0) {
+            await tx.contractWorkingLocation.createMany({
+              data: dto.workingLocationIds.map((workingLocationId) => ({
+                contractId: id,
+                workingLocationId,
+              })),
+            });
+          }
+        }
+        if (dto.branchIds !== undefined) {
+          await tx.contractBranch.deleteMany({ where: { contractId: id } });
+          if (dto.branchIds.length > 0) {
+            await tx.contractBranch.createMany({
+              data: dto.branchIds.map((branchId) => ({
+                contractId: id,
+                branchId,
+                isPrimary: dto.primaryBranchId ? branchId === dto.primaryBranchId : false,
+              })),
+            });
+          }
+        }
+        const prev = await tx.contract.findFirst({
+          where: {
+            employeeId: existing.employeeId,
+            id: { not: id },
+            status: { not: 'draft' },
+            startDate: { lte: new Date(existing.startDate) },
+          },
+          orderBy: { startDate: 'desc' },
+        });
+        const updated = await tx.contract.update({
+          where: { id },
+          data: {
+            ...(dto.endDate !== undefined
+              ? { endDate: dto.endDate ? new Date(dto.endDate) : null }
+              : {}),
+            ...(dto.probationEndDate !== undefined
+              ? { probationEndDate: dto.probationEndDate ? new Date(dto.probationEndDate) : null }
+              : {}),
+            status: 'active',
+            ...(dto.approvedBy !== undefined ? { approvedBy: dto.approvedBy } : {}),
+            ...(dto.basicSalary !== undefined
+              ? { basicSalary: dto.basicSalary !== null ? new Decimal(dto.basicSalary) : null }
+              : {}),
+            ...(dto.positionId !== undefined ? { positionId: dto.positionId } : {}),
+            ...(dto.gradeId !== undefined ? { gradeId: dto.gradeId } : {}),
+            ...(dto.divisionId !== undefined ? { divisionId: dto.divisionId } : {}),
+            ...(dto.departmentId !== undefined ? { departmentId: dto.departmentId } : {}),
+            previousContractId: prev?.id ?? null,
+            changeReason: prev ? 'renewal' : 'initial',
+          },
+          include: this.include,
+        });
+        if (prev && prev.status === 'active') {
+          await tx.contract.update({ where: { id: prev.id }, data: { status: 'renewed' } });
+        }
+        return updated;
+      });
+    }
+
+    if (dto.workingLocationIds !== undefined || dto.branchIds !== undefined) {
+      // Draft join replacement (non-activation edit).
+      await this.prisma.$transaction(async (tx: any) => {
+        if (dto.workingLocationIds !== undefined) {
+          await tx.contractWorkingLocation.deleteMany({ where: { contractId: id } });
+          if (dto.workingLocationIds.length > 0) {
+            await tx.contractWorkingLocation.createMany({
+              data: dto.workingLocationIds.map((workingLocationId) => ({
+                contractId: id,
+                workingLocationId,
+              })),
+            });
+          }
+        }
+        if (dto.branchIds !== undefined) {
+          await tx.contractBranch.deleteMany({ where: { contractId: id } });
+          if (dto.branchIds.length > 0) {
+            await tx.contractBranch.createMany({
+              data: dto.branchIds.map((branchId) => ({
+                contractId: id,
+                branchId,
+                isPrimary: dto.primaryBranchId ? branchId === dto.primaryBranchId : false,
+              })),
+            });
+          }
+        }
+      });
     }
     return this.prisma.contract.update({
       where: { id },
@@ -359,10 +538,13 @@ export class ContractsService {
           : {}),
         ...(dto.status !== undefined ? { status: dto.status } : {}),
         ...(dto.approvedBy !== undefined ? { approvedBy: dto.approvedBy } : {}),
-        ...(dto.workingLocationId !== undefined ? { workingLocationId: dto.workingLocationId } : {}),
         ...(dto.basicSalary !== undefined
           ? { basicSalary: dto.basicSalary !== null ? new Decimal(dto.basicSalary) : null }
           : {}),
+        ...(dto.positionId !== undefined ? { positionId: dto.positionId } : {}),
+        ...(dto.gradeId !== undefined ? { gradeId: dto.gradeId } : {}),
+        ...(dto.divisionId !== undefined ? { divisionId: dto.divisionId } : {}),
+        ...(dto.departmentId !== undefined ? { departmentId: dto.departmentId } : {}),
       },
       include: this.include,
     });
@@ -398,9 +580,14 @@ export class ContractsService {
     }
     const pwCheck = this.passwordService.validatePasswordStrength(dto.password);
     if (!pwCheck.isValid) throw new BadRequestException(pwCheck.error);
-    if (dto.workingLocationId) {
-      const wl = await this.prisma.workingLocation.findUnique({ where: { id: dto.workingLocationId } });
-      if (!wl || !wl.isActive) throw new BadRequestException('Working location not found or inactive');
+    if (dto.workingLocationIds && dto.workingLocationIds.length > 0) {
+      const wls = await this.prisma.workingLocation.findMany({
+        where: { id: { in: dto.workingLocationIds } },
+      });
+      const found = new Set(wls.filter((w) => w.isActive).map((w) => w.id));
+      if (dto.workingLocationIds.some((id) => !found.has(id))) {
+        throw new BadRequestException('Working location not found or inactive');
+      }
     }
     let roleId = dto.roleId ?? null;
     if (dto.positionId) {
@@ -480,7 +667,6 @@ export class ContractsService {
         data: {
           contractNumber,
           employeeId: employee.id,
-          workingLocationId: dto.workingLocationId ?? null,
           type: dto.type,
           startDate,
           endDate,
@@ -492,6 +678,14 @@ export class ContractsService {
           departmentId: dto.departmentId ?? null,
           changeReason: 'initial',
           status: dto.status ?? 'active',
+          contractWorkingLocations:
+            dto.workingLocationIds && dto.workingLocationIds.length > 0
+              ? {
+                  create: dto.workingLocationIds.map((workingLocationId) => ({
+                    workingLocationId,
+                  })),
+                }
+              : undefined,
           contractBranches:
             branchIds.length > 0
               ? {

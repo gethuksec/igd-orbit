@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {Plus, Eye, Edit, Trash2, Save, Loader2, CreditCard, AlertTriangle} from "lucide-react";
 import { paymentTermsService } from "../../services/payment-terms.service";
 import { api } from "../../services/api";
-import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable } from "@/components/shared";
+import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable, StatusDot } from "@/components/shared";
 import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -13,7 +13,6 @@ import { toast } from "sonner";
 type StatusFilter = "all" | "active" | "inactive";
 
 export default function PaymentTermList() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
@@ -125,11 +124,11 @@ export default function PaymentTermList() {
       header: "Termin Pembayaran",
       cell: (paymentTerm) => (
         <div className="flex items-center gap-4">
-          <div className="flex-shrink-0 h-14 w-14 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white shadow-md">
-            <CreditCard className="w-7 h-7" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
+            <CreditCard className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-base font-semibold text-foreground">
+            <div className="text-[15px] font-medium text-foreground">
               {paymentTerm.name}
             </div>
             <div className="text-xs text-muted-foreground mt-1 font-mono">
@@ -156,15 +155,9 @@ export default function PaymentTermList() {
       key: "isActive",
       header: "Status",
       cell: (paymentTerm) => (
-        <span
-          className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${
-            paymentTerm.isActive
-              ? "bg-green-100 text-green-800 border-green-200"
-              : "bg-gray-100 text-gray-800 border-gray-200"
-          }`}
-        >
+        <StatusDot tone={paymentTerm.isActive ? "ok" : "off"}>
           {paymentTerm.isActive ? "Aktif" : "Tidak Aktif"}
-        </span>
+        </StatusDot>
       ),
     },
   ];
@@ -188,25 +181,21 @@ export default function PaymentTermList() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <StatCard
-          icon={<CreditCard className="w-6 h-6 text-white" />}
-          iconBg="from-primary-500 to-primary-600"
+          icon={<CreditCard className="h-5 w-5" />}
           label="Total Termin"
           value={isLoading ? "-" : pagination.total}
           subtitle="Semua termin terdaftar"
         />
         <StatCard
-          icon={<CreditCard className="w-6 h-6 text-white" />}
-          iconBg="from-blue-500 to-blue-600"
+          icon={<CreditCard className="h-5 w-5" />}
           label="Total Terisi"
           value={isLoading ? "-" : paymentTerms.length}
           subtitle="Termin pada halaman ini"
         />
         <StatCard
-          icon={<CreditCard className="w-6 h-6 text-white" />}
-          iconBg="from-green-500 to-green-600"
+          icon={<CreditCard className="h-5 w-5" />}
           label="Termin Aktif"
           value={isLoading ? "-" : activeCount}
-          badge={{ text: "Active", className: "bg-green-100 text-green-800" }}
         />
       </div>
 
@@ -247,34 +236,32 @@ export default function PaymentTermList() {
         emptyIcon={<CreditCard className="w-16 h-16" />}
         actions={(paymentTerm: any) => (
           <div className="flex items-center justify-end gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate(`/payment-terms/${paymentTerm.id}`)}
+            <Link
+              to={`/payment-terms/${paymentTerm.id}`}
               title="Lihat Detail"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
-              <Eye className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
+              <Eye className="h-4 w-4" />
+            </Link>
+            <button
+              type="button"
               onClick={() => openEditModal(paymentTerm)}
               title="Edit"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
-              <Edit className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-red-600 hover:bg-red-50"
+              <Edit className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
               title="Hapus"
               onClick={() => {
                 setPaymentTermToDelete({ id: paymentTerm.id, name: paymentTerm.name });
                 setDeleteModalOpen(true);
               }}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
             >
-              <Trash2 className="w-4 h-4" />
-            </Button>
+              <Trash2 className="h-4 w-4" />
+            </button>
           </div>
         )}
       />

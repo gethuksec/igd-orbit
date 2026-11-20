@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { BreadcrumbHeader, FilterToolbar, RowsPerPageSelect } from '@/components/shared';
+import { BreadcrumbHeader, FilterToolbar, RowsPerPageSelect, StatusDot } from '@/components/shared';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Users, User, Building2, Briefcase, Calendar, CheckCircle, XCircle, AlertCircle, Eye, Edit, Save, Plus } from 'lucide-react';
 import { formatDate, formatDateForInput } from '@/utils/format';
 import { useBranchStore } from '@/stores/branchStore';
 import { api } from '@/services/api';
-import { Modal } from '@/components/ui/modal';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import IntakeDialog from '@/components/hr/IntakeDialog';
 import { toast } from 'sonner';
 
@@ -201,7 +201,7 @@ export default function EmployeeList() {
       <FilterToolbar
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
-        searchPlaceholder="Cari nama, email, atau employee code..."
+        searchPlaceholder="Cari nama, email, employee code"
         branchFilter={{ value: selectedBranchId, onChange: setSelectedBranchId, allowAll: true }}
         fields={[
           {
@@ -236,7 +236,7 @@ export default function EmployeeList() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">Total Karyawan</p>
-              <p className="text-2xl font-bold text-gray-900">{employees.length}</p>
+              <p className="text-2xl font-medium tabular-nums text-gray-900">{employees.length}</p>
             </div>
             <div className="p-3 bg-primary-100 rounded-lg">
               <Users className="w-6 h-6 text-primary-600" />
@@ -247,7 +247,7 @@ export default function EmployeeList() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">Aktif</p>
-              <p className="text-2xl font-bold text-green-600">{activeCount}</p>
+              <p className="text-2xl font-medium tabular-nums text-green-600">{activeCount}</p>
             </div>
             <div className="p-3 bg-green-100 rounded-lg">
               <CheckCircle className="w-6 h-6 text-green-600" />
@@ -258,7 +258,7 @@ export default function EmployeeList() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">Tidak Aktif</p>
-              <p className="text-2xl font-bold text-red-600">{inactiveCount}</p>
+              <p className="text-2xl font-medium tabular-nums text-red-600">{inactiveCount}</p>
             </div>
             <div className="p-3 bg-red-100 rounded-lg">
               <XCircle className="w-6 h-6 text-red-600" />
@@ -350,34 +350,26 @@ export default function EmployeeList() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           {user.employee?.employmentType ? (
-                            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${
-                              user.employee.employmentType === 'PKWT'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-green-100 text-green-800'
-                            }`}>
+                            <StatusDot tone={user.employee.employmentType === 'PKWT' ? 'warn' : 'ok'}>
                               {user.employee.employmentType === 'PKWT' ? 'PKWT' : 'PKWTT'}
-                            </span>
+                            </StatusDot>
                           ) : <span className="text-sm text-gray-400">-</span>}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {user.employee?.isActive ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-                            <CheckCircle className="w-3 h-3" /> Aktif
-                          </span>
+                          <StatusDot tone="ok">Aktif</StatusDot>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">
-                            <XCircle className="w-3 h-3" /> Tidak Aktif
-                          </span>
+                          <StatusDot tone="off">Tidak Aktif</StatusDot>
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
-                          <Link to={`/hr/employees/${user.id}`} className="p-2 text-primary-600 hover:text-primary-800 hover:bg-primary-50 rounded-lg transition-colors" title="Detail">
-                            <Eye className="w-4 h-4" />
+                          <Link to={`/hr/employees/${user.id}`} title="Detail" className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+                            <Eye className="h-4 w-4" />
                           </Link>
-                          <button onClick={() => openEditModal(user)} className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
-                            <Edit className="w-4 h-4" />
+                          <button type="button" onClick={() => openEditModal(user)} title="Edit" className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+                            <Edit className="h-4 w-4" />
                           </button>
                         </div>
                       </td>
@@ -417,7 +409,11 @@ export default function EmployeeList() {
       </div>
 
       {/* Add/Edit Employee Modal */}
-      <Modal open={showAddModal} onClose={closeAddModal} title="Edit Karyawan" size="xl">
+      <Dialog open={showAddModal} onOpenChange={(o) => { if (!o) closeAddModal(); }}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Edit Karyawan</DialogTitle>
+          </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
           {/* Personal Information */}
           <div>
@@ -582,7 +578,8 @@ export default function EmployeeList() {
             </button>
           </div>
         </form>
-      </Modal>
+        </DialogContent>
+      </Dialog>
 
       <IntakeDialog
         open={intakeOpen}

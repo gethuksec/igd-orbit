@@ -48,7 +48,7 @@ const emptyForm = {
   type: "trial" as ContractType,
   startDate: "",
   endDate: "",
-  workingLocationId: "",
+  workingLocationIds: [] as string[],
   basicSalary: "",
   branchIds: [] as string[],
   primaryBranchId: "",
@@ -216,7 +216,7 @@ export default function IntakeDialog({ open, mode, onClose, onSuccess, defaultEm
           type: form.type,
           startDate: form.startDate,
           endDate: norm(form.endDate),
-          workingLocationId: norm(form.workingLocationId),
+          workingLocationIds: form.workingLocationIds,
           basicSalary: form.basicSalary === "" ? undefined : Number(form.basicSalary),
           positionId: norm(form.positionId),
           gradeId: norm(form.gradeId),
@@ -246,7 +246,7 @@ export default function IntakeDialog({ open, mode, onClose, onSuccess, defaultEm
           type: form.type,
           startDate: form.startDate,
           endDate: norm(form.endDate),
-          workingLocationId: norm(form.workingLocationId),
+          workingLocationIds: form.workingLocationIds,
           basicSalary: form.basicSalary === "" ? undefined : Number(form.basicSalary),
           positionId: norm(form.positionId),
           gradeId: norm(form.gradeId),
@@ -431,8 +431,9 @@ export default function IntakeDialog({ open, mode, onClose, onSuccess, defaultEm
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Working location</label>
             <SearchableSelect
-              value={form.workingLocationId}
-              onChange={(v) => set("workingLocationId", v)}
+              multiple
+              value={form.workingLocationIds}
+              onChange={(v) => set("workingLocationIds", v)}
               options={locationOptions}
             />
           </div>

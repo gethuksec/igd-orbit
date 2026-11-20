@@ -42,15 +42,15 @@ import {
   BarChart3,
   Clock,
   CalendarDays,
-  Gavel,
-  Briefcase,
   Banknote,
   Target,
   RotateCcw,
   ScanBarcode,
   Zap,
-  MapPin,
   ScrollText,
+  Gavel,
+  Briefcase,
+  MapPin,
 } from 'lucide-react';
 import type { Branch } from '@/services/public.service';
 import { publicService } from '@/services/public.service';

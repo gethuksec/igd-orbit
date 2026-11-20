@@ -11,7 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { Modal } from '@/components/ui/modal';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { purchasingService } from '@/services/purchasing.service';
 import { usersService } from '@/services/users.service';
 import { formatCurrency, formatDate } from '@/utils/format';
@@ -600,12 +600,14 @@ export default function ApprovalSettingsPage() {
       </Card>
 
       {/* ========== Shared reason modal (reject / revisit) ========== */}
-      <Modal
+      <Dialog
         open={!!reasonState.kind}
-        onClose={closeReasonModal}
-        title={reasonModalTitle}
-        size="md"
+        onOpenChange={(o) => { if (!o) closeReasonModal(); }}
       >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{reasonModalTitle}</DialogTitle>
+          </DialogHeader>
         <div className="space-y-4">
           <div>
             <Label>Alasan</Label>
@@ -630,15 +632,18 @@ export default function ApprovalSettingsPage() {
             </Button>
           </div>
         </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
 
       {/* ========== PO approve modal ========== */}
-      <Modal
+      <Dialog
         open={approvePo.open}
-        onClose={() => setApprovePo({ open: false, id: null, notes: '' })}
-        title="Setujui Purchase Order"
-        size="md"
+        onOpenChange={(o) => { if (!o) setApprovePo({ open: false, id: null, notes: '' }); }}
       >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Setujui Purchase Order</DialogTitle>
+          </DialogHeader>
         <div className="space-y-4">
           <p className="text-sm">
             Apakah Anda yakin ingin menyetujui purchase order ini? Catatan opsional dapat ditambahkan.
@@ -666,15 +671,18 @@ export default function ApprovalSettingsPage() {
             </Button>
           </div>
         </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
 
       {/* ========== Settings modal (SUPERADMIN only) ========== */}
-      <Modal
+      <Dialog
         open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        title="Atur Persetujuan"
-        size="xl"
+        onOpenChange={(o) => { if (!o) setSettingsOpen(false); }}
       >
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Atur Persetujuan</DialogTitle>
+          </DialogHeader>
         <div className="space-y-6">
           {(['PURCHASE_INVOICE', 'GOODS_RECEIPT'] as const).map((cat) => {
             const s = draft[cat] || { roles: [], userIds: [], mandatoryInvoice: cat === 'PURCHASE_INVOICE' };
@@ -761,7 +769,8 @@ export default function ApprovalSettingsPage() {
             </Button>
           </div>
         </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

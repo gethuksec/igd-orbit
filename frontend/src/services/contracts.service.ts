@@ -7,7 +7,6 @@ export interface Contract {
   id: string;
   contractNumber: string;
   employeeId: string;
-  workingLocationId: string | null;
   type: ContractType;
   startDate: string;
   endDate: string | null;
@@ -22,7 +21,7 @@ export interface Contract {
   previousContractId: string | null;
   approvedBy: string | null;
   employee?: { id: string; userId: string; employeeCode: string } | null;
-  workingLocation?: { id: string; code: string; name: string } | null;
+  contractWorkingLocations?: { workingLocation: { id: string; code: string; name: string } }[];
   position?: { id: string; code: string; name: string } | null;
   grade?: { id: string; code: string; name: string } | null;
   division?: { id: string; code: string; name: string } | null;
@@ -45,7 +44,7 @@ export interface IntakePayload {
   startDate: string;
   endDate?: string;
   probationEndDate?: string;
-  workingLocationId?: string;
+  workingLocationIds?: string[];
   basicSalary?: number;
   positionId?: string;
   gradeId?: string;
@@ -118,6 +117,7 @@ export const contractsService = {
     startDate: string;
     contractNumber?: string;
     gradeId?: string;
+    workingLocationIds?: string[];
     branchIds?: string[];
     primaryBranchId?: string;
     changeReason?: string;
@@ -131,4 +131,55 @@ export const contractsService = {
     const response = await api.put(`/contracts/${id}`, payload);
     return response.data.data || response.data;
   },
+
+  async dryRunImport(file: File): Promise<ContractImportDryRun> {
+    const form = new FormData();
+    form.append("file", file);
+    const response = await api.post("/contracts/import/dry-run", form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data;
+  },
+
+  async commitImport(file: File): Promise<ContractImportCommit> {
+    const form = new FormData();
+    form.append("file", file);
+    const response = await api.post("/contracts/import/commit", form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data;
+  },
 };
+
+export interface ContractImportRowReport {
+  rowNumber: number;
+  nip?: string;
+  name?: string;
+  status: "ok" | "error";
+  errors: string[];
+  incomplete: string[];
+  notes: string[];
+  preview: {
+    type?: string;
+    startDate?: string;
+    endDate?: string | null;
+    positionCode?: string | null;
+    gradeCode?: string | null;
+    divisionCode?: string | null;
+    branchCodes?: string[];
+    basicSalary?: number | null;
+  };
+}
+
+export interface ContractImportDryRun {
+  total: number;
+  valid: number;
+  invalid: number;
+  rows: ContractImportRowReport[];
+  multiRowEmployees: string[];
+}
+
+export interface ContractImportCommit extends ContractImportDryRun {
+  created: { rowNumber: number; contractNumber: string; nip: string }[];
+  skipped: { rowNumber: number; nip?: string; errors: string[] }[];
+}

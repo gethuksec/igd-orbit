@@ -278,7 +278,9 @@ export default function EmployeeDetail() {
                     <p className="text-xs text-gray-500">
                       {formatDate(c.startDate)} – {c.endDate ? formatDate(c.endDate) : "tetap"}
                       {c.position?.name ? ` · ${c.position.name}` : ""}
-                      {c.workingLocation?.name ? ` · ${c.workingLocation.name}` : ""}
+                      {(c.contractWorkingLocations ?? []).length > 0
+                        ? ` · ${(c.contractWorkingLocations ?? []).map((w: any) => w.workingLocation.name).join(", ")}`
+                        : ""}
                       {c.basicSalary != null ? ` · ${formatCurrency(c.basicSalary)}` : ""}
                     </p>
                   </div>

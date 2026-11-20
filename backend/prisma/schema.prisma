@@ -2152,7 +2152,7 @@ model WorkingLocation {
 
   // Relations
   branch    Branch?    @relation(fields: [branchId], references: [id], onDelete: SetNull)
-  contracts Contract[]
+  contractWorkingLocations ContractWorkingLocation[]
 
   @@index([code])
   @@index([isActive])
@@ -2164,7 +2164,6 @@ model Contract {
   id                 String    @id @default(uuid())
   contractNumber     String    @unique @map("contract_number") // CTR-YYYYMM-XXXXXX
   employeeId         String    @map("employee_id")
-  workingLocationId  String?   @map("working_location_id")
   type               String // 'trial' | 'probation' | 'pkwt' | 'pkwtt'
   startDate          DateTime  @map("start_date") @db.Date
   endDate            DateTime? @map("end_date") @db.Date // null = permanent (PKWTT tetap)
@@ -2183,7 +2182,6 @@ model Contract {
 
   // Relations
   employee          Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  workingLocation   WorkingLocation? @relation(fields: [workingLocationId], references: [id], onDelete: SetNull)
   position          Position?        @relation(fields: [positionId], references: [id], onDelete: SetNull)
   grade             Grade?           @relation(fields: [gradeId], references: [id], onDelete: SetNull)
   division          Division?        @relation(fields: [divisionId], references: [id], onDelete: SetNull)
@@ -2191,6 +2189,7 @@ model Contract {
   previousContract  Contract?        @relation("ContractChain", fields: [previousContractId], references: [id], onDelete: SetNull)
   nextContracts     Contract[]       @relation("ContractChain")
   contractBranches  ContractBranch[]
+  contractWorkingLocations ContractWorkingLocation[]
 
   @@index([contractNumber])
   @@index([employeeId])
@@ -2215,6 +2214,24 @@ model ContractBranch {
   @@index([contractId])
   @@index([branchId])
   @@map("contract_branches")
+}
+
+// IGDERP-271: working locations are multi-select per contract (rule A ANY-match:
+// clock-in is valid within ANY assigned location radius — no primary concept).
+model ContractWorkingLocation {
+  id               String   @id @default(uuid())
+  contractId       String   @map("contract_id")
+  workingLocationId String  @map("working_location_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  // Relations
+  contract        Contract        @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  workingLocation WorkingLocation @relation(fields: [workingLocationId], references: [id], onDelete: Cascade)
+
+  @@unique([contractId, workingLocationId])
+  @@index([contractId])
+  @@index([workingLocationId])
+  @@map("contract_working_locations")
 }
 
 
