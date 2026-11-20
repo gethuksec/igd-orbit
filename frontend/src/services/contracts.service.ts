@@ -149,6 +149,11 @@ export const contractsService = {
     });
     return response.data;
   },
+
+  async downloadImportTemplate(): Promise<Blob> {
+    const response = await api.get("/contracts/import/template", { responseType: "blob" });
+    return response.data;
+  },
 };
 
 export interface ContractImportRowReport {

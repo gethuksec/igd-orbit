@@ -7,6 +7,7 @@ import {
   Body,
   Param,
   Query,
+  Res,
   UseGuards,
   UseInterceptors,
   UploadedFile,
@@ -15,8 +16,10 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import type { Response } from 'express';
 import { ContractsService } from './services/contracts.service';
 import { ContractsImportService } from './services/contracts-import.service';
+import { buildContractImportTemplate } from '../../shared/utils/contract-import-template';
 import { JwtAuthGuard, RolesGuard } from '../../shared/guards';
 import { Roles } from '../../shared/decorators';
 import { CreateContractDto } from './dto/create-contract.dto';
@@ -82,6 +85,19 @@ export class ContractsController {
   }
 
   // Static routes above ':id' (Express matches in registration order).
+  @Get('import/template')
+  @UseGuards(RolesGuard)
+  @Roles(...WRITE_ROLES)
+  async importTemplate(@Res() res: Response): Promise<void> {
+    const buffer = await buildContractImportTemplate();
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': 'attachment; filename="template-import-kontrak.xlsx"',
+      'Content-Length': buffer.length,
+    });
+    res.send(buffer);
+  }
+
   @Post('import/dry-run')
   @UseGuards(RolesGuard)
   @Roles(...WRITE_ROLES)
