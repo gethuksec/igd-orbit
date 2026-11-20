@@ -91,7 +91,7 @@ export function InventoryDashboard() {
     <div className="w-full space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-indonesia-red-700">
+        <h1 className="text-3xl font-bold text-indonesia-red-700 dark:text-indonesia-red-300">
           {t('dashboard.inventory.title')}
         </h1>
         <div className="flex items-center gap-4">
@@ -126,7 +126,7 @@ export function InventoryDashboard() {
           }
           icon={TrendingUp}
           gradient="from-white dark:from-gray-900 to-gray-100 dark:to-gray-800"
-          textColor="text-indonesia-red-600"
+          textColor="text-indonesia-red-600 dark:text-indonesia-red-400"
           border="border-l-4 border-indonesia-red-600"
         />
         <KPICard
@@ -155,7 +155,7 @@ export function InventoryDashboard() {
           }
           icon={Box}
           gradient="from-white dark:from-gray-900 to-gray-100 dark:to-gray-800"
-          textColor="text-indonesia-red-600"
+          textColor="text-indonesia-red-600 dark:text-indonesia-red-400"
           border="border-l-4 border-indonesia-red-600"
         />
       </div>
@@ -180,13 +180,13 @@ export function InventoryDashboard() {
           }
         />
         <div className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-4">
-          <h3 className="text-lg font-bold text-indonesia-red-700 mb-4">
+          <h3 className="text-lg font-bold text-indonesia-red-700 dark:text-indonesia-red-300 mb-4">
             {t('dashboard.inventory.stockValueByCategory')}
           </h3>
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-indonesia-red-50 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-indonesia-red-50 dark:bg-indonesia-red-950 rounded-lg">
               <span className="font-medium">Aksesoris</span>
-              <span className="font-bold text-indonesia-red-600">{formatCurrency(200000000)}</span>
+              <span className="font-bold text-indonesia-red-600 dark:text-indonesia-red-400">{formatCurrency(200000000)}</span>
             </div>
             <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-950 rounded-lg">
               <span className="font-medium">Spare Parts</span>
@@ -231,7 +231,7 @@ export function InventoryDashboard() {
           }
         />
         <div className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-4">
-          <h3 className="text-lg font-bold text-indonesia-red-700 mb-4">
+          <h3 className="text-lg font-bold text-indonesia-red-700 dark:text-indonesia-red-300 mb-4">
             {t('dashboard.inventory.topMovingProducts')}
           </h3>
           <div className="overflow-x-auto">
@@ -271,7 +271,7 @@ export function InventoryDashboard() {
       {/* Alerts & Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         <div className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-4">
-          <h3 className="text-lg font-bold text-indonesia-red-700 mb-4">
+          <h3 className="text-lg font-bold text-indonesia-red-700 dark:text-indonesia-red-300 mb-4">
             {t('dashboard.inventory.lowStockAlerts')}
           </h3>
           <div className="space-y-3">
@@ -294,7 +294,7 @@ export function InventoryDashboard() {
         </div>
 
         <div className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-4">
-          <h3 className="text-lg font-bold text-indonesia-red-700 mb-4">
+          <h3 className="text-lg font-bold text-indonesia-red-700 dark:text-indonesia-red-300 mb-4">
             {t('dashboard.inventory.pendingTransfers')}
           </h3>
           <div className="space-y-3">
@@ -336,7 +336,7 @@ export function InventoryDashboard() {
 
       {/* Stock Aging */}
       <div className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6">
-        <h3 className="text-lg font-bold text-indonesia-red-700 mb-4">
+        <h3 className="text-lg font-bold text-indonesia-red-700 dark:text-indonesia-red-300 mb-4">
           {t('dashboard.inventory.slowMovingItems')}
         </h3>
         <div className="overflow-x-auto">

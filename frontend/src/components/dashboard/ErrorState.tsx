@@ -39,7 +39,7 @@ export function ChartErrorState({ onRetry }: { onRetry?: () => void }) {
       {onRetry && (
         <button
           onClick={onRetry}
-          className="text-xs text-indonesia-red-600 hover:text-indonesia-red-700 underline"
+          className="text-xs text-indonesia-red-600 dark:text-indonesia-red-400 hover:text-indonesia-red-700 dark:hover:text-indonesia-red-300 underline"
         >
           Coba lagi
         </button>

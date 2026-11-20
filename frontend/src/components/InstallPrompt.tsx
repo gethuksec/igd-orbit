@@ -130,8 +130,8 @@ export function InstallPrompt() {
     <div className="fixed bottom-4 right-4 bg-white dark:bg-gray-900 rounded-lg shadow-xl border-2 border-indonesia-red-600 p-4 max-w-sm z-50 print:hidden">
       <div className="flex items-start">
         <div className="flex-shrink-0">
-          <div className="w-12 h-12 bg-indonesia-red-50 rounded-lg flex items-center justify-center">
-            <Download className="w-6 h-6 text-indonesia-red-600" />
+          <div className="w-12 h-12 bg-indonesia-red-50 dark:bg-indonesia-red-950 rounded-lg flex items-center justify-center">
+            <Download className="w-6 h-6 text-indonesia-red-600 dark:text-indonesia-red-400" />
           </div>
         </div>
         <div className="ml-3 flex-1">

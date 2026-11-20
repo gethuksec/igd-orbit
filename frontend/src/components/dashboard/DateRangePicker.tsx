@@ -88,7 +88,7 @@ export function DateRangePicker({ onRangeChange, defaultRange = 'today' }: DateR
               <button
                 onClick={() => handlePresetSelect('today')}
                 className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 text-sm ${
-                  selectedPreset === 'today' ? 'bg-indonesia-red-50 text-indonesia-red-700' : ''
+                  selectedPreset === 'today' ? 'bg-indonesia-red-50 dark:bg-indonesia-red-950 text-indonesia-red-700 dark:text-indonesia-red-300' : ''
                 }`}
               >
                 Hari Ini
@@ -96,7 +96,7 @@ export function DateRangePicker({ onRangeChange, defaultRange = 'today' }: DateR
               <button
                 onClick={() => handlePresetSelect('yesterday')}
                 className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 text-sm ${
-                  selectedPreset === 'yesterday' ? 'bg-indonesia-red-50 text-indonesia-red-700' : ''
+                  selectedPreset === 'yesterday' ? 'bg-indonesia-red-50 dark:bg-indonesia-red-950 text-indonesia-red-700 dark:text-indonesia-red-300' : ''
                 }`}
               >
                 Kemarin
@@ -104,7 +104,7 @@ export function DateRangePicker({ onRangeChange, defaultRange = 'today' }: DateR
               <button
                 onClick={() => handlePresetSelect('last7days')}
                 className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 text-sm ${
-                  selectedPreset === 'last7days' ? 'bg-indonesia-red-50 text-indonesia-red-700' : ''
+                  selectedPreset === 'last7days' ? 'bg-indonesia-red-50 dark:bg-indonesia-red-950 text-indonesia-red-700 dark:text-indonesia-red-300' : ''
                 }`}
               >
                 7 Hari Terakhir
@@ -112,7 +112,7 @@ export function DateRangePicker({ onRangeChange, defaultRange = 'today' }: DateR
               <button
                 onClick={() => handlePresetSelect('last30days')}
                 className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 text-sm ${
-                  selectedPreset === 'last30days' ? 'bg-indonesia-red-50 text-indonesia-red-700' : ''
+                  selectedPreset === 'last30days' ? 'bg-indonesia-red-50 dark:bg-indonesia-red-950 text-indonesia-red-700 dark:text-indonesia-red-300' : ''
                 }`}
               >
                 30 Hari Terakhir
@@ -120,7 +120,7 @@ export function DateRangePicker({ onRangeChange, defaultRange = 'today' }: DateR
               <button
                 onClick={() => handlePresetSelect('thisMonth')}
                 className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 text-sm ${
-                  selectedPreset === 'thisMonth' ? 'bg-indonesia-red-50 text-indonesia-red-700' : ''
+                  selectedPreset === 'thisMonth' ? 'bg-indonesia-red-50 dark:bg-indonesia-red-950 text-indonesia-red-700 dark:text-indonesia-red-300' : ''
                 }`}
               >
                 Bulan Ini
@@ -128,7 +128,7 @@ export function DateRangePicker({ onRangeChange, defaultRange = 'today' }: DateR
               <button
                 onClick={() => handlePresetSelect('lastMonth')}
                 className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 text-sm ${
-                  selectedPreset === 'lastMonth' ? 'bg-indonesia-red-50 text-indonesia-red-700' : ''
+                  selectedPreset === 'lastMonth' ? 'bg-indonesia-red-50 dark:bg-indonesia-red-950 text-indonesia-red-700 dark:text-indonesia-red-300' : ''
                 }`}
               >
                 Bulan Lalu
@@ -136,7 +136,7 @@ export function DateRangePicker({ onRangeChange, defaultRange = 'today' }: DateR
               <button
                 onClick={() => handlePresetSelect('custom')}
                 className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 text-sm ${
-                  selectedPreset === 'custom' ? 'bg-indonesia-red-50 text-indonesia-red-700' : ''
+                  selectedPreset === 'custom' ? 'bg-indonesia-red-50 dark:bg-indonesia-red-950 text-indonesia-red-700 dark:text-indonesia-red-300' : ''
                 }`}
               >
                 Kustom

@@ -23,7 +23,7 @@ export function KPICard({
   changeType = 'neutral',
   sparklineData,
   icon: Icon,
-  iconColor = 'text-indonesia-red-600',
+  iconColor = 'text-indonesia-red-600 dark:text-indonesia-red-400',
   gradient,
   textColor,
   border,
@@ -42,14 +42,14 @@ export function KPICard({
 
   return (
     <div
-      className={`bg-white rounded-lg shadow-md p-4 ${border || ''} ${
+      className={`bg-white dark:bg-gray-900 rounded-lg shadow-md p-4 ${border || ''} ${
         gradient ? `bg-gradient-to-br ${gradient} text-white` : ''
       }`}
     >
       <div className="flex items-center justify-between mb-4">
         <h3 className={`text-sm font-medium ${textColor || 'text-gray-600 dark:text-gray-400'}`}>{title}</h3>
         {Icon && (
-          <div className={`p-2 rounded-lg ${gradient ? 'bg-white/20' : 'bg-indonesia-red-50'}`}>
+          <div className={`p-2 rounded-lg ${gradient ? 'bg-white/20' : 'bg-indonesia-red-50 dark:bg-indonesia-red-950'}`}>
             <Icon className={`w-5 h-5 ${iconColor}`} />
           </div>
         )}

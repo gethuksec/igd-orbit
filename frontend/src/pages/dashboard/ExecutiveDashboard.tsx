@@ -222,7 +222,7 @@ export function ExecutiveDashboard() {
     <div className="w-full space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-indonesia-red-700">
+        <h1 className="text-3xl font-bold text-indonesia-red-700 dark:text-indonesia-red-300">
           {t('dashboard.executive.title')}
         </h1>
         <div className="flex items-center gap-4">
@@ -266,7 +266,7 @@ export function ExecutiveDashboard() {
           }
           icon={ShoppingCart}
           gradient="from-white dark:from-gray-900 to-gray-100 dark:to-gray-800"
-          textColor="text-indonesia-red-600"
+          textColor="text-indonesia-red-600 dark:text-indonesia-red-400"
           border="border-l-4 border-indonesia-red-600"
           isLoading={kpisLoading}
         />
@@ -297,7 +297,7 @@ export function ExecutiveDashboard() {
           }
           icon={Package}
           gradient="from-white dark:from-gray-900 to-gray-100 dark:to-gray-800"
-          textColor="text-indonesia-red-600"
+          textColor="text-indonesia-red-600 dark:text-indonesia-red-400"
           border="border-l-4 border-indonesia-red-600"
           isLoading={kpisLoading}
         />
@@ -419,7 +419,7 @@ export function ExecutiveDashboard() {
       {/* Tables Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-4">
-          <h3 className="text-lg font-bold text-indonesia-red-700 mb-4">
+          <h3 className="text-lg font-bold text-indonesia-red-700 dark:text-indonesia-red-300 mb-4">
             {t('dashboard.executive.topProducts')}
           </h3>
           <div className="overflow-x-auto">
@@ -476,7 +476,7 @@ export function ExecutiveDashboard() {
       {/* Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-4">
-          <h3 className="text-lg font-bold text-indonesia-red-700 mb-4">
+          <h3 className="text-lg font-bold text-indonesia-red-700 dark:text-indonesia-red-300 mb-4">
             {t('dashboard.executive.recentTransactions')}
           </h3>
           <div className="space-y-2">
@@ -511,7 +511,7 @@ export function ExecutiveDashboard() {
         </div>
 
         <div className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-4">
-          <h3 className="text-lg font-bold text-indonesia-red-700 mb-4">
+          <h3 className="text-lg font-bold text-indonesia-red-700 dark:text-indonesia-red-300 mb-4">
             {t('dashboard.executive.pendingApprovals')}
           </h3>
           <div className="space-y-2">

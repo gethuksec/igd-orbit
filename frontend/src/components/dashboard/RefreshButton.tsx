@@ -45,7 +45,7 @@ export function RefreshButton({
             type="checkbox"
             checked={autoRefreshEnabled}
             onChange={(e) => setAutoRefreshEnabled(e.target.checked)}
-            className="rounded border-gray-300 dark:border-gray-600 text-indonesia-red-600 focus:ring-indonesia-red-500"
+            className="rounded border-gray-300 dark:border-gray-600 text-indonesia-red-600 dark:text-indonesia-red-400 focus:ring-indonesia-red-500"
           />
           <span className="text-sm text-gray-600 dark:text-gray-400">
             Auto-refresh ({autoRefreshInterval}s)

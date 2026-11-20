@@ -214,7 +214,7 @@ export default function Login() {
                     setEmail('superadmin@igdgroup.com');
                     setPassword('SuperAdmin@1234');
                   }}
-                  className="w-full text-left px-3 py-2.5 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg transition-colors"
+                  className="w-full text-left px-3 py-2.5 bg-gray-50 dark:bg-gray-950 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg transition-colors"
                 >
                   <p className="flex items-center gap-2 text-xs font-medium text-gray-900 dark:text-gray-100">
                     <Crown className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
@@ -231,7 +231,7 @@ export default function Login() {
                     setEmail('owner@igdgroup.com');
                     setPassword('Owner@1234');
                   }}
-                  className="w-full text-left px-3 py-2.5 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg transition-colors"
+                  className="w-full text-left px-3 py-2.5 bg-gray-50 dark:bg-gray-950 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg transition-colors"
                 >
                   <p className="flex items-center gap-2 text-xs font-medium text-gray-900 dark:text-gray-100">
                     <Crown className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />

@@ -117,7 +117,7 @@ export function SalesDashboard() {
     <div className="w-full space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-indonesia-red-700">
+        <h1 className="text-3xl font-bold text-indonesia-red-700 dark:text-indonesia-red-300">
           {t('dashboard.sales.title')}
         </h1>
         <div className="flex items-center gap-4">
@@ -152,7 +152,7 @@ export function SalesDashboard() {
           }
           icon={ShoppingCart}
           gradient="from-white dark:from-gray-900 to-gray-100 dark:to-gray-800"
-          textColor="text-indonesia-red-600"
+          textColor="text-indonesia-red-600 dark:text-indonesia-red-400"
           border="border-l-4 border-indonesia-red-600"
         />
         <KPICard
@@ -175,7 +175,7 @@ export function SalesDashboard() {
           }
           icon={Users}
           gradient="from-white dark:from-gray-900 to-gray-100 dark:to-gray-800"
-          textColor="text-indonesia-red-600"
+          textColor="text-indonesia-red-600 dark:text-indonesia-red-400"
           border="border-l-4 border-indonesia-red-600"
         />
       </div>
@@ -275,7 +275,7 @@ export function SalesDashboard() {
       {/* Sales Tables */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         <div className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-4">
-          <h3 className="text-lg font-bold text-indonesia-red-700 mb-4">
+          <h3 className="text-lg font-bold text-indonesia-red-700 dark:text-indonesia-red-300 mb-4">
             {t('dashboard.sales.topCustomers')}
           </h3>
           <div className="overflow-x-auto">
@@ -307,7 +307,7 @@ export function SalesDashboard() {
         </div>
 
         <div className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-4">
-          <h3 className="text-lg font-bold text-indonesia-red-700 mb-4">
+          <h3 className="text-lg font-bold text-indonesia-red-700 dark:text-indonesia-red-300 mb-4">
             {t('dashboard.sales.salesByCashier')}
           </h3>
           <div className="overflow-x-auto">
@@ -342,13 +342,13 @@ export function SalesDashboard() {
       {/* Discount Analysis */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         <div className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-4">
-          <h3 className="text-lg font-bold text-indonesia-red-700 mb-4">
+          <h3 className="text-lg font-bold text-indonesia-red-700 dark:text-indonesia-red-300 mb-4">
             {t('dashboard.sales.discountImpact')}
           </h3>
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-gray-600 dark:text-gray-400">Total Diskon Diberikan</span>
-              <span className="text-2xl font-bold text-indonesia-red-600">
+              <span className="text-2xl font-bold text-indonesia-red-600 dark:text-indonesia-red-400">
                 {formatCurrency(3500000)}
               </span>
             </div>
@@ -360,13 +360,13 @@ export function SalesDashboard() {
         </div>
 
         <div className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-4">
-          <h3 className="text-lg font-bold text-indonesia-red-700 mb-4">
+          <h3 className="text-lg font-bold text-indonesia-red-700 dark:text-indonesia-red-300 mb-4">
             {t('dashboard.sales.memberVsNonMember')}
           </h3>
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-gray-600 dark:text-gray-400">Member</span>
-              <span className="text-2xl font-bold text-indonesia-red-600">
+              <span className="text-2xl font-bold text-indonesia-red-600 dark:text-indonesia-red-400">
                 {formatCurrency(28000000)}
               </span>
             </div>
