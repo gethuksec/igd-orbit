@@ -159,7 +159,7 @@ export default function DivisionList() {
       <BreadcrumbHeader title="Divisi" subtitle="Kelola divisi di bawah departemen">
         <Button
           onClick={openCreateModal}
-          className="flex items-center gap-2 bg-white text-primary-600 border border-gray-200 hover:bg-primary-50"
+          className="flex items-center gap-2 bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 border border-gray-200 dark:border-gray-700 hover:bg-primary-50 dark:hover:bg-primary-950"
         >
           <Plus className="w-5 h-5" />
           <span>Tambah Divisi</span>
@@ -167,8 +167,8 @@ export default function DivisionList() {
       </BreadcrumbHeader>
 
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
-          <p className="text-red-800 font-medium">{(error as Error).message || "Terjadi kesalahan"}</p>
+        <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
+          <p className="text-red-800 dark:text-red-200 font-medium">{(error as Error).message || "Terjadi kesalahan"}</p>
         </div>
       )}
 
@@ -239,7 +239,7 @@ export default function DivisionList() {
                 setToDelete({ id: row.id, name: row.name });
                 setDeleteModalOpen(true);
               }}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-600 dark:hover:text-red-400"
             >
               <Trash2 className="h-4 w-4" />
             </button>
@@ -248,7 +248,7 @@ export default function DivisionList() {
       />
 
       {!isLoading && rows.length > 0 && (
-        <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 rounded-lg border border-gray-200">
+        <div className="bg-gradient-to-r from-gray-50 dark:from-gray-900 to-gray-100 dark:to-gray-800 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
               Menampilkan <span className="font-bold text-foreground">{rows.length}</span> dari{" "}
@@ -304,7 +304,7 @@ export default function DivisionList() {
               <input
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
                 placeholder="mis. Assistant Store Sales"
                 required
               />
@@ -314,7 +314,7 @@ export default function DivisionList() {
               <select
                 value={formData.departmentId}
                 onChange={(e) => setFormData({ ...formData, departmentId: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
                 required
               >
                 <option value="">— Pilih departemen —</option>
@@ -345,9 +345,9 @@ export default function DivisionList() {
           <DialogHeader>
             <DialogTitle>Nonaktifkan Divisi</DialogTitle>
           </DialogHeader>
-          <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-lg p-3">
-            <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5" />
-            <p className="text-sm text-amber-800">
+          <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+            <p className="text-sm text-amber-800 dark:text-amber-200">
               Divisi <b>{toDelete?.name}</b> akan dinonaktifkan. Divisi yang masih punya karyawan atau
               jabatan tidak bisa dinonaktifkan — pindahkan dulu.
             </p>

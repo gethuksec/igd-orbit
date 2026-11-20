@@ -303,7 +303,7 @@ export default function IntakeDialog({ open, mode, onClose, onSuccess, defaultEm
                   className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold border transition-colors ${
                     form.entryType === t
                       ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-white text-gray-600 border-gray-300 hover:border-primary-400"
+                      : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600 hover:border-primary-400"
                   }`}
                 >
                   {t === "new" ? "Kontrak baru" : "Update kontrak"}
@@ -312,30 +312,30 @@ export default function IntakeDialog({ open, mode, onClose, onSuccess, defaultEm
             </div>
           )}
 
-          <div className="md:col-span-2 pt-1 border-t border-gray-100">
-            <h4 className="text-xs font-bold uppercase tracking-wide text-gray-400">
+          <div className="md:col-span-2 pt-1 border-t border-gray-100 dark:border-gray-800">
+            <h4 className="text-xs font-bold uppercase tracking-wide text-gray-400 dark:text-gray-500">
               {mode === "karyawan" ? "Data karyawan" : "Karyawan"}
             </h4>
           </div>
           {mode === "karyawan" ? (
             <>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Nama lengkap</label>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Nama lengkap</label>
                 <input value={form.fullName} onChange={(e) => set("fullName", e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm" />
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm" />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Email login</label>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Email login</label>
                 <input value={form.email} onChange={(e) => set("email", e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm" />
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm" />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Password</label>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Password</label>
                 <input type="password" value={form.password} onChange={(e) => set("password", e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm" />
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm" />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Role akses</label>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Role akses</label>
                 <SearchableSelect
                   value={form.roleId}
                   onChange={(v) => { setRoleTouched(true); set("roleId", v); }}
@@ -346,7 +346,7 @@ export default function IntakeDialog({ open, mode, onClose, onSuccess, defaultEm
           ) : (
             <>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Karyawan</label>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Karyawan</label>
                 <SearchableSelect
                   value={form.employeeId}
                   onChange={onEmployeeChange}
@@ -355,15 +355,15 @@ export default function IntakeDialog({ open, mode, onClose, onSuccess, defaultEm
               </div>
               {form.entryType === "new" ? (
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Nomor kontrak</label>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Nomor kontrak</label>
                   <input value={form.contractNumber} onChange={(e) => set("contractNumber", e.target.value)}
                     placeholder="Otomatis bila kosong"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm" />
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm" />
                 </div>
               ) : (
                 <>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Kontrak sebelumnya</label>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Kontrak sebelumnya</label>
                     <SearchableSelect
                       value={form.previousContractId}
                       onChange={(v) => set("previousContractId", v)}
@@ -372,20 +372,20 @@ export default function IntakeDialog({ open, mode, onClose, onSuccess, defaultEm
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Alasan</label>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Alasan</label>
                     <input value={form.changeReason} onChange={(e) => set("changeReason", e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm" />
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm" />
                   </div>
                 </>
               )}
             </>
           )}
 
-          <div className="md:col-span-2 pt-1 border-t border-gray-100">
-            <h4 className="text-xs font-bold uppercase tracking-wide text-gray-400">Kontrak</h4>
+          <div className="md:col-span-2 pt-1 border-t border-gray-100 dark:border-gray-800">
+            <h4 className="text-xs font-bold uppercase tracking-wide text-gray-400 dark:text-gray-500">Kontrak</h4>
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Posisi</label>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Posisi</label>
             <SearchableSelect
               value={form.positionId}
               onChange={onPositionChange}
@@ -393,7 +393,7 @@ export default function IntakeDialog({ open, mode, onClose, onSuccess, defaultEm
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Grade</label>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Grade</label>
             <SearchableSelect
               value={form.gradeId}
               onChange={onGradeChange}
@@ -401,12 +401,12 @@ export default function IntakeDialog({ open, mode, onClose, onSuccess, defaultEm
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Tipe kontrak</label>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Tipe kontrak</label>
             <select value={form.type} onChange={(e) => {
               const t = e.target.value as ContractType;
               setForm((f) => ({ ...f, type: t, endDate: t === "pkwtt" ? "" : f.endDate }));
             }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm">
               <option value="trial">Trial</option>
               <option value="probation">Probation</option>
               <option value="pkwt">PKWT</option>
@@ -414,22 +414,22 @@ export default function IntakeDialog({ open, mode, onClose, onSuccess, defaultEm
             </select>
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Tanggal mulai</label>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Tanggal mulai</label>
             <input type="date" value={form.startDate} onChange={(e) => set("startDate", e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm" />
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm" />
           </div>
           {form.type !== "pkwtt" && (
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Tanggal selesai</label>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Tanggal selesai</label>
               <input type="date" value={form.endDate} onChange={(e) => set("endDate", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm" />
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm" />
             </div>
           )}
-          <div className="md:col-span-2 pt-1 border-t border-gray-100">
-            <h4 className="text-xs font-bold uppercase tracking-wide text-gray-400">Penempatan</h4>
+          <div className="md:col-span-2 pt-1 border-t border-gray-100 dark:border-gray-800">
+            <h4 className="text-xs font-bold uppercase tracking-wide text-gray-400 dark:text-gray-500">Penempatan</h4>
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Working location</label>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Working location</label>
             <SearchableSelect
               value={form.workingLocationId}
               onChange={(v) => set("workingLocationId", v)}
@@ -437,12 +437,12 @@ export default function IntakeDialog({ open, mode, onClose, onSuccess, defaultEm
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Gaji pokok</label>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Gaji pokok</label>
             <input value={form.basicSalary} onChange={(e) => set("basicSalary", e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm" />
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm" />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Branch penempatan</label>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Branch penempatan</label>
             <SearchableSelect
               multiple
               value={form.branchIds}
@@ -457,7 +457,7 @@ export default function IntakeDialog({ open, mode, onClose, onSuccess, defaultEm
           </div>
           {form.branchIds.length > 1 && (
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Branch primer</label>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Branch primer</label>
               <SearchableSelect
                 value={form.primaryBranchId}
                 onChange={(v) => set("primaryBranchId", v)}

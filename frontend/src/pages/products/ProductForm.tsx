@@ -295,7 +295,7 @@ export default function ProductForm() {
   if (loadingProduct) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
+        <Loader2 className="w-8 h-8 text-primary-600 dark:text-primary-400 animate-spin" />
       </div>
     );
   }
@@ -311,25 +311,25 @@ export default function ProductForm() {
       </BreadcrumbHeader>
 
       {/* Single Long-Scroll Form */}
-      <Card className="shadow-md border border-gray-100 overflow-hidden">
+      <Card className="shadow-md border border-gray-100 dark:border-gray-800 overflow-hidden">
         <CardContent className="p-8">
           <form onSubmit={handleSubmit} className="space-y-10">
 
             {/* ---- Section 1: Informasi Dasar ---- */}
             <div>
-              <div className="flex items-center gap-3 mb-6 pb-3 border-b border-gray-200">
-                <div className="p-2 bg-primary-50 rounded-lg">
-                  <Package className="w-5 h-5 text-primary-600" />
+              <div className="flex items-center gap-3 mb-6 pb-3 border-b border-gray-200 dark:border-gray-700">
+                <div className="p-2 bg-primary-50 dark:bg-primary-950 rounded-lg">
+                  <Package className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900">Informasi Dasar</h2>
-                  <p className="text-sm text-gray-500">Informasi utama produk</p>
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Informasi Dasar</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Informasi utama produk</p>
                 </div>
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div>
-                  <Label className="block text-sm font-bold text-gray-700 mb-2.5">
-                    Nama Produk <span className="text-red-500">*</span>
+                  <Label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">
+                    Nama Produk <span className="text-red-500 dark:text-red-400">*</span>
                   </Label>
                   <Input
                     type="text"
@@ -346,11 +346,11 @@ export default function ProductForm() {
                     placeholder="Masukkan nama produk"
                     maxLength={250}
                   />
-                  <span className="text-xs text-gray-400 mt-1">{formData.name.length}/250</span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500 mt-1">{formData.name.length}/250</span>
                 </div>
 
                 <div>
-                  <Label className="block text-sm font-bold text-gray-700 mb-2.5">SKU</Label>
+                  <Label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">SKU</Label>
                   <Input
                     type="text"
                     value={formData.sku}
@@ -360,18 +360,18 @@ export default function ProductForm() {
                 </div>
 
                 <div>
-                  <Label className="block text-sm font-bold text-gray-700 mb-2.5">Barcode</Label>
+                  <Label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">Barcode</Label>
                   <Input
                     type="text"
                     value={formData.barcode}
                     onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
                     placeholder="Kosongkan untuk auto-generate"
                   />
-                  <p className="text-xs text-gray-400 mt-1.5">Biarkan kosong untuk generate otomatis</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5">Biarkan kosong untuk generate otomatis</p>
                 </div>
 
                 <div>
-                  <Label className="block text-sm font-bold text-gray-700 mb-2.5">Nama Tercetak</Label>
+                  <Label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">Nama Tercetak</Label>
                   <Input
                     type="text"
                     value={formData.printedName}
@@ -383,17 +383,17 @@ export default function ProductForm() {
                     maxLength={200}
                   />
                   <div className="flex justify-between mt-1">
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-gray-400 dark:text-gray-500">
                       {formData.printedName.length > 100 ? '⚠️ Akan terpotong di nota (max 100)' : ''}
                     </span>
-                    <span className={`text-xs ${formData.printedName.length > 100 ? 'text-red-500 font-semibold' : 'text-gray-400'}`}>
+                    <span className={`text-xs ${formData.printedName.length > 100 ? 'text-red-500 dark:text-red-400 font-semibold' : 'text-gray-400 dark:text-gray-500'}`}>
                       {formData.printedName.length}/200
                     </span>
                   </div>
                 </div>
 
                 <div>
-                  <Label className="block text-sm font-bold text-gray-700 mb-2.5">Satuan</Label>
+                  <Label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">Satuan</Label>
                   <Input
                     type="text"
                     value={formData.unit}
@@ -403,7 +403,7 @@ export default function ProductForm() {
                 </div>
 
                 <div>
-                  <Label className="block text-sm font-bold text-gray-700 mb-2.5">Ukuran</Label>
+                  <Label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">Ukuran</Label>
                   <Input
                     type="text"
                     value={formData.size}
@@ -413,7 +413,7 @@ export default function ProductForm() {
                 </div>
 
                 <div>
-                  <Label className="block text-sm font-bold text-gray-700 mb-2.5">Warna</Label>
+                  <Label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">Warna</Label>
                   <Input
                     type="text"
                     value={formData.color}
@@ -426,19 +426,19 @@ export default function ProductForm() {
 
             {/* ---- Section 2: Kategori & Brand ---- */}
             <div>
-              <div className="flex items-center gap-3 mb-6 pb-3 border-b border-gray-200">
-                <div className="p-2 bg-primary-50 rounded-lg">
-                  <Tag className="w-5 h-5 text-primary-600" />
+              <div className="flex items-center gap-3 mb-6 pb-3 border-b border-gray-200 dark:border-gray-700">
+                <div className="p-2 bg-primary-50 dark:bg-primary-950 rounded-lg">
+                  <Tag className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900">Kategori & Brand</h2>
-                  <p className="text-sm text-gray-500">Pengelompokan dan merek produk</p>
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Kategori & Brand</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Pengelompokan dan merek produk</p>
                 </div>
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div>
-                  <Label className="block text-sm font-bold text-gray-700 mb-2.5">
-                    Kategori <span className="text-red-500">*</span>
+                  <Label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">
+                    Kategori <span className="text-red-500 dark:text-red-400">*</span>
                   </Label>
                   <Select
                     value={formData.categoryId}
@@ -455,7 +455,7 @@ export default function ProductForm() {
                 </div>
 
                 <div>
-                  <Label className="block text-sm font-bold text-gray-700 mb-2.5">Sub Kategori</Label>
+                  <Label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">Sub Kategori</Label>
                   <Select
                     value={formData.subCategoryId}
                     onChange={(e) => setFormData({ ...formData, subCategoryId: e.target.value })}
@@ -472,7 +472,7 @@ export default function ProductForm() {
                 </div>
 
                 <div>
-                  <Label className="block text-sm font-bold text-gray-700 mb-2.5">Brand</Label>
+                  <Label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">Brand</Label>
                   <Select
                     value={formData.brandId}
                     onChange={(e) => setFormData({ ...formData, brandId: e.target.value })}
@@ -487,7 +487,7 @@ export default function ProductForm() {
                 </div>
 
                 <div>
-                  <Label className="block text-sm font-bold text-gray-700 mb-2.5">Supplier</Label>
+                  <Label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">Supplier</Label>
                   <Select
                     value={formData.supplierId}
                     onChange={(e) => setFormData({ ...formData, supplierId: e.target.value })}
@@ -505,19 +505,19 @@ export default function ProductForm() {
 
             {/* ---- Section 3: Harga & Stok ---- */}
             <div>
-              <div className="flex items-center gap-3 mb-6 pb-3 border-b border-gray-200">
-                <div className="p-2 bg-primary-50 rounded-lg">
-                  <DollarSign className="w-5 h-5 text-primary-600" />
+              <div className="flex items-center gap-3 mb-6 pb-3 border-b border-gray-200 dark:border-gray-700">
+                <div className="p-2 bg-primary-50 dark:bg-primary-950 rounded-lg">
+                  <DollarSign className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900">Harga & Stok</h2>
-                  <p className="text-sm text-gray-500">Informasi harga dan inventori</p>
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Harga & Stok</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Informasi harga dan inventori</p>
                 </div>
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div>
-                  <Label htmlFor="costPrice" className="block text-sm font-bold text-gray-700 mb-2.5">
-                    Harga Beli <span className="text-red-500">*</span>
+                  <Label htmlFor="costPrice" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">
+                    Harga Beli <span className="text-red-500 dark:text-red-400">*</span>
                   </Label>
                   <Input
                     id="costPrice"
@@ -531,8 +531,8 @@ export default function ProductForm() {
                 </div>
 
                 <div>
-                  <Label htmlFor="sellingPrice" className="block text-sm font-bold text-gray-700 mb-2.5">
-                    Harga Jual <span className="text-red-500">*</span>
+                  <Label htmlFor="sellingPrice" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">
+                    Harga Jual <span className="text-red-500 dark:text-red-400">*</span>
                   </Label>
                   <Input
                     id="sellingPrice"
@@ -546,7 +546,7 @@ export default function ProductForm() {
                 </div>
 
                 <div>
-                  <Label htmlFor="minSellingPrice" className="block text-sm font-bold text-gray-700 mb-2.5">Harga Jual Minimum <span className="text-red-500">*</span></Label>
+                  <Label htmlFor="minSellingPrice" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">Harga Jual Minimum <span className="text-red-500 dark:text-red-400">*</span></Label>
                   <Input
                     id="minSellingPrice"
                     type="number"
@@ -561,7 +561,7 @@ export default function ProductForm() {
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
                 <div>
-                  <Label htmlFor="lengthCm" className="block text-sm font-bold text-gray-700 mb-2.5">Panjang (cm)</Label>
+                  <Label htmlFor="lengthCm" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">Panjang (cm)</Label>
                   <Input
                     id="lengthCm"
                     type="number"
@@ -573,7 +573,7 @@ export default function ProductForm() {
                 </div>
 
                 <div>
-                  <Label htmlFor="widthCm" className="block text-sm font-bold text-gray-700 mb-2.5">Lebar (cm)</Label>
+                  <Label htmlFor="widthCm" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">Lebar (cm)</Label>
                   <Input
                     id="widthCm"
                     type="number"
@@ -585,7 +585,7 @@ export default function ProductForm() {
                 </div>
 
                 <div>
-                  <Label htmlFor="heightCm" className="block text-sm font-bold text-gray-700 mb-2.5">Tinggi (cm)</Label>
+                  <Label htmlFor="heightCm" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">Tinggi (cm)</Label>
                   <Input
                     id="heightCm"
                     type="number"
@@ -599,7 +599,7 @@ export default function ProductForm() {
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
                 <div>
-                  <Label htmlFor="weightGrams" className="block text-sm font-bold text-gray-700 mb-2.5">Berat Barang (gram)</Label>
+                  <Label htmlFor="weightGrams" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">Berat Barang (gram)</Label>
                   <Input
                     id="weightGrams"
                     type="number"
@@ -611,7 +611,7 @@ export default function ProductForm() {
                 </div>
 
                 <div>
-                  <Label htmlFor="packageWeightGrams" className="block text-sm font-bold text-gray-700 mb-2.5">Berat Paket (gram)</Label>
+                  <Label htmlFor="packageWeightGrams" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">Berat Paket (gram)</Label>
                   <Input
                     id="packageWeightGrams"
                     type="number"
@@ -623,7 +623,7 @@ export default function ProductForm() {
                 </div>
 
                 <div>
-                  <Label htmlFor="minStock" className="block text-sm font-bold text-gray-700 mb-2.5">Min Stock</Label>
+                  <Label htmlFor="minStock" className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">Min Stock</Label>
                   <Input
                     id="minStock"
                     type="number"
@@ -637,18 +637,18 @@ export default function ProductForm() {
 
             {/* ---- Section 4: Deskripsi & Status ---- */}
             <div>
-              <div className="flex items-center gap-3 mb-6 pb-3 border-b border-gray-200">
-                <div className="p-2 bg-primary-50 rounded-lg">
-                  <FileText className="w-5 h-5 text-primary-600" />
+              <div className="flex items-center gap-3 mb-6 pb-3 border-b border-gray-200 dark:border-gray-700">
+                <div className="p-2 bg-primary-50 dark:bg-primary-950 rounded-lg">
+                  <FileText className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900">Deskripsi & Status</h2>
-                  <p className="text-sm text-gray-500">Informasi tambahan dan pengaturan produk</p>
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Deskripsi & Status</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Informasi tambahan dan pengaturan produk</p>
                 </div>
               </div>
               <div className="space-y-6">
                 <div>
-                  <Label className="block text-sm font-bold text-gray-700 mb-2.5">Deskripsi</Label>
+                  <Label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">Deskripsi</Label>
                   <Textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -658,79 +658,79 @@ export default function ProductForm() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700">
                     <Checkbox
                       id="isActive"
                       checked={formData.isActive}
                       onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
                     />
                     <div>
-                      <Label htmlFor="isActive" className="font-bold text-gray-700 cursor-pointer">
+                      <Label htmlFor="isActive" className="font-bold text-gray-700 dark:text-gray-300 cursor-pointer">
                         Produk Aktif
                       </Label>
-                      <p className="text-xs text-gray-500">Produk tersedia untuk dijual</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Produk tersedia untuk dijual</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700">
                     <Checkbox
                       id="isService"
                       checked={formData.isService}
                       onCheckedChange={(checked) => setFormData({ ...formData, isService: checked })}
                     />
                     <div>
-                      <Label htmlFor="isService" className="font-bold text-gray-700 cursor-pointer">
+                      <Label htmlFor="isService" className="font-bold text-gray-700 dark:text-gray-300 cursor-pointer">
                         Produk Jasa
                       </Label>
-                      <p className="text-xs text-gray-500">Bukan barang fisik</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Bukan barang fisik</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700">
                     <Checkbox
                       id="trackSerial"
                       checked={formData.trackSerial}
                       onCheckedChange={(checked) => setFormData({ ...formData, trackSerial: checked })}
                     />
                     <div>
-                      <Label htmlFor="trackSerial" className="font-bold text-gray-700 cursor-pointer">
+                      <Label htmlFor="trackSerial" className="font-bold text-gray-700 dark:text-gray-300 cursor-pointer">
                         Track Serial Number
                       </Label>
-                      <p className="text-xs text-gray-500">SN(1)/Bahan(2) = 1</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">SN(1)/Bahan(2) = 1</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700">
                     <Checkbox
                       id="trackBatch"
                       checked={formData.trackBatch}
                       onCheckedChange={(checked) => setFormData({ ...formData, trackBatch: checked })}
                     />
                     <div>
-                      <Label htmlFor="trackBatch" className="font-bold text-gray-700 cursor-pointer">
+                      <Label htmlFor="trackBatch" className="font-bold text-gray-700 dark:text-gray-300 cursor-pointer">
                         Menggunakan No Batch
                       </Label>
-                      <p className="text-xs text-gray-500">Track by batch number</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Track by batch number</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-700">
                     <Checkbox
                       id="trackExpiry"
                       checked={formData.trackExpiry}
                       onCheckedChange={(checked) => setFormData({ ...formData, trackExpiry: checked })}
                     />
                     <div>
-                      <Label htmlFor="trackExpiry" className="font-bold text-gray-700 cursor-pointer">
+                      <Label htmlFor="trackExpiry" className="font-bold text-gray-700 dark:text-gray-300 cursor-pointer">
                         Menggunakan Tgl Kadaluarsa
                       </Label>
-                      <p className="text-xs text-gray-500">Track expiry date</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Track expiry date</p>
                     </div>
                   </div>
 
                   {formData.trackExpiry && (
                     <div>
-                      <Label className="block text-sm font-bold text-gray-700 mb-2.5">Batas Retur Kadaluarsa (hari)</Label>
+                      <Label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">Batas Retur Kadaluarsa (hari)</Label>
                       <Input
                         type="number"
                         value={formData.expiryReturnLimitDays}
@@ -744,7 +744,7 @@ export default function ProductForm() {
             </div>
 
             {/* Submit Buttons */}
-            <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
+            <div className="flex justify-end gap-4 pt-6 border-t border-gray-200 dark:border-gray-700">
               <Button
                 type="button"
                 variant="outline"

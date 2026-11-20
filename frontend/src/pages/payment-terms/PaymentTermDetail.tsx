@@ -24,7 +24,7 @@ export default function PaymentTermDetail() {
   if (error || !paymentTerm) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
-        <p className="text-gray-500">Termin pembayaran tidak ditemukan</p>
+        <p className="text-gray-500 dark:text-gray-400">Termin pembayaran tidak ditemukan</p>
         <Button variant="outline" onClick={() => navigate("/payment-terms")}>
           <ArrowLeft className="w-4 h-4 mr-2" /> Kembali
         </Button>
@@ -67,10 +67,10 @@ export default function PaymentTermDetail() {
 
       {/* Detail Card */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2.5 bg-primary-100 rounded-lg">
-              <CreditCard className="w-5 h-5 text-primary-600" />
+            <div className="p-2.5 bg-primary-100 dark:bg-primary-950 rounded-lg">
+              <CreditCard className="w-5 h-5 text-primary-600 dark:text-primary-400" />
             </div>
             <div>
               <h3 className="font-semibold text-foreground">Informasi Termin</h3>
@@ -90,8 +90,8 @@ export default function PaymentTermDetail() {
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Jangka Waktu</p>
               <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold border mt-1 ${
                 paymentTerm.days === 0
-                  ? "bg-blue-100 text-blue-800 border-blue-200"
-                  : "bg-amber-100 text-amber-800 border-amber-200"
+                  ? "bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-800"
+                  : "bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-800"
               }`}>
                 {getDaysLabel(paymentTerm.days)}
               </span>
@@ -100,8 +100,8 @@ export default function PaymentTermDetail() {
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Status</p>
               <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold border mt-1 ${
                 paymentTerm.isActive
-                  ? "bg-green-100 text-green-800 border-green-200"
-                  : "bg-gray-100 text-gray-800 border-gray-200"
+                  ? "bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800"
+                  : "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700"
               }`}>
                 {paymentTerm.isActive ? "Aktif" : "Tidak Aktif"}
               </span>
@@ -109,10 +109,10 @@ export default function PaymentTermDetail() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2.5 bg-amber-100 rounded-lg">
-              <Calendar className="w-5 h-5 text-amber-600" />
+            <div className="p-2.5 bg-amber-100 dark:bg-amber-950 rounded-lg">
+              <Calendar className="w-5 h-5 text-amber-600 dark:text-amber-400" />
             </div>
             <div>
               <h3 className="font-semibold text-foreground">Informasi Waktu</h3>

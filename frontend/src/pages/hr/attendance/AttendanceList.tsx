@@ -53,28 +53,28 @@ export default function AttendanceList() {
     switch (attendance.status) {
       case 'present':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200">
             <CheckCircle className="w-3 h-3" />
             Present
           </span>
         );
       case 'absent':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-200">
             <XCircle className="w-3 h-3" />
             Absent
           </span>
         );
       case 'leave':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200">
             <Calendar className="w-3 h-3" />
             Leave
           </span>
         );
       case 'holiday':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-200">
             <Calendar className="w-3 h-3" />
             Holiday
           </span>
@@ -90,7 +90,7 @@ export default function AttendanceList() {
       <BreadcrumbHeader title="Absensi" subtitle="Kelola absensi karyawan">
         <Link
             to="/hr/attendance/clock"
-            className="px-6 py-3 bg-white text-primary-600 rounded-lg font-semibold hover:bg-primary-50 transition-colors"
+            className="px-6 py-3 bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 rounded-lg font-semibold hover:bg-primary-50 dark:hover:bg-primary-950 transition-colors"
           >
             Clock In/Out
           </Link>
@@ -147,175 +147,175 @@ export default function AttendanceList() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Total Records</p>
-              <p className="text-2xl font-bold text-gray-900">{total}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Records</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{total}</p>
             </div>
-            <div className="p-3 bg-blue-100 rounded-lg">
-              <Clock className="w-6 h-6 text-blue-600" />
+            <div className="p-3 bg-blue-100 dark:bg-blue-950 rounded-lg">
+              <Clock className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Present</p>
-              <p className="text-2xl font-bold text-green-600">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Present</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                 {attendances.filter((a) => a.status === 'present').length}
               </p>
             </div>
-            <div className="p-3 bg-primary-100 rounded-lg">
-              <CheckCircle className="w-6 h-6 text-primary-600" />
+            <div className="p-3 bg-primary-100 dark:bg-primary-950 rounded-lg">
+              <CheckCircle className="w-6 h-6 text-primary-600 dark:text-primary-400" />
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Absent</p>
-              <p className="text-2xl font-bold text-red-600">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Absent</p>
+              <p className="text-2xl font-bold text-red-600 dark:text-red-400">
                 {attendances.filter((a) => a.status === 'absent').length}
               </p>
             </div>
-            <div className="p-3 bg-red-100 rounded-lg">
-              <XCircle className="w-6 h-6 text-red-600" />
+            <div className="p-3 bg-red-100 dark:bg-red-950 rounded-lg">
+              <XCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">On Leave</p>
-              <p className="text-2xl font-bold text-blue-600">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">On Leave</p>
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                 {attendances.filter((a) => a.status === 'leave').length}
               </p>
             </div>
-            <div className="p-3 bg-blue-100 rounded-lg">
-              <Calendar className="w-6 h-6 text-blue-600" />
+            <div className="p-3 bg-blue-100 dark:bg-blue-950 rounded-lg">
+              <Calendar className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             </div>
           </div>
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 overflow-hidden">
         {isLoading ? (
           <div className="p-12 text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="mt-4 text-gray-600">Memuat data...</p>
+            <p className="mt-4 text-gray-600 dark:text-gray-400">Memuat data...</p>
           </div>
         ) : error ? (
           <div className="p-12 text-center">
-            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <p className="text-red-600">Gagal memuat data absensi</p>
+            <AlertCircle className="w-12 h-12 text-red-500 dark:text-red-400 mx-auto mb-4" />
+            <p className="text-red-600 dark:text-red-400">Gagal memuat data absensi</p>
           </div>
         ) : attendances.length === 0 ? (
           <div className="p-12 text-center">
-            <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">Tidak ada data absensi</p>
+            <Clock className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+            <p className="text-gray-600 dark:text-gray-400">Tidak ada data absensi</p>
           </div>
         ) : (
           <>
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead className="bg-gray-50 dark:bg-gray-950 border-b border-gray-200 dark:border-gray-700">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                       Tanggal
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                       Karyawan
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                       Clock In
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                       Clock Out
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                       Total Hours
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
                   {attendances.map((attendance) => (
-                    <tr key={attendance.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={attendance.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-semibold text-gray-900">{formatDate(attendance.date)}</div>
+                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{formatDate(attendance.date)}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
-                          <div className="p-2 bg-blue-100 rounded-lg">
-                            <User className="w-4 h-4 text-blue-600" />
+                          <div className="p-2 bg-blue-100 dark:bg-blue-950 rounded-lg">
+                            <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                           </div>
                           <div>
-                            <div className="text-sm font-semibold text-gray-900">
+                            <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                               {attendance.employee?.user?.fullName || attendance.employee?.employeeCode || 'N/A'}
                             </div>
-                            <div className="text-xs text-gray-500">{attendance.employee?.employeeCode}</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">{attendance.employee?.employeeCode}</div>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {attendance.clockIn ? (
                           <div>
-                            <div className="text-sm font-semibold text-gray-900">
+                            <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                               {formatDateTime(attendance.clockIn)}
                             </div>
                             {attendance.isLate && (
-                              <div className="text-xs text-red-600 flex items-center gap-1 mt-1">
+                              <div className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1 mt-1">
                                 <AlertCircle className="w-3 h-3" />
                                 Terlambat {attendance.lateMinutes} menit
                               </div>
                             )}
                           </div>
                         ) : (
-                          <span className="text-sm text-gray-400">-</span>
+                          <span className="text-sm text-gray-400 dark:text-gray-500">-</span>
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {attendance.clockOut ? (
                           <div>
-                            <div className="text-sm font-semibold text-gray-900">
+                            <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                               {formatDateTime(attendance.clockOut)}
                             </div>
                             {attendance.isEarlyLeave && (
-                              <div className="text-xs text-orange-600 flex items-center gap-1 mt-1">
+                              <div className="text-xs text-orange-600 dark:text-orange-400 flex items-center gap-1 mt-1">
                                 <AlertCircle className="w-3 h-3" />
                                 Pulang cepat {attendance.earlyLeaveMinutes} menit
                               </div>
                             )}
                           </div>
                         ) : (
-                          <span className="text-sm text-gray-400">-</span>
+                          <span className="text-sm text-gray-400 dark:text-gray-500">-</span>
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {attendance.totalHours ? (
-                          <div className="text-sm font-semibold text-gray-900">{attendance.totalHours} jam</div>
+                          <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{attendance.totalHours} jam</div>
                         ) : (
-                          <span className="text-sm text-gray-400">-</span>
+                          <span className="text-sm text-gray-400 dark:text-gray-500">-</span>
                         )}
                         {attendance.overtimeHours && attendance.overtimeHours > 0 && (
-                          <div className="text-xs text-blue-600 mt-1">+{attendance.overtimeHours} OT</div>
+                          <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">+{attendance.overtimeHours} OT</div>
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(attendance)}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <Link
                           to={`/hr/attendance/${attendance.id}`}
-                          className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors inline-flex items-center"
+                          className="p-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 hover:bg-blue-50 dark:hover:bg-blue-950 rounded-lg transition-colors inline-flex items-center"
                           title="Detail"
                         >
                           <Eye className="w-4 h-4" />
@@ -329,22 +329,22 @@ export default function AttendanceList() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-                <div className="text-sm text-gray-600">
+              <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <div className="text-sm text-gray-600 dark:text-gray-400">
                   Menampilkan {(page - 1) * limit + 1} - {Math.min(page * limit, total)} dari {total}
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={page === 1}
-                    className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800"
                   >
                     Previous
                   </button>
                   <button
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     disabled={page === totalPages}
-                    className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800"
                   >
                     Next
                   </button>

@@ -145,7 +145,7 @@ export default function LockModal({ open, onOpenChange, initialType = 'none', in
             </div>
           )}
           {lockType !== 'pattern' && hint && <p className="text-xs text-muted-foreground">{hint}</p>}
-          {error && <p className="text-xs text-red-600">{error}</p>}
+          {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={handleReset}>

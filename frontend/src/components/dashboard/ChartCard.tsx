@@ -34,17 +34,17 @@ export function ChartCard({
           <div className="flex gap-2">
             <button
               onClick={() => onExport('png')}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
               title="Ekspor PNG"
             >
-              <Download className="w-4 h-4 text-gray-600" />
+              <Download className="w-4 h-4 text-gray-600 dark:text-gray-400" />
             </button>
             <button
               onClick={() => onExport('csv')}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
               title="Ekspor CSV"
             >
-              <Download className="w-4 h-4 text-gray-600" />
+              <Download className="w-4 h-4 text-gray-600 dark:text-gray-400" />
             </button>
           </div>
         )}

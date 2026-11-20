@@ -42,15 +42,15 @@ export default function ServiceReturnsList() {
 
   const getStatusBadge = (status: string) => {
     const s = status?.toLowerCase();
-    let classes = 'bg-gray-100 text-gray-800 border-gray-200';
+    let classes = 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700';
     if (s === 'pending' || s === 'investigating')
-      classes = 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      classes = 'bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800';
     else if (s === 'approved')
-      classes = 'bg-green-100 text-green-800 border-green-200';
+      classes = 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800';
     else if (s === 'rejected')
-      classes = 'bg-red-100 text-red-800 border-red-200';
+      classes = 'bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800';
     else if (s === 'resolved')
-      classes = 'bg-blue-100 text-blue-800 border-blue-200';
+      classes = 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-800';
     return (
       <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${classes}`}>
         {status}
@@ -75,7 +75,7 @@ export default function ServiceReturnsList() {
       cell: (ret) => (
         <Link
           to={`/service-returns/${ret.id}`}
-          className="text-sm font-semibold text-primary-600 hover:text-primary-700 transition-colors"
+          className="text-sm font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors"
         >
           {ret.returnNumber}
         </Link>
@@ -88,7 +88,7 @@ export default function ServiceReturnsList() {
         ret.serviceOrder ? (
           <Link
             to={`/service-orders/${ret.serviceOrder.id}`}
-            className="text-sm text-primary-600 hover:text-primary-700 font-medium transition-colors"
+            className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium transition-colors"
           >
             {ret.serviceOrder.serviceNumber}
           </Link>
@@ -108,7 +108,7 @@ export default function ServiceReturnsList() {
         return customerId ? (
           <Link
             to={`/customers/${customerId}`}
-            className="text-sm text-primary-600 hover:text-primary-700 font-medium transition-colors hover:underline"
+            className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium transition-colors hover:underline"
           >
             {customerName}
           </Link>
@@ -161,7 +161,7 @@ export default function ServiceReturnsList() {
         subtitle="Kelola retur dan komplain service"
       >
         <Link to="/service-returns/new">
-          <Button className="flex items-center gap-2 bg-white text-primary-600 border border-gray-200 hover:bg-primary-50">
+          <Button className="flex items-center gap-2 bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 border border-gray-200 dark:border-gray-700 hover:bg-primary-50 dark:hover:bg-primary-950">
             <Plus className="w-5 h-5" />
             <span>Tambah Retur</span>
           </Button>
@@ -169,8 +169,8 @@ export default function ServiceReturnsList() {
       </BreadcrumbHeader>
 
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
-          <p className="text-red-800 font-medium">Gagal memuat data. Silakan coba lagi.</p>
+        <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
+          <p className="text-red-800 dark:text-red-200 font-medium">Gagal memuat data. Silakan coba lagi.</p>
         </div>
       )}
 
@@ -244,8 +244,8 @@ export default function ServiceReturnsList() {
 
       {/* Pagination */}
       {!isLoading && returns.length > 0 && pagination.totalPages > 1 && (
-        <div className="bg-white px-6 py-4 rounded-xl border border-gray-200 flex items-center justify-between">
-          <div className="text-sm text-gray-700">
+        <div className="bg-white dark:bg-gray-900 px-6 py-4 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <div className="text-sm text-gray-700 dark:text-gray-300">
             Menampilkan {((pagination.page - 1) * pagination.limit) + 1} sampai{' '}
             {Math.min(pagination.page * pagination.limit, pagination.total)} dari{' '}
             <span className="font-semibold">{pagination.total}</span> data
@@ -259,7 +259,7 @@ export default function ServiceReturnsList() {
             >
               Previous
             </Button>
-            <span className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg">
+            <span className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg">
               {pagination.page} / {pagination.totalPages}
             </span>
             <Button

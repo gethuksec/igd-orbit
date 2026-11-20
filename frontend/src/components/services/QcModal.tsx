@@ -74,7 +74,7 @@ export default function QcModal({ open, onOpenChange, items, onPass, onFail, bus
                   onChange={(e) =>
                     setRows((rs) => rs.map((x, xi) => (xi === i ? { ...x, qualified: e.target.checked } : x)))
                   }
-                  className="h-4 w-4 shrink-0 rounded border-gray-300 text-primary focus:ring-primary"
+                  className="h-4 w-4 shrink-0 rounded border-gray-300 dark:border-gray-600 text-primary focus:ring-primary"
                 />
                 <span className="w-28 shrink-0 break-words text-sm">
                   {r.name}
@@ -91,11 +91,11 @@ export default function QcModal({ open, onOpenChange, items, onPass, onFail, bus
               </div>
             ))}
             {rows.length === 0 && (
-              <p className="text-xs text-gray-400">Tidak ada item intake — tambah general checkup di bawah.</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">Tidak ada item intake — tambah general checkup di bawah.</p>
             )}
           </div>
           {showAdd ? (
-            <div className="flex items-center gap-2 rounded-lg bg-primary-50/50 p-2">
+            <div className="flex items-center gap-2 rounded-lg bg-primary-50/50 dark:bg-primary-950/50 p-2">
               <Input
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
@@ -126,7 +126,7 @@ export default function QcModal({ open, onOpenChange, items, onPass, onFail, bus
           <Button
             type="button"
             variant="outline"
-            className="border-red-200 text-red-700"
+            className="border-red-200 dark:border-red-800 text-red-700 dark:text-red-300"
             disabled={busy}
             onClick={() => onFail(composeNotes(false))}
           >

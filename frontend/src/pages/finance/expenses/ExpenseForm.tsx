@@ -151,7 +151,7 @@ export default function ExpenseForm() {
   if (loadingExpense) {
     return (
       <div className="w-full flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-16 h-16 text-primary-600 animate-spin" />
+        <Loader2 className="w-16 h-16 text-primary-600 dark:text-primary-400 animate-spin" />
       </div>
     );
   }
@@ -163,15 +163,15 @@ export default function ExpenseForm() {
 
       <form onSubmit={handleSubmit} className="space-y-3">
         {/* Expense Information */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Wallet className="w-5 h-5 text-primary-600" />
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <Wallet className="w-5 h-5 text-primary-600 dark:text-primary-400" />
             Informasi Pengeluaran
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Kategori <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Kategori <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <input
                 type="text"
@@ -179,24 +179,24 @@ export default function ExpenseForm() {
                 onChange={(e) => setFormData({ ...formData, expense_category: e.target.value })}
                 required
                 placeholder="Contoh: Operasional, Marketing, dll"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tanggal <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Tanggal <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <input
                 type="date"
                 value={formData.expense_date}
                 onChange={(e) => setFormData({ ...formData, expense_date: e.target.value })}
                 required
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Jumlah <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Jumlah <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <input
                 type="number"
@@ -206,11 +206,11 @@ export default function ExpenseForm() {
                 min="0"
                 step="0.01"
                 placeholder="0"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Pajak</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Pajak</label>
               <input
                 type="number"
                 value={formData.tax_amount || ''}
@@ -220,16 +220,16 @@ export default function ExpenseForm() {
                 min="0"
                 step="0.01"
                 placeholder="0"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                GL Account <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                GL Account <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-gray-400" />
+                  <Search className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                 </div>
                 <input
                   type="text"
@@ -244,10 +244,10 @@ export default function ExpenseForm() {
                   }}
                   onFocus={() => setShowAccountDropdown(true)}
                   placeholder="Cari expense account..."
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
                 {showAccountDropdown && filteredAccounts().length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                     {filteredAccounts().map((account) => (
                       <button
                         key={account.id}
@@ -258,10 +258,10 @@ export default function ExpenseForm() {
                           setAccountSearch('');
                           setShowAccountDropdown(false);
                         }}
-                        className="w-full px-4 py-2 text-left hover:bg-primary-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                        className="w-full px-4 py-2 text-left hover:bg-primary-50 dark:hover:bg-primary-950 border-b border-gray-100 dark:border-gray-800 last:border-b-0 transition-colors"
                       >
-                        <div className="font-medium text-gray-900">{account.name}</div>
-                        <div className="text-xs text-gray-500 font-mono">{account.code}</div>
+                        <div className="font-medium text-gray-900 dark:text-gray-100">{account.name}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 font-mono">{account.code}</div>
                       </button>
                     ))}
                   </div>
@@ -269,7 +269,7 @@ export default function ExpenseForm() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Metode Pembayaran</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Metode Pembayaran</label>
               <select
                 value={formData.payment_method}
                 onChange={(e) =>
@@ -278,7 +278,7 @@ export default function ExpenseForm() {
                     payment_method: e.target.value as 'cash' | 'transfer' | 'petty-cash',
                   })
                 }
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="cash">Cash</option>
                 <option value="transfer">Transfer</option>
@@ -286,8 +286,8 @@ export default function ExpenseForm() {
               </select>
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Deskripsi <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Deskripsi <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <textarea
                 value={formData.description}
@@ -295,56 +295,56 @@ export default function ExpenseForm() {
                 required
                 rows={3}
                 placeholder="Masukkan deskripsi pengeluaran..."
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Receipt URL</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Receipt URL</label>
               <input
                 type="url"
                 value={formData.receipt_url}
                 onChange={(e) => setFormData({ ...formData, receipt_url: e.target.value })}
                 placeholder="https://..."
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Catatan</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Catatan</label>
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 rows={2}
                 placeholder="Tambahkan catatan (opsional)..."
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>
           </div>
         </div>
 
         {/* Summary */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <DollarSign className="w-5 h-5 text-primary-600" />
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <DollarSign className="w-5 h-5 text-primary-600 dark:text-primary-400" />
             Ringkasan
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Jumlah</label>
-              <div className="text-lg font-semibold text-gray-900 bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Jumlah</label>
+              <div className="text-lg font-semibold text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-950 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700">
                 {formatCurrency(formData.amount)}
               </div>
             </div>
             {formData.tax_amount > 0 && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Pajak</label>
-                <div className="text-lg font-semibold text-gray-900 bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Pajak</label>
+                <div className="text-lg font-semibold text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-950 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700">
                   {formatCurrency(formData.tax_amount)}
                 </div>
               </div>
             )}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Total</label>
-              <div className="text-xl font-bold text-primary-600 bg-primary-50 px-4 py-2 rounded-lg border border-primary-200">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Total</label>
+              <div className="text-xl font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950 px-4 py-2 rounded-lg border border-primary-200 dark:border-primary-800">
                 {formatCurrency(totalAmount)}
               </div>
             </div>
@@ -352,12 +352,12 @@ export default function ExpenseForm() {
         </div>
 
         {/* Actions */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
           <div className="flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={() => navigate('/finance/expenses')}
-              className="px-6 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+              className="px-6 py-2.5 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-semibold"
             >
               Batal
             </button>

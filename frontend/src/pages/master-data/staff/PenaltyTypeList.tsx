@@ -34,10 +34,10 @@ const defaultForm: FormData = {
 
 const calcBadge = (c: string) =>
   c === "flexible"
-    ? "bg-blue-100 text-blue-800 border-blue-200"
+    ? "bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-800"
     : c === "percent-tier"
-      ? "bg-purple-100 text-purple-800 border-purple-200"
-      : "bg-gray-100 text-gray-800 border-gray-200";
+      ? "bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-200 border-purple-200 dark:border-purple-800"
+      : "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700";
 
 const calcLabel = (c: string) =>
   c === "flexible" ? "flexible" : c === "percent-tier" ? "percent-tier" : "fixed";
@@ -199,7 +199,7 @@ export default function PenaltyTypeList() {
       key: "priority",
       header: "Prioritas",
       cell: (row) => (
-        <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border bg-amber-100 text-amber-800 border-amber-200">
+        <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-800">
           {row.priority ?? 0}
         </span>
       ),
@@ -220,7 +220,7 @@ export default function PenaltyTypeList() {
       <BreadcrumbHeader title="Denda" subtitle="Kelola jenis denda & nominal">
         <Button
           onClick={openCreateModal}
-          className="flex items-center gap-2 bg-white text-primary-600 border border-gray-200 hover:bg-primary-50"
+          className="flex items-center gap-2 bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 border border-gray-200 dark:border-gray-700 hover:bg-primary-50 dark:hover:bg-primary-950"
         >
           <Plus className="w-5 h-5" />
           <span>Tambah Denda</span>
@@ -228,8 +228,8 @@ export default function PenaltyTypeList() {
       </BreadcrumbHeader>
 
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
-          <p className="text-red-800 font-medium">{(error as Error).message || "Terjadi kesalahan"}</p>
+        <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
+          <p className="text-red-800 dark:text-red-200 font-medium">{(error as Error).message || "Terjadi kesalahan"}</p>
         </div>
       )}
 
@@ -300,7 +300,7 @@ export default function PenaltyTypeList() {
                 setToDelete({ id: row.id, name: row.name });
                 setDeleteModalOpen(true);
               }}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-600 dark:hover:text-red-400"
             >
               <Trash2 className="h-4 w-4" />
             </button>
@@ -309,7 +309,7 @@ export default function PenaltyTypeList() {
       />
 
       {!isLoading && rows.length > 0 && (
-        <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 rounded-lg border border-gray-200">
+        <div className="bg-gradient-to-r from-gray-50 dark:from-gray-900 to-gray-100 dark:to-gray-800 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
               Menampilkan <span className="font-bold text-foreground">{rows.length}</span> dari{" "}
@@ -357,65 +357,65 @@ export default function PenaltyTypeList() {
             className="space-y-4"
           >
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nama Denda <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Nama Denda <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <input
                 type="text"
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="cth: Denda Terlambat"
               />
             </div>
             {editing && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Perhitungan</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Perhitungan</label>
               <select
                 value={formData.calculation}
                 onChange={(e) => setFormData({ ...formData, calculation: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="fixed">fixed — nominal tetap</option>
                 <option value="percent-tier">percent-tier — tier % nominal layer</option>
                 <option value="flexible">flexible — nominal saat penindakan</option>
               </select>
-              <p className="text-xs text-gray-500 mt-1">Pulang-cepat pakai percent-tier 25–100%.</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Pulang-cepat pakai percent-tier 25–100%.</p>
             </div>
             )}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nominal Default (Rp)</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nominal Default (Rp)</label>
               <input
                 type="number"
                 min={0}
                 value={formData.defaultAmount}
                 onChange={(e) => setFormData({ ...formData, defaultAmount: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="0"
               />
-              <p className="text-xs text-gray-500 mt-1">0 = belum diset, HR isi nominalnya.</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">0 = belum diset, HR isi nominalnya.</p>
             </div>
             {editing && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Prioritas</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Prioritas</label>
               <input
                 type="number"
                 value={formData.priority}
                 onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="0"
               />
-              <p className="text-xs text-gray-500 mt-1">Lebih tinggi menang saat bentrok (alpha 10 &gt; lebih-libur 4).</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Lebih tinggi menang saat bentrok (alpha 10 &gt; lebih-libur 4).</p>
             </div>
             )}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Approver</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Approver</label>
               {roles.length > 0 ? (
                 <select
                   value={formData.approverRole}
                   onChange={(e) => setFormData({ ...formData, approverRole: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
                   {roles.map((r) => (
                     <option key={r.id} value={r.code}>
@@ -428,7 +428,7 @@ export default function PenaltyTypeList() {
                   type="text"
                   value={formData.approverRole}
                   onChange={(e) => setFormData({ ...formData, approverRole: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
               )}
             </div>
@@ -440,7 +440,7 @@ export default function PenaltyTypeList() {
                   setEditing(null);
                   setFormData(defaultForm);
                 }}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors"
                 disabled={saveMutation.isPending}
               >
                 Batal
@@ -482,14 +482,14 @@ export default function PenaltyTypeList() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
+              <div className="flex-shrink-0 p-2 bg-red-100 dark:bg-red-950 rounded-full">
+                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
               </div>
               <div className="flex-1">
-                <p className="text-sm text-gray-700 mb-2">
+                <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
                   Apakah Anda yakin ingin menghapus denda <strong>{toDelete?.name}</strong>?
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   Tindakan ini akan melakukan soft delete. Data tidak akan muncul di daftar, tetapi masih
                   tersimpan di database.
                 </p>
@@ -502,7 +502,7 @@ export default function PenaltyTypeList() {
                   setToDelete(null);
                 }}
                 disabled={deleteMutation.isPending}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors"
               >
                 Batal
               </button>

@@ -30,17 +30,17 @@ export function ImportStepper({
         const active = n === step;
         return (
           <div key={label} className="flex items-center gap-2">
-            {i > 0 && <div className={cn('h-px w-6', done || active ? 'bg-primary' : 'bg-gray-200')} />}
+            {i > 0 && <div className={cn('h-px w-6', done || active ? 'bg-primary' : 'bg-gray-200 dark:bg-gray-700')} />}
             <div
               className={cn(
                 'flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium',
-                active ? 'bg-primary text-primary-foreground' : done ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-gray-500',
+                active ? 'bg-primary text-primary-foreground' : done ? 'bg-primary/10 text-primary' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400',
               )}
             >
               <span
                 className={cn(
                   'flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold',
-                  active ? 'bg-primary-foreground text-primary' : done ? 'bg-primary text-primary-foreground' : 'bg-gray-300 text-white',
+                  active ? 'bg-primary-foreground text-primary' : done ? 'bg-primary text-primary-foreground' : 'bg-gray-300 dark:bg-gray-600 text-white',
                 )}
               >
                 {done ? '✓' : n}
@@ -67,9 +67,9 @@ export function ImportNotice({
     <div
       className={cn(
         'rounded-lg border px-3 py-2 text-sm',
-        tone === 'good' && 'border-green-200 bg-green-50 text-green-800',
-        tone === 'bad' && 'border-red-200 bg-red-50 text-red-800',
-        tone === 'info' && 'border-gray-200 bg-gray-50 text-gray-700',
+        tone === 'good' && 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950 text-green-800 dark:text-green-200',
+        tone === 'bad' && 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950 text-red-800 dark:text-red-200',
+        tone === 'info' && 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-950 text-gray-700 dark:text-gray-300',
         className,
       )}
     >
@@ -167,12 +167,12 @@ export function ImportDropzone({ file, onFile, hint }: ImportDropzoneProps) {
       }}
       className={cn(
         'flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed px-4 py-10 text-center transition-colors',
-        dragOver ? 'border-primary bg-primary/5' : 'border-gray-300 bg-gray-50 hover:border-primary/60',
+        dragOver ? 'border-primary bg-primary/5' : 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-950 hover:border-primary/60',
       )}
     >
-      <Upload className="mb-2 h-8 w-8 text-gray-400" />
-      <p className="text-sm font-medium text-gray-900">{file ? file.name : (hint ?? 'Seret file .xlsx ke sini atau klik untuk pilih')}</p>
-      {file && <p className="mt-1 text-xs text-gray-500">{(file.size / 1024).toFixed(2)} KB</p>}
+      <Upload className="mb-2 h-8 w-8 text-gray-400 dark:text-gray-500" />
+      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{file ? file.name : (hint ?? 'Seret file .xlsx ke sini atau klik untuk pilih')}</p>
+      {file && <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{(file.size / 1024).toFixed(2)} KB</p>}
       <input ref={inputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={(e) => pick(e.target.files?.[0] || null)} />
     </div>
   );

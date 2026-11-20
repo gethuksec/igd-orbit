@@ -247,7 +247,7 @@ export default function PurchaseReturnForm() {
   return (
     <div className="space-y-6">
       <BreadcrumbHeader title="Buat Retur Pembelian">
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 border border-gray-300 text-gray-700">
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">
           {mode === 'po' ? 'Dari PO' : 'Manual (tanpa PO)'}
         </span>
       </BreadcrumbHeader>
@@ -260,11 +260,11 @@ export default function PurchaseReturnForm() {
           {mode === 'po' ? (
             <>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
                   Purchase Order / Invoice Supplier *
                 </label>
                 <select
-                  className="w-full h-10 border border-gray-300 rounded-md px-3 text-sm bg-white"
+                  className="w-full h-10 border border-gray-300 dark:border-gray-600 rounded-md px-3 text-sm bg-white dark:bg-gray-900"
                   value={selectedPoId}
                   onChange={(e) => {
                     setSelectedPoId(e.target.value);
@@ -281,22 +281,22 @@ export default function PurchaseReturnForm() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">Supplier</label>
-                  <div className="h-10 flex items-center border border-gray-200 bg-gray-50 rounded-md px-3 text-sm text-gray-700">
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Supplier</label>
+                  <div className="h-10 flex items-center border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-950 rounded-md px-3 text-sm text-gray-700 dark:text-gray-300">
                     {po?.supplier?.name ? `${po.supplier.name} (${po.supplier.customerCode})` : '—'}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
                     No. Invoice Supplier
                   </label>
-                  <div className="h-10 flex items-center border border-gray-200 bg-gray-50 rounded-md px-3 text-sm text-gray-700">
+                  <div className="h-10 flex items-center border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-950 rounded-md px-3 text-sm text-gray-700 dark:text-gray-300">
                     {po?.invoiceNumber || '—'}
                   </div>
                 </div>
               </div>
               {existingReturn && (
-                <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                <div className="rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
                   Retur untuk invoice ini sudah dibuat ({existingReturn.returnNumber}).{' '}
                   <button
                     type="button"
@@ -311,9 +311,9 @@ export default function PurchaseReturnForm() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Supplier *</label>
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Supplier *</label>
                 <select
-                  className="w-full h-10 border border-gray-300 rounded-md px-3 text-sm bg-white"
+                  className="w-full h-10 border border-gray-300 dark:border-gray-600 rounded-md px-3 text-sm bg-white dark:bg-gray-900"
                   value={supplierId}
                   onChange={(e) => setSupplierId(e.target.value)}
                 >
@@ -326,7 +326,7 @@ export default function PurchaseReturnForm() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
                   No. Invoice Supplier *
                 </label>
                 <Input
@@ -340,7 +340,7 @@ export default function PurchaseReturnForm() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Alasan Retur *</label>
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Alasan Retur *</label>
               <Textarea
                 rows={2}
                 value={reason}
@@ -349,7 +349,7 @@ export default function PurchaseReturnForm() {
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Catatan</label>
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Catatan</label>
               <Textarea
                 rows={2}
                 value={notes}
@@ -367,7 +367,7 @@ export default function PurchaseReturnForm() {
         </CardHeader>
         <CardContent>
           {mode === 'po' && !selectedPoId ? (
-            <div className="text-sm text-gray-500 py-6 text-center">
+            <div className="text-sm text-gray-500 dark:text-gray-400 py-6 text-center">
               Pilih PO terlebih dahulu untuk memuat daftar produk.
             </div>
           ) : (
@@ -379,16 +379,16 @@ export default function PurchaseReturnForm() {
                   placeholder="Cari produk... klik hasil untuk menambah"
                 />
                 {productSearch.length > 2 && productsData?.data && productsData.data.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-72 overflow-auto">
+                  <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-72 overflow-auto">
                     {productsData.data.map((product: any) => (
                       <button
                         key={product.id}
                         type="button"
-                        className="w-full text-left px-4 py-2.5 hover:bg-gray-50 border-b border-gray-100 last:border-0"
+                        className="w-full text-left px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-800 border-b border-gray-100 dark:border-gray-800 last:border-0"
                         onClick={() => addProduct(product)}
                       >
                         <div className="text-sm font-medium">{product.name}</div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
                           {product.sku} · Beli: {formatCurrency(product.costPrice || 0)} · Jual:{' '}
                           {formatCurrency(product.sellingPrice || 0)}
                         </div>
@@ -413,7 +413,7 @@ export default function PurchaseReturnForm() {
                 <TableBody>
                   {lines.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-gray-500 py-8">
+                      <TableCell colSpan={7} className="text-center text-gray-500 dark:text-gray-400 py-8">
                         Belum ada produk — gunakan pencarian di atas.
                       </TableCell>
                     </TableRow>
@@ -422,7 +422,7 @@ export default function PurchaseReturnForm() {
                       <TableRow key={l.productId}>
                         <TableCell>
                           <div className="font-medium">{l.name}</div>
-                          <div className="text-xs text-gray-500">{l.sku}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">{l.sku}</div>
                         </TableCell>
                         {mode === 'po' && (
                           <TableCell className="text-right">{l.received ?? 0}</TableCell>
@@ -457,7 +457,7 @@ export default function PurchaseReturnForm() {
                             }
                           />
                           {mode === 'po' && l.maxQty !== undefined && (
-                            <div className="text-xs text-gray-400 mt-1">maks {l.maxQty}</div>
+                            <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">maks {l.maxQty}</div>
                           )}
                         </TableCell>
                         <TableCell className="text-right font-medium">
@@ -474,14 +474,14 @@ export default function PurchaseReturnForm() {
                 </TableBody>
               </Table>
 
-              <div className="flex justify-end gap-10 mt-4 pt-4 border-t border-gray-100">
+              <div className="flex justify-end gap-10 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
                 <div className="text-right">
-                  <div className="text-xs text-gray-500">Total Qty Retur</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Total Qty Retur</div>
                   <div className="text-lg font-bold">{new Intl.NumberFormat('id-ID').format(totalQty)}</div>
                 </div>
                 <div className="text-right">
-                  <div className="text-xs text-gray-500">Nilai Retur (kredit supplier)</div>
-                  <div className="text-lg font-bold text-red-600">{formatCurrency(totalValue)}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Nilai Retur (kredit supplier)</div>
+                  <div className="text-lg font-bold text-red-600 dark:text-red-400">{formatCurrency(totalValue)}</div>
                 </div>
               </div>
             </>

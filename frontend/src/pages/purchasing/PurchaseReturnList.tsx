@@ -23,8 +23,8 @@ function Stat({ label, value, accent }: { label: string; value: string; accent?:
   return (
     <Card>
       <CardContent className="pt-6">
-        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</div>
-        <div className={`text-2xl font-bold mt-1 ${accent ? 'text-red-600' : ''}`}>{value}</div>
+        <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">{label}</div>
+        <div className={`text-2xl font-bold mt-1 ${accent ? 'text-red-600 dark:text-red-400' : ''}`}>{value}</div>
       </CardContent>
     </Card>
   );
@@ -77,22 +77,22 @@ export default function PurchaseReturnList() {
             <ChevronDown className="w-4 h-4 ml-1" />
           </Button>
           {menuOpen && (
-            <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-lg z-20 p-1.5">
+            <div className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-20 p-1.5">
               <button
                 type="button"
-                className="w-full text-left px-3 py-2.5 rounded-md hover:bg-gray-50"
+                className="w-full text-left px-3 py-2.5 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800"
                 onClick={() => navigate('/purchasing/returns/new?mode=po')}
               >
-                <div className="text-sm font-semibold text-gray-900">Dari PO</div>
-                <div className="text-xs text-gray-500">Pilih PO yang sudah diterima</div>
+                <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">Dari PO</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">Pilih PO yang sudah diterima</div>
               </button>
               <button
                 type="button"
-                className="w-full text-left px-3 py-2.5 rounded-md hover:bg-gray-50"
+                className="w-full text-left px-3 py-2.5 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800"
                 onClick={() => navigate('/purchasing/returns/new?mode=manual')}
               >
-                <div className="text-sm font-semibold text-gray-900">Manual (tanpa PO)</div>
-                <div className="text-xs text-gray-500">Input invoice &amp; produk manual</div>
+                <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">Manual (tanpa PO)</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">Input invoice &amp; produk manual</div>
               </button>
             </div>
           )}
@@ -116,10 +116,10 @@ export default function PurchaseReturnList() {
           />
           {isLoading ? (
             <div className="flex justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+              <Loader2 className="w-6 h-6 animate-spin text-gray-400 dark:text-gray-500" />
             </div>
           ) : returns.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">Belum ada retur pembelian</div>
+            <div className="text-center py-12 text-gray-500 dark:text-gray-400">Belum ada retur pembelian</div>
           ) : (
             <Table>
               <TableHeader>
@@ -143,28 +143,28 @@ export default function PurchaseReturnList() {
                     <TableCell>{r.invoiceNumber || '-'}</TableCell>
                     <TableCell>
                       <div>{r.supplier?.name || '-'}</div>
-                      <div className="text-xs text-gray-500">{r.supplier?.customerCode}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">{r.supplier?.customerCode}</div>
                     </TableCell>
                     <TableCell>
                       {r.purchaseOrder?.poNumber ? (
                         r.purchaseOrder.poNumber
                       ) : (
-                        <span className="text-gray-400">
+                        <span className="text-gray-400 dark:text-gray-500">
                           — <span className="text-xs">(manual)</span>
                         </span>
                       )}
                     </TableCell>
                     <TableCell>
                       <div className="font-medium">{r.items?.length || 0} produk</div>
-                      <div className="text-xs text-gray-500">{fmtQty(Number(r.totalQty || 0))} unit</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">{fmtQty(Number(r.totalQty || 0))} unit</div>
                     </TableCell>
                     <TableCell>
                       {r.status === 'completed' ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-50 border border-green-300 text-green-700">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-50 dark:bg-green-950 border border-green-300 dark:border-green-700 text-green-700 dark:text-green-300">
                           Selesai
                         </span>
                       ) : (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 border border-amber-300 text-amber-700">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-950 border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300">
                           Pending
                         </span>
                       )}
@@ -181,7 +181,7 @@ export default function PurchaseReturnList() {
             </Table>
           )}
           {!isLoading && returns.length > 0 && (
-            <div className="text-right text-sm text-gray-500 mt-4">
+            <div className="text-right text-sm text-gray-500 dark:text-gray-400 mt-4">
               Menampilkan {returns.length} dari {total} retur
             </div>
           )}

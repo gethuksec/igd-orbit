@@ -181,15 +181,15 @@ export default function WorkingLocationList() {
   return (
     <div className="w-full space-y-3">
       <BreadcrumbHeader title="Working Location" subtitle="Lokasi kerja — kantor HQ dan situs non-outlet">
-        <Button onClick={openCreateModal} className="flex items-center gap-2 bg-white text-primary-600 border border-gray-200 hover:bg-primary-50">
+        <Button onClick={openCreateModal} className="flex items-center gap-2 bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 border border-gray-200 dark:border-gray-700 hover:bg-primary-50 dark:hover:bg-primary-950">
           <Plus className="w-5 h-5" />
           <span>Tambah Lokasi</span>
         </Button>
       </BreadcrumbHeader>
 
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
-          <p className="text-red-800 font-medium">{(error as Error).message || "Terjadi kesalahan"}</p>
+        <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
+          <p className="text-red-800 dark:text-red-200 font-medium">{(error as Error).message || "Terjadi kesalahan"}</p>
         </div>
       )}
 
@@ -256,7 +256,7 @@ export default function WorkingLocationList() {
                 setToDelete({ id: row.id, name: row.name });
                 setDeleteModalOpen(true);
               }}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-600 dark:hover:text-red-400"
             >
               <Trash2 className="h-4 w-4" />
             </button>
@@ -300,38 +300,38 @@ export default function WorkingLocationList() {
           >
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Kode</label>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Kode</label>
                 <input
                   value={formData.code}
                   disabled={!!editing}
                   onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                   placeholder="Otomatis bila kosong"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Nama</label>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Nama</label>
                 <input
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Alamat</label>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Alamat</label>
               <input
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Link Branch</label>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Link Branch</label>
               <select
                 value={formData.branchId}
                 onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
               >
                 <option value="">— Tidak ada —</option>
                 {(branches || []).map((b) => (
@@ -341,27 +341,27 @@ export default function WorkingLocationList() {
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Latitude</label>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Latitude</label>
                 <input
                   value={formData.latitude}
                   onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Longitude</label>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Longitude</label>
                 <input
                   value={formData.longitude}
                   onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Radius (m)</label>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Radius (m)</label>
                 <input
                   value={formData.radiusM}
                   onChange={(e) => setFormData({ ...formData, radiusM: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
                 />
               </div>
             </div>
@@ -382,9 +382,9 @@ export default function WorkingLocationList() {
           <DialogHeader>
             <DialogTitle>Nonaktifkan Lokasi</DialogTitle>
           </DialogHeader>
-          <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-lg p-4">
-            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-            <p className="text-sm text-amber-800">
+          <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+            <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <p className="text-sm text-amber-800 dark:text-amber-200">
               Nonaktifkan <b>{toDelete?.name}</b>? Riwayat kontrak yang menunjuk lokasi ini tetap tersimpan.
             </p>
           </div>

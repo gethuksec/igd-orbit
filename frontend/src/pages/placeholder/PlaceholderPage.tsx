@@ -16,16 +16,16 @@ export default function PlaceholderPage({ title, description }: PlaceholderPageP
       <BreadcrumbHeader title={title} subtitle={description} />
 
       {/* Content */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-12">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-12">
         <div className="flex flex-col items-center justify-center min-h-[400px]">
-          <div className="p-6 bg-gradient-to-br from-primary-100 to-primary-200 text-primary-600 rounded-full mb-6 shadow-lg">
+          <div className="p-6 bg-gradient-to-br from-primary-100 dark:from-primary-950 to-primary-200 dark:to-primary-900 text-primary-600 dark:text-primary-400 rounded-full mb-6 shadow-lg">
             <Construction className="w-16 h-16" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-3">Halaman Sedang Dalam Pengembangan</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">Halaman Sedang Dalam Pengembangan</h2>
           {description && (
-            <p className="text-gray-600 text-center max-w-md mb-4 text-lg">{description}</p>
+            <p className="text-gray-600 dark:text-gray-400 text-center max-w-md mb-4 text-lg">{description}</p>
           )}
-          <p className="text-sm text-gray-500 mb-6">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
             Fitur ini akan segera hadir untuk meningkatkan pengalaman Anda
           </p>
           <button

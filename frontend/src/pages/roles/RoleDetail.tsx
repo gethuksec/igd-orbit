@@ -51,7 +51,7 @@ export default function RoleDetail() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
+        <Loader2 className="w-8 h-8 text-primary-500 dark:text-primary-400 animate-spin" />
       </div>
     );
   }
@@ -82,13 +82,13 @@ export default function RoleDetail() {
         <RequirePermission permission="roles.update" fallbackRoles={['SUPERADMIN']}>
           {!isSuperAdminRole && (
             <>
-              <Button asChild size="sm" className="bg-white text-primary-600 hover:bg-primary-50 font-semibold">
+              <Button asChild size="sm" className="bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950 font-semibold">
                 <Link to={`/roles/${role.id}/permissions`}>
                   <KeyRound className="w-4 h-4" />
                   Kelola Hak Default
                 </Link>
               </Button>
-              <Button size="sm" className="bg-white text-primary-600 hover:bg-primary-50 font-semibold" onClick={() => navigate(`/roles?edit=${role.id}`)}>
+              <Button size="sm" className="bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950 font-semibold" onClick={() => navigate(`/roles?edit=${role.id}`)}>
                 <Edit className="w-4 h-4" />
                 Edit
               </Button>
@@ -111,29 +111,29 @@ export default function RoleDetail() {
       </BreadcrumbHeader>
 
       {/* Role Info Card */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
         <div className="flex items-start gap-6">
           <div className="flex-shrink-0 h-24 w-24 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white shadow-md">
             <Shield className="w-12 h-12" />
           </div>
           <div className="flex-1 space-y-4">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">{role.name}</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{role.name}</h2>
               <div className="flex items-center gap-4 mt-2">
-                <span className="text-sm text-gray-500 font-mono">{role.code}</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400 font-mono">{role.code}</span>
                 {role.isActive ? (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-md text-sm font-medium">
+                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300 rounded-md text-sm font-medium">
                     <CheckCircle className="w-4 h-4" />
                     Aktif
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 rounded-md text-sm font-medium">
+                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-md text-sm font-medium">
                     <XCircle className="w-4 h-4" />
                     Non-Aktif
                   </span>
                 )}
                 {role.isSystemRole && (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-md text-sm font-medium">
+                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 rounded-md text-sm font-medium">
                     System Role
                   </span>
                 )}
@@ -142,16 +142,16 @@ export default function RoleDetail() {
 
             {role.description && (
               <div>
-                <p className="text-sm text-gray-500">Deskripsi</p>
-                <p className="text-base text-gray-900">{role.description}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Deskripsi</p>
+                <p className="text-base text-gray-900 dark:text-gray-100">{role.description}</p>
               </div>
             )}
 
             <div className="flex items-center gap-3">
-              <Calendar className="w-5 h-5 text-gray-400" />
+              <Calendar className="w-5 h-5 text-gray-400 dark:text-gray-500" />
               <div>
-                <p className="text-sm text-gray-500">Tanggal Dibuat</p>
-                <p className="text-base font-medium text-gray-900">
+                <p className="text-sm text-gray-500 dark:text-gray-400">Tanggal Dibuat</p>
+                <p className="text-base font-medium text-gray-900 dark:text-gray-100">
                   {new Date(role.createdAt).toLocaleDateString('id-ID', {
                     year: 'numeric',
                     month: 'long',
@@ -165,27 +165,27 @@ export default function RoleDetail() {
       </div>
 
       {/* D4: Users with this role */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-            <Users className="w-4 h-4 text-primary-600" />
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+          <h3 className="font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+            <Users className="w-4 h-4 text-primary-600 dark:text-primary-400" />
             Pengguna dengan role ini
           </h3>
-          <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-md font-semibold text-gray-600">
+          <span className="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-md font-semibold text-gray-600 dark:text-gray-400">
             {role.userCount ?? 0} user
           </span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-100">
+            <thead className="bg-gray-50 dark:bg-gray-950 border-b border-gray-100 dark:border-gray-800">
               <tr>
-                <th className="px-6 py-2.5 text-left text-[11px] font-bold uppercase text-gray-500">Nama</th>
-                <th className="px-6 py-2.5 text-left text-[11px] font-bold uppercase text-gray-500">Email</th>
-                <th className="px-6 py-2.5 text-left text-[11px] font-bold uppercase text-gray-500">Outlet</th>
-                <th className="px-6 py-2.5 text-left text-[11px] font-bold uppercase text-gray-500">Status</th>
+                <th className="px-6 py-2.5 text-left text-[11px] font-bold uppercase text-gray-500 dark:text-gray-400">Nama</th>
+                <th className="px-6 py-2.5 text-left text-[11px] font-bold uppercase text-gray-500 dark:text-gray-400">Email</th>
+                <th className="px-6 py-2.5 text-left text-[11px] font-bold uppercase text-gray-500 dark:text-gray-400">Outlet</th>
+                <th className="px-6 py-2.5 text-left text-[11px] font-bold uppercase text-gray-500 dark:text-gray-400">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {(() => {
                 const ub: Array<{
                   user: { id: string; fullName: string | null; email: string; isActive: boolean };
@@ -203,21 +203,21 @@ export default function RoleDetail() {
                   }
                 }
                 return [...byUser.values()].map(({ user, branches }) => (
-                  <tr key={user.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-3 text-sm font-semibold text-gray-800">
+                  <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <td className="px-6 py-3 text-sm font-semibold text-gray-800 dark:text-gray-200">
                       {user.fullName || '-'}
                     </td>
-                    <td className="px-6 py-3 text-sm text-gray-500">{user.email}</td>
-                    <td className="px-6 py-3 text-sm text-gray-600">
+                    <td className="px-6 py-3 text-sm text-gray-500 dark:text-gray-400">{user.email}</td>
+                    <td className="px-6 py-3 text-sm text-gray-600 dark:text-gray-400">
                       {branches.length > 0 ? branches.join(', ') : <span className="italic">-</span>}
                     </td>
                     <td className="px-6 py-3 text-sm">
                       {user.isActive ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-semibold">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300 rounded-lg text-xs font-semibold">
                           <CheckCircle className="w-3 h-3" /> Aktif
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 text-gray-600 rounded-lg text-xs font-semibold">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg text-xs font-semibold">
                           <XCircle className="w-3 h-3" /> Non-Aktif
                         </span>
                       )}
@@ -227,7 +227,7 @@ export default function RoleDetail() {
               })()}
               {((role as any).userBranches?.length ?? 0) === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-sm text-gray-400">
+                  <td colSpan={4} className="px-6 py-8 text-center text-sm text-gray-400 dark:text-gray-500">
                     Belum ada pengguna dengan role ini
                   </td>
                 </tr>
@@ -250,14 +250,14 @@ export default function RoleDetail() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
+              <div className="flex-shrink-0 p-2 bg-red-100 dark:bg-red-950 rounded-full">
+                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
               </div>
               <div className="flex-1">
-                <p className="text-sm text-gray-700 mb-2">
+                <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
                   Apakah Anda yakin ingin menghapus role <strong>{role.name}</strong>?
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   Tindakan ini tidak dapat dibatalkan. Semua data role akan dihapus secara permanen.
                 </p>
               </div>

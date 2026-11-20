@@ -68,9 +68,9 @@ export default function KPIDetail() {
   if (isLoading) {
     return (
       <div className="w-full space-y-6">
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-12 text-center">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-12 text-center">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-          <p className="mt-4 text-gray-600">Memuat data...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Memuat data...</p>
         </div>
       </div>
     );
@@ -79,10 +79,10 @@ export default function KPIDetail() {
   if (error || !kpiRecord) {
     return (
       <div className="w-full space-y-6">
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-12 text-center">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-red-600">Gagal memuat data KPI</p>
-          <Link to="/hr/kpi" className="mt-4 text-purple-600 hover:underline">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-12 text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 dark:text-red-400 mx-auto mb-4" />
+          <p className="text-red-600 dark:text-red-400">Gagal memuat data KPI</p>
+          <Link to="/hr/kpi" className="mt-4 text-purple-600 dark:text-purple-400 hover:underline">
             Kembali ke daftar
           </Link>
         </div>
@@ -91,28 +91,28 @@ export default function KPIDetail() {
   }
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-yellow-600';
-    return 'text-red-600';
+    if (score >= 80) return 'text-green-600 dark:text-green-400';
+    if (score >= 60) return 'text-yellow-600 dark:text-yellow-400';
+    return 'text-red-600 dark:text-red-400';
   };
 
   const getScoreBadge = (score: number) => {
     if (score >= 80) {
       return (
-        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">
+        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200">
           Excellent
         </span>
       );
     }
     if (score >= 60) {
       return (
-        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-yellow-100 text-yellow-800">
+        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-200">
           Good
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-red-100 text-red-800">
+      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-200">
         Needs Improvement
       </span>
     );
@@ -136,7 +136,7 @@ export default function KPIDetail() {
                 });
                 setShowEditModal(true);
               }}
-              className="px-4 py-2 bg-white text-purple-600 rounded-lg font-semibold hover:bg-purple-50 transition-colors flex items-center gap-2"
+              className="px-4 py-2 bg-white dark:bg-gray-900 text-purple-600 dark:text-purple-400 rounded-lg font-semibold hover:bg-purple-50 dark:hover:bg-purple-950 transition-colors flex items-center gap-2"
             >
               <Edit className="w-4 h-4" />
               Edit
@@ -146,34 +146,34 @@ export default function KPIDetail() {
 
       {/* Employee & Period Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Informasi Karyawan</h2>
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Informasi Karyawan</h2>
           <div className="space-y-3">
             <div>
-              <p className="text-sm text-gray-600">Nama</p>
-              <p className="text-base font-semibold text-gray-900">
+              <p className="text-sm text-gray-600 dark:text-gray-400">Nama</p>
+              <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
                 {kpiRecord.employee?.user?.fullName || 'N/A'}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Employee Code</p>
-              <p className="text-base font-semibold text-gray-900">{kpiRecord.employee?.employeeCode || 'N/A'}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Employee Code</p>
+              <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{kpiRecord.employee?.employeeCode || 'N/A'}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Periode</h2>
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Periode</h2>
           <div className="space-y-3">
             <div>
-              <p className="text-sm text-gray-600">Bulan & Tahun</p>
-              <p className="text-base font-semibold text-gray-900">
+              <p className="text-sm text-gray-600 dark:text-gray-400">Bulan & Tahun</p>
+              <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
                 {new Date(2000, kpiRecord.periodMonth - 1).toLocaleString('id-ID', { month: 'long' })}{' '}
                 {kpiRecord.periodYear}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Overall Score</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Overall Score</p>
               <div className="mt-1">
                 <p className={`text-3xl font-bold ${getScoreColor(kpiRecord.overallScore)}`}>
                   {kpiRecord.overallScore.toFixed(1)}
@@ -186,33 +186,33 @@ export default function KPIDetail() {
       </div>
 
       {/* KPI Scores */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-        <h2 className="text-lg font-bold text-gray-900 mb-4">Detail Score</h2>
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Detail Score</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Sales Target Achievement</p>
-              <p className="text-xl font-bold text-gray-900">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Sales Target Achievement</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
                 {kpiRecord.salesTargetAchievement ? formatCurrency(kpiRecord.salesTargetAchievement) : '-'}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600 mb-1">Service Quality Score</p>
-              <p className="text-xl font-bold text-gray-900">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Service Quality Score</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
                 {kpiRecord.serviceQualityScore ? kpiRecord.serviceQualityScore.toFixed(1) : '-'}
               </p>
             </div>
           </div>
           <div className="space-y-4">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Customer Satisfaction</p>
-              <p className="text-xl font-bold text-gray-900">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Customer Satisfaction</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
                 {kpiRecord.customerSatisfaction ? kpiRecord.customerSatisfaction.toFixed(1) : '-'}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600 mb-1">Attendance Score</p>
-              <p className="text-xl font-bold text-gray-900">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Attendance Score</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
                 {kpiRecord.attendanceScore ? kpiRecord.attendanceScore.toFixed(1) : '-'}
               </p>
             </div>
@@ -222,25 +222,25 @@ export default function KPIDetail() {
 
       {/* Bonus Info */}
       {(kpiRecord.targetBonus || kpiRecord.calculatedBonus) && (
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Bonus</h2>
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Bonus</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {kpiRecord.targetBonus && (
               <div>
-                <p className="text-sm text-gray-600 mb-1">Target Bonus</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(kpiRecord.targetBonus)}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Target Bonus</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{formatCurrency(kpiRecord.targetBonus)}</p>
               </div>
             )}
             {kpiRecord.calculatedBonus && (
               <div>
-                <p className="text-sm text-gray-600 mb-1">Calculated Bonus</p>
-                <p className="text-2xl font-bold text-green-600">{formatCurrency(kpiRecord.calculatedBonus)}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Calculated Bonus</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{formatCurrency(kpiRecord.calculatedBonus)}</p>
               </div>
             )}
             {kpiRecord.bonusMultiplier && (
               <div>
-                <p className="text-sm text-gray-600 mb-1">Multiplier</p>
-                <p className="text-2xl font-bold text-gray-900">x{kpiRecord.bonusMultiplier.toFixed(2)}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Multiplier</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">x{kpiRecord.bonusMultiplier.toFixed(2)}</p>
               </div>
             )}
           </div>
@@ -249,31 +249,31 @@ export default function KPIDetail() {
 
       {/* Notes */}
       {kpiRecord.notes && (
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Catatan</h2>
-          <p className="text-base text-gray-900">{kpiRecord.notes}</p>
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Catatan</h2>
+          <p className="text-base text-gray-900 dark:text-gray-100">{kpiRecord.notes}</p>
         </div>
       )}
 
       {/* Edit Modal */}
       {showEditModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Edit KPI Score</h3>
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Edit KPI Score</h3>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Sales Target Achievement</label>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Sales Target Achievement</label>
                   <input
                     type="number"
                     value={editData.sales_target_achievement}
                     onChange={(e) => setEditData({ ...editData, sales_target_achievement: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     placeholder="0"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Service Quality Score</label>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Service Quality Score</label>
                   <input
                     type="number"
                     step="0.1"
@@ -281,12 +281,12 @@ export default function KPIDetail() {
                     max="100"
                     value={editData.service_quality_score}
                     onChange={(e) => setEditData({ ...editData, service_quality_score: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     placeholder="0-100"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Customer Satisfaction</label>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Customer Satisfaction</label>
                   <input
                     type="number"
                     step="0.1"
@@ -294,12 +294,12 @@ export default function KPIDetail() {
                     max="100"
                     value={editData.customer_satisfaction}
                     onChange={(e) => setEditData({ ...editData, customer_satisfaction: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     placeholder="0-100"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Attendance Score</label>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Attendance Score</label>
                   <input
                     type="number"
                     step="0.1"
@@ -307,12 +307,12 @@ export default function KPIDetail() {
                     max="100"
                     value={editData.attendance_score}
                     onChange={(e) => setEditData({ ...editData, attendance_score: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     placeholder="0-100"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Overall Score</label>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Overall Score</label>
                   <input
                     type="number"
                     step="0.1"
@@ -320,36 +320,36 @@ export default function KPIDetail() {
                     max="100"
                     value={editData.overall_score}
                     onChange={(e) => setEditData({ ...editData, overall_score: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     placeholder="0-100"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Calculated Bonus</label>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Calculated Bonus</label>
                   <input
                     type="number"
                     value={editData.calculated_bonus}
                     onChange={(e) => setEditData({ ...editData, calculated_bonus: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     placeholder="0"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Catatan</label>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Catatan</label>
                 <textarea
                   value={editData.notes}
                   onChange={(e) => setEditData({ ...editData, notes: e.target.value })}
                   rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   placeholder="Tambahkan catatan..."
                 />
               </div>
-              <div className="flex gap-3 pt-4 border-t border-gray-200">
+              <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <button
                   onClick={() => setShowEditModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg font-semibold hover:bg-gray-50"
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg font-semibold hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
                   Batal
                 </button>

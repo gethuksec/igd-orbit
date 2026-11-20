@@ -118,12 +118,12 @@ export default function RoleList() {
             <Shield className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-[15px] font-medium text-foreground hover:text-primary-600 transition-colors">
+            <div className="text-[15px] font-medium text-foreground hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
               {role.name}
             </div>
             <div className="text-xs text-muted-foreground mt-0.5 font-mono">{role.code}</div>
             {role.isSystemRole && (
-              <div className="text-xs text-primary-600 mt-0.5 font-medium">System Role</div>
+              <div className="text-xs text-primary-600 dark:text-primary-400 mt-0.5 font-medium">System Role</div>
             )}
           </div>
         </Link>
@@ -187,7 +187,7 @@ export default function RoleList() {
           Lihat Hierarki
         </Button>
         <RequirePermission permission="roles.create" fallbackRoles={['SUPERADMIN']}>
-          <Button size="sm" className="bg-white text-primary-600 hover:bg-primary-50 font-semibold" onClick={() => setFormModal({ open: true, role: null })}>
+          <Button size="sm" className="bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950 font-semibold" onClick={() => setFormModal({ open: true, role: null })}>
             <Plus className="w-4 h-4" />
             Tambah Role
           </Button>
@@ -263,7 +263,7 @@ export default function RoleList() {
                     setRoleToDelete({ id: role.id, name: role.name });
                     setDeleteModalOpen(true);
                   }}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-600 dark:hover:text-red-400"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -324,14 +324,14 @@ export default function RoleList() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
+              <div className="flex-shrink-0 p-2 bg-red-100 dark:bg-red-950 rounded-full">
+                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
               </div>
               <div className="flex-1">
-                <p className="text-sm text-gray-700 mb-2">
+                <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
                   Apakah Anda yakin ingin menghapus role <strong>{roleToDelete?.name}</strong>?
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   Tindakan ini tidak dapat dibatalkan. Semua data role akan dihapus secara permanen.
                 </p>
               </div>
@@ -372,7 +372,7 @@ export default function RoleList() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Network className="w-5 h-5 text-primary-600" />
+              <Network className="w-5 h-5 text-primary-600 dark:text-primary-400" />
               Role Hierarchy
             </DialogTitle>
             <DialogDescription>

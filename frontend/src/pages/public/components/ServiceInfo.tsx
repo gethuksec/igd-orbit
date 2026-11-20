@@ -12,14 +12,14 @@ interface ServiceInfoProps {
 }
 
 const statusColors: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-800',
-  diagnosed: 'bg-blue-100 text-blue-800',
-  'in-progress': 'bg-blue-100 text-blue-800',
-  qc: 'bg-orange-100 text-orange-800',
-  ready: 'bg-blue-100 text-blue-800',
-  done: 'bg-green-100 text-green-800',
-  cancelled: 'bg-red-100 text-red-800',
-  'ready-cancel': 'bg-orange-100 text-orange-800',
+  pending: 'bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-200',
+  diagnosed: 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200',
+  'in-progress': 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200',
+  qc: 'bg-orange-100 dark:bg-orange-950 text-orange-800 dark:text-orange-200',
+  ready: 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200',
+  done: 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200',
+  cancelled: 'bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-200',
+  'ready-cancel': 'bg-orange-100 dark:bg-orange-950 text-orange-800 dark:text-orange-200',
 };
 
 const statusLabels: Record<string, string> = {
@@ -52,14 +52,14 @@ export default function ServiceInfo({
     });
   };
 
-  const statusColor = statusColors[status] || 'bg-gray-100 text-gray-800';
+  const statusColor = statusColors[status] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200';
   const statusLabel = statusLabels[status] || status;
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 space-y-4">
+    <div className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 space-y-4">
       {/* Service Number */}
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">{serviceNumber}</h2>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">{serviceNumber}</h2>
         <Badge className={statusColor}>{statusLabel}</Badge>
       </div>
 

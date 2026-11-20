@@ -91,7 +91,7 @@ export default function BranchForm() {
   if (loadingBranch) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
+        <Loader2 className="w-8 h-8 text-primary-600 dark:text-primary-400 animate-spin" />
       </div>
     );
   }
@@ -118,15 +118,15 @@ export default function BranchForm() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Store className="w-5 h-5 text-primary-600" />
+              <Store className="w-5 h-5 text-primary-600 dark:text-primary-400" />
               Informasi Dasar
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nama Cabang <span className="text-red-500">*</span>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Nama Cabang <span className="text-red-500 dark:text-red-400">*</span>
                 </label>
                 <Input
                   type="text"
@@ -137,7 +137,7 @@ export default function BranchForm() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Grup
                 </label>
                 <Input
@@ -151,14 +151,14 @@ export default function BranchForm() {
 
             {isEdit && branch?.code && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Kode Cabang</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kode Cabang</label>
                 <Input
                   type="text"
                   value={branch.code}
                   disabled
-                  className="bg-gray-50 font-mono"
+                  className="bg-gray-50 dark:bg-gray-950 font-mono"
                 />
-                <p className="text-xs text-gray-500 mt-1">Kode cabang tidak dapat diubah</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Kode cabang tidak dapat diubah</p>
               </div>
             )}
           </CardContent>
@@ -168,24 +168,24 @@ export default function BranchForm() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-primary-600" />
+              <MapPin className="w-5 h-5 text-primary-600 dark:text-primary-400" />
               Alamat & Lokasi
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Alamat Lengkap</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alamat Lengkap</label>
               <textarea
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
                 placeholder="Jl. Contoh No. 123"
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Kota</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kota</label>
                 <Input
                   type="text"
                   value={formData.city}
@@ -194,7 +194,7 @@ export default function BranchForm() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Provinsi</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Provinsi</label>
                 <Input
                   type="text"
                   value={formData.province}
@@ -210,17 +210,17 @@ export default function BranchForm() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <UserCog className="w-5 h-5 text-primary-600" />
+              <UserCog className="w-5 h-5 text-primary-600 dark:text-primary-400" />
               Head of Service (HS)
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Head of Service <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Head of Service <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               {loadingHSUsers ? (
-                <div className="flex items-center gap-2 text-sm text-gray-500">
+                <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Memuat data HS...
                 </div>
@@ -229,7 +229,7 @@ export default function BranchForm() {
                   required
                   value={formData.headOfServiceId}
                   onChange={(e) => setFormData({ ...formData, headOfServiceId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
                 >
                   <option value="">Pilih Head of Service</option>
                   {hsUsers.map((user: any) => (
@@ -239,7 +239,7 @@ export default function BranchForm() {
                   ))}
                 </select>
               )}
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 Pilih user dengan role HS (Head of Store) yang bertanggung jawab untuk cabang ini
               </p>
             </div>
@@ -250,14 +250,14 @@ export default function BranchForm() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Phone className="w-5 h-5 text-primary-600" />
+              <Phone className="w-5 h-5 text-primary-600 dark:text-primary-400" />
               Kontak
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Telepon</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Telepon</label>
                 <Input
                   type="tel"
                   value={formData.phone}
@@ -266,7 +266,7 @@ export default function BranchForm() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
                 <Input
                   type="email"
                   value={formData.email}
@@ -275,7 +275,7 @@ export default function BranchForm() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Direktur</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Direktur</label>
                 <Input
                   type="text"
                   value={formData.director}
@@ -284,7 +284,7 @@ export default function BranchForm() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Contact Person</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contact Person</label>
                 <Input
                   type="text"
                   value={formData.contactPerson}
@@ -293,7 +293,7 @@ export default function BranchForm() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">No. HP Contact Person</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">No. HP Contact Person</label>
                 <Input
                   type="tel"
                   value={formData.mobilePhone}
@@ -309,22 +309,22 @@ export default function BranchForm() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-primary-600" />
+              <Clock className="w-5 h-5 text-primary-600 dark:text-primary-400" />
               Pengaturan
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, isActive: !prev.isActive }))}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isActive ? 'bg-green-500' : 'bg-gray-300'}`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isActive ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}
                 >
                   <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.isActive ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
-                <span className="text-sm text-gray-600">{formData.isActive ? 'Aktif' : 'Tidak Aktif'}</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">{formData.isActive ? 'Aktif' : 'Tidak Aktif'}</span>
               </div>
             </div>
           </CardContent>

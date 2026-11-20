@@ -147,38 +147,38 @@ export default function DepartmentList() {
         onReset={() => {}}
       />
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         {isLoading ? (
           <div className="flex justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+            <Loader2 className="w-8 h-8 animate-spin text-primary-600 dark:text-primary-400" />
           </div>
         ) : (
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-gray-50 dark:bg-gray-950 border-b border-gray-200 dark:border-gray-700">
               <tr>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Kode</th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Nama</th>
-                <th className="text-center px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Level</th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Induk</th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Cabang</th>
-                <th className="text-center px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Jml Karyawan</th>
-                <th className="text-center px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Status</th>
-                <th className="text-right px-6 py-3 text-xs font-semibold text-gray-500 uppercase">Aksi</th>
+                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Kode</th>
+                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Nama</th>
+                <th className="text-center px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Level</th>
+                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Induk</th>
+                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Cabang</th>
+                <th className="text-center px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Jml Karyawan</th>
+                <th className="text-center px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Status</th>
+                <th className="text-right px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {data?.data?.map((dept) => (
-              <tr key={dept.id} className="hover:bg-gray-50">
-              <td className="px-6 py-4 text-sm font-mono text-gray-500">{dept.code}</td>
-              <td className="px-6 py-4 text-sm font-medium text-gray-900">{dept.name}</td>
+              <tr key={dept.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+              <td className="px-6 py-4 text-sm font-mono text-gray-500 dark:text-gray-400">{dept.code}</td>
+              <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">{dept.name}</td>
               <td className="px-6 py-4 text-sm text-center">
-                <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-700">
+                <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300">
                   L{dept.level ?? 1}
                 </span>
               </td>
-              <td className="px-6 py-4 text-sm text-gray-500">{dept.parentDepartment?.name || "—"}</td>
-              <td className="px-6 py-4 text-sm text-gray-500">{dept.branch?.name || "-"}</td>
-                  <td className="px-6 py-4 text-sm text-center text-gray-500">{dept._count?.employees || 0}</td>
+              <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{dept.parentDepartment?.name || "—"}</td>
+              <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{dept.branch?.name || "-"}</td>
+                  <td className="px-6 py-4 text-sm text-center text-gray-500 dark:text-gray-400">{dept._count?.employees || 0}</td>
                   <td className="px-6 py-4 text-center">
                     <StatusDot tone={dept.isActive ? "ok" : "off"}>
                       {dept.isActive ? "Aktif" : "Nonaktif"}
@@ -193,7 +193,7 @@ export default function DepartmentList() {
                         type="button"
                         onClick={() => { if (confirm("Nonaktifkan departemen ini?")) deleteMutation.mutate(dept.id); }}
                         title="Nonaktifkan"
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-600 dark:hover:text-red-400"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -203,7 +203,7 @@ export default function DepartmentList() {
               ))}
               {(!data?.data || data.data.length === 0) && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                     Belum ada data departemen
                   </td>
                 </tr>
@@ -216,7 +216,7 @@ export default function DepartmentList() {
       {data?.meta && data.meta.totalPages > 1 && (
         <div className="flex justify-center gap-2">
           <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Prev</Button>
-          <span className="px-4 py-2 text-sm text-gray-600">{data.meta.page} / {data.meta.totalPages}</span>
+          <span className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">{data.meta.page} / {data.meta.totalPages}</span>
           <Button variant="outline" size="sm" disabled={page >= data.meta.totalPages} onClick={() => setPage((p) => p + 1)}>Next</Button>
         </div>
       )}
@@ -234,7 +234,7 @@ export default function DepartmentList() {
               required
               value={form.code}
               onChange={(e) => setForm({ ...form, code: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 font-mono"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 font-mono"
               placeholder="Contoh: FIN, SALES, TECH"
             />
           </div>
@@ -245,7 +245,7 @@ export default function DepartmentList() {
               required
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500"
               placeholder="Contoh: Sales & Marketing, Finance"
             />
           </div>
@@ -254,14 +254,14 @@ export default function DepartmentList() {
             <select
               value={form.parentDepartmentId ?? ""}
               onChange={(e) => setForm({ ...form, parentDepartmentId: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500"
             >
               <option value="">Tanpa induk (level 1)</option>
               {(data?.data || []).filter((d: Department) => !editing || d.id !== editing.id).map((d: Department) => (
                 <option key={d.id} value={d.id}>{d.name} (L{d.level ?? 1})</option>
               ))}
             </select>
-            <p className="text-xs text-gray-500 mt-1">Level anak = induk + 1 (level 0 dicadangkan).</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Level anak = induk + 1 (level 0 dicadangkan).</p>
           </div>
           <div className="flex items-center gap-2">
             <input
@@ -269,7 +269,7 @@ export default function DepartmentList() {
               id="isActive"
               checked={form.isActive}
               onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-              className="rounded border-gray-300"
+              className="rounded border-gray-300 dark:border-gray-600"
             />
             <label htmlFor="isActive" className="text-sm">Aktif</label>
           </div>

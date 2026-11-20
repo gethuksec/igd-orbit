@@ -115,7 +115,7 @@ export default function ServiceTypeForm() {
   if (loadingServiceType) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
+        <Loader2 className="w-8 h-8 text-primary-600 dark:text-primary-400 animate-spin" />
       </div>
     );
   }
@@ -131,64 +131,64 @@ export default function ServiceTypeForm() {
       </BreadcrumbHeader>
 
       {/* Form Card */}
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 overflow-hidden">
         <div className="p-6 space-y-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg">
               <Wrench className="w-5 h-5 text-white" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900">Informasi Layanan</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Informasi Layanan</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {isEdit && serviceType?.code && (
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
                   Kode Layanan
                 </label>
                 <input
                   type="text"
                   value={serviceType.code}
                   disabled
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 text-gray-500 cursor-not-allowed"
+                  className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-950 text-gray-500 dark:text-gray-400 cursor-not-allowed"
                   placeholder="Kode layanan (auto-generated)"
                 />
-                <p className="text-xs text-gray-500 mt-1">Kode layanan dibuat otomatis dan tidak dapat diubah</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Kode layanan dibuat otomatis dan tidak dapat diubah</p>
               </div>
             )}
 
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">
-                Nama Layanan <span className="text-red-500">*</span>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                Nama Layanan <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <input
                 type="text"
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+                className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
                 placeholder="Screen Replacement (HP)"
               />
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-gray-700 mb-2">Deskripsi</label>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Deskripsi</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={4}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all resize-none"
+                className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all resize-none"
                 placeholder="Deskripsi layanan"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">
-                Harga Dasar <span className="text-red-500">*</span>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                Harga Dasar <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <DollarSign className="h-5 w-5 text-gray-400" />
+                  <DollarSign className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                 </div>
                 <input
                   type="number"
@@ -197,46 +197,46 @@ export default function ServiceTypeForm() {
                   step="1000"
                   value={formData.basePrice}
                   onChange={(e) => setFormData({ ...formData, basePrice: Number(e.target.value) })}
-                  className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+                  className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
                   placeholder="300000"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Harga Minimum (Opsional)</label>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Harga Minimum (Opsional)</label>
               <input
                 type="number"
                 min="0"
                 step="1000"
                 value={formData.minPrice}
                 onChange={(e) => setFormData({ ...formData, minPrice: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+                className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
                 placeholder="150000"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Harga Maksimum (Opsional)</label>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Harga Maksimum (Opsional)</label>
               <input
                 type="number"
                 min="0"
                 step="1000"
                 value={formData.maxPrice}
                 onChange={(e) => setFormData({ ...formData, maxPrice: e.target.value })}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+                className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
                 placeholder="500000"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">
-                SLA (Service Level Agreement) <span className="text-red-500">*</span>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                SLA (Service Level Agreement) <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Clock className="h-5 w-5 text-gray-400" />
+                    <Clock className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                   </div>
                   <input
                     type="number"
@@ -248,10 +248,10 @@ export default function ServiceTypeForm() {
                       const days = Number(e.target.value);
                       setFormData({ ...formData, slaDays: days });
                     }}
-                    className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+                    className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
                     placeholder="1"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Hari (0-30)</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Hari (0-30)</p>
                 </div>
                 <div className="relative">
                   <input
@@ -265,14 +265,14 @@ export default function ServiceTypeForm() {
                       const hours = Number(e.target.value);
                       setFormData({ ...formData, slaHoursRemainder: hours });
                     }}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+                    className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
                     placeholder="0"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Jam (0-23.5, step 0.5)</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Jam (0-23.5, step 0.5)</p>
                 </div>
               </div>
-              <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
-                <p className="text-xs text-blue-600">
+              <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="text-xs text-blue-600 dark:text-blue-400">
                   Total: <span className="font-semibold">{formData.slaDays * 24 + formData.slaHoursRemainder} jam</span>
                   {formData.slaDays > 0 && ` (${formData.slaDays} hari${formData.slaHoursRemainder > 0 ? ` ${formData.slaHoursRemainder} jam` : ''})`}
                 </p>
@@ -280,12 +280,12 @@ export default function ServiceTypeForm() {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
                 Estimasi Durasi (opsional)
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Clock className="h-5 w-5 text-gray-400" />
+                  <Clock className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                 </div>
                 <input
                   type="number"
@@ -295,18 +295,18 @@ export default function ServiceTypeForm() {
                   onChange={(e) => {
                     setFormData({ ...formData, durationHours: e.target.value });
                   }}
-                  className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+                  className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
                   placeholder="0"
                 />
-                <p className="text-xs text-gray-500 mt-1">Jam (step 0.5) — tampil otomatis saat pilih layanan di Smart Repair</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Jam (step 0.5) — tampil otomatis saat pilih layanan di Smart Repair</p>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
                 Harga per Tier (opsional)
               </label>
-              <p className="text-xs text-gray-500 mb-2">Kosongkan = ikut harga dasar. Terisi = harga otomatis mengikuti tier customer di Smart Repair.</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Kosongkan = ikut harga dasar. Terisi = harga otomatis mengikuti tier customer di Smart Repair.</p>
               <div className="grid grid-cols-2 gap-3">
                 {(customerTiers as any[]).map((tier: any) => (
                   <div key={tier.id}>
@@ -323,21 +323,21 @@ export default function ServiceTypeForm() {
                           return { ...prev, tierPricing: next };
                         });
                       }}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
+                      className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all"
                       placeholder={String(formData.basePrice || 0)}
                     />
-                    <p className="text-xs text-gray-500 mt-1">{tier.name}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{tier.name}</p>
                   </div>
                 ))}
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Status</label>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Status</label>
               <select
                 value={formData.isActive ? 'active' : 'inactive'}
                 onChange={(e) => setFormData({ ...formData, isActive: e.target.value === 'active' })}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all bg-white"
+                className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base transition-all bg-white dark:bg-gray-900"
               >
                 <option value="active">Aktif</option>
                 <option value="inactive">Tidak Aktif</option>
@@ -347,11 +347,11 @@ export default function ServiceTypeForm() {
         </div>
 
         {/* Actions */}
-        <div className="p-6 bg-gray-50 border-t border-gray-200 flex items-center justify-end gap-3">
+        <div className="p-6 bg-gray-50 dark:bg-gray-950 border-t border-gray-200 dark:border-gray-700 flex items-center justify-end gap-3">
           <button
             type="button"
             onClick={() => navigate('/service-types')}
-            className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-white hover:border-primary-500 hover:text-primary-600 transition-all font-semibold"
+            className="px-6 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-white dark:hover:bg-gray-800 hover:border-primary-500 hover:text-primary-600 dark:hover:text-primary-400 transition-all font-semibold"
           >
             Batal
           </button>

@@ -136,8 +136,8 @@ export default function StockOpnameDetail() {
     return (
       <div className="w-full flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-16 h-16 text-primary-600 animate-spin" />
-          <p className="text-gray-600 font-semibold text-lg">Memuat data opname...</p>
+          <Loader2 className="w-16 h-16 text-primary-600 dark:text-primary-400 animate-spin" />
+          <p className="text-gray-600 dark:text-gray-400 font-semibold text-lg">Memuat data opname...</p>
         </div>
       </div>
     );
@@ -146,8 +146,8 @@ export default function StockOpnameDetail() {
   if (error || !opname) {
     return (
       <div className="w-full space-y-3">
-        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
-          <p className="text-red-800 font-medium">
+        <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
+          <p className="text-red-800 dark:text-red-200 font-medium">
             {(error as Error)?.message || 'Opname tidak ditemukan'}
           </p>
         </div>
@@ -173,17 +173,17 @@ export default function StockOpnameDetail() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'draft':
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700';
       case 'counting':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-800';
       case 'completed':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return 'bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800';
       case 'approved':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800';
       case 'cancelled':
-        return 'bg-red-50 text-red-700 border-red-200';
+        return 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700';
     }
   };
 
@@ -267,105 +267,105 @@ export default function StockOpnameDetail() {
 
       {/* Stats Cards — IGDERP-235 (OP3): C2 figures from the review */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600">Total Produk</span>
-            <Package className="w-5 h-5 text-primary-600" />
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Produk</span>
+            <Package className="w-5 h-5 text-primary-600 dark:text-primary-400" />
           </div>
-          <h3 className="text-2xl font-bold text-gray-900">{c2Products}</h3>
-          <p className="text-xs text-gray-500 mt-1">
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{c2Products}</h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
             {c2Counted} sudah dihitung ({c2Products > 0 ? Math.round((c2Counted / c2Products) * 100) : 0}%)
           </p>
         </div>
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600">Nilai Selisih</span>
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Nilai Selisih</span>
             {c2VarianceTotal === null ? (
-              <CheckCircle className="w-5 h-5 text-gray-400" />
+              <CheckCircle className="w-5 h-5 text-gray-400 dark:text-gray-500" />
             ) : c2VarianceTotal > 0 ? (
-              <TrendingUp className="w-5 h-5 text-green-600" />
+              <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
             ) : c2VarianceTotal < 0 ? (
-              <TrendingDown className="w-5 h-5 text-red-600" />
+              <TrendingDown className="w-5 h-5 text-red-600 dark:text-red-400" />
             ) : (
-              <CheckCircle className="w-5 h-5 text-gray-600" />
+              <CheckCircle className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             )}
           </div>
           {c2VarianceTotal === null ? (
-            <h3 className="text-2xl font-bold text-gray-300">—</h3>
+            <h3 className="text-2xl font-bold text-gray-300 dark:text-gray-600">—</h3>
           ) : (
             <h3
               className={`text-2xl font-bold ${
                 c2VarianceTotal > 0
-                  ? 'text-green-600'
+                  ? 'text-green-600 dark:text-green-400'
                   : c2VarianceTotal < 0
-                    ? 'text-red-600'
-                    : 'text-gray-900'
+                    ? 'text-red-600 dark:text-red-400'
+                    : 'text-gray-900 dark:text-gray-100'
               }`}
             >
               {c2VarianceTotal > 0 ? '+' : c2VarianceTotal < 0 ? '−' : ''}
               {formatCurrency(Math.abs(c2VarianceTotal))}
             </h3>
           )}
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
             {hasVariance ? 'Netto semua produk · dasar harga beli' : 'Disembunyikan untuk petugas pencacah'}
           </p>
         </div>
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600">
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
               {hasVariance ? 'Produk Selisih' : 'Tercatat'}
             </span>
-            <AlertTriangle className="w-5 h-5 text-yellow-600" />
+            <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
           </div>
-          <h3 className="text-2xl font-bold text-gray-900">{hasVariance ? c2Selisih : c2Counted}</h3>
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{hasVariance ? c2Selisih : c2Counted}</h3>
           {hasVariance && summary && summary.movementCount! > 0 && (
-            <p className="text-xs text-gray-500 mt-1">{summary.movementCount} mutasi selama sesi OPEN</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{summary.movementCount} mutasi selama sesi OPEN</p>
           )}
         </div>
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600">
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
               {hasVariance ? 'Cocok' : 'Belum Dihitung'}
             </span>
             {hasVariance ? (
-              <CheckCircle className="w-5 h-5 text-green-600" />
+              <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
             ) : (
-              <AlertTriangle className="w-5 h-5 text-red-600" />
+              <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
             )}
           </div>
-          <h3 className={`text-2xl font-bold ${hasVariance ? 'text-green-600' : 'text-red-600'}`}>
+          <h3 className={`text-2xl font-bold ${hasVariance ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
             {hasVariance ? c2Cocok : (summary?.belumDihitung ?? totalItems - countedItems)}
           </h3>
-          {!hasVariance && <p className="text-xs text-gray-500 mt-1">Perlu dihitung</p>}
+          {!hasVariance && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Perlu dihitung</p>}
         </div>
       </div>
 
       {/* Opname Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <ClipboardCheck className="w-5 h-5 text-primary-600" />
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <ClipboardCheck className="w-5 h-5 text-primary-600 dark:text-primary-400" />
             Informasi Opname
           </h2>
           <div className="space-y-3">
             <div>
-              <p className="text-sm text-gray-600">Gudang</p>
-              <p className="text-base font-semibold text-gray-900">
+              <p className="text-sm text-gray-600 dark:text-gray-400">Gudang</p>
+              <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
                 {opname.warehouse ? `${opname.warehouse.name} (${opname.warehouse.code})` : '-'}
               </p>
               {opname.warehouse && (
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   {opname.warehouse.scope === 'SYSTEM' ? 'Central' : 'Outlet'} · {opname.warehouse.type}
                 </p>
               )}
             </div>
             <div>
-              <p className="text-sm text-gray-600">Cabang</p>
-              <p className="text-base font-semibold text-gray-900">{opname.branch?.name || '-'}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Cabang</p>
+              <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{opname.branch?.name || '-'}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Tanggal Opname</p>
-              <p className="text-base font-semibold text-gray-900">
+              <p className="text-sm text-gray-600 dark:text-gray-400">Tanggal Opname</p>
+              <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
                 {new Date(opname.opnameDate).toLocaleDateString('id-ID', {
                   day: '2-digit',
                   month: 'long',
@@ -375,36 +375,36 @@ export default function StockOpnameDetail() {
             </div>
             {opname.completedAt && (
               <div>
-                <p className="text-sm text-gray-600">Selesai Pada</p>
-                <p className="text-base font-semibold text-gray-900">
+                <p className="text-sm text-gray-600 dark:text-gray-400">Selesai Pada</p>
+                <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
                   {new Date(opname.completedAt).toLocaleString('id-ID')}
                 </p>
               </div>
             )}
             {opname.approvedAt && (
               <div>
-                <p className="text-sm text-gray-600">Disetujui Pada</p>
-                <p className="text-base font-semibold text-gray-900">
+                <p className="text-sm text-gray-600 dark:text-gray-400">Disetujui Pada</p>
+                <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
                   {new Date(opname.approvedAt).toLocaleString('id-ID')}
                 </p>
               </div>
             )}
             {opname.notes && (
               <div>
-                <p className="text-sm text-gray-600">Catatan</p>
-                <p className="text-base text-gray-900">{opname.notes}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Catatan</p>
+                <p className="text-base text-gray-900 dark:text-gray-100">{opname.notes}</p>
               </div>
             )}
           </div>
         </div>
 
         {itemsWithLargeDiscrepancy.length > 0 && (
-          <div className="bg-yellow-50 border-l-4 border-yellow-500 rounded-xl shadow-md p-6">
+          <div className="bg-yellow-50 dark:bg-yellow-950 border-l-4 border-yellow-500 rounded-xl shadow-md p-6">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="w-6 h-6 text-yellow-600 mt-1" />
+              <AlertTriangle className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mt-1" />
               <div>
-                <h3 className="text-lg font-bold text-yellow-900 mb-2">Peringatan</h3>
-                <p className="text-sm text-yellow-800">
+                <h3 className="text-lg font-bold text-yellow-900 dark:text-yellow-100 mb-2">Peringatan</h3>
+                <p className="text-sm text-yellow-800 dark:text-yellow-200">
                   Terdapat {itemsWithLargeDiscrepancy.length} item dengan discrepancy lebih dari 5%. Harap
                   lakukan investigasi sebelum menyetujui opname ini.
                 </p>
@@ -415,19 +415,19 @@ export default function StockOpnameDetail() {
       </div>
 
       {/* IGDERP-260: members — add/remove mid-session, history stays */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-1">Anggota Counting</h2>
-        <p className="text-xs text-gray-500 mb-4">Hasil scan anggota yang dihapus tetap tersimpan.</p>
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">Anggota Counting</h2>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Hasil scan anggota yang dihapus tetap tersimpan.</p>
         <div className="flex flex-wrap gap-2">
           {memberIds.length === 0 && (
-            <span className="text-sm text-gray-400">Belum ada anggota tambahan.</span>
+            <span className="text-sm text-gray-400 dark:text-gray-500">Belum ada anggota tambahan.</span>
           )}
           {memberIds.map((uid: string) => {
             const u = (Array.isArray(usersData) ? usersData : []).find((x: any) => x.id === uid);
             return (
               <span
                 key={uid}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium bg-primary-50 text-primary-700 border border-primary-200"
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium bg-primary-50 dark:bg-primary-950 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800"
               >
                 {u ? u.fullName || u.username : uid.slice(0, 8)}
                 {isActiveOpname && (
@@ -435,7 +435,7 @@ export default function StockOpnameDetail() {
                     type="button"
                     onClick={() => removeMemberMutation.mutate(uid)}
                     disabled={removeMemberMutation.isPending}
-                    className="font-bold hover:text-red-600 disabled:opacity-50"
+                    className="font-bold hover:text-red-600 dark:hover:text-red-400 disabled:opacity-50"
                     title="Hapus anggota"
                   >
                     ✕
@@ -450,7 +450,7 @@ export default function StockOpnameDetail() {
             <select
               value={memberPick}
               onChange={(e) => setMemberPick(e.target.value)}
-              className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+              className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
             >
               <option value="">+ Tambah anggota…</option>
               {memberOptions.map((u: any) => (
@@ -472,17 +472,17 @@ export default function StockOpnameDetail() {
       </div>
 
       {/* D2 timeline — IGDERP-236 (OP4): counting → review → approval → posting */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Alur Persetujuan</h2>
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Alur Persetujuan</h2>
         <OpnameTimeline opname={opname} approvals={approvals} />
         {approvals && approvals.length > 0 && (
-          <div className="mt-4 border-t border-gray-100 pt-3">
-            <div className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-1.5">
+          <div className="mt-4 border-t border-gray-100 dark:border-gray-800 pt-3">
+            <div className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
               Riwayat persetujuan
             </div>
             <div className="space-y-1">
               {approvals.map((a: any) => (
-                <div key={a.id} className="text-xs text-gray-600">
+                <div key={a.id} className="text-xs text-gray-600 dark:text-gray-400">
                   ✓ {a.decision} · {new Date(a.createdAt).toLocaleString('id-ID')}
                   {a.note ? ` — ${a.note}` : ''}
                 </div>
@@ -491,13 +491,13 @@ export default function StockOpnameDetail() {
           </div>
         )}
         {corrections && corrections.length > 0 && (
-          <div className="mt-4 border-t border-gray-100 pt-3">
-            <div className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-1.5">
+          <div className="mt-4 border-t border-gray-100 dark:border-gray-800 pt-3">
+            <div className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
               Riwayat koreksi ({corrections.length})
             </div>
             <div className="space-y-1 max-h-48 overflow-y-auto">
               {corrections.slice(0, 30).map((c: any) => (
-                <div key={c.id} className="text-xs text-gray-600">
+                <div key={c.id} className="text-xs text-gray-600 dark:text-gray-400">
                   {c.product?.name || c.productId}: {c.oldQuantity ?? '—'} → <b>{c.newQuantity}</b>
                   {c.condition ? ` (${c.condition})` : ''} · “{c.reason}” ·{' '}
                   {new Date(c.createdAt).toLocaleString('id-ID')}
@@ -509,10 +509,10 @@ export default function StockOpnameDetail() {
       </div>
 
       {/* Hasil — IGDERP-235 (OP3): C2 variance-first review */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-5">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6 space-y-5">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <Package className="w-5 h-5 text-primary-600" />
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+            <Package className="w-5 h-5 text-primary-600 dark:text-primary-400" />
             Hasil Perhitungan
           </h2>
           {opname.status === 'counting' && (
@@ -527,20 +527,20 @@ export default function StockOpnameDetail() {
         </div>
 
         {!review ? (
-          <p className="text-sm text-gray-400 py-4 text-center">Memuat hasil perhitungan…</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500 py-4 text-center">Memuat hasil perhitungan…</p>
         ) : hasVariance ? (
           <>
             {/* Variance banner */}
-            <div className="rounded-xl border-2 border-yellow-300 bg-yellow-50 px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-1">
-              <span className="text-sm font-bold text-yellow-900">
+            <div className="rounded-xl border-2 border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-950 px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-1">
+              <span className="text-sm font-bold text-yellow-900 dark:text-yellow-100">
                 Selisih {c2Selisih} produk · Cocok {c2Cocok} · Belum {belumGroup.length}
               </span>
-              <span className="text-sm font-extrabold text-gray-900">
+              <span className="text-sm font-extrabold text-gray-900 dark:text-gray-100">
                 Netto {c2VarianceTotal! > 0 ? '+' : c2VarianceTotal! < 0 ? '−' : ''}
                 {formatCurrency(Math.abs(c2VarianceTotal ?? 0))}
               </span>
               {review && (opname.opnameType === 'OPEN' || (review as any).opnameType === 'OPEN') && (
-                <span className="text-xs text-yellow-800">
+                <span className="text-xs text-yellow-800 dark:text-yellow-200">
                   Sesi OPEN — expected = snapshot + mutasi selama sesi
                   {summary?.movementCount ? ` (${summary.movementCount} mutasi)` : ''}
                 </span>
@@ -549,11 +549,11 @@ export default function StockOpnameDetail() {
 
             {/* Selisih group on top */}
             <section>
-              <h3 className="text-sm font-bold uppercase tracking-wide text-red-700 mb-2">
+              <h3 className="text-sm font-bold uppercase tracking-wide text-red-700 dark:text-red-300 mb-2">
                 Selisih ({selisihGroup.length})
               </h3>
               {selisihGroup.length === 0 ? (
-                <p className="text-sm text-gray-400">Tidak ada selisih — semua yang dihitung cocok.</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500">Tidak ada selisih — semua yang dihitung cocok.</p>
               ) : (
                 <div className="space-y-2">
                   {selisihGroup.map((p: any) => (
@@ -564,8 +564,8 @@ export default function StockOpnameDetail() {
             </section>
 
             {/* Cocok group collapsed */}
-            <details className="rounded-xl border border-green-200 bg-green-50/50 px-4 py-2">
-              <summary className="cursor-pointer text-sm font-bold text-green-800">
+            <details className="rounded-xl border border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/50 px-4 py-2">
+              <summary className="cursor-pointer text-sm font-bold text-green-800 dark:text-green-200">
                 Cocok ({cocokGroup.length}) — klik untuk melihat
               </summary>
               <div className="mt-2 space-y-2">
@@ -578,7 +578,7 @@ export default function StockOpnameDetail() {
             {/* Belum dihitung */}
             {belumGroup.length > 0 && (
               <section>
-                <h3 className="text-sm font-bold uppercase tracking-wide text-gray-500 mb-2">
+                <h3 className="text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
                   Belum dihitung ({belumGroup.length})
                 </h3>
                 <div className="space-y-2">
@@ -593,7 +593,7 @@ export default function StockOpnameDetail() {
           <>
             {/* Blind: one counted group, no variance figures */}
             <section>
-              <h3 className="text-sm font-bold uppercase tracking-wide text-gray-700 mb-2">
+              <h3 className="text-sm font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300 mb-2">
                 Tercatat ({blindCounted.length})
               </h3>
               <div className="space-y-2">
@@ -604,7 +604,7 @@ export default function StockOpnameDetail() {
             </section>
             {belumGroup.length > 0 && (
               <section>
-                <h3 className="text-sm font-bold uppercase tracking-wide text-gray-500 mb-2">
+                <h3 className="text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
                   Belum dihitung ({belumGroup.length})
                 </h3>
                 <div className="space-y-2">
@@ -635,7 +635,7 @@ export default function StockOpnameDetail() {
                 }
               }}
               disabled={cancelMutation.isPending}
-              className="px-6 py-3 bg-white text-red-600 border border-red-300 rounded-lg font-semibold hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-6 py-3 bg-white dark:bg-gray-900 text-red-600 dark:text-red-400 border border-red-300 dark:border-red-700 rounded-lg font-semibold hover:bg-red-50 dark:hover:bg-red-950 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {cancelMutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -712,9 +712,9 @@ function OpnameTimeline({ opname, approvals }: { opname: any; approvals?: any[] 
         <li
           key={s.key}
           className={`flex-1 rounded-xl border px-3 py-2 ${
-            s.done ? 'border-green-300 bg-green-50' : i === stages.findIndex((x) => !x.done) && opname.status !== 'cancelled' && opname.status !== 'approved'
-              ? 'border-primary-400 bg-red-50'
-              : 'border-gray-200 bg-gray-50'
+            s.done ? 'border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-950' : i === stages.findIndex((x) => !x.done) && opname.status !== 'cancelled' && opname.status !== 'approved'
+              ? 'border-primary-400 bg-red-50 dark:bg-red-950'
+              : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-950'
           }`}
         >
           <div className="flex items-center gap-2">
@@ -725,9 +725,9 @@ function OpnameTimeline({ opname, approvals }: { opname: any; approvals?: any[] 
             >
               {s.done ? '✓' : i + 1}
             </span>
-            <span className="text-xs font-bold text-gray-900">{s.label}</span>
+            <span className="text-xs font-bold text-gray-900 dark:text-gray-100">{s.label}</span>
           </div>
-          <div className="mt-0.5 text-[11px] text-gray-500">
+          <div className="mt-0.5 text-[11px] text-gray-500 dark:text-gray-400">
             {s.at ? new Date(s.at).toLocaleString('id-ID') : '—'}
           </div>
         </li>
@@ -757,32 +757,32 @@ function ReviewProductRow({
     <div
       className={`rounded-xl border px-4 py-2.5 ${
         showVariance && !uncounted && variance !== 0
-          ? 'border-red-200 bg-red-50/50'
-          : 'border-gray-200 bg-white'
+          ? 'border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/50'
+          : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900'
       }`}
     >
       <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
         <div className="flex-1 min-w-[180px]">
-          <div className="text-sm font-bold text-gray-900">{p.product?.name || '-'}</div>
-          <div className="text-[11px] text-gray-400">SKU: {p.product?.sku || '-'}</div>
+          <div className="text-sm font-bold text-gray-900 dark:text-gray-100">{p.product?.name || '-'}</div>
+          <div className="text-[11px] text-gray-400 dark:text-gray-500">SKU: {p.product?.sku || '-'}</div>
         </div>
         {showVariance && (
           <>
-            <span className="text-xs text-gray-500">
-              Snapshot <b className="text-gray-900">{p.snapshot}</b>
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              Snapshot <b className="text-gray-900 dark:text-gray-100">{p.snapshot}</b>
             </span>
             {'expected' in p && p.expected !== p.snapshot && (
-              <span className="text-xs text-gray-500">
-                Expected <b className="text-gray-900">{p.expected}</b>
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                Expected <b className="text-gray-900 dark:text-gray-100">{p.expected}</b>
               </span>
             )}
-            <span className="text-xs text-gray-500">
-              Fisik <b className="text-gray-900">{uncounted ? '—' : p.physical}</b>
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              Fisik <b className="text-gray-900 dark:text-gray-100">{uncounted ? '—' : p.physical}</b>
             </span>
             {!uncounted && (
               <span
                 className={`text-sm font-extrabold ${
-                  variance > 0 ? 'text-green-600' : variance < 0 ? 'text-red-600' : 'text-gray-400'
+                  variance > 0 ? 'text-green-600 dark:text-green-400' : variance < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-400 dark:text-gray-500'
                 }`}
               >
                 {variance > 0 ? '+' : ''}
@@ -798,14 +798,14 @@ function ReviewProductRow({
           </>
         )}
         {!showVariance && (
-          <span className="text-sm font-bold text-gray-900">
+          <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
             Fisik {uncounted ? '—' : p.physical}
           </span>
         )}
       </div>
       {!uncounted && (
         <details className="mt-1.5">
-          <summary className="cursor-pointer text-[11px] font-semibold text-primary-600">
+          <summary className="cursor-pointer text-[11px] font-semibold text-primary-600 dark:text-primary-400">
             Rincian hitungan
             {p.breakdown &&
               ` — Baik ${p.breakdown.good} · Rusak ${p.breakdown.damaged} · Kadaluarsa ${p.breakdown.expired}`}
@@ -814,7 +814,7 @@ function ReviewProductRow({
             {(p.rows ?? []).map((r: any) => (
               <span
                 key={r.itemId}
-                className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] text-gray-700"
+                className="rounded-full bg-gray-100 dark:bg-gray-800 px-2.5 py-0.5 text-[11px] text-gray-700 dark:text-gray-300"
               >
                 {condLabel(r.condition)} {r.physicalQuantity}
               </span>
@@ -823,7 +823,7 @@ function ReviewProductRow({
           {showVariance && (p.movements ?? []).length > 0 && (
             <div className="mt-1.5 space-y-0.5">
               {(p.movements ?? []).map((m: any) => (
-                <div key={m.id} className="text-[11px] text-gray-500">
+                <div key={m.id} className="text-[11px] text-gray-500 dark:text-gray-400">
                   {m.movementType} {Number(m.quantityChange) > 0 ? '+' : ''}
                   {m.quantityChange}
                   {m.referenceType ? ` · ${m.referenceType}` : ''}

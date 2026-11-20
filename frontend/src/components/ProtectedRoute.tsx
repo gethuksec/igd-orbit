@@ -186,7 +186,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
         return (
           <div className="flex items-center justify-center min-h-screen">
             <div className="text-center">
-              <p className="text-gray-600">Checking access...</p>
+              <p className="text-gray-600 dark:text-gray-400">Checking access...</p>
             </div>
           </div>
         );

@@ -72,7 +72,7 @@ export function ExecutiveDashboard() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <p className="text-gray-600">Akses ditolak. Dashboard eksekutif hanya untuk tier 1-3.</p>
+          <p className="text-gray-600 dark:text-gray-400">Akses ditolak. Dashboard eksekutif hanya untuk tier 1-3.</p>
         </div>
       </div>
     );
@@ -265,7 +265,7 @@ export function ExecutiveDashboard() {
             transactionChange > 0 ? 'positive' : transactionChange < 0 ? 'negative' : 'neutral'
           }
           icon={ShoppingCart}
-          gradient="from-white to-gray-100"
+          gradient="from-white dark:from-gray-900 to-gray-100 dark:to-gray-800"
           textColor="text-indonesia-red-600"
           border="border-l-4 border-indonesia-red-600"
           isLoading={kpisLoading}
@@ -296,7 +296,7 @@ export function ExecutiveDashboard() {
             kpis && (kpis.lowStockItems > 0 || kpis.outOfStockItems > 0) ? 'negative' : 'neutral'
           }
           icon={Package}
-          gradient="from-white to-gray-100"
+          gradient="from-white dark:from-gray-900 to-gray-100 dark:to-gray-800"
           textColor="text-indonesia-red-600"
           border="border-l-4 border-indonesia-red-600"
           isLoading={kpisLoading}
@@ -418,7 +418,7 @@ export function ExecutiveDashboard() {
 
       {/* Tables Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-white rounded-lg shadow-md p-4">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-4">
           <h3 className="text-lg font-bold text-indonesia-red-700 mb-4">
             {t('dashboard.executive.topProducts')}
           </h3>
@@ -441,7 +441,7 @@ export function ExecutiveDashboard() {
                   </tr>
                 ) : (
                   topProducts.map((product) => (
-                    <tr key={product.rank} className="border-b hover:bg-gray-50">
+                    <tr key={product.rank} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
                       <td className="py-2 px-4">{product.rank}</td>
                       <td className="py-2 px-4">{product.productName}</td>
                       <td className="text-right py-2 px-4">{formatNumber(product.quantitySold)}</td>
@@ -475,7 +475,7 @@ export function ExecutiveDashboard() {
 
       {/* Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-white rounded-lg shadow-md p-4">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-4">
           <h3 className="text-lg font-bold text-indonesia-red-700 mb-4">
             {t('dashboard.executive.recentTransactions')}
           </h3>
@@ -486,19 +486,19 @@ export function ExecutiveDashboard() {
               recentTransactions.map((txn) => (
                 <div
                   key={txn.id}
-                  className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg"
+                  className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg"
                 >
                   <div>
                     <p className="font-medium">{txn.customer}</p>
-                    <p className="text-sm text-gray-500">{txn.time}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{txn.time}</p>
                   </div>
                   <div className="text-right">
                     <p className="font-bold">{formatCurrency(txn.amount)}</p>
                     <span
                       className={`text-xs px-2 py-1 rounded ${
                         txn.status === 'completed'
-                          ? 'bg-success-100 text-success-700'
-                          : 'bg-warning-100 text-warning-700'
+                          ? 'bg-success-100 dark:bg-emerald-950 text-success-700 dark:text-emerald-300'
+                          : 'bg-warning-100 dark:bg-amber-950 text-warning-700 dark:text-amber-300'
                       }`}
                     >
                       {txn.status}
@@ -510,7 +510,7 @@ export function ExecutiveDashboard() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-4">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-4">
           <h3 className="text-lg font-bold text-indonesia-red-700 mb-4">
             {t('dashboard.executive.pendingApprovals')}
           </h3>
@@ -521,11 +521,11 @@ export function ExecutiveDashboard() {
               pendingApprovals.map((approval) => (
                 <div
                   key={approval.id}
-                  className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg"
+                  className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg"
                 >
                   <div>
                     <p className="font-medium">{approval.requester}</p>
-                    <p className="text-sm text-gray-500 capitalize">{approval.type}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">{approval.type}</p>
                   </div>
                   <div className="flex gap-2">
                     <span className="font-bold">{formatCurrency(approval.amount)}</span>

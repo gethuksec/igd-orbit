@@ -62,8 +62,8 @@ export function RoleHierarchyTree({ selectedRoleId, onRoleSelect }: RoleHierarch
         <div
           className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
             isSelected
-              ? 'bg-primary-100 text-primary-700 font-semibold'
-              : 'hover:bg-gray-100 text-gray-700'
+              ? 'bg-primary-100 dark:bg-primary-950 text-primary-700 dark:text-primary-300 font-semibold'
+              : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'
           } ${!role.isActive ? 'opacity-50' : ''}`}
           style={{ paddingLeft: `${depth * 24 + 12}px` }}
           onClick={() => onRoleSelect?.(role.id)}
@@ -74,39 +74,39 @@ export function RoleHierarchyTree({ selectedRoleId, onRoleSelect }: RoleHierarch
                 e.stopPropagation();
                 toggleExpand(role.id);
               }}
-              className="p-1 hover:bg-gray-200 rounded transition-colors"
+              className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
             >
               {isExpanded ? (
-                <ChevronDown className="w-4 h-4 text-gray-500" />
+                <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
               ) : (
-                <ChevronRight className="w-4 h-4 text-gray-500" />
+                <ChevronRight className="w-4 h-4 text-gray-500 dark:text-gray-400" />
               )}
             </button>
           ) : (
             <div className="w-6" /> // Spacer for alignment
           )}
-          <Shield className="w-4 h-4 text-primary-600" />
+          <Shield className="w-4 h-4 text-primary-600 dark:text-primary-400" />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <span className="font-medium truncate">{role.name}</span>
-              <span className="text-xs text-gray-500 font-mono">({role.code})</span>
-              <span className="text-xs px-1.5 py-0.5 bg-gray-200 text-gray-600 rounded">
+              <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">({role.code})</span>
+              <span className="text-xs px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">
                 Tier {role.level}
               </span>
             </div>
             {role.userCount !== undefined && role.userCount > 0 && (
-              <div className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
+              <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                 <Users className="w-3 h-3" />
                 <span>{role.userCount} user{role.userCount !== 1 ? 's' : ''}</span>
               </div>
             )}
           </div>
           {!role.isActive && (
-            <span className="text-xs px-2 py-0.5 bg-gray-200 text-gray-600 rounded">Inactive</span>
+            <span className="text-xs px-2 py-0.5 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">Inactive</span>
           )}
         </div>
         {hasChildren && isExpanded && (
-          <div className="ml-6 border-l-2 border-gray-200">
+          <div className="ml-6 border-l-2 border-gray-200 dark:border-gray-700">
             {children.map((child) => renderRole(child, depth + 1))}
           </div>
         )}
@@ -119,15 +119,15 @@ export function RoleHierarchyTree({ selectedRoleId, onRoleSelect }: RoleHierarch
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="text-gray-500">Loading hierarchy...</div>
+        <div className="text-gray-500 dark:text-gray-400">Loading hierarchy...</div>
       </div>
     );
   }
 
   if (rootRoles.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
-        <Shield className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+        <Shield className="w-12 h-12 mx-auto mb-3 text-gray-400 dark:text-gray-500" />
         <p>No roles found</p>
       </div>
     );

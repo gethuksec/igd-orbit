@@ -151,7 +151,7 @@ export function SalesDashboard() {
               : formatNumber(salesKPIs?.totalOrders || 0)
           }
           icon={ShoppingCart}
-          gradient="from-white to-gray-100"
+          gradient="from-white dark:from-gray-900 to-gray-100 dark:to-gray-800"
           textColor="text-indonesia-red-600"
           border="border-l-4 border-indonesia-red-600"
         />
@@ -174,7 +174,7 @@ export function SalesDashboard() {
               : `${(salesKPIs?.conversionRate || 0).toFixed(1)}%`
           }
           icon={Users}
-          gradient="from-white to-gray-100"
+          gradient="from-white dark:from-gray-900 to-gray-100 dark:to-gray-800"
           textColor="text-indonesia-red-600"
           border="border-l-4 border-indonesia-red-600"
         />
@@ -274,7 +274,7 @@ export function SalesDashboard() {
 
       {/* Sales Tables */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <div className="bg-white rounded-lg shadow-md p-4">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-4">
           <h3 className="text-lg font-bold text-indonesia-red-700 mb-4">
             {t('dashboard.sales.topCustomers')}
           </h3>
@@ -290,7 +290,7 @@ export function SalesDashboard() {
               </thead>
               <tbody>
                 {(topCustomers || []).map((customer, idx) => (
-                  <tr key={idx} className="border-b hover:bg-gray-50">
+                  <tr key={idx} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
                     <td className="py-2 px-4">{customer.name}</td>
                     <td className="py-2 px-4">
                       <span className="px-2 py-1 bg-garuda-gold-500 text-white rounded text-xs">
@@ -306,7 +306,7 @@ export function SalesDashboard() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-4">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-4">
           <h3 className="text-lg font-bold text-indonesia-red-700 mb-4">
             {t('dashboard.sales.salesByCashier')}
           </h3>
@@ -322,7 +322,7 @@ export function SalesDashboard() {
               </thead>
               <tbody>
                 {(salesByCashier || []).map((cashier) => (
-                  <tr key={cashier.name} className="border-b hover:bg-gray-50">
+                  <tr key={cashier.name} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
                     <td className="py-2 px-4">
                       <span className="px-2 py-1 bg-indonesia-red-600 text-white rounded text-xs">
                         #{cashier.rank}
@@ -341,44 +341,44 @@ export function SalesDashboard() {
 
       {/* Discount Analysis */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <div className="bg-white rounded-lg shadow-md p-4">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-4">
           <h3 className="text-lg font-bold text-indonesia-red-700 mb-4">
             {t('dashboard.sales.discountImpact')}
           </h3>
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <span className="text-gray-600">Total Diskon Diberikan</span>
+              <span className="text-gray-600 dark:text-gray-400">Total Diskon Diberikan</span>
               <span className="text-2xl font-bold text-indonesia-red-600">
                 {formatCurrency(3500000)}
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-gray-600">Persentase dari Penjualan</span>
-              <span className="text-2xl font-bold text-gray-900">7.8%</span>
+              <span className="text-gray-600 dark:text-gray-400">Persentase dari Penjualan</span>
+              <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">7.8%</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-4">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-4">
           <h3 className="text-lg font-bold text-indonesia-red-700 mb-4">
             {t('dashboard.sales.memberVsNonMember')}
           </h3>
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <span className="text-gray-600">Member</span>
+              <span className="text-gray-600 dark:text-gray-400">Member</span>
               <span className="text-2xl font-bold text-indonesia-red-600">
                 {formatCurrency(28000000)}
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-gray-600">Non-Member</span>
-              <span className="text-2xl font-bold text-gray-900">
+              <span className="text-gray-600 dark:text-gray-400">Non-Member</span>
+              <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                 {formatCurrency(17000000)}
               </span>
             </div>
             <div className="pt-4 border-t">
-              <span className="text-gray-600">Tingkat Konversi Member</span>
-              <span className="text-2xl font-bold text-success-600 block mt-2">62.2%</span>
+              <span className="text-gray-600 dark:text-gray-400">Tingkat Konversi Member</span>
+              <span className="text-2xl font-bold text-success-600 dark:text-emerald-400 block mt-2">62.2%</span>
             </div>
           </div>
         </div>

@@ -16,18 +16,18 @@ const STAGE_LABEL: Record<string, string> = {
 };
 
 const STAGE_BADGE: Record<string, string> = {
-  trial: "bg-amber-100 text-amber-800 border-amber-200",
-  probation: "bg-blue-100 text-blue-800 border-blue-200",
-  pkwt: "bg-indigo-100 text-indigo-800 border-indigo-200",
-  pkwtt: "bg-green-100 text-green-800 border-green-200",
+  trial: "bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-800",
+  probation: "bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-800",
+  pkwt: "bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-200 border-indigo-200 dark:border-indigo-800",
+  pkwtt: "bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800",
 };
 
 const STATUS_BADGE: Record<string, string> = {
-  active: "bg-green-100 text-green-800 border-green-200",
-  draft: "bg-gray-100 text-gray-800 border-gray-200",
-  expired: "bg-red-100 text-red-800 border-red-200",
-  renewed: "bg-orange-100 text-orange-800 border-orange-200",
-  terminated: "bg-red-100 text-red-800 border-red-200",
+  active: "bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800",
+  draft: "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700",
+  expired: "bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800",
+  renewed: "bg-orange-100 dark:bg-orange-950 text-orange-800 dark:text-orange-200 border-orange-200 dark:border-orange-800",
+  terminated: "bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800",
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -112,7 +112,7 @@ export default function ContractList() {
       key: "type",
       header: "Stage",
       cell: (row) => (
-        <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${STAGE_BADGE[row.type] ?? "bg-gray-100 text-gray-800 border-gray-200"}`}>
+        <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${STAGE_BADGE[row.type] ?? "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700"}`}>
           {STAGE_LABEL[row.type] ?? row.type}
         </span>
       ),
@@ -134,7 +134,7 @@ export default function ContractList() {
         <div>
           <span className="text-sm">{row.position?.name ?? "-"}</span>
           {row.grade && (
-            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
               {row.grade.code}
             </span>
           )}
@@ -150,7 +150,7 @@ export default function ContractList() {
       key: "status",
       header: "Status",
       cell: (row) => (
-        <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${STATUS_BADGE[row.status] ?? "bg-gray-100 text-gray-800 border-gray-200"}`}>
+        <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${STATUS_BADGE[row.status] ?? "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700"}`}>
           {STATUS_LABEL[row.status] ?? row.status}
         </span>
       ),
@@ -167,8 +167,8 @@ export default function ContractList() {
       </BreadcrumbHeader>
 
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
-          <p className="text-red-800 font-medium">{(error as Error).message || "Terjadi kesalahan"}</p>
+        <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
+          <p className="text-red-800 dark:text-red-200 font-medium">{(error as Error).message || "Terjadi kesalahan"}</p>
         </div>
       )}
 
