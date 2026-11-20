@@ -21,7 +21,7 @@ export class WorkingLocationsService {
 
   private include = {
     branch: { select: { id: true, code: true, name: true } },
-    _count: { select: { contracts: true } },
+    _count: { select: { contractWorkingLocations: true } },
   };
 
   async findAll() {
@@ -63,7 +63,12 @@ export class WorkingLocationsService {
       where: { id },
       include: {
         ...this.include,
-        contracts: { select: { id: true, contractNumber: true, status: true }, take: 50 },
+        contractWorkingLocations: {
+          select: {
+            contract: { select: { id: true, contractNumber: true, status: true } },
+          },
+          take: 50,
+        },
       },
     });
     if (!location) {

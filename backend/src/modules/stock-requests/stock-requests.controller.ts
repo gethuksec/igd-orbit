@@ -132,6 +132,7 @@ export class StockRequestsController {
       search: query.search,
       status: query.status,
       branchId: query.branchId,
+      requestType: query.requestType,
     });
   }
 

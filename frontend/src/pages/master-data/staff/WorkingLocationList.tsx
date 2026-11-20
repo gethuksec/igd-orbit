@@ -165,7 +165,7 @@ export default function WorkingLocationList() {
     {
       key: "contracts",
       header: "Kontrak",
-      cell: (row) => <span>{row._count?.contracts ?? "-"}</span>,
+      cell: (row) => <span>{row._count?.contractWorkingLocations ?? "-"}</span>,
     },
     {
       key: "isActive",

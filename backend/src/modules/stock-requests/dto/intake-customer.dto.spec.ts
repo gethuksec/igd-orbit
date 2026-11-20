@@ -66,6 +66,7 @@ describe('Intake customer DTOs', () => {
     it('accepts customerId-only payload (no customerType)', async () => {
       const dto = plainToInstance(CreateStockRequestDto, {
         staffName: 'Aldi',
+        requestType: 'LIMIT',
         customerId: '123e4567-e89b-42d3-a456-426614174000',
         items: [validItem],
       });
@@ -75,6 +76,7 @@ describe('Intake customer DTOs', () => {
     it('rejects non-UUID customerId', async () => {
       const dto = plainToInstance(CreateStockRequestDto, {
         staffName: 'Aldi',
+        requestType: 'LIMIT',
         customerId: 'not-a-uuid',
         items: [validItem],
       });
@@ -85,15 +87,48 @@ describe('Intake customer DTOs', () => {
     it('still accepts legacy customerType payload', async () => {
       const dto = plainToInstance(CreateStockRequestDto, {
         staffName: 'Aldi',
+        requestType: 'EXIT',
         customerType: 'USER',
         items: [validItem],
       });
       expect(await validate(dto)).toHaveLength(0);
     });
 
+    it('accepts free-text customerName without picker', async () => {
+      const dto = plainToInstance(CreateStockRequestDto, {
+        staffName: 'Aldi',
+        requestType: 'EXIT',
+        customerName: 'Budi',
+        items: [validItem],
+      });
+      expect(await validate(dto)).toHaveLength(0);
+    });
+
+    it('rejects missing requestType', async () => {
+      const dto = plainToInstance(CreateStockRequestDto, {
+        staffName: 'Aldi',
+        customerId: '123e4567-e89b-42d3-a456-426614174000',
+        items: [validItem],
+      });
+      const errors = await validate(dto);
+      expect(errors.some((e) => e.property === 'requestType')).toBe(true);
+    });
+
+    it('rejects invalid requestType', async () => {
+      const dto = plainToInstance(CreateStockRequestDto, {
+        staffName: 'Aldi',
+        requestType: 'URGENT',
+        customerType: 'USER',
+        items: [validItem],
+      });
+      const errors = await validate(dto);
+      expect(errors.some((e) => e.property === 'requestType')).toBe(true);
+    });
+
     it('rejects invalid legacy customerType', async () => {
       const dto = plainToInstance(CreateStockRequestDto, {
         staffName: 'Aldi',
+        requestType: 'LIMIT',
         customerType: 'VIP',
         items: [validItem],
       });

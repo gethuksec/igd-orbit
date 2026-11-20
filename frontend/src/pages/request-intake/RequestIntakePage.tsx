@@ -263,8 +263,9 @@ export default function RequestIntakePage() {
   const [quickSaving, setQuickSaving] = useState(false);
   const [quickErr, setQuickErr] = useState('');
   const [rows, setRows] = useState<RowState[]>([emptyRow()]);
+  const [requestType, setRequestType] = useState<'EXIT' | 'LIMIT' | ''>('');
   const [submitting, setSubmitting] = useState(false);
-  const [done, setDone] = useState<{ no: string; summary: string[]; customerName: string } | null>(null);
+  const [done, setDone] = useState<{ no: string; summary: string[]; customerName: string; requestType: string } | null>(null);
   const [formErr, setFormErr] = useState('');
 
   const ctx = useQuery({
@@ -334,8 +335,8 @@ export default function RequestIntakePage() {
       setFormErr('Pilih nama pengaju dulu.');
       return;
     }
-    if (!customer) {
-      setFormErr('Pilih pelanggan dulu (cari atau tambah baru).');
+    if (!requestType) {
+      setFormErr('Pilih tipe request dulu (Tidak jadi beli / Stok habis).');
       return;
     }
     for (let i = 0; i < rows.length; i++) {
@@ -350,7 +351,8 @@ export default function RequestIntakePage() {
     try {
       const res = await stockRequestsService.createIntake(token, {
         staffName,
-        customerId: customer.id,
+        requestType,
+        ...(customer ? { customerId: customer.id } : {}),
         items: rows.map((r) => ({
           barcode: r.barcode.trim(),
           listing: r.listing,
@@ -367,7 +369,8 @@ export default function RequestIntakePage() {
         summary: (res.items || []).map(
           (it) => `${it.productName}${it.listing === 'NEW' ? ' NEW' : ''}${it.note ? ` — ${it.note}` : ''}`,
         ),
-        customerName: customer.name,
+        customerName: customer?.name || '—',
+        requestType,
       });
       window.scrollTo(0, 0);
     } catch (e: any) {
@@ -424,7 +427,7 @@ export default function RequestIntakePage() {
             </div>
           </div>
           <ul className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl mx-3 mt-4 px-4 py-2 text-sm list-disc">
-            <li className="ml-4 my-2"><b>Pengaju:</b> {staffName} • <b>Customer:</b> {done.customerName}</li>
+            <li className="ml-4 my-2"><b>Pengaju:</b> {staffName} • <b>Tipe:</b> {done.requestType === 'EXIT' ? 'Tidak jadi beli' : 'Stok habis'} • <b>Customer:</b> {done.customerName}</li>
             {done.summary.map((s, i) => (
               <li key={i} className="ml-4 my-2">{s}</li>
             ))}
@@ -436,6 +439,7 @@ export default function RequestIntakePage() {
                 setDone(null);
                 setRows([emptyRow()]);
                 setStaffName('');
+                setRequestType('');
                 setCustomer(null);
                 setCustSearch('');
                 window.scrollTo(0, 0);
@@ -477,9 +481,41 @@ export default function RequestIntakePage() {
 
           <Card>
             <CardContent className="p-4 space-y-3">
+              <h2 className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 font-bold">Tipe Request</h2>
+              <div>
+                <Label className="text-[13.5px] font-semibold">Tipe <span className="text-red-600 dark:text-red-400">*</span></Label>
+                <div className="space-y-2 mt-2" role="radiogroup" aria-label="Tipe request">
+                  {([
+                    { v: 'EXIT', label: 'Tidak jadi beli' },
+                    { v: 'LIMIT', label: 'Stok habis' },
+                  ] as const).map((o) => (
+                    <label
+                      key={o.v}
+                      className={`flex items-center gap-3 rounded-lg border-[1.5px] px-3 min-h-[46px] text-[15px] cursor-pointer ${
+                        requestType === o.v ? 'border-red-600 bg-red-50 dark:bg-red-950 font-semibold' : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="request-type"
+                        value={o.v}
+                        checked={requestType === o.v}
+                        onChange={() => setRequestType(o.v)}
+                        className="w-4 h-4 accent-red-600"
+                      />
+                      {o.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4 space-y-3">
               <h2 className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 font-bold">Customer</h2>
               <div>
-                <Label className="text-[13.5px] font-semibold">Cari pelanggan <span className="text-red-600 dark:text-red-400">*</span></Label>
+                <Label className="text-[13.5px] font-semibold">Nama <span className="font-normal text-gray-400 dark:text-gray-500">(opsional)</span></Label>
                 <div className="flex gap-2 mt-1">
                   {customer ? (
                     <div className="flex-1 min-h-[46px] text-[15px] border-[1.5px] border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-900 px-3 flex items-center gap-2">

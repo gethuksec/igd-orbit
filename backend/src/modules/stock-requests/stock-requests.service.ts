@@ -214,9 +214,16 @@ export class StockRequestsService {
     if (dto.items.length > 50) {
       throw new BadRequestException('Maksimal 50 barang per request.');
     }
-    // Customer resolution: customerId preferred (picker); legacy customerType/memberRef kept for compat.
+    // requestType mandatory: EXIT (tidak jadi beli) | LIMIT (stok habis).
+    const requestType = (dto.requestType || '').toUpperCase();
+    if (requestType !== 'EXIT' && requestType !== 'LIMIT') {
+      throw new BadRequestException('requestType must be EXIT or LIMIT.');
+    }
+    // Customer resolution: customerId preferred (picker); free-text customerName;
+    // nama non-mandatory — neither is also allowed. Legacy customerType/memberRef kept for compat.
     let memberId: string | null = null;
     let memberRef: string | null = null;
+    let customerName: string | null = dto.customerName?.trim() || null;
     let customerType: string;
     if (dto.customerId) {
       const customer = await this.prisma.customer.findUnique({
@@ -228,11 +235,20 @@ export class StockRequestsService {
       }
       memberId = customer.id;
       memberRef = customer.name;
+      customerName = customer.name;
       customerType = 'MEMBER';
+    } else if (customerName) {
+      memberRef = customerName;
+      customerType = 'USER';
     } else {
       customerType = (dto.customerType || '').toUpperCase();
-      if (customerType !== 'USER' && customerType !== 'MEMBER') {
-        throw new BadRequestException('customerType must be USER or MEMBER.');
+      if (!dto.customerType && !dto.memberRef) {
+        // Nama non-mandatory: no customer info at all is allowed.
+        customerType = 'USER';
+      } else {
+        if (customerType !== 'USER' && customerType !== 'MEMBER') {
+          throw new BadRequestException('customerType must be USER or MEMBER.');
+        }
       }
       // Member resolution on exact code match (non-blocking — ref text always stored).
       memberRef = dto.memberRef?.trim() || null;
@@ -355,6 +371,8 @@ export class StockRequestsService {
         branchId: branch.id,
         staffName: dto.staffName.trim(),
         staffUserId,
+        requestType,
+        customerName,
         customerType,
         memberId,
         memberRef,
@@ -414,17 +432,21 @@ export class StockRequestsService {
     search?: string;
     status?: string;
     branchId?: string;
+    requestType?: string;
   }) {
     const page = Math.max(query.page || 1, 1);
     const limit = Math.min(Math.max(query.limit || 20, 1), 100);
     const where: any = {};
     if (query.status) where.status = query.status.toUpperCase();
     if (query.branchId) where.branchId = query.branchId;
+    if (query.requestType) where.requestType = query.requestType.toUpperCase();
     const search = (query.search || '').trim();
     if (search) {
       where.OR = [
         { requestNumber: { contains: search, mode: 'insensitive' } },
         { staffName: { contains: search, mode: 'insensitive' } },
+        { customerName: { contains: search, mode: 'insensitive' } },
+        { memberRef: { contains: search, mode: 'insensitive' } },
         { poNumber: { contains: search, mode: 'insensitive' } },
       ];
     }

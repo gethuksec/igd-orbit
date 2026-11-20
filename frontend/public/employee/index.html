@@ -94,6 +94,16 @@ table.slip tr.total td{border-bottom:0;font-weight:800;font-size:14px}
 .modal.open{display:flex}
 .map-sheet{background:#fff;width:100%;max-width:480px;border-radius:20px 20px 0 0;padding:16px 16px 26px}
 .map-pin{width:100%;height:220px;border-radius:12px;background:#E8EEF4}
+.doc-ktp{background:linear-gradient(135deg,#D6E9F8,#A8CBE8);border-radius:10px;padding:12px;font-size:10.5px;color:#1E3A5C;line-height:1.65}
+.doc-ktp-head{text-align:center;font-weight:800;font-size:11px;letter-spacing:.4px}
+.doc-ktp-nik{font-weight:800;font-size:12.5px;margin:6px 0}
+.doc-ktp-grid{display:flex;gap:10px}
+.doc-photo{width:52px;height:64px;border-radius:6px;background:#7FA8CC;color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.doc-paper{background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px;font-size:11.5px;color:var(--fg);line-height:1.7}
+.doc-paper-title{font-weight:800;font-size:12.5px;margin-bottom:6px}
+.doc-row{display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px dashed var(--border)}
+.doc-row:last-child{border-bottom:0}
+.doc-addr{color:var(--muted);margin-top:6px}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .stat{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px}
 .stat b{display:block;font-size:20px;margin-bottom:2px}
@@ -249,12 +259,21 @@ body.shot .tabbar{position:static;transform:none}
 
 <!-- 10 PROFIL -->
 <section class="screen" data-id="profil" data-title="Profil">
-  <div class="apphead"><div class="row"><div><div class="hello">Profil karyawan</div><h2>Ayu Lestari</h2><div class="sub">Kasir · Outlet Tebet · NIK 10248</div></div><div class="avatar lg">👩</div></div></div>
+  <div class="apphead"><div class="row"><div><div class="hello">Profil karyawan</div><h2 id="pfName">Ayu Lestari</h2><div class="sub">Kasir · Outlet Tebet · NIK 10248</div></div><div class="avatar lg">AL</div></div></div>
   <div class="body">
-    <div class="card"><b>Data diri</b><div class="muted card-sub">📞 0812-xxxx-4471 · ayu.l@igd.id<br>🏠 Jl. Tebet Dalam III · Gabung 3 Mar 2024<br>👔 Atasan: Rina (Manager) · Kontrak: Tetap</div></div>
-    <div class="card"><b>Dokumen</b><div class="muted card-sub">✅ KTP · ✅ KK · ✅ Rekening BCA · ⚠ NPWP (belum upload)</div><button class="ghost-btn mt8">Upload NPWP</button></div>
-    <div class="card"><div class="row"><div><b>Ganti password</b></div><b>›</b></div></div>
+    <div class="card" id="pfCard"></div>
+    <div class="card"><div class="row"><div><b>Dokumen</b><div class="muted">KTP · KK · Rekening · NPWP</div></div><b>›</b></div><button class="ghost-btn mt8" onclick="go('documents')">Lihat dokumen</button></div>
+    <div class="card"><div class="row"><div><b>Ganti password</b></div><b>›</b></div><button class="ghost-btn mt8" onclick="openPw()">Ganti password</button></div>
     <button class="ghost-btn" onclick="go('login')" style="color:var(--primary-dark)">Keluar</button>
+  </div>
+</section>
+
+<!-- 10b DOCUMENTS -->
+<section class="screen" data-id="documents" data-title="Dokumen">
+  <div class="apphead plain"><h2>Dokumen</h2><div class="muted" id="docSub">3 terverifikasi · 1 belum diunggah</div></div>
+  <div class="body">
+    <div class="field" id="docList"></div>
+    <button class="ghost-btn" onclick="go('profil')">← Kembali ke profil</button>
   </div>
 </section>
 
@@ -264,6 +283,12 @@ body.shot .tabbar{position:static;transform:none}
   <div class="body">
     <div class="field" id="empList"></div>
   </div>
+</section>
+
+<!-- 11b EMPLOYEE DETAIL -->
+<section class="screen" data-id="employee-detail" data-title="Detail Karyawan">
+  <div class="apphead plain"><h2 id="edName">Karyawan</h2><div class="muted" id="edSub"></div></div>
+  <div class="body" id="edBody"></div>
 </section>
 
 <!-- 12 INBOX -->
@@ -291,6 +316,30 @@ body.shot .tabbar{position:static;transform:none}
     </div>
 </section>
 
+<div class="modal" id="pfModal" onclick="if(event.target===this)closePfEdit()">
+  <div class="map-sheet">
+    <div class="row"><div><b>Ubah data diri</b><div class="muted">Perubahan dikirim ke HRD setelah disimpan</div></div><button class="ghost-btn btn-inline" onclick="closePfEdit()">Batal</button></div>
+    <div class="card" style="margin-top:12px"><div class="field" id="pfEditFields"></div></div>
+    <button class="big-btn" onclick="savePfAll()">Simpan</button>
+  </div>
+</div>
+<div class="modal" id="docModal" onclick="if(event.target===this)closeDoc()">
+  <div class="map-sheet">
+    <div class="row"><div><b id="docTitle">Dokumen</b><div class="muted" id="docModalSub"></div></div><button class="ghost-btn btn-inline" onclick="closeDoc()">Tutup</button></div>
+    <div id="docModalBody" style="margin-top:12px"></div>
+  </div>
+</div>
+<div class="modal" id="pwModal" onclick="if(event.target===this)closePw()">
+  <div class="map-sheet">
+    <div class="row"><div><b>Ganti password</b><div class="muted">Minimal 8 karakter</div></div><button class="ghost-btn btn-inline" onclick="closePw()">Batal</button></div>
+    <div class="card" style="margin-top:12px"><div class="field">
+      <div class="field"><label class="lbl">Password lama</label><input class="input" type="password" id="pwOld"></div>
+      <div class="field"><label class="lbl">Password baru</label><input class="input" type="password" id="pwNew"></div>
+      <div class="field"><label class="lbl">Ulangi password baru</label><input class="input" type="password" id="pwNew2"></div>
+    </div></div>
+    <button class="big-btn" onclick="savePw()">Simpan password</button>
+  </div>
+</div>
 <div class="modal" id="mapModal" onclick="if(event.target===this)closeMap()">
   <div class="map-sheet">
     <div class="row"><div><b id="mapTitle">Lokasi</b><div class="muted" id="mapSub"></div></div><button class="ghost-btn btn-inline" onclick="closeMap()">Tutup</button></div>
@@ -325,15 +374,15 @@ var REQ={
    {name:'Melahirkan',pill:'90 hari',sub:'Sesuai ketentuan'}],
   items:[
    {t:'14–15 Nov · Tahunan (2 hari)',d:'Dikirim 10 Nov · Acara keluarga',s:'Menunggu',pc:'p-amber',sub:'Tahunan'},
-   {t:'3 Okt · Sakit (1 hari)',d:'Selesai 4 Okt · Disetujui Rina',s:'Disetujui',pc:'p-green',sub:'Sakit'}]},
+   {t:'3 Okt · Sakit (1 hari)',d:'Selesai 4 Okt · Disetujui Rina',s:'Disetujui',pc:'p-green',sub:'Sakit',file:'Surat dokter.pdf'}]},
  shift:{title:'Tukar shift',sub:'Tukar jadwal dengan rekan',quota:null,
   items:[
    {t:'Kam 12 Nov · Pagi → Siang',d:'Tukar dengan Budi (Siang) · menunggu konfirmasi',s:'Menunggu',pc:'p-amber'},
-   {t:'28 Okt · Siang → Pagi',d:'Disetujui · tukar dengan Dewi',s:'Disetujui',pc:'p-green'}]},
+   {t:'28 Okt · Siang → Pagi',d:'Disetujui · tukar dengan Dewi',s:'Disetujui',pc:'p-green',file:'Jadwal pengganti.png'}]},
  lembur:{title:'Lembur',sub:'Kerja di luar jam shift',quota:null,
   items:[
    {t:'11 Nov · 2 jam',d:'Stock opname · menunggu persetujuan',s:'Menunggu',pc:'p-amber'},
-   {t:'10 Nov · 3 jam',d:'Stock opname · disetujui',s:'Disetujui',pc:'p-green'}]},
+   {t:'10 Nov · 3 jam',d:'Stock opname · disetujui',s:'Disetujui',pc:'p-green',file:'Foto stock opname.jpg'}]},
  libur:{title:'Libur',sub:'Permintaan hari libur',quota:{label:'Libur November',pill:'Sisa 3 dari 4 hari',sub:'Terpakai 1 hari · ajukan maks H-3'},
   subs:[
    {name:'Libur rutin',pill:'Sisa 3/4',sub:'Bulan November'},
@@ -341,19 +390,24 @@ var REQ={
    {name:'Cuti bersama',pill:'Sisa 5/7',sub:'SKB 2026'}],
   items:[
    {t:'22 Nov · Libur rutin',d:'Dikirim 9 Nov · menunggu persetujuan',s:'Menunggu',pc:'p-amber',sub:'Libur rutin'},
-   {t:'25 Okt · Libur rutin',d:'Disetujui · manager',s:'Disetujui',pc:'p-green',sub:'Libur rutin'}]}};
+   {t:'25 Okt · Libur rutin',d:'Disetujui · manager',s:'Disetujui',pc:'p-green',sub:'Libur rutin',file:'Tiket kereta.pdf'}]}};
 var CUR_REQ='cuti', CUR_REQ_IDX=0, CUR_SUB=0;
 var screens=[...document.querySelectorAll('.screen')];
-var TABMAP={beranda:'home',employee:'employee',request:'request','request-list':'request','request-detail':'request','request-form':'request',inbox:'inbox',profil:'profile',absensi:null,riwayat:null,'absen-detail':null,approval:null,payroll:null,slipdetail:null,login:null};
-function go(id){
+var TABMAP={beranda:'home',employee:'employee','employee-detail':'employee',request:'request','request-list':'request','request-detail':'request','request-form':'request',inbox:'inbox',profil:'profile',documents:'profile',absensi:null,riwayat:null,'absen-detail':null,approval:null,payroll:null,slipdetail:null,login:null};
+function go(id,push){
   screens.forEach(function(s){s.classList.toggle('active',s.dataset.id===id)});
   var tab=TABMAP[id];
   document.querySelectorAll('#tabbar button').forEach(function(b){b.classList.toggle('on',b.dataset.tab===tab)});
   document.getElementById('app').scrollTop=0;
   var sc=document.querySelector('.screen.active');if(sc)sc.scrollTop=0;
   document.getElementById('tabbar').style.display=(id==='login')?'none':'flex';
-  try{history.replaceState(null,'','#/'+id)}catch(e){}
+  if(push===undefined||push){try{history.pushState({s:id},'','#/'+id)}catch(e){}}
 }
+window.addEventListener('popstate',function(){
+  closeMap();closePw();closeDoc();closePfEdit();
+  var h=(location.hash||'').replace('#/','').replace('#','')||'beranda';
+  if(document.querySelector('.screen[data-id="'+h+'"]'))go(h,false);
+});
 function nav(id){
   var cur=document.querySelector('#tabbar button.on');
   if(cur&&cur.dataset.tab===id){go('beranda');return;}
@@ -370,26 +424,39 @@ function setRole(r){
   document.getElementById('homeSub').textContent=me.sub;
   document.getElementById('homeAvatar').textContent=me.ava;
   document.getElementById('tileApproval').style.display=mgr?'block':'none';
-  renderAbsen();renderEmp();
+  renderAbsen();renderEmp();renderPf();renderDocs();
 }
 var EMP=[
  {ava:'RW',cls:'',name:'Rina Wulandari',role:'Manager',email:'manager@orbit.com',phone:'0812-1000-0001',off:null},
  {ava:'BS',cls:'b',name:'Budi Santoso',role:'Kasir',email:'budi@orbit.com',phone:'0812-1000-0002',off:null},
  {ava:'DA',cls:'g',name:'Dewi Anggraini',role:'Kasir',email:'dewi@orbit.com',phone:'0812-1000-0003',off:null},
  {ava:'AL',cls:'',name:'Ayu Lestari',role:'Kasir',email:'staff@orbit.com',phone:'0812-1000-0004',off:null},
- {ava:'AP',cls:'b',name:'Agus Prasetyo',role:'Staf Gudang',email:'agus@orbit.com',phone:'0812-1000-0005',off:{t:'Cuti',pc:'p-amber'}},
+ {ava:'AP',cls:'b',name:'Agus Prasetyo',role:'Staf Gudang',email:'agus@orbit.com',phone:'0812-1000-0005',off:{t:'Cuti',pc:'p-amber',d:'Tahunan · 12–14 Nov'}},
  {ava:'SP',cls:'g',name:'Sari Puspita',role:'Kasir',email:'sari@orbit.com',phone:'0812-1000-0006',off:null},
  {ava:'DH',cls:'',name:'Dedi Hermawan',role:'Security',email:'dedi@orbit.com',phone:'0812-1000-0007',off:null},
- {ava:'NL',cls:'b',name:'Nina Larasati',role:'Admin Outlet',email:'nina@orbit.com',phone:'0812-1000-0008',off:{t:'Libur',pc:'p-gray'}}];
+ {ava:'NL',cls:'b',name:'Nina Larasati',role:'Admin Outlet',email:'nina@orbit.com',phone:'0812-1000-0008',off:{t:'Libur',pc:'p-gray',d:'Libur rutin'}}];
 function renderEmp(){
   document.getElementById('empList').innerHTML=EMP.map(function(e,i){
     var pill=e.off?'<span class="pill '+e.off.pc+'">'+e.off.t+'</span>':'';
-    return '<button class="reqrow" onclick="toggleEmp('+i+',this)"><div class="avatar '+e.cls+'">'+e.ava+'</div><div class="grow"><b>'+e.name+'</b><div class="muted">'+e.role+'</div><div class="emp-contact" style="display:none;margin-top:6px;font-size:13px">✉️ '+e.email+'<br>📞 '+e.phone+'</div></div>'+pill+'<b>›</b></button>';
+    return '<button class="reqrow" onclick="toggleEmp('+i+',this)"><div class="avatar '+e.cls+'">'+e.ava+'</div><div class="grow"><b>'+e.name+'</b><div class="muted">'+e.role+'</div></div>'+pill+'<b>›</b></button>';
   }).join('');
 }
 function toggleEmp(i,btn){
-  var c=btn.querySelector('.emp-contact');
-  c.style.display=(c.style.display==='none')?'block':'none';
+  openEmp(i);
+}
+var JOINS=['3 Mar 2024','1 Jun 2023','15 Jan 2024','3 Mar 2024','10 Sep 2023','1 Jun 2023','20 Feb 2022','5 Agu 2024'];
+function openEmp(i){
+  var e=EMP[i];
+  document.getElementById('edName').textContent=e.name;
+  document.getElementById('edSub').textContent=e.role+' · Outlet Tebet';
+  document.getElementById('edBody').innerHTML=
+   '<div class="card"><div class="row"><div class="avatar lg">'+e.ava+'</div><div>'+(e.off?' <span class="pill '+e.off.pc+'">'+e.off.t+' hari ini</span>':' <span class="pill p-green">Aktif</span>')+(e.off&&e.off.d?'<div class="muted" style="margin-top:4px">'+e.off.d+'</div>':'')+'</div></div></div>'+
+   '<div class="card"><b>Informasi kontak</b><div class="mt8">'+
+   '<div class="kv"><span class="k">Email</span><span class="v">'+e.email+'</span></div>'+
+   '<div class="kv"><span class="k">Telepon</span><span class="v">'+e.phone+'</span></div>'+
+   '<div class="kv"><span class="k">Bergabung</span><span class="v">'+JOINS[i]+'</span></div></div></div>'+
+   '<button class="ghost-btn" onclick="go(\'employee\')">← Kembali ke daftar</button>';
+  go('employee-detail');
 }
 function renderAbsen(){
   document.getElementById('absenList').innerHTML=HIST.map(function(h,i){
@@ -436,6 +503,96 @@ function selSub(i){
 }
 function reqSub(){var R=REQ[CUR_REQ];return R.subs?R.subs[CUR_SUB].name:null;}
 function reqPill(s,pc){return '<span class="pill '+pc+'">'+s+'</span>';}
+var PF=[
+ {k:'nama',label:'Nama lengkap',v:'Ayu Lestari'},
+ {k:'telp',label:'Telepon',v:'0812-1000-0004'},
+ {k:'email',label:'Email',v:'staff@orbit.com'},
+ {k:'alamat',label:'Alamat',v:'Jl. Tebet Dalam III No. 8'}];
+function renderPf(){
+  document.getElementById('pfCard').innerHTML='<div class="row"><b>Data diri</b><button class="ghost-btn btn-inline" onclick="openPfEdit()">Ubah</button></div><div class="mt8">'+PF.map(function(f){
+    return '<div class="kv"><span class="k">'+f.label+'</span><span class="v">'+f.v+'</span></div>';
+  }).join('')+'</div>';
+}
+function openPfEdit(){
+  document.getElementById('pfEditFields').innerHTML=PF.map(function(f){
+    return '<div class="field"><label class="lbl">'+f.label+'</label><input class="input" id="pfEdit_'+f.k+'" value="'+f.v+'"></div>';
+  }).join('');
+  document.getElementById('pfModal').classList.add('open');
+}
+function closePfEdit(){var m=document.getElementById('pfModal');if(m)m.classList.remove('open');}
+function savePfAll(){
+  PF.forEach(function(f){
+    var el=document.getElementById('pfEdit_'+f.k);
+    if(el&&el.value)f.v=el.value;
+  });
+  closePfEdit();renderPf();
+  document.getElementById('pfName').textContent=PF[0].v;
+}
+var DOCS=[
+ {t:'KTP',ic:'🪪',cls:'',d:'Diunggah 3 Mar 2024',ok:true},
+ {t:'Kartu Keluarga',ic:'👨‍👩‍👧',cls:'b',d:'Diunggah 3 Mar 2024',ok:true},
+ {t:'Rekening BCA',ic:'🏦',cls:'g',d:'Diunggah 5 Mar 2024',ok:true},
+ {t:'NPWP',ic:'🧾',cls:'',amber:true,d:'Belum diunggah',ok:false}];
+var CUR_DOC=0;
+function renderDocs(){
+  var done=DOCS.filter(function(x){return x.ok}).length;
+  document.getElementById('docSub').textContent=done+' terverifikasi · '+(DOCS.length-done)+' belum diunggah';
+  document.getElementById('docList').innerHTML=DOCS.map(function(x,i){
+    return '<button class="reqrow" onclick="openDoc('+i+')"><div class="avatar '+x.cls+'"'+(x.amber&&!x.ok?' style="background:var(--amber-soft);color:var(--amber)"':'')+'>'+x.ic+'</div><div class="grow"><b>'+x.t+'</b><div class="muted">'+x.d+'</div></div>'+(x.ok?'<span class="pill p-green">Terverifikasi</span>':'<span class="pill p-amber">Belum diunggah</span>')+'<b>›</b></button>';
+  }).join('');
+}
+function openDoc(i){
+  CUR_DOC=i;var x=DOCS[i];
+  document.getElementById('docTitle').textContent=x.t;
+  document.getElementById('docModalSub').textContent=x.d;
+  document.getElementById('docModalBody').innerHTML=x.ok?
+   docPreview(i)+
+   '<div class="row" style="margin-top:12px"><button class="ghost-btn grow" onclick="closeDoc()">Tutup</button><button class="big-btn grow" onclick="docReplace()">Ganti</button></div>':
+   '<div class="upload" onclick="this.querySelector(\'input\').click()"><b>📄 Ketuk untuk mengunggah '+x.t+'</b>JPG · PNG · PDF · maks 5 MB<input type="file" style="display:none" accept=".jpg,.png,.pdf"></div>'+
+   '<button class="big-btn" style="margin-top:12px" onclick="docUploaded()">Unggah</button>';
+  document.getElementById('docModal').classList.add('open');
+}
+function closeDoc(){var m=document.getElementById('docModal');if(m)m.classList.remove('open');}
+function docPreview(i){
+  if(i===0)return '<div class="doc-ktp"><div class="doc-ktp-head">PROVINSI DKI JAKARTA<br>JAKARTA SELATAN</div>'+
+   '<div class="doc-ktp-nik">NIK : 3174••••••••5201</div>'+
+   '<div class="doc-ktp-grid"><div class="doc-photo">AL</div><div>'+
+   '<div>Nama : AYU LESTARI</div><div>Tempat/Tgl Lahir : BANDUNG, 12-08-1992</div><div>Jenis Kelamin : PEREMPUAN · ISLAM</div><div>Alamat : JL TEBET DALAM III NO 8</div><div>RT/RW : 004/007 · TEBET TIMUR</div><div>Kecamatan : TEBET · WNI</div><div>Pekerjaan : KARYAWAN SWASTA</div></div></div></div>';
+  if(i===1)return '<div class="doc-paper"><div class="doc-paper-title">KARTU KELUARGA · No. 3174••••••••0801</div>'+
+   '<div class="doc-row"><span>1 · AGUS LESTARI</span><span>Kepala Keluarga</span></div>'+
+   '<div class="doc-row"><span>2 · AYU LESTARI</span><span>Anak</span></div>'+
+   '<div class="doc-row"><span>3 · DEWI LESTARI</span><span>Anak</span></div>'+
+   '<div class="doc-addr">Jl. Tebet Dalam III No. 8 · Jakarta Selatan</div></div>';
+  if(i===2)return '<div class="doc-paper"><div class="doc-paper-title">BCA · eStatement Oktober 2026</div>'+
+   '<div class="doc-row"><span>No. Rekening</span><span>8090 •••• 21</span></div>'+
+   '<div class="doc-row"><span>01 Okt · Gaji IGD-ERP</span><span style="color:var(--green)">+ 4.850.000</span></div>'+
+   '<div class="doc-row"><span>05 Okt · Transfer keluar</span><span>− 1.200.000</span></div>'+
+   '<div class="doc-row"><span>Saldo akhir</span><b>6.320.500</b></div></div>';
+  return '<div class="doc-paper"><div class="doc-paper-title">NPWP · 09.123.•••.•-012.000</div>'+
+   '<div class="doc-row"><span>Nama</span><span>AYU LESTARI</span></div>'+
+   '<div class="doc-row"><span>Alamat</span><span>Jl. Tebet Dalam III No. 8</span></div>'+
+   '<div class="doc-row"><span>Status</span><span>Aktif</span></div></div>';
+}
+function docReplace(){openDocUpload(CUR_DOC);}
+function openDocUpload(i){
+  CUR_DOC=i;var x=DOCS[i];
+  document.getElementById('docTitle').textContent='Ganti '+x.t;
+  document.getElementById('docModalSub').textContent='Dokumen lama tetap berlaku hingga verifikasi';
+  document.getElementById('docModalBody').innerHTML=
+   '<div class="upload" onclick="this.querySelector(\'input\').click()"><b>📄 Ketuk untuk mengunggah</b>JPG · PNG · PDF · maks 5 MB<input type="file" style="display:none" accept=".jpg,.png,.pdf"></div>'+
+   '<button class="big-btn" style="margin-top:12px" onclick="docUploaded()">Unggah</button>';
+}
+function docUploaded(){
+  var x=DOCS[CUR_DOC];x.ok=true;x.d='Diunggah 11 Nov 2026';x.amber=false;
+  closeDoc();renderDocs();
+}
+function openPw(){document.getElementById('pwModal').classList.add('open');}
+function closePw(){var m=document.getElementById('pwModal');if(m)m.classList.remove('open');}
+function savePw(){
+  var a=document.getElementById('pwNew').value,b=document.getElementById('pwNew2').value;
+  if(!a||a!==b){document.getElementById('pwNew2').style.borderColor='var(--primary)';return;}
+  closePw();
+}
 function openMap(label){
   document.getElementById('mapTitle').textContent='Lokasi check-in';
   document.getElementById('mapSub').textContent=label;
@@ -464,6 +621,7 @@ function openReqDetail(i){
   document.getElementById('rdBody').innerHTML=
    '<div class="card"><div class="row"><b>Status</b>'+reqPill(it.s,it.pc)+'</div><div class="muted card-sub">'+it.d+'</div></div>'+
    (R.quota?'<div class="card"><div class="row"><b>'+R.quota.label+'</b><span class="pill p-green">'+R.quota.pill+'</span></div><div class="muted card-sub">'+R.quota.sub+'</div></div>':'')+
+   (it.file?'<div class="card"><b>Lampiran</b><div class="muted card-sub">📄 '+it.file+' · terunggah</div></div>':'')+
    '<button class="ghost-btn" onclick="openReq(CUR_REQ)">← Kembali ke daftar</button>';
   go('request-detail');
 }
@@ -476,8 +634,8 @@ function openReqForm(){
   else q.style.display='none';
   var f='';
   if(CUR_REQ==='cuti')f='<div class="field"><label class="lbl">Jenis cuti</label><select class="input" id="rfJenis" onchange="CUR_SUB=this.selectedIndex">'+R.subs.map(function(s,i){return '<option'+(i===CUR_SUB?' selected':'')+'>'+s.name+'</option>';}).join('')+'</select></div><div class="field"><label class="lbl">Tanggal</label><div class="row"><input class="input" value="2026-12-01"><span class="muted">→</span><input class="input" value="2026-12-02"></div></div><div class="field"><label class="lbl">Alasan</label><input class="input" id="rfNote" placeholder="Alasan (wajib diisi)"></div><div class="field"><label class="lbl">Dokumen pendukung</label><div class="upload" onclick="this.querySelector(\'input\').click()"><b>📄 Ketuk untuk mengunggah</b>JPG · PNG · PDF · maks 5 MB<input type="file" style="display:none" accept=".jpg,.png,.pdf"></div></div>';
-  else if(CUR_REQ==='libur')f='<div class="field"><label class="lbl">Jenis libur</label><select class="input" id="rfJenis" onchange="CUR_SUB=this.selectedIndex">'+R.subs.map(function(s,i){return '<option'+(i===CUR_SUB?' selected':'')+'>'+s.name+'</option>';}).join('')+'</select></div><div class="field"><label class="lbl">Tanggal libur</label><input class="input" value="2026-11-29"></div><div class="field"><label class="lbl">Alasan</label><input class="input" id="rfNote" placeholder="Alasan"></div>';
-  else if(CUR_REQ==='shift')f='<div class="field"><label class="lbl">Tanggal saya</label><input class="input" id="rfFrom" value="2026-11-12" onchange="fillShiftMates()"></div><div class="field"><label class="lbl">Tanggal tujuan</label><input class="input" id="rfTo" value="2026-11-13" onchange="fillShiftMates()"></div><div class="field"><label class="lbl">Tukar dengan</label><select class="input" id="rfMate"></select></div><div class="field"><label class="lbl">Alasan</label><input class="input" id="rfNote" placeholder="Alasan"></div>';
+  else if(CUR_REQ==='libur')f='<div class="field"><label class="lbl">Jenis libur</label><select class="input" id="rfJenis" onchange="CUR_SUB=this.selectedIndex">'+R.subs.map(function(s,i){return '<option'+(i===CUR_SUB?' selected':'')+'>'+s.name+'</option>';}).join('')+'</select></div><div class="field"><label class="lbl">Tanggal libur</label><input class="input" value="2026-11-29"></div><div class="field"><label class="lbl">Alasan</label><input class="input" id="rfNote" placeholder="Alasan"></div><div class="field"><label class="lbl">Lampiran</label><div class="upload" onclick="this.querySelector(\'input\').click()"><b>📄 Ketuk untuk mengunggah</b>JPG · PNG · PDF · maks 5 MB<input type="file" style="display:none" accept=".jpg,.png,.pdf"></div></div>';
+  else if(CUR_REQ==='shift')f='<div class="field"><label class="lbl">Tanggal saya</label><input class="input" id="rfFrom" value="2026-11-12" onchange="fillShiftMates()"></div><div class="field"><label class="lbl">Tanggal tujuan</label><input class="input" id="rfTo" value="2026-11-13" onchange="fillShiftMates()"></div><div class="field"><label class="lbl">Tukar dengan</label><select class="input" id="rfMate"></select></div><div class="field"><label class="lbl">Alasan</label><input class="input" id="rfNote" placeholder="Alasan"></div><div class="field"><label class="lbl">Lampiran</label><div class="upload" onclick="this.querySelector(\'input\').click()"><b>📄 Ketuk untuk mengunggah</b>Bukti pendukung · JPG · PNG · PDF<input type="file" style="display:none" accept=".jpg,.png,.pdf"></div></div>';
   else f='<div class="field"><label class="lbl">Tanggal</label><input class="input" value="2026-11-11"></div><div class="field"><label class="lbl">Jam</label><div class="row"><input class="input" value="17:00"><span class="muted">→</span><input class="input" value="20:00"></div></div><div class="field"><label class="lbl">Catatan pekerjaan</label><input class="input" id="rfNote" placeholder="Contoh: stock opname"></div><div class="field"><label class="lbl">Lampiran</label><div class="upload" onclick="this.querySelector(\'input\').click()"><b>📄 Ketuk untuk mengunggah</b>Foto hasil lembur · JPG · PNG<input type="file" style="display:none" accept=".jpg,.png"></div></div>';
   document.getElementById('rfFields').innerHTML=f;
   if(CUR_REQ==='shift')fillShiftMates();
@@ -513,8 +671,12 @@ function decide(btn,name){
   else if(start==='request-detail'){openReq('cuti');openReqDetail(0);}
   else if(start==='request-form'){var ft=(qs.get('f')||'cuti');if(REQ[ft]){openReq(ft);}openReqForm();}
   else if(start==='absen-detail'){openAbsen(0);}
+  else if(start==='employee-detail'){openEmp(+(qs.get('e')||0));}
   else go(start);
   if(qs.get('map'))openMap('Outlet Tebet · radius 25 m');
+  if(qs.get('pw'))openPw();
+  if(qs.get('pf'))openPfEdit();
+  if(qs.get('doc')!==null&&qs.get('doc')!=='')openDoc(+qs.get('doc'));
 })();
 </script>
 </body>
