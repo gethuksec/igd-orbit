@@ -123,24 +123,48 @@ describe('parseContractImportNumber', () => {
 });
 
 describe('buildContractImportTemplate', () => {
-  it('mirrors the payroll shape: group labels + headers on Payroll, samples on Contoh', async () => {
-    const buf = await buildContractImportTemplate();
+  const prefill = [
+    {
+      name: 'BINTANG PERMATA',
+      nip: 'IGD.23-0008',
+      level: 'TEKNISI-2',
+      sector: 'SERVICE',
+      hireDate: new Date(2023, 9, 1),
+      area: 'BR-001',
+      basicSalary: 1400000,
+    },
+    { name: 'SLAMET TANPA GAJI', nip: 'IGD.19-0004' },
+  ];
+  it('single header row + pre-filled employees, round-trips through the parser', async () => {
+    const buf = await buildContractImportTemplate(prefill);
     expect(buf.length).toBeGreaterThan(1000);
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load(buf as any);
+    expect(wb.worksheets.length).toBe(1);
     const payroll = wb.getWorksheet('Payroll');
-    const contoh = wb.getWorksheet('Contoh');
     expect(payroll).toBeDefined();
-    expect(contoh).toBeDefined();
     const labels = CONTRACT_IMPORT_COLUMNS.map((c) => c.label);
-    const headerRow = payroll!.getRow(2);
-    const got: string[] = [];
-    headerRow.eachCell((cell: any) => got.push(String(cell.value)));
-    expect(got).toEqual(labels);
-    // Sample rows survive a parse of the Contoh sheet content.
-    const sampleRow = contoh!.getRow(2);
-    expect(String(sampleRow.getCell(2).value)).toContain('IGD.23-0008');
-    // Payroll sheet itself carries no data rows yet.
+    const headerCells: string[] = [];
+    payroll!.getRow(1).eachCell((cell: any) => headerCells.push(String(cell.value)));
+    expect(headerCells).toEqual(labels);
+    // Header fill sits on row 1 (not offset to a second row).
+    expect(payroll!.getRow(1).fill).toBeDefined();
+    expect(payroll!.rowCount).toBe(3);
+    expect(String(payroll!.getRow(2).getCell(2).value)).toBe('IGD.23-0008');
+    // Pre-filled rows parse back; JENIS/WAKTU blank for HR.
+    const parsed = await parseContractImportBuffer(buf);
+    expect(parsed).toHaveLength(2);
+    expect(parsed[0]).toMatchObject({
+      name: 'BINTANG PERMATA',
+      nip: 'IGD.23-0008',
+      level: 'TEKNISI-2',
+      basicSalaryRaw: 1400000,
+    });
+    expect(parsed[1].basicSalaryRaw).toBe('');
+  });
+
+  it('headers-only template parses to the friendly empty error', async () => {
+    const buf = await buildContractImportTemplate([]);
     await expect(parseContractImportBuffer(buf)).rejects.toThrow('Tidak ada baris data');
   });
 });

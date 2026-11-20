@@ -4,6 +4,8 @@ import {
   parseContractImportBuffer,
   excelSerialToDate,
   parseContractImportNumber,
+  buildContractImportTemplate,
+  ContractImportPrefillRow,
   RawContractImportRow,
 } from '../../../shared/utils/contract-import-template';
 import { ContractsService } from './contracts.service';
@@ -127,6 +129,31 @@ export class ContractsImportService {
     private prisma: PrismaService,
     private contracts: ContractsService,
   ) {}
+
+  /** Template payload: all current employees (active, not soft-deleted),
+   * master data pre-filled, JENIS + WAKTU left for HR. Sorted by name. */
+  async buildImportTemplate(): Promise<Buffer> {
+    const employees = await this.prisma.employee.findMany({
+      where: { isActive: true, deletedAt: null },
+      include: {
+        user: { select: { fullName: true } },
+        position: { select: { code: true } },
+        division: { select: { code: true } },
+        branch: { select: { code: true } },
+      },
+      orderBy: { user: { fullName: 'asc' } },
+    });
+    const prefill: ContractImportPrefillRow[] = (employees as any[]).map((e) => ({
+      name: e.user?.fullName ?? e.employeeCode,
+      nip: e.employeeCode,
+      level: e.position?.code ?? null,
+      sector: e.division?.code ?? null,
+      hireDate: e.hireDate ?? null,
+      area: e.branch?.code ?? null,
+      basicSalary: e.basicSalary == null ? null : Number(e.basicSalary),
+    }));
+    return buildContractImportTemplate(prefill);
+  }
 
   private async loadMasters(): Promise<MasterCache> {
     const [employees, positions, grades, divisions, branches] = await Promise.all([

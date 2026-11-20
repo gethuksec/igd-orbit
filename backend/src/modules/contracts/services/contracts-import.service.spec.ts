@@ -262,3 +262,44 @@ describe('ContractsService activation gate (IGDERP-271)', () => {
     );
   });
 });
+
+describe('buildImportTemplate', () => {
+  it('pre-fills all current employees with master data, sorted by name', async () => {
+    const { imports, prisma }: any = await boot();
+    prisma.employee.findMany.mockResolvedValue([
+      {
+        employeeCode: 'IGD.23-0008',
+        hireDate: new Date('2023-10-01'),
+        basicSalary: '1400000.00',
+        user: { fullName: 'BINTANG PERMATA' },
+        position: { code: 'TEKNISI-2' },
+        division: { code: 'SERVICE' },
+        branch: { code: 'BR-001' },
+      },
+      {
+        employeeCode: 'IGD.19-0004',
+        hireDate: new Date('2019-01-01'),
+        basicSalary: null,
+        user: { fullName: null },
+        position: null,
+        division: null,
+        branch: null,
+      },
+    ]);
+    const buf = await imports.buildImportTemplate();
+    const { parseContractImportBuffer } = require('../../../shared/utils/contract-import-template');
+    const rows = await parseContractImportBuffer(buf);
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toMatchObject({
+      name: 'BINTANG PERMATA',
+      nip: 'IGD.23-0008',
+      level: 'TEKNISI-2',
+    });
+    expect(rows[0].basicSalaryRaw).toBe(1400000);
+    // Nameless employee falls back to NIP so the row still matches on re-upload.
+    expect(rows[1].name).toBe('IGD.19-0004');
+    expect(prisma.employee.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { isActive: true, deletedAt: null } }),
+    );
+  });
+});

@@ -192,59 +192,41 @@ export async function parseContractImportBuffer(buffer: Buffer): Promise<RawCont
   return rows;
 }
 
-/** Template workbook: 'Payroll' sheet (group labels + headers, data from row 3)
- * mirrors Format_HR_ORBIT.xlsx so HR fills the familiar shape; 'Contoh' shows
- * two filled rows (hapus sebelum upload). Upload sheet is the Payroll one. */
-export async function buildContractImportTemplate(): Promise<Buffer> {
+/** Template workbook: single 'Payroll' sheet, ONE header row, pre-filled with all
+ * current employees (NAMA/NIP/LEVEL/BIDANG/MULAI KERJA/AREA/GAJI from the master;
+ * JENIS + WAKTU KONTRAK left for HR to fill). Round-trips through the parser. */
+export interface ContractImportPrefillRow {
+  name: string;
+  nip: string;
+  level?: string | null;
+  sector?: string | null;
+  hireDate?: Date | null;
+  area?: string | null;
+  basicSalary?: number | null;
+}
+
+export async function buildContractImportTemplate(prefill: ContractImportPrefillRow[]): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
   const labels = CONTRACT_IMPORT_COLUMNS.map((c) => c.label);
-  const groups = [
-    'DATA KARYAWAN',
-    'DATA KARYAWAN',
-    'DATA KARYAWAN',
-    'KONTRAK',
-    'KONTRAK',
-    'KONTRAK',
-    'PENEMPATAN',
-    'PENEMPATAN',
-    'GAJI',
-  ];
-  const styleHeader = (row: any) => {
-    row.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-    row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F6F43' } };
-    row.alignment = { vertical: 'middle' };
-  };
   const data = wb.addWorksheet('Payroll');
-  data.addRow(groups);
-  data.addRow(labels);
-  styleHeader(data.getRow(2));
-  data.columns = CONTRACT_IMPORT_COLUMNS.map(() => ({ width: 18 }));
-  const sample = wb.addWorksheet('Contoh');
-  sample.addRow(labels);
-  styleHeader(sample.getRow(1));
-  sample.addRow([
-    'BINTANG PERMATA',
-    'IGD.23-0008',
-    'TEKNISI-2',
-    'ANNUAL',
-    new Date(2027, 1, 28),
-    'SERVICE',
-    new Date(2023, 9, 1),
-    'BR-001',
-    1400000,
-  ]);
-  sample.addRow([
-    'SLAMET',
-    'IGD.19-0004',
-    'HEADSTORE (HS)',
-    'LIFETIME',
-    '-',
-    'SERVICE',
-    new Date(2019, 0, 1),
-    '',
-    1200000,
-  ]);
-  sample.columns = CONTRACT_IMPORT_COLUMNS.map(() => ({ width: 20 }));
+  const header = data.addRow(labels);
+  header.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  header.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F6F43' } };
+  header.alignment = { vertical: 'middle' };
+  for (const r of prefill) {
+    data.addRow([
+      r.name,
+      r.nip,
+      r.level ?? '',
+      '', // JENIS — HR fills
+      '', // WAKTU KONTRAK — HR fills
+      r.sector ?? '',
+      r.hireDate ?? '',
+      r.area ?? '',
+      r.basicSalary ?? '',
+    ]);
+  }
+  data.columns = CONTRACT_IMPORT_COLUMNS.map(() => ({ width: 20 }));
   const buf = await wb.xlsx.writeBuffer();
   return Buffer.from(buf as any);
 }
