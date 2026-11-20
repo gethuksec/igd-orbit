@@ -348,9 +348,9 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
         ],
       },
       {
-        label: 'Divisi',
+        label: 'Cuti',
         children: [
-          { label: 'Lihat Divisi', key: 'master_data.attribute.view' },
+          { label: 'Setujui Cuti', key: 'hr.leave.approve' },
         ],
       },
       {
@@ -366,33 +366,44 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
         ],
       },
       {
-        label: 'Cuti',
+        label: 'Data Master',
         children: [
-          { label: 'Lihat Tipe Cuti', key: 'master_data.attribute.view' },
-        ],
-      },
-      {
-        label: 'Denda',
-        children: [
-          { label: 'Lihat Denda', key: 'master_data.attribute.view' },
-        ],
-      },
-      {
-        label: 'Grade',
-        children: [
-          { label: 'Lihat Grade', key: 'master_data.attribute.view' },
-        ],
-      },
-      {
-        label: 'Jabatan',
-        children: [
-          { label: 'Lihat Jabatan', key: 'master_data.attribute.view' },
-        ],
-      },
-      {
-        label: 'Working Location',
-        children: [
-          { label: 'Lihat Working Location', key: 'master_data.attribute.view' },
+          {
+            label: 'Tipe Cuti',
+            children: [
+              { label: 'Lihat Tipe Cuti', key: 'master_data.attribute.view' },
+            ],
+          },
+          {
+            label: 'Tipe Denda',
+            children: [
+              { label: 'Lihat Denda', key: 'master_data.attribute.view' },
+            ],
+          },
+          {
+            label: 'Divisi',
+            children: [
+              { label: 'Lihat Divisi', key: 'hr.division.view' },
+            ],
+          },
+          {
+            label: 'Grade',
+            children: [
+              { label: 'Lihat Grade', key: 'master_data.attribute.view' },
+            ],
+          },
+          {
+            label: 'Jabatan',
+            children: [
+              { label: 'Lihat Jabatan', key: 'master_data.attribute.view' },
+            ],
+          },
+          {
+            label: 'Working Location',
+            children: [
+              { label: 'Lihat Working Location', key: 'master_data.attribute.view' },
+            ],
+          },
         ],
       },
     ],
