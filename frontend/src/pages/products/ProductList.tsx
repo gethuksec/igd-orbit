@@ -21,7 +21,7 @@ import ProductImportModal from './ProductImportModal';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from '../../components/ui/button';
-import { BreadcrumbHeader, StatCard, DataTable, FilterToolbar, ExportButton, datedFilename } from '@/components/shared';
+import { BreadcrumbHeader, StatCard, DataTable, FilterToolbar, ExportButton, datedFilename, StatusDot } from '@/components/shared';
 import type { Column } from '@/components/shared';
 
 export default function ProductList() {
@@ -213,14 +213,14 @@ export default function ProductList() {
       cell: (product) => (
         <div className="flex items-center gap-4">
           <Link to={`/products/${product.id}`} className="flex-shrink-0 hover:opacity-80 transition-opacity">
-            <div className="h-14 w-14 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white shadow-md">
-              <Package className="w-7 h-7" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
+              <Package className="h-5 w-5" />
             </div>
           </Link>
           <div className="min-w-0 max-w-[200px]">
             <div className="flex items-center gap-2 min-w-0">
               <div className="group/tooltip relative min-w-0">
-                <Link to={`/products/${product.id}`} className="block truncate text-base font-semibold text-foreground hover:text-primary-600 transition-colors cursor-default">
+                <Link to={`/products/${product.id}`} className="block truncate text-[15px] font-medium text-foreground hover:text-primary-600 transition-colors cursor-default">
                   {product.name}
                 </Link>
                 <div className="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 shadow-lg rounded-lg p-3 text-gray-900 text-xs whitespace-normal break-words max-w-[280px] z-50 hidden group-hover/tooltip:block pointer-events-none">
@@ -230,7 +230,7 @@ export default function ProductList() {
                 </div>
               </div>
               {(product as any).isService && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-200">
+                <span className="inline-flex items-center rounded-md border px-1.5 py-0.5 text-xs text-muted-foreground">
                   Jasa
                 </span>
               )}
@@ -248,7 +248,7 @@ export default function ProductList() {
       header: 'Harga Jual',
       cell: (product) => (
         <div className="flex flex-col">
-          <span className="font-semibold text-foreground">{formatCurrency(product.sellingPrice)}</span>
+          <span className="font-medium tabular-nums text-foreground">{formatCurrency(product.sellingPrice)}</span>
           {(product as any).minSellingPrice ? (
             <span className="text-xs text-red-600">{formatCurrency((product as any).minSellingPrice)}</span>
           ) : (
@@ -265,7 +265,7 @@ export default function ProductList() {
           {(product as any).stockSummary?.branches ? (
             <div className="group relative">
               <span
-                className={`text-base font-bold cursor-help ${
+                className={`font-mono text-base font-medium tabular-nums cursor-help ${
                   ((product as any).totalStock || 0) < ((product as any).minStock || 0)
                     ? 'text-red-600'
                     : 'text-foreground'
@@ -292,7 +292,7 @@ export default function ProductList() {
             </div>
           ) : (
             <span
-              className={`text-base font-bold ${
+              className={`font-mono text-base font-medium tabular-nums ${
                 ((product as any).totalStock || 0) < ((product as any).minStock || 0)
                   ? 'text-red-600'
                   : 'text-foreground'
@@ -302,10 +302,7 @@ export default function ProductList() {
             </span>
           )}
           {((product as any).totalStock || 0) < ((product as any).minStock || 0) && (
-            <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-red-100 text-red-800 border border-red-200">
-              <AlertTriangle className="w-3 h-3 mr-1" />
-              Rendah
-            </span>
+            <StatusDot tone="bad">Rendah</StatusDot>
           )}
         </div>
       ),
@@ -314,7 +311,7 @@ export default function ProductList() {
       key: 'sold',
       header: 'Terjual',
       cell: (product) => (
-        <span className="text-base font-bold text-foreground">
+        <span className="font-mono text-base font-medium tabular-nums text-foreground">
           {(product as any).totalSold ?? 0}
         </span>
       ),
@@ -323,7 +320,7 @@ export default function ProductList() {
       key: 'category',
       header: 'Kategori',
       cell: (product) => (
-        <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-200">
+        <span className="text-sm text-muted-foreground">
           {product.category?.name || product.categoryId}
         </span>
       ),
@@ -339,14 +336,14 @@ export default function ProductList() {
       key: 'costPrice',
       header: 'Harga Beli',
       cell: (product) => (
-        <div className="text-sm font-semibold text-foreground">{formatCurrency(product.costPrice)}</div>
+        <div className="text-sm font-medium tabular-nums text-foreground">{formatCurrency(product.costPrice)}</div>
       ),
     },
   ];
 
   return (
     <div className="w-full space-y-3">
-      <BreadcrumbHeader title="Manajemen Produk" subtitle="Kelola inventori dan harga produk dengan mudah">
+      <BreadcrumbHeader title="Manajemen Produk" subtitle="Sparepart HP — stok, harga, dan penjualan per cabang">
         <Button
           variant="ghost"
           size="sm"
@@ -380,41 +377,35 @@ export default function ProductList() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard
-          icon={<Package className="w-6 h-6 text-white" />}
-          iconBg="from-primary-500 to-primary-600"
+          icon={<Package className="h-5 w-5" />}
           label="Total Produk"
           value={isLoading ? '-' : totalProducts}
           subtitle="Semua produk terdaftar"
         />
         <StatCard
-          icon={<DollarSign className="w-6 h-6 text-white" />}
-          iconBg="from-green-500 to-green-600"
+          icon={<DollarSign className="h-5 w-5" />}
           label="Nilai Stok"
           value={isLoading ? '-' : formatCurrency(totalStockValue)}
           subtitle="Total nilai inventori"
         />
         <StatCard
-          icon={<AlertTriangle className="w-6 h-6 text-white" />}
-          iconBg="from-yellow-500 to-yellow-600"
+          icon={<AlertTriangle className="h-5 w-5" />}
           label="Stok Rendah"
           value={isLoading ? '-' : lowStockCount}
           subtitle="Perlu restock segera"
-          badge={{ text: 'Alert', className: 'bg-yellow-100 text-yellow-800' }}
         />
         <StatCard
-          icon={<CheckCircle2 className="w-6 h-6 text-white" />}
-          iconBg="from-blue-500 to-blue-600"
+          icon={<CheckCircle2 className="h-5 w-5" />}
           label="Produk Aktif"
           value={isLoading ? '-' : activeCount}
           subtitle="Sedang aktif dijual"
-          badge={{ text: 'Active', className: 'bg-green-100 text-green-800' }}
         />
       </div>
 
       <FilterToolbar
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
-        searchPlaceholder="Cari nama produk, SKU, atau barcode..."
+        searchPlaceholder="Cari produk, SKU, barcode"
         fields={[
           {
             key: 'status',
@@ -584,29 +575,32 @@ export default function ProductList() {
         emptyMessage="Tidak ada produk ditemukan"
         emptyIcon={<Package className="w-16 h-16" />}
         actions={(product: any) => (
-          <div className="flex items-center justify-end gap-1">
-            <Link to={`/products/${product.id}`}>
-              <Button variant="ghost" size="sm" title="Lihat Detail">
-                <Eye className="w-4 h-4" />
-              </Button>
+          <div className="flex items-center justify-end gap-2">
+            <Link
+              to={`/products/${product.id}`}
+              title="Lihat Detail"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <Eye className="h-4 w-4" />
             </Link>
-            <Link to={`/products/${product.id}/edit`}>
-              <Button variant="ghost" size="sm" title="Edit">
-                <Edit className="w-4 h-4" />
-              </Button>
+            <Link
+              to={`/products/${product.id}/edit`}
+              title="Edit"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <Edit className="h-4 w-4" />
             </Link>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-red-600 hover:bg-red-50"
+            <button
+              type="button"
+              title="Hapus"
               onClick={() => {
                 setProductToDelete({ id: product.id, name: product.name });
                 setDeleteModalOpen(true);
               }}
-              title="Hapus"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
             >
-              <Trash2 className="w-4 h-4" />
-            </Button>
+              <Trash2 className="h-4 w-4" />
+            </button>
           </div>
         )}
       />
@@ -614,7 +608,7 @@ export default function ProductList() {
       {/* Pagination */}
       {!isLoading && products.length > 0 && pagination.totalPages > 1 && (
         <div className="bg-white px-6 py-4 rounded-xl border border-gray-200 flex items-center justify-between">
-          <div className="text-sm text-gray-700">
+          <div className="text-sm tabular-nums text-gray-700">
             Menampilkan {products.length} dari{' '}
             <span className="font-semibold">{pagination.total}</span> produk
             <span className="ml-2 text-gray-500">
