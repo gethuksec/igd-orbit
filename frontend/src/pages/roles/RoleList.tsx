@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Eye, Edit, Trash2, Shield, CheckCircle, XCircle, Loader2, Network, AlertTriangle, KeyRound, Users } from 'lucide-react';
 import { rolesService, type Role } from '../../services/roles.service';
 import { toast } from 'sonner';
-import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable } from '@/components/shared';
+import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable, StatusDot } from '@/components/shared';
 import type { Column } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import {
@@ -114,11 +114,11 @@ export default function RoleList() {
       header: 'Kode & Nama',
       cell: (role) => (
         <Link to={`/roles/${role.id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-          <div className="flex-shrink-0 h-10 w-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center text-white shadow-sm">
-            <Shield className="w-5 h-5" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
+            <Shield className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-sm font-semibold text-foreground hover:text-primary-600 transition-colors">
+            <div className="text-[15px] font-medium text-foreground hover:text-primary-600 transition-colors">
               {role.name}
             </div>
             <div className="text-xs text-muted-foreground mt-0.5 font-mono">{role.code}</div>
@@ -166,18 +166,11 @@ export default function RoleList() {
     {
       key: 'isActive',
       header: 'Status',
-      cell: (role) =>
-        role.isActive ? (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-100 text-green-700 border border-green-200 rounded-lg text-xs font-semibold">
-            <CheckCircle className="w-3 h-3" />
-            Aktif
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 text-gray-600 border border-gray-200 rounded-lg text-xs font-semibold">
-            <XCircle className="w-3 h-3" />
-            Non-Aktif
-          </span>
-        ),
+      cell: (role) => (
+        <StatusDot tone={role.isActive ? 'ok' : 'off'}>
+          {role.isActive ? 'Aktif' : 'Non-Aktif'}
+        </StatusDot>
+      ),
     },
   ];
 
@@ -204,21 +197,19 @@ export default function RoleList() {
       {/* Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard
-          icon={<Shield className="w-6 h-6 text-white" />}
+          icon={<Shield className="h-5 w-5" />}
           label="Total Role"
           value={isLoading ? '-' : pagination.total}
           subtitle="Semua role terdaftar"
         />
         <StatCard
-          icon={<CheckCircle className="w-6 h-6 text-white" />}
-          iconBg="from-green-500 to-green-600"
+          icon={<CheckCircle className="h-5 w-5" />}
           label="Role Aktif"
           value={isLoading ? '-' : activeRolesCount}
           subtitle="Role yang aktif saat ini"
         />
         <StatCard
-          icon={<XCircle className="w-6 h-6 text-white" />}
-          iconBg="from-gray-500 to-gray-600"
+          icon={<XCircle className="h-5 w-5" />}
           label="System Role"
           value={isLoading ? '-' : systemRoleCount}
           subtitle="Role sistem"
@@ -245,40 +236,40 @@ export default function RoleList() {
         emptyMessage="Tidak ada role ditemukan"
         emptyIcon={<Shield className="w-16 h-16" />}
         actions={(role) => (
-          <>
-            <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-50" title="Lihat Detail">
-              <Link to={`/roles/${role.id}`}>
-                <Eye className="w-4 h-4" />
-              </Link>
-            </Button>
+          <div className="flex items-center justify-end gap-2">
+            <Link
+              to={`/roles/${role.id}`}
+              title="Lihat Detail"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <Eye className="h-4 w-4" />
+            </Link>
             <RequirePermission permission="roles.update" fallbackRoles={['SUPERADMIN']}>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-green-600 hover:bg-green-50"
+              <button
+                type="button"
                 title="Edit"
                 onClick={() => setFormModal({ open: true, role })}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
-                <Edit className="w-4 h-4" />
-              </Button>
+                <Edit className="h-4 w-4" />
+              </button>
             </RequirePermission>
             <RequirePermission permission="roles.delete" fallbackRoles={['SUPERADMIN']}>
               {(!role.isSystemRole || isSuperAdmin) && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-red-600 hover:bg-red-50"
+                <button
+                  type="button"
                   title="Hapus"
                   onClick={() => {
                     setRoleToDelete({ id: role.id, name: role.name });
                     setDeleteModalOpen(true);
                   }}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
                 >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+                  <Trash2 className="h-4 w-4" />
+                </button>
               )}
             </RequirePermission>
-          </>
+          </div>
         )}
       />
 
@@ -286,8 +277,8 @@ export default function RoleList() {
       {!isLoading && roles.length > 0 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Menampilkan <span className="font-bold text-foreground">{roles.length}</span> dari{' '}
-            <span className="font-bold text-foreground">{pagination.total}</span> role
+            Menampilkan <span className="font-medium tabular-nums text-foreground">{roles.length}</span> dari{' '}
+            <span className="font-medium tabular-nums text-foreground">{pagination.total}</span> role
             <span className="ml-2 text-muted-foreground/70">
               (Halaman {pagination.page} dari {pagination.totalPages})
             </span>

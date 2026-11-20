@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Warehouse as WarehouseIcon, MapPin, Phone, Eye, Edit, Trash2, Loader2, AlertTriangle, Building2 } from "lucide-react";
 import { warehousesService } from "../../services/warehouses.service";
 import { branchesService } from "../../services/branches.service";
 import WarehouseFormModal from "./WarehouseFormModal";
-import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable } from "@/components/shared";
+import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable, StatusDot } from "@/components/shared";
 import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -14,7 +14,6 @@ import { toast } from "sonner";
 type StatusFilter = "all" | "active" | "inactive";
 
 export default function WarehouseList() {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
@@ -88,11 +87,11 @@ export default function WarehouseList() {
       header: "Gudang",
       cell: (wh) => (
         <div className="flex items-center gap-4">
-          <div className="flex-shrink-0 h-14 w-14 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white shadow-md">
-            <WarehouseIcon className="w-7 h-7" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
+            <WarehouseIcon className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-base font-semibold text-foreground">
+            <div className="text-[15px] font-medium text-foreground">
               {wh.name}
             </div>
             <div className="text-xs text-muted-foreground mt-1 font-mono">
@@ -160,15 +159,9 @@ export default function WarehouseList() {
       key: "isActive",
       header: "Status",
       cell: (wh) => (
-        <span
-          className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${
-            wh.isActive
-              ? "bg-green-100 text-green-800 border-green-200"
-              : "bg-gray-100 text-gray-800 border-gray-200"
-          }`}
-        >
+        <StatusDot tone={wh.isActive ? "ok" : "off"}>
           {wh.isActive ? "Aktif" : "Tidak Aktif"}
-        </span>
+        </StatusDot>
       ),
     },
   ];
@@ -201,25 +194,21 @@ export default function WarehouseList() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <StatCard
-          icon={<WarehouseIcon className="w-6 h-6 text-white" />}
-          iconBg="from-primary-500 to-primary-600"
+          icon={<WarehouseIcon className="h-5 w-5" />}
           label="Total Gudang"
           value={isLoading ? "-" : pagination.total}
           subtitle="Semua gudang terdaftar"
         />
         <StatCard
-          icon={<Building2 className="w-6 h-6 text-white" />}
-          iconBg="from-blue-500 to-blue-600"
+          icon={<Building2 className="h-5 w-5" />}
           label="Total Outlet"
           value={isLoading ? "-" : outletCount}
           subtitle="Outlet pemilik gudang"
         />
         <StatCard
-          icon={<WarehouseIcon className="w-6 h-6 text-white" />}
-          iconBg="from-green-500 to-green-600"
+          icon={<WarehouseIcon className="h-5 w-5" />}
           label="Gudang Aktif"
           value={isLoading ? "-" : activeCount}
-          badge={{ text: "Active", className: "bg-green-100 text-green-800" }}
         />
       </div>
 
@@ -276,38 +265,36 @@ export default function WarehouseList() {
         emptyMessage="Tidak ada gudang ditemukan"
         emptyIcon={<WarehouseIcon className="w-16 h-16" />}
         actions={(wh: any) => (
-          <div className="flex items-center justify-end gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate(`/warehouses/${wh.id}`)}
+          <div className="flex items-center justify-end gap-2">
+            <Link
+              to={`/warehouses/${wh.id}`}
               title="Lihat Detail"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
-              <Eye className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
+              <Eye className="h-4 w-4" />
+            </Link>
+            <button
+              type="button"
               onClick={() => {
                 setEditingWarehouseId(wh.id);
                 setFormModalOpen(true);
               }}
               title="Edit"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
-              <Edit className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-red-600 hover:bg-red-50"
+              <Edit className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
               title="Hapus"
               onClick={() => {
                 setWarehouseToDelete({ id: wh.id, name: wh.name });
                 setDeleteModalOpen(true);
               }}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
             >
-              <Trash2 className="w-4 h-4" />
-            </Button>
+              <Trash2 className="h-4 w-4" />
+            </button>
           </div>
         )}
       />
@@ -317,11 +304,11 @@ export default function WarehouseList() {
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
               Menampilkan{" "}
-              <span className="font-bold text-foreground">
+              <span className="font-medium tabular-nums text-foreground">
                 {warehouses.length}
               </span>{" "}
               dari{" "}
-              <span className="font-bold text-foreground">
+              <span className="font-medium tabular-nums text-foreground">
                 {pagination.total}
               </span>{" "}
               gudang

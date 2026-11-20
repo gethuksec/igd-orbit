@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {Plus, Eye, Edit, Trash2, Save, Loader2, Ruler, AlertTriangle} from "lucide-react";
 import { unitsService } from "../../services/units.service";
 import { api } from "../../services/api";
-import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable } from "@/components/shared";
+import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable, StatusDot } from "@/components/shared";
 import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -13,7 +13,6 @@ import { toast } from "sonner";
 type StatusFilter = "all" | "active" | "inactive";
 
 export default function UnitList() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
@@ -116,11 +115,11 @@ export default function UnitList() {
       header: "Satuan",
       cell: (unit) => (
         <div className="flex items-center gap-4">
-          <div className="flex-shrink-0 h-14 w-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white shadow-md">
-            <Ruler className="w-7 h-7" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
+            <Ruler className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-base font-semibold text-foreground">{unit.name}</div>
+            <div className="text-[15px] font-medium text-foreground">{unit.name}</div>
             <div className="text-xs text-muted-foreground mt-1 font-mono">{unit.code || "-"}</div>
           </div>
         </div>
@@ -130,22 +129,16 @@ export default function UnitList() {
       key: "productCount",
       header: "Produk",
       cell: (unit) => (
-        <div className="text-sm font-semibold text-foreground">{unit.productCount || 0}</div>
+        <div className="text-sm font-medium tabular-nums text-foreground">{unit.productCount || 0}</div>
       ),
     },
     {
       key: "isActive",
       header: "Status",
       cell: (unit) => (
-        <span
-          className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${
-            unit.isActive
-              ? "bg-green-100 text-green-800 border-green-200"
-              : "bg-gray-100 text-gray-800 border-gray-200"
-          }`}
-        >
+        <StatusDot tone={unit.isActive ? "ok" : "off"}>
           {unit.isActive ? "Aktif" : "Tidak Aktif"}
-        </span>
+        </StatusDot>
       ),
     },
   ];
@@ -166,9 +159,9 @@ export default function UnitList() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <StatCard icon={<Ruler className="w-6 h-6 text-white" />} iconBg="from-blue-500 to-blue-600" label="Total Satuan" value={isLoading ? "-" : pagination.total} subtitle="Semua satuan terdaftar" />
-        <StatCard icon={<Ruler className="w-6 h-6 text-white" />} iconBg="from-indigo-500 to-indigo-600" label="Total Terisi" value={isLoading ? "-" : units.length} subtitle="Satuan pada halaman ini" />
-        <StatCard icon={<Ruler className="w-6 h-6 text-white" />} iconBg="from-green-500 to-green-600" label="Satuan Aktif" value={isLoading ? "-" : activeCount} badge={{ text: "Active", className: "bg-green-100 text-green-800" }} />
+        <StatCard icon={<Ruler className="h-5 w-5" />} label="Total Satuan" value={isLoading ? "-" : pagination.total} subtitle="Semua satuan terdaftar" />
+        <StatCard icon={<Ruler className="h-5 w-5" />} label="Total Terisi" value={isLoading ? "-" : units.length} subtitle="Satuan pada halaman ini" />
+        <StatCard icon={<Ruler className="h-5 w-5" />} label="Satuan Aktif" value={isLoading ? "-" : activeCount} />
       </div>
 
       <FilterToolbar
@@ -208,9 +201,9 @@ export default function UnitList() {
         emptyIcon={<Ruler className="w-16 h-16" />}
         actions={(unit: any) => (
           <div className="flex items-center justify-end gap-1">
-            <Button variant="ghost" size="sm" onClick={() => navigate(`/units/${unit.id}`)} title="Lihat Detail"><Eye className="w-4 h-4" /></Button>
-            <Button variant="ghost" size="sm" onClick={() => openEditModal(unit)} title="Edit"><Edit className="w-4 h-4" /></Button>
-            <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50" title="Hapus" onClick={() => { setUnitToDelete({ id: unit.id, name: unit.name }); setDeleteModalOpen(true); }}><Trash2 className="w-4 h-4" /></Button>
+            <Link to={`/units/${unit.id}`} title="Lihat Detail" className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"><Eye className="h-4 w-4" /></Link>
+            <button type="button" onClick={() => openEditModal(unit)} title="Edit" className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"><Edit className="h-4 w-4" /></button>
+            <button type="button" onClick={() => { setUnitToDelete({ id: unit.id, name: unit.name }); setDeleteModalOpen(true); }} title="Hapus" className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
           </div>
         )}
       />

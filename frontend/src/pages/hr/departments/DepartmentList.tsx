@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { BreadcrumbHeader, FilterToolbar } from "@/components/shared";
+import { BreadcrumbHeader, FilterToolbar, StatusDot } from "@/components/shared";
 import { Loader2, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -180,22 +180,22 @@ export default function DepartmentList() {
               <td className="px-6 py-4 text-sm text-gray-500">{dept.branch?.name || "-"}</td>
                   <td className="px-6 py-4 text-sm text-center text-gray-500">{dept._count?.employees || 0}</td>
                   <td className="px-6 py-4 text-center">
-                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                      dept.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                    }`}>
+                    <StatusDot tone={dept.isActive ? "ok" : "off"}>
                       {dept.isActive ? "Aktif" : "Nonaktif"}
-                    </span>
+                    </StatusDot>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <button onClick={() => openEdit(dept)} className="p-1 hover:bg-gray-100 rounded">
-                        <Pencil className="w-4 h-4 text-gray-500" />
+                      <button type="button" onClick={() => openEdit(dept)} title="Edit" className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+                        <Pencil className="h-4 w-4" />
                       </button>
                       <button
+                        type="button"
                         onClick={() => { if (confirm("Nonaktifkan departemen ini?")) deleteMutation.mutate(dept.id); }}
-                        className="p-1 hover:bg-red-50 rounded"
+                        title="Nonaktifkan"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
                       >
-                        <Trash2 className="w-4 h-4 text-red-500" />
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   </td>

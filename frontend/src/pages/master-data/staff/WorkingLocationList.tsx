@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Edit, Trash2, MapPin, AlertTriangle } from "lucide-react";
 import { workingLocationsService, type WorkingLocation } from "@/services/working-locations.service";
 import { api } from "@/services/api";
-import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable } from "@/components/shared";
+import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable, StatusDot } from "@/components/shared";
 import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -136,7 +136,7 @@ export default function WorkingLocationList() {
     {
       key: "code",
       header: "Kode",
-      cell: (row) => <div className="text-sm font-semibold font-mono">{row.code}</div>,
+      cell: (row) => <div className="text-sm font-medium tabular-nums font-mono">{row.code}</div>,
     },
     {
       key: "name",
@@ -171,15 +171,9 @@ export default function WorkingLocationList() {
       key: "isActive",
       header: "Status",
       cell: (row) => (
-        <span
-          className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${
-            row.isActive
-              ? "bg-green-100 text-green-800 border-green-200"
-              : "bg-gray-100 text-gray-800 border-gray-200"
-          }`}
-        >
+        <StatusDot tone={row.isActive ? "ok" : "off"}>
           {row.isActive ? "Aktif" : "Tidak Aktif"}
-        </span>
+        </StatusDot>
       ),
     },
   ];
@@ -201,21 +195,17 @@ export default function WorkingLocationList() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <StatCard
-          icon={<MapPin className="w-6 h-6 text-white" />}
-          iconBg="from-primary-500 to-primary-600"
+          icon={<MapPin className="h-5 w-5" />}
           label="Total Lokasi"
           value={isLoading ? "-" : total}
         />
         <StatCard
-          icon={<MapPin className="w-6 h-6 text-white" />}
-          iconBg="from-green-500 to-green-600"
+          icon={<MapPin className="h-5 w-5" />}
           label="Aktif"
           value={isLoading ? "-" : activeCount}
-          badge={{ text: "Active", className: "bg-green-100 text-green-800" }}
         />
         <StatCard
-          icon={<MapPin className="w-6 h-6 text-white" />}
-          iconBg="from-purple-500 to-purple-600"
+          icon={<MapPin className="h-5 w-5" />}
           label="Terhubung Outlet"
           value={isLoading ? "-" : linkedCount}
         />
@@ -256,21 +246,20 @@ export default function WorkingLocationList() {
         emptyIcon={<MapPin className="w-16 h-16" />}
         actions={(row: WorkingLocation) => (
           <div className="flex items-center justify-end gap-1">
-            <Button variant="ghost" size="sm" onClick={() => openEditModal(row)} title="Edit">
-              <Edit className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-red-600 hover:bg-red-50"
+            <button type="button" onClick={() => openEditModal(row)} title="Edit" className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+              <Edit className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
               title="Nonaktifkan"
               onClick={() => {
                 setToDelete({ id: row.id, name: row.name });
                 setDeleteModalOpen(true);
               }}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
             >
-              <Trash2 className="w-4 h-4" />
-            </Button>
+              <Trash2 className="h-4 w-4" />
+            </button>
           </div>
         )}
       />
