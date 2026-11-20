@@ -327,11 +327,11 @@ export default function PositionList() {
       />
 
       {!isLoading && rows.length > 0 && (
-        <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 rounded-lg border border-gray-200">
+        <div className="border bg-muted px-4 py-3 rounded-xl">
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
-              Menampilkan <span className="font-bold text-foreground">{rows.length}</span> dari{" "}
-              <span className="font-bold text-foreground">{total}</span> jabatan
+              Menampilkan <span className="font-medium tabular-nums text-foreground">{rows.length}</span> dari{" "}
+              <span className="font-medium tabular-nums text-foreground">{total}</span> jabatan
               <span className="ml-2 text-muted-foreground">
                 (Halaman {curPage} dari {totalPages})
               </span>

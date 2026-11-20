@@ -10,7 +10,6 @@ import {
   Calendar,
   Loader2,
   Trash2,
-  AlertTriangle,
   KeyRound,
   Users,
 } from 'lucide-react';
@@ -250,9 +249,6 @@ export default function RoleDetail() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
-              </div>
               <div className="flex-1">
                 <p className="text-sm text-gray-700 mb-2">
                   Apakah Anda yakin ingin menghapus role <strong>{role.name}</strong>?

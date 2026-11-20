@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {Plus, Eye, Edit, Trash2, Save, Loader2, Ruler, AlertTriangle} from "lucide-react";
+import {Plus, Eye, Edit, Trash2, Save, Loader2, Ruler} from "lucide-react";
 import { unitsService } from "../../services/units.service";
 import { api } from "../../services/api";
 import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable, StatusDot } from "@/components/shared";
@@ -209,10 +209,10 @@ export default function UnitList() {
       />
 
       {!isLoading && units.length > 0 && (
-        <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 rounded-lg border border-gray-200">
+        <div className="border bg-muted px-4 py-3 rounded-xl">
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
-              Menampilkan <span className="font-bold text-foreground">{units.length}</span> dari <span className="font-bold text-foreground">{pagination.total}</span> satuan
+              Menampilkan <span className="font-medium tabular-nums text-foreground">{units.length}</span> dari <span className="font-medium tabular-nums text-foreground">{pagination.total}</span> satuan
               <span className="ml-2 text-muted-foreground">(Halaman {pagination.page} dari {pagination.totalPages})</span>
             </div>
             <div className="flex gap-2">
@@ -295,9 +295,6 @@ export default function UnitList() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
-              </div>
               <div className="flex-1">
                 <p className="text-sm text-gray-700 mb-2">
                   Apakah Anda yakin ingin menghapus satuan <strong>{unitToDelete?.name}</strong>?

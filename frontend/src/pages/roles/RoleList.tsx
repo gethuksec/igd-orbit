@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Eye, Edit, Trash2, Shield, CheckCircle, XCircle, Loader2, Network, AlertTriangle, KeyRound, Users } from 'lucide-react';
+import { Plus, Eye, Edit, Trash2, Shield, CheckCircle, XCircle, Loader2, Network, KeyRound, Users } from 'lucide-react';
 import { rolesService, type Role } from '../../services/roles.service';
 import { toast } from 'sonner';
 import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable, StatusDot } from '@/components/shared';
@@ -324,9 +324,6 @@ export default function RoleList() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
-              </div>
               <div className="flex-1">
                 <p className="text-sm text-gray-700 mb-2">
                   Apakah Anda yakin ingin menghapus role <strong>{roleToDelete?.name}</strong>?

@@ -136,23 +136,19 @@ export default function GradeList() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <StatCard
-          icon={<Award className="w-6 h-6 text-white" />}
-          iconBg="from-primary-500 to-primary-600"
+          icon={<Award className="h-5 w-5" />}
           label="Jabatan Staff"
           value={isLoading ? "-" : families.length}
         />
         <StatCard
-          icon={<Award className="w-6 h-6 text-white" />}
-          iconBg="from-purple-500 to-purple-600"
+          icon={<Award className="h-5 w-5" />}
           label="Total Rung"
           value={isLoading ? "-" : staffRows.length}
         />
         <StatCard
-          icon={<Award className="w-6 h-6 text-white" />}
-          iconBg="from-green-500 to-green-600"
+          icon={<Award className="h-5 w-5" />}
           label="Rung Aktif"
           value={isLoading ? "-" : activeRungs}
-          badge={{ text: "Active", className: "bg-green-100 text-green-800" }}
         />
       </div>
 
@@ -160,7 +156,7 @@ export default function GradeList() {
         {grades.map((g) => (
           <span
             key={g.id}
-            className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border bg-purple-50 text-purple-700 border-purple-200"
+            className="font-mono text-xs text-muted-foreground border rounded-lg px-2.5 py-1 bg-white"
           >
             {g.code} — {g.name}
           </span>
@@ -180,23 +176,21 @@ export default function GradeList() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-100 text-left text-xs uppercase tracking-wide text-gray-400">
-              <th className="px-4 py-3 font-bold">Jabatan</th>
+            <tr className="border-b border-gray-100 text-left text-xs text-gray-400">
+              <th className="px-4 py-3 font-medium">Jabatan</th>
               {grades.map((g) => (
-                <th key={g.id} className="px-2 py-3 font-bold text-center w-16">
+                <th key={g.id} className="px-2 py-3 font-medium text-center w-16">
                   {g.code}
                 </th>
               ))}
-              <th className="px-4 py-3 font-bold text-center">Rung</th>
             </tr>
           </thead>
           <tbody>
             {families.map((f) => {
-              const activeCount = f.rows.filter((r) => r.isActive).length;
               return (
                 <tr key={f.key} className="border-b border-gray-50 last:border-0">
                   <td className="px-4 py-2.5">
-                    <div className="font-semibold text-gray-900">{f.label}</div>
+                    <div className="text-[15px] font-medium text-gray-900">{f.label}</div>
                     <div className="text-xs text-muted-foreground font-mono">{f.key}</div>
                   </td>
                   {grades.map((g) => {
@@ -237,22 +231,19 @@ export default function GradeList() {
                       </td>
                     );
                   })}
-                  <td className="px-4 py-2.5 text-center font-mono text-xs text-gray-500">
-                    {activeCount}/{f.rows.length}
-                  </td>
                 </tr>
               );
             })}
             {!isLoading && families.length === 0 && (
               <tr>
-                <td colSpan={grades.length + 2} className="px-4 py-8 text-center text-muted-foreground">
+                <td colSpan={grades.length + 1} className="px-4 py-8 text-center text-muted-foreground">
                   Tidak ada jabatan staff ditemukan
                 </td>
               </tr>
             )}
             {isLoading && (
               <tr>
-                <td colSpan={grades.length + 2} className="px-4 py-8 text-center text-muted-foreground">
+                <td colSpan={grades.length + 1} className="px-4 py-8 text-center text-muted-foreground">
                   Memuat…
                 </td>
               </tr>

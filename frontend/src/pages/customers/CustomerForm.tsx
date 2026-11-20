@@ -643,7 +643,7 @@ export default function CustomerForm() {
             <button
               type="submit"
               disabled={mutation.isPending}
-              className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-primary-600 to-primary-500 text-white rounded-xl font-bold hover:from-primary-700 hover:to-primary-600 shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+              className="flex items-center gap-2 px-8 py-3 bg-primary text-primary-foreground rounded-lg font-medium shadow-sm hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
               {mutation.isPending ? (
                 <Loader2 className="w-5 h-5 animate-spin" />

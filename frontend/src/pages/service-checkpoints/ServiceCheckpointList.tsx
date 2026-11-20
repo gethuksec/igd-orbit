@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Edit, Trash2, Save, Loader2, ClipboardCheck, AlertTriangle, ListOrdered } from "lucide-react";
+import { Plus, Edit, Trash2, Save, Loader2, ClipboardCheck, ListOrdered } from "lucide-react";
 import { serviceCheckpointsService } from "../../services/service-checkpoints.service";
 import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable, StatusDot } from "@/components/shared";
 import type { Column } from "@/components/shared";
@@ -234,10 +234,10 @@ export default function ServiceCheckpointList() {
       />
 
       {!isLoading && items.length > 0 && (
-        <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 rounded-lg border border-gray-200">
+        <div className="border bg-muted px-4 py-3 rounded-xl">
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
-              Menampilkan <span className="font-bold text-foreground">{items.length}</span> dari <span className="font-bold text-foreground">{pagination.total}</span> kelengkapan
+              Menampilkan <span className="font-medium tabular-nums text-foreground">{items.length}</span> dari <span className="font-medium tabular-nums text-foreground">{pagination.total}</span> kelengkapan
               <span className="ml-2 text-muted-foreground">(Halaman {pagination.page} dari {pagination.totalPages})</span>
             </div>
             <div className="flex gap-2">
@@ -301,7 +301,7 @@ export default function ServiceCheckpointList() {
               <button
                 type="button"
                 onClick={() => { setFormModalOpen(false); setEditingItem(null); setFormData({ name: "", isActive: true, sortOrder: 0 }); }}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                className="flex-1 px-4 py-2 border rounded-lg text-muted-foreground hover:bg-muted font-medium transition-colors"
                 disabled={saveMutation.isPending}
               >Batal</button>
               <button
@@ -333,9 +333,6 @@ export default function ServiceCheckpointList() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
-              </div>
               <div className="flex-1">
                 <p className="text-sm text-gray-700 mb-2">
                   Apakah Anda yakin ingin menghapus kelengkapan <strong>{itemToDelete?.name}</strong>?
@@ -349,7 +346,7 @@ export default function ServiceCheckpointList() {
               <button
                 onClick={() => { setDeleteModalOpen(false); setItemToDelete(null); }}
                 disabled={deleteMutation.isPending}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                className="flex-1 px-4 py-2 border rounded-lg text-muted-foreground hover:bg-muted font-medium transition-colors"
               >Batal</button>
               <button
                 onClick={() => { if (itemToDelete) deleteMutation.mutate(itemToDelete.id); }}
