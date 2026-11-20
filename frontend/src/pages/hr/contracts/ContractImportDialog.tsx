@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { CheckCircle2, XCircle, AlertTriangle, Loader2, Upload } from "lucide-react";
+import { CheckCircle2, XCircle, AlertTriangle, Loader2, Upload, Download } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,7 +8,8 @@ import {
   ImportDropzone,
   ImportFooter,
   ImportNotice,
-} from "@/components/shared/ImportDialog";
+  saveBlob,
+} from "@/components/shared";
 import {
   contractsService,
   type ContractImportCommit,
@@ -35,6 +36,7 @@ export default function ContractImportDialog({
   const [dryRun, setDryRun] = useState<ContractImportDryRun | null>(null);
   const [result, setResult] = useState<ContractImportCommit | null>(null);
   const [confirmBox, setConfirmBox] = useState(false);
+  const [busyTemplate, setBusyTemplate] = useState(false);
 
   const reset = () => {
     setStep(1);
@@ -124,6 +126,27 @@ export default function ContractImportDialog({
       {step === 1 && (
         <>
           <ImportDropzone file={file} onFile={setFile} hint="Seret file payroll .xlsx ke sini atau klik untuk pilih" />
+          <div>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busyTemplate}
+              onClick={async () => {
+                setBusyTemplate(true);
+                try {
+                  const blob = await contractsService.downloadImportTemplate();
+                  saveBlob(blob, "template-import-kontrak.xlsx");
+                } catch {
+                  toast.error("Gagal mengunduh template");
+                } finally {
+                  setBusyTemplate(false);
+                }
+              }}
+            >
+              {busyTemplate ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+              Unduh Template
+            </Button>
+          </div>
           <ImportNotice>
             Hasil import selalu <strong>draft</strong> — caps diberlakukan saat aktivasi. Baris tanpa NIP
             yang cocok ditolak; nilai master yang tidak dikenal dikosongkan dan ditandai untuk dilengkapi HR.

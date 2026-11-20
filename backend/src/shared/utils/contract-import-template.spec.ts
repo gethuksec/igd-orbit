@@ -7,6 +7,8 @@ import {
   parseContractImportBuffer,
   excelSerialToDate,
   parseContractImportNumber,
+  buildContractImportTemplate,
+  CONTRACT_IMPORT_COLUMNS,
 } from './contract-import-template';
 
 const ExcelJS = require('exceljs');
@@ -117,5 +119,28 @@ describe('parseContractImportNumber', () => {
     expect(parseContractImportNumber('1400000')).toBe(1400000);
     expect(parseContractImportNumber('-')).toBeNull();
     expect(parseContractImportNumber('')).toBeNull();
+  });
+});
+
+describe('buildContractImportTemplate', () => {
+  it('mirrors the payroll shape: group labels + headers on Payroll, samples on Contoh', async () => {
+    const buf = await buildContractImportTemplate();
+    expect(buf.length).toBeGreaterThan(1000);
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(buf as any);
+    const payroll = wb.getWorksheet('Payroll');
+    const contoh = wb.getWorksheet('Contoh');
+    expect(payroll).toBeDefined();
+    expect(contoh).toBeDefined();
+    const labels = CONTRACT_IMPORT_COLUMNS.map((c) => c.label);
+    const headerRow = payroll!.getRow(2);
+    const got: string[] = [];
+    headerRow.eachCell((cell: any) => got.push(String(cell.value)));
+    expect(got).toEqual(labels);
+    // Sample rows survive a parse of the Contoh sheet content.
+    const sampleRow = contoh!.getRow(2);
+    expect(String(sampleRow.getCell(2).value)).toContain('IGD.23-0008');
+    // Payroll sheet itself carries no data rows yet.
+    await expect(parseContractImportBuffer(buf)).rejects.toThrow('Tidak ada baris data');
   });
 });

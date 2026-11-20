@@ -192,6 +192,63 @@ export async function parseContractImportBuffer(buffer: Buffer): Promise<RawCont
   return rows;
 }
 
+/** Template workbook: 'Payroll' sheet (group labels + headers, data from row 3)
+ * mirrors Format_HR_ORBIT.xlsx so HR fills the familiar shape; 'Contoh' shows
+ * two filled rows (hapus sebelum upload). Upload sheet is the Payroll one. */
+export async function buildContractImportTemplate(): Promise<Buffer> {
+  const wb = new ExcelJS.Workbook();
+  const labels = CONTRACT_IMPORT_COLUMNS.map((c) => c.label);
+  const groups = [
+    'DATA KARYAWAN',
+    'DATA KARYAWAN',
+    'DATA KARYAWAN',
+    'KONTRAK',
+    'KONTRAK',
+    'KONTRAK',
+    'PENEMPATAN',
+    'PENEMPATAN',
+    'GAJI',
+  ];
+  const styleHeader = (row: any) => {
+    row.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F6F43' } };
+    row.alignment = { vertical: 'middle' };
+  };
+  const data = wb.addWorksheet('Payroll');
+  data.addRow(groups);
+  data.addRow(labels);
+  styleHeader(data.getRow(2));
+  data.columns = CONTRACT_IMPORT_COLUMNS.map(() => ({ width: 18 }));
+  const sample = wb.addWorksheet('Contoh');
+  sample.addRow(labels);
+  styleHeader(sample.getRow(1));
+  sample.addRow([
+    'BINTANG PERMATA',
+    'IGD.23-0008',
+    'TEKNISI-2',
+    'ANNUAL',
+    new Date(2027, 1, 28),
+    'SERVICE',
+    new Date(2023, 9, 1),
+    'BR-001',
+    1400000,
+  ]);
+  sample.addRow([
+    'SLAMET',
+    'IGD.19-0004',
+    'HEADSTORE (HS)',
+    'LIFETIME',
+    '-',
+    'SERVICE',
+    new Date(2019, 0, 1),
+    '',
+    1200000,
+  ]);
+  sample.columns = CONTRACT_IMPORT_COLUMNS.map(() => ({ width: 20 }));
+  const buf = await wb.xlsx.writeBuffer();
+  return Buffer.from(buf as any);
+}
+
 /** Excel serial (days since 1899-12-30) → JS Date. Returns null when unparseable. */
 export function excelSerialToDate(v: any): Date | null {
   if (v === null || v === undefined || v === '') return null;
