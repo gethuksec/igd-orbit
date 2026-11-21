@@ -142,7 +142,7 @@ export default function PaymentTermForm() {
             <Button
               type="submit"
               disabled={saveMutation.isPending}
-              className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 flex items-center justify-center gap-2"
+              className="flex-1 bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {saveMutation.isPending ? (
                 <><Loader2 className="w-4 h-4 animate-spin" /> Menyimpan...</>

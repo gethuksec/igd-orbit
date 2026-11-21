@@ -81,10 +81,10 @@ export default function SizeForm() {
       <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 overflow-hidden">
         <div className="p-4">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg">
-              <Maximize className="w-5 h-5 text-white" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
+              <Maximize className="h-5 w-5" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Informasi Ukuran</h2>
+            <h2 className="text-[15px] font-medium text-gray-900 dark:text-gray-100">Informasi Ukuran</h2>
           </div>
           <div className="space-y-3">
             <div>
@@ -143,7 +143,7 @@ export default function SizeForm() {
           <button
             type="submit"
             disabled={mutation.isPending}
-            className="px-6 py-2 bg-gradient-to-r from-primary-600 to-primary-500 text-white rounded-lg hover:from-primary-700 hover:to-primary-600 transition-all shadow-md disabled:opacity-50 flex items-center gap-2"
+            className="px-6 py-2 bg-primary text-primary-foreground rounded-lg font-medium shadow-sm hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
           >
             {mutation.isPending ? (
               <>

@@ -298,11 +298,11 @@ export default function JournalEntriesList() {
 
         {/* Pagination */}
         {!isLoading && filteredEntries.length > 0 && (
-          <div className="bg-gradient-to-r from-gray-50 dark:from-gray-900 to-gray-100 dark:to-gray-800 px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+          <div className="border bg-muted px-4 py-3 rounded-xl">
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                Menampilkan <span className="font-bold text-gray-900 dark:text-gray-100">{filteredEntries.length}</span>{' '}
-                dari <span className="font-bold text-gray-900 dark:text-gray-100">{pagination.total}</span> jurnal
+                Menampilkan <span className="font-medium tabular-nums text-gray-900 dark:text-gray-100">{filteredEntries.length}</span>{' '}
+                dari <span className="font-medium tabular-nums text-gray-900 dark:text-gray-100">{pagination.total}</span> jurnal
                 <span className="ml-2 text-gray-500 dark:text-gray-400">
                   (Halaman {pagination.page} dari {pagination.totalPages})
                 </span>
