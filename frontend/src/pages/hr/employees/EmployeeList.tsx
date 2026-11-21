@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BreadcrumbHeader, FilterToolbar, RowsPerPageSelect, StatusDot } from '@/components/shared';
+import { BreadcrumbHeader, FilterToolbar, RowsPerPageSelect, StatCard, StatusDot } from '@/components/shared';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Users, User, Building2, Briefcase, Calendar, CheckCircle, XCircle, AlertCircle, Eye, Edit, Save, Plus } from 'lucide-react';
@@ -232,39 +232,9 @@ export default function EmployeeList() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Karyawan</p>
-              <p className="text-2xl font-medium tabular-nums text-gray-900 dark:text-gray-100">{employees.length}</p>
-            </div>
-            <div className="p-3 bg-primary-100 dark:bg-primary-950 rounded-lg">
-              <Users className="w-6 h-6 text-primary-600 dark:text-primary-400" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Aktif</p>
-              <p className="text-2xl font-medium tabular-nums text-green-600 dark:text-green-400">{activeCount}</p>
-            </div>
-            <div className="p-3 bg-green-100 dark:bg-green-950 rounded-lg">
-              <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Tidak Aktif</p>
-              <p className="text-2xl font-medium tabular-nums text-red-600 dark:text-red-400">{inactiveCount}</p>
-            </div>
-            <div className="p-3 bg-red-100 dark:bg-red-950 rounded-lg">
-              <XCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
-            </div>
-          </div>
-        </div>
+        <StatCard icon={<Users className="h-5 w-5" />} label="Total Karyawan" value={employees.length} />
+        <StatCard icon={<CheckCircle className="h-5 w-5" />} label="Aktif" value={activeCount} />
+        <StatCard icon={<XCircle className="h-5 w-5" />} label="Tidak Aktif" value={inactiveCount} />
       </div>
 
       {/* Table */}
@@ -290,13 +260,13 @@ export default function EmployeeList() {
               <table className="w-full">
                 <thead className="bg-gray-50 dark:bg-gray-950 border-b border-gray-200 dark:border-gray-700">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Karyawan</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Posisi</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Cabang</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Tanggal Masuk</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Tipe</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Karyawan</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Posisi</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Cabang</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Tanggal masuk</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Tipe</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Status</th>
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
@@ -304,11 +274,11 @@ export default function EmployeeList() {
                     <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <Link to={`/hr/employees/${user.id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer">
-                          <div className="p-2 bg-primary-100 dark:bg-primary-950 rounded-lg">
-                            <User className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+                          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
+                            <User className="h-5 w-5" />
                           </div>
                           <div>
-                            <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{user.fullName || user.email}</div>
+                            <div className="text-[15px] font-medium text-gray-900 dark:text-gray-100">{user.fullName || user.email}</div>
                             <div className="text-xs text-gray-500 dark:text-gray-400">{user.email}</div>
                             {user.phone && <div className="text-xs text-gray-500 dark:text-gray-400">{user.phone}</div>}
                           </div>
@@ -317,9 +287,9 @@ export default function EmployeeList() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           <Briefcase className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                          <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{user.employee?.position || user.employee?.positionDetail?.name || '-'}</div>
+                          <div className="text-[15px] font-medium text-gray-900 dark:text-gray-100">{user.employee?.position || user.employee?.positionDetail?.name || '-'}</div>
                           {(user.employee?.positionDetail as any)?.grade && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200">
+                            <span className="font-mono text-xs text-muted-foreground">
                               G{(user.employee.positionDetail as any).grade.rank}
                             </span>
                           )}
@@ -333,7 +303,7 @@ export default function EmployeeList() {
                           <div className="flex items-center gap-2">
                             <Building2 className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                             <div>
-                              <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{user.employee.branch.name}</div>
+                              <div className="text-[15px] font-medium text-gray-900 dark:text-gray-100">{user.employee.branch.name}</div>
                               <div className="text-xs text-gray-500 dark:text-gray-400">{user.employee.branch.code}</div>
                             </div>
                           </div>
@@ -343,7 +313,7 @@ export default function EmployeeList() {
                         {user.employee?.hireDate ? (
                           <div className="flex items-center gap-2">
                             <Calendar className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                            <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{formatDate(user.employee.hireDate)}</div>
+                            <div className="text-[15px] font-medium text-gray-900 dark:text-gray-100">{formatDate(user.employee.hireDate)}</div>
                           </div>
                         ) : <span className="text-sm text-gray-400 dark:text-gray-500">-</span>}
                       </td>
@@ -390,16 +360,16 @@ export default function EmployeeList() {
                       setPage(1);
                     }}
                   />
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                  <div className="text-sm tabular-nums text-gray-600 dark:text-gray-400">
                     Menampilkan {(page - 1) * limit + 1} - {Math.min(page * limit, pagination.total)} dari {pagination.total}
                   </div>
                 </div>
                 {pagination.totalPages > 1 && (
                   <div className="flex gap-2">
                     <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
-                      className="px-4 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800 font-semibold transition-all">Previous</button>
+                      className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-all">Previous</button>
                     <button onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))} disabled={page === pagination.totalPages}
-                      className="px-4 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800 font-semibold transition-all">Next</button>
+                      className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-all">Next</button>
                   </div>
                 )}
               </div>
