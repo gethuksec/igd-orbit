@@ -355,6 +355,9 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
         label: 'KPI',
         children: [
           { label: 'Kelola KPI', key: 'hr.kpi.create' },
+          { label: 'Lihat KPI', key: 'hr.kpi.view' },
+          { label: 'Input Nilai KPI', key: 'hr.kpi.score' },
+          { label: 'Kunci Periode KPI', key: 'hr.kpi.lock' },
         ],
       },
       {

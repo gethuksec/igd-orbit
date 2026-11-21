@@ -9,6 +9,7 @@ import { CalculatePayrollDto } from '../dto/calculate-payroll.dto';
 import { Decimal } from '@prisma/client/runtime/library';
 import { AttendanceService } from './attendance.service';
 import { JournalEntriesService } from '../../finance/services/journal-entries.service';
+import { KPIService } from './kpi.service';
 
 @Injectable()
 export class PayrollService {
@@ -16,6 +17,7 @@ export class PayrollService {
     private prisma: PrismaService,
     private attendanceService: AttendanceService,
     private journalEntriesService: JournalEntriesService,
+    private kpiService: KPIService,
   ) {}
 
   /**
@@ -108,16 +110,10 @@ export class PayrollService {
       });
       const unpaidLeaveDays = unpaidLeaves.reduce((sum, l) => sum + l.totalDays, 0);
 
-      // Get KPI record for bonus calculation
-      const kpiRecord = await this.prisma.kPIRecord.findUnique({
-        where: {
-          employeeId_periodMonth_periodYear: {
-            employeeId: employee.id,
-            periodMonth: dto.period_month,
-            periodYear: dto.period_year,
-          },
-        },
-      });
+      // KPI bonus (IGDERP-266): locked NILAI x division default_amount.
+      // Zero + reason when the period is not locked or the employee is
+      // probation-gated (trial/probation get no KPI until lulus probation).
+      const kpi = await this.kpiService.payrollKpi(employee.id, dto.period_month, dto.period_year);
 
       // Calculate components
       const components: Array<{ type: string; name: string; amount: Decimal; formula?: string; notes?: string }> = [];
@@ -186,40 +182,21 @@ export class PayrollService {
         });
       }
 
-      // KPI Bonus (from KPI record)
-      let kpiBonus = new Decimal(0);
-      let kpiMultiplier = new Decimal(1.0);
-      if (kpiRecord && kpiRecord.calculatedBonus) {
-        kpiBonus = kpiRecord.calculatedBonus;
-        kpiMultiplier = kpiRecord.bonusMultiplier || new Decimal(1.0);
+      // KPI Bonus (IGDERP-266: locked NILAI x division default_amount)
+      if (kpi.bonus.greaterThan(0)) {
         components.push({
           type: 'earning',
           name: 'KPI Bonus',
-          amount: kpiBonus,
-          formula: `KPI Score: ${kpiRecord.overallScore.toNumber()}, Multiplier: ${kpiMultiplier.toNumber()}`,
+          amount: kpi.bonus,
+          formula: `NILAI: ${kpi.nilai.toNumber()}`,
         });
-      }
-
-      // Incentive (INSENTIF) - separate from KPI bonus, based on store revenue/performance
-      // This would come from store performance data or manual input
-      // For now, we'll calculate based on KPI if available, otherwise 0
-      let incentiveAmount = new Decimal(0);
-      let incentiveValue = new Decimal(0);
-      let incentiveTotal = new Decimal(0);
-      if (kpiRecord && kpiRecord.salesTargetAchievement) {
-        // Example: 1% of sales target achievement
-        incentiveValue = new Decimal(0.01);
-        incentiveAmount = kpiRecord.salesTargetAchievement.times(incentiveValue);
-        incentiveTotal = incentiveAmount;
-        if (incentiveTotal.greaterThan(0)) {
-          components.push({
-            type: 'earning',
-            name: 'Insentif',
-            amount: incentiveTotal,
-            formula: `Sales Achievement: ${kpiRecord.salesTargetAchievement.toNumber()} × ${incentiveValue.toNumber()}`,
-            notes: `Amount: ${incentiveAmount.toNumber()}, Value: ${incentiveValue.toNumber()}, Total: ${incentiveTotal.toNumber()}`,
-          });
-        }
+      } else if (kpi.reason) {
+        components.push({
+          type: 'earning',
+          name: 'KPI Bonus',
+          amount: new Decimal(0),
+          formula: kpi.reason,
+        });
       }
 
       // Holiday Incentive (INSENTIF LIBUR) - HARI, NOMINAL
