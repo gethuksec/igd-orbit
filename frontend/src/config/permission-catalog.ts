@@ -340,11 +340,9 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
         ],
       },
       {
-        label: 'Departemen',
+        label: 'Kontrak',
         children: [
-          { label: 'Lihat', key: 'hr.employee.view' },
-          { label: 'Tambah', key: 'hr.employee.create' },
-          { label: 'Edit', key: 'hr.employee.edit' },
+          { label: 'Lihat Kontrak', key: 'hr.employee.view' },
         ],
       },
       {
@@ -366,7 +364,30 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
         ],
       },
       {
-        label: 'Data Master',
+        label: 'Libur',
+        children: [
+          {
+            label: 'Libur karyawan',
+            children: [
+              { label: 'Lihat Kuota', key: 'hr.libur.view' },
+            ],
+          },
+          {
+            label: 'Pengajuan libur',
+            children: [
+              { label: 'Kelola Pengajuan', key: 'hr.libur.view' },
+            ],
+          },
+        ],
+      },
+      {
+        label: 'Shifting',
+        children: [
+          { label: 'Kelola Shifting', key: 'hr.shift.view' },
+        ],
+      },
+      {
+        label: 'Master Data',
         children: [
           {
             label: 'Tipe Cuti',
@@ -378,6 +399,14 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
             label: 'Tipe Denda',
             children: [
               { label: 'Lihat Denda', key: 'master_data.attribute.view' },
+            ],
+          },
+          {
+            label: 'Departemen',
+            children: [
+              { label: 'Lihat', key: 'hr.employee.view' },
+              { label: 'Tambah', key: 'hr.employee.create' },
+              { label: 'Edit', key: 'hr.employee.edit' },
             ],
           },
           {
@@ -402,6 +431,12 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
             label: 'Working Location',
             children: [
               { label: 'Lihat Working Location', key: 'master_data.attribute.view' },
+            ],
+          },
+          {
+            label: 'Shift kerja',
+            children: [
+              { label: 'Lihat Shift', key: 'master_data.attribute.view' },
             ],
           },
         ],

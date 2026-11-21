@@ -16,6 +16,8 @@ import { WarehousesModule } from "./modules/warehouses/warehouses.module";
 import { CustomerTypesModule } from "./modules/customer-types/customer-types.module";
 import { LeaveTypesModule } from "./modules/leave-types/leave-types.module";
 import { PenaltyTypesModule } from "./modules/penalty-types/penalty-types.module";
+import { LiburModule } from "./modules/libur/libur.module";
+import { ShiftsModule } from "./modules/shifts/shifts.module";
 import { ContractsModule } from './modules/contracts/contracts.module';
 import { WorkingLocationsModule } from './modules/working-locations/working-locations.module';
 import { CustomersModule } from './modules/customers/customers.module';
@@ -64,6 +66,8 @@ import { FileAccessModule } from './modules/file-access/file-access.module';
     CustomerTypesModule,
     LeaveTypesModule,
     PenaltyTypesModule,
+    LiburModule,
+    ShiftsModule,
     ContractsModule,
     WorkingLocationsModule,
     CustomersModule,

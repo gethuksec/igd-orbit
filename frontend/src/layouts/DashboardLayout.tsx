@@ -376,21 +376,31 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       children: [
         { icon: Users, label: 'Data Karyawan', path: '/hr/employees', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: Clock, label: 'Presensi', path: '/hr/attendance', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
-        { icon: Building2, label: 'Departemen', path: '/hr/departments', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: ScrollText, label: 'Kontrak', path: '/hr/contracts', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: CalendarDays, label: 'Cuti', path: '/hr/leave', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: Target, label: 'KPI', path: '/hr/kpi', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: Banknote, label: 'Payroll', path: '/hr/payroll', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         {
+          icon: CalendarDays,
+          label: 'Libur',
+          children: [
+            { icon: CalendarDays, label: 'Libur karyawan', path: '/hr/libur', permission: 'hr.libur.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+            { icon: ClipboardList, label: 'Pengajuan libur', path: '/hr/libur/pengajuan', permission: 'hr.libur.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+          ],
+        },
+        { icon: ArrowRightLeft, label: 'Shifting', path: '/hr/shifting', permission: 'hr.shift.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+        {
           icon: Database,
-          label: 'Data Master',
+          label: 'Master Data',
           children: [
             { icon: CalendarDays, label: 'Tipe Cuti', path: '/hr/master-data/cuti', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
             { icon: Gavel, label: 'Tipe Denda', path: '/hr/master-data/denda', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+            { icon: Building2, label: 'Departemen', path: '/hr/departments', permission: 'hr.employee.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
             { icon: Building2, label: 'Divisi', path: '/hr/divisions', permission: 'hr.division.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
             { icon: Award, label: 'Grade', path: '/hr/master-data/grade', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
             { icon: Briefcase, label: 'Jabatan', path: '/hr/master-data/jabatan', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
             { icon: MapPin, label: 'Working Location', path: '/hr/master-data/working-location', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+            { icon: Clock, label: 'Shift kerja', path: '/hr/master-data/shift', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
           ],
         },
       ],
