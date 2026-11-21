@@ -9,10 +9,12 @@ import { PrismaService } from '../../../shared/services/prisma.service';
 import { Decimal } from '@prisma/client/runtime/library';
 
 /**
- * KPI master per division (IGDERP-266).
+ * KPI master per division (IGDERP-266, assign/edit flow rework).
  * Source: Format_HR_ORBIT.xlsx Kpi sheet (INDEKS + AKUMULASI).
- * One aspect list per division; senior scores monthly grid per
- * division+period on dashboard; HR locks; payroll reads locked NILAI.
+ * Division list -> assign wizard (aspects prefilled, employee inputs)
+ * -> edit tabs (per karyawan / aspek) -> Approved by HR (immutable,
+ * payroll reads approved NILAI). Same-division scoping via the
+ * superior's own employee record; writes current-month only.
  */
 
 // NILAI ladder from the sheet (Kpi!T formula): total skor -> pengali.
@@ -36,6 +38,30 @@ export function aspectSkor(capaian: number, target: number, weight: number): num
 }
 
 const EPS = 1e-9;
+
+// ---- assign/edit flow ----
+// Period shell lives in kpiPeriodLock: absent = Belum assign,
+// 'assigned' = editable, 'approved' = immutable + payroll gate.
+// Legacy 'locked' rows read as approved; legacy 'open' reads as assigned.
+
+const APPROVED_STATUSES = ['approved', 'locked'];
+const FULL_SCOPE_ROLES = ['SUPERADMIN', 'OWNER', 'CHR', 'CFO'];
+
+function isApproved(status?: string | null): boolean {
+  return !!status && APPROVED_STATUSES.includes(status);
+}
+
+function currentPeriod(): { month: number; year: number } {
+  const n = new Date();
+  return { month: n.getMonth() + 1, year: n.getFullYear() };
+}
+
+function assertCurrentPeriod(month: number, year: number): void {
+  const c = currentPeriod();
+  if (month !== c.month || year !== c.year) {
+    throw new BadRequestException('KPI writes are only allowed for the current month');
+  }
+}
 
 function toNum(v: unknown): number {
   if (v === null || v === undefined) return NaN;
@@ -66,7 +92,8 @@ export class KPIService {
     return { division, config };
   }
 
-  async upsertConfig(divisionId: string, data: { default_amount?: number; is_active?: boolean }) {
+  async upsertConfig(divisionId: string, data: { default_amount?: number; is_active?: boolean }, scope?: { userId: string; roles?: string[] }) {
+    if (scope) await this.assertDivisionScope(scope.userId, scope.roles ?? [], divisionId);
     const division = await (this.prisma as any).division.findUnique({ where: { id: divisionId } });
     if (!division) throw new NotFoundException('Division not found');
     if (data.default_amount !== undefined && data.default_amount < 0) {
@@ -84,6 +111,120 @@ export class KPIService {
         ...(data.is_active !== undefined ? { isActive: data.is_active } : {}),
       },
     });
+  }
+
+  // ---------- scoping: full-scope roles see all, superiors see own division ----------
+
+  async scopeDivisionIds(userId: string, roles: string[] = []): Promise<string[] | null> {
+    if (roles.some((r) => FULL_SCOPE_ROLES.includes(r))) return null;
+    const emp = await (this.prisma as any).employee.findUnique({ where: { userId } });
+    if (!emp?.divisionId) throw new ForbiddenException('No division scope for this account');
+    return [emp.divisionId];
+  }
+
+  async assertDivisionScope(userId: string, roles: string[] = [], divisionId: string): Promise<void> {
+    const scope = await this.scopeDivisionIds(userId, roles);
+    if (scope && !scope.includes(divisionId)) {
+      throw new ForbiddenException('Division is outside your scope');
+    }
+  }
+
+  // Division list with current-month status (Belum assign / Assigned / Approved by HR).
+  async listDivisions(userId: string, roles: string[] = []) {
+    const scope = await this.scopeDivisionIds(userId, roles);
+    const divisions = await (this.prisma as any).division.findMany({
+      where: scope ? { id: { in: scope } } : {},
+      orderBy: { name: 'asc' },
+    });
+    const { month, year } = currentPeriod();
+    const out = [];
+    for (const d of divisions) {
+      const shell = await (this.prisma as any).kpiPeriodLock.findUnique({
+        where: { divisionId_periodMonth_periodYear: { divisionId: d.id, periodMonth: month, periodYear: year } },
+      });
+      const status = !shell ? 'unassigned' : isApproved(shell.status) ? 'approved' : 'assigned';
+      const employeeCount = await (this.prisma as any).employee.count({
+        where: { divisionId: d.id, isActive: true },
+      });
+      out.push({ division: d, periodMonth: month, periodYear: year, status, employeeCount });
+    }
+    return out;
+  }
+
+  // Assign step 1 context: master aspects + prefill from the latest previous period.
+  async getAssignContext(divisionId: string, userId: string, roles: string[] = []) {
+    await this.assertDivisionScope(userId, roles, divisionId);
+    const division = await (this.prisma as any).division.findUnique({ where: { id: divisionId } });
+    if (!division) throw new NotFoundException('Division not found');
+    const { month, year } = currentPeriod();
+    const shell = await (this.prisma as any).kpiPeriodLock.findUnique({
+      where: { divisionId_periodMonth_periodYear: { divisionId, periodMonth: month, periodYear: year } },
+    });
+    if (shell) throw new ConflictException('Period is already assigned — use Edit instead');
+    const aspects = await (this.prisma as any).kpiAspect.findMany({
+      where: { divisionId, isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { code: 'asc' }],
+    });
+    const aspectIds = aspects.map((a: any) => a.id);
+    let prefill: { month: number; year: number; targets: Record<string, number>; kolektif: Record<string, number> } | null = null;
+    if (aspectIds.length > 0) {
+      const latest = await (this.prisma as any).kpiPeriodTarget.findFirst({
+        where: {
+          aspectId: { in: aspectIds },
+          OR: [{ periodYear: { lt: year } }, { periodYear: year, periodMonth: { lt: month } }],
+        },
+        orderBy: [{ periodYear: 'desc' }, { periodMonth: 'desc' }],
+      });
+      if (latest) {
+        const [t, k] = await Promise.all([
+          (this.prisma as any).kpiPeriodTarget.findMany({
+            where: { aspectId: { in: aspectIds }, periodMonth: latest.periodMonth, periodYear: latest.periodYear },
+          }),
+          (this.prisma as any).kpiPeriodActual.findMany({
+            where: { divisionId, aspectId: { in: aspectIds }, periodMonth: latest.periodMonth, periodYear: latest.periodYear },
+          }),
+        ]);
+        const targets: Record<string, number> = {};
+        for (const r of t) targets[r.aspectId] = toNum(r.target);
+        const kolektif: Record<string, number> = {};
+        for (const r of k) kolektif[r.aspectId] = toNum(r.value);
+        prefill = { month: latest.periodMonth, year: latest.periodYear, targets, kolektif };
+      }
+    }
+    const config = await (this.prisma as any).kpiDivisionConfig.findUnique({ where: { divisionId } });
+    const weightsSum = aspects.reduce((s: number, a: any) => s + toNum(a.weight), 0);
+    return {
+      division,
+      periodMonth: month,
+      periodYear: year,
+      aspects,
+      prefill,
+      defaultAmount: config ? toNum((config as any).defaultAmount) : 0,
+      weightsSum,
+    };
+  }
+
+  // Assign step 2 Simpan: creates the period shell once, then writes the grid.
+  async assignPeriod(divisionId: string, dto: SaveGridDto, userId: string, roles: string[] = []) {
+    await this.assertDivisionScope(userId, roles, divisionId);
+    assertCurrentPeriod(dto.period_month, dto.period_year);
+    const month = dto.period_month;
+    const year = dto.period_year;
+    const existing = await (this.prisma as any).kpiPeriodLock.findUnique({
+      where: { divisionId_periodMonth_periodYear: { divisionId, periodMonth: month, periodYear: year } },
+    });
+    if (existing) throw new ConflictException('Period is already assigned — use Edit instead');
+    const aspects = await (this.prisma as any).kpiAspect.findMany({ where: { divisionId, isActive: true } });
+    if (aspects.length === 0) throw new BadRequestException('Division has no active aspects — add aspects first');
+    const weightsSum = aspects.reduce((s: number, a: any) => s + toNum(a.weight), 0);
+    if (Math.abs(weightsSum - 1) > EPS) {
+      throw new BadRequestException(`Total bobot harus 1,00 untuk assign (saat ini ${weightsSum.toFixed(2)})`);
+    }
+    await (this.prisma as any).kpiPeriodLock.create({
+      data: { divisionId, periodMonth: month, periodYear: year, status: 'assigned' },
+    });
+    await this.writeGrid(divisionId, month, year, dto, userId, aspects);
+    return this.getGrid(divisionId, month, year);
   }
 
   // ---------- aspects ----------
@@ -126,7 +267,9 @@ export class KPIService {
       is_kolektif?: boolean;
       sort_order?: number;
     },
+    scope?: { userId: string; roles?: string[] },
   ) {
+    if (scope) await this.assertDivisionScope(scope.userId, scope.roles ?? [], divisionId);
     const division = await (this.prisma as any).division.findUnique({ where: { id: divisionId } });
     if (!division) throw new NotFoundException('Division not found');
     this.assertAspectPayload({
@@ -170,13 +313,15 @@ export class KPIService {
       weight: number;
       target_type: string;
       fixed_target: number | null;
-      is_kolektif: boolean;
-      sort_order: number;
-      is_active: boolean;
+      is_kolektif?: boolean;
+      sort_order?: number;
+      is_active?: boolean;
     }>,
+    scope?: { userId: string; roles?: string[] },
   ) {
     const existing = await (this.prisma as any).kpiAspect.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Aspect not found');
+    if (scope) await this.assertDivisionScope(scope.userId, scope.roles ?? [], existing.divisionId);
     this.assertAspectPayload({
       weight: data.weight,
       targetType: data.target_type,
@@ -241,7 +386,7 @@ export class KPIService {
     const lock =
       (await (this.prisma as any).kpiPeriodLock.findUnique({
         where: { divisionId_periodMonth_periodYear: { divisionId, periodMonth: month, periodYear: year } },
-      })) ?? { status: 'open' };
+      })) ?? { status: 'unassigned' };
 
     const aspectIds = aspects.map((a: any) => a.id);
     const [targets, actuals, scores, notes] = await Promise.all([
@@ -334,19 +479,37 @@ export class KPIService {
     };
   }
 
-  async saveGrid(divisionId: string, dto: SaveGridDto, userId: string) {
+  async saveGrid(divisionId: string, dto: SaveGridDto, userId: string, roles: string[] = []) {
+    await this.assertDivisionScope(userId, roles, divisionId);
+    assertCurrentPeriod(dto.period_month, dto.period_year);
     const month = dto.period_month;
     const year = dto.period_year;
     if (!(month >= 1 && month <= 12) || !(year >= 2000 && year <= 2100)) {
       throw new BadRequestException('Invalid period');
     }
-    const lock = await (this.prisma as any).kpiPeriodLock.findUnique({
+    const shell = await (this.prisma as any).kpiPeriodLock.findUnique({
       where: { divisionId_periodMonth_periodYear: { divisionId, periodMonth: month, periodYear: year } },
     });
-    if (lock && lock.status === 'locked') {
-      throw new ForbiddenException('Period is locked by HR — scores can no longer change');
+    if (!shell) {
+      throw new ConflictException('Period is not assigned yet — assign first');
+    }
+    if (isApproved(shell.status)) {
+      throw new ForbiddenException('Approved by HR — data can no longer change');
     }
     const aspects = await (this.prisma as any).kpiAspect.findMany({ where: { divisionId, isActive: true } });
+    await this.writeGrid(divisionId, month, year, dto, userId, aspects);
+    return this.getGrid(divisionId, month, year);
+  }
+
+  // Shared period writer (assign + edit). Aspects are loaded by the caller.
+  private async writeGrid(
+    divisionId: string,
+    month: number,
+    year: number,
+    dto: SaveGridDto,
+    userId: string,
+    aspects: any[],
+  ) {
     const byId: Record<string, any> = {};
     for (const a of aspects) byId[a.id] = a;
     const assertOwned = (aspectId: string) => {
@@ -417,10 +580,11 @@ export class KPIService {
         update: { notes: n.notes ?? null, updatedBy: userId },
       });
     }
-    return this.getGrid(divisionId, month, year);
   }
 
-  async lockPeriod(divisionId: string, month: number, year: number, userId: string) {
+  async approvePeriod(divisionId: string, month: number, year: number, userId: string, roles: string[] = []) {
+    await this.assertDivisionScope(userId, roles, divisionId);
+    assertCurrentPeriod(month, year);
     const grid: any = await this.getGrid(divisionId, month, year);
     const gaps: string[] = [];
     const amount = grid.config ? toNum(grid.config.defaultAmount) : 0;
@@ -442,8 +606,8 @@ export class KPIService {
     }
     return (this.prisma as any).kpiPeriodLock.upsert({
       where: { divisionId_periodMonth_periodYear: { divisionId, periodMonth: month, periodYear: year } },
-      create: { divisionId, periodMonth: month, periodYear: year, status: 'locked', lockedBy: userId, lockedAt: new Date() },
-      update: { status: 'locked', lockedBy: userId, lockedAt: new Date() },
+      create: { divisionId, periodMonth: month, periodYear: year, status: 'approved', lockedBy: userId, lockedAt: new Date() },
+      update: { status: 'approved', lockedBy: userId, lockedAt: new Date() },
     });
   }
 
@@ -456,11 +620,11 @@ export class KPIService {
     });
     if (!employee) throw new NotFoundException('Employee not found');
     if (!employee.divisionId) return { employee, periods: [] };
-    // Latest locked periods first; optional narrow to one period.
+    // Latest approved periods first (legacy 'locked' rows read as approved); optional narrow to one period.
     const locks = await (this.prisma as any).kpiPeriodLock.findMany({
       where: {
         divisionId: employee.divisionId,
-        status: 'locked',
+        status: { in: ['approved', 'locked'] },
         ...(month ? { periodMonth: month } : {}),
         ...(year ? { periodYear: year } : {}),
       },
@@ -482,20 +646,21 @@ export class KPIService {
     if (row.excludedReason) {
       return { periodMonth: month, periodYear: year, status: 'excluded' as const, reason: row.excludedReason };
     }
-    const locked = grid.lock && grid.lock.status === 'locked';
+    const approved = grid.lock && isApproved(grid.lock.status);
+    const assigned = grid.lock && grid.lock.status !== 'unassigned';
     return {
       periodMonth: month,
       periodYear: year,
-      status: (locked ? 'locked' : 'open') as 'locked' | 'open',
+      status: (approved ? 'approved' : assigned ? 'assigned' : 'unassigned') as 'approved' | 'assigned' | 'unassigned',
       total: row.total,
       nilai: row.nilai,
-      bonus: locked ? row.bonus : null,
+      bonus: approved ? row.bonus : null,
       incomplete: row.incomplete,
       note: row.note,
     };
   }
 
-  // Payroll link: locked NILAI x division default_amount. Zero + reason otherwise.
+  // Payroll link: approved NILAI x division default_amount. Zero + reason otherwise.
   async payrollKpi(
     employeeId: string,
     month: number,
@@ -510,8 +675,8 @@ export class KPIService {
     if (computed.status === 'excluded') {
       return { bonus: new Decimal(0), nilai: new Decimal(0), reason: computed.reason };
     }
-    if (computed.status !== 'locked' || computed.nilai === null) {
-      return { bonus: new Decimal(0), nilai: new Decimal(0), reason: 'KPI period is not locked yet' };
+    if (computed.status !== 'approved' || computed.nilai === null) {
+      return { bonus: new Decimal(0), nilai: new Decimal(0), reason: 'KPI period is not approved by HR yet' };
     }
     return {
       bonus: new Decimal(computed.bonus ?? 0),

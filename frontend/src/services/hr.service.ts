@@ -170,6 +170,29 @@ export interface KpiAspect {
   isActive: boolean;
 }
 
+export interface KpiDivisionRow {
+  division: any;
+  periodMonth: number;
+  periodYear: number;
+  status: 'unassigned' | 'assigned' | 'approved';
+  employeeCount: number;
+}
+
+export interface KpiAssignContext {
+  division: any;
+  periodMonth: number;
+  periodYear: number;
+  aspects: KpiAspect[];
+  prefill: {
+    month: number;
+    year: number;
+    targets: Record<string, number>;
+    kolektif: Record<string, number>;
+  } | null;
+  defaultAmount: number;
+  weightsSum: number;
+}
+
 export interface KpiGridEmployee {
   employee: any;
   excludedReason: string | null;
@@ -635,6 +658,20 @@ export const hrService = {
     return response.data.data || response.data;
   },
 
+  async listKpiDivisions(): Promise<KpiDivisionRow[]> {
+    const response = await api.get('/kpi/divisions');
+    return response.data.data || response.data;
+  },
+
+  async getKpiAssignContext(divisionId: string): Promise<KpiAssignContext> {
+    const response = await api.get(`/kpi/divisions/${divisionId}/assign-context`);
+    return response.data.data || response.data;
+  },
+
+  async assignKpiPeriod(divisionId: string, data: any): Promise<KpiGrid> {
+    const response = await api.post(`/kpi/divisions/${divisionId}/assign`, data);
+    return response.data.data || response.data;
+  },
   async listKpiAspects(divisionId: string): Promise<KpiAspect[]> {
     const response = await api.get(`/kpi/divisions/${divisionId}/aspects`);
     return response.data.data || response.data;
@@ -670,8 +707,8 @@ export const hrService = {
     return response.data.data || response.data;
   },
 
-  async lockKpiPeriod(divisionId: string, period_month: number, period_year: number) {
-    const response = await api.post(`/kpi/divisions/${divisionId}/lock`, { period_month, period_year });
+  async approveKpiPeriod(divisionId: string, period_month: number, period_year: number) {
+    const response = await api.post(`/kpi/divisions/${divisionId}/approve`, { period_month, period_year });
     return response.data.data || response.data;
   },
 

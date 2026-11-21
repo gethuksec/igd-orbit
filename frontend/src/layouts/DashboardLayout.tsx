@@ -378,7 +378,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         { icon: Clock, label: 'Presensi', path: '/hr/attendance', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: ScrollText, label: 'Kontrak', path: '/hr/contracts', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: CalendarDays, label: 'Cuti', path: '/hr/leave', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
-        { icon: Target, label: 'KPI', path: '/hr/kpi', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+        { icon: Target, label: 'KPI', path: '/hr/kpi', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR', 'HS', 'SPV'] },
         { icon: Banknote, label: 'Payroll', path: '/hr/payroll', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         {
           icon: CalendarDays,

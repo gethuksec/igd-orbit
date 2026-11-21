@@ -26,11 +26,13 @@ interface ExpressRequest extends Request {
   };
 }
 
+const SCORERS = ['CHR', 'CFO', 'OWNER', 'HS', 'SPV'] as const;
+
 /**
- * KPI master per division (IGDERP-266).
- * Aspects CRUD (CHR) -> monthly scoring grid (senior: HS/SPV/CHR)
- * -> HR lock (CHR) -> payroll reads locked NILAI. Staff view is
- * read-only for any authenticated user.
+ * KPI assign/edit flow (IGDERP-266 rework).
+ * Division list -> assign wizard (aspects prefilled, employee inputs)
+ * -> edit tabs (per karyawan / aspek) -> Approved by HR (immutable,
+ * payroll reads approved NILAI). Staff view is read-only.
  */
 @Controller('kpi')
 @UseGuards(JwtAuthGuard)
@@ -40,55 +42,96 @@ export class KPIController {
     private readonly prisma: PrismaService,
   ) {}
 
-  // ---------- aspects (master, CHR) ----------
+  // ---------- division list (scoped: all for super roles, own for superiors) ----------
+
+  @Get('divisions')
+  @UseGuards(RolesGuard)
+  @Roles(...SCORERS)
+  async listDivisions(@Request() req: ExpressRequest) {
+    return this.kpiService.listDivisions(req.user.id, req.user.roles);
+  }
+
+  // ---------- aspects (master, scoped to division) ----------
 
   @Get('divisions/:divisionId/aspects')
   @UseGuards(RolesGuard)
-  @Roles('CHR', 'CFO', 'OWNER', 'HS', 'SPV')
-  async listAspects(@Param('divisionId') divisionId: string) {
+  @Roles(...SCORERS)
+  async listAspects(@Request() req: ExpressRequest, @Param('divisionId') divisionId: string) {
+    await this.kpiService.assertDivisionScope(req.user.id, req.user.roles, divisionId);
     return this.kpiService.listAspects(divisionId);
   }
 
   @Post('divisions/:divisionId/aspects')
   @UseGuards(RolesGuard)
-  @Roles('CHR')
-  async createAspect(@Param('divisionId') divisionId: string, @Body() dto: CreateAspectDto) {
-    return this.kpiService.createAspect(divisionId, dto);
+  @Roles('CHR', 'HS', 'SPV')
+  async createAspect(
+    @Request() req: ExpressRequest,
+    @Param('divisionId') divisionId: string,
+    @Body() dto: CreateAspectDto,
+  ) {
+    return this.kpiService.createAspect(divisionId, dto, { userId: req.user.id, roles: req.user.roles });
   }
 
   @Put('aspects/:id')
   @UseGuards(RolesGuard)
-  @Roles('CHR')
-  async updateAspect(@Param('id') id: string, @Body() dto: UpdateAspectDto) {
-    return this.kpiService.updateAspect(id, dto);
+  @Roles('CHR', 'HS', 'SPV')
+  async updateAspect(@Request() req: ExpressRequest, @Param('id') id: string, @Body() dto: UpdateAspectDto) {
+    return this.kpiService.updateAspect(id, dto, { userId: req.user.id, roles: req.user.roles });
   }
 
-  // ---------- division config (default amount, CHR) ----------
+  // ---------- division config (default amount) ----------
 
   @Get('divisions/:divisionId/config')
   @UseGuards(RolesGuard)
-  @Roles('CHR', 'CFO', 'OWNER', 'HS', 'SPV')
-  async getConfig(@Param('divisionId') divisionId: string) {
+  @Roles(...SCORERS)
+  async getConfig(@Request() req: ExpressRequest, @Param('divisionId') divisionId: string) {
+    await this.kpiService.assertDivisionScope(req.user.id, req.user.roles, divisionId);
     return this.kpiService.getConfig(divisionId);
   }
 
   @Put('divisions/:divisionId/config')
   @UseGuards(RolesGuard)
-  @Roles('CHR')
-  async upsertConfig(@Param('divisionId') divisionId: string, @Body() dto: UpsertConfigDto) {
-    return this.kpiService.upsertConfig(divisionId, dto);
+  @Roles('CHR', 'HS', 'SPV')
+  async upsertConfig(
+    @Request() req: ExpressRequest,
+    @Param('divisionId') divisionId: string,
+    @Body() dto: UpsertConfigDto,
+  ) {
+    return this.kpiService.upsertConfig(divisionId, dto, { userId: req.user.id, roles: req.user.roles });
   }
 
-  // ---------- scoring grid (senior) ----------
+  // ---------- assign wizard ----------
+
+  @Get('divisions/:divisionId/assign-context')
+  @UseGuards(RolesGuard)
+  @Roles('CHR', 'HS', 'SPV')
+  async assignContext(@Request() req: ExpressRequest, @Param('divisionId') divisionId: string) {
+    return this.kpiService.getAssignContext(divisionId, req.user.id, req.user.roles);
+  }
+
+  @Post('divisions/:divisionId/assign')
+  @UseGuards(RolesGuard)
+  @Roles('CHR', 'HS', 'SPV')
+  async assignPeriod(
+    @Request() req: ExpressRequest,
+    @Param('divisionId') divisionId: string,
+    @Body() dto: SaveGridDto,
+  ) {
+    return this.kpiService.assignPeriod(divisionId, dto, req.user.id, req.user.roles);
+  }
+
+  // ---------- scoring grid (edit) ----------
 
   @Get('divisions/:divisionId/grid')
   @UseGuards(RolesGuard)
-  @Roles('CHR', 'CFO', 'OWNER', 'HS', 'SPV')
+  @Roles(...SCORERS)
   async getGrid(
+    @Request() req: ExpressRequest,
     @Param('divisionId') divisionId: string,
     @Query('month', ParseIntPipe) month: number,
     @Query('year', ParseIntPipe) year: number,
   ) {
+    await this.kpiService.assertDivisionScope(req.user.id, req.user.roles, divisionId);
     return this.kpiService.getGrid(divisionId, month, year);
   }
 
@@ -100,20 +143,26 @@ export class KPIController {
     @Param('divisionId') divisionId: string,
     @Body() dto: SaveGridDto,
   ) {
-    return this.kpiService.saveGrid(divisionId, dto, req.user.id);
+    return this.kpiService.saveGrid(divisionId, dto, req.user.id, req.user.roles);
   }
 
-  // ---------- HR lock ----------
+  // ---------- HR approve (immutable + payroll gate) ----------
 
-  @Post('divisions/:divisionId/lock')
+  @Post('divisions/:divisionId/approve')
   @UseGuards(RolesGuard)
   @Roles('CHR')
-  async lockPeriod(
+  async approvePeriod(
     @Request() req: ExpressRequest,
     @Param('divisionId') divisionId: string,
     @Body() body: { period_month: number; period_year: number },
   ) {
-    return this.kpiService.lockPeriod(divisionId, body.period_month, body.period_year, req.user.id);
+    return this.kpiService.approvePeriod(
+      divisionId,
+      body.period_month,
+      body.period_year,
+      req.user.id,
+      req.user.roles,
+    );
   }
 
   // ---------- staff view (read-only) ----------
