@@ -167,6 +167,7 @@ import LeaveRequestForm from './pages/hr/leave/LeaveRequestForm';
 import LiburQuotaPage from './pages/hr/libur/LiburQuotaPage';
 import LiburRequestPage from './pages/hr/libur/LiburRequestPage';
 import ShiftingPage from './pages/hr/shifting/ShiftingPage';
+import AssignShiftPage from './pages/hr/shifting/AssignShiftPage';
 import ShiftMasterPage from './pages/master-data/staff/ShiftMasterPage';
 import PayrollList from './pages/hr/payroll/PayrollList';
 import PayrollDetail from './pages/hr/payroll/PayrollDetail';
@@ -1757,6 +1758,16 @@ function App() {
                 <ProtectedRoute>
                   <DashboardLayout>
                     <ShiftingPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr/shifting/assign/:employeeId"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <AssignShiftPage />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
