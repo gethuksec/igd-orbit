@@ -26,6 +26,7 @@ export interface ShiftAssignment {
   startDate: string;
   endDate?: string | null;
   weekdays: number[];
+  offDates?: string[];
   note?: string | null;
   employee?: {
     id: string;

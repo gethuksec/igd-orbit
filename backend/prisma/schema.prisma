@@ -2058,6 +2058,7 @@ model ShiftAssignment {
   startDate  DateTime  @db.Date @map("start_date")
   endDate    DateTime? @db.Date @map("end_date")
   weekdays   Int[]     @map("weekdays") // 1=Mon..7=Sun
+  offDates   DateTime[] @db.Date @map("off_dates") // explicit libur days within range
   note       String?   @db.Text
   createdBy  String?   @map("created_by")
   createdAt  DateTime  @default(now()) @map("created_at")

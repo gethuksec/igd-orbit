@@ -608,13 +608,27 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         );
       }
 
+      // Longest-prefix wins among siblings: /hr/libur and /hr/libur/pengajuan
+      // must not light up together, while detail pages (/hr/leave/new) still
+      // highlight their section leaf.
+      const isLeafActive = item.path
+        ? isActive(item.path) &&
+          !items.some(
+            (sib) =>
+              sib !== item &&
+              sib.path &&
+              sib.path.length > item.path!.length &&
+              isActive(sib.path)
+          )
+        : false;
+
       return (
         <MenuItem
           key={item.path || item.label}
           icon={item.icon}
           label={item.label}
           path={item.path || '#'}
-          isActive={item.path ? isActive(item.path) : false}
+          isActive={isLeafActive}
           variant={parentKey ? 'child' : 'default'}
         />
       );
