@@ -401,6 +401,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           children: [
             { icon: CalendarDays, label: 'Tipe Cuti', path: '/hr/master-data/cuti', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
             { icon: Gavel, label: 'Tipe Denda', path: '/hr/master-data/denda', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+            { icon: Wallet, label: 'Komponen Payroll', path: '/hr/master-data/komponen-payroll', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
             { icon: Building2, label: 'Departemen', path: '/hr/departments', permission: 'hr.employee.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
             { icon: Building2, label: 'Divisi', path: '/hr/divisions', permission: 'hr.division.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
             { icon: Award, label: 'Grade', path: '/hr/master-data/grade', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },

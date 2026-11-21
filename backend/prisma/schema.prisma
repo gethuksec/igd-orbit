@@ -2361,6 +2361,31 @@ model PayrollComponent {
   @@map("payroll_components")
 }
 
+// HR PAYROLL COMPONENTS (IGDERP-284): income/deduction master backing the
+// create-period checklist + import template columns (thread 20261120,
+// source Format_HR_ORBIT.xlsx Payroll sheet). Denda lives in PenaltyType
+// (popup lists it separately); LEVEL normalization uses the Grade master.
+model PayrollComponentMaster {
+  id            String   @id @default(uuid())
+  code          String   @unique // 'GAJI-POKOK', 'TUNJ-JABATAN', 'NOMINAL-TFS', ...
+  name          String
+  description   String?  @db.Text // prefill/computation rule shown in popup
+  category      String // 'earning' | 'deduction'
+  source        String   @default("manual") @map("source") // 'fixed' | 'grade' | 'computed' | 'manual'
+  defaultAmount Decimal? @map("default_amount") @db.Decimal(15, 2)
+  tiers         Json? // grade code -> amount map for source='grade', e.g. {"G1":700000}
+  sortOrder     Int      @default(0) @map("sort_order")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  @@index([code])
+  @@index([category])
+  @@index([isActive])
+  @@map("payroll_component_masters")
+}
+
 // ============================================
 // 10. HR MASTER DATA (IGDERP-261)
 // Cuti + denda masters backing the 7-Nov HR rules.

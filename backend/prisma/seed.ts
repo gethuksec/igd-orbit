@@ -1787,6 +1787,44 @@ async function main() {
   for (const pt of penaltyTypes) {
     await prisma.penaltyType.upsert({ where: { code: pt.code }, update: { ...pt, isActive: true }, create: pt as any });
   }
+  // 16b2. Payroll component master — IGDERP-284 (thread 20261120).
+  // Non-denda income/deduction backing the create-period checklist + template
+  // columns. Source: Format_HR_ORBIT.xlsx Payroll sheet formulas-as-text.
+  // TUNJ-JABATAN tiers come from the Excel AN nested-IF ladder (-1:700k,
+  // -2:400k, -3:200k); G4-G6 left for HR to complete via the CRUD UI.
+  console.log('💰 Creating payroll component master...');
+  const payrollComponents = [
+    { code: 'GAJI-POKOK', name: 'Gaji Pokok', category: 'earning', source: 'manual', description: 'Prefill kontrak basicSalary', sortOrder: 10 },
+    { code: 'TOTAL-GAJI-HARIAN', name: 'Total Gaji Harian', category: 'earning', source: 'computed', description: 'Gaji harian x jumlah kehadiran', sortOrder: 20 },
+    { code: 'TUNJ-MASA-KERJA', name: 'Tunjangan Masa Kerja', category: 'earning', source: 'computed', description: 'Tenure DATEDIF', sortOrder: 30 },
+    { code: 'SELISIH', name: 'Selisih', category: 'earning', source: 'manual', description: 'Manual HR', sortOrder: 40 },
+    { code: 'TUNJ-JABATAN', name: 'Tunjangan Jabatan', category: 'earning', source: 'grade', description: 'Prefill grade master tiers, editable override', tiers: { G1: 700000, G2: 400000, G3: 200000 }, sortOrder: 50 },
+    { code: 'TUNJ-KELUARGA', name: 'Tunjangan Keluarga', category: 'earning', source: 'computed', description: 'SWITCH status keluarga', sortOrder: 60 },
+    { code: 'TUNJ-PENDIDIKAN', name: 'Tunjangan Pendidikan', category: 'earning', source: 'computed', description: 'SWITCH pendidikan', sortOrder: 70 },
+    { code: 'TRANSPORTASI', name: 'Transportasi', category: 'earning', source: 'fixed', description: 'Nominal tetap HR', defaultAmount: 0, sortOrder: 80 },
+    { code: 'NOMINAL-LEMBUR', name: 'Nominal Lembur', category: 'earning', source: 'computed', description: 'Jam x 15.000', sortOrder: 90 },
+    { code: 'TOTAL-KPI', name: 'Total KPI', category: 'earning', source: 'computed', description: 'Tunjangan x nilai KPI (selalu ada)', sortOrder: 100 },
+    { code: 'KEKURANGAN-BLN-LALU', name: 'Kekurangan Bulan Lalu', category: 'earning', source: 'manual', description: 'Manual HR', sortOrder: 110 },
+    { code: 'NOMINAL-TFS', name: 'Nominal T/F/S (Terlambat)', category: 'deduction', source: 'computed', description: 'Links DENDA-TERLAMBAT, 15.000/hari', sortOrder: 120 },
+    { code: 'NOMINAL-BA', name: 'Nominal B/A (Bentrok/Alpha)', category: 'deduction', source: 'computed', description: 'Links DENDA-ALPHA, 100.000/hari', sortOrder: 130 },
+    { code: 'NOMINAL-LBL-LIBUR', name: 'Nominal Lebih Libur', category: 'deduction', source: 'computed', description: '60.000/hari', sortOrder: 140 },
+    { code: 'NOMINAL-PLG-CEPAT', name: 'Nominal Pulang Cepat', category: 'deduction', source: 'computed', description: '40.000 x 0.25', sortOrder: 150 },
+    { code: 'KELALAIAN', name: 'Kelalaian', category: 'deduction', source: 'manual', description: 'Manual HR, prefill gaji/30x3', sortOrder: 160 },
+    { code: 'PENYESUAIAN', name: 'Penyesuaian / Gaji Ditahan', category: 'deduction', source: 'manual', description: 'Manual HR', sortOrder: 170 },
+    { code: 'BPJS-KESEHATAN', name: 'BPJS Kesehatan', category: 'deduction', source: 'fixed', description: 'Dormant di file sumber', defaultAmount: 0, sortOrder: 180, isActive: false },
+    { code: 'BPJS-JKK', name: 'BPJS JKK', category: 'deduction', source: 'fixed', description: 'Dormant di file sumber', defaultAmount: 0, sortOrder: 190, isActive: false },
+    { code: 'BPJS-JHT', name: 'BPJS JHT', category: 'deduction', source: 'fixed', description: 'Dormant di file sumber', defaultAmount: 0, sortOrder: 200, isActive: false },
+    { code: 'BPJS-JKM', name: 'BPJS JKM', category: 'deduction', source: 'fixed', description: 'Dormant di file sumber', defaultAmount: 0, sortOrder: 210, isActive: false },
+    { code: 'BPJS-JP', name: 'BPJS JP', category: 'deduction', source: 'fixed', description: 'Dormant di file sumber', defaultAmount: 0, sortOrder: 220, isActive: false },
+  ];
+  for (const pc of payrollComponents) {
+    const { isActive, ...rest } = pc as any;
+    await (prisma as any).payrollComponentMaster.upsert({
+      where: { code: pc.code },
+      update: { ...rest, isActive: isActive ?? true },
+      create: { ...rest, isActive: isActive ?? true },
+    });
+  }
   // 16c. Working locations (IGDERP-270) — HQ seed. HQ-like sites live here,
   // never as branches, so outlet dropdowns stay pure. Supports N HQ-like rows.
   console.log('📍 Creating working locations...');

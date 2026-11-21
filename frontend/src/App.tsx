@@ -99,6 +99,7 @@ import CustomerTypeDetail from './pages/customer-types/CustomerTypeDetail';
 // Master Data - Staff (HR masters, IGDERP-261)
 import LeaveTypeList from './pages/master-data/staff/LeaveTypeList';
 import PenaltyTypeList from './pages/master-data/staff/PenaltyTypeList';
+import PayrollComponentList from './pages/master-data/staff/PayrollComponentList';
 import DivisionList from './pages/master-data/staff/DivisionList';
 import GradeList from './pages/master-data/staff/GradeList';
 import PositionList from './pages/master-data/staff/PositionList';
@@ -570,6 +571,7 @@ function App() {
             {/* Master Data - Staff (HR masters, under Staff > Master Data) + Libur/Shift */}
             <Route path="/hr/master-data/cuti" element={<ProtectedRoute><DashboardLayout><LeaveTypeList /></DashboardLayout></ProtectedRoute>} />
             <Route path="/hr/master-data/denda" element={<ProtectedRoute><DashboardLayout><PenaltyTypeList /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/hr/master-data/komponen-payroll" element={<ProtectedRoute><DashboardLayout><PayrollComponentList /></DashboardLayout></ProtectedRoute>} />
             <Route path="/hr/master-data/grade" element={<ProtectedRoute><DashboardLayout><GradeList /></DashboardLayout></ProtectedRoute>} />
             <Route path="/hr/master-data/jabatan" element={<ProtectedRoute><DashboardLayout><PositionList /></DashboardLayout></ProtectedRoute>} />
             <Route path="/hr/master-data/working-location" element={<ProtectedRoute><DashboardLayout><WorkingLocationList /></DashboardLayout></ProtectedRoute>} />
