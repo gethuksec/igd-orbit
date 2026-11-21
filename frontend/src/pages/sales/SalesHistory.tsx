@@ -11,16 +11,16 @@ import {
 } from 'lucide-react';
 import { salesService } from '../../services/sales.service';
 import { usePermissions } from '@/hooks/usePermissions';
-import { BreadcrumbHeader } from '@/components/shared';
+import { BreadcrumbHeader, StatusDot } from '@/components/shared';
 import ReturDialog from './ReturDialog';
 
-const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  completed: { label: 'Selesai', cls: 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800' },
-  retur: { label: 'Retur', cls: 'bg-orange-100 dark:bg-orange-950 text-orange-800 dark:text-orange-200 border-orange-200 dark:border-orange-800' },
-  cancelled: { label: 'Batal', cls: 'bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800' },
-  void: { label: 'Void', cls: 'bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800' },
-  held: { label: 'Held', cls: 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-800' },
-  pending: { label: 'Pending', cls: 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700' },
+const STATUS_TONE: Record<string, { label: string; tone: 'ok' | 'warn' | 'off' | 'bad' }> = {
+  completed: { label: 'Selesai', tone: 'ok' },
+  retur: { label: 'Retur', tone: 'warn' },
+  cancelled: { label: 'Batal', tone: 'bad' },
+  void: { label: 'Void', tone: 'bad' },
+  held: { label: 'Held', tone: 'warn' },
+  pending: { label: 'Pending', tone: 'warn' },
 };
 
 export default function SalesHistory() {
@@ -61,15 +61,8 @@ export default function SalesHistory() {
     }).format(amount);
 
   const badge = (status: string) => {
-    const s = STATUS_BADGE[status?.toLowerCase()] || STATUS_BADGE.pending;
-    return (
-      <span
-        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${s.cls}`}
-      >
-        <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />
-        {s.label}
-      </span>
-    );
+    const s = STATUS_TONE[status?.toLowerCase()] || STATUS_TONE.pending;
+    return <StatusDot tone={s.tone}>{s.label}</StatusDot>;
   };
 
   return (
@@ -80,7 +73,7 @@ export default function SalesHistory() {
       >
         <Link
           to="/sales/returns"
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
         >
           Retur Penjualan <ArrowRight className="w-4 h-4" />
         </Link>
@@ -116,13 +109,13 @@ export default function SalesHistory() {
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-950">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">No. Transaksi</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Tanggal</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Pelanggan</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Items</th>
-                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Total</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Aksi</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">No. transaksi</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Tanggal</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Pelanggan</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Items</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Total</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Status</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Aksi</th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-800">
@@ -131,7 +124,7 @@ export default function SalesHistory() {
                   <td colSpan={7} className="px-4 py-16 text-center">
                     <div className="flex flex-col items-center gap-4">
                       <Loader2 className="w-12 h-12 text-primary-600 dark:text-primary-400 animate-spin" />
-                      <p className="text-gray-600 dark:text-gray-400 font-semibold">Memuat data transaksi...</p>
+                      <p className="text-gray-600 dark:text-gray-400 font-medium">Memuat data transaksi...</p>
                     </div>
                   </td>
                 </tr>
@@ -139,10 +132,10 @@ export default function SalesHistory() {
                 <tr>
                   <td colSpan={7} className="px-4 py-16 text-center">
                     <div className="flex flex-col items-center gap-3">
-                      <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-full">
-                        <Receipt className="w-10 h-10 text-gray-400 dark:text-gray-500" />
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
+                        <Receipt className="h-5 w-5" />
                       </div>
-                      <p className="text-gray-600 dark:text-gray-400 font-semibold">Tidak ada transaksi ditemukan</p>
+                      <p className="text-gray-600 dark:text-gray-400 font-medium">Tidak ada transaksi ditemukan</p>
                     </div>
                   </td>
                 </tr>
@@ -158,7 +151,7 @@ export default function SalesHistory() {
                       <td className="px-4 py-3 whitespace-nowrap">
                         <Link
                           to={`/sales/transactions/${transaction.id}`}
-                          className="text-sm font-semibold text-primary-600 dark:text-primary-400 hover:underline"
+                          className="text-sm font-medium text-primary-600 dark:text-primary-400 hover:underline"
                         >
                           {transaction.transactionNumber}
                         </Link>
@@ -174,7 +167,7 @@ export default function SalesHistory() {
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                         {transaction.itemCount || transaction.items?.length || 0} item
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-bold text-primary-600 dark:text-primary-400">
+                      <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium tabular-nums text-primary-600 dark:text-primary-400">
                         {formatCurrency(transaction.total ?? transaction.totalPrice ?? 0)}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">{badge(transaction.status)}</td>
@@ -189,7 +182,7 @@ export default function SalesHistory() {
                         {isSelesai && canCreateReturn && (
                           <button
                             onClick={() => setSelectedTransaction(transaction)}
-                            className="inline-flex items-center gap-1.5 ml-2 px-2.5 py-1.5 rounded-lg bg-primary-600 text-white text-xs font-semibold hover:bg-primary-700"
+                            className="inline-flex items-center gap-1.5 ml-2 px-2.5 py-1.5 rounded-lg bg-primary-600 text-white text-xs font-medium hover:bg-primary-700"
                             title="Buat Retur"
                           >
                             <RotateCcw className="w-3.5 h-3.5" /> Retur
@@ -208,8 +201,8 @@ export default function SalesHistory() {
         {!isLoading && transactions.length > 0 && (
           <div className="bg-gray-50 dark:bg-gray-950 px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
             <div className="text-sm text-gray-600 dark:text-gray-400">
-              Menampilkan <span className="font-bold text-gray-900 dark:text-gray-100">{transactions.length}</span> dari{' '}
-              <span className="font-bold text-gray-900 dark:text-gray-100">{pagination.total}</span> transaksi
+              Menampilkan <span className="font-medium text-gray-900 dark:text-gray-100">{transactions.length}</span> dari{' '}
+              <span className="font-medium text-gray-900 dark:text-gray-100">{pagination.total}</span> transaksi
               <span className="ml-2 text-gray-500 dark:text-gray-400">
                 (Halaman {pagination.page} dari {pagination.totalPages})
               </span>
@@ -218,14 +211,14 @@ export default function SalesHistory() {
               <button
                 onClick={() => setPage(page - 1)}
                 disabled={page === 1}
-                className="px-5 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-white dark:hover:bg-gray-800 hover:border-primary-500 hover:text-primary-600 dark:hover:text-primary-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                className="px-5 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-white dark:hover:bg-gray-800 hover:border-primary-500 hover:text-primary-600 dark:hover:text-primary-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
               >
                 Sebelumnya
               </button>
               <button
                 onClick={() => setPage(page + 1)}
                 disabled={page >= pagination.totalPages}
-                className="px-5 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-white dark:hover:bg-gray-800 hover:border-primary-500 hover:text-primary-600 dark:hover:text-primary-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                className="px-5 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-white dark:hover:bg-gray-800 hover:border-primary-500 hover:text-primary-600 dark:hover:text-primary-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
               >
                 Selanjutnya
               </button>

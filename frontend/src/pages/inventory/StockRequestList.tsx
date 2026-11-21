@@ -21,7 +21,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
-import { BreadcrumbHeader } from '@/components/shared';
+import { BreadcrumbHeader, StatusDot } from '@/components/shared';
 import { usePermissions } from '@/hooks/usePermissions';
 import { api } from '@/services/api';
 import {
@@ -34,22 +34,20 @@ import {
 
 const PAGE_SIZE = 20;
 
-const STATUS_STYLES: Record<string, string> = {
-  SUBMITTED: 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-950',
-  APPROVED: 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 hover:bg-blue-100 dark:hover:bg-blue-950',
-  WAITING_FOR_PO: 'bg-violet-100 dark:bg-violet-950 text-violet-800 dark:text-violet-200 hover:bg-violet-100 dark:hover:bg-violet-950',
-  CHECKOUT: 'bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-200 hover:bg-indigo-100 dark:hover:bg-indigo-950',
-  KEEP_RESERVED: 'bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-200 hover:bg-teal-100 dark:hover:bg-teal-950',
-  IN_TRANSIT: 'bg-orange-100 dark:bg-orange-950 text-orange-800 dark:text-orange-200 hover:bg-orange-100 dark:hover:bg-orange-950',
-  RECEIVED: 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-100 dark:hover:bg-emerald-950',
-  REJECTED: 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-950',
-  CANCELLED: 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800',
+const STATUS_TONE: Record<string, 'ok' | 'warn' | 'off' | 'bad'> = {
+  SUBMITTED: 'off',
+  APPROVED: 'ok',
+  WAITING_FOR_PO: 'warn',
+  CHECKOUT: 'warn',
+  KEEP_RESERVED: 'warn',
+  IN_TRANSIT: 'warn',
+  RECEIVED: 'ok',
+  REJECTED: 'bad',
+  CANCELLED: 'bad',
 };
 
 export const statusBadge = (status: string) => (
-  <Badge className={STATUS_STYLES[status] || 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}>
-    {SR_STATUS_LABEL[status] || status}
-  </Badge>
+  <StatusDot tone={STATUS_TONE[status] || 'off'}>{SR_STATUS_LABEL[status] || status}</StatusDot>
 );
 
 const TERMINAL = new Set(['RECEIVED', 'REJECTED', 'CANCELLED']);
@@ -114,7 +112,7 @@ function IntakeLinksCard() {
           return (
             <div key={l.branchId} className="flex flex-col sm:flex-row sm:items-center gap-2 rounded-lg border border-gray-100 dark:border-gray-800 p-2.5">
               <div className="sm:w-44 shrink-0">
-                <div className="text-sm font-semibold">{l.branchName}</div>
+                <div className="text-[15px] font-medium">{l.branchName}</div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">{l.branchCode}</div>
               </div>
               {url ? (
@@ -215,7 +213,7 @@ function DetailDrawer({ id, onClose }: { id: string | null; onClose: () => void 
             <div>{statusBadge(doc.status)}</div>
 
             <div>
-              <h4 className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 font-bold mb-2">Pengaju</h4>
+              <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Pengaju</h4>
               <div className="text-sm space-y-1">
                 <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Nama</span><b>{doc.staffName}</b></div>
                 <div className="flex justify-between">
@@ -240,7 +238,7 @@ function DetailDrawer({ id, onClose }: { id: string | null; onClose: () => void 
             </div>
 
             <div>
-              <h4 className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 font-bold mb-2">
+              <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
                 Barang ({doc.items?.length || 0} jenis)
               </h4>
               <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
@@ -433,19 +431,19 @@ export default function StockRequestList() {
       <div className="flex gap-3">
         <Card className="min-w-[150px] border-red-100">
           <CardContent className="p-4">
-            <div className="text-2xl font-extrabold text-red-600 dark:text-red-400">{stats.data?.waiting ?? '…'}</div>
+            <div className="text-2xl font-medium tabular-nums text-red-600 dark:text-red-400">{stats.data?.waiting ?? '…'}</div>
             <div className="text-xs text-gray-500 dark:text-gray-400">Menunggu diperiksa</div>
           </CardContent>
         </Card>
         <Card className="min-w-[150px]">
           <CardContent className="p-4">
-            <div className="text-2xl font-extrabold">{stats.data?.inProgress ?? '…'}</div>
+            <div className="text-2xl font-medium tabular-nums">{stats.data?.inProgress ?? '…'}</div>
             <div className="text-xs text-gray-500 dark:text-gray-400">Dalam proses</div>
           </CardContent>
         </Card>
         <Card className="min-w-[150px]">
           <CardContent className="p-4">
-            <div className="text-2xl font-extrabold">{stats.data?.receivedThisMonth ?? '…'}</div>
+            <div className="text-2xl font-medium tabular-nums">{stats.data?.receivedThisMonth ?? '…'}</div>
             <div className="text-xs text-gray-500 dark:text-gray-400">Diterima bulan ini</div>
           </CardContent>
         </Card>
@@ -524,7 +522,7 @@ export default function StockRequestList() {
                 {docs.map((d) => (
                   <TableRow key={d.id} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800" onClick={() => setOpenId(d.id)}>
                     <TableCell>
-                      <span className="font-bold whitespace-nowrap">{d.requestNumber}</span>
+                      <span className="text-[15px] font-medium whitespace-nowrap">{d.requestNumber}</span>
                       <div className="text-xs text-gray-500 dark:text-gray-400">{fmtDate(d.createdAt)}</div>
                     </TableCell>
                     <TableCell>
@@ -548,7 +546,7 @@ export default function StockRequestList() {
             {meta && meta.totalPages > 1 && (
               <div className="flex items-center justify-between mt-4">
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Hal {meta.page} dari {meta.totalPages} ({meta.total} request)
+                  Halaman {meta.page} dari {meta.totalPages} (<span className="font-medium tabular-nums">{meta.total}</span> request)
                 </p>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>

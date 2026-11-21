@@ -4,7 +4,7 @@ import { Stamp } from "lucide-react";
 import { hrService, type LeaveRequest } from "@/services/hr.service";
 import { leaveTypesService } from "@/services/leave-types.service";
 import { formatDate } from "@/utils/format";
-import { BreadcrumbHeader, FilterToolbar, DataTable } from "@/components/shared";
+import { BreadcrumbHeader, FilterToolbar, DataTable, StatusDot } from "@/components/shared";
 import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -27,29 +27,10 @@ function typeLabel(t: unknown): string {
 }
 
 function statusPill(status: string) {
-  if (status === "approved")
-    return (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-        Disetujui
-      </span>
-    );
-  if (status === "rejected")
-    return (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
-        Ditolak
-      </span>
-    );
-  if (status === "cancelled")
-    return (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200">
-        Dibatalkan
-      </span>
-    );
-  return (
-    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
-      Menunggu
-    </span>
-  );
+  if (status === "approved") return <StatusDot tone="ok">Disetujui</StatusDot>;
+  if (status === "rejected") return <StatusDot tone="bad">Ditolak</StatusDot>;
+  if (status === "cancelled") return <StatusDot tone="off">Dibatalkan</StatusDot>;
+  return <StatusDot tone="warn">Menunggu</StatusDot>;
 }
 
 export default function ApprovalCutiPage() {

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Plus, Eye, Package } from 'lucide-react';
 import { serviceReturnsService } from '../../services/service-returns.service';
 import { useBranchFilter } from '@/components/branch/BranchFilter';
-import { BreadcrumbHeader, DataTable, FilterToolbar } from '@/components/shared';
+import { BreadcrumbHeader, DataTable, FilterToolbar, StatusDot } from '@/components/shared';
 import type { Column } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 
@@ -40,22 +40,16 @@ export default function ServiceReturnsList() {
   const returns = data?.data || [];
   const pagination = data?.meta || { page: 1, limit: 20, total: 0, totalPages: 1 };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusTone = (status: string): 'ok' | 'warn' | 'off' | 'bad' => {
     const s = status?.toLowerCase();
-    let classes = 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700';
-    if (s === 'pending' || s === 'investigating')
-      classes = 'bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800';
-    else if (s === 'approved')
-      classes = 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800';
-    else if (s === 'rejected')
-      classes = 'bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800';
-    else if (s === 'resolved')
-      classes = 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-800';
-    return (
-      <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${classes}`}>
-        {status}
-      </span>
-    );
+    if (s === 'approved' || s === 'resolved') return 'ok';
+    if (s === 'rejected') return 'bad';
+    if (s === 'pending' || s === 'investigating') return 'warn';
+    return 'off';
+  };
+
+  const getStatusBadge = (status: string) => {
+    return <StatusDot tone={getStatusTone(status)}>{status}</StatusDot>;
   };
 
   const getReturnTypeLabel = (type: string) => {
@@ -75,7 +69,7 @@ export default function ServiceReturnsList() {
       cell: (ret) => (
         <Link
           to={`/service-returns/${ret.id}`}
-          className="text-sm font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors"
+          className="text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors"
         >
           {ret.returnNumber}
         </Link>
@@ -234,7 +228,7 @@ export default function ServiceReturnsList() {
         emptyIcon={<Package className="w-16 h-16" />}
         actions={(ret: any) => (
           <Link to={`/service-returns/${ret.id}`}>
-            <Button variant="ghost" size="sm">
+            <Button size="sm" className="inline-flex h-8 items-center justify-center rounded-lg border px-3 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="View">
               <Eye className="w-4 h-4 mr-1" />
               View
             </Button>
@@ -248,7 +242,7 @@ export default function ServiceReturnsList() {
           <div className="text-sm text-gray-700 dark:text-gray-300">
             Menampilkan {((pagination.page - 1) * pagination.limit) + 1} sampai{' '}
             {Math.min(pagination.page * pagination.limit, pagination.total)} dari{' '}
-            <span className="font-semibold">{pagination.total}</span> data
+            <span className="font-medium">{pagination.total}</span> data
           </div>
           <div className="flex items-center gap-2">
             <Button

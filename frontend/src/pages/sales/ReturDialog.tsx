@@ -96,21 +96,21 @@ export default function ReturDialog({
           <div className="rounded-lg border bg-muted/30 p-3 text-sm">
             <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5">
               <span className="text-muted-foreground">No. Faktur</span>
-              <span className="font-semibold">{transaction?.transactionNumber || '-'}</span>
+              <span className="font-medium">{transaction?.transactionNumber || '-'}</span>
               <span className="text-muted-foreground">Tanggal</span>
-              <span className="font-semibold">
+              <span className="font-medium">
                 {transaction?.createdAt
                   ? new Date(transaction.createdAt).toLocaleString('id-ID')
                   : '-'}
               </span>
               <span className="text-muted-foreground">Pelanggan</span>
-              <span className="font-semibold">{transaction?.customer?.name || '-'}</span>
+              <span className="font-medium">{transaction?.customer?.name || '-'}</span>
               <span className="text-muted-foreground">Outlet</span>
-              <span className="font-semibold">{transaction?.branch?.name || '-'}</span>
+              <span className="font-medium">{transaction?.branch?.name || '-'}</span>
             </div>
             <div className="mt-2 flex justify-between border-t border-dashed pt-2 text-sm">
               <span>Total faktur</span>
-              <span className="font-bold text-primary-600 dark:text-primary-400">{formatCurrency(total)}</span>
+              <span className="font-medium tabular-nums text-primary-600 dark:text-primary-400">{formatCurrency(total)}</span>
             </div>
           </div>
 

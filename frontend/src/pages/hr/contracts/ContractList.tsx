@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Plus, FileText, CheckCircle, Clock, Award } from "lucide-react";
 import { contractsService, type Contract } from "@/services/contracts.service";
-import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable } from "@/components/shared";
+import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable, StatusDot } from "@/components/shared";
 import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import IntakeDialog from "@/components/hr/IntakeDialog";
@@ -16,19 +16,12 @@ const STAGE_LABEL: Record<string, string> = {
   pkwtt: "PKWTT",
 };
 
-const STAGE_BADGE: Record<string, string> = {
-  trial: "bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-800",
-  probation: "bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-800",
-  pkwt: "bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-200 border-indigo-200 dark:border-indigo-800",
-  pkwtt: "bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800",
-};
-
-const STATUS_BADGE: Record<string, string> = {
-  active: "bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800",
-  draft: "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700",
-  expired: "bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800",
-  renewed: "bg-orange-100 dark:bg-orange-950 text-orange-800 dark:text-orange-200 border-orange-200 dark:border-orange-800",
-  terminated: "bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800",
+const STATUS_TONE: Record<string, "ok" | "warn" | "off" | "bad"> = {
+  active: "ok",
+  draft: "off",
+  expired: "bad",
+  renewed: "warn",
+  terminated: "bad",
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -95,7 +88,7 @@ export default function ContractList() {
       header: "Nomor",
       cell: (row) => (
         <div>
-          <div className="text-sm font-semibold font-mono">{row.contractNumber}</div>
+          <div className="font-mono text-[15px] font-medium">{row.contractNumber}</div>
           {row.changeReason && row.changeReason !== "initial" && (
             <div className="text-xs text-muted-foreground mt-1">{row.changeReason}</div>
           )}
@@ -106,14 +99,14 @@ export default function ContractList() {
       key: "employee",
       header: "Karyawan",
       cell: (row) => (
-        <div className="text-sm font-mono font-semibold">{row.employee?.employeeCode ?? "-"}</div>
+        <div className="font-mono text-[15px] font-medium">{row.employee?.employeeCode ?? "-"}</div>
       ),
     },
     {
       key: "type",
       header: "Stage",
       cell: (row) => (
-        <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${STAGE_BADGE[row.type] ?? "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700"}`}>
+        <span className="inline-flex items-center rounded-md border px-1.5 py-0.5 text-xs text-muted-foreground">
           {STAGE_LABEL[row.type] ?? row.type}
         </span>
       ),
@@ -135,9 +128,7 @@ export default function ContractList() {
         <div>
           <span className="text-sm">{row.position?.name ?? "-"}</span>
           {row.grade && (
-            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
-              {row.grade.code}
-            </span>
+            <span className="ml-2 font-mono text-xs text-muted-foreground">{row.grade.code}</span>
           )}
         </div>
       ),
@@ -155,9 +146,7 @@ export default function ContractList() {
       key: "status",
       header: "Status",
       cell: (row) => (
-        <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${STATUS_BADGE[row.status] ?? "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700"}`}>
-          {STATUS_LABEL[row.status] ?? row.status}
-        </span>
+        <StatusDot tone={STATUS_TONE[row.status] ?? "off"}>{STATUS_LABEL[row.status] ?? row.status}</StatusDot>
       ),
     },
   ];
@@ -181,30 +170,14 @@ export default function ContractList() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <StatCard icon={<FileText className="h-5 w-5" />} label="Total Kontrak" value={isLoading ? "-" : total} />
+        <StatCard icon={<CheckCircle className="h-5 w-5" />} label="Aktif" value={isLoading ? "-" : activeCount} />
         <StatCard
-          icon={<FileText className="w-6 h-6 text-white" />}
-          iconBg="from-primary-500 to-primary-600"
-          label="Total Kontrak"
-          value={isLoading ? "-" : total}
-        />
-        <StatCard
-          icon={<CheckCircle className="w-6 h-6 text-white" />}
-          iconBg="from-green-500 to-green-600"
-          label="Aktif"
-          value={isLoading ? "-" : activeCount}
-        />
-        <StatCard
-          icon={<Clock className="w-6 h-6 text-white" />}
-          iconBg="from-amber-500 to-amber-600"
+          icon={<Clock className="h-5 w-5" />}
           label="Berakhir ≤ 30 hari"
           value={isLoading ? "-" : expiringCount}
         />
-        <StatCard
-          icon={<Award className="w-6 h-6 text-white" />}
-          iconBg="from-purple-500 to-purple-600"
-          label="PKWTT (tetap)"
-          value={isLoading ? "-" : pkwttCount}
-        />
+        <StatCard icon={<Award className="h-5 w-5" />} label="PKWTT (tetap)" value={isLoading ? "-" : pkwttCount} />
       </div>
 
       <FilterToolbar

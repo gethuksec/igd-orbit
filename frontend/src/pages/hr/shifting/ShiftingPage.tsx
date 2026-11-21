@@ -5,7 +5,7 @@ import { ArrowRightLeft } from "lucide-react";
 import { rosterService, type RosterRow } from "@/services/shifts.service";
 import { divisionsService } from "@/services/divisions.service";
 import { api } from "@/services/api";
-import { BreadcrumbHeader, FilterToolbar, DataTable } from "@/components/shared";
+import { BreadcrumbHeader, FilterToolbar, DataTable, StatusDot } from "@/components/shared";
 import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -175,13 +175,9 @@ export default function ShiftingPage() {
       header: "Status",
       cell: (row) =>
         row.status === "TERJADWAL" ? (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-            Terjadwal
-          </span>
+          <StatusDot tone="ok">Terjadwal</StatusDot>
         ) : (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
-            Belum terjadwal
-          </span>
+          <StatusDot tone="off">Belum terjadwal</StatusDot>
         ),
     },
     {
@@ -330,7 +326,7 @@ export default function ShiftingPage() {
       />
 
       <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <span>
+        <span className="font-medium tabular-nums">
           Page {page} / {totalPages} · {total} karyawan
         </span>
         <span className="flex gap-2">

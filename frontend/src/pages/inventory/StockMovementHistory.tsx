@@ -80,21 +80,6 @@ export default function StockMovementHistory() {
     }
   };
 
-  const getMovementColor = (type: string) => {
-    switch (type) {
-      case 'IN':
-        return 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950';
-      case 'OUT':
-        return 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950';
-      case 'TRANSFER':
-        return 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950';
-      case 'ADJUSTMENT':
-        return 'text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-950';
-      default:
-        return 'text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-950';
-    }
-  };
-
   const getReferenceLink = (referenceType: string, referenceId: string | null, notes: string | null) => {
     // For SERVICE, parse service order ID from notes
     if (referenceType === 'SERVICE' && !referenceId && notes) {
@@ -241,37 +226,37 @@ export default function StockMovementHistory() {
       <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gradient-to-r from-gray-50 dark:from-gray-900 via-gray-50 dark:via-gray-900 to-gray-100 dark:to-gray-800">
+            <thead className="border-b border-gray-200 dark:border-gray-700">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                   Tanggal
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                   Produk
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                   Cabang
                 </th>
                 {/* IGDERP-194: warehouse column */}
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                   Gudang
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                   Tipe
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 dark:text-gray-300">
                   Sebelum
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 dark:text-gray-300">
                   Perubahan
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 dark:text-gray-300">
                   Sesudah
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                   Referensi
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                   Catatan
                 </th>
               </tr>
@@ -304,7 +289,7 @@ export default function StockMovementHistory() {
                   return (
                     <tr
                       key={movement.id}
-                      className="hover:bg-gradient-to-r hover:from-gray-50 dark:hover:from-gray-900 hover:to-white dark:hover:to-gray-900 transition-all duration-200 border-b border-gray-100 dark:border-gray-800"
+                      className="hover:bg-muted transition-colors border-b border-gray-100 dark:border-gray-800"
                     >
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="text-sm text-gray-900 dark:text-gray-100">
@@ -335,23 +320,19 @@ export default function StockMovementHistory() {
                         <div className="text-sm text-gray-900 dark:text-gray-100">{movement.warehouse?.name || '-'}</div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${getMovementColor(
-                            movement.movementType,
-                          )}`}
-                        >
+                        <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
                           {getMovementIcon(movement.movementType)}
                           {movement.movementType}
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-right">
-                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                        <div className="text-sm font-medium tabular-nums text-gray-900 dark:text-gray-100">
                           {movement.quantityBefore || 0}
                         </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-right">
                         <div
-                          className={`text-sm font-semibold flex items-center justify-end gap-1 ${
+                          className={`text-sm font-medium tabular-nums flex items-center justify-end gap-1 ${
                             movement.quantityChange > 0
                               ? 'text-green-600 dark:text-green-400'
                               : movement.quantityChange < 0
@@ -369,7 +350,7 @@ export default function StockMovementHistory() {
                         </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-right">
-                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                        <div className="text-sm font-medium tabular-nums text-gray-900 dark:text-gray-100">
                           {movement.quantityAfter || 0}
                         </div>
                       </td>
@@ -413,14 +394,14 @@ export default function StockMovementHistory() {
                 <button
                   onClick={() => setPage(page - 1)}
                   disabled={page === 1}
-                  className="px-5 py-2.5 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-white dark:hover:bg-gray-800 hover:border-primary-500 hover:text-primary-600 dark:hover:text-primary-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Sebelumnya
                 </button>
                 <button
                   onClick={() => setPage(page + 1)}
                   disabled={page >= pagination.totalPages}
-                  className="px-5 py-2.5 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-white dark:hover:bg-gray-800 hover:border-primary-500 hover:text-primary-600 dark:hover:text-primary-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Selanjutnya
                 </button>

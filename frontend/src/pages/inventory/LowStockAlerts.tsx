@@ -9,7 +9,7 @@ import {
   Download,
   CheckCircle,
 } from 'lucide-react';
-import { BreadcrumbHeader } from '@/components/shared';
+import { BreadcrumbHeader, StatCard } from '@/components/shared';
 import { inventoryService } from '../../services/inventory.service';
 import { api } from '@/services/api';
 
@@ -90,36 +90,9 @@ export default function LowStockAlerts() {
       {/* Stats */}
       {alerts && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Alert</span>
-              <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
-            </div>
-            <h3 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{alerts.totalAlerts || 0}</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Produk perlu restock</p>
-          </div>
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Cabang</span>
-              <Warehouse className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <h3 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-              {Object.keys(alerts.byBranch || {}).length}
-            </h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Cabang terpengaruh</p>
-          </div>
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Estimasi Biaya</span>
-              <DollarSign className="w-5 h-5 text-green-600 dark:text-green-400" />
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {formatCurrency(
-                alerts.items?.reduce((sum: number, item: any) => sum + (item.estimatedCost || 0), 0) || 0,
-              )}
-            </h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Untuk restock semua</p>
-          </div>
+          <StatCard icon={<AlertTriangle className="h-5 w-5" />} label="Total Alert" value={alerts.totalAlerts || 0} subtitle="Produk perlu restock" />
+          <StatCard icon={<Warehouse className="h-5 w-5" />} label="Total Cabang" value={Object.keys(alerts.byBranch || {}).length} subtitle="Cabang terpengaruh" />
+          <StatCard icon={<DollarSign className="h-5 w-5" />} label="Total Estimasi Biaya" value={formatCurrency(alerts.items?.reduce((sum: number, item: any) => sum + (item.estimatedCost || 0), 0) || 0)} subtitle="Untuk restock semua" />
         </div>
       )}
 
@@ -157,22 +130,22 @@ export default function LowStockAlerts() {
             </h2>
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gradient-to-r from-gray-50 dark:from-gray-900 to-gray-100 dark:to-gray-800 border-b border-gray-200 dark:border-gray-700">
+                <thead className="border-b border-gray-200 dark:border-gray-700">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Produk</th>
-                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">
-                      Stok Tersedia
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Produk</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 dark:text-gray-300">
+                      Stok tersedia
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">
-                      Reorder Point
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 dark:text-gray-300">
+                      Reorder point
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">
-                      Saran Order
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 dark:text-gray-300">
+                      Saran order
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">
-                      Estimasi Biaya
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 dark:text-gray-300">
+                      Estimasi biaya
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Aksi</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 dark:text-gray-300">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -190,18 +163,18 @@ export default function LowStockAlerts() {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <div className="text-sm font-semibold text-red-600 dark:text-red-400">{item.quantityAvailable}</div>
+                        <div className="text-sm font-medium tabular-nums text-red-600 dark:text-red-400">{item.quantityAvailable}</div>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{item.reorderPoint}</div>
+                        <div className="text-sm font-medium tabular-nums text-gray-900 dark:text-gray-100">{item.reorderPoint}</div>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                        <div className="text-sm font-medium tabular-nums text-blue-600 dark:text-blue-400">
                           {item.suggestedOrderQuantity}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                        <div className="text-sm font-medium tabular-nums text-gray-900 dark:text-gray-100">
                           {formatCurrency(item.estimatedCost || 0)}
                         </div>
                       </td>

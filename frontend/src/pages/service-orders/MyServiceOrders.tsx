@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Wrench } from 'lucide-react';
 import { serviceOrdersService } from '@/services/service-orders.service';
 import { useBranchFilter } from '@/components/branch/BranchFilter';
-import { BreadcrumbHeader, DataTable, FilterToolbar } from '@/components/shared';
+import { BreadcrumbHeader, DataTable, FilterToolbar, StatusDot } from '@/components/shared';
 import type { Column } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 
@@ -51,22 +51,20 @@ export default function MyServiceOrders() {
   const orders = data?.data || [];
   const pagination = data?.meta || { page: 1, limit: 20, total: orders.length, totalPages: 1 };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusTone = (status: string): 'ok' | 'warn' | 'off' | 'bad' => {
     const s = status?.toUpperCase();
-    let classes = 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700';
-    if (s === 'PENDING' || s === 'DIAGNOSED' || s === 'QUOTED' || s === 'APPROVED')
-      classes = 'bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800';
-    else if (s === 'IN-PROGRESS' || s === 'IN_PROGRESS' || s === 'QC')
-      classes = 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-800';
-    else if (s === 'COMPLETED')
-      classes = 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800';
-    else if (s === 'CANCELLED')
-      classes = 'bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800';
-    return (
-      <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${classes}`}>
-        {status}
-      </span>
-    );
+    if (s === 'COMPLETED' || s === 'DONE' || s === 'READY' || s === 'DELIVERED') return 'ok';
+    if (s === 'CANCELLED') return 'bad';
+    if (
+      s === 'PENDING' || s === 'DIAGNOSED' || s === 'QUOTED' || s === 'APPROVED' ||
+      s === 'IN-PROGRESS' || s === 'IN_PROGRESS' || s === 'QC'
+    )
+      return 'warn';
+    return 'off';
+  };
+
+  const getStatusBadge = (status: string) => {
+    return <StatusDot tone={getStatusTone(status)}>{status}</StatusDot>;
   };
 
   const columns: Column<any>[] = [
@@ -77,7 +75,7 @@ export default function MyServiceOrders() {
         <div>
           <Link
             to={`/service-orders/${order.id}`}
-            className="text-sm font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
+            className="text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
           >
             {order.serviceNumber}
           </Link>
@@ -105,7 +103,7 @@ export default function MyServiceOrders() {
       cell: (order) => (
         <div>
           <div className="text-sm text-foreground">{order.deviceUnit || '-'}</div>
-          {order.deviceType && <div className="text-xs text-muted-foreground uppercase">{order.deviceType}</div>}
+          {order.deviceType && <div className="text-xs text-muted-foreground">{order.deviceType}</div>}
         </div>
       ),
     },
@@ -170,7 +168,7 @@ export default function MyServiceOrders() {
         emptyIcon={<Wrench className="w-16 h-16" />}
         actions={(order: any) => (
           <Link to={`/service-orders/${order.id}`}>
-            <Button variant="ghost" size="sm">
+            <Button size="sm" className="inline-flex h-8 items-center justify-center rounded-lg border px-3 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="Detail">
               <Wrench className="w-4 h-4 mr-1" />
               Detail
             </Button>
@@ -183,7 +181,7 @@ export default function MyServiceOrders() {
         <div className="bg-white dark:bg-gray-900 px-6 py-4 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <div className="text-sm text-gray-700 dark:text-gray-300">
             Menampilkan {orders.length} dari{' '}
-            <span className="font-semibold">{pagination.total}</span> service
+            <span className="font-medium">{pagination.total}</span> service
           </div>
           <div className="flex gap-2">
             <Button

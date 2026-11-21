@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { BreadcrumbHeader, FilterToolbar } from '@/components/shared';
+import { BreadcrumbHeader, FilterToolbar, StatusDot, StatCard } from '@/components/shared';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Banknote, CheckCircle, XCircle, Clock, AlertCircle, DollarSign, Eye, CheckSquare } from 'lucide-react';
+import { Banknote, CheckCircle, AlertCircle, DollarSign, Eye, CheckSquare } from 'lucide-react';
 import { hrService, type Payroll } from '@/services/hr.service';
 import { formatCurrency } from '@/utils/format';
 import { toast } from 'sonner';
@@ -168,43 +168,18 @@ export default function PayrollList() {
   const getStatusBadge = (payroll: Payroll) => {
     // Check if waiting for CFO approval
     if (payroll.status === 'draft' && payroll.approvedBy && !payroll.approvedBy2) {
-      return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-200">
-          <Clock className="w-3 h-3" />
-          Waiting Approval CFO
-        </span>
-      );
+      return <StatusDot tone="warn">Waiting Approval CFO</StatusDot>;
     }
 
     switch (payroll.status) {
       case 'draft':
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200">
-            <Clock className="w-3 h-3" />
-            Draft
-          </span>
-        );
+        return <StatusDot tone="off">Draft</StatusDot>;
       case 'approved':
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200">
-            <CheckCircle className="w-3 h-3" />
-            Approved
-          </span>
-        );
+        return <StatusDot tone="ok">Approved</StatusDot>;
       case 'paid':
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200">
-            <DollarSign className="w-3 h-3" />
-            Paid
-          </span>
-        );
+        return <StatusDot tone="ok">Paid</StatusDot>;
       case 'cancelled':
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-200">
-            <XCircle className="w-3 h-3" />
-            Cancelled
-          </span>
-        );
+        return <StatusDot tone="off">Cancelled</StatusDot>;
       default:
         return null;
     }
@@ -291,58 +266,19 @@ export default function PayrollList() {
       />
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Payroll</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{total}</p>
-            </div>
-            <div className="p-3 bg-primary-100 dark:bg-primary-950 rounded-lg">
-              <Banknote className="w-6 h-6 text-primary-600 dark:text-primary-400" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Gaji</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{formatCurrency(totalPayroll)}</p>
-            </div>
-            <div className="p-3 bg-primary-100 dark:bg-primary-950 rounded-lg">
-              <DollarSign className="w-6 h-6 text-primary-600 dark:text-primary-400" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Approved</p>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {filteredPayrolls.filter((p) => p.status === 'approved').length}
-              </p>
-            </div>
-            <div className="p-3 bg-primary-100 dark:bg-primary-950 rounded-lg">
-              <CheckCircle className="w-6 h-6 text-primary-600 dark:text-primary-400" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Paid</p>
-              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                {filteredPayrolls.filter((p) => p.status === 'paid').length}
-              </p>
-            </div>
-            <div className="p-3 bg-blue-100 dark:bg-blue-950 rounded-lg">
-              <DollarSign className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-            </div>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatCard icon={<Banknote className="h-5 w-5" />} label="Total Payroll" value={total} />
+        <StatCard icon={<DollarSign className="h-5 w-5" />} label="Total Gaji" value={formatCurrency(totalPayroll)} />
+        <StatCard
+          icon={<CheckCircle className="h-5 w-5" />}
+          label="Approved"
+          value={filteredPayrolls.filter((p) => p.status === 'approved').length}
+        />
+        <StatCard
+          icon={<DollarSign className="h-5 w-5" />}
+          label="Paid"
+          value={filteredPayrolls.filter((p) => p.status === 'paid').length}
+        />
       </div>
 
       {/* Table */}
@@ -382,7 +318,7 @@ export default function PayrollList() {
                 <thead className="bg-gray-50 dark:bg-gray-950 border-b border-gray-200 dark:border-gray-700">
                   <tr>
                     {canBulkApprove && (
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider w-12">
+                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 dark:text-gray-300 w-12">
                         <input
                           type="checkbox"
                           checked={selectedPayrolls.length === getApprovablePayrolls().length && getApprovablePayrolls().length > 0}
@@ -391,28 +327,28 @@ export default function PayrollList() {
                         />
                       </th>
                     )}
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                       Nomor Payroll
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                       Karyawan
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                       Periode
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                       Total Earnings
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                       Total Deductions
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                       Nett Salary
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                       Status
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                       Actions
                     </th>
                   </tr>
@@ -440,37 +376,37 @@ export default function PayrollList() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <Link
                           to={`/hr/payroll/${payroll.id}`}
-                          className="text-sm font-mono font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-200 hover:underline"
+                          className="font-mono text-[15px] font-medium text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-200 hover:underline"
                         >
                           {payroll.payrollNumber}
                         </Link>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                        <div className="text-[15px] font-medium text-gray-900 dark:text-gray-100">
                           {payroll.employee?.user?.fullName || payroll.employee?.employeeCode || 'N/A'}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">{payroll.employee?.employeeCode}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                           {new Date(2000, payroll.periodMonth - 1).toLocaleString('id-ID', { month: 'long' })}{' '}
                           {payroll.periodYear}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-semibold text-primary-600 dark:text-primary-400">{formatCurrency(payroll.totalEarnings)}</div>
+                        <div className="text-sm font-medium tabular-nums text-primary-600 dark:text-primary-400">{formatCurrency(payroll.totalEarnings)}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-semibold text-red-600 dark:text-red-400">{formatCurrency(payroll.totalDeductions)}</div>
+                        <div className="text-sm font-medium tabular-nums text-red-600 dark:text-red-400">{formatCurrency(payroll.totalDeductions)}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-bold text-gray-900 dark:text-gray-100">{formatCurrency(payroll.nettSalary)}</div>
+                        <div className="text-sm font-medium tabular-nums text-gray-900 dark:text-gray-100">{formatCurrency(payroll.nettSalary)}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(payroll)}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <Link
                           to={`/hr/payroll/${payroll.id}`}
-                          className="p-2 text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-200 hover:bg-primary-50 dark:hover:bg-primary-950 rounded-lg transition-colors inline-flex items-center"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                           title="Detail"
                         >
                           <Eye className="w-4 h-4" />

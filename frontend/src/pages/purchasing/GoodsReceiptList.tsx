@@ -2,9 +2,8 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Package, Eye, Plus, AlertCircle, Loader2, Printer } from 'lucide-react';
-import { BreadcrumbHeader, FilterToolbar } from '@/components/shared';
+import { BreadcrumbHeader, FilterToolbar, StatusDot } from '@/components/shared';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Table,
@@ -19,13 +18,13 @@ import { labelPrintingService } from '@/services/labelPrinting.service';
 import { formatDate } from '@/utils/format';
 import { useBranchFilter } from '@/components/branch/BranchFilter';
 
-const STATUS_META: Record<string, { label: string; variant: 'secondary' | 'default' | 'outline' | 'destructive' }> = {
-  draft: { label: 'Draft', variant: 'secondary' },
-  received: { label: 'Received', variant: 'outline' },
-  inspected: { label: 'Inspected', variant: 'outline' },
-  approved: { label: 'Approved', variant: 'default' },
-  rejected: { label: 'Rejected', variant: 'destructive' },
-  cancelled: { label: 'Cancelled', variant: 'destructive' },
+const STATUS_TONE: Record<string, { label: string; tone: 'ok' | 'warn' | 'off' | 'bad' }> = {
+  draft: { label: 'Draft', tone: 'off' },
+  received: { label: 'Received', tone: 'warn' },
+  inspected: { label: 'Inspected', tone: 'warn' },
+  approved: { label: 'Approved', tone: 'ok' },
+  rejected: { label: 'Rejected', tone: 'bad' },
+  cancelled: { label: 'Cancelled', tone: 'bad' },
 };
 
 export default function GoodsReceiptList() {
@@ -73,8 +72,8 @@ export default function GoodsReceiptList() {
   const total = data?.total || 0;
 
   const getStatusBadge = (status: string) => {
-    const meta = STATUS_META[status];
-    return meta ? <Badge variant={meta.variant}>{meta.label}</Badge> : null;
+    const meta = STATUS_TONE[status];
+    return meta ? <StatusDot tone={meta.tone}>{meta.label}</StatusDot> : null;
   };
 
   return (
@@ -166,7 +165,7 @@ export default function GoodsReceiptList() {
                       <TableCell>
                         <Link
                           to={`/purchasing/goods-receipt/${gr.id}`}
-                          className="font-mono font-semibold text-primary hover:underline"
+                          className="font-mono font-medium text-primary hover:underline"
                         >
                           {gr.grNumber}
                         </Link>
@@ -188,7 +187,7 @@ export default function GoodsReceiptList() {
                       </TableCell>
                       <TableCell>{getStatusBadge(gr.status)}</TableCell>
                       <TableCell>
-                        <Button asChild variant="ghost" size="icon">
+                        <Button asChild size="icon" className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="Lihat detail">
                           <Link to={`/purchasing/goods-receipt/${gr.id}`}>
                             <Eye />
                           </Link>

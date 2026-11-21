@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowRightLeft, Plus } from 'lucide-react';
-import { BreadcrumbHeader, FilterToolbar } from '@/components/shared';
+import { BreadcrumbHeader, FilterToolbar, StatusDot } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { api } from '../../services/api';
 import { inventoryService } from '../../services/inventory.service';
@@ -10,31 +10,25 @@ import type { StockTransfer } from '../../services/inventory.service';
 
 const PAGE_SIZE = 20;
 
-const statusBadge = (status: string) => {
-  const styles: Record<string, string> = {
-    completed: 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300',
-    received: 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300',
-    sent: 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300',
-    pending: 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300',
-    cancelled: 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300',
-  };
-  const labels: Record<string, string> = {
-    completed: 'Selesai',
-    received: 'Diterima',
-    sent: 'Dikirim',
-    pending: 'Menunggu',
-    cancelled: 'Dibatalkan',
-  };
-  return (
-    <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-        styles[status] || 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
-      }`}
-    >
-      {labels[status] || status}
-    </span>
-  );
+const STATUS_TONE: Record<string, 'ok' | 'warn' | 'off' | 'bad'> = {
+  completed: 'ok',
+  received: 'ok',
+  sent: 'warn',
+  pending: 'off',
+  cancelled: 'bad',
 };
+
+const STATUS_LABEL: Record<string, string> = {
+  completed: 'Selesai',
+  received: 'Diterima',
+  sent: 'Dikirim',
+  pending: 'Menunggu',
+  cancelled: 'Dibatalkan',
+};
+
+const statusBadge = (status: string) => (
+  <StatusDot tone={STATUS_TONE[status] || 'off'}>{STATUS_LABEL[status] || status}</StatusDot>
+);
 
 export default function MutasiList() {
   const navigate = useNavigate();
@@ -104,15 +98,15 @@ export default function MutasiList() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gradient-to-r from-gray-50 dark:from-gray-900 to-gray-100 dark:to-gray-800 border-b border-gray-200 dark:border-gray-700">
+              <thead className="border-b border-gray-200 dark:border-gray-700">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">No. Mutasi</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Tanggal</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Dari</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Ke</th>
-                  <th className="px-4 py-3 text-center text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Produk</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Petugas</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300">No. mutasi</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Tanggal</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Dari</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Ke</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 dark:text-gray-300">Produk</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Petugas</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
