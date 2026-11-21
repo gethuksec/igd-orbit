@@ -61,43 +61,22 @@ export class AuthService {
   }
 
   /**
-   * Validate user credentials
-   * IGDERP-275: `email` accepts an email address OR employee NIK.
-   * @param email - User email or employee NIK
+   * Validate user credentials (email only).
+   * @param email - User email
    * @param password - Plain text password
    * @returns User object if valid, null otherwise
    */
   async validateUser(email: string, password: string) {
-    let user: Awaited<ReturnType<PrismaService['user']['findUnique']>>;
-    if (email.includes('@')) {
-      user = await this.prisma.user.findUnique({
-        where: { email },
-        include: {
-          userBranches: {
-            include: {
-              role: true,
-            },
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+      include: {
+        userBranches: {
+          include: {
+            role: true,
           },
         },
-      });
-    } else {
-      // NIK login: resolve employee → user
-      const employee = await this.prisma.employee.findUnique({
-        where: { nik: email },
-        include: {
-          user: {
-            include: {
-              userBranches: {
-                include: {
-                  role: true,
-                },
-              },
-            },
-          },
-        },
-      });
-      user = employee?.user ?? null;
-    }
+      },
+    });
 
     if (!user) {
       return null;

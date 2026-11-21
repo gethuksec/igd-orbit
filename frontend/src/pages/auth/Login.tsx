@@ -127,19 +127,19 @@ export default function Login() {
           )}
 
           <form onSubmit={handleLogin} className="space-y-6">
-            {/* Email / NIK Input (IGDERP-275: login via email atau NIK) */}
+            {/* Email Input */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Email / NIK</label>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Email</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Mail className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                 </div>
                 <input
-                  type="text"
+                  type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors"
-                  placeholder="admin@igd.com / NIK"
+                  placeholder="admin@igd.com"
                   required
                 />
               </div>

@@ -881,10 +881,11 @@ export class PayrollService {
     return employee;
   }
 
-  /** PIN gate for all self-service slip reads. */
+  /** PIN gate for all self-service slip reads. Default PIN is 123456 until the employee sets their own. */
   private async assertPayslipPin(employee: { payslipPinHash: string | null }, pin: string) {
     if (!employee.payslipPinHash) {
-      throw new BadRequestException('Payslip PIN not set. Set it first via POST /api/v1/payroll/pin');
+      if (pin !== '123456') throw new ForbiddenException('Incorrect payslip PIN');
+      return;
     }
     const ok = await this.passwordService.comparePassword(pin, employee.payslipPinHash);
     if (!ok) throw new ForbiddenException('Incorrect payslip PIN');

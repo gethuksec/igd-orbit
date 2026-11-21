@@ -14,7 +14,7 @@ export default function MySlips() {
   const [slips, setSlips] = useState<Payroll[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
   const [details, setDetails] = useState<Record<string, Payroll>>({});
-  const [setMode, setSetMode] = useState(false);
+  const [showChange, setShowChange] = useState(false);
   const [newPin, setNewPin] = useState('');
   const [oldPin, setOldPin] = useState('');
 
@@ -25,22 +25,19 @@ export default function MySlips() {
       setUnlocked(true);
     },
     onError: (error: any) => {
-      const msg: string = error.response?.data?.message || '';
-      if (/not set/i.test(msg)) {
-        setSetMode(true);
-      } else {
-        toast.error(msg || 'PIN salah');
-      }
+      toast.error(error.response?.data?.message || 'PIN salah');
     },
   });
 
   const setPinMutation = useMutation({
     mutationFn: () => hrService.setPayslipPin({ pin: newPin, oldPin: oldPin || undefined }),
     onSuccess: () => {
-      toast.success('PIN tersimpan. Masukkan PIN untuk membuka slip.');
-      setSetMode(false);
+      toast.success('PIN tersimpan. Gunakan PIN baru mulai sekarang.');
+      setShowChange(false);
       setNewPin('');
       setOldPin('');
+      setPin('');
+      setUnlocked(false);
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Gagal menyimpan PIN');
@@ -63,74 +60,32 @@ export default function MySlips() {
       <div className="w-full space-y-4 max-w-md mx-auto">
         <BreadcrumbHeader title="Slip Gaji Saya" subtitle="Masukkan PIN untuk membuka" />
         <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
-          {setMode ? (
-            <div className="space-y-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Belum ada PIN. Buat PIN 4–12 digit untuk melindungi slip gaji Anda.
-              </p>
-              {!!pin && (
-                <div>
-                  <label className="block text-sm font-semibold mb-2">PIN lama (ganti PIN)</label>
-                  <input
-                    type="password"
-                    inputMode="numeric"
-                    value={oldPin}
-                    onChange={(e) => setOldPin(e.target.value.replace(/\D/g, ''))}
-                    className="w-full px-4 py-3 border rounded-lg text-center text-xl tracking-widest"
-                    placeholder="••••"
-                  />
-                </div>
-              )}
-              <div>
-                <label className="block text-sm font-semibold mb-2">PIN baru</label>
-                <input
-                  type="password"
-                  inputMode="numeric"
-                  value={newPin}
-                  onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 12))}
-                  className="w-full px-4 py-3 border rounded-lg text-center text-xl tracking-widest"
-                  placeholder="••••"
-                />
+          <div className="space-y-4">
+            <div className="flex justify-center">
+              <div className="p-4 bg-primary-50 dark:bg-primary-950 rounded-full">
+                <Lock className="w-8 h-8 text-primary-600" />
               </div>
-              <button
-                onClick={() => setPinMutation.mutate()}
-                disabled={newPin.length < 4 || setPinMutation.isPending}
-                className="w-full py-3 bg-green-600 text-white rounded-lg font-bold disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {setPinMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Lock className="w-5 h-5" />}
-                Simpan PIN
-              </button>
-              <button onClick={() => setSetMode(false)} className="w-full py-2 text-sm text-gray-500 underline">
-                Kembali
-              </button>
             </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex justify-center">
-                <div className="p-4 bg-primary-50 dark:bg-primary-950 rounded-full">
-                  <Lock className="w-8 h-8 text-primary-600" />
-                </div>
-              </div>
-              <input
-                type="password"
-                inputMode="numeric"
-                value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 12))}
-                onKeyDown={(e) => e.key === 'Enter' && pin.length >= 4 && pinMutation.mutate()}
-                className="w-full px-4 py-3 border rounded-lg text-center text-2xl tracking-[0.5em]"
-                placeholder="••••"
-                autoFocus
-              />
-              <button
-                onClick={() => pinMutation.mutate()}
-                disabled={pin.length < 4 || pinMutation.isPending}
-                className="w-full py-3 bg-primary-600 text-white rounded-lg font-bold disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {pinMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
-                Buka Slip Gaji
-              </button>
-            </div>
-          )}
+            <input
+              type="password"
+              inputMode="numeric"
+              value={pin}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 12))}
+              onKeyDown={(e) => e.key === 'Enter' && pin.length >= 4 && pinMutation.mutate()}
+              className="w-full px-4 py-3 border rounded-lg text-center text-2xl tracking-[0.5em]"
+              placeholder="••••"
+              autoFocus
+            />
+            <p className="text-xs text-gray-500 text-center">PIN awal: <span className="font-mono font-bold">123456</span> — ganti setelah masuk</p>
+            <button
+              onClick={() => pinMutation.mutate()}
+              disabled={pin.length < 4 || pinMutation.isPending}
+              className="w-full py-3 bg-primary-600 text-white rounded-lg font-bold disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {pinMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+              Buka Slip Gaji
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -199,6 +154,46 @@ export default function MySlips() {
       {unlockMutation.isError && (
         <p className="text-sm text-red-600 flex items-center gap-1"><AlertCircle className="w-4 h-4" /> Gagal membuka slip</p>
       )}
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-4">
+        {!showChange ? (
+          <button onClick={() => setShowChange(true)} className="w-full py-2.5 text-sm font-semibold text-gray-600 dark:text-gray-300 underline">
+            Ganti PIN
+          </button>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm font-bold">Ganti PIN</p>
+            <input
+              type="password"
+              inputMode="numeric"
+              value={oldPin}
+              onChange={(e) => setOldPin(e.target.value.replace(/\D/g, '').slice(0, 12))}
+              className="w-full px-4 py-3 border rounded-lg text-center tracking-widest"
+              placeholder="PIN lama (kosongkan jika masih 123456)"
+            />
+            <input
+              type="password"
+              inputMode="numeric"
+              value={newPin}
+              onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 12))}
+              className="w-full px-4 py-3 border rounded-lg text-center tracking-widest"
+              placeholder="PIN baru (4–12 digit)"
+            />
+            <div className="flex gap-2">
+              <button onClick={() => { setShowChange(false); setNewPin(''); setOldPin(''); }} className="flex-1 py-3 border rounded-lg font-semibold text-sm">
+                Batal
+              </button>
+              <button
+                onClick={() => setPinMutation.mutate()}
+                disabled={newPin.length < 4 || setPinMutation.isPending}
+                className="flex-1 py-3 bg-green-600 text-white rounded-lg font-bold text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {setPinMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
+                Simpan
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

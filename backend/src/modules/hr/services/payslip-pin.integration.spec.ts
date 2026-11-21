@@ -70,15 +70,19 @@ describe('PayrollService payslip PIN (IGDERP-275 integration)', () => {
     expect(res.message).toMatch(/saved/);
   });
 
-  it('mySlips unlocks with PIN, rejects wrong PIN and unset PIN', async () => {
-    prisma.employee.findUnique.mockResolvedValue({ id: 'emp-1', userId: 'u-1', payslipPinHash: pinHash });
+  it('mySlips accepts default 123456 when no PIN set, rejects other PINs', async () => {
+    prisma.employee.findUnique.mockResolvedValue({ id: 'emp-1', userId: 'u-1', payslipPinHash: null });
     const res = await service.mySlips('u-1', '123456');
     expect(res.total).toBe(1);
     expect(res.data[0].nettSalary).toBe(4500000);
     await expect(service.mySlips('u-1', '000000')).rejects.toBeInstanceOf(ForbiddenException);
+  });
 
-    prisma.employee.findUnique.mockResolvedValue({ id: 'emp-1', userId: 'u-1', payslipPinHash: null });
-    await expect(service.mySlips('u-1', '123456')).rejects.toBeInstanceOf(BadRequestException);
+  it('mySlips unlocks with custom PIN, rejects wrong PIN', async () => {
+    prisma.employee.findUnique.mockResolvedValue({ id: 'emp-1', userId: 'u-1', payslipPinHash: pinHash });
+    const res = await service.mySlips('u-1', '123456');
+    expect(res.total).toBe(1);
+    await expect(service.mySlips('u-1', '000000')).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('unlockSlip returns detail for owner, 403 for another employee slip', async () => {

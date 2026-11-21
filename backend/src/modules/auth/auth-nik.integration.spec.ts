@@ -8,9 +8,11 @@ import { AuthService } from './auth.service';
 import { UnauthorizedException } from '@nestjs/common';
 
 /**
- * IGDERP-275: NIK-or-email login (mocked-Prisma integration, real bcrypt).
+ * IGDERP-275: email-only login (mocked-Prisma integration, real bcrypt).
+ * NIK login was removed per 22 Nov 2026 decision — a NIK string matches no
+ * user email, so validateUser returns null for it.
  */
-describe('AuthService NIK login (IGDERP-275 integration)', () => {
+describe('AuthService email-only login (IGDERP-275 integration)', () => {
   let service: AuthService;
   let prisma: any;
 
@@ -48,7 +50,7 @@ describe('AuthService NIK login (IGDERP-275 integration)', () => {
     service = module.get<AuthService>(AuthService);
   });
 
-  it('email login still works (back-compat)', async () => {
+  it('email login works', async () => {
     prisma.user.findUnique.mockResolvedValue(userRow());
     const user = await service.validateUser('staff@igd.test', 'secret123');
     expect(user?.id).toBe('u-1');
@@ -57,22 +59,18 @@ describe('AuthService NIK login (IGDERP-275 integration)', () => {
     );
   });
 
-  it('NIK login resolves employee → user', async () => {
-    const user = userRow();
-    prisma.employee.findUnique.mockResolvedValue({ id: 'emp-1', nik: '12345', user });
-    const res = await service.validateUser('12345', 'secret123');
-    expect(res?.id).toBe('u-1');
-    expect(prisma.employee.findUnique).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { nik: '12345' } }),
-    );
+  it('NIK string matches no email → null (no NIK login)', async () => {
+    prisma.user.findUnique.mockResolvedValue(null);
+    await expect(service.validateUser('12345', 'secret123')).resolves.toBeNull();
+    expect(prisma.employee.findUnique).not.toHaveBeenCalled();
   });
 
-  it('unknown NIK returns null; wrong password throws', async () => {
-    prisma.employee.findUnique.mockResolvedValue(null);
-    await expect(service.validateUser('99999', 'secret123')).resolves.toBeNull();
+  it('unknown email returns null; wrong password throws', async () => {
+    prisma.user.findUnique.mockResolvedValue(null);
+    await expect(service.validateUser('nobody@igd.test', 'secret123')).resolves.toBeNull();
 
-    prisma.employee.findUnique.mockResolvedValue({ id: 'emp-1', nik: '12345', user: userRow() });
-    await expect(service.validateUser('12345', 'wrong')).rejects.toBeInstanceOf(
+    prisma.user.findUnique.mockResolvedValue(userRow());
+    await expect(service.validateUser('staff@igd.test', 'wrong')).rejects.toBeInstanceOf(
       UnauthorizedException,
     );
   });

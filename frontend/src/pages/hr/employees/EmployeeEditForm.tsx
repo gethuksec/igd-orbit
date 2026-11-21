@@ -257,7 +257,7 @@ export default function EmployeeEditForm() {
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                NIK <span className="font-normal text-gray-500">(untuk login HP)</span>
+                NIK
               </label>
               <input
                 type="text"
