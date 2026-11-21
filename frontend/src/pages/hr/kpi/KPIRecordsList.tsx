@@ -1,324 +1,463 @@
-import { useState } from 'react';
-import { BreadcrumbHeader, FilterToolbar } from '@/components/shared';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { BreadcrumbHeader } from '@/components/shared';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Target, AlertCircle, TrendingUp, User, Eye } from 'lucide-react';
-import { hrService, type KPIRecord } from '@/services/hr.service';
+import { Lock, Save, Plus, Pencil, AlertCircle, Eye } from 'lucide-react';
+import { hrService, type KpiGrid } from '@/services/hr.service';
 import { formatCurrency } from '@/utils/format';
-import { api } from '@/services/api';
+import { toast } from 'sonner';
+import { AspectFields, type AspectFormValue } from './KPIRecordForm';
+
+const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
+const monthName = (m: number) => new Date(2000, m - 1).toLocaleString('id-ID', { month: 'long' });
 
 export default function KPIRecordsList() {
-  const [searchTerm, setSearchTerm] = useState('');
+  const queryClient = useQueryClient();
+  const [divisionId, setDivisionId] = useState('');
   const [periodMonth, setPeriodMonth] = useState<number>(new Date().getMonth() + 1);
   const [periodYear, setPeriodYear] = useState<number>(new Date().getFullYear());
+  const [tab, setTab] = useState<'nilai' | 'aspek'>('nilai');
+  const [editingAspect, setEditingAspect] = useState<any | null>(null);
 
-  // Fetch all employees first, then fetch their KPIs
-  const { data: employees } = useQuery({
-    queryKey: ['employees-for-kpi-list'],
-    queryFn: async () => {
-      const response = await api.get('/users', { 
-        params: { 
-          limit: 1000,
-          includeEmployee: true,
-        } 
-      });
-      const users = response.data.data || response.data || [];
-      return users.filter((user: any) => user.employee);
-    },
+  // Local grid edits
+  const [scores, setScores] = useState<Record<string, Record<string, string>>>({});
+  const [kolektif, setKolektif] = useState<Record<string, string>>({});
+  const [targets, setTargets] = useState<Record<string, string>>({});
+  const [notes, setNotes] = useState<Record<string, string>>({});
+  const [amount, setAmount] = useState('');
+
+  const { data: divisions } = useQuery({
+    queryKey: ['divisions-for-kpi'],
+    queryFn: () => hrService.listDivisions(),
+  });
+  const divisionList: any[] = Array.isArray(divisions) ? divisions : divisions?.data || [];
+
+  const activeDivisionId = divisionId || divisionList[0]?.id || '';
+  const gridKey = ['kpi-grid', activeDivisionId, periodMonth, periodYear];
+
+  const { data: grid, isLoading, error } = useQuery({
+    queryKey: gridKey,
+    queryFn: () => hrService.getKpiGrid(activeDivisionId, periodMonth, periodYear),
+    enabled: !!activeDivisionId,
   });
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['kpi-records', periodMonth, periodYear, employees],
-    queryFn: async () => {
-      if (!employees || employees.length === 0) {
-        return { data: [] as KPIRecord[], total: 0 };
+  const seedFromGrid = (g: KpiGrid) => {
+    const s: Record<string, Record<string, string>> = {};
+    const k: Record<string, string> = {};
+    const t: Record<string, string> = {};
+    const n: Record<string, string> = {};
+    for (const a of g.aspekts) {
+      if (a.isKolektif && g.kolektif[a.id] !== undefined) k[a.id] = String(g.kolektif[a.id]);
+      if (a.targetType === 'PERIOD' && g.targets[a.id] !== undefined && !Number.isNaN(g.targets[a.id])) {
+        t[a.id] = String(g.targets[a.id]);
       }
+    }
+    for (const row of g.employees) {
+      if (row.excludedReason) continue;
+      s[row.employee.id] = {};
+      for (const [aspectId, v] of Object.entries(row.scores)) s[row.employee.id][aspectId] = String(v);
+      if (row.note) n[row.employee.id] = row.note;
+    }
+    setScores(s);
+    setKolektif(k);
+    setTargets(t);
+    setNotes(n);
+    setAmount(g.config ? String(g.config.defaultAmount) : '');
+  };
 
-      // Fetch KPI records for all employees
-      const kpiPromises = employees.map(async (emp: any) => {
-        try {
-          const kpiData = await hrService.getEmployeeKPIs(emp.id, {
-            month: periodMonth,
-            year: periodYear,
-          });
-          return kpiData.data || [];
-        } catch {
-          return [];
-        }
-      });
+  const locked = grid?.lock?.status === 'locked';
 
-      const allKPIs = await Promise.all(kpiPromises);
-      const flattened = allKPIs.flat();
+  useEffect(() => {
+    if (grid) seedFromGrid(grid);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [grid]);
 
-      return { data: flattened, total: flattened.length };
+  const saveMutation = useMutation({
+    mutationFn: () =>
+      hrService.saveKpiGrid(activeDivisionId, {
+        period_month: periodMonth,
+        period_year: periodYear,
+        targets: Object.entries(targets)
+          .filter(([, v]) => v !== '')
+          .map(([aspectId, v]) => ({ aspectId, target: parseFloat(v) })),
+        kolektif: Object.entries(kolektif)
+          .filter(([, v]) => v !== '')
+          .map(([aspectId, v]) => ({ aspectId, value: parseFloat(v) })),
+        scores: Object.entries(scores).flatMap(([employeeId, byAspect]) =>
+          Object.entries(byAspect)
+            .filter(([, v]) => v !== '')
+            .map(([aspectId, v]) => ({ employeeId, aspectId, value: parseFloat(v) })),
+        ),
+        notes: Object.entries(notes).map(([employeeId, v]) => ({ employeeId, notes: v || null })),
+      }),
+    onSuccess: (g) => {
+      toast.success('Nilai KPI tersimpan');
+      queryClient.setQueryData(gridKey, g);
     },
-    enabled: !!employees && employees.length > 0,
+    onError: (e: any) => {
+      toast.error(e.response?.data?.message || 'Gagal menyimpan nilai KPI');
+    },
   });
 
-  const kpiRecords: KPIRecord[] = data?.data || [];
-
-  const filteredRecords = kpiRecords.filter((record: KPIRecord) => {
-    if (!searchTerm) return true;
-    const search = searchTerm.toLowerCase();
-    return (
-      record.employee?.user?.fullName?.toLowerCase().includes(search) ||
-      record.employee?.employeeCode?.toLowerCase().includes(search)
-    );
+  const lockMutation = useMutation({
+    mutationFn: () => hrService.lockKpiPeriod(activeDivisionId, periodMonth, periodYear),
+    onSuccess: () => {
+      toast.success('Periode dikunci HR — payroll dapat membaca NILAI');
+      queryClient.invalidateQueries({ queryKey: gridKey });
+    },
+    onError: (e: any) => {
+      const msg = e.response?.data?.message;
+      const gaps = e.response?.data?.gaps || msg?.gaps;
+      toast.error(Array.isArray(gaps) ? `Belum lengkap: ${gaps.slice(0, 3).join('; ')}` : msg?.message || msg || 'Gagal mengunci periode');
+    },
   });
 
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-600 dark:text-green-400';
-    if (score >= 60) return 'text-yellow-600 dark:text-yellow-400';
-    return 'text-red-600 dark:text-red-400';
-  };
+  const amountMutation = useMutation({
+    mutationFn: () => hrService.upsertKpiConfig(activeDivisionId, { default_amount: parseFloat(amount || '0') }),
+    onSuccess: () => {
+      toast.success('Default insentif divisi tersimpan');
+      queryClient.invalidateQueries({ queryKey: gridKey });
+    },
+    onError: (e: any) => {
+      toast.error(e.response?.data?.message || 'Gagal menyimpan default insentif');
+    },
+  });
 
-  const getScoreBadge = (score: number) => {
-    if (score >= 80) {
-      return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200">
-          Excellent
-        </span>
-      );
-    }
-    if (score >= 60) {
-      return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-200">
-          Good
-        </span>
-      );
-    }
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-200">
-        Needs Improvement
-      </span>
-    );
-  };
-
-  const averageScore =
-    filteredRecords.length > 0
-      ? filteredRecords.reduce((sum, r) => sum + r.overallScore, 0) / filteredRecords.length
-      : 0;
+  const individualAspects = grid?.aspekts?.filter((a) => !a.isKolektif) || [];
+  const kolektifAspects = grid?.aspekts?.filter((a) => a.isKolektif) || [];
+  const periodAspects = grid?.aspekts?.filter((a) => a.targetType === 'PERIOD' && !a.isKolektif) || [];
 
   return (
     <div className="w-full space-y-6">
-      {/* Header */}
-      <BreadcrumbHeader title="KPI Records" subtitle="Kelola KPI dan performa karyawan">
+      <BreadcrumbHeader title="KPI Divisi" subtitle="Master aspek + penilaian bulanan per divisi">
         <Link
-            to="/hr/kpi/new"
-            className="px-6 py-3 bg-white dark:bg-gray-900 text-purple-600 dark:text-purple-400 rounded-lg font-semibold hover:bg-purple-50 dark:hover:bg-purple-950 transition-colors"
-          >
-            Record KPI
-          </Link>
+          to={`/hr/kpi/new?division=${activeDivisionId}`}
+          className="px-6 py-3 bg-white dark:bg-gray-900 text-purple-600 dark:text-purple-400 rounded-lg font-semibold hover:bg-purple-50 dark:hover:bg-purple-950 transition-colors inline-flex items-center gap-2"
+        >
+          <Plus className="w-4 h-4" /> Tambah Aspek
+        </Link>
       </BreadcrumbHeader>
 
-      {/* Toolbar: search inline + filter popup (IGDERP-110) */}
-      <FilterToolbar
-        searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
-        searchPlaceholder="Cari nama karyawan atau employee code..."
-        fields={[
-          {
-            key: 'month',
-            label: 'Bulan',
-            type: 'select',
-            options: Array.from({ length: 12 }, (_, i) => i + 1).map((month) => ({
-              value: String(month),
-              label: new Date(2000, month - 1).toLocaleString('id-ID', { month: 'long' }),
-            })),
-          },
-          {
-            key: 'year',
-            label: 'Tahun',
-            type: 'input',
-            placeholder: 'Tahun',
-          },
-        ]}
-        values={{
-          month: String(periodMonth),
-          year: String(periodYear),
-        }}
-        onFieldChange={(key, v) => {
-          if (key === 'month') {
-            setPeriodMonth(v ? parseInt(v, 10) : new Date().getMonth() + 1);
-          } else if (key === 'year') {
-            setPeriodYear(v ? parseInt(v, 10) : new Date().getFullYear());
-          }
-        }}
-        onReset={() => {
-          setPeriodMonth(new Date().getMonth() + 1);
-          setPeriodYear(new Date().getFullYear());
-        }}
-      />
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Records</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{filteredRecords.length}</p>
-            </div>
-            <div className="p-3 bg-primary-100 dark:bg-primary-950 rounded-lg">
-              <Target className="w-6 h-6 text-primary-600 dark:text-primary-400" />
-            </div>
-          </div>
+      {/* Division + period picker */}
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-4 flex flex-wrap gap-4 items-end">
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Divisi</label>
+          <select
+            value={activeDivisionId}
+            onChange={(e) => setDivisionId(e.target.value)}
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500"
+          >
+            {divisionList.map((d: any) => (
+              <option key={d.id} value={d.id}>
+                {d.code} — {d.name}
+              </option>
+            ))}
+          </select>
         </div>
-
-        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Average Score</p>
-              <p className={`text-2xl font-bold ${getScoreColor(averageScore)}`}>
-                {averageScore > 0 ? averageScore.toFixed(1) : '-'}
-              </p>
-            </div>
-            <div className="p-3 bg-primary-100 dark:bg-primary-950 rounded-lg">
-              <TrendingUp className="w-6 h-6 text-primary-600 dark:text-primary-400" />
-            </div>
-          </div>
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Bulan</label>
+          <select
+            value={periodMonth}
+            onChange={(e) => setPeriodMonth(parseInt(e.target.value, 10))}
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500"
+          >
+            {MONTHS.map((m) => (
+              <option key={m} value={m}>
+                {monthName(m)}
+              </option>
+            ))}
+          </select>
         </div>
-
-        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Bonus</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {formatCurrency(
-                  filteredRecords.reduce((sum, r) => sum + (r.calculatedBonus || 0), 0),
-                )}
-              </p>
-            </div>
-            <div className="p-3 bg-primary-100 dark:bg-primary-950 rounded-lg">
-              <TrendingUp className="w-6 h-6 text-primary-600 dark:text-primary-400" />
-            </div>
-          </div>
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Tahun</label>
+          <input
+            type="number"
+            value={periodYear}
+            onChange={(e) => setPeriodYear(parseInt(e.target.value, 10) || new Date().getFullYear())}
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 w-28"
+          />
+        </div>
+        <div className="flex gap-2 ml-auto">
+          <button
+            onClick={() => setTab('nilai')}
+            className={`px-4 py-2 rounded-lg font-semibold ${tab === 'nilai' ? 'bg-purple-600 text-white' : 'border border-gray-300 dark:border-gray-600'}`}
+          >
+            Penilaian
+          </button>
+          <button
+            onClick={() => setTab('aspek')}
+            className={`px-4 py-2 rounded-lg font-semibold ${tab === 'aspek' ? 'bg-purple-600 text-white' : 'border border-gray-300 dark:border-gray-600'}`}
+          >
+            Aspek
+          </button>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 overflow-hidden">
-        {isLoading ? (
-          <div className="p-12 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-            <p className="mt-4 text-gray-600 dark:text-gray-400">Memuat data...</p>
+      {isLoading ? (
+        <div className="p-12 text-center bg-white dark:bg-gray-900 rounded-xl">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Memuat data...</p>
+        </div>
+      ) : error || !grid ? (
+        <div className="p-12 text-center bg-white dark:bg-gray-900 rounded-xl">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <p className="text-red-600 dark:text-red-400">Gagal memuat grid KPI — pilih divisi dahulu</p>
+        </div>
+      ) : tab === 'aspek' ? (
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <p className="font-semibold text-gray-900 dark:text-gray-100">
+              Aspek {grid.division?.code} — bobot aktif total {Number(grid.weightsSum).toFixed(2)} (harus 1.00 saat kunci)
+            </p>
           </div>
-        ) : error ? (
-          <div className="p-12 text-center">
-            <AlertCircle className="w-12 h-12 text-red-500 dark:text-red-400 mx-auto mb-4" />
-            <p className="text-red-600 dark:text-red-400">Gagal memuat data KPI</p>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 dark:bg-gray-950 border-b border-gray-200 dark:border-gray-700">
+                <tr>
+                  {['Kode', 'Nama', 'Bobot', 'Target', 'Kolektif', 'Aksi'].map((h) => (
+                    <th key={h} className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                {grid.aspekts.map((a) => (
+                  <tr key={a.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <td className="px-6 py-4 font-semibold text-sm">{a.code}</td>
+                    <td className="px-6 py-4 text-sm">{a.name}</td>
+                    <td className="px-6 py-4 text-sm">{Number(a.weight).toFixed(2)}</td>
+                    <td className="px-6 py-4 text-sm">{a.targetType === 'FIXED' ? `Tetap ${a.fixedTarget}` : 'Per periode'}</td>
+                    <td className="px-6 py-4 text-sm">{a.isKolektif ? 'Ya' : '—'}</td>
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={() => setEditingAspect(a)}
+                        className="p-2 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950 rounded-lg"
+                        title="Ubah aspek"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        ) : filteredRecords.length === 0 ? (
-          <div className="p-12 text-center">
-            <Target className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-            <p className="text-gray-600 dark:text-gray-400">Tidak ada data KPI</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Klik "Record KPI" untuk menambahkan data KPI</p>
+        </div>
+      ) : (
+        <>
+          {locked && (
+            <div className="px-6 py-4 rounded-xl bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 font-semibold flex items-center gap-2">
+              <Lock className="w-4 h-4" /> Periode ini dikunci HR — nilai tidak dapat diubah, payroll membaca NILAI.
+            </div>
+          )}
+          {/* Targets + kolektif + amount */}
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-semibold mb-2">Default insentif divisi (Rp)</label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    disabled={locked}
+                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg"
+                    placeholder="mis. 700000"
+                  />
+                  <button
+                    onClick={() => amountMutation.mutate()}
+                    disabled={locked || amountMutation.isPending}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold disabled:opacity-50"
+                  >
+                    Simpan
+                  </button>
+                </div>
+              </div>
+              {periodAspects.map((a) => (
+                <div key={a.id}>
+                  <label className="block text-sm font-semibold mb-2">Target {a.code} (periode)</label>
+                  <input
+                    type="number"
+                    value={targets[a.id] ?? ''}
+                    onChange={(e) => setTargets({ ...targets, [a.id]: e.target.value })}
+                    disabled={locked}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg"
+                  />
+                </div>
+              ))}
+              {kolektifAspects.map((a) => (
+                <div key={a.id}>
+                  <label className="block text-sm font-semibold mb-2">
+                    {a.code} — aktual kolektif (sekali untuk semua)
+                  </label>
+                  <input
+                    type="number"
+                    value={kolektif[a.id] ?? ''}
+                    onChange={(e) => setKolektif({ ...kolektif, [a.id]: e.target.value })}
+                    disabled={locked}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg"
+                  />
+                </div>
+              ))}
+            </div>
           </div>
-        ) : (
-          <>
+
+          {/* Scoring grid */}
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 dark:bg-gray-950 border-b border-gray-200 dark:border-gray-700">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                      Karyawan
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                      Periode
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                      Sales Target
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                      Service Quality
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                      Customer Satisfaction
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                      Attendance
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                      Overall Score
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                      Bonus
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                      Actions
-                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase">Karyawan</th>
+                    {individualAspects.map((a) => (
+                      <th key={a.id} className="px-4 py-4 text-left text-xs font-semibold uppercase">
+                        {a.code} <span className="font-normal">({a.intervalMin}–{a.intervalMax})</span>
+                      </th>
+                    ))}
+                    <th className="px-4 py-4 text-left text-xs font-semibold uppercase">Catatan</th>
+                    <th className="px-4 py-4 text-left text-xs font-semibold uppercase">Total</th>
+                    <th className="px-4 py-4 text-left text-xs font-semibold uppercase">Nilai</th>
+                    <th className="px-4 py-4 text-left text-xs font-semibold uppercase">Bonus</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                  {filteredRecords.map((record) => (
-                    <tr key={record.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {grid.employees.map((row) => (
+                    <tr key={row.employee.id}>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-primary-100 dark:bg-primary-950 rounded-lg">
-                            <User className="w-4 h-4 text-primary-600 dark:text-primary-400" />
-                          </div>
-                          <div>
-                            <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                              {record.employee?.user?.fullName || record.employee?.employeeCode || 'N/A'}
-                            </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">{record.employee?.employeeCode}</div>
-                          </div>
-                        </div>
+                        <div className="text-sm font-semibold">{row.employee?.user?.fullName || row.employee?.employeeCode}</div>
+                        <div className="text-xs text-gray-500">{row.employee?.employeeCode}</div>
+                        {row.excludedReason && <div className="text-xs text-yellow-600 mt-1">{row.excludedReason}</div>}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                          {new Date(2000, record.periodMonth - 1).toLocaleString('id-ID', { month: 'long' })}{' '}
-                          {record.periodYear}
-                        </div>
+                      {individualAspects.map((a) => (
+                        <td key={a.id} className="px-2 py-4">
+                          <input
+                            type="number"
+                            value={scores[row.employee.id]?.[a.id] ?? ''}
+                            onChange={(e) =>
+                              setScores({
+                                ...scores,
+                                [row.employee.id]: { ...(scores[row.employee.id] || {}), [a.id]: e.target.value },
+                              })
+                            }
+                            disabled={locked || !!row.excludedReason}
+                            min={Number(a.intervalMin)}
+                            max={Number(a.intervalMax)}
+                            className="w-24 px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-lg"
+                          />
+                        </td>
+                      ))}
+                      <td className="px-2 py-4">
+                        <input
+                          value={notes[row.employee.id] ?? ''}
+                          onChange={(e) => setNotes({ ...notes, [row.employee.id]: e.target.value })}
+                          disabled={locked || !!row.excludedReason}
+                          placeholder="Catatan atasan..."
+                          className="w-48 px-2 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
+                        />
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                          {record.salesTargetAchievement ? formatCurrency(record.salesTargetAchievement) : '-'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                          {record.serviceQualityScore ? record.serviceQualityScore.toFixed(1) : '-'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                          {record.customerSatisfaction ? record.customerSatisfaction.toFixed(1) : '-'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                          {record.attendanceScore ? record.attendanceScore.toFixed(1) : '-'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className={`text-sm font-bold ${getScoreColor(record.overallScore)}`}>
-                          {record.overallScore.toFixed(1)}
-                        </div>
-                        {getScoreBadge(record.overallScore)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-semibold text-green-600 dark:text-green-400">
-                          {record.calculatedBonus ? formatCurrency(record.calculatedBonus) : '-'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Link
-                          to={`/hr/kpi/${record.id}`}
-                          className="p-2 text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-200 hover:bg-purple-50 dark:hover:bg-purple-950 rounded-lg transition-colors inline-flex items-center"
-                          title="Detail"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Link>
+                      <td className="px-4 py-4 text-sm font-semibold">{row.total !== null ? row.total.toFixed(2) : '—'}</td>
+                      <td className="px-4 py-4 text-sm font-bold text-purple-600">{row.nilai !== null ? row.nilai.toFixed(1) : '—'}</td>
+                      <td className="px-4 py-4 text-sm font-semibold text-green-600">
+                        {row.bonus !== null ? formatCurrency(row.bonus) : '—'}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </>
-        )}
-      </div>
+            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end">
+              <Link
+                to={`/hr/kpi/${grid.employees[0]?.employee?.userId || ''}`}
+                className="px-6 py-3 border rounded-lg font-semibold inline-flex items-center gap-2"
+              >
+                <Eye className="w-4 h-4" /> Lihat ala staff
+              </Link>
+              <button
+                onClick={() => saveMutation.mutate()}
+                disabled={locked || saveMutation.isPending}
+                className="px-6 py-3 bg-purple-600 text-white rounded-lg font-semibold disabled:opacity-50 inline-flex items-center gap-2"
+              >
+                <Save className="w-4 h-4" /> {saveMutation.isPending ? 'Menyimpan...' : 'Simpan Nilai'}
+              </button>
+              <button
+                onClick={() => lockMutation.mutate()}
+                disabled={locked || lockMutation.isPending}
+                className="px-6 py-3 bg-green-600 text-white rounded-lg font-semibold disabled:opacity-50 inline-flex items-center gap-2"
+              >
+                <Lock className="w-4 h-4" /> {lockMutation.isPending ? 'Mengunci...' : 'Kunci Periode (HR)'}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Edit aspect modal (shared fields with /hr/kpi/new) */}
+      {editingAspect && (
+        <AspectModal
+          initial={editingAspect}
+          onClose={() => setEditingAspect(null)}
+          onSaved={() => {
+            setEditingAspect(null);
+            queryClient.invalidateQueries({ queryKey: gridKey });
+          }}
+        />
+      )}
     </div>
   );
 }
 
+function AspectModal({ initial, onClose, onSaved }: { initial: any; onClose: () => void; onSaved: () => void }) {
+  const [value, setValue] = useState<AspectFormValue>({
+    code: initial.code,
+    name: initial.name,
+    description: initial.description || '',
+    weight: String(initial.weight),
+    target_type: initial.targetType,
+    fixed_target: initial.fixedTarget != null ? String(initial.fixedTarget) : '',
+    is_kolektif: !!initial.isKolektif,
+    sort_order: String(initial.sortOrder ?? 0),
+    is_active: initial.isActive !== false,
+  });
+  const mutation = useMutation({
+    mutationFn: () =>
+      hrService.updateKpiAspect(initial.id, {
+        code: value.code,
+        name: value.name,
+        description: value.description || null,
+        weight: parseFloat(value.weight),
+        target_type: value.target_type,
+        fixed_target: value.fixed_target === '' ? null : parseFloat(value.fixed_target),
+        is_kolektif: value.is_kolektif,
+        sort_order: parseInt(value.sort_order || '0', 10),
+        is_active: value.is_active,
+      }),
+    onSuccess: () => {
+      toast.success('Aspek diperbarui');
+      onSaved();
+    },
+    onError: (e: any) => {
+      toast.error(e.response?.data?.message || 'Gagal memperbarui aspek');
+    },
+  });
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gray-900 rounded-xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+        <h3 className="font-bold text-lg">Ubah Aspek {initial.code}</h3>
+        <AspectFields value={value} onChange={setValue} />
+        <div className="flex gap-3">
+          <button onClick={onClose} className="flex-1 px-4 py-2 border rounded-lg font-semibold">
+            Batal
+          </button>
+          <button
+            onClick={() => mutation.mutate()}
+            disabled={mutation.isPending}
+            className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold disabled:opacity-50"
+          >
+            {mutation.isPending ? 'Menyimpan...' : 'Simpan'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
