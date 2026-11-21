@@ -19,6 +19,7 @@ interface FormData {
   gradeId: string;
   minSalary: string;
   defaultRoleId: string;
+  defaultShiftId: string;
   isActive: boolean;
 }
 
@@ -30,6 +31,7 @@ const defaultForm: FormData = {
   gradeId: "",
   minSalary: "",
   defaultRoleId: "",
+  defaultShiftId: "",
   isActive: true,
 };
 
@@ -79,6 +81,13 @@ export default function PositionList() {
       const res = await api.get("/roles", { params: { limit: 100 } });
       const body = res.data;
       return ((body?.data ?? body ?? []) as { id: string; code: string; name: string }[]);
+    },
+  });
+  const { data: shiftOptions } = useQuery({
+    queryKey: ["shifts-options"],
+    queryFn: async () => {
+      const res = await api.get("/shifts", { params: { limit: 200, status: "active" } });
+      return ((res.data?.data ?? []) as { id: string; code: string; name: string }[]);
     },
   });
 
@@ -149,6 +158,7 @@ export default function PositionList() {
       gradeId: row.gradeId || "",
       minSalary: row.minSalary?.toString() ?? "",
       defaultRoleId: row.defaultRoleId || "",
+      defaultShiftId: row.defaultShiftId || "",
       isActive: row.isActive ?? true,
     });
     setFormModalOpen(true);
@@ -205,6 +215,18 @@ export default function PositionList() {
       key: "division",
       header: "Divisi",
       cell: (row) => <span>{row.division?.name || "-"}</span>,
+    },
+    {
+      key: "defaultShift",
+      header: "Default shift",
+      cell: (row) =>
+        row.defaultShift ? (
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-gray-900 text-white">
+            {row.defaultShift.code}
+          </span>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        ),
     },
     {
       key: "minSalary",
@@ -382,6 +404,7 @@ export default function PositionList() {
                 gradeId: formData.gradeId || undefined,
                 minSalary: formData.minSalary ? Number(formData.minSalary) : undefined,
                 defaultRoleId: formData.defaultRoleId || undefined,
+                defaultShiftId: formData.defaultShiftId || null,
               });
             }}
             className="space-y-4"
@@ -494,6 +517,24 @@ export default function PositionList() {
                   Saran role saat intake kontrak (bisa dioverride).
                 </p>
               </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Default Shift (opsional)</label>
+              <select
+                value={formData.defaultShiftId}
+                onChange={(e) => setFormData({ ...formData, defaultShiftId: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
+              >
+                <option value="">— Tanpa default shift —</option>
+                {(shiftOptions || []).map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.code} · {s.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Dipakai sebagai saran shift saat assign roster &amp; acuan jam attendance bila tanpa roster.
+              </p>
             </div>
             <div className="flex gap-2 pt-2">
               <Button type="button" variant="outline" className="flex-1" onClick={() => setFormModalOpen(false)}>

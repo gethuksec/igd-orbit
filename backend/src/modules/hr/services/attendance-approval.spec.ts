@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../../../shared/services/prisma.service';
+import { ShiftsService } from '../../shifts/shifts.service';
 import { AttendanceService } from './attendance.service';
 
 describe('AttendanceService approval queue + coverage (IGDERP-283)', () => {
@@ -30,7 +31,17 @@ describe('AttendanceService approval queue + coverage (IGDERP-283)', () => {
       overtimeRequest: { findMany: jest.fn(), findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
     };
     const module: TestingModule = await Test.createTestingModule({
-      providers: [AttendanceService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        AttendanceService,
+        { provide: PrismaService, useValue: prisma },
+        {
+          provide: ShiftsService,
+          useValue: {
+            resolveShiftForDate: jest.fn(async () => ({ shift: null, source: 'none' })),
+            canEmployeeInput: jest.fn(async () => ({ open: true, reason: 'open' })),
+          },
+        },
+      ],
     }).compile();
     service = module.get<AttendanceService>(AttendanceService);
   });
