@@ -527,28 +527,87 @@ export class AttendanceService {
       ];
     }
 
-    const [data, total] = await Promise.all([
-      this.prisma.attendance.findMany({
-        where,
-        include: {
-          employee: {
-            include: { user: true },
-          },
-          branch: true,
+    const data = await this.prisma.attendance.findMany({
+      where,
+      include: {
+        employee: {
+          include: { user: true },
         },
-        orderBy: { date: 'desc' },
-      }),
-      this.prisma.attendance.count({ where }),
-    ]);
+        branch: true,
+      },
+      orderBy: { date: 'desc' },
+    });
 
-    return {
-      data: data.map((a) => ({
-        ...a,
-        totalHours: a.totalHours?.toNumber(),
-        overtimeHours: a.overtimeHours?.toNumber(),
-      })),
-      total,
-    };
+    const rows = data.map((a) => ({
+      ...a,
+      totalHours: a.totalHours?.toNumber(),
+      overtimeHours: a.overtimeHours?.toNumber(),
+    }));
+
+    // Single-day coverage: append employees with no record as "not-clocked"
+    // rows so the Presensi default view shows everyone (clocked or not).
+    const sameDay =
+      startDate && endDate && startDate.toDateString() === endDate.toDateString();
+    if (sameDay && !employeeId && !userId && (!status || status === 'all' || status === 'not-clocked')) {
+      const empWhere: any = { isActive: true };
+      if (branchId) {
+        empWhere.branchId = branchId;
+      } else if (branchIds?.length) {
+        empWhere.branchId = { in: branchIds };
+      }
+      if (search) {
+        empWhere.OR = [
+          { user: { fullName: { contains: search, mode: 'insensitive' } } },
+          { employeeCode: { contains: search, mode: 'insensitive' } },
+        ];
+      }
+      const employees = await this.prisma.employee.findMany({
+        where: empWhere,
+        include: { user: true, branch: true },
+        orderBy: { employeeCode: 'asc' },
+      });
+      const seen = new Set(data.map((a) => a.employeeId));
+      for (const e of employees) {
+        if (seen.has(e.id)) continue;
+        rows.push({
+          id: `missing-${e.id}`,
+          employeeId: e.id,
+          date: startDate,
+          status: 'not-clocked',
+          clockIn: null,
+          clockOut: null,
+          totalHours: 0,
+          overtimeHours: 0,
+          employee: e,
+          branch: (e as any).branch ?? null,
+        } as any);
+      }
+    }
+
+    return { data: rows, total: rows.length };
+  }
+
+  /**
+   * List overtime requests (approval queue).
+   */
+  async listOvertimeRequests(status?: string) {
+    const where: any = {};
+    if (status && status !== 'all') {
+      where.status = status;
+    }
+    const rows = await this.prisma.overtimeRequest.findMany({
+      where,
+      include: {
+        employee: { include: { user: true } },
+        attendance: true,
+      },
+      orderBy: { date: 'desc' },
+    });
+    return rows.map((r) => ({
+      ...r,
+      hours: (r.hours as any)?.toNumber?.() ?? r.hours,
+      estimatedAmount: (r.estimatedAmount as any)?.toNumber?.() ?? null,
+    }));
   }
 }
 
