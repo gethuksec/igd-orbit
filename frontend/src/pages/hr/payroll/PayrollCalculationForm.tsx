@@ -4,86 +4,60 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, X, Save } from 'lucide-react';
 import { hrService } from '@/services/hr.service';
+import { payrollComponentsService } from '@/services/payroll-components.service';
 import { toast } from 'sonner';
-import { api } from '@/services/api';
-import { formatCurrency } from '@/utils/format';
 
-interface PayrollComponent {
-  component_type: 'earning' | 'deduction';
-  component_name: string;
-  amount: number;
-  is_taxable?: boolean;
-  notes?: string;
+interface SelectedComponent {
+  masterId: string;
+  notes: string;
 }
 
 export default function PayrollCalculationForm() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [formData, setFormData] = useState({
-    employee_ids: [] as string[],
-    period_month: new Date().getMonth() + 1,
-    period_year: new Date().getFullYear(),
-  });
-
-  const [components, setComponents] = useState<PayrollComponent[]>([]);
+  const [periodMonth, setPeriodMonth] = useState(new Date().getMonth() + 1);
+  const [periodYear, setPeriodYear] = useState(new Date().getFullYear());
+  const [components, setComponents] = useState<SelectedComponent[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Get employees list
-  const { data: employeesData, isLoading: isLoadingEmployees } = useQuery({
-    queryKey: ['employees-for-payroll'],
+  // Active component master checklist (denda lives in PenaltyType, listed separately)
+  const { data: mastersData, isLoading: isLoadingMasters } = useQuery({
+    queryKey: ['payroll-component-masters-active'],
     queryFn: async () => {
       try {
-        // Fetch users with employee data - same approach as EmployeeList
-        // Backend limit max is 100, so we need to fetch multiple pages if needed
-        const response = await api.get('/users', {
-          params: {
-            page: 1,
-            limit: 100, // Max limit allowed by backend
-          },
-        });
-        const users = response.data.data || response.data || [];
-        // Filter only users that have employee data
-        const employees = users.filter((user: any) => user.employee);
-        console.log('Total users:', users.length, 'Employees:', employees.length);
-        return employees;
+        const response = await payrollComponentsService.getAll({ limit: 100 });
+        return response.data || [];
       } catch (error) {
-        console.error('Error fetching employees:', error);
-        toast.error('Gagal memuat daftar karyawan');
+        console.error('Error fetching component masters:', error);
+        toast.error('Gagal memuat master komponen');
         return [];
       }
     },
   });
 
-  const employees = employeesData || [];
+  const masters = mastersData || [];
+  const usedIds = new Set(components.map((c) => c.masterId).filter(Boolean));
 
   const calculateMutation = useMutation({
     mutationFn: () =>
       hrService.calculatePayroll({
-        employee_ids: formData.employee_ids.length > 0 ? formData.employee_ids : undefined,
-        period_month: formData.period_month,
-        period_year: formData.period_year,
-        components: components.length > 0 ? components : undefined,
+        period_month: periodMonth,
+        period_year: periodYear,
+        components: components.map((c) => ({
+          masterId: c.masterId,
+          notes: c.notes?.trim() ? c.notes.trim() : undefined,
+        })),
       }),
     onSuccess: (data) => {
       const calculatedCount = data.calculatedPayrolls || data.payrolls?.length || 0;
       toast.success(`Payroll berhasil dihitung untuk ${calculatedCount} karyawan`);
 
-      // Invalidate all payroll queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ['payrolls'] });
 
-      // If only one employee was selected and calculated, navigate to that payroll detail
-      if (formData.employee_ids.length === 1 && data.payrolls && data.payrolls.length === 1) {
-        // Wait a bit for the query to invalidate, then navigate
-        setTimeout(() => {
-          navigate(`/hr/payroll/${data.payrolls[0].payrollId}`);
-        }, 100);
-      } else {
-        // If multiple employees, navigate to list with period filter
-        setTimeout(() => {
-          navigate(`/hr/payroll?periodMonth=${formData.period_month}&periodYear=${formData.period_year}`);
-        }, 100);
-      }
+      setTimeout(() => {
+        navigate(`/hr/payroll?periodMonth=${periodMonth}&periodYear=${periodYear}`);
+      }, 100);
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Gagal menghitung payroll');
@@ -94,23 +68,14 @@ export default function PayrollCalculationForm() {
   });
 
   const addComponent = () => {
-    setComponents([
-      ...components,
-      {
-        component_type: 'earning',
-        component_name: '',
-        amount: 0,
-        is_taxable: true,
-        notes: '',
-      },
-    ]);
+    setComponents([...components, { masterId: '', notes: '' }]);
   };
 
   const removeComponent = (index: number) => {
     setComponents(components.filter((_, i) => i !== index));
   };
 
-  const updateComponent = (index: number, field: keyof PayrollComponent, value: any) => {
+  const updateComponent = (index: number, field: keyof SelectedComponent, value: string) => {
     const updated = [...components];
     updated[index] = { ...updated[index], [field]: value };
     setComponents(updated);
@@ -120,27 +85,27 @@ export default function PayrollCalculationForm() {
     e.preventDefault();
     setErrors({});
 
-    // Validation
     const newErrors: Record<string, string> = {};
-    if (formData.employee_ids.length === 0) {
-      newErrors.employee_ids = 'Minimal satu karyawan wajib dipilih';
-    }
-    if (!formData.period_month || formData.period_month < 1 || formData.period_month > 12) {
+    if (!periodMonth || periodMonth < 1 || periodMonth > 12) {
       newErrors.period_month = 'Bulan tidak valid';
     }
-    if (!formData.period_year || formData.period_year < 2020) {
+    if (!periodYear || periodYear < 2000) {
       newErrors.period_year = 'Tahun tidak valid';
     }
 
-    // Validate components
+    // Component mandatory minimum 1, each row must pick a master
+    if (components.length === 0) {
+      newErrors.components = 'Minimal 1 komponen payroll wajib dipilih';
+    }
     components.forEach((comp, index) => {
-      if (!comp.component_name.trim()) {
-        newErrors[`component_${index}_name`] = 'Nama komponen wajib diisi';
-      }
-      if (comp.amount <= 0) {
-        newErrors[`component_${index}_amount`] = 'Jumlah harus lebih dari 0';
+      if (!comp.masterId) {
+        newErrors[`component_${index}_master`] = 'Komponen wajib dipilih';
       }
     });
+    const ids = components.map((c) => c.masterId).filter(Boolean);
+    if (new Set(ids).size !== ids.length) {
+      newErrors.components = 'Komponen tidak boleh dipilih ganda';
+    }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -150,67 +115,13 @@ export default function PayrollCalculationForm() {
     calculateMutation.mutate();
   };
 
-  const totalEarnings = components
-    .filter((c) => c.component_type === 'earning')
-    .reduce((sum, c) => sum + (c.amount || 0), 0);
-
-  const totalDeductions = components
-    .filter((c) => c.component_type === 'deduction')
-    .reduce((sum, c) => sum + (c.amount || 0), 0);
-
   return (
     <div className="w-full space-y-6">
       {/* Header */}
-      <BreadcrumbHeader title="Hitung Payroll" subtitle="Formulir perhitungan payroll karyawan" />
+      <BreadcrumbHeader title="Hitung Payroll" subtitle="Pilih periode dan komponen — dihitung untuk semua karyawan aktif" />
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6 space-y-6">
-        {/* Employee Selection */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-            Karyawan <span className="text-red-500 dark:text-red-400">*</span>
-          </label>
-          <select
-            multiple
-            value={formData.employee_ids}
-            onChange={(e) => {
-              const selected = Array.from(e.target.selectedOptions, (option) => option.value);
-              setFormData({ ...formData, employee_ids: selected });
-            }}
-            required
-            size={5}
-            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-              errors.employee_ids ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-600'
-            }`}
-          >
-            {isLoadingEmployees ? (
-              <option value="">Memuat data karyawan...</option>
-            ) : employees.length === 0 ? (
-              <option value="">Tidak ada karyawan ditemukan</option>
-            ) : (
-              employees.map((user: any) => {
-                // user is a User object with employee property
-                const employeeId = user.employee?.id;
-                if (!employeeId) return null;
-                const userName = user.fullName || user.email || 'Unknown';
-                const employeeCode = user.employee?.employeeCode || '';
-                return (
-                  <option key={employeeId} value={employeeId}>
-                    {userName} {employeeCode ? `(${employeeCode})` : ''}
-                  </option>
-                );
-              })
-            )}
-          </select>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Gunakan Ctrl/Cmd + Click untuk memilih multiple karyawan</p>
-          {errors.employee_ids && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.employee_ids}</p>}
-          {formData.employee_ids.length > 0 && (
-            <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
-              <span className="font-semibold">{formData.employee_ids.length}</span> karyawan dipilih
-            </p>
-          )}
-        </div>
-
         {/* Period */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -218,8 +129,8 @@ export default function PayrollCalculationForm() {
               Bulan <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <select
-              value={formData.period_month}
-              onChange={(e) => setFormData({ ...formData, period_month: parseInt(e.target.value) })}
+              value={periodMonth}
+              onChange={(e) => setPeriodMonth(parseInt(e.target.value))}
               required
               className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
                 errors.period_month ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-600'
@@ -240,9 +151,9 @@ export default function PayrollCalculationForm() {
             </label>
             <input
               type="number"
-              value={formData.period_year}
-              onChange={(e) => setFormData({ ...formData, period_year: parseInt(e.target.value) })}
-              min="2020"
+              value={periodYear}
+              onChange={(e) => setPeriodYear(parseInt(e.target.value))}
+              min="2000"
               max="2100"
               required
               className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
@@ -256,7 +167,12 @@ export default function PayrollCalculationForm() {
         {/* Components */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">Komponen Payroll (Opsional)</label>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+              Komponen Payroll <span className="text-red-500 dark:text-red-400">*</span>
+              <span className="block text-xs font-normal text-gray-500 dark:text-gray-400">
+                Minimal 1 — dihitung untuk semua karyawan aktif
+              </span>
+            </label>
             <button
               type="button"
               onClick={addComponent}
@@ -266,6 +182,8 @@ export default function PayrollCalculationForm() {
               Tambah Komponen
             </button>
           </div>
+
+          {errors.components && <p className="mb-3 text-sm text-red-600 dark:text-red-400">{errors.components}</p>}
 
           {components.length > 0 && (
             <div className="space-y-4">
@@ -284,102 +202,44 @@ export default function PayrollCalculationForm() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Tipe</label>
-                      <select
-                        value={component.component_type}
-                        onChange={(e) =>
-                          updateComponent(index, 'component_type', e.target.value as 'earning' | 'deduction')
-                        }
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                      >
-                        <option value="earning">Earning</option>
-                        <option value="deduction">Deduction</option>
-                      </select>
-                    </div>
-
-                    <div>
                       <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                        Nama Komponen <span className="text-red-500 dark:text-red-400">*</span>
+                        Komponen <span className="text-red-500 dark:text-red-400">*</span>
                       </label>
-                      <input
-                        type="text"
-                        value={component.component_name}
-                        onChange={(e) => updateComponent(index, 'component_name', e.target.value)}
-                        placeholder="e.g., Tunjangan, Potongan"
+                      <select
+                        value={component.masterId}
+                        onChange={(e) => updateComponent(index, 'masterId', e.target.value)}
                         className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                          errors[`component_${index}_name`] ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-600'
+                          errors[`component_${index}_master`] ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-600'
                         }`}
-                      />
-                      {errors[`component_${index}_name`] && (
-                        <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors[`component_${index}_name`]}</p>
+                      >
+                        <option value="">{isLoadingMasters ? 'Memuat...' : '-- Pilih komponen --'}</option>
+                        {masters
+                          .filter((m: any) => m.id === component.masterId || !usedIds.has(m.id))
+                          .map((m: any) => (
+                            <option key={m.id} value={m.id}>
+                              {m.name} ({m.category === 'earning' ? '+' : '-'})
+                            </option>
+                          ))}
+                      </select>
+                      {errors[`component_${index}_master`] && (
+                        <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors[`component_${index}_master`]}</p>
                       )}
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                        Jumlah <span className="text-red-500 dark:text-red-400">*</span>
-                      </label>
-                      <input
-                        type="number"
-                        value={component.amount || ''}
-                        onChange={(e) => updateComponent(index, 'amount', parseFloat(e.target.value) || 0)}
-                        min="0"
-                        step="0.01"
-                        placeholder="0"
-                        className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                          errors[`component_${index}_amount`] ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-600'
-                        }`}
-                      />
-                      {errors[`component_${index}_amount`] && (
-                        <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors[`component_${index}_amount`]}</p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Taxable</label>
-                      <select
-                        value={component.is_taxable ? 'true' : 'false'}
-                        onChange={(e) => updateComponent(index, 'is_taxable', e.target.value === 'true')}
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Catatan</label>
+                      <textarea
+                        value={component.notes || ''}
+                        onChange={(e) => updateComponent(index, 'notes', e.target.value)}
+                        rows={2}
+                        maxLength={500}
+                        placeholder="Catatan untuk komponen ini..."
                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                      >
-                        <option value="true">Yes</option>
-                        <option value="false">No</option>
-                      </select>
+                      />
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Catatan (Opsional)</label>
-                    <textarea
-                      value={component.notes || ''}
-                      onChange={(e) => updateComponent(index, 'notes', e.target.value)}
-                      rows={2}
-                      placeholder="Tambahkan catatan..."
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    />
                   </div>
                 </div>
               ))}
-            </div>
-          )}
-
-          {/* Summary */}
-          {components.length > 0 && (
-            <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-950 rounded-lg space-y-2">
-              <div className="flex justify-between">
-                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Total Earnings:</span>
-                <span className="text-sm font-bold text-green-600 dark:text-green-400">{formatCurrency(totalEarnings)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Total Deductions:</span>
-                <span className="text-sm font-bold text-red-600 dark:text-red-400">{formatCurrency(totalDeductions)}</span>
-              </div>
-              <div className="flex justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
-                <span className="text-base font-bold text-gray-900 dark:text-gray-100">Net:</span>
-                <span className="text-base font-bold text-gray-900 dark:text-gray-100">
-                  {formatCurrency(totalEarnings - totalDeductions)}
-                </span>
-              </div>
             </div>
           )}
         </div>
@@ -414,4 +274,3 @@ export default function PayrollCalculationForm() {
     </div>
   );
 }
-
