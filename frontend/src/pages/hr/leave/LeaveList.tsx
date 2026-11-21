@@ -56,6 +56,13 @@ export default function LeaveList() {
             Pending
           </span>
         );
+      case 'manager_approved':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200">
+            <Clock className="w-3 h-3" />
+            Disetujui Atasan
+          </span>
+        );
       case 'approved':
         return (
           <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200">
@@ -125,6 +132,7 @@ export default function LeaveList() {
             type: 'select',
             options: [
               { value: 'pending', label: 'Pending' },
+              { value: 'manager_approved', label: 'Disetujui Atasan' },
               { value: 'approved', label: 'Approved' },
               { value: 'rejected', label: 'Rejected' },
               { value: 'cancelled', label: 'Cancelled' },
@@ -233,7 +241,28 @@ export default function LeaveList() {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            {/* Mobile cards (IGDERP-275) */}
+            <div className="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+              {filteredRequests.map((request) => (
+                <Link key={request.id} to={`/hr/leave/${request.id}`} className="block p-4 active:bg-gray-50 dark:active:bg-gray-800">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                        {request.employee?.user?.fullName || request.employee?.employeeCode || 'N/A'}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        {getLeaveTypeLabel(request)} · {request.totalDays} hari
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        {formatDate(request.startDate)} - {formatDate(request.endDate)}
+                      </p>
+                    </div>
+                    {getStatusBadge(request.status)}
+                  </div>
+                </Link>
+              ))}
+            </div>
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 dark:bg-gray-950 border-b border-gray-200 dark:border-gray-700">
                   <tr>

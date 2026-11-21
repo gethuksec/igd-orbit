@@ -1,12 +1,13 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsNotEmpty, IsString, MinLength } from 'class-validator';
 
 /**
  * Login DTO
- * Validates login request payload
+ * Validates login request payload.
+ * IGDERP-275: `email` accepts an email address OR employee NIK.
  */
 export class LoginDto {
-  @IsEmail({}, { message: 'Email must be a valid email address' })
-  @IsNotEmpty({ message: 'Email is required' })
+  @IsString({ message: 'Email or NIK must be a string' })
+  @IsNotEmpty({ message: 'Email or NIK is required' })
   email!: string;
 
   @IsString({ message: 'Password must be a string' })

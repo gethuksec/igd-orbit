@@ -19,6 +19,7 @@ export default function EmployeeEditForm() {
     email: '',
     phone: '',
     employeeCode: '',
+    nik: '',
     branchId: '',
     departmentId: '',
     divisionId: '',
@@ -83,6 +84,7 @@ export default function EmployeeEditForm() {
         email: user.email || '',
         phone: user.phone || '',
         employeeCode: user.employee.employeeCode || '',
+        nik: user.employee.nik || '',
         branchId: user.employee.branchId || '',
         departmentId: user.employee.departmentId || '',
         divisionId: user.employee.divisionId || '',
@@ -250,6 +252,19 @@ export default function EmployeeEditForm() {
                 onChange={(e) => setFormData({ ...formData, employeeCode: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono"
                 placeholder="EMP-0001"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                NIK <span className="font-normal text-gray-500">(untuk login HP)</span>
+              </label>
+              <input
+                type="text"
+                value={(formData as any).nik || ''}
+                onChange={(e) => setFormData({ ...formData, nik: e.target.value } as any)}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono"
+                placeholder="Nomor Induk Karyawan"
               />
             </div>
 

@@ -6,8 +6,12 @@ import {
   Param,
   Query,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
   Request,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../shared/guards/roles.guard';
 import { Roles } from '../../shared/decorators/roles.decorator';
@@ -46,6 +50,26 @@ export class AttendanceController {
   @Post('clock-out')
   async clockOut(@Request() req: ExpressRequest, @Body() dto: ClockOutDto) {
     return this.attendanceService.clockOut(req.user.id, dto);
+  }
+
+  /**
+   * Reject overtime
+   * POST /api/v1/attendance/overtime/reject?id= (body: { reason })
+   */
+  @Post('overtime/reject')
+  @UseGuards(RolesGuard)
+  @Roles('HS', 'SPV', 'CHR')
+  async rejectOvertime(
+    @Request() req: ExpressRequest,
+    @Query('id') overtimeId: string,
+    @Body() body: { reason: string },
+  ) {
+    return this.attendanceService.rejectOvertime(
+      overtimeId,
+      body?.reason,
+      req.user.id,
+      req.user.roles,
+    );
   }
 
   /**
@@ -112,6 +136,25 @@ export class AttendanceController {
   }
 
   /**
+   * Selfie upload for mobile clock in/out
+   * POST /api/v1/attendance/selfie (multipart: photo)
+   * Returns { url } to send as photoUrl in clock-in/out.
+   */
+  @Post('selfie')
+  @UseInterceptors(
+    FileInterceptor('photo', {
+      limits: { fileSize: 2 * 1024 * 1024, files: 1 },
+    }),
+  )
+  async uploadSelfie(
+    @Request() req: ExpressRequest,
+    @UploadedFile() file?: { originalname: string; mimetype: string; size: number; buffer: Buffer },
+  ) {
+    if (!file) throw new BadRequestException('Foto selfie wajib diunggah (field: photo)');
+    return this.attendanceService.uploadSelfie(file, req.user.id);
+  }
+
+  /**
    * Request overtime
    * POST /api/v1/attendance/overtime/request
    */
@@ -124,8 +167,8 @@ export class AttendanceController {
   }
 
   /**
-   * Approve overtime
-   * POST /api/v1/attendance/overtime/approve
+   * Approve overtime — step 1 (manager: HS/SPV)
+   * POST /api/v1/attendance/overtime/approve?id=
    */
   @Post('overtime/approve')
   @UseGuards(RolesGuard)
@@ -135,6 +178,24 @@ export class AttendanceController {
     @Query('id') overtimeId: string,
   ) {
     return this.attendanceService.approveOvertime(
+      overtimeId,
+      req.user.id,
+      req.user.roles,
+    );
+  }
+
+  /**
+   * Approve overtime — step 2 / final (HR: CHR)
+   * POST /api/v1/attendance/overtime/approve-hr?id=
+   */
+  @Post('overtime/approve-hr')
+  @UseGuards(RolesGuard)
+  @Roles('CHR')
+  async approveOvertimeHr(
+    @Request() req: ExpressRequest,
+    @Query('id') overtimeId: string,
+  ) {
+    return this.attendanceService.approveOvertimeHr(
       overtimeId,
       req.user.id,
       req.user.roles,

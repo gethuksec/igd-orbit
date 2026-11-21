@@ -44,10 +44,16 @@ export interface Attendance {
   branchId: string;
   clockIn?: string;
   clockOut?: string;
-  clockInMethod?: 'fingerprint' | 'manual';
-  clockOutMethod?: 'fingerprint' | 'manual';
+  clockInMethod?: 'fingerprint' | 'manual' | 'mobile';
+  clockOutMethod?: 'fingerprint' | 'manual' | 'mobile';
   clockInLocation?: string;
   clockOutLocation?: string;
+  clockInPhotoUrl?: string;
+  clockOutPhotoUrl?: string;
+  clockInLat?: number;
+  clockInLng?: number;
+  clockOutLat?: number;
+  clockOutLng?: number;
   status: 'present' | 'absent' | 'leave' | 'holiday';
   isLate: boolean;
   lateMinutes: number;
@@ -74,7 +80,8 @@ export interface LeaveRequest {
   endDate: string;
   totalDays: number;
   reason: string;
-  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+  attachmentUrl?: string;
+  status: 'pending' | 'manager_approved' | 'approved' | 'rejected' | 'cancelled';
   approvedBy?: string;
   approvedAt?: string;
   rejectedBy?: string;
@@ -176,6 +183,33 @@ export interface AttendanceSummary {
   overtimeHours: number;
 }
 
+// IGDERP-275: unified approvals inbox item
+export interface PendingApproval {
+  kind: 'leave' | 'overtime' | 'shift_swap' | 'libur';
+  id: string;
+  status: string;
+  createdAt: string;
+  requester: { employeeId: string; name: string | null; nik: string | null; employeeCode: string };
+  summary: string;
+  canDecide: boolean;
+  decideEndpoint: string;
+}
+
+export interface ShiftSwapRequest {
+  id: string;
+  employeeId: string;
+  targetEmployeeId: string;
+  date: string;
+  fromShiftId: string;
+  toShiftId: string;
+  reason?: string;
+  status: 'pending' | 'manager_approved' | 'approved' | 'rejected' | 'cancelled';
+  employee?: Employee;
+  targetEmployee?: Employee;
+  fromShift?: { id: string; name: string };
+  toShift?: { id: string; name: string };
+}
+
 // ============================================
 // Service Methods
 // ============================================
@@ -186,18 +220,42 @@ export const hrService = {
   // ============================================
 
   /**
-   * Clock in
+   * Clock in (IGDERP-275: method 'mobile' requires latitude/longitude/photoUrl)
    */
-  async clockIn(data: { branch_id: string; method?: 'fingerprint' | 'manual'; clock_in_location?: string; notes?: string }) {
+  async clockIn(data: { branch_id: string; method?: 'fingerprint' | 'manual' | 'mobile'; clock_in_location?: string; latitude?: number; longitude?: number; photoUrl?: string; notes?: string }) {
     const response = await api.post('/attendance/clock-in', data);
     return response.data.data || response.data;
   },
 
   /**
-   * Clock out
+   * Clock out (IGDERP-275: method 'mobile' requires latitude/longitude/photoUrl)
    */
-  async clockOut(data: { branch_id: string; method?: 'fingerprint' | 'manual'; clock_out_location?: string; notes?: string }) {
+  async clockOut(data: { branch_id: string; method?: 'fingerprint' | 'manual' | 'mobile'; clock_out_location?: string; latitude?: number; longitude?: number; photoUrl?: string; notes?: string }) {
     const response = await api.post('/attendance/clock-out', data);
+    return response.data.data || response.data;
+  },
+
+  /**
+   * Selfie upload for mobile clock in/out → { url }
+   */
+  async uploadSelfie(file: File | Blob): Promise<{ url: string }> {
+    const form = new FormData();
+    form.append('photo', file);
+    const response = await api.post('/attendance/selfie', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data.data || response.data;
+  },
+
+  /**
+   * Leave supporting-document upload → { url }
+   */
+  async uploadLeaveAttachment(file: File | Blob): Promise<{ url: string }> {
+    const form = new FormData();
+    form.append('file', file);
+    const response = await api.post('/leave/attachment', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return response.data.data || response.data;
   },
 
@@ -262,6 +320,26 @@ export const hrService = {
     return response.data.data || response.data;
   },
 
+  /**
+   * Reject overtime
+   */
+  async rejectOvertime(overtimeId: string, reason: string) {
+    const response = await api.post('/attendance/overtime/reject', { reason }, {
+      params: { id: overtimeId },
+    });
+    return response.data.data || response.data;
+  },
+
+  /**
+   * Approve overtime — step 2 / final (CHR)
+   */
+  async approveOvertimeHr(overtimeId: string) {
+    const response = await api.post('/attendance/overtime/approve-hr', null, {
+      params: { id: overtimeId },
+    });
+    return response.data.data || response.data;
+  },
+
   // ============================================
   // Leave
   // ============================================
@@ -274,6 +352,7 @@ export const hrService = {
     start_date: string;
     end_date: string;
     reason: string;
+    attachment_url?: string;
   }) {
     const response = await api.post('/leave/request', data);
     return response.data.data || response.data;
@@ -317,6 +396,16 @@ export const hrService = {
    */
   async approveLeave(leaveId: string, data: { notes?: string }) {
     const response = await api.post('/leave/approve', data, {
+      params: { id: leaveId },
+    });
+    return response.data.data || response.data;
+  },
+
+  /**
+   * Approve leave — step 2 / final (CHR)
+   */
+  async approveLeaveHr(leaveId: string) {
+    const response = await api.post('/leave/approve-hr', null, {
       params: { id: leaveId },
     });
     return response.data.data || response.data;
@@ -427,6 +516,91 @@ export const hrService = {
    */
   async generatePayslip(id: string): Promise<{ payslipUrl: string }> {
     const response = await api.get(`/payroll/${id}/slip`);
+    return response.data.data || response.data;
+  },
+
+  // ============================================
+  // IGDERP-275: employee self-service (PWA)
+  // ============================================
+
+  /**
+   * Unified pending-approvals inbox (dashboard + HP)
+   */
+  async getPendingApprovals(): Promise<{ data: PendingApproval[]; total: number; awaitingDecision: number }> {
+    const response = await api.get('/approvals/pending');
+    return response.data.data || response.data;
+  },
+
+  /**
+   * Set or change own payslip PIN
+   */
+  async setPayslipPin(data: { pin: string; oldPin?: string }) {
+    const response = await api.post('/payroll/pin', data);
+    return response.data.data || response.data;
+  },
+
+  /**
+   * List own payslips (PIN-gated)
+   */
+  async getMySlips(pin: string) {
+    const response = await api.post('/payroll/my-slips', { pin });
+    return response.data.data || response.data;
+  },
+
+  /**
+   * Open own payslip detail (PIN-gated)
+   */
+  async unlockSlip(id: string, pin: string): Promise<Payroll> {
+    const response = await api.post(`/payroll/${id}/unlock`, { pin });
+    return response.data.data || response.data;
+  },
+
+  /**
+   * File a shift swap request (tukar shift)
+   */
+  async requestShiftSwap(data: { target_employee_id: string; date: string; from_shift_id: string; to_shift_id: string; reason?: string }) {
+    const response = await api.post('/shift-swap/request', data);
+    return response.data.data || response.data;
+  },
+
+  /**
+   * List shift swap requests
+   */
+  async getShiftSwaps(params?: { employeeId?: string; status?: string }): Promise<{ data: ShiftSwapRequest[]; total: number }> {
+    const response = await api.get('/shift-swap/requests', { params });
+    if (Array.isArray(response.data)) return { data: response.data, total: response.data.length };
+    return { data: response.data?.data || [], total: response.data?.total || 0 };
+  },
+
+  /**
+   * Approve shift swap — step 1 (HS/SPV)
+   */
+  async approveShiftSwap(id: string) {
+    const response = await api.post('/shift-swap/approve', null, { params: { id } });
+    return response.data.data || response.data;
+  },
+
+  /**
+   * Approve shift swap — step 2 / final (CHR)
+   */
+  async approveShiftSwapHr(id: string) {
+    const response = await api.post('/shift-swap/approve-hr', null, { params: { id } });
+    return response.data.data || response.data;
+  },
+
+  /**
+   * Reject shift swap
+   */
+  async rejectShiftSwap(id: string, reason: string) {
+    const response = await api.post('/shift-swap/reject', { reason }, { params: { id } });
+    return response.data.data || response.data;
+  },
+
+  /**
+   * Cancel own shift swap request
+   */
+  async cancelShiftSwap(id: string) {
+    const response = await api.post('/shift-swap/cancel', null, { params: { id } });
     return response.data.data || response.data;
   },
 

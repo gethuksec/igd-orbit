@@ -5,6 +5,9 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../shared/services/prisma.service';
+import { StorageService } from '../../../shared/services/storage.service';
+import { assertFileMagic } from '../../../shared/utils/file-magic';
+import { extname } from 'path';
 import { resolveTenureAnchor } from '../../contracts/services/contracts.service';
 import { LeaveRequestDto } from '../dto/leave-request.dto';
 import { ApproveLeaveDto } from '../dto/approve-leave.dto';
@@ -13,7 +16,34 @@ import { CancelLeaveDto } from '../dto/cancel-leave.dto';
 
 @Injectable()
 export class LeaveService {
+  private readonly storage = new StorageService();
+
   constructor(private prisma: PrismaService) {}
+
+  /**
+   * IGDERP-275: leave supporting-document upload (sick note, etc.).
+   * Returns the public URL to send as attachment_url. Max 2MB, images + PDF.
+   */
+  async uploadAttachment(
+    file: { originalname: string; mimetype: string; size: number; buffer: Buffer } | undefined,
+    userId: string,
+  ) {
+    if (!file || !file.buffer || file.size === 0) {
+      throw new BadRequestException('File lampiran wajib diunggah');
+    }
+    const allowed = ['image/jpeg', 'image/png', 'application/pdf'];
+    if (!allowed.includes(file.mimetype || '')) {
+      throw new BadRequestException('Lampiran wajib JPG, PNG, atau PDF');
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      throw new BadRequestException('Maksimal 2MB per lampiran');
+    }
+    assertFileMagic(file.buffer, file.mimetype, file.originalname || 'lampiran');
+    const ext = (extname(file.originalname || '').toLowerCase() || '.jpg').replace(/[^a-z0-9.]/g, '') || '.jpg';
+    const name = `leave-${userId}-${Date.now()}${ext}`;
+    const url = this.storage.save('leave-attachments', name, file.buffer);
+    return { url };
+  }
 
   /**
    * Calculate working days between two dates
@@ -281,13 +311,14 @@ export class LeaveService {
   }
 
   /**
-   * Approve leave
+   * Approve leave — step 1 (manager: HS/SPV).
+   * IGDERP-275: pending → manager_approved. Final approval is step 2 (CHR).
    */
   async approveLeave(leaveId: string, _dto: ApproveLeaveDto, userId: string, userRoles: string[]) {
     // Check permission
-    const hasPermission = ['HS', 'SPV', 'CHR'].some((role) => userRoles.includes(role));
+    const hasPermission = ['HS', 'SPV'].some((role) => userRoles.includes(role));
     if (!hasPermission) {
-      throw new ForbiddenException('Only HS, SPV, or CHR can approve leave');
+      throw new ForbiddenException('Only HS or SPV can approve leave (step 1)');
     }
 
     const leaveRequest = await this.prisma.leaveRequest.findUnique({
@@ -303,11 +334,55 @@ export class LeaveService {
       throw new BadRequestException('Leave request is not pending');
     }
 
+    if (leaveRequest.requestedBy === userId) {
+      throw new ForbiddenException('Requester cannot approve their own leave');
+    }
+
+    return this.prisma.leaveRequest.update({
+      where: { id: leaveId },
+      data: {
+        status: 'manager_approved',
+        managerApprovedBy: userId,
+        managerApprovedAt: new Date(),
+      },
+      include: {
+        employee: {
+          include: { user: true },
+        },
+      },
+    });
+  }
+
+  /**
+   * Approve leave — step 2 / final (HR: CHR).
+   * IGDERP-275: manager_approved → approved + attendance placeholders.
+   */
+  async approveLeaveHr(leaveId: string, userId: string, userRoles: string[]) {
+    const hasPermission = ['CHR'].some((role) => userRoles.includes(role));
+    if (!hasPermission) {
+      throw new ForbiddenException('Only CHR can finalize leave approval (step 2)');
+    }
+
+    const leaveRequest = await this.prisma.leaveRequest.findUnique({
+      where: { id: leaveId },
+      include: { employee: true },
+    });
+
+    if (!leaveRequest) {
+      throw new NotFoundException('Leave request not found');
+    }
+
+    if (leaveRequest.status !== 'manager_approved') {
+      throw new BadRequestException('Leave request needs manager approval first');
+    }
+
     // Update leave request
     const approved = await this.prisma.leaveRequest.update({
       where: { id: leaveId },
       data: {
         status: 'approved',
+        hrApprovedBy: userId,
+        hrApprovedAt: new Date(),
         approvedBy: userId,
         approvedAt: new Date(),
       },
@@ -349,12 +424,13 @@ export class LeaveService {
   }
 
   /**
-   * Reject leave
+   * Reject leave — step 1 rejects `pending` (HS/SPV), step 2 rejects
+   * `manager_approved` (CHR). IGDERP-275.
    */
   async rejectLeave(leaveId: string, dto: RejectLeaveDto, userId: string, userRoles: string[]) {
-    // Check permission
-    const hasPermission = ['HS', 'SPV', 'CHR'].some((role) => userRoles.includes(role));
-    if (!hasPermission) {
+    const isManager = ['HS', 'SPV'].some((role) => userRoles.includes(role));
+    const isHr = ['CHR'].some((role) => userRoles.includes(role));
+    if (!isManager && !isHr) {
       throw new ForbiddenException('Only HS, SPV, or CHR can reject leave');
     }
 
@@ -366,8 +442,11 @@ export class LeaveService {
       throw new NotFoundException('Leave request not found');
     }
 
-    if (leaveRequest.status !== 'pending') {
-      throw new BadRequestException('Leave request is not pending');
+    const canReject =
+      (isManager && leaveRequest.status === 'pending') ||
+      (isHr && ['pending', 'manager_approved'].includes(leaveRequest.status));
+    if (!canReject) {
+      throw new BadRequestException('Leave request is not awaiting your decision');
     }
 
     const rejected = await this.prisma.leaveRequest.update({

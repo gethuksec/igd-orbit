@@ -382,6 +382,14 @@ export class UsersService {
       createUserDto.password,
     );
 
+    // IGDERP-275: NIK must be unique when provided
+    if (createUserDto.nik) {
+      const dup = await this.prisma.employee.findUnique({ where: { nik: createUserDto.nik } });
+      if (dup) {
+        throw new ConflictException('NIK already registered to another employee');
+      }
+    }
+
     // Generate employee code if not provided
     let employeeCode = createUserDto.employeeCode;
     if (!employeeCode) {
@@ -441,6 +449,7 @@ export class UsersService {
         data: {
           userId: user.id,
           employeeCode,
+          nik: createUserDto.nik || null,
           branchId: createUserDto.departmentId ? null : null, // Will be set later if needed
           departmentId: createUserDto.departmentId || null,
           divisionId: createUserDto.divisionId || null,
@@ -617,6 +626,17 @@ export class UsersService {
       const employeeUpdateData: any = {};
       if (updateUserDto.employeeCode !== undefined)
         employeeUpdateData.employeeCode = updateUserDto.employeeCode;
+      if (updateUserDto.nik !== undefined) {
+        // IGDERP-275: NIK unique check (allow clearing with empty string → null)
+        const nik = updateUserDto.nik?.trim() || null;
+        if (nik) {
+          const dup = await this.prisma.employee.findUnique({ where: { nik } });
+          if (dup && dup.id !== updatedUser.employee.id) {
+            throw new ConflictException('NIK already registered to another employee');
+          }
+        }
+        employeeUpdateData.nik = nik;
+      }
       if (updateUserDto.branchId !== undefined)
         employeeUpdateData.branchId = updateUserDto.branchId || null;
       if (updateUserDto.departmentId !== undefined)
