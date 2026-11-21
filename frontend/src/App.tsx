@@ -161,11 +161,12 @@ import EmployeeDetail from './pages/hr/employees/EmployeeDetail';
 import EmployeeEditForm from './pages/hr/employees/EmployeeEditForm';
 import DepartmentList from './pages/hr/departments/DepartmentList';
 import ContractList from './pages/hr/contracts/ContractList';
-import LeaveList from './pages/hr/leave/LeaveList';
-import LeaveDetail from './pages/hr/leave/LeaveDetail';
-import LeaveRequestForm from './pages/hr/leave/LeaveRequestForm';
+import ApprovalCutiPage from './pages/hr/approval/ApprovalCutiPage';
+import ApprovalLiburPage from './pages/hr/approval/ApprovalLiburPage';
+import ApprovalPresensiPage from './pages/hr/approval/ApprovalPresensiPage';
+import TukarShiftPage from './pages/hr/approval/TukarShiftPage';
+import LemburPage from './pages/hr/approval/LemburPage';
 import LiburQuotaPage from './pages/hr/libur/LiburQuotaPage';
-import LiburRequestPage from './pages/hr/libur/LiburRequestPage';
 import ShiftingPage from './pages/hr/shifting/ShiftingPage';
 import AssignShiftPage from './pages/hr/shifting/AssignShiftPage';
 import ShiftMasterPage from './pages/master-data/staff/ShiftMasterPage';
@@ -1285,31 +1286,51 @@ function App() {
               }
             />
             <Route
-              path="/hr/leave"
+              path="/hr/approval/cuti"
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <LeaveList />
+                    <ApprovalCutiPage />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
             />
             <Route
-              path="/hr/leave/new"
+              path="/hr/approval/pengajuan-libur"
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <LeaveRequestForm />
+                    <ApprovalLiburPage />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
             />
             <Route
-              path="/hr/leave/:id"
+              path="/hr/approval/presensi"
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <LeaveDetail />
+                    <ApprovalPresensiPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr/approval/tukar-shift"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <TukarShiftPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr/approval/lembur"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <LemburPage />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
@@ -1738,16 +1759,6 @@ function App() {
                 <ProtectedRoute>
                   <DashboardLayout>
                     <LiburQuotaPage />
-                  </DashboardLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/hr/libur/pengajuan"
-              element={
-                <ProtectedRoute>
-                  <DashboardLayout>
-                    <LiburRequestPage />
                   </DashboardLayout>
                 </ProtectedRoute>
               }

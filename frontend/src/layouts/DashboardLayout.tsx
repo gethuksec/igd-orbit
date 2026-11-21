@@ -52,6 +52,8 @@ import {
   Briefcase,
   MapPin,
   Database,
+  Stamp,
+  AlarmClock,
 } from 'lucide-react';
 import type { Branch } from '@/services/public.service';
 import { publicService } from '@/services/public.service';
@@ -377,18 +379,21 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         { icon: Users, label: 'Data Karyawan', path: '/hr/employees', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: Clock, label: 'Presensi', path: '/hr/attendance', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: ScrollText, label: 'Kontrak', path: '/hr/contracts', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
-        { icon: CalendarDays, label: 'Cuti', path: '/hr/leave', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: Target, label: 'KPI', path: '/hr/kpi', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: Banknote, label: 'Payroll', path: '/hr/payroll', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+        { icon: CalendarDays, label: 'Libur', path: '/hr/libur', permission: 'hr.libur.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+        { icon: ArrowRightLeft, label: 'Shifting', path: '/hr/shifting', permission: 'hr.shift.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         {
-          icon: CalendarDays,
-          label: 'Libur',
+          icon: Stamp,
+          label: 'Approval',
           children: [
-            { icon: CalendarDays, label: 'Libur karyawan', path: '/hr/libur', permission: 'hr.libur.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
-            { icon: ClipboardList, label: 'Pengajuan libur', path: '/hr/libur/pengajuan', permission: 'hr.libur.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+            { icon: CalendarDays, label: 'Cuti', path: '/hr/approval/cuti', permission: 'hr.leave.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+            { icon: ClipboardList, label: 'Pengajuan libur', path: '/hr/approval/pengajuan-libur', permission: 'hr.libur.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+            { icon: Clock, label: 'Presensi', path: '/hr/approval/presensi', permission: 'hr.attendance.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+            { icon: ArrowRightLeft, label: 'Tukar shift', path: '/hr/approval/tukar-shift', permission: 'hr.shift.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+            { icon: AlarmClock, label: 'Lembur', path: '/hr/approval/lembur', permission: 'hr.overtime.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
           ],
         },
-        { icon: ArrowRightLeft, label: 'Shifting', path: '/hr/shifting', permission: 'hr.shift.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         {
           icon: Database,
           label: 'Master Data',

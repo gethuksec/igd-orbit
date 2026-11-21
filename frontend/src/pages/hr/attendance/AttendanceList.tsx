@@ -87,6 +87,13 @@ export default function AttendanceList() {
             Holiday
           </span>
         );
+      case 'not-clocked':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
+            <Clock className="w-3 h-3" />
+            Belum presensi
+          </span>
+        );
       default:
         return null;
     }
@@ -120,6 +127,7 @@ export default function AttendanceList() {
               { value: 'absent', label: 'Absent' },
               { value: 'leave', label: 'Leave' },
               { value: 'holiday', label: 'Holiday' },
+              { value: 'not-clocked', label: 'Belum presensi' },
             ],
           },
           {
@@ -321,13 +329,15 @@ export default function AttendanceList() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(attendance)}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <Link
-                          to={`/hr/attendance/${attendance.id}`}
-                          className="p-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 hover:bg-blue-50 dark:hover:bg-blue-950 rounded-lg transition-colors inline-flex items-center"
-                          title="Detail"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Link>
+                        {!String(attendance.id).startsWith("missing-") && (
+                          <Link
+                            to={`/hr/attendance/${attendance.id}`}
+                            className="p-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 hover:bg-blue-50 dark:hover:bg-blue-950 rounded-lg transition-colors inline-flex items-center"
+                            title="Detail"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Link>
+                        )}
                       </td>
                     </tr>
                   ))}
