@@ -593,7 +593,17 @@ export const hrService = {
    */
   async getPendingApprovals(): Promise<{ data: PendingApproval[]; total: number; awaitingDecision: number }> {
     const response = await api.get('/approvals/pending');
-    return response.data.data || response.data;
+    // IGDERP-276: API returns the { data, total, awaitingDecision } wrapper —
+    // pass it through intact (unwrapping here starved the inbox list + subtitle).
+    const d = response.data;
+    if (Array.isArray(d)) {
+      return { data: d, total: d.length, awaitingDecision: d.length };
+    }
+    return {
+      data: d?.data ?? [],
+      total: d?.total ?? 0,
+      awaitingDecision: d?.awaitingDecision ?? d?.data?.length ?? 0,
+    };
   },
 
   /**
