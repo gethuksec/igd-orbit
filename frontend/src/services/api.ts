@@ -82,7 +82,9 @@ const clearSession = () => {
 const redirectToLogin = () => {
   const { pathname, search } = window.location;
   const next = encodeURIComponent(pathname + search);
-  window.location.assign(`/login?expired=1&next=${next}`);
+  // IGDERP-276: expired sessions inside the mobile app return to mobile login
+  const loginBase = pathname.startsWith('/m') ? '/m/login' : '/login';
+  window.location.assign(`${loginBase}?expired=1&next=${next}`);
 };
 
 // Dedupe flag — parallel 401s (e.g. dashboard firing 5 queries) produce
