@@ -381,7 +381,6 @@ export const hrService = {
     const body = response.data;
     return body?.data ?? body ?? [];
   },
-  },
 
   // ============================================
   // Leave
