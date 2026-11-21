@@ -131,7 +131,11 @@ export default function MHome() {
           )}
           <span className="inline-flex items-center gap-1 text-xs">
             <MapPin className="w-3.5 h-3.5" />
-            {radiusOk === true ? 'Dalam radius outlet' : radiusOk === false ? 'Di luar radius' : outlet || 'Outlet'}
+            {radiusOk === true
+              ? 'Dalam radius outlet'
+              : radiusOk === false
+                ? 'Di luar radius'
+                : outlet || ''}
           </span>
         </div>
       </div>
