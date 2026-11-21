@@ -8,7 +8,7 @@ import { formatDate } from '@/utils/format';
 
 export default function LeaveList() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('pending');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
@@ -151,7 +151,7 @@ export default function LeaveList() {
           }
         }}
         onReset={() => {
-          setStatusFilter('all');
+          setStatusFilter('pending');
           setStartDate('');
           setEndDate('');
         }}

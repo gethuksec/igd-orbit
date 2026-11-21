@@ -7,12 +7,20 @@ import { hrService, type Attendance } from '@/services/hr.service';
 import { formatDate, formatDateTime } from '@/utils/format';
 import { useBranchFilter } from '@/components/branch/BranchFilter';
 
+// Default date filter: today (local) — Presensi opens on today's records.
+function todayLocal(): string {
+  const d = new Date();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
 export default function AttendanceList() {
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState(todayLocal);
+  const [endDate, setEndDate] = useState(todayLocal);
   const { branchId, setBranchId } = useBranchFilter();
   const limit = 20;
 
@@ -139,8 +147,8 @@ export default function AttendanceList() {
         }}
         onReset={() => {
           setStatusFilter('all');
-          setStartDate('');
-          setEndDate('');
+          setStartDate(todayLocal());
+          setEndDate(todayLocal());
           setPage(1);
         }}
       />
