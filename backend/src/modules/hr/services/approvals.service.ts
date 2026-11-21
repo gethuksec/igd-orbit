@@ -10,7 +10,7 @@ import { PrismaService } from '../../../shared/services/prisma.service';
  *   pending → (HS/SPV) → manager_approved → (CHR) → approved.
  * Libur stays single-step: pending → approved by libur WRITE_ROLES.
  */
-interface PendingItem {
+export interface PendingItem {
   kind: 'leave' | 'overtime' | 'shift_swap' | 'libur';
   id: string;
   status: string;
