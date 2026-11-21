@@ -44,6 +44,19 @@ export interface ShiftAssignmentListResponse {
 
 export const WEEKDAY_LABELS = ["S", "S", "R", "K", "J", "S", "M"];
 
+export interface ShiftSetting {
+  id?: string;
+  rosterOpenDay: number;
+  rosterCloseDay: number | null;
+  employeeInputStartDay: number;
+  configured?: boolean;
+}
+
+export interface ShiftResolveResult {
+  shift: Shift | null;
+  source: "roster" | "roster-libur" | "assignment" | "employee-default" | "title-default" | "exempt" | "none";
+}
+
 export interface RosterEmployee {
   id: string;
   employeeCode: string;
@@ -240,6 +253,34 @@ export const shiftsService = {
   async deleteAssignment(id: string): Promise<void> {
     try {
       await api.delete(`/shift-assignments/${id}`);
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  // IGDERP-265 v2: roster input window (release = roster submitted flag)
+  async getSetting(): Promise<ShiftSetting> {
+    try {
+      const response = await api.get("/shifts/settings/current");
+      return response.data.data || response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  async updateSetting(data: Partial<ShiftSetting>): Promise<ShiftSetting> {
+    try {
+      const response = await api.put("/shifts/settings", data);
+      return response.data.data || response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  async resolveShift(employeeId: string, date: string): Promise<ShiftResolveResult> {
+    try {
+      const response = await api.get("/shifts/current", { params: { employeeId, date } });
+      return response.data.data || response.data;
     } catch (error: any) {
       throw error;
     }

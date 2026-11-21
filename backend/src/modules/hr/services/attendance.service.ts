@@ -5,6 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../shared/services/prisma.service';
+import { ShiftsService } from '../../shifts/shifts.service';
 import { ClockInDto } from '../dto/clock-in.dto';
 import { ClockOutDto } from '../dto/clock-out.dto';
 import { ManualAdjustmentDto } from '../dto/manual-adjustment.dto';
@@ -13,7 +14,10 @@ import { Decimal } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class AttendanceService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private shifts: ShiftsService,
+  ) {}
 
   /**
    * Clock in
@@ -63,12 +67,31 @@ export class AttendanceService {
       throw new NotFoundException('Branch not found');
     }
 
-    // Calculate if late
+    // Calculate if late — IGDERP-265 Q6 (roster-first): resolved shift time
+    // wins; roster libur day never counts late; branch hours are fallback.
     const now = new Date();
     let isLate = false;
     let lateMinutes = 0;
 
-    if (branch.operatingHours) {
+    const resolved = await this.shifts.resolveShiftForDate(employee.id, now).catch(() => null);
+    if (resolved && (resolved.source === 'roster-libur' || (resolved as any).offDate)) {
+      isLate = false;
+      lateMinutes = 0;
+    } else if (resolved?.shift) {
+      const [shiftHour, shiftMinute] = String(resolved.shift.clockIn).split(':').map(Number);
+      const expectedStart = new Date(now);
+      expectedStart.setHours(shiftHour, shiftMinute, 0, 0);
+      const tolerance = resolved.shift.lateToleranceMin ?? 15;
+      if (now > expectedStart) {
+        const diffMs = now.getTime() - expectedStart.getTime();
+        lateMinutes = Math.floor(diffMs / (1000 * 60));
+        if (lateMinutes > tolerance) {
+          isLate = true;
+        } else {
+          lateMinutes = 0;
+        }
+      }
+    } else if (branch.operatingHours) {
       const dayName = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][now.getDay()];
       const operatingHours = branch.operatingHours as any;
       const dayHours = operatingHours[dayName];

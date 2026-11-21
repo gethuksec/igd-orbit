@@ -5,9 +5,16 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services';
-import { CreateShiftDto, UpdateShiftDto, ListShiftsDto, HH_MM_REGEX } from './dto';
+import { CreateShiftDto, UpdateShiftDto, ListShiftsDto, HH_MM_REGEX, UpsertShiftSettingDto } from './dto';
 import { Prisma } from '@prisma/client';
 import { randomBytes } from 'crypto';
+
+/** Fallback when no ShiftSetting row exists (matches migration + DTO defaults). */
+export const DEFAULT_SHIFT_SETTING = {
+  rosterOpenDay: 25,
+  rosterCloseDay: null as number | null,
+  employeeInputStartDay: 25,
+};
 
 /**
  * Shifts Service — work-schedule master data with soft delete
@@ -236,5 +243,117 @@ export class ShiftsService {
         deletedAt: new Date(),
       },
     });
+  }
+
+  // ---------- IGDERP-265 gaps: setting, roster window, shift resolution ----------
+  // Release mechanism is upstream's per-date `submitted` flag (roster-first);
+  // this service only parameterises the input window + resolves shifts.
+
+  async getSetting() {
+    const db = this.prisma as any;
+    const row = await db.shiftSetting.findFirst();
+    return row ?? { ...DEFAULT_SHIFT_SETTING, configured: false };
+  }
+
+  async upsertSetting(dto: UpsertShiftSettingDto) {
+    const db = this.prisma as any;
+    const existing = await db.shiftSetting.findFirst();
+    const data: any = {};
+    if (dto.rosterOpenDay !== undefined) data.rosterOpenDay = dto.rosterOpenDay;
+    if (dto.rosterCloseDay !== undefined) data.rosterCloseDay = dto.rosterCloseDay;
+    if (dto.employeeInputStartDay !== undefined) data.employeeInputStartDay = dto.employeeInputStartDay;
+    if (existing) {
+      return db.shiftSetting.update({ where: { id: existing.id }, data });
+    }
+    return db.shiftSetting.create({ data });
+  }
+
+  /**
+   * Q4 gate (window only): employee roster/libur input for `period` is open
+   * when today is inside the setting window. Release = upstream submitted flag.
+   */
+  async canEmployeeInput(_branchId: string, period: string, now = new Date()) {
+    const setting = await this.getSetting();
+    const openDay = setting.rosterOpenDay ?? DEFAULT_SHIFT_SETTING.rosterOpenDay;
+    const startDay = setting.employeeInputStartDay ?? openDay;
+    const [year, month] = period.split('-').map(Number);
+    // Window: from startDay of the previous month (period-1) through closeDay/EOM.
+    const prev = new Date(year, month - 2, 1);
+    const windowStart = new Date(prev.getFullYear(), prev.getMonth(), startDay);
+    const closeDay = setting.rosterCloseDay ?? null;
+    const windowEnd =
+      closeDay === null
+        ? new Date(year, month - 1, 1) // first day of period month = past EOM of prev month
+        : new Date(prev.getFullYear(), prev.getMonth(), closeDay + 1);
+    if (now < windowStart || now >= windowEnd) {
+      return { open: false as const, reason: 'outside-window' as const };
+    }
+    return { open: true as const, reason: 'open' as const };
+  }
+
+  /**
+   * Q1+Q6 resolution (roster-first): submitted ShiftRosterEntry for the date
+   * wins (null shiftId = roster libur day), else explicit assignment covering
+   * `date` (weekday match), else employee live override, else title default.
+   * L1-2 chart ranks are exempt (no shift → caller keeps branch-hours behavior).
+   */
+  async resolveShiftForDate(employeeId: string, date: Date | string) {
+    const db = this.prisma as any;
+    const day = date instanceof Date ? date : new Date(date);
+    const weekday = ((day.getDay() + 6) % 7) + 1; // 1=Mon..7=Sun
+    const employee = await db.employee.findUnique({
+      where: { id: employeeId },
+      include: {
+        position: { select: { id: true, rank: true, defaultShiftId: true } },
+        defaultShift: true,
+      },
+    });
+    if (!employee) throw new NotFoundException('Employee not found');
+    if (employee.position && employee.position.rank <= 2) {
+      return { shift: null, source: 'exempt' as const, offDate: false };
+    }
+    const startOfDay = new Date(day);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    // Roster-first: a plotted entry for the exact date wins.
+    const rosterEntry = await db.shiftRosterEntry?.findFirst?.({
+      where: { employeeId, date: startOfDay },
+      include: { shift: true },
+    });
+    if (rosterEntry) {
+      if (!rosterEntry.shiftId) {
+        return { shift: null, source: 'roster-libur' as const, offDate: true };
+      }
+      if (rosterEntry.shift && rosterEntry.shift.deletedAt === null) {
+        return { shift: rosterEntry.shift, source: 'roster' as const, offDate: false };
+      }
+    }
+
+    const candidates = await db.shiftAssignment.findMany({
+      where: {
+        employeeId,
+        startDate: { lte: startOfDay },
+        OR: [{ endDate: null }, { endDate: { gte: startOfDay } }],
+      },
+      include: { shift: true },
+      orderBy: { startDate: 'desc' },
+    });
+    const hit = (candidates as any[]).find((a) => (a.weekdays ?? []).includes(weekday));
+    if (hit?.shift && hit.shift.deletedAt === null) {
+      const off = (hit.offDates ?? []).some(
+        (d: Date | string) => new Date(d).toDateString() === startOfDay.toDateString(),
+      );
+      return { shift: hit.shift, source: 'assignment' as const, offDate: off };
+    }
+    if (employee.defaultShift && employee.defaultShift.deletedAt === null) {
+      return { shift: employee.defaultShift, source: 'employee-default' as const, offDate: false };
+    }
+    if (employee.position?.defaultShiftId) {
+      const shift = await db.shift.findFirst({
+        where: { id: employee.position.defaultShiftId, deletedAt: null },
+      });
+      if (shift) return { shift, source: 'title-default' as const, offDate: false };
+    }
+    return { shift: null, source: 'none' as const, offDate: false };
   }
 }

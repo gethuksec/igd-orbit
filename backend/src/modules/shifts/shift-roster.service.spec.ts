@@ -32,6 +32,7 @@ describe('ShiftRosterService', () => {
       employee: { findUnique: jest.fn(), findMany: jest.fn() },
       shift: { findMany: jest.fn() },
       shiftRosterEntry: { findMany: jest.fn(), deleteMany: jest.fn(), createMany: jest.fn() },
+      liburRequest: { findMany: jest.fn(async () => [{ date: '2026-12-02' }]) },
       $transaction: jest.fn(async (ops: any[]) => Promise.all(ops)),
     };
     const module: TestingModule = await Test.createTestingModule({
@@ -162,6 +163,21 @@ describe('ShiftRosterService', () => {
           entries: fullEntries,
         }),
       ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('rejects libur days without an approved request (IGDERP-265 decision 2)', async () => {
+      prisma.employee.findUnique.mockResolvedValue(emp('e1', 'div-1'));
+      prisma.shift.findMany.mockResolvedValue([{ id: 'sh-1' }]);
+      prisma.liburRequest.findMany.mockResolvedValue([]); // nothing approved
+      await expect(
+        service.submitRoster(superadmin, {
+          employeeId: 'e1',
+          start: '2026-12-01',
+          end: '2026-12-03',
+          entries: fullEntries,
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
     });
 
     it('replaces range entries and marks submitted', async () => {

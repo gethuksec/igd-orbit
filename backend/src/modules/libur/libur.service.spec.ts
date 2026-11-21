@@ -1,9 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../../shared/services/prisma.service';
+import { ShiftsService } from '../shifts/shifts.service';
 import { LiburService } from './libur.service';
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
 
@@ -16,8 +18,13 @@ function dateInMonthOffset(offset: number, day = 10): string {
 describe('LiburService', () => {
   let service: LiburService;
   let prisma: any;
+  let shiftsStub: any;
 
   beforeEach(async () => {
+    shiftsStub = {
+      canEmployeeInput: jest.fn(async () => ({ open: true, reason: 'open' })),
+      resolveShiftForDate: jest.fn(async () => ({ shift: null, source: 'none' })),
+    };
     prisma = {
       employee: { findMany: jest.fn(), count: jest.fn(), findUnique: jest.fn() },
       liburQuotaConfig: {
@@ -34,9 +41,20 @@ describe('LiburService', () => {
         create: jest.fn(),
         update: jest.fn(),
       },
+      shiftRosterEntry: {
+        findFirst: jest.fn(),
+        findMany: jest.fn(),
+        findUnique: jest.fn(),
+        upsert: jest.fn(),
+        delete: jest.fn(),
+      },
     };
     const module: TestingModule = await Test.createTestingModule({
-      providers: [LiburService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        LiburService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: ShiftsService, useValue: shiftsStub },
+      ],
     }).compile();
     service = module.get<LiburService>(LiburService);
   });
@@ -188,6 +206,7 @@ describe('LiburService', () => {
         employeeId: 'e1',
         targetPeriod: service.currentPeriod(),
         status: 'pending',
+        atasanStatus: 'approved',
       });
       prisma.liburRequest.update.mockImplementation(async ({ data }: any) => ({ id: 'r1', ...data }));
       prisma.liburQuotaConfig.findFirst
@@ -206,6 +225,7 @@ describe('LiburService', () => {
         employeeId: 'e1',
         targetPeriod: service.currentPeriod(),
         status: 'pending',
+        atasanStatus: 'approved',
       });
       prisma.liburRequest.update.mockImplementation(async ({ data }: any) => ({ id: 'r1', ...data }));
       prisma.liburQuotaConfig.findFirst
@@ -221,6 +241,142 @@ describe('LiburService', () => {
     it('rejects non-pending requests', async () => {
       prisma.liburRequest.findUnique.mockResolvedValue({ id: 'r1', status: 'approved' });
       await expect(service.approveRequest('r1', 'u1')).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('requires atasan approval before HR-final', async () => {
+      prisma.liburRequest.findUnique.mockResolvedValue({
+        id: 'r1',
+        employeeId: 'e1',
+        targetPeriod: service.currentPeriod(),
+        status: 'pending',
+        atasanStatus: 'pending',
+      });
+      await expect(service.approveRequest('r1', 'u-hr')).rejects.toBeInstanceOf(BadRequestException);
+      expect(prisma.liburRequest.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('two-step + bulk (IGDERP-265 gaps)', () => {
+    it('atasanApprove flips atasanStatus, keeps status pending', async () => {
+      prisma.liburRequest.findUnique.mockResolvedValue({
+        id: 'r1',
+        employeeId: 'e1',
+        targetPeriod: service.currentPeriod(),
+        date: new Date().toISOString(),
+        status: 'pending',
+        atasanStatus: 'pending',
+      });
+      prisma.liburRequest.update.mockImplementation(async ({ data }: any) => ({ id: 'r1', ...data }));
+      prisma.liburRequest.findMany.mockResolvedValue([]);
+      const res: any = await service.atasanApprove('r1', 'u-hs');
+      expect(res.atasanStatus).toBe('approved');
+      expect(res.status).toBeUndefined();
+      expect(res.consecutiveWarning).toEqual([]);
+    });
+
+    it('atasanReject closes the request terminally', async () => {
+      prisma.liburRequest.findUnique.mockResolvedValue({ id: 'r1', status: 'pending', atasanStatus: 'pending' });
+      prisma.liburRequest.update.mockImplementation(async ({ data }: any) => ({ id: 'r1', ...data }));
+      const res: any = await service.atasanReject('r1', { reason: 'kurang orang' } as any, 'u-hs');
+      expect(res).toMatchObject({ status: 'rejected', atasanStatus: 'rejected' });
+    });
+
+    it('bulkApprove is partial-fail safe', async () => {
+      prisma.liburRequest.findUnique.mockImplementation(async ({ where }: any) => {
+        if (where.id === 'ok') {
+          return {
+            id: 'ok',
+            employeeId: 'e1',
+            targetPeriod: service.currentPeriod(),
+            date: new Date().toISOString(),
+            status: 'pending',
+            atasanStatus: 'approved',
+            employee: { branchId: null },
+          };
+        }
+        return { id: 'bad', status: 'pending', atasanStatus: 'pending' };
+      });
+      prisma.liburRequest.update.mockImplementation(async ({ data }: any) => ({ ...data }));
+      prisma.liburQuotaConfig.findFirst.mockResolvedValue({ id: 'g1', employeeId: null, quotaDays: 4 });
+      prisma.liburRequest.count.mockResolvedValue(1);
+      prisma.liburRequest.findMany.mockResolvedValue([]);
+      const res: any = await service.bulkApprove({ ids: ['ok', 'bad'] } as any, 'u-hr');
+      expect(res.approved).toHaveLength(1);
+      expect(res.failed).toHaveLength(1);
+      expect(res.failed[0].id).toBe('bad');
+    });
+
+    it('createRequest warns on consecutive run, blocks when gate closed', async () => {
+      // gate closed
+      shiftsStub.canEmployeeInput.mockResolvedValueOnce({ open: false, reason: 'not-released' });
+      prisma.employee.findUnique.mockResolvedValue({ id: 'e1', branchId: 'b1' });
+      await expect(
+        service.createRequest({ employeeId: 'e1', date: dateInMonthOffset(0) } as any, 'u1'),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(prisma.liburRequest.create).not.toHaveBeenCalled();
+    });
+
+    it('findConsecutiveWarning reports runs across approved + offDates', async () => {
+      const period = service.currentPeriod();
+      const [y, m] = period.split('-').map(Number);
+      const iso = (d: number) => new Date(y, m - 1, d).toISOString();
+      prisma.liburRequest.findMany.mockResolvedValue([{ date: iso(10) }]);
+      (prisma as any).shiftAssignment = { findMany: jest.fn(async () => [{ offDates: [iso(12)] }]) };
+      const warn: string[] = await service.findConsecutiveWarning('e1', period, iso(11));
+      expect(warn).toHaveLength(3);
+    });
+
+    it('HR-final approve plots the roster libur day (null shiftId)', async () => {
+      const date = new Date().toISOString();
+      prisma.liburRequest.findUnique.mockResolvedValue({
+        id: 'r1',
+        employeeId: 'e1',
+        targetPeriod: service.currentPeriod(),
+        date,
+        status: 'pending',
+        atasanStatus: 'approved',
+        employee: { id: 'e1', divisionId: 'div-1' },
+      });
+      prisma.liburRequest.update.mockImplementation(async ({ data }: any) => ({ id: 'r1', ...data }));
+      prisma.liburQuotaConfig.findFirst.mockResolvedValue({ id: 'g1', employeeId: null, quotaDays: 4 });
+      prisma.liburRequest.count.mockResolvedValue(1);
+      prisma.liburRequest.findMany.mockResolvedValue([]);
+      prisma.shiftRosterEntry.upsert.mockImplementation(async (args: any) => args.create);
+      const res: any = await service.approveRequest('r1', 'u-hr');
+      expect(res.status).toBe('approved');
+      expect(prisma.shiftRosterEntry.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          update: expect.objectContaining({ shiftId: null, submitted: true }),
+        }),
+      );
+    });
+
+    it('cancel of an approved request unplots its roster libur day', async () => {
+      const date = new Date().toISOString();
+      prisma.liburRequest.findUnique.mockResolvedValue({
+        id: 'r1',
+        employeeId: 'e1',
+        date,
+        status: 'approved',
+      });
+      prisma.liburRequest.update.mockImplementation(async ({ data }: any) => ({ id: 'r1', ...data }));
+      prisma.shiftRosterEntry.findUnique.mockResolvedValue({ id: 'cell-1', shiftId: null });
+      prisma.shiftRosterEntry.delete.mockResolvedValue({ id: 'cell-1' });
+      await service.cancelRequest('r1');
+      expect(prisma.shiftRosterEntry.delete).toHaveBeenCalledWith({ where: { id: 'cell-1' } });
+    });
+
+    it('cancel keeps a replotted (shift) roster cell', async () => {
+      prisma.liburRequest.findUnique.mockResolvedValue({
+        id: 'r1',
+        employeeId: 'e1',
+        date: new Date().toISOString(),
+        status: 'approved',
+      });
+      prisma.liburRequest.update.mockImplementation(async ({ data }: any) => ({ id: 'r1', ...data }));
+      prisma.shiftRosterEntry.findUnique.mockResolvedValue({ id: 'cell-1', shiftId: 'sh-9' });
+      await service.cancelRequest('r1');
+      expect(prisma.shiftRosterEntry.delete).not.toHaveBeenCalled();
     });
   });
 
