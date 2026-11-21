@@ -44,6 +44,108 @@ export interface ShiftAssignmentListResponse {
 
 export const WEEKDAY_LABELS = ["S", "S", "R", "K", "J", "S", "M"];
 
+export interface RosterEmployee {
+  id: string;
+  employeeCode: string;
+  fullName: string | null;
+  department: { id: string; name: string } | null;
+  division: { id: string; name: string } | null;
+}
+
+export interface RosterRow {
+  employee: RosterEmployee;
+  status: "TERJADWAL" | "BELUM";
+  plotted: number;
+  libur: number;
+  empty: number;
+  dominantShift: string | null;
+}
+
+export interface RosterListResponse {
+  data: RosterRow[];
+  meta: { total: number; page: number; limit: number; totalPages: number };
+}
+
+export interface RosterEntryView {
+  date: string;
+  shiftId: string | null;
+  shiftCode: string | null;
+  submitted: boolean;
+}
+
+export interface DivisionOverlay {
+  divisionId: string;
+  employees: { id: string; employeeCode: string; fullName: string | null }[];
+  entries: { employeeId: string; date: string; shiftId: string | null; shiftCode: string | null }[];
+}
+
+export interface AssignContext {
+  employee: {
+    id: string;
+    employeeCode: string;
+    departmentId?: string | null;
+    divisionId?: string | null;
+    department?: { id: string; name: string } | null;
+    division?: { id: string; name: string } | null;
+    user?: { fullName?: string } | null;
+  };
+  entries: RosterEntryView[];
+  overlay: DivisionOverlay | null;
+}
+
+export const rosterService = {
+  async getRoster(params: {
+    start: string;
+    end: string;
+    status?: string;
+    departmentIds?: string[];
+    divisionIds?: string[];
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<RosterListResponse> {
+    try {
+      const response = await api.get("/shift-roster", {
+        params: {
+          ...params,
+          departmentIds: params.departmentIds?.join(",") || undefined,
+          divisionIds: params.divisionIds?.join(",") || undefined,
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      return handleApiError(error, {
+        data: [],
+        meta: { total: 0, page: params.page || 1, limit: params.limit || 20, totalPages: 0 },
+      });
+    }
+  },
+
+  async getAssignContext(employeeId: string, start: string, end: string): Promise<AssignContext | null> {
+    try {
+      const response = await api.get(`/shift-roster/assign/${employeeId}`, { params: { start, end } });
+      return response.data?.data ?? response.data;
+    } catch (error: any) {
+      handleApiError(error, null);
+      return null;
+    }
+  },
+
+  async submitRoster(data: {
+    employeeId: string;
+    start: string;
+    end: string;
+    entries: { date: string; shiftId: string | null }[];
+  }): Promise<{ employeeId: string; submitted: number; start: string; end: string }> {
+    try {
+      const response = await api.post("/shift-roster/submit", data);
+      return response.data?.data ?? response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+};
+
 export const shiftsService = {
   async getAll(params?: {
     page?: number;
