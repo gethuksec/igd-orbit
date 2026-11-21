@@ -13,26 +13,20 @@ type StatusFilter = "all" | "active" | "inactive";
 type CategoryFilter = "all" | "earning" | "deduction";
 
 interface FormData {
-  code: string;
   name: string;
   description: string;
   category: string;
   source: string;
   defaultAmount: string;
-  tiers: string;
-  sortOrder: string;
   isActive: boolean;
 }
 
 const defaultForm: FormData = {
-  code: "",
   name: "",
   description: "",
   category: "earning",
   source: "manual",
   defaultAmount: "",
-  tiers: "",
-  sortOrder: "0",
   isActive: true,
 };
 
@@ -95,34 +89,19 @@ export default function PayrollComponentList() {
   const pagination = data?.meta || { page: 1, limit: 20, total: 0, totalPages: 1 };
   const activeCount = rows.filter((t: PayrollComponent) => t.isActive).length;
 
-  const toPayload = (f: FormData) => {
-    let tiers: any = undefined;
-    if (f.tiers.trim() !== "") {
-      try {
-        tiers = JSON.parse(f.tiers);
-      } catch {
-        throw new Error("Tiers bukan JSON valid — contoh: {\"G1\": 700000}");
-      }
-    }
-    const base: any = {
-      name: f.name,
-      description: f.description || undefined,
-      category: f.category,
-      source: f.source,
-      defaultAmount: f.defaultAmount === "" ? undefined : Number(f.defaultAmount),
-      tiers,
-      sortOrder: f.sortOrder === "" ? undefined : Number(f.sortOrder),
-    };
-    if (f.code.trim() !== "") base.code = f.code.trim();
-    if (editing) base.isActive = f.isActive;
-    return base;
-  };
+  const toPayload = (f: FormData) => ({
+    name: f.name,
+    description: f.description || undefined,
+    category: f.category,
+    source: f.source,
+    defaultAmount: f.defaultAmount === "" ? undefined : Number(f.defaultAmount),
+    isActive: f.isActive,
+  });
 
   const saveMutation = useMutation({
     mutationFn: (payload: any) => {
       if (editing) return api.put(`/payroll-components/${editing.id}`, payload);
-      const { isActive: _omit, ...createPayload } = payload;
-      return api.post("/payroll-components", createPayload);
+      return api.post("/payroll-components", payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payroll-components"] });
@@ -145,14 +124,11 @@ export default function PayrollComponentList() {
   const openEditModal = (row: PayrollComponent) => {
     setEditing(row);
     setFormData({
-      code: row.code || "",
       name: row.name || "",
       description: row.description || "",
       category: row.category || "earning",
       source: row.source || "manual",
       defaultAmount: row.defaultAmount?.toString() ?? "",
-      tiers: row.tiers ? JSON.stringify(row.tiers) : "",
-      sortOrder: row.sortOrder?.toString() ?? "0",
       isActive: row.isActive ?? true,
     });
     setFormModalOpen(true);
@@ -181,7 +157,6 @@ export default function PayrollComponentList() {
           {row.description && (
             <div className="text-xs text-muted-foreground mt-1">{row.description}</div>
           )}
-          <div className="text-xs text-muted-foreground mt-1 font-mono">{row.code || "-"}</div>
         </div>
       ),
     },
@@ -373,11 +348,7 @@ export default function PayrollComponentList() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              try {
-                saveMutation.mutate(toPayload(formData));
-              } catch (err: any) {
-                toast.error(err.message || "Form tidak valid");
-              }
+              saveMutation.mutate(toPayload(formData));
             }}
             className="space-y-4"
           >
@@ -421,16 +392,6 @@ export default function PayrollComponentList() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kode (opsional — auto bila kosong)</label>
-              <input
-                type="text"
-                value={formData.code}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono"
-                placeholder="cth: TUNJ-JABATAN"
-              />
-            </div>
-            <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Deskripsi / Aturan</label>
               <input
                 type="text"
@@ -440,42 +401,28 @@ export default function PayrollComponentList() {
                 placeholder="cth: Jam x 15.000"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nominal Default (Rp)</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={formData.defaultAmount}
-                  onChange={(e) => setFormData({ ...formData, defaultAmount: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="0"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Urutan</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={formData.sortOrder}
-                  onChange={(e) => setFormData({ ...formData, sortOrder: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="0"
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nominal Default (Rp)</label>
+              <input
+                type="number"
+                min={0}
+                value={formData.defaultAmount}
+                onChange={(e) => setFormData({ ...formData, defaultAmount: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="0"
+              />
             </div>
-            {formData.source === "grade" && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tiers Grade (JSON)</label>
-                <textarea
-                  value={formData.tiers}
-                  onChange={(e) => setFormData({ ...formData, tiers: e.target.value })}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono text-sm"
-                  placeholder='{"G1": 700000, "G2": 400000}'
-                />
-              </div>
-            )}
+            <label className="flex items-center gap-3 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={formData.isActive}
+                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                className="h-5 w-5 rounded border-gray-300 dark:border-gray-600 accent-primary-600"
+              />
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Aktif <span className="font-normal text-gray-500 dark:text-gray-400">(baru dibuat otomatis aktif)</span>
+              </span>
+            </label>
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
