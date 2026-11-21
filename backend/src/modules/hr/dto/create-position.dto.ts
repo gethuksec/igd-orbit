@@ -46,6 +46,10 @@ export class CreatePositionDto {
   @IsOptional()
   defaultRoleId?: string;
 
+  @IsUUID('4')
+  @IsOptional()
+  defaultShiftId?: string | null; // IGDERP-265: title default shift
+
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;

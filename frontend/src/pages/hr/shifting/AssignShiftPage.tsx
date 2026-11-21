@@ -73,6 +73,37 @@ export default function AssignShiftPage() {
   const [popupDate, setPopupDate] = useState<string | null>(null);
   const [popupShift, setPopupShift] = useState<string>("LIBUR");
 
+  // IGDERP-265 v2: suggest the resolved default shift when opening an empty day.
+  const openDayPicker = (d: string, v: string | null | undefined) => {
+    setPopupDate(d);
+    if (v !== undefined) {
+      setPopupShift(v === null ? "LIBUR" : v);
+      return;
+    }
+    setPopupShift("LIBUR");
+    if (!employeeId) return;
+    shiftsService
+      .resolveShift(employeeId, d)
+      .then((res) => {
+        if (res?.shift) {
+          // only prefill if the user hasn't picked something meanwhile
+          setPopupShift((cur) => (cur === "LIBUR" ? res.shift!.id : cur));
+          const srcLabel =
+            res.source === "title-default"
+              ? "default jabatan"
+              : res.source === "employee-default"
+                ? "default karyawan"
+                : res.source === "assignment"
+                  ? "jadwal assignment"
+                  : res.source;
+          toast.success(`Saran shift dari ${srcLabel}: ${res.shift.code}`);
+        }
+      })
+      .catch(() => {
+        /* suggestion is best-effort */
+      });
+  };
+
   const days = useMemo(() => {
     const out: string[] = [];
     const cur = new Date(`${nm.start}T00:00:00`);
@@ -202,10 +233,7 @@ export default function AssignShiftPage() {
                     <button
                       key={d}
                       type="button"
-                      onClick={() => {
-                        setPopupDate(d);
-                        setPopupShift(v === undefined || v === null ? "LIBUR" : v);
-                      }}
+                      onClick={() => openDayPicker(d, v)}
                       className={`min-h-[76px] rounded-lg border p-1.5 text-left transition-colors hover:border-primary-400 ${
                         v === undefined
                           ? "border-dashed border-gray-300 dark:border-gray-700"

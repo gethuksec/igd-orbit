@@ -25,6 +25,7 @@ export class PositionsService {
     department: { select: { id: true, code: true, name: true } },
     grade: { select: { id: true, code: true, name: true, rank: true } },
     defaultRole: { select: { id: true, code: true, name: true } },
+    defaultShift: { select: { id: true, code: true, name: true, clockIn: true, clockOut: true } },
     _count: { select: { employees: true } },
   };
 
@@ -88,7 +89,7 @@ export class PositionsService {
     }
   }
 
-  private async assertRefsExist(dto: { divisionId?: string | null; departmentId?: string | null; gradeId?: string | null; defaultRoleId?: string | null }) {
+  private async assertRefsExist(dto: { divisionId?: string | null; departmentId?: string | null; gradeId?: string | null; defaultRoleId?: string | null; defaultShiftId?: string | null }) {
     if (dto.divisionId) {
       const division = await this.prisma.division.findUnique({ where: { id: dto.divisionId } });
       if (!division || !division.isActive) {
@@ -113,6 +114,14 @@ export class PositionsService {
         throw new BadRequestException('Role not found or inactive');
       }
     }
+    if (dto.defaultShiftId) {
+      const shift = await (this.prisma as any).shift.findFirst({
+        where: { id: dto.defaultShiftId, deletedAt: null },
+      });
+      if (!shift) {
+        throw new BadRequestException('Shift not found or inactive');
+      }
+    }
   }
 
   async create(dto: CreatePositionDto) {
@@ -133,6 +142,7 @@ export class PositionsService {
         gradeId: dto.gradeId,
         minSalary: dto.minSalary ?? null,
         defaultRoleId: dto.defaultRoleId,
+        defaultShiftId: (dto as any).defaultShiftId ?? null,
         isActive: dto.isActive ?? true,
       },
       include: this.include,
@@ -158,6 +168,7 @@ export class PositionsService {
         gradeId: dto.gradeId !== undefined ? dto.gradeId : undefined,
         minSalary: dto.minSalary !== undefined ? dto.minSalary : undefined,
         defaultRoleId: dto.defaultRoleId !== undefined ? dto.defaultRoleId : undefined,
+        defaultShiftId: (dto as any).defaultShiftId !== undefined ? (dto as any).defaultShiftId : undefined,
         isActive: dto.isActive,
       },
       include: this.include,

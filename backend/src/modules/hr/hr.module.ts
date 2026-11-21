@@ -17,9 +17,10 @@ import { DivisionsController } from './divisions.controller';
 import { GradesController } from './grades.controller';
 import { PositionsController } from './positions.controller';
 import { FinanceModule } from '../finance/finance.module';
+import { ShiftsModule } from '../shifts/shifts.module';
 
 @Module({
-  imports: [FinanceModule],
+  imports: [FinanceModule, ShiftsModule],
   controllers: [
     AttendanceController,
     LeaveController,

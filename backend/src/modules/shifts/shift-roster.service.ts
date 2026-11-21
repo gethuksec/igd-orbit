@@ -233,6 +233,9 @@ export class ShiftRosterService {
       });
       if (shifts.length !== shiftIds.length) throw new BadRequestException('Unknown or inactive shift');
     }
+    // IGDERP-265 decision 2: roster libur-days must each carry an approved
+    // LiburRequest; unapproved null-shift days are rejected, not plotted.
+    await this.assertLiburDaysApproved(dto.employeeId, dto.entries);
     const now = new Date();
     await this.prisma.$transaction([
       this.prisma.shiftRosterEntry.deleteMany({
@@ -249,5 +252,34 @@ export class ShiftRosterService {
       }),
     ]);
     return { employeeId: dto.employeeId, submitted: days.length, start: dto.start, end: dto.end };
+  }
+
+  /**
+   * IGDERP-265 decision 2: every null-shift (libur) day in a roster submit must
+   * already have an approved LiburRequest. HR-final approval auto-plots the
+   * day, so a well-formed flow always satisfies this; direct plotting without
+   * approval is rejected with the offending dates.
+   */
+  private async assertLiburDaysApproved(
+    employeeId: string,
+    entries: { date: string; shiftId?: string | null }[],
+  ) {
+    const liburDays = [...new Set(entries.filter((e) => !e.shiftId).map((e) => e.date))];
+    if (liburDays.length === 0) return;
+    const db = this.prisma as any;
+    const approved =
+      (await db.liburRequest?.findMany?.({
+        where: { employeeId, status: 'approved' },
+        select: { date: true },
+      })) ?? [];
+    const approvedSet = new Set(
+      (approved as any[]).map((r: any) => new Date(r.date).toISOString().slice(0, 10)),
+    );
+    const unapproved = liburDays.filter((d) => !approvedSet.has(d));
+    if (unapproved.length) {
+      throw new BadRequestException(
+        `Hari libur wajib punya pengajuan yang disetujui dulu (${unapproved.slice(0, 5).join(', ')}${unapproved.length > 5 ? ` +${unapproved.length - 5}` : ''})`,
+      );
+    }
   }
 }

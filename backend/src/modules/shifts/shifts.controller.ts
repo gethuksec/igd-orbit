@@ -4,6 +4,7 @@ import {
   Post,
   Put,
   Delete,
+  BadRequestException,
   Body,
   Param,
   Query,
@@ -14,7 +15,7 @@ import {
 import { ShiftsService } from './shifts.service';
 import { JwtAuthGuard, RolesGuard } from '../../shared/guards';
 import { Roles } from '../../shared/decorators';
-import { CreateShiftDto, UpdateShiftDto, ListShiftsDto } from './dto';
+import { CreateShiftDto, UpdateShiftDto, ListShiftsDto, UpsertShiftSettingDto } from './dto';
 
 const READ_ROLES = ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS', 'CHR'];
 const WRITE_ROLES = ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'CHR'];
@@ -37,6 +38,25 @@ export class ShiftsController {
       console.error('Error in shift.findAll:', error);
       throw error;
     }
+  }
+
+  // ---------- IGDERP-265 gaps: static routes BEFORE ':id' ----------
+
+  @Get('settings/current')
+  @UseGuards(RolesGuard)
+  @Roles(...READ_ROLES)
+  async getSetting() {
+    return this.svc.getSetting();
+  }
+
+  @Get('current')
+  @UseGuards(RolesGuard)
+  @Roles(...READ_ROLES)
+  async resolveCurrent(@Query('employeeId') employeeId: string, @Query('date') date: string) {
+    if (!employeeId || !date) {
+      throw new BadRequestException('employeeId and date (YYYY-MM-DD) are required');
+    }
+    return this.svc.resolveShiftForDate(employeeId, date);
   }
 
   @Get(':id')
@@ -67,5 +87,14 @@ export class ShiftsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async delete(@Param('id') id: string) {
     await this.svc.delete(id);
+  }
+
+  // ---------- IGDERP-265 gaps: roster window setting ----------
+
+  @Put('settings')
+  @UseGuards(RolesGuard)
+  @Roles(...WRITE_ROLES)
+  async upsertSetting(@Body() dto: UpsertShiftSettingDto) {
+    return this.svc.upsertSetting(dto);
   }
 }

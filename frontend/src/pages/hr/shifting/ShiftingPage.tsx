@@ -1,14 +1,16 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { ArrowRightLeft } from "lucide-react";
-import { rosterService, type RosterRow } from "@/services/shifts.service";
+import { ArrowRightLeft, Settings2 } from "lucide-react";
+import { rosterService, shiftsService, type RosterRow, type ShiftSetting } from "@/services/shifts.service";
 import { divisionsService } from "@/services/divisions.service";
 import { api } from "@/services/api";
 import { BreadcrumbHeader, FilterToolbar, DataTable, StatusDot } from "@/components/shared";
 import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { usePermissions } from "@/hooks/usePermissions";
+import { toast } from "sonner";
 
 function nextMonthRange(): { start: string; end: string } {
   const now = new Date();
@@ -85,8 +87,32 @@ function MultiSelect({
 
 export default function ShiftingPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { userRoles } = usePermissions();
   const canScopeAll = userRoles.includes("SUPERADMIN") || userRoles.includes("OWNER");
+  const canManage = canScopeAll || userRoles.includes("HR") || userRoles.includes("SPV-HRD") || userRoles.includes("CHR");
+
+  const [settingOpen, setSettingOpen] = useState(false);
+  const [settingForm, setSettingForm] = useState({
+    rosterOpenDay: "25",
+    rosterCloseDay: "",
+    employeeInputStartDay: "25",
+  });
+
+  const { data: setting } = useQuery({
+    queryKey: ["shift-setting"],
+    queryFn: () => shiftsService.getSetting(),
+  });
+
+  const settingMutation = useMutation({
+    mutationFn: (payload: Partial<ShiftSetting>) => shiftsService.updateSetting(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shift-setting"] });
+      toast.success("Pengaturan roster disimpan");
+      setSettingOpen(false);
+    },
+    onError: (e: any) => toast.error(e.response?.data?.message || "Gagal menyimpan pengaturan"),
+  });
 
   const nm = useMemo(nextMonthRange, []);
   const [searchTerm, setSearchTerm] = useState("");
@@ -196,7 +222,25 @@ export default function ShiftingPage() {
 
   return (
     <div className="space-y-4">
-      <BreadcrumbHeader title="Shifting" subtitle={`Roster bulan depan (${monthLabel(nm.start)})`} />
+      <BreadcrumbHeader title="Shifting" subtitle={`Roster bulan depan (${monthLabel(nm.start)})`}>
+        {canManage && (
+          <Button
+            onClick={() => {
+              const d = setting as ShiftSetting | undefined;
+              setSettingForm({
+                rosterOpenDay: String(d?.rosterOpenDay ?? 25),
+                rosterCloseDay: d?.rosterCloseDay ? String(d.rosterCloseDay) : "",
+                employeeInputStartDay: String(d?.employeeInputStartDay ?? 25),
+              });
+              setSettingOpen(true);
+            }}
+            className="flex items-center gap-2 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:bg-gray-50"
+          >
+            <Settings2 className="w-4 h-4" />
+            <span>Pengaturan</span>
+          </Button>
+        )}
+      </BreadcrumbHeader>
 
       {!canScopeAll && (
         <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200 text-sm rounded-lg px-4 py-2.5">
@@ -343,6 +387,76 @@ export default function ShiftingPage() {
           </Button>
         </span>
       </div>
+
+      {/* IGDERP-265 v2: roster input window (release = roster submitted flag) */}
+      <Dialog open={settingOpen} onOpenChange={setSettingOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Pengaturan jendela input roster</DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              settingMutation.mutate({
+                rosterOpenDay: Number(settingForm.rosterOpenDay) || 25,
+                rosterCloseDay: settingForm.rosterCloseDay ? Number(settingForm.rosterCloseDay) : null,
+                employeeInputStartDay: Number(settingForm.employeeInputStartDay) || 25,
+              });
+            }}
+            className="space-y-4"
+          >
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium mb-1">Roster dibuka (tgl)</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={28}
+                  value={settingForm.rosterOpenDay}
+                  onChange={(e) => setSettingForm({ ...settingForm, rosterOpenDay: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Default 25 — bulan sebelumnya.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Roster ditutup (tgl, kosong = akhir bulan)</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={31}
+                  value={settingForm.rosterCloseDay}
+                  onChange={(e) => setSettingForm({ ...settingForm, rosterCloseDay: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
+                  placeholder="Akhir bulan"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Input karyawan mulai (tgl)</label>
+              <input
+                type="number"
+                min={1}
+                max={28}
+                value={settingForm.employeeInputStartDay}
+                onChange={(e) => setSettingForm({ ...settingForm, employeeInputStartDay: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Rilis roster mengikuti flag submitted per tanggal (roster-first); pengaturan ini hanya
+              mengatur jendela tanggal input.
+            </p>
+            <div className="flex gap-2 pt-2">
+              <Button type="button" variant="outline" className="flex-1" onClick={() => setSettingOpen(false)}>
+                Batal
+              </Button>
+              <Button type="submit" className="flex-1" disabled={settingMutation.isPending}>
+                {settingMutation.isPending ? "Menyimpan..." : "Simpan"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
