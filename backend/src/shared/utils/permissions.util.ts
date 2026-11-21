@@ -269,6 +269,9 @@ export const PERMISSION_CATALOG: string[] = [
   'hr.leave.approve',
   'hr.payroll.view',
   'hr.kpi.create',
+  'hr.kpi.view',
+  'hr.kpi.score',
+  'hr.kpi.lock',
   // Sidebar restructure (2026-08-22): new placeholder modules
   'hr.kasbon.view',
   'hr.division.view',

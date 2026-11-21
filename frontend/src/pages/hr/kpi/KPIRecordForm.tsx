@@ -1,354 +1,159 @@
 import { useState } from 'react';
 import { BreadcrumbHeader } from '@/components/shared';
-import { useNavigate, Link } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Save } from 'lucide-react';
 import { hrService } from '@/services/hr.service';
 import { toast } from 'sonner';
-import { api } from '@/services/api';
 
-export default function KPIRecordForm() {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
+export interface AspectFormValue {
+  code: string;
+  name: string;
+  description: string;
+  weight: string;
+  target_type: string;
+  fixed_target: string;
+  is_kolektif: boolean;
+  sort_order: string;
+  is_active: boolean;
+}
 
-  const [formData, setFormData] = useState({
-    employee_id: '',
-    period_month: new Date().getMonth() + 1,
-    period_year: new Date().getFullYear(),
-    sales_target_achievement: '',
-    service_quality_score: '',
-    customer_satisfaction: '',
-    attendance_score: '',
-    target_bonus: '',
-    bonus_multiplier: '1.0',
-    notes: '',
-  });
+export const emptyAspectForm: AspectFormValue = {
+  code: '',
+  name: '',
+  description: '',
+  weight: '0.2',
+  target_type: 'FIXED',
+  fixed_target: '100',
+  is_kolektif: false,
+  sort_order: '0',
+  is_active: true,
+};
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
-  // Get employees list
-  const { data: employees, isLoading: isLoadingEmployees } = useQuery({
-    queryKey: ['employees-for-kpi'],
-    queryFn: async () => {
-      try {
-        // Fetch users with employee data - same approach as EmployeeList
-        // Backend limit max is 100, so we need to fetch multiple pages if needed
-        const response = await api.get('/users', {
-          params: {
-            page: 1,
-            limit: 100, // Max limit allowed by backend
-          },
-        });
-        const users = response.data.data || response.data || [];
-        // Filter only users that have employee data
-        const employeesList = users.filter((user: any) => user.employee);
-        return employeesList;
-      } catch (error) {
-        console.error('Error fetching employees:', error);
-        toast.error('Gagal memuat daftar karyawan');
-        return [];
-      }
-    },
-  });
-
-  const createMutation = useMutation({
-    mutationFn: () =>
-      hrService.recordKPI({
-        employee_id: formData.employee_id,
-        period_month: formData.period_month,
-        period_year: formData.period_year,
-        sales_target_achievement: formData.sales_target_achievement
-          ? parseFloat(formData.sales_target_achievement)
-          : undefined,
-        service_quality_score: formData.service_quality_score ? parseFloat(formData.service_quality_score) : undefined,
-        customer_satisfaction: formData.customer_satisfaction ? parseFloat(formData.customer_satisfaction) : undefined,
-        attendance_score: formData.attendance_score ? parseFloat(formData.attendance_score) : undefined,
-        target_bonus: formData.target_bonus ? parseFloat(formData.target_bonus) : undefined,
-        bonus_multiplier: formData.bonus_multiplier ? parseFloat(formData.bonus_multiplier) : undefined,
-        notes: formData.notes || undefined,
-      }),
-    onSuccess: (data) => {
-      toast.success('KPI berhasil direcord');
-      queryClient.invalidateQueries({ queryKey: ['kpi-records'] });
-      navigate(`/hr/kpi/${data.id}`);
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Gagal record KPI');
-      if (error.response?.data?.errors) {
-        setErrors(error.response.data.errors);
-      }
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrors({});
-
-    // Validation
-    const newErrors: Record<string, string> = {};
-    if (!formData.employee_id) {
-      newErrors.employee_id = 'Karyawan wajib dipilih';
-    }
-    if (!formData.period_month || formData.period_month < 1 || formData.period_month > 12) {
-      newErrors.period_month = 'Bulan tidak valid';
-    }
-    if (!formData.period_year || formData.period_year < 2020) {
-      newErrors.period_year = 'Tahun tidak valid';
-    }
-
-    // Validate scores (0-100)
-    if (formData.service_quality_score) {
-      const score = parseFloat(formData.service_quality_score);
-      if (score < 0 || score > 100) {
-        newErrors.service_quality_score = 'Score harus antara 0-100';
-      }
-    }
-    if (formData.customer_satisfaction) {
-      const score = parseFloat(formData.customer_satisfaction);
-      if (score < 0 || score > 100) {
-        newErrors.customer_satisfaction = 'Score harus antara 0-100';
-      }
-    }
-    if (formData.attendance_score) {
-      const score = parseFloat(formData.attendance_score);
-      if (score < 0 || score > 100) {
-        newErrors.attendance_score = 'Score harus antara 0-100';
-      }
-    }
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-
-    createMutation.mutate();
-  };
-
+// Shared fields: the list-page edit modal and the /hr/kpi/new page render
+// the same inputs in the same order — only editability wrapper differs.
+export function AspectFields({
+  value,
+  onChange,
+}: {
+  value: AspectFormValue;
+  onChange: (v: AspectFormValue) => void;
+}) {
+  const set = (k: keyof AspectFormValue, v: any) => onChange({ ...value, [k]: v });
+  const input = 'w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent';
   return (
-    <div className="w-full space-y-6">
-      {/* Header */}
-      <BreadcrumbHeader title="Record KPI" subtitle="Formulir pencatatan KPI karyawan" />
-
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6 space-y-6">
-        {/* Employee Selection */}
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-            Karyawan <span className="text-red-500 dark:text-red-400">*</span>
-          </label>
-          <select
-            value={formData.employee_id}
-            onChange={(e) => setFormData({ ...formData, employee_id: e.target.value })}
-            required
-            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-              errors.employee_id ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-600'
-            }`}
-          >
-            <option value="">Pilih Karyawan</option>
-            {isLoadingEmployees ? (
-              <option value="">Memuat data karyawan...</option>
-            ) : employees?.length === 0 ? (
-              <option value="">Tidak ada karyawan ditemukan</option>
-            ) : (
-              employees?.map((user: any) => {
-                // user is a User object with employee property
-                const employeeId = user.employee?.id;
-                if (!employeeId) return null;
-                const userName = user.fullName || user.email || 'Unknown';
-                const employeeCode = user.employee?.employeeCode || '';
-                return (
-                  <option key={employeeId} value={employeeId}>
-                    {userName} {employeeCode ? `(${employeeCode})` : ''}
-                  </option>
-                );
-              })
-            )}
+          <label className="block text-sm font-semibold mb-2">Kode *</label>
+          <input value={value.code} onChange={(e) => set('code', e.target.value.toUpperCase())} placeholder="mis. KUALITAS" className={input} />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold mb-2">Bobot (0–1) *</label>
+          <input type="number" step="0.01" min="0" max="1" value={value.weight} onChange={(e) => set('weight', e.target.value)} className={input} />
+        </div>
+      </div>
+      <div>
+        <label className="block text-sm font-semibold mb-2">Nama *</label>
+        <input value={value.name} onChange={(e) => set('name', e.target.value)} placeholder="mis. Kualitas kerja" className={input} />
+      </div>
+      <div>
+        <label className="block text-sm font-semibold mb-2">Deskripsi</label>
+        <textarea value={value.description} onChange={(e) => set('description', e.target.value)} rows={2} className={input} />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label className="block text-sm font-semibold mb-2">Tipe target *</label>
+          <select value={value.target_type} onChange={(e) => set('target_type', e.target.value)} className={input}>
+            <option value="FIXED">Tetap (di aspek)</option>
+            <option value="PERIOD">Per periode (diinput tiap bulan)</option>
           </select>
-          {errors.employee_id && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.employee_id}</p>}
         </div>
-
-        {/* Period */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Bulan <span className="text-red-500 dark:text-red-400">*</span>
-            </label>
-            <select
-              value={formData.period_month}
-              onChange={(e) => setFormData({ ...formData, period_month: parseInt(e.target.value) })}
-              required
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                errors.period_month ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-600'
-              }`}
-            >
-              {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
-                <option key={month} value={month}>
-                  {new Date(2000, month - 1).toLocaleString('id-ID', { month: 'long' })}
-                </option>
-              ))}
-            </select>
-            {errors.period_month && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.period_month}</p>}
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Tahun <span className="text-red-500 dark:text-red-400">*</span>
-            </label>
-            <input
-              type="number"
-              value={formData.period_year}
-              onChange={(e) => setFormData({ ...formData, period_year: parseInt(e.target.value) })}
-              min="2020"
-              max="2100"
-              required
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                errors.period_year ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-600'
-              }`}
-            />
-            {errors.period_year && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.period_year}</p>}
-          </div>
-        </div>
-
-        {/* KPI Scores */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Sales Target Achievement</label>
-            <input
-              type="number"
-              value={formData.sales_target_achievement}
-              onChange={(e) => setFormData({ ...formData, sales_target_achievement: e.target.value })}
-              min="0"
-              step="0.01"
-              placeholder="0"
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Service Quality Score (0-100)</label>
-            <input
-              type="number"
-              value={formData.service_quality_score}
-              onChange={(e) => setFormData({ ...formData, service_quality_score: e.target.value })}
-              min="0"
-              max="100"
-              step="0.1"
-              placeholder="0-100"
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                errors.service_quality_score ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-600'
-              }`}
-            />
-            {errors.service_quality_score && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.service_quality_score}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Customer Satisfaction (0-100)</label>
-            <input
-              type="number"
-              value={formData.customer_satisfaction}
-              onChange={(e) => setFormData({ ...formData, customer_satisfaction: e.target.value })}
-              min="0"
-              max="100"
-              step="0.1"
-              placeholder="0-100"
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                errors.customer_satisfaction ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-600'
-              }`}
-            />
-            {errors.customer_satisfaction && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.customer_satisfaction}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Attendance Score (0-100)</label>
-            <input
-              type="number"
-              value={formData.attendance_score}
-              onChange={(e) => setFormData({ ...formData, attendance_score: e.target.value })}
-              min="0"
-              max="100"
-              step="0.1"
-              placeholder="0-100"
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                errors.attendance_score ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-600'
-              }`}
-            />
-            {errors.attendance_score && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.attendance_score}</p>}
-          </div>
-        </div>
-
-        {/* Bonus */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Target Bonus</label>
-            <input
-              type="number"
-              value={formData.target_bonus}
-              onChange={(e) => setFormData({ ...formData, target_bonus: e.target.value })}
-              min="0"
-              step="0.01"
-              placeholder="0"
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Bonus Multiplier</label>
-            <input
-              type="number"
-              value={formData.bonus_multiplier}
-              onChange={(e) => setFormData({ ...formData, bonus_multiplier: e.target.value })}
-              min="0"
-              step="0.01"
-              placeholder="1.0"
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            />
-          </div>
-        </div>
-
-        {/* Notes */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Catatan (Opsional)</label>
-          <textarea
-            value={formData.notes}
-            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-            rows={4}
-            placeholder="Tambahkan catatan tentang KPI..."
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+          <label className="block text-sm font-semibold mb-2">Target tetap</label>
+          <input
+            type="number"
+            value={value.fixed_target}
+            onChange={(e) => set('fixed_target', e.target.value)}
+            disabled={value.target_type !== 'FIXED'}
+            className={input}
           />
         </div>
-
-        {/* Actions */}
-        <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <Link
-            to="/hr/kpi"
-            className="flex-1 px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-center"
-          >
-            Batal
-          </Link>
-          <button
-            type="submit"
-            disabled={createMutation.isPending}
-            className="flex-1 px-6 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {createMutation.isPending ? (
-              <>
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Menyimpan...
-              </>
-            ) : (
-              <>
-                <Save className="w-5 h-5" />
-                Record KPI
-              </>
-            )}
-          </button>
+        <div>
+          <label className="block text-sm font-semibold mb-2">Urutan</label>
+          <input type="number" value={value.sort_order} onChange={(e) => set('sort_order', e.target.value)} className={input} />
         </div>
-      </form>
+      </div>
+      <div className="flex gap-6">
+        <label className="flex items-center gap-2 text-sm font-semibold">
+          <input type="checkbox" checked={value.is_kolektif} onChange={(e) => set('is_kolektif', e.target.checked)} />
+          Kolektif (diinput sekali per divisi, bukan per karyawan)
+        </label>
+        <label className="flex items-center gap-2 text-sm font-semibold">
+          <input type="checkbox" checked={value.is_active} onChange={(e) => set('is_active', e.target.checked)} />
+          Aktif
+        </label>
+      </div>
     </div>
   );
 }
 
+export default function KPIRecordForm() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+  const divisionId = searchParams.get('division') || '';
+  const [value, setValue] = useState<AspectFormValue>(emptyAspectForm);
+
+  const createMutation = useMutation({
+    mutationFn: () =>
+      hrService.createKpiAspect(divisionId, {
+        code: value.code,
+        name: value.name,
+        description: value.description || undefined,
+        weight: parseFloat(value.weight),
+        target_type: value.target_type,
+        fixed_target: value.fixed_target === '' ? null : parseFloat(value.fixed_target),
+        is_kolektif: value.is_kolektif,
+        sort_order: parseInt(value.sort_order || '0', 10),
+      }),
+    onSuccess: () => {
+      toast.success('Aspek KPI ditambahkan');
+      queryClient.invalidateQueries({ queryKey: ['kpi-grid'] });
+      navigate('/hr/kpi');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Gagal menambah aspek');
+    },
+  });
+
+  return (
+    <div className="w-full space-y-6">
+      <BreadcrumbHeader title="Tambah Aspek KPI" subtitle="Aspek baru untuk satu divisi (bobot total harus 1.00 saat kunci)" />
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6 space-y-6">
+        <AspectFields value={value} onChange={setValue} />
+        <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <Link
+            to="/hr/kpi"
+            className="flex-1 px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg font-semibold text-center"
+          >
+            Batal
+          </Link>
+          <button
+            onClick={() => createMutation.mutate()}
+            disabled={createMutation.isPending || !divisionId || !value.code || !value.name}
+            className="flex-1 px-6 py-3 bg-purple-600 text-white rounded-lg font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {createMutation.isPending ? (
+              'Menyimpan...'
+            ) : (
+              <>
+                <Save className="w-5 h-5" /> Tambah Aspek
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

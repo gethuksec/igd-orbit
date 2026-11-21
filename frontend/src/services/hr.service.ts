@@ -147,22 +147,42 @@ export interface PayrollComponent {
   notes?: string;
 }
 
-export interface KPIRecord {
+export interface KpiAspect {
   id: string;
-  employeeId: string;
-  periodMonth: number;
-  periodYear: number;
-  salesTargetAchievement?: number;
-  serviceQualityScore?: number;
-  customerSatisfaction?: number;
-  attendanceScore?: number;
-  overallScore: number;
-  targetBonus?: number;
-  calculatedBonus?: number;
-  bonusMultiplier?: number;
-  recordedBy: string;
-  notes?: string;
-  employee?: Employee;
+  divisionId: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  intervalMin: number;
+  intervalMax: number;
+  weight: number;
+  targetType: 'FIXED' | 'PERIOD';
+  fixedTarget?: number | null;
+  isKolektif: boolean;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export interface KpiGridEmployee {
+  employee: any;
+  excludedReason: string | null;
+  incomplete: string[];
+  total: number | null;
+  nilai: number | null;
+  bonus: number | null;
+  scores: Record<string, number>;
+  note: string | null;
+}
+
+export interface KpiGrid {
+  division: any;
+  config: { divisionId: string; defaultAmount: number; isActive: boolean } | null;
+  aspekts: KpiAspect[];
+  targets: Record<string, number>;
+  kolektif: Record<string, number>;
+  weightsSum: number;
+  lock: { status: string; lockedBy?: string | null; lockedAt?: string | null };
+  employees: KpiGridEmployee[];
 }
 
 export interface AttendanceSummary {
@@ -431,57 +451,59 @@ export const hrService = {
   },
 
   // ============================================
-  // KPI
+  // KPI master per division (IGDERP-266)
   // ============================================
 
-  /**
-   * Record KPI
-   */
-  async recordKPI(data: {
-    employee_id: string;
-    period_month: number;
-    period_year: number;
-    sales_target_achievement?: number;
-    service_quality_score?: number;
-    customer_satisfaction?: number;
-    attendance_score?: number;
-    target_bonus?: number;
-    bonus_multiplier?: number;
-    notes?: string;
-  }) {
-    const response = await api.post('/kpi/records', data);
+  async listDivisions() {
+    const response = await api.get('/divisions');
+    return response.data.data || response.data;
+  },
+
+  async listKpiAspects(divisionId: string): Promise<KpiAspect[]> {
+    const response = await api.get(`/kpi/divisions/${divisionId}/aspects`);
+    return response.data.data || response.data;
+  },
+
+  async createKpiAspect(divisionId: string, data: any) {
+    const response = await api.post(`/kpi/divisions/${divisionId}/aspects`, data);
+    return response.data.data || response.data;
+  },
+
+  async updateKpiAspect(id: string, data: any) {
+    const response = await api.put(`/kpi/aspects/${id}`, data);
+    return response.data.data || response.data;
+  },
+
+  async getKpiConfig(divisionId: string) {
+    const response = await api.get(`/kpi/divisions/${divisionId}/config`);
+    return response.data.data || response.data;
+  },
+
+  async upsertKpiConfig(divisionId: string, data: { default_amount?: number; is_active?: boolean }) {
+    const response = await api.put(`/kpi/divisions/${divisionId}/config`, data);
+    return response.data.data || response.data;
+  },
+
+  async getKpiGrid(divisionId: string, month: number, year: number): Promise<KpiGrid> {
+    const response = await api.get(`/kpi/divisions/${divisionId}/grid`, { params: { month, year } });
+    return response.data.data || response.data;
+  },
+
+  async saveKpiGrid(divisionId: string, data: any): Promise<KpiGrid> {
+    const response = await api.put(`/kpi/divisions/${divisionId}/grid`, data);
+    return response.data.data || response.data;
+  },
+
+  async lockKpiPeriod(divisionId: string, period_month: number, period_year: number) {
+    const response = await api.post(`/kpi/divisions/${divisionId}/lock`, { period_month, period_year });
     return response.data.data || response.data;
   },
 
   /**
-   * Get employee KPIs
+   * Staff read-only view (by user id)
    */
-  async getEmployeeKPIs(userId: string, params?: { month?: number; year?: number }): Promise<{ data: KPIRecord[]; total: number }> {
-    const response = await api.get(`/kpi/records/${userId}`, { params });
-    return response.data.data || response.data;
-  },
-
-  /**
-   * Get KPI record by ID
-   */
-  async getKPI(id: string): Promise<KPIRecord> {
-    const response = await api.get(`/kpi/records/${id}`);
-    return response.data.data || response.data;
-  },
-
-  /**
-   * Update KPI score
-   */
-  async updateKPIScore(id: string, data: {
-    sales_target_achievement?: number;
-    service_quality_score?: number;
-    customer_satisfaction?: number;
-    attendance_score?: number;
-    overall_score?: number;
-    calculated_bonus?: number;
-    notes?: string;
-  }) {
-    const response = await api.post(`/kpi/records/${id}/score`, data);
+  async getEmployeeKpi(userId: string, params?: { month?: number; year?: number }) {
+    const response = await api.get(`/kpi/employee/${userId}`, { params });
     return response.data.data || response.data;
   },
 };
