@@ -1,13 +1,17 @@
 import { useParams, Link } from 'react-router-dom';
 import { BreadcrumbHeader } from '@/components/shared';
+import { StatusDot } from '@/components/shared/StatusDot';
+import { Card, CardContent } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
-import { AlertCircle, Lock, Clock } from 'lucide-react';
+import { AlertCircle, Clock } from 'lucide-react';
 import { hrService } from '@/services/hr.service';
-import { formatCurrency } from '@/utils/format';
+
+const fmt2 = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtRp = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 });
 
 /**
  * Staff read-only KPI view (IGDERP-266).
- * Route /hr/kpi/:id where :id is the user id — shows locked periods only.
+ * Route /hr/kpi/employee/:id where :id is the user id — approved periods only.
  */
 export default function KPIDetail() {
   const { id } = useParams<{ id: string }>();
@@ -21,10 +25,9 @@ export default function KPIDetail() {
   if (isLoading) {
     return (
       <div className="w-full space-y-6">
-        <div className="bg-white dark:bg-gray-900 rounded-xl p-12 text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Memuat data...</p>
-        </div>
+        <Card>
+          <CardContent className="p-12 text-center text-sm text-muted-foreground">Memuat data...</CardContent>
+        </Card>
       </div>
     );
   }
@@ -32,13 +35,15 @@ export default function KPIDetail() {
   if (error || !data) {
     return (
       <div className="w-full space-y-6">
-        <div className="bg-white dark:bg-gray-900 rounded-xl p-12 text-center">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-red-600 dark:text-red-400">Gagal memuat data KPI</p>
-          <Link to="/hr/kpi" className="mt-4 text-purple-600 hover:underline">
-            Kembali
-          </Link>
-        </div>
+        <Card>
+          <CardContent className="p-12 text-center">
+            <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+            <p className="text-destructive">Gagal memuat data KPI</p>
+            <Link to="/hr/kpi" className="mt-4 inline-block text-primary hover:underline text-sm">
+              Kembali
+            </Link>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -47,50 +52,51 @@ export default function KPIDetail() {
 
   return (
     <div className="w-full space-y-6">
-      <BreadcrumbHeader title="KPI Saya" subtitle={data.employee?.employeeCode || ''} />
+      <BreadcrumbHeader title="KPI saya" subtitle={data.employee?.employeeCode || ''} />
       {periods.length === 0 ? (
-        <div className="bg-white dark:bg-gray-900 rounded-xl p-12 text-center">
-          <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">Belum ada periode KPI yang dikunci untuk Anda</p>
-        </div>
+        <Card>
+          <CardContent className="p-12 text-center">
+            <Clock className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">Belum ada periode KPI yang di-approve untuk Anda</p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {periods.map((p: any) => (
-            <div
-              key={`${p.periodYear}-${p.periodMonth}`}
-              className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <p className="font-bold text-lg">
-                  {new Date(2000, p.periodMonth - 1).toLocaleString('id-ID', { month: 'long' })} {p.periodYear}
-                </p>
-                {p.status === 'locked' ? (
-                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-100 dark:bg-green-950 rounded-full px-2 py-1">
-                    <Lock className="w-3 h-3" /> Terkunci
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-yellow-700 bg-yellow-100 dark:bg-yellow-950 rounded-full px-2 py-1">
-                    <Clock className="w-3 h-3" /> {p.status === 'excluded' ? 'Tanpa KPI (masa percobaan)' : 'Berjalan'}
-                  </span>
-                )}
-              </div>
-              {p.reason && <p className="text-sm text-gray-500 mb-2">{p.reason}</p>}
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div>
-                  <p className="text-xs text-gray-500">Total skor</p>
-                  <p className="text-xl font-bold">{p.total != null ? Number(p.total).toFixed(2) : '—'}</p>
+            <Card key={`${p.periodYear}-${p.periodMonth}`}>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <p className="font-medium text-lg">
+                    {new Date(2000, p.periodMonth - 1).toLocaleString('id-ID', { month: 'long' })} {p.periodYear}
+                  </p>
+                  {p.status === 'approved' || p.status === 'locked' ? (
+                    <StatusDot tone="bad">Approved by HR</StatusDot>
+                  ) : (
+                    <StatusDot tone="warn">{p.status === 'excluded' ? 'Tanpa KPI (masa percobaan)' : 'Berjalan'}</StatusDot>
+                  )}
                 </div>
-                <div>
-                  <p className="text-xs text-gray-500">Nilai</p>
-                  <p className="text-xl font-bold text-purple-600">{p.nilai != null ? Number(p.nilai).toFixed(1) : '—'}</p>
+                {p.reason && <p className="text-sm text-muted-foreground mb-2">{p.reason}</p>}
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Total skor</p>
+                    <p className="font-mono tabular-nums text-xl text-muted-foreground">
+                      {p.total != null ? fmt2.format(p.total) : '—'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Nilai</p>
+                    <p className="font-mono tabular-nums text-xl font-medium">
+                      {p.nilai != null ? fmt2.format(p.nilai) : '—'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Bonus</p>
+                    <p className="font-mono tabular-nums text-xl">{p.bonus != null ? fmtRp.format(p.bonus) : '—'}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs text-gray-500">Bonus</p>
-                  <p className="text-xl font-bold text-green-600">{p.bonus != null ? formatCurrency(p.bonus) : '—'}</p>
-                </div>
-              </div>
-              {p.note && <p className="mt-4 text-sm text-gray-600 dark:text-gray-400 italic">“{p.note}”</p>}
-            </div>
+                {p.note && <p className="mt-4 text-sm text-muted-foreground italic">“{p.note}”</p>}
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}

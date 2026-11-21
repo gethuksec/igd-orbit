@@ -179,9 +179,10 @@ import ShiftSwapList from './pages/hr/shift-swap/ShiftSwapList';
 import ShiftSwapForm from './pages/hr/shift-swap/ShiftSwapForm';
 import PayrollCalculationForm from './pages/hr/payroll/PayrollCalculationForm';
 import PayslipView from './pages/hr/payroll/PayslipView';
-import KPIRecordsList from './pages/hr/kpi/KPIRecordsList';
+import KPIDivisionList from './pages/hr/kpi/KPIDivisionList';
+import KPIAssign from './pages/hr/kpi/KPIAssign';
+import KPIDivisionEdit from './pages/hr/kpi/KPIDivisionEdit';
 import KPIDetail from './pages/hr/kpi/KPIDetail';
-import KPIRecordForm from './pages/hr/kpi/KPIRecordForm';
 // User & Role Management
 import UserList from './pages/users/UserList';
 import UserDetail from './pages/users/UserDetail';
@@ -1440,23 +1441,33 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <KPIRecordsList />
+                    <KPIDivisionList />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
             />
             <Route
-              path="/hr/kpi/new"
+              path="/hr/kpi/assign"
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <KPIRecordForm />
+                    <KPIAssign />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
             />
             <Route
-              path="/hr/kpi/:id"
+              path="/hr/kpi/division/:id"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <KPIDivisionEdit />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr/kpi/employee/:id"
               element={
                 <ProtectedRoute>
                   <DashboardLayout>

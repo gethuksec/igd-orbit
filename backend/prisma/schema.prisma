@@ -408,7 +408,7 @@ model KpiPeriodLock {
   divisionId  String    @map("division_id")
   periodMonth Int       @map("period_month")
   periodYear  Int       @map("period_year")
-  status      String    @default("open") // 'open' | 'locked'
+  status      String    @default("unassigned") // 'unassigned' | 'assigned' | 'approved' (legacy 'locked' reads as approved)
   lockedBy    String?   @map("locked_by")
   lockedAt    DateTime? @map("locked_at")
   createdAt   DateTime  @default(now()) @map("created_at")
