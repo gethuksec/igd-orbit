@@ -19,7 +19,6 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { ContractsService } from './services/contracts.service';
 import { ContractsImportService } from './services/contracts-import.service';
-import { buildContractImportTemplate } from '../../shared/utils/contract-import-template';
 import { JwtAuthGuard, RolesGuard } from '../../shared/guards';
 import { Roles } from '../../shared/decorators';
 import { CreateContractDto } from './dto/create-contract.dto';
@@ -89,7 +88,7 @@ export class ContractsController {
   @UseGuards(RolesGuard)
   @Roles(...WRITE_ROLES)
   async importTemplate(@Res() res: Response): Promise<void> {
-    const buffer = await buildContractImportTemplate();
+    const buffer = await this.importSvc.buildImportTemplate();
     res.set({
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': 'attachment; filename="template-import-kontrak.xlsx"',
