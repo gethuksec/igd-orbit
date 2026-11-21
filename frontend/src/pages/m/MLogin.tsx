@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Loader2, Lock, Mail } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { api } from '../../services/api';
 
-/** IGDERP-276: mobile login (email only), same JWT flow as desktop. */
+/** IGDERP-276d: mockup-faithful login — centered IG mark, IGD Employee,
+ *  EMAIL/PASSWORD labels, full-width Masuk, "Lupa password? Hubungi HRD". */
 export default function MLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -37,56 +38,55 @@ export default function MLogin() {
   };
 
   return (
-    <div className="min-h-dvh bg-red-600 flex flex-col px-6 pt-16 pb-8">
-      <div className="text-white mb-8">
-        <img src="/logo/igd-mark-512.png" alt="IGD" className="w-16 h-16 rounded-2xl bg-white p-1 mb-4" />
-        <h1 className="text-2xl font-bold">IGD Employee</h1>
-        <p className="text-sm opacity-80">Masuk untuk absensi, cuti & slip gaji</p>
+    <div className="min-h-dvh bg-[#FAFAFA] flex flex-col items-center px-9 pt-14 pb-8">
+      <div className="w-[90px] h-[90px] rounded-[22px] bg-[#F04438] flex items-center justify-center shadow-[0_0_36px_rgba(240,68,56,0.45)]">
+        <span className="text-white font-bold text-4xl tracking-tight">IG</span>
       </div>
-      <form onSubmit={handleLogin} className="bg-white rounded-2xl p-5 space-y-4 shadow-lg">
+      <h1 className="mt-5 text-[27px] font-bold text-gray-900">IGD Employee</h1>
+      <p className="mt-1 text-sm text-gray-500">Masuk dengan akun IGD-ERP kamu</p>
+
+      <form onSubmit={handleLogin} className="w-full mt-8">
         {expired && (
-          <p className="text-sm text-amber-700 bg-amber-50 rounded-lg px-3 py-2">
+          <p className="text-sm text-amber-700 bg-amber-50 rounded-lg px-3 py-2 mb-3">
             Sesi berakhir — masuk kembali
           </p>
         )}
-        {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
+        {error && (
+          <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2 mb-3">{error}</p>
+        )}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email</label>
-          <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full pl-9 pr-3 py-3 border rounded-xl text-base"
-              placeholder="nama@igd.com"
-              required
-            />
-          </div>
+          <label className="block text-xs font-semibold tracking-wider text-gray-500 mb-1.5">
+            EMAIL
+          </label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-[10px] text-base text-gray-900"
+            required
+          />
         </div>
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Kata sandi</label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-9 pr-3 py-3 border rounded-xl text-base"
-              placeholder="••••••••"
-              required
-            />
-          </div>
+        <div className="mt-4">
+          <label className="block text-xs font-semibold tracking-wider text-gray-500 mb-1.5">
+            PASSWORD
+          </label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-[10px] text-base text-gray-900"
+            required
+          />
         </div>
         <button
           type="submit"
           disabled={busy}
-          className="w-full py-3 bg-red-600 text-white rounded-xl font-bold disabled:opacity-50 flex items-center justify-center gap-2"
+          className="w-full mt-6 py-3 bg-[#F04438] text-white rounded-[10px] font-semibold text-base disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {busy && <Loader2 className="w-5 h-5 animate-spin" />}
           Masuk
         </button>
-        <p className="text-xs text-gray-500 text-center">PIN slip gaji awal: 123456</p>
+        <p className="mt-5 text-sm text-gray-500 text-center">Lupa password? Hubungi HRD</p>
       </form>
     </div>
   );

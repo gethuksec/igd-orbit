@@ -6,7 +6,7 @@ import { useMe } from './MobileShell';
 /** IGDERP-276: jadwal shift saya (penugasan aktif). */
 export default function MSchedule() {
   const { data: me } = useMe();
-  const empId = me?.employee?.id;
+  const empId = me?.id;
 
   const { data, isLoading } = useQuery({
     queryKey: ['m-schedule', empId],
