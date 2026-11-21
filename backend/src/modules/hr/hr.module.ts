@@ -11,6 +11,7 @@ import { DepartmentsService } from './services/departments.service';
 import { DivisionsService } from './services/divisions.service';
 import { GradesService } from './services/grades.service';
 import { PositionsService } from './services/positions.service';
+import { PayrollComponentsService } from './services/payroll-components.service';
 import { AttendanceController } from './attendance.controller';
 import { LeaveController } from './leave.controller';
 import { ApprovalsController } from './approvals.controller';
@@ -21,6 +22,7 @@ import { DepartmentsController } from './departments.controller';
 import { DivisionsController } from './divisions.controller';
 import { GradesController } from './grades.controller';
 import { PositionsController } from './positions.controller';
+import { PayrollComponentsController } from './payroll-components.controller';
 import { FinanceModule } from '../finance/finance.module';
 
 @Module({
@@ -36,6 +38,7 @@ import { FinanceModule } from '../finance/finance.module';
     DivisionsController,
     GradesController,
     PositionsController,
+    PayrollComponentsController,
   ],
   providers: [
     PrismaService,
@@ -50,6 +53,7 @@ import { FinanceModule } from '../finance/finance.module';
     DivisionsService,
     GradesService,
     PositionsService,
+    PayrollComponentsService,
   ],
   exports: [
     AttendanceService,
@@ -62,6 +66,7 @@ import { FinanceModule } from '../finance/finance.module';
     DivisionsService,
     GradesService,
     PositionsService,
+    PayrollComponentsService,
   ],
 })
 export class HRModule {}
