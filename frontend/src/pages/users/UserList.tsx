@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Eye, Edit, Trash2, Users, Mail, Phone, Shield, CheckCircle, XCircle, RefreshCw, Loader2, AlertTriangle } from 'lucide-react';
+import { Plus, Eye, Edit, Trash2, Users, Mail, Phone, Shield, CheckCircle, XCircle, RefreshCw, Loader2 } from 'lucide-react';
 import { usersService, type User } from '../../services/users.service';
 import { toast } from 'sonner';
 import { BreadcrumbHeader, StatCard, SearchFilter, DataTable, StatusDot } from '@/components/shared';
@@ -377,9 +377,6 @@ export default function UserList() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 p-2 bg-red-100 dark:bg-red-950 rounded-full">
-                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
-              </div>
               <div className="flex-1">
                 <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
                   Apakah Anda yakin ingin menghapus pengguna <strong>{userToDelete?.fullName}</strong>?

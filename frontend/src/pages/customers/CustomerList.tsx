@@ -7,7 +7,6 @@ import {
   Eye,
   Edit,
   Trash2,
-  AlertTriangle,
   Loader2,
   Upload,
   Phone,
@@ -428,9 +427,6 @@ export default function CustomerList() {
           </DialogHeader>
         <div className="space-y-4">
           <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 p-2 bg-red-100 dark:bg-red-950 rounded-full">
-              <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
-            </div>
             <div className="flex-1">
               <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
                 Apakah Anda yakin ingin menghapus pelanggan <strong>{customerToDelete?.name}</strong>?

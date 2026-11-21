@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Truck, Eye, Edit, Trash2, AlertTriangle, Loader2 } from "lucide-react";
+import { Plus, Truck, Eye, Edit, Trash2, Loader2 } from "lucide-react";
 import { suppliersService } from "../../services/suppliers.service";
 import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable, StatusDot } from "@/components/shared";
 import type { Column } from "@/components/shared";
@@ -325,7 +325,7 @@ export default function SupplierList() {
       />
 
       {!isLoading && suppliers.length > 0 && (
-        <div className="bg-gradient-to-r from-gray-50 dark:from-gray-900 to-gray-100 dark:to-gray-800 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="border bg-muted px-4 py-3 rounded-xl">
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
               Menampilkan{" "}
@@ -458,9 +458,6 @@ export default function SupplierList() {
           </DialogHeader>
         <div className="space-y-4">
           <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 p-2 bg-red-100 dark:bg-red-950 rounded-full">
-              <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
-            </div>
             <div className="flex-1">
               <p className="text-sm text-muted-foreground mb-2">
                 Apakah Anda yakin ingin menghapus pemasok{" "}

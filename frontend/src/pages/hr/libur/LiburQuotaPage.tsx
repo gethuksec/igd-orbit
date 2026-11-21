@@ -13,6 +13,17 @@ function currentPeriod(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+function monthOptions(back: number, forward: number): { value: string; label: string }[] {
+  const out: { value: string; label: string }[] = [];
+  const now = new Date();
+  for (let i = -back; i <= forward; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    const v = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    out.push({ value: v, label: v });
+  }
+  return out.reverse();
+}
+
 type QuotaFilter = "all" | "aman" | "lebih" | "menunggu";
 
 export default function LiburQuotaPage() {
@@ -171,25 +182,6 @@ export default function LiburQuotaPage() {
         </span>
         <span className="text-muted-foreground">· dapat diubah per karyawan</span>
         <span className="ml-auto" />
-        <select
-          value={period}
-          onChange={(e) => {
-            setPeriod(e.target.value);
-            setPage(1);
-          }}
-          className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
-        >
-          {[0, 1, 2].map((back) => {
-            const d = new Date();
-            d.setMonth(d.getMonth() - back);
-            const v = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-            return (
-              <option key={v} value={v}>
-                {v}
-              </option>
-            );
-          })}
-        </select>
       </div>
 
       {error && (
@@ -211,6 +203,12 @@ export default function LiburQuotaPage() {
         searchPlaceholder="Cari nama / kode karyawan..."
         fields={[
           {
+            key: "period",
+            label: "Periode",
+            type: "select",
+            options: monthOptions(5, 1),
+          },
+          {
             key: "quota",
             label: "Status",
             type: "select",
@@ -221,8 +219,15 @@ export default function LiburQuotaPage() {
             ],
           },
         ]}
-        values={{ quota: quotaFilter === "all" ? "" : quotaFilter }}
+        values={{
+          period,
+          quota: quotaFilter === "all" ? "" : quotaFilter,
+        }}
         onFieldChange={(key, v) => {
+          if (key === "period" && v) {
+            setPeriod(v);
+            setPage(1);
+          }
           if (key === "quota") {
             setQuotaFilter((v || "all") as QuotaFilter);
             setPage(1);
@@ -252,7 +257,7 @@ export default function LiburQuotaPage() {
                 setOverrideDays(String(row.quotaDays));
               }}
             >
-              Jatah khusus
+              Edit
             </Button>
           </div>
         )}
@@ -342,7 +347,7 @@ export default function LiburQuotaPage() {
                 disabled={overrideMutation.isPending}
                 onClick={() => overrideTarget && overrideMutation.mutate({ id: overrideTarget.employeeId, days: null })}
               >
-                Kembali ke global
+                Reset to default
               </Button>
               <Button
                 className="flex-1"

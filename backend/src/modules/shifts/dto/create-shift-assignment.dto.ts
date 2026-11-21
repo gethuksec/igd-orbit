@@ -21,5 +21,9 @@ export class CreateShiftAssignmentDto {
   @Min(1, { each: true })
   @Max(7, { each: true })
   weekdays!: number[];
+  @IsArray()
+  @IsDateString({}, { each: true })
+  @IsOptional()
+  offDates?: string[];
   @IsString() @IsOptional() note?: string;
 }

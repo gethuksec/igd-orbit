@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowRightLeft, AlertTriangle } from "lucide-react";
 import { shiftsService, WEEKDAY_LABELS, type ShiftAssignment } from "@/services/shifts.service";
@@ -28,6 +28,7 @@ interface AssignForm {
   startDate: string;
   endDate: string;
   weekdays: number[];
+  offDates: string[];
 }
 
 const defaultForm: AssignForm = {
@@ -35,8 +36,13 @@ const defaultForm: AssignForm = {
   shiftId: "",
   startDate: "",
   endDate: "",
-  weekdays: [1, 2, 3, 4, 5],
+  weekdays: [1, 2, 3, 4, 5, 6, 7],
+  offDates: [],
 };
+
+function monthKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
 
 function rangesOverlap(aStart: string, aEnd: string | null, bStart: string, bEnd: string | null): boolean {
   const aE = aEnd || "9999-12-31";
@@ -52,6 +58,7 @@ export default function ShiftingPage() {
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [editing, setEditing] = useState<ShiftAssignment | null>(null);
   const [formData, setFormData] = useState<AssignForm>(defaultForm);
+  const [calMonth, setCalMonth] = useState(monthKey(new Date()));
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [toDelete, setToDelete] = useState<{ id: string; name: string } | null>(null);
   const limit = 20;
@@ -147,12 +154,16 @@ export default function ShiftingPage() {
 
   const openEditModal = (row: ShiftAssignment) => {
     setEditing(row);
+    const off = Array.isArray(row.offDates)
+      ? row.offDates.map((d) => String(d).slice(0, 10)).sort()
+      : [];
     setFormData({
       employeeId: row.employeeId,
       shiftId: row.shiftId,
       startDate: String(row.startDate).slice(0, 10),
       endDate: row.endDate ? String(row.endDate).slice(0, 10) : "",
       weekdays: row.weekdays,
+      offDates: off,
     });
     setFormModalOpen(true);
   };
@@ -162,6 +173,91 @@ export default function ShiftingPage() {
       f.weekdays.includes(d)
         ? { ...f, weekdays: f.weekdays.filter((x) => x !== d) }
         : { ...f, weekdays: [...f.weekdays, d].sort() }
+    );
+  };
+
+  // Calendar helpers: all work days by default, tap a date to mark libur.
+  useEffect(() => {
+    if (formModalOpen) {
+      const base = formData.startDate || `${monthKey(new Date())}-01`;
+      setCalMonth(base.slice(0, 7));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formModalOpen]);
+
+  const toggleOffDate = (iso: string) => {
+    setFormData((f) =>
+      f.offDates.includes(iso)
+        ? { ...f, offDates: f.offDates.filter((x) => x !== iso) }
+        : { ...f, offDates: [...f.offDates, iso].sort() }
+    );
+  };
+
+  const renderCalendar = () => {
+    const y = Number(calMonth.slice(0, 4));
+    const m = Number(calMonth.slice(5, 7));
+    if (!y || !m) return null;
+    const firstGap = (new Date(y, m - 1, 1).getDay() + 6) % 7;
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const cells: (number | null)[] = [
+      ...Array<null>(firstGap).fill(null),
+      ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+    ];
+    const shiftMonth = (dir: number) => {
+      const d = new Date(y, m - 1 + dir, 1);
+      setCalMonth(monthKey(d));
+    };
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <Button type="button" variant="outline" size="sm" onClick={() => shiftMonth(-1)}>
+            ‹
+          </Button>
+          <span className="text-sm font-semibold font-mono">{calMonth}</span>
+          <Button type="button" variant="outline" size="sm" onClick={() => shiftMonth(1)}>
+            ›
+          </Button>
+        </div>
+        <div className="grid grid-cols-7 gap-1">
+          {WEEKDAY_LABELS.map((lbl, i) => (
+            <div key={i} className="h-7 flex items-center justify-center text-[11px] font-bold text-muted-foreground">
+              {lbl}
+            </div>
+          ))}
+          {cells.map((day, idx) => {
+            if (day === null) return <div key={`e-${idx}`} />;
+            const iso = `${calMonth}-${String(day).padStart(2, "0")}`;
+            const dow = ((new Date(y, m - 1, day).getDay() + 6) % 7) + 1;
+            const inRange =
+              !!formData.startDate &&
+              iso >= formData.startDate &&
+              (!formData.endDate || iso <= formData.endDate);
+            const workday = inRange && formData.weekdays.includes(dow);
+            const off = formData.offDates.includes(iso);
+            return (
+              <button
+                key={iso}
+                type="button"
+                disabled={!workday}
+                onClick={() => toggleOffDate(iso)}
+                title={off ? "Libur — klik untuk batalkan" : workday ? "Kerja — klik untuk tandai libur" : "Di luar rentang/pola"}
+                className={`h-9 rounded-md text-xs font-semibold transition-colors ${
+                  off
+                    ? "bg-red-600 text-white"
+                    : workday
+                      ? "bg-white border hover:border-red-400"
+                      : "text-gray-300"
+                }`}
+              >
+                {day}
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-xs text-muted-foreground mt-2">
+          Semua hari kerja aktif default — klik tanggal untuk tandai libur ({formData.offDates.length} hari).
+        </p>
+      </div>
     );
   };
 
@@ -191,6 +287,11 @@ export default function ShiftingPage() {
       cell: (row) => (
         <span>
           {row.shift ? `${row.shift.code} · ${row.shift.clockIn}–${row.shift.clockOut}` : "-"}
+          {Array.isArray(row.offDates) && row.offDates.length > 0 && (
+            <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">
+              {row.offDates.length} libur
+            </span>
+          )}
         </span>
       ),
     },
@@ -243,7 +344,7 @@ export default function ShiftingPage() {
           onClick={openCreateModal}
           className="flex items-center gap-2 bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 border border-gray-200 dark:border-gray-700 hover:bg-primary-50 dark:hover:bg-primary-950"
         >
-          <span>Tempatkan karyawan</span>
+          <span>Assign karyawan</span>
         </Button>
       </BreadcrumbHeader>
 
@@ -361,7 +462,7 @@ export default function ShiftingPage() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editing ? "Edit Penempatan" : "Tempatkan Karyawan"}</DialogTitle>
+            <DialogTitle>{editing ? "Edit Penempatan" : "Assign Karyawan"}</DialogTitle>
           </DialogHeader>
           <form
             onSubmit={(e) => {
@@ -380,6 +481,9 @@ export default function ShiftingPage() {
                 startDate: formData.startDate,
                 endDate: formData.endDate || undefined,
                 weekdays: formData.weekdays,
+                offDates: formData.offDates.filter(
+                  (d) => d >= formData.startDate && (!formData.endDate || d <= formData.endDate)
+                ),
               });
             }}
             className="space-y-4"
@@ -439,8 +543,8 @@ export default function ShiftingPage() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Pola hari (Sen–Min)</label>
-              <div className="flex gap-1">
+              <label className="block text-sm font-medium mb-1">Pola hari (default semua hari kerja)</label>
+              <div className="flex gap-1 mb-3">
                 {WEEKDAY_LABELS.map((lbl, i) => (
                   <button
                     key={i}
@@ -456,6 +560,8 @@ export default function ShiftingPage() {
                   </button>
                 ))}
               </div>
+              <label className="block text-sm font-medium mb-1">Hari libur (ketuk tanggal di kalender)</label>
+              {renderCalendar()}
             </div>
             <div className="flex gap-2 pt-2">
               <Button type="button" variant="outline" className="flex-1" onClick={() => setFormModalOpen(false)}>

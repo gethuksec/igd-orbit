@@ -51,6 +51,32 @@ describe('ShiftAssignmentsService', () => {
       expect(prisma.shiftAssignment.create).toHaveBeenCalled();
     });
 
+    it('persists offDates as Dates on create', async () => {
+      refsOk();
+      prisma.shiftAssignment.findMany.mockResolvedValue([]);
+      prisma.shiftAssignment.create.mockImplementation(async ({ data }: any) => ({ id: 'new', ...data }));
+      const res: any = await service.create(baseDto({ offDates: ['2026-01-10', '2026-01-17'] }));
+      expect(res.offDates).toHaveLength(2);
+      expect(res.offDates[0]).toBeInstanceOf(Date);
+    });
+
+    it('clears offDates to empty on update', async () => {
+      prisma.shiftAssignment.findUnique.mockResolvedValue({
+        id: 'x',
+        employeeId: 'emp-1',
+        shiftId: 'sh-1',
+        startDate: new Date('2026-01-01'),
+        endDate: new Date('2026-01-31'),
+        weekdays: [1, 2, 3],
+        offDates: [new Date('2026-01-10')],
+      });
+      refsOk();
+      prisma.shiftAssignment.findMany.mockResolvedValue([]);
+      prisma.shiftAssignment.update.mockImplementation(async ({ data }: any) => ({ id: 'x', ...data }));
+      const res: any = await service.update('x', { offDates: [] } as any);
+      expect(res.offDates).toEqual([]);
+    });
+
     it('conflicts on overlapping date range with intersecting weekdays', async () => {
       refsOk();
       prisma.shiftAssignment.findMany.mockResolvedValue([

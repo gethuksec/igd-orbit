@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {Plus, Palette, Eye, Edit, Trash2, Save, Loader2, AlertTriangle} from "lucide-react";
+import {Plus, Palette, Eye, Edit, Trash2, Save, Loader2} from "lucide-react";
 import { colorsService } from "../../services/colors.service";
 import { api } from "../../services/api";
 import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable, StatusDot } from "@/components/shared";
@@ -257,15 +257,15 @@ export default function ColorList() {
       />
 
       {!isLoading && colors.length > 0 && (
-        <div className="bg-gradient-to-r from-gray-50 dark:from-gray-900 to-gray-100 dark:to-gray-800 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="border bg-muted px-4 py-3 rounded-xl">
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
               Menampilkan{" "}
-              <span className="font-bold text-foreground">
+              <span className="font-medium tabular-nums text-foreground">
                 {colors.length}
               </span>{" "}
               dari{" "}
-              <span className="font-bold text-foreground">
+              <span className="font-medium tabular-nums text-foreground">
                 {pagination.total}
               </span>{" "}
               warna
@@ -396,9 +396,6 @@ export default function ColorList() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 p-2 bg-red-100 dark:bg-red-950 rounded-full">
-                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
-              </div>
               <div className="flex-1">
                 <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
                   Apakah Anda yakin ingin menghapus warna <strong>{colorToDelete?.name}</strong>?
