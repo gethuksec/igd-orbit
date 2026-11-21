@@ -5,3 +5,4 @@ export * from './create-shift-assignment.dto';
 export * from './update-shift-assignment.dto';
 export * from './list-shift-assignments.dto';
 export * from './roster.dto';
+export * from './upsert-shift-setting.dto';

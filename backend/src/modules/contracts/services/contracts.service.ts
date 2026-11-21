@@ -165,10 +165,54 @@ export class ContractsService {
   async intakeSuggest(positionId: string) {
     const position = await this.prisma.position.findUnique({
       where: { id: positionId },
-      include: { defaultRole: { select: { id: true, code: true, name: true } } },
+      include: {
+        defaultRole: { select: { id: true, code: true, name: true } },
+        defaultShift: { select: { id: true, code: true, name: true, clockIn: true, clockOut: true } },
+      },
     });
     if (!position) throw new NotFoundException('Position not found');
-    return { positionId, suggestedRole: position.defaultRole ?? null };
+    return {
+      positionId,
+      suggestedRole: position.defaultRole ?? null,
+      suggestedShift: (position as any).defaultShift ?? null,
+    };
+  }
+
+  /**
+   * IGDERP-265: resolve the shift to snapshot on a new contract — employee live
+   * override wins, else the title (Position) default. Nulls when neither exists.
+   */
+  private async resolveShiftSnapshot(employeeId: string, positionId: string | null) {
+    const db = this.prisma as any;
+    let shiftId: string | null = null;
+    const employee = await db.employee.findUnique({
+      where: { id: employeeId },
+      select: { defaultShiftId: true, positionId: true },
+    });
+    shiftId = employee?.defaultShiftId ?? null;
+    if (!shiftId) {
+      const posId = positionId ?? employee?.positionId ?? null;
+      if (posId) {
+        const position = await db.position.findUnique({
+          where: { id: posId },
+          select: { defaultShiftId: true },
+        });
+        shiftId = position?.defaultShiftId ?? null;
+      }
+    }
+    if (!shiftId) {
+      return { shiftId: null, shiftCode: null, shiftClockIn: null, shiftClockOut: null };
+    }
+    const shift = await db.shift.findFirst({ where: { id: shiftId, deletedAt: null } });
+    if (!shift) {
+      return { shiftId: null, shiftCode: null, shiftClockIn: null, shiftClockOut: null };
+    }
+    return {
+      shiftId: shift.id,
+      shiftCode: shift.code,
+      shiftClockIn: shift.clockIn,
+      shiftClockOut: shift.clockOut,
+    };
   }
 
   // ---------- writes ----------
@@ -295,6 +339,8 @@ export class ContractsService {
       if (taken) throw new ConflictException(`Contract number ${manualNumber} is already used`);
     }
     const contractNumber = manualNumber ?? (await this.generateContractNumber(new Date()));
+    // IGDERP-265: shift snapshot at signing — employee live override wins, else title default.
+    const shiftSnapshot = await this.resolveShiftSnapshot(dto.employeeId, dto.positionId ?? null);
     const created = await this.prisma.contract.create({
       data: {
         contractNumber,
@@ -308,6 +354,7 @@ export class ContractsService {
         gradeId: dto.gradeId ?? null,
         divisionId: dto.divisionId ?? null,
         departmentId: dto.departmentId ?? null,
+        ...shiftSnapshot,
         changeReason: dto.changeReason ?? (dto.previousContractId ? 'renewal' : 'initial'),
         status: dto.status ?? 'draft',
         previousContractId: dto.previousContractId ?? null,

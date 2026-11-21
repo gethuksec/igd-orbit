@@ -43,6 +43,8 @@ export default function LiburRequestPage() {
   const [formDate, setFormDate] = useState("");
   const [rejectTarget, setRejectTarget] = useState<LiburRequest | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [bulkRejectMode, setBulkRejectMode] = useState(false);
+  const [ticked, setTicked] = useState<string[]>([]);
   const limit = 20;
 
   const { data: employees } = useQuery({
@@ -87,16 +89,21 @@ export default function LiburRequestPage() {
   });
 
   const decisionMutation = useMutation({
-    mutationFn: ({ id, action, reason }: { id: string; action: "approve" | "reject" | "cancel"; reason?: string }) => {
+    mutationFn: ({ id, action, reason }: { id: string; action: "approve" | "reject" | "cancel" | "atasan-approve" | "atasan-reject"; reason?: string }) => {
       if (action === "approve") return liburService.approveRequest(id);
+      if (action === "atasan-approve") return liburService.atasanApprove(id);
+      if (action === "atasan-reject") return liburService.atasanReject(id, reason);
       if (action === "reject") return liburService.rejectRequest(id, reason);
       return liburService.cancelRequest(id);
     },
     onSuccess: (res: any) => {
       invalidate();
       queryClient.invalidateQueries({ queryKey: ["libur-quotas"] });
+      const warn: string[] | undefined = res?.consecutiveWarning;
       if (res?.overQuota) {
         toast.warning("Disetujui — karyawan kini melebihi kuota (ter-flag untuk denda lebih-libur)");
+      } else if (warn && warn.length > 0) {
+        toast.warning(`Disetujui — berurutan dengan libur lain (${warn.length} hari). Minta request ulang bila perlu.`);
       } else {
         toast.success("Keputusan berhasil disimpan");
       }
@@ -106,16 +113,53 @@ export default function LiburRequestPage() {
     onError: (e: any) => toast.error(e.response?.data?.message || "Gagal menyimpan keputusan"),
   });
 
+  // Q5 tick-to-bulk (HR final step, partial-fail safe)
+  const bulkMutation = useMutation({
+    mutationFn: ({ action, reason }: { action: "approve" | "reject"; reason?: string }) => {
+      if (action === "approve") return liburService.bulkApprove(ticked);
+      return liburService.bulkReject(ticked, reason);
+    },
+    onSuccess: (res: any) => {
+      invalidate();
+      queryClient.invalidateQueries({ queryKey: ["libur-quotas"] });
+      const okCount = (res?.approved ?? res?.rejected ?? []).length;
+      const failCount = (res?.failed ?? []).length;
+      if (failCount > 0) {
+        toast.warning(`${okCount} diproses, ${failCount} gagal (mis. belum ACC atasan) — lihat pesan error tiap baris di server log`);
+      } else {
+        toast.success(`${okCount} pengajuan diproses`);
+      }
+      setTicked([]);
+      setBulkRejectMode(false);
+      setRejectReason("");
+    },
+    onError: (e: any) => toast.error(e.response?.data?.message || "Gagal memproses bulk"),
+  });
+
+  const toggleTick = (id: string) =>
+    setTicked((t) => (t.includes(id) ? t.filter((x) => x !== id) : [...t, id]));
+
+  const tickableRows = rows.filter((r) => r.status === "pending");
+
   const statusBadge = (row: LiburRequest) => {
     switch (row.status) {
       case "pending":
         return (
-          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
-            Menunggu SPV
-          </span>
+          <div className="flex flex-col gap-1">
+            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+              Menunggu
+            </span>
+            {row.atasanStatus === "approved" ? (
+              <span className="text-[11px] text-emerald-700">ACC atasan ✓ — giliran HR</span>
+            ) : row.atasanStatus === "rejected" ? (
+              <span className="text-[11px] text-red-600">Ditolak atasan</span>
+            ) : (
+              <span className="text-[11px] text-muted-foreground">Belum ACC atasan</span>
+            )}
+          </div>
         );
       case "approved":
-        return <StatusDot tone="ok">Disetujui SPV</StatusDot>;
+        return <StatusDot tone="ok">Disetujui</StatusDot>;
       case "rejected":
         return <StatusDot tone="bad">Ditolak</StatusDot>;
       case "cancelled":
@@ -126,6 +170,20 @@ export default function LiburRequestPage() {
   };
 
   const columns: Column<LiburRequest>[] = [
+    {
+      key: "tick",
+      header: "",
+      cell: (row) =>
+        row.status === "pending" ? (
+          <input
+            type="checkbox"
+            checked={ticked.includes(row.id)}
+            onChange={() => toggleTick(row.id)}
+            className="h-4 w-4 accent-primary-600"
+            title="Pilih untuk bulk"
+          />
+        ) : null,
+    },
     {
       key: "employee",
       header: "Karyawan",
@@ -161,7 +219,7 @@ export default function LiburRequestPage() {
 
   return (
     <div className="w-full space-y-3">
-      <BreadcrumbHeader title="Pengajuan libur" subtitle="Diajukan di bulan berjalan atau direncanakan sejak bulan sebelumnya — persetujuan SPV">
+      <BreadcrumbHeader title="Pengajuan libur" subtitle="Diajukan di bulan berjalan atau direncanakan sejak bulan sebelumnya — ACC atasan lalu finalisasi HR">
         <Button
           onClick={() => setCreateOpen(true)}
           className="flex items-center gap-2 bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 border border-gray-200 dark:border-gray-700 hover:bg-primary-50"
@@ -201,8 +259,8 @@ export default function LiburRequestPage() {
             label: "Status",
             type: "select",
             options: [
-              { value: "pending", label: "Menunggu SPV" },
-              { value: "approved", label: "Disetujui SPV" },
+              { value: "pending", label: "Menunggu" },
+              { value: "approved", label: "Disetujui" },
               { value: "rejected", label: "Ditolak" },
               { value: "cancelled", label: "Dibatalkan" },
             ],
@@ -237,19 +295,73 @@ export default function LiburRequestPage() {
         isLoading={isLoading}
         emptyMessage="Tidak ada pengajuan libur"
         emptyIcon={<CalendarDays className="w-16 h-16" />}
-        actions={(row: LiburRequest) =>
-          row.status === "pending" ? (
+        actions={(row: LiburRequest) => {
+          if (row.status !== "pending") return undefined;
+          const needAtasan = row.atasanStatus !== "approved";
+          return (
             <div className="flex items-center justify-end gap-1">
-              <Button variant="outline" size="sm" onClick={() => decisionMutation.mutate({ id: row.id, action: "approve" })}>
-                Setujui
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setRejectTarget(row)}>
-                Tolak
-              </Button>
+              {needAtasan ? (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => decisionMutation.mutate({ id: row.id, action: "atasan-approve" })}
+                  >
+                    ACC Atasan
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setRejectTarget({ ...row, _atasan: true } as any)}>
+                    Tolak
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => decisionMutation.mutate({ id: row.id, action: "approve" })}
+                  >
+                    Setujui (HR)
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setRejectTarget(row)}>
+                    Tolak
+                  </Button>
+                </>
+              )}
             </div>
-          ) : undefined
-        }
+          );
+        }}
       />
+
+      {ticked.length > 0 && (
+        <div className="flex items-center gap-2 bg-primary-50 dark:bg-primary-950 border border-primary-200 dark:border-primary-800 rounded-lg px-4 py-3">
+          <input
+            type="checkbox"
+            checked={tickableRows.length > 0 && tickableRows.every((r) => ticked.includes(r.id))}
+            onChange={() =>
+              setTicked((t) =>
+                tickableRows.every((r) => t.includes(r.id)) ? [] : tickableRows.map((r) => r.id)
+              )
+            }
+            className="h-4 w-4 accent-primary-600"
+            title="Pilih semua di halaman"
+          />
+          <span className="text-sm font-medium">{ticked.length} dipilih</span>
+          <div className="flex-1" />
+          <Button
+            size="sm"
+            disabled={bulkMutation.isPending}
+            onClick={() => bulkMutation.mutate({ action: "approve" })}
+          >
+            {bulkMutation.isPending ? "Memproses..." : `Setujui terpilih (${ticked.length})`}
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setBulkRejectMode(true)}>
+            Tolak terpilih
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setTicked([])}>
+            Batal pilih
+          </Button>
+        </div>
+      )}
 
       {!isLoading && rows.length > 0 && (
         <div className="bg-gradient-to-r from-gray-50 dark:from-gray-900 to-gray-100 dark:to-gray-800 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700">
@@ -322,10 +434,20 @@ export default function LiburRequestPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!rejectTarget} onOpenChange={(o) => !o && setRejectTarget(null)}>
+      <Dialog
+        open={!!rejectTarget || bulkRejectMode}
+        onOpenChange={(o) => {
+          if (!o) {
+            setRejectTarget(null);
+            setBulkRejectMode(false);
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Tolak pengajuan</DialogTitle>
+            <DialogTitle>
+              {bulkRejectMode ? `Tolak ${ticked.length} pengajuan terpilih` : (rejectTarget as any)?._atasan ? "Tolak pengajuan (atasan)" : "Tolak pengajuan"}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -338,18 +460,30 @@ export default function LiburRequestPage() {
               />
             </div>
             <div className="flex gap-2 pt-2">
-              <Button type="button" variant="outline" className="flex-1" onClick={() => setRejectTarget(null)}>
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  setRejectTarget(null);
+                  setBulkRejectMode(false);
+                }}
+              >
                 Batal
               </Button>
               <Button
                 className="flex-1 bg-red-600 hover:bg-red-700 text-white"
-                disabled={decisionMutation.isPending}
-                onClick={() =>
-                  rejectTarget &&
-                  decisionMutation.mutate({ id: rejectTarget.id, action: "reject", reason: rejectReason })
-                }
+                disabled={decisionMutation.isPending || bulkMutation.isPending}
+                onClick={() => {
+                  if (bulkRejectMode) {
+                    bulkMutation.mutate({ action: "reject", reason: rejectReason });
+                  } else if (rejectTarget) {
+                    const action = (rejectTarget as any)._atasan ? "atasan-reject" : "reject";
+                    decisionMutation.mutate({ id: rejectTarget.id, action, reason: rejectReason });
+                  }
+                }}
               >
-                {decisionMutation.isPending ? "Memproses..." : "Tolak"}
+                {decisionMutation.isPending || bulkMutation.isPending ? "Memproses..." : "Tolak"}
               </Button>
             </div>
           </div>

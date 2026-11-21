@@ -24,9 +24,10 @@ import { GradesController } from './grades.controller';
 import { PositionsController } from './positions.controller';
 import { PayrollComponentsController } from './payroll-components.controller';
 import { FinanceModule } from '../finance/finance.module';
+import { ShiftsModule } from '../shifts/shifts.module';
 
 @Module({
-  imports: [FinanceModule],
+  imports: [FinanceModule, ShiftsModule],
   controllers: [
     AttendanceController,
     LeaveController,

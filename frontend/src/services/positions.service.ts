@@ -10,6 +10,8 @@ export interface Position {
   gradeId: string | null;
   minSalary: number | null;
   defaultRoleId: string | null;
+  defaultShiftId?: string | null;
+  defaultShift?: { id: string; code: string; name: string } | null;
   division?: { id: string; code: string; name: string } | null;
   department?: { id: string; code: string; name: string } | null;
   grade?: { id: string; code: string; name: string; rank: number } | null;

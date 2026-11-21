@@ -13,12 +13,14 @@ describe('ShiftRosterService integration — roster rules', () => {
 
   const employees: any[] = [];
   const entries: any[] = [];
+  const approvals: any[] = [];
 
   const iso = (d: any) => new Date(d).toISOString().slice(0, 10);
 
   beforeEach(async () => {
     employees.length = 0;
     entries.length = 0;
+    approvals.length = 0;
     employees.push(
       { id: 'e1', userId: 'u1', employeeCode: 'EMP-001', isActive: true, departmentId: 'dept-1', divisionId: 'div-1', user: { fullName: 'Andini' }, department: { id: 'dept-1', name: 'Produksi' }, division: { id: 'div-1', name: 'Produksi A' } },
       { id: 'e2', userId: 'u2', employeeCode: 'EMP-002', isActive: true, departmentId: 'dept-1', divisionId: 'div-1', user: { fullName: 'Budi' }, department: { id: 'dept-1', name: 'Produksi' }, division: { id: 'div-1', name: 'Produksi A' } },
@@ -30,6 +32,8 @@ describe('ShiftRosterService integration — roster rules', () => {
     }
     // e2: only Dec 1 submitted
     entries.push({ employeeId: 'e2', date: new Date('2026-12-01T00:00:00Z'), shiftId: 'sh-1', submitted: true, shift: { id: 'sh-1', code: 'PAGI', name: 'Pagi' } });
+    // e2 has an approved libur request for Dec 2 (roster libur-day = approved request)
+    approvals.push({ employeeId: 'e2', date: new Date('2026-12-02T00:00:00Z'), status: 'approved' });
 
     prisma = {
       employee: {
@@ -51,6 +55,14 @@ describe('ShiftRosterService integration — roster rules', () => {
         }),
       },
       shift: { findMany: jest.fn(async () => [{ id: 'sh-1' }]) },
+      liburRequest: {
+        findMany: jest.fn(async ({ where }: any = {}) => {
+          let out = approvals.slice();
+          if (where.employeeId) out = out.filter((r) => r.employeeId === where.employeeId);
+          if (where.status) out = out.filter((r) => r.status === where.status);
+          return out;
+        }),
+      },
       shiftRosterEntry: {
         findMany: jest.fn(async ({ where }: any = {}) => {
           let out = entries.slice();
@@ -121,6 +133,21 @@ describe('ShiftRosterService integration — roster rules', () => {
     expect(out.submitted).toBe(3);
     const res: any = await service.getRoster(admin, { start: '2026-12-01', end: '2026-12-03' } as any);
     expect(Object.fromEntries(res.data.map((r: any) => [r.employee.id, r])).e2.status).toBe('TERJADWAL');
+  });
+
+  it('submit rejects libur days without an approved request', async () => {
+    await expect(
+      service.submitRoster(admin, {
+        employeeId: 'e1',
+        start: '2026-12-01',
+        end: '2026-12-03',
+        entries: [
+          { date: '2026-12-01', shiftId: 'sh-1' },
+          { date: '2026-12-02', shiftId: null }, // e1 has no approval
+          { date: '2026-12-03', shiftId: 'sh-1' },
+        ],
+      } as any),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('submit rejects partial ranges', async () => {

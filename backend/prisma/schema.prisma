@@ -456,6 +456,7 @@ model Position {
   gradeId       String?  @map("grade_id") // staff-only (rank 6), null otherwise
   minSalary     Decimal? @map("min_salary") @db.Decimal(15, 2) // band floor, open ceiling; set at title create, editable
   defaultRoleId String?  @map("default_role_id") // suggests Role at intake (IGDERP-270), admin can override
+  defaultShiftId String? @map("default_shift_id") // Q1 title default shift (IGDERP-265)
   isActive      Boolean  @default(true) @map("is_active")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
@@ -465,6 +466,7 @@ model Position {
   department  Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   grade       Grade?      @relation(fields: [gradeId], references: [id], onDelete: SetNull)
   defaultRole Role?       @relation("PositionDefaultRole", fields: [defaultRoleId], references: [id], onDelete: SetNull)
+  defaultShift Shift?     @relation("PositionDefaultShift", fields: [defaultShiftId], references: [id], onDelete: SetNull)
   employees   Employee[]
   contracts   Contract[]
 
@@ -1017,6 +1019,7 @@ model Employee {
   departmentId   String?   @map("department_id")
   divisionId     String?   @map("division_id") // IGDERP-277: division below department
   positionId     String?   @map("position_id") // IGDERP-277: FK to Position master (replaces free-text position)
+  defaultShiftId   String?   @map("default_shift_id") // Q1 employee live override (IGDERP-265)
   hireDate       DateTime? @map("hire_date")
   employmentType String?   @map("employment_type") // 'full-time', 'part-time', 'contract'
   basicSalary    Decimal?  @map("basic_salary") @db.Decimal(15, 2)
@@ -1034,6 +1037,7 @@ model Employee {
   // Relations
   user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   branch           Branch?           @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  defaultShift     Shift?            @relation("EmployeeDefaultShift", fields: [defaultShiftId], references: [id], onDelete: SetNull)
   department       Department?       @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   division         Division?         @relation(fields: [divisionId], references: [id], onDelete: SetNull)
   position         Position?         @relation(fields: [positionId], references: [id], onDelete: SetNull)
@@ -2221,6 +2225,10 @@ model LiburRequest {
   decidedBy    String?   @map("decided_by")
   decidedAt    DateTime? @map("decided_at")
   rejectReason String?   @map("reject_reason") @db.Text
+  atasanStatus      String    @default("pending") @map("atasan_status") // 'pending' | 'approved' | 'rejected' (Q5 two-step)
+  atasanDecidedBy   String?   @map("atasan_decided_by")
+  atasanDecidedAt   DateTime? @map("atasan_decided_at")
+  atasanRejectReason String?  @map("atasan_reject_reason") @db.Text
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
@@ -2250,11 +2258,27 @@ model Shift {
 
   assignments ShiftAssignment[]
   rosterEntries ShiftRosterEntry[]
+  positionDefaults Position[] @relation("PositionDefaultShift")
+  employeeDefaults Employee[] @relation("EmployeeDefaultShift")
+  contractSnapshots Contract[] @relation("ContractShiftSnapshot")
 
   swapFromRequests ShiftSwapRequest[] @relation("ShiftSwapFrom")
   swapToRequests   ShiftSwapRequest[] @relation("ShiftSwapTo")
 
   @@map("shifts")
+}
+
+// Q4 roster window setting (IGDERP-265): per-date submitted is upstream's
+// release mechanism; this row only parameterises the input window.
+model ShiftSetting {
+  id                   String   @id @default(uuid())
+  rosterOpenDay        Int      @default(25) @map("roster_open_day")
+  rosterCloseDay       Int?     @map("roster_close_day") // null = end of month
+  employeeInputStartDay Int     @default(25) @map("employee_input_start_day")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  @@map("shift_settings")
 }
 
 model ShiftAssignment {
@@ -2482,6 +2506,10 @@ model Contract {
   divisionId         String?   @map("division_id") // snapshot
   departmentId       String?   @map("department_id") // snapshot
   changeReason       String?   @map("change_reason") // 'initial' | 'promotion' | 'demotion' | 'rotation' | 'renewal' | 'adjustment'
+  shiftId            String?   @map("shift_id") // Q1 contract shift snapshot (IGDERP-265)
+  shiftCode          String?   @map("shift_code")
+  shiftClockIn       String?   @map("shift_clock_in")
+  shiftClockOut      String?   @map("shift_clock_out")
   status             String    @default("draft") @map("status") // 'draft' | 'active' | 'expired' | 'terminated' | 'renewed'
   previousContractId String?   @map("previous_contract_id") // career-history chain
   approvedBy         String?   @map("approved_by") // CHR user id
@@ -2494,6 +2522,7 @@ model Contract {
   grade             Grade?           @relation(fields: [gradeId], references: [id], onDelete: SetNull)
   division          Division?        @relation(fields: [divisionId], references: [id], onDelete: SetNull)
   department        Department?      @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  shift             Shift?           @relation("ContractShiftSnapshot", fields: [shiftId], references: [id], onDelete: SetNull)
   previousContract  Contract?        @relation("ContractChain", fields: [previousContractId], references: [id], onDelete: SetNull)
   nextContracts     Contract[]       @relation("ContractChain")
   contractBranches  ContractBranch[]

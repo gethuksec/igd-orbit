@@ -27,10 +27,16 @@ export interface LiburRequest {
   targetPeriod: string;
   kind: "current" | "advance";
   status: "pending" | "approved" | "rejected" | "cancelled";
+  atasanStatus?: "pending" | "approved" | "rejected";
+  atasanDecidedBy?: string | null;
+  atasanDecidedAt?: string | null;
+  atasanRejectReason?: string | null;
   requestedBy: string;
   decidedBy?: string | null;
   decidedAt?: string | null;
   rejectReason?: string | null;
+  consecutiveWarning?: string[];
+  overQuota?: boolean;
   employee?: {
     id: string;
     employeeCode: string;
@@ -147,6 +153,43 @@ export const liburService = {
   async cancelRequest(id: string): Promise<LiburRequest> {
     try {
       const response = await api.post(`/libur/requests/${id}/cancel`);
+      return response.data.data || response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  // IGDERP-265 gaps: two-step approval (Q5) + tick-to-bulk
+  async atasanApprove(id: string): Promise<LiburRequest> {
+    try {
+      const response = await api.post(`/libur/requests/${id}/atasan-approve`);
+      return response.data.data || response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  async atasanReject(id: string, reason?: string): Promise<LiburRequest> {
+    try {
+      const response = await api.post(`/libur/requests/${id}/atasan-reject`, { reason });
+      return response.data.data || response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  async bulkApprove(ids: string[]): Promise<{ approved: LiburRequest[]; failed: { id: string; reason: string }[] }> {
+    try {
+      const response = await api.post("/libur/requests/bulk-approve", { ids });
+      return response.data.data || response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  async bulkReject(ids: string[], reason?: string): Promise<{ rejected: LiburRequest[]; failed: { id: string; reason: string }[] }> {
+    try {
+      const response = await api.post("/libur/requests/bulk-reject", { ids, reason });
       return response.data.data || response.data;
     } catch (error: any) {
       throw error;

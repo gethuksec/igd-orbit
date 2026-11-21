@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../../shared/services/prisma.service';
+import { ShiftsService } from '../shifts/shifts.service';
 import { LiburService } from './libur.service';
 import { BadRequestException } from '@nestjs/common';
 
@@ -85,7 +86,17 @@ describe('LiburService integration — quota math & period rules', () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [LiburService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        LiburService,
+        { provide: PrismaService, useValue: prisma },
+        {
+          provide: ShiftsService,
+          useValue: {
+            canEmployeeInput: jest.fn(async () => ({ open: true, reason: 'open' })),
+            resolveShiftForDate: jest.fn(async () => ({ shift: null, source: 'none' })),
+          },
+        },
+      ],
     }).compile();
     service = module.get<LiburService>(LiburService);
   });
