@@ -11,7 +11,7 @@ import {
   AlertTriangle,
   XCircle,
 } from 'lucide-react';
-import { BreadcrumbHeader, FilterToolbar } from '@/components/shared';
+import { BreadcrumbHeader, FilterToolbar, StatCard, StatusDot } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { inventoryService } from '../../services/inventory.service';
@@ -71,20 +71,19 @@ export default function StockOpnameList() {
     );
   });
 
-  const getStatusColor = (status: string) => {
+  const getStatusTone = (status: string): 'ok' | 'warn' | 'off' | 'bad' => {
     switch (status) {
       case 'draft':
-        return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700';
+        return 'off';
       case 'counting':
-        return 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-800';
+        return 'warn';
       case 'completed':
-        return 'bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800';
       case 'approved':
-        return 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800';
+        return 'ok';
       case 'cancelled':
-        return 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800';
+        return 'bad';
       default:
-        return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700';
+        return 'off';
     }
   };
 
@@ -173,34 +172,10 @@ export default function StockOpnameList() {
 
       {/* Status Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-4 hover:shadow-lg transition-all">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Draft</span>
-            <Clock className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-          </div>
-          <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{statusCounts.draft}</h3>
-        </div>
-        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-4 hover:shadow-lg transition-all">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Sedang Dihitung</span>
-            <ClipboardCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-          </div>
-          <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{statusCounts.counting}</h3>
-        </div>
-        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-4 hover:shadow-lg transition-all">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Selesai</span>
-            <AlertTriangle className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
-          </div>
-          <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{statusCounts.completed}</h3>
-        </div>
-        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-4 hover:shadow-lg transition-all">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Disetujui</span>
-            <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
-          </div>
-          <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{statusCounts.approved}</h3>
-        </div>
+        <StatCard icon={<Clock className="h-5 w-5" />} label="Draft" value={statusCounts.draft} />
+        <StatCard icon={<ClipboardCheck className="h-5 w-5" />} label="Sedang Dihitung" value={statusCounts.counting} />
+        <StatCard icon={<AlertTriangle className="h-5 w-5" />} label="Selesai" value={statusCounts.completed} />
+        <StatCard icon={<CheckCircle className="h-5 w-5" />} label="Disetujui" value={statusCounts.approved} />
       </div>
 
       {/* Toolbar: search inline + branch inline + filter popup (IGDERP-110) */}
@@ -253,27 +228,27 @@ export default function StockOpnameList() {
       <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gradient-to-r from-gray-50 dark:from-gray-900 via-gray-50 dark:via-gray-900 to-gray-100 dark:to-gray-800">
+            <thead className="border-b border-gray-200 dark:border-gray-700">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                  Nomor Opname
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
+                  Nomor opname
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                   Cabang
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                   Tanggal
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                   Status
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                  Total Item
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 dark:text-gray-300">
+                  Total item
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                  Nilai Discrepancy
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 dark:text-gray-300">
+                  Nilai discrepancy
                 </th>
-                <th className="px-4 py-3 text-center text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 dark:text-gray-300">
                   Aksi
                 </th>
               </tr>
@@ -318,11 +293,11 @@ export default function StockOpnameList() {
                   return (
                     <tr
                       key={opname.id}
-                      className="hover:bg-gradient-to-r hover:from-gray-50 dark:hover:from-gray-900 hover:to-white dark:hover:to-gray-900 transition-all duration-200 border-b border-gray-100 dark:border-gray-800 cursor-pointer"
+                      className="hover:bg-muted transition-colors border-b border-gray-100 dark:border-gray-800 cursor-pointer"
                       onClick={() => navigate(`/inventory/opname/${opname.id}`)}
                     >
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{opname.opnameNumber}</div>
+                        <div className="text-[15px] font-medium text-gray-900 dark:text-gray-100">{opname.opnameNumber}</div>
                         {opname.code && (
                           <div className="text-[11px] font-mono text-gray-500 dark:text-gray-400">Kode: {opname.code}</div>
                         )}
@@ -340,16 +315,10 @@ export default function StockOpnameList() {
                         </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(
-                            opname.status,
-                          )}`}
-                        >
-                          {getStatusLabel(opname.status)}
-                        </span>
+                        <StatusDot tone={getStatusTone(opname.status)}>{getStatusLabel(opname.status)}</StatusDot>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-right">
-                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                        <div className="text-sm font-medium tabular-nums text-gray-900 dark:text-gray-100">
                           {countedItems} / {totalItems}
                         </div>
                         {opname.status === 'counting' && (
@@ -370,10 +339,10 @@ export default function StockOpnameList() {
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-right">
                         {totalDiscrepancyValue === null ? (
-                          <span className="text-sm text-gray-300 dark:text-gray-600 font-semibold">—</span>
+                          <span className="text-sm font-medium text-gray-300 dark:text-gray-600">—</span>
                         ) : (
                           <div
-                            className={`text-sm font-semibold ${
+                            className={`text-sm font-medium tabular-nums ${
                               totalDiscrepancyValue > 0
                                 ? 'text-green-600 dark:text-green-400'
                                 : totalDiscrepancyValue < 0

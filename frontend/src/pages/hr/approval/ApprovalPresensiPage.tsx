@@ -3,29 +3,15 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AlarmClock } from "lucide-react";
 import { hrService, type OvertimeRequest } from "@/services/hr.service";
 import { formatDate } from "@/utils/format";
-import { BreadcrumbHeader, FilterToolbar, DataTable } from "@/components/shared";
+import { BreadcrumbHeader, FilterToolbar, DataTable, StatusDot } from "@/components/shared";
 import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 function statusPill(status: string) {
-  if (status === "approved")
-    return (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-        Disetujui
-      </span>
-    );
-  if (status === "rejected")
-    return (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
-        Ditolak
-      </span>
-    );
-  return (
-    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
-      Menunggu
-    </span>
-  );
+  if (status === "approved") return <StatusDot tone="ok">Disetujui</StatusDot>;
+  if (status === "rejected") return <StatusDot tone="bad">Ditolak</StatusDot>;
+  return <StatusDot tone="warn">Menunggu</StatusDot>;
 }
 
 export default function ApprovalPresensiPage() {
@@ -75,7 +61,7 @@ export default function ApprovalPresensiPage() {
     {
       key: "hours",
       header: "Jam",
-      cell: (r) => <span className="text-sm font-mono">{r.hours} jam</span>,
+      cell: (r) => <span className="font-mono text-xs text-muted-foreground">{r.hours} jam</span>,
     },
     {
       key: "reason",

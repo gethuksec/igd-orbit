@@ -6,7 +6,7 @@ import { serviceOrdersService } from '../../services/service-orders.service';
 import { usersService } from '../../services/users.service';
 import { useBranchFilter } from '@/components/branch/BranchFilter';
 import { api } from '@/services/api';
-import { BreadcrumbHeader, DataTable, FilterToolbar } from '@/components/shared';
+import { BreadcrumbHeader, DataTable, FilterToolbar, StatusDot } from '@/components/shared';
 import type { Column } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 
@@ -118,22 +118,16 @@ export default function ServiceOrderList() {
   const orders = data?.data || [];
   const pagination = data?.meta || { page: 1, limit: 20, total: 0, totalPages: 1 };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusTone = (status: string): 'ok' | 'warn' | 'off' | 'bad' => {
     const s = String(status || '').toLowerCase();
-    let classes = 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700';
-    if (['pending', 'diagnosed', 'quoted', 'approved'].includes(s))
-      classes = 'bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800';
-    else if (['in-progress', 'qc'].includes(s))
-      classes = 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-800';
-    else if (['completed', 'delivered'].includes(s))
-      classes = 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800';
-    else if (s === 'cancelled')
-      classes = 'bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-200 border-red-200 dark:border-red-800';
-    return (
-      <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${classes}`}>
-        {status}
-      </span>
-    );
+    if (s === 'completed' || s === 'delivered' || s === 'done' || s === 'ready') return 'ok';
+    if (s === 'cancelled') return 'bad';
+    if (['pending', 'diagnosed', 'quoted', 'approved', 'in-progress', 'qc'].includes(s)) return 'warn';
+    return 'off';
+  };
+
+  const getStatusBadge = (status: string) => {
+    return <StatusDot tone={getStatusTone(status)}>{status}</StatusDot>;
   };
 
   const columns: Column<any>[] = [
@@ -143,7 +137,7 @@ export default function ServiceOrderList() {
       cell: (order) => (
         <Link
           to={`/service-orders/${order.id}`}
-          className="text-sm font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 hover:underline transition-colors"
+          className="text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 hover:underline transition-colors"
         >
           {order.serviceNumber}
         </Link>
@@ -341,12 +335,12 @@ export default function ServiceOrderList() {
         actions={(order: any) => (
           <div className="flex items-center gap-1">
             <Link to={`/service-orders/${order.id}`}>
-              <Button variant="ghost" size="sm" title="Lihat Detail">
+              <Button size="sm" className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="Lihat Detail">
                 <Eye className="w-4 h-4" />
               </Button>
             </Link>
             <Link to={`/service-orders/${order.id}/edit`}>
-              <Button variant="ghost" size="sm" title="Edit">
+              <Button size="sm" className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="Edit">
                 <Edit className="w-4 h-4" />
               </Button>
             </Link>
@@ -359,7 +353,7 @@ export default function ServiceOrderList() {
         <div className="bg-white dark:bg-gray-900 px-6 py-4 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <div className="text-sm text-gray-700 dark:text-gray-300">
             Menampilkan {orders.length} dari{' '}
-            <span className="font-semibold">{pagination.total}</span> service order
+            <span className="font-medium">{pagination.total}</span> service order
             <span className="ml-2 text-gray-500 dark:text-gray-400">
               (Halaman {pagination.page} dari {pagination.totalPages})
             </span>

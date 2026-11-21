@@ -132,7 +132,7 @@ export default function PayslipView() {
                   earnings.map((component) => (
                     <tr key={component.id}>
                       <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{component.componentName}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 text-right font-semibold">
+                      <td className="px-4 py-3 text-sm font-medium tabular-nums text-gray-900 dark:text-gray-100 text-right">
                         {formatCurrency(component.amount)}
                       </td>
                     </tr>
@@ -144,7 +144,7 @@ export default function PayslipView() {
                     </td>
                   </tr>
                 )}
-                <tr className="bg-gray-50 dark:bg-gray-950 font-bold">
+                <tr className="bg-gray-50 dark:bg-gray-950 font-medium">
                   <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">Total Pendapatan</td>
                   <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 text-right">
                     {formatCurrency(payroll.totalEarnings)}
@@ -171,7 +171,7 @@ export default function PayslipView() {
                   deductions.map((component) => (
                     <tr key={component.id}>
                       <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{component.componentName}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 text-right font-semibold">
+                      <td className="px-4 py-3 text-sm font-medium tabular-nums text-gray-900 dark:text-gray-100 text-right">
                         {formatCurrency(component.amount)}
                       </td>
                     </tr>
@@ -183,7 +183,7 @@ export default function PayslipView() {
                     </td>
                   </tr>
                 )}
-                <tr className="bg-gray-50 dark:bg-gray-950 font-bold">
+                <tr className="bg-gray-50 dark:bg-gray-950 font-medium">
                   <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">Total Potongan</td>
                   <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 text-right">
                     {formatCurrency(payroll.totalDeductions)}
@@ -198,7 +198,7 @@ export default function PayslipView() {
         <div className="bg-primary-50 dark:bg-primary-950 rounded-lg p-6 mb-6">
           <div className="flex items-center justify-between">
             <h4 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Gaji Bersih</h4>
-            <p className="text-3xl font-bold text-primary-600 dark:text-primary-400">{formatCurrency(payroll.nettSalary)}</p>
+            <p className="text-3xl font-medium tabular-nums text-primary-600 dark:text-primary-400">{formatCurrency(payroll.nettSalary)}</p>
           </div>
         </div>
 
@@ -206,19 +206,19 @@ export default function PayslipView() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 text-sm">
           <div className="bg-gray-50 dark:bg-gray-950 rounded-lg p-4">
             <p className="text-gray-600 dark:text-gray-400 mb-1">Hari Kerja</p>
-            <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{payroll.attendanceDays} hari</p>
+            <p className="text-lg font-medium tabular-nums text-gray-900 dark:text-gray-100">{payroll.attendanceDays} hari</p>
           </div>
           <div className="bg-gray-50 dark:bg-gray-950 rounded-lg p-4">
             <p className="text-gray-600 dark:text-gray-400 mb-1">Terlambat</p>
-            <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{payroll.lateCount} kali</p>
+            <p className="text-lg font-medium tabular-nums text-gray-900 dark:text-gray-100">{payroll.lateCount} kali</p>
           </div>
           <div className="bg-gray-50 dark:bg-gray-950 rounded-lg p-4">
             <p className="text-gray-600 dark:text-gray-400 mb-1">Absen</p>
-            <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{payroll.absenceCount} hari</p>
+            <p className="text-lg font-medium tabular-nums text-gray-900 dark:text-gray-100">{payroll.absenceCount} hari</p>
           </div>
           <div className="bg-gray-50 dark:bg-gray-950 rounded-lg p-4">
             <p className="text-gray-600 dark:text-gray-400 mb-1">Lembur</p>
-            <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{payroll.overtimeHours} jam</p>
+            <p className="text-lg font-medium tabular-nums text-gray-900 dark:text-gray-100">{payroll.overtimeHours} jam</p>
           </div>
         </div>
 

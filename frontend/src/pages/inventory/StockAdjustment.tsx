@@ -302,7 +302,7 @@ export default function StockAdjustment() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <p className="text-sm text-blue-700 dark:text-blue-300 mb-1">Stok Saat Ini</p>
-                <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{currentStockQty}</p>
+                <p className="text-2xl font-medium tabular-nums text-blue-900 dark:text-blue-100">{currentStockQty}</p>
               </div>
               <div className="flex items-center justify-center">
                 {formData.type === 'OUT' || formData.type === 'DAMAGE' ? (
@@ -310,7 +310,7 @@ export default function StockAdjustment() {
                 ) : (
                   <TrendingUp className="w-8 h-8 text-green-600 dark:text-green-400" />
                 )}
-                <span className="ml-2 text-lg font-semibold text-blue-900 dark:text-blue-100">
+                <span className="ml-2 text-lg font-medium tabular-nums text-blue-900 dark:text-blue-100">
                   {formData.type === 'OUT' || formData.type === 'DAMAGE' ? '-' : '+'}
                   {formData.quantityChange}
                 </span>
@@ -318,7 +318,7 @@ export default function StockAdjustment() {
               <div>
                 <p className="text-sm text-blue-700 dark:text-blue-300 mb-1">Stok Setelah Penyesuaian</p>
                 <p
-                  className={`text-2xl font-bold ${
+                  className={`text-2xl font-medium tabular-nums ${
                     newStockQty < 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
                   }`}
                 >

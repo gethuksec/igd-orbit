@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { FileText, Eye, Plus, CheckCircle, XCircle, Clock, Package, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Table,
@@ -16,7 +15,7 @@ import {
 import { purchasingService, type PurchaseOrder } from '@/services/purchasing.service';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { useBranchFilter } from '@/components/branch/BranchFilter';
-import { BreadcrumbHeader, FilterToolbar } from '@/components/shared';
+import { BreadcrumbHeader, FilterToolbar, StatCard, StatusDot } from '@/components/shared';
 
 export default function PurchaseOrderList() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -52,67 +51,31 @@ export default function PurchaseOrderList() {
     );
   });
 
+  const STATUS_TONE: Record<string, 'ok' | 'warn' | 'off' | 'bad'> = {
+    draft: 'off',
+    pending: 'warn',
+    approved: 'ok',
+    ordered: 'warn',
+    partially_received: 'warn',
+    received: 'ok',
+    cancelled: 'bad',
+    rejected: 'bad',
+  };
+
+  const STATUS_LABEL: Record<string, string> = {
+    draft: 'Draft',
+    pending: 'Pending',
+    approved: 'Approved',
+    ordered: 'Ordered',
+    partially_received: 'Partial',
+    received: 'Received',
+    cancelled: 'Cancelled',
+    rejected: 'Rejected',
+  };
+
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'draft':
-        return (
-          <Badge variant="secondary">
-            <FileText className="w-3 h-3" />
-            Draft
-          </Badge>
-        );
-      case 'pending':
-        return (
-          <Badge variant="outline">
-            <Clock className="w-3 h-3" />
-            Pending
-          </Badge>
-        );
-      case 'approved':
-        return (
-          <Badge>
-            <CheckCircle className="w-3 h-3" />
-            Approved
-          </Badge>
-        );
-      case 'ordered':
-        return (
-          <Badge variant="outline">
-            <Package className="w-3 h-3" />
-            Ordered
-          </Badge>
-        );
-      case 'partially_received':
-        return (
-          <Badge variant="outline">
-            <Package className="w-3 h-3" />
-            Partial
-          </Badge>
-        );
-      case 'received':
-        return (
-          <Badge>
-            <CheckCircle className="w-3 h-3" />
-            Received
-          </Badge>
-        );
-      case 'cancelled':
-        return (
-          <Badge variant="destructive">
-            <XCircle className="w-3 h-3" />
-            Cancelled
-          </Badge>
-        );
-      case 'rejected':
-        return (
-          <Badge variant="destructive" className="bg-red-900">
-            <XCircle className="w-3 h-3" />
-            Rejected
-          </Badge>
-        );
-      default:
-        return null;
-    }
+    const label = STATUS_LABEL[status];
+    return label ? <StatusDot tone={STATUS_TONE[status]}>{label}</StatusDot> : null;
   };
 
   const statusCounts = {
@@ -126,11 +89,11 @@ export default function PurchaseOrderList() {
   };
 
   const statCards = [
-    { label: 'Total PO', value: total, icon: FileText, color: 'text-foreground' },
-    { label: 'Pending', value: statusCounts.pending, icon: Clock, color: 'text-yellow-600 dark:text-yellow-400' },
-    { label: 'Approved', value: statusCounts.approved, icon: CheckCircle, color: 'text-blue-600 dark:text-blue-400' },
-    { label: 'Received', value: statusCounts.received, icon: Package, color: 'text-green-600 dark:text-green-400' },
-    { label: 'Rejected', value: statusCounts.rejected, icon: XCircle, color: 'text-red-600 dark:text-red-400' },
+    { label: 'Total PO', value: total, icon: FileText },
+    { label: 'Pending', value: statusCounts.pending, icon: Clock },
+    { label: 'Approved', value: statusCounts.approved, icon: CheckCircle },
+    { label: 'Received', value: statusCounts.received, icon: Package },
+    { label: 'Rejected', value: statusCounts.rejected, icon: XCircle },
   ];
 
   return (
@@ -198,17 +161,7 @@ export default function PurchaseOrderList() {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {statCards.map((c) => (
-          <Card key={c.label}>
-            <CardContent className="flex items-center justify-between p-6">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">{c.label}</p>
-                <p className={`text-2xl font-bold ${c.color}`}>{c.value}</p>
-              </div>
-              <div className="p-3 bg-primary/10 rounded-lg">
-                <c.icon className="w-6 h-6 text-primary" />
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard key={c.label} icon={<c.icon className="h-5 w-5" />} label={c.label} value={c.value} />
         ))}
       </div>
 
@@ -252,13 +205,13 @@ export default function PurchaseOrderList() {
                       <TableCell>
                         <Link
                           to={`/purchasing/po/${order.id}`}
-                          className="font-mono font-semibold text-primary hover:underline"
+                          className="font-mono font-medium text-primary hover:underline"
                         >
                           {order.poNumber}
                         </Link>
                       </TableCell>
                       <TableCell>
-                        <div className="font-semibold text-sm">{order.supplier?.name || 'N/A'}</div>
+                        <div className="font-medium text-sm">{order.supplier?.name || 'N/A'}</div>
                         <div className="text-xs text-muted-foreground">{order.supplier?.customerCode}</div>
                       </TableCell>
                       <TableCell>
@@ -280,11 +233,11 @@ export default function PurchaseOrderList() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <div className="text-sm font-semibold">{formatCurrency(order.totalAmount)}</div>
+                        <div className="text-sm font-medium tabular-nums">{formatCurrency(order.totalAmount)}</div>
                       </TableCell>
                       <TableCell>{getStatusBadge(order.status)}</TableCell>
                       <TableCell>
-                        <Button asChild variant="ghost" size="icon">
+                        <Button asChild size="icon" className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="Lihat detail">
                           <Link to={`/purchasing/po/${order.id}`}>
                             <Eye />
                           </Link>

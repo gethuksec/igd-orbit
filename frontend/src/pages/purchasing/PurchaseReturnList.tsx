@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronDown, Eye, Loader2 } from 'lucide-react';
-import { BreadcrumbHeader } from '@/components/shared';
+import { ChevronDown, Eye, Loader2, Package, Clock, Boxes, Banknote } from 'lucide-react';
+import { BreadcrumbHeader, StatCard, StatusDot } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -18,17 +18,6 @@ import { purchasingService, type PurchaseReturn } from '@/services/purchasing.se
 import { formatCurrency, formatDate } from '@/utils/format';
 
 const fmtQty = (n: number) => new Intl.NumberFormat('id-ID').format(n);
-
-function Stat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
-  return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">{label}</div>
-        <div className={`text-2xl font-bold mt-1 ${accent ? 'text-red-600 dark:text-red-400' : ''}`}>{value}</div>
-      </CardContent>
-    </Card>
-  );
-}
 
 export default function PurchaseReturnList() {
   const navigate = useNavigate();
@@ -83,7 +72,7 @@ export default function PurchaseReturnList() {
                 className="w-full text-left px-3 py-2.5 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800"
                 onClick={() => navigate('/purchasing/returns/new?mode=po')}
               >
-                <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">Dari PO</div>
+                <div className="text-sm font-medium text-gray-900 dark:text-gray-100">Dari PO</div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">Pilih PO yang sudah diterima</div>
               </button>
               <button
@@ -91,7 +80,7 @@ export default function PurchaseReturnList() {
                 className="w-full text-left px-3 py-2.5 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800"
                 onClick={() => navigate('/purchasing/returns/new?mode=manual')}
               >
-                <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">Manual (tanpa PO)</div>
+                <div className="text-sm font-medium text-gray-900 dark:text-gray-100">Manual (tanpa PO)</div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">Input invoice &amp; produk manual</div>
               </button>
             </div>
@@ -100,10 +89,10 @@ export default function PurchaseReturnList() {
       </BreadcrumbHeader>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Stat label="Total Retur" value={String(total)} />
-        <Stat label="Pending" value={String(openCount)} />
-        <Stat label="Total Qty Diretur" value={fmtQty(totalQty)} />
-        <Stat label="Nilai Retur · Bulan Ini" value={formatCurrency(monthValue)} accent />
+        <StatCard icon={<Package className="h-5 w-5" />} label="Total Retur" value={String(total)} />
+        <StatCard icon={<Clock className="h-5 w-5" />} label="Pending" value={String(openCount)} />
+        <StatCard icon={<Boxes className="h-5 w-5" />} label="Total Qty Diretur" value={fmtQty(totalQty)} />
+        <StatCard icon={<Banknote className="h-5 w-5" />} label="Nilai Retur · Bulan Ini" value={formatCurrency(monthValue)} />
       </div>
 
       <Card>
@@ -160,18 +149,14 @@ export default function PurchaseReturnList() {
                     </TableCell>
                     <TableCell>
                       {r.status === 'completed' ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-50 dark:bg-green-950 border border-green-300 dark:border-green-700 text-green-700 dark:text-green-300">
-                          Selesai
-                        </span>
+                        <StatusDot tone="ok">Selesai</StatusDot>
                       ) : (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-950 border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300">
-                          Pending
-                        </span>
+                        <StatusDot tone="warn">Pending</StatusDot>
                       )}
                     </TableCell>
                     <TableCell className="text-right font-medium">{formatCurrency(Number(r.totalValue || 0))}</TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="sm" onClick={() => navigate(`/purchasing/returns/${r.id}`)}>
+                      <Button size="sm" className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="Lihat detail" onClick={() => navigate(`/purchasing/returns/${r.id}`)}>
                         <Eye className="w-4 h-4" />
                       </Button>
                     </TableCell>

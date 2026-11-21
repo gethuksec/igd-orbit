@@ -156,14 +156,14 @@ export default function DepartmentList() {
           <table className="w-full">
             <thead className="bg-gray-50 dark:bg-gray-950 border-b border-gray-200 dark:border-gray-700">
               <tr>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Kode</th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Nama</th>
-                <th className="text-center px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Level</th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Induk</th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Cabang</th>
-                <th className="text-center px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Jml Karyawan</th>
-                <th className="text-center px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Status</th>
-                <th className="text-right px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Aksi</th>
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Kode</th>
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Nama</th>
+                <th className="text-center px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Level</th>
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Induk</th>
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Cabang</th>
+                <th className="text-center px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Jml Karyawan</th>
+                <th className="text-center px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Status</th>
+                <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -172,9 +172,7 @@ export default function DepartmentList() {
               <td className="px-6 py-4 text-sm font-mono text-gray-500 dark:text-gray-400">{dept.code}</td>
               <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">{dept.name}</td>
               <td className="px-6 py-4 text-sm text-center">
-                <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300">
-                  L{dept.level ?? 1}
-                </span>
+                <span className="font-mono text-xs text-muted-foreground">L{dept.level ?? 1}</span>
               </td>
               <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{dept.parentDepartment?.name || "—"}</td>
               <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{dept.branch?.name || "-"}</td>

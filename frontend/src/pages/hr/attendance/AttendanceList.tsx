@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BreadcrumbHeader, FilterToolbar } from '@/components/shared';
+import { BreadcrumbHeader, FilterToolbar, StatusDot, StatCard } from '@/components/shared';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Clock, Calendar, User, CheckCircle, XCircle, AlertCircle, Eye } from 'lucide-react';
@@ -60,40 +60,15 @@ export default function AttendanceList() {
   const getStatusBadge = (attendance: Attendance) => {
     switch (attendance.status) {
       case 'present':
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200">
-            <CheckCircle className="w-3 h-3" />
-            Present
-          </span>
-        );
+        return <StatusDot tone="ok">Present</StatusDot>;
       case 'absent':
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-200">
-            <XCircle className="w-3 h-3" />
-            Absent
-          </span>
-        );
+        return <StatusDot tone="bad">Absent</StatusDot>;
       case 'leave':
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200">
-            <Calendar className="w-3 h-3" />
-            Leave
-          </span>
-        );
+        return <StatusDot tone="warn">Leave</StatusDot>;
       case 'holiday':
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-200">
-            <Calendar className="w-3 h-3" />
-            Holiday
-          </span>
-        );
+        return <StatusDot tone="off">Holiday</StatusDot>;
       case 'not-clocked':
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
-            <Clock className="w-3 h-3" />
-            Belum presensi
-          </span>
-        );
+        return <StatusDot tone="off">Belum presensi</StatusDot>;
       default:
         return null;
     }
@@ -162,60 +137,23 @@ export default function AttendanceList() {
       />
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Records</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{total}</p>
-            </div>
-            <div className="p-3 bg-blue-100 dark:bg-blue-950 rounded-lg">
-              <Clock className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Present</p>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {attendances.filter((a) => a.status === 'present').length}
-              </p>
-            </div>
-            <div className="p-3 bg-primary-100 dark:bg-primary-950 rounded-lg">
-              <CheckCircle className="w-6 h-6 text-primary-600 dark:text-primary-400" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Absent</p>
-              <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-                {attendances.filter((a) => a.status === 'absent').length}
-              </p>
-            </div>
-            <div className="p-3 bg-red-100 dark:bg-red-950 rounded-lg">
-              <XCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">On Leave</p>
-              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                {attendances.filter((a) => a.status === 'leave').length}
-              </p>
-            </div>
-            <div className="p-3 bg-blue-100 dark:bg-blue-950 rounded-lg">
-              <Calendar className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-            </div>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatCard icon={<Clock className="h-5 w-5" />} label="Total Records" value={total} />
+        <StatCard
+          icon={<CheckCircle className="h-5 w-5" />}
+          label="Present"
+          value={attendances.filter((a) => a.status === 'present').length}
+        />
+        <StatCard
+          icon={<XCircle className="h-5 w-5" />}
+          label="Absent"
+          value={attendances.filter((a) => a.status === 'absent').length}
+        />
+        <StatCard
+          icon={<Calendar className="h-5 w-5" />}
+          label="On Leave"
+          value={attendances.filter((a) => a.status === 'leave').length}
+        />
       </div>
 
       {/* Table */}
@@ -241,25 +179,25 @@ export default function AttendanceList() {
               <table className="w-full">
                 <thead className="bg-gray-50 dark:bg-gray-950 border-b border-gray-200 dark:border-gray-700">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                       Tanggal
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                       Karyawan
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                       Clock In
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                       Clock Out
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                       Total Hours
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                       Status
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
                       Actions
                     </th>
                   </tr>
@@ -268,15 +206,15 @@ export default function AttendanceList() {
                   {attendances.map((attendance) => (
                     <tr key={attendance.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{formatDate(attendance.date)}</div>
+                        <div className="text-[15px] font-medium text-gray-900 dark:text-gray-100">{formatDate(attendance.date)}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
-                          <div className="p-2 bg-blue-100 dark:bg-blue-950 rounded-lg">
-                            <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
+                            <User className="h-5 w-5" />
                           </div>
                           <div>
-                            <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                            <div className="text-[15px] font-medium text-gray-900 dark:text-gray-100">
                               {attendance.employee?.user?.fullName || attendance.employee?.employeeCode || 'N/A'}
                             </div>
                             <div className="text-xs text-gray-500 dark:text-gray-400">{attendance.employee?.employeeCode}</div>
@@ -286,7 +224,7 @@ export default function AttendanceList() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         {attendance.clockIn ? (
                           <div>
-                            <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                            <div className="text-sm font-medium tabular-nums text-gray-900 dark:text-gray-100">
                               {formatDateTime(attendance.clockIn)}
                             </div>
                             {attendance.isLate && (
@@ -303,7 +241,7 @@ export default function AttendanceList() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         {attendance.clockOut ? (
                           <div>
-                            <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                            <div className="text-sm font-medium tabular-nums text-gray-900 dark:text-gray-100">
                               {formatDateTime(attendance.clockOut)}
                             </div>
                             {attendance.isEarlyLeave && (
@@ -319,7 +257,7 @@ export default function AttendanceList() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {attendance.totalHours ? (
-                          <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{attendance.totalHours} jam</div>
+                          <div className="text-sm font-medium tabular-nums text-gray-900 dark:text-gray-100">{attendance.totalHours} jam</div>
                         ) : (
                           <span className="text-sm text-gray-400 dark:text-gray-500">-</span>
                         )}
@@ -332,7 +270,7 @@ export default function AttendanceList() {
                         {!String(attendance.id).startsWith("missing-") && (
                           <Link
                             to={`/hr/attendance/${attendance.id}`}
-                            className="p-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 hover:bg-blue-50 dark:hover:bg-blue-950 rounded-lg transition-colors inline-flex items-center"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                             title="Detail"
                           >
                             <Eye className="w-4 h-4" />
@@ -348,7 +286,7 @@ export default function AttendanceList() {
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                <div className="text-sm text-gray-600 dark:text-gray-400">
+                <div className="text-sm tabular-nums text-gray-600 dark:text-gray-400">
                   Menampilkan {(page - 1) * limit + 1} - {Math.min(page * limit, total)} dari {total}
                 </div>
                 <div className="flex gap-2">

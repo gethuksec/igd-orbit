@@ -3,9 +3,8 @@ import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ShieldCheck, Settings, Loader2, Save, UserRound, CheckCircle, XCircle, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
-import { BreadcrumbHeader } from '@/components/shared';
+import { BreadcrumbHeader, StatusDot } from '@/components/shared';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
@@ -46,18 +45,18 @@ const GR_HISTORY_STATUSES = ['approved', 'rejected', 'cancelled'];
 /** PO statuses shown in history. */
 const PO_HISTORY_STATUSES = ['approved', 'ordered', 'received', 'rejected', 'cancelled'];
 
-const GR_HISTORY_BADGE: Record<string, { label: string; className: string }> = {
-  approved: { label: 'Disetujui', className: 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700' },
-  rejected: { label: 'Ditolak', className: 'bg-red-900 text-white border-red-900' },
-  cancelled: { label: 'Dibatalkan', className: 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-300' },
+const GR_HISTORY_TONE: Record<string, { label: string; tone: 'ok' | 'warn' | 'off' | 'bad' }> = {
+  approved: { label: 'Disetujui', tone: 'ok' },
+  rejected: { label: 'Ditolak', tone: 'bad' },
+  cancelled: { label: 'Dibatalkan', tone: 'bad' },
 };
 
-const PO_HISTORY_BADGE: Record<string, { label: string; className: string }> = {
-  approved: { label: 'Disetujui', className: 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700' },
-  ordered: { label: 'Dipesan', className: 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-700' },
-  received: { label: 'Diterima', className: 'bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-200 border-teal-300 dark:border-teal-700' },
-  rejected: { label: 'Ditolak', className: 'bg-red-900 text-white border-red-900' },
-  cancelled: { label: 'Dibatalkan', className: 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-300' },
+const PO_HISTORY_TONE: Record<string, { label: string; tone: 'ok' | 'warn' | 'off' | 'bad' }> = {
+  approved: { label: 'Disetujui', tone: 'ok' },
+  ordered: { label: 'Dipesan', tone: 'warn' },
+  received: { label: 'Diterima', tone: 'ok' },
+  rejected: { label: 'Ditolak', tone: 'bad' },
+  cancelled: { label: 'Dibatalkan', tone: 'bad' },
 };
 
 /** Approval tier per PO amount: <5M CSO, 5M-50M CSO+CFO, >50M CSO+CFO+OWNER. */
@@ -406,10 +405,10 @@ export default function ApprovalSettingsPage() {
                     >
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant="outline" className="border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-200">
+                          <span className="font-mono text-xs text-muted-foreground">
                             {gr.grNumber}
-                          </Badge>
-                          <span className="font-semibold">{productName}</span>
+                          </span>
+                          <span className="font-medium">{productName}</span>
                           <span className="text-sm text-muted-foreground">{qtyText}</span>
                           {poNumber && (
                             <span className="text-xs text-muted-foreground">PO {poNumber}</span>
@@ -444,7 +443,7 @@ export default function ApprovalSettingsPage() {
                           <RotateCcw className="w-4 h-4" />
                           revisit
                         </Button>
-                        <Button asChild size="sm" variant="ghost">
+                        <Button asChild size="sm" className="inline-flex h-8 items-center justify-center rounded-lg border px-3 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="Detail">
                           <Link to={`/purchasing/goods-receipt/${gr.id}`}>Detail</Link>
                         </Button>
                       </div>
@@ -472,11 +471,11 @@ export default function ApprovalSettingsPage() {
                   >
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="outline" className="border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950 text-blue-800 dark:text-blue-200">
+                        <span className="font-mono text-xs text-muted-foreground">
                           {po.poNumber}
-                        </Badge>
-                        <span className="font-semibold">{po.supplier?.name || '-'}</span>
-                        <span className="font-semibold">{formatCurrency(po.totalAmount)}</span>
+                        </span>
+                        <span className="font-medium">{po.supplier?.name || '-'}</span>
+                        <span className="font-medium tabular-nums">{formatCurrency(po.totalAmount)}</span>
                         <span className="text-xs text-muted-foreground">Tier: {poTierHint(po.totalAmount)}</span>
                       </div>
                       <div className="text-xs text-muted-foreground mt-1">
@@ -501,7 +500,7 @@ export default function ApprovalSettingsPage() {
                         <XCircle className="w-4 h-4" />
                         reject
                       </Button>
-                      <Button asChild size="sm" variant="ghost">
+                      <Button asChild size="sm" className="inline-flex h-8 items-center justify-center rounded-lg border px-3 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="Detail">
                         <Link to={`/purchasing/po/${po.id}`}>Detail</Link>
                       </Button>
                     </div>
@@ -516,15 +515,15 @@ export default function ApprovalSettingsPage() {
             <div className="space-y-6">
               {/* GR done */}
               <div>
-                <h3 className="font-semibold mb-3">Goods receipt selesai</h3>
+                <h3 className="font-medium mb-3">Goods receipt selesai</h3>
                 {!grHistory?.length ? (
                   <p className="text-sm text-muted-foreground">Belum ada riwayat goods receipt.</p>
                 ) : (
                   <div className="space-y-2">
                     {grHistory.map((gr: any) => {
-                      const badge = GR_HISTORY_BADGE[gr.status] || {
+                      const badge = GR_HISTORY_TONE[gr.status] || {
                         label: gr.status,
-                        className: 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-300',
+                        tone: 'off' as const,
                       };
                       const { productName } = grMainLine(gr);
                       return (
@@ -533,9 +532,9 @@ export default function ApprovalSettingsPage() {
                           className="flex flex-wrap items-center justify-between gap-2 rounded-lg border px-4 py-3"
                         >
                           <div className="flex flex-wrap items-center gap-2">
-                            <Badge variant="outline" className={badge.className}>
+                            <StatusDot tone={badge.tone}>
                               {badge.label}
-                            </Badge>
+                            </StatusDot>
                             <span className="font-mono text-sm">{gr.grNumber}</span>
                             <span className="text-sm">{productName}</span>
                             <span className="text-xs text-muted-foreground">
@@ -557,15 +556,15 @@ export default function ApprovalSettingsPage() {
 
               {/* PO done */}
               <div>
-                <h3 className="font-semibold mb-3">Purchase order selesai</h3>
+                <h3 className="font-medium mb-3">Purchase order selesai</h3>
                 {!poHistory?.length ? (
                   <p className="text-sm text-muted-foreground">Belum ada riwayat purchase order.</p>
                 ) : (
                   <div className="space-y-2">
                     {poHistory.map((po: any) => {
-                      const badge = PO_HISTORY_BADGE[po.status] || {
+                      const badge = PO_HISTORY_TONE[po.status] || {
                         label: po.status,
-                        className: 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-300',
+                        tone: 'off' as const,
                       };
                       return (
                         <div
@@ -573,9 +572,9 @@ export default function ApprovalSettingsPage() {
                           className="flex flex-wrap items-center justify-between gap-2 rounded-lg border px-4 py-3"
                         >
                           <div className="flex flex-wrap items-center gap-2">
-                            <Badge variant="outline" className={badge.className}>
+                            <StatusDot tone={badge.tone}>
                               {badge.label}
-                            </Badge>
+                            </StatusDot>
                             <span className="font-mono text-sm">{po.poNumber}</span>
                             <span className="text-sm">{po.supplier?.name || '-'}</span>
                             <span className="text-xs text-muted-foreground">
@@ -690,10 +689,10 @@ export default function ApprovalSettingsPage() {
             return (
               <div key={cat} className="rounded-xl border bg-card p-5">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold">{CATEGORY_LABEL[cat]}</h3>
-                  <Badge variant={isCustom ? 'default' : 'secondary'}>
+                  <h3 className="font-medium">{CATEGORY_LABEL[cat]}</h3>
+                  <StatusDot tone={isCustom ? 'warn' : 'off'}>
                     {isCustom ? 'Kustom' : 'Default'}
-                  </Badge>
+                  </StatusDot>
                 </div>
 
                 <Label className="mb-2 block text-muted-foreground">Peran approver</Label>

@@ -241,7 +241,7 @@ export default function AssignShiftPage() {
                       }`}
                       title="Ketuk untuk pilih shift"
                     >
-                      <span className="text-xs font-bold">{day}</span>
+                      <span className="text-xs font-medium tabular-nums">{day}</span>
                       {code && (
                         <span className={`block mt-1 rounded px-1 py-0.5 text-[11px] font-bold ${shiftTone(code)}`}>
                           {code}
@@ -289,10 +289,10 @@ export default function AssignShiftPage() {
             </div>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-950">
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm font-medium tabular-nums text-muted-foreground">
               {plotted} plotted · {libur} libur
-              {empty > 0 && <b className="text-amber-700"> · {empty} tanggal kosong</b>}
-              {empty === 0 && <span className="text-green-700 font-semibold"> · lengkap, siap submit</span>}
+              {empty > 0 && <b className="font-medium text-amber-700"> · {empty} tanggal kosong</b>}
+              {empty === 0 && <span className="font-medium text-green-700"> · lengkap, siap submit</span>}
             </span>
             <Button disabled={empty > 0 || submitMutation.isPending} onClick={() => submitMutation.mutate()}>
               {submitMutation.isPending ? "Menyubmit..." : "Submit roster"}

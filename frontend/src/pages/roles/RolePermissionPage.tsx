@@ -125,7 +125,7 @@ export default function RolePermissionPage() {
           <div className="flex items-start gap-3">
             <Lock className="w-6 h-6 text-yellow-400 shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-semibold text-yellow-700 dark:text-yellow-300">Hak SUPERADMIN Terkunci</h3>
+              <h3 className="font-medium text-yellow-700 dark:text-yellow-300">Hak SUPERADMIN Terkunci</h3>
               <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-1">
                 SUPERADMIN memiliki akses penuh ke seluruh sistem. Hak defaultnya tidak dapat diubah —
                 daftar di bawah hanya untuk referensi.
@@ -160,7 +160,7 @@ export default function RolePermissionPage() {
           return (
             <div key={group} className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold uppercase text-gray-500 dark:text-gray-400">{group}</span>
+                <span className="text-xs font-medium text-muted-foreground">{group}</span>
                 <span className="text-[11px] text-gray-400 dark:text-gray-500">
                   {groupSelected} dipilih
                 </span>

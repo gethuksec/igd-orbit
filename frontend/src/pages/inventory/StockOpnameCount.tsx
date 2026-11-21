@@ -14,7 +14,7 @@ import {
   ScanBarcode,
   Users,
 } from 'lucide-react';
-import { BreadcrumbHeader } from '@/components/shared';
+import { BreadcrumbHeader, StatusDot } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -556,13 +556,9 @@ export default function StockOpnameCount() {
         title="Catat Hasil Perhitungan"
         subtitle={`${opname.opnameNumber}${opname.code ? ` · ${opname.code}` : ''} · ${opname.branch?.name || 'Cabang'} · ${new Date(opname.opnameDate).toLocaleDateString('id-ID')}`}
       >
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 px-3 py-1 text-xs font-bold text-red-700 dark:text-red-300">
-          ● COUNTING
-        </span>
+        <StatusDot tone="warn">COUNTING</StatusDot>
         {opname.opnameType && (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 px-3 py-1 text-xs font-bold text-gray-700 dark:text-gray-300">
-            {opname.opnameType}
-          </span>
+          <span className="text-sm text-muted-foreground">{opname.opnameType}</span>
         )}
         <button
           onClick={refreshAll}
@@ -645,17 +641,17 @@ export default function StockOpnameCount() {
         {/* OP2: who counted what (server, refreshed manually / 15s poll) */}
         {progress && progress.byUser.length > 0 && (
           <div className="mt-3 border-t border-gray-100 dark:border-gray-800 pt-2.5">
-            <div className="text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
+            <div className="text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1.5">
               Per petugas
             </div>
             <div className="flex flex-wrap gap-2">
               {progress.byUser.map((u) => (
                 <span
                   key={u.userId}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 dark:bg-gray-800 px-2.5 py-1 text-xs text-gray-700 dark:text-gray-300"
+                  className="text-xs text-muted-foreground"
                   title={u.lastScanAt ? `Scan terakhir ${new Date(u.lastScanAt).toLocaleString('id-ID')}` : ''}
                 >
-                  <b>{u.displayName}</b> {u.products} produk · {u.quantity} pcs
+                  <span className="font-medium">{u.displayName}</span> {u.products} produk · {u.quantity} pcs
                 </span>
               ))}
             </div>
@@ -696,9 +692,7 @@ export default function StockOpnameCount() {
                 <div className="font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
                   {m.product?.name || '-'}
                   {m.physicalQuantity !== null && m.physicalQuantity !== undefined && (
-                    <span className="text-[10px] rounded-full bg-green-100 dark:bg-green-950 px-2 py-0.5 font-bold text-green-700 dark:text-green-300">
-                      ✓ tercatat
-                    </span>
+                    <StatusDot tone="ok">tercatat</StatusDot>
                   )}
                 </div>
                 <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -745,7 +739,7 @@ export default function StockOpnameCount() {
         <div className="rounded-xl border-2 border-primary-600 bg-red-50 dark:bg-red-950 p-4 shadow-[0_0_0_4px_rgba(220,38,38,0.08)]">
           <div className="flex flex-wrap items-start gap-4">
             <div className="flex-1 min-w-[200px]">
-              <div className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <div className="font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
                 {activeProduct.product.name}
                 <span className="rounded-full bg-red-100 dark:bg-red-950 border border-red-200 dark:border-red-800 px-2 py-0.5 text-[10px] font-bold text-red-700 dark:text-red-300">
                   BARU DI-SCAN
@@ -767,7 +761,7 @@ export default function StockOpnameCount() {
               )}
             </div>
             <div className="text-center">
-              <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Baik</div>
+              <div className="text-[10px] font-medium text-gray-500 dark:text-gray-400">Baik</div>
               <input
                 ref={cardGoodRef}
                 type="number"
@@ -781,11 +775,11 @@ export default function StockOpnameCount() {
                   }
                 }}
                 placeholder="0"
-                className="w-24 h-11 rounded-lg border-2 border-primary-600 bg-white dark:bg-gray-900 px-3 text-xl font-bold text-center outline-none"
+                className="w-24 h-11 rounded-lg border-2 border-primary-600 bg-white dark:bg-gray-900 px-3 text-xl font-medium tabular-nums text-center outline-none"
               />
             </div>
             <div className="text-center">
-              <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Rusak</div>
+              <div className="text-[10px] font-medium text-gray-500 dark:text-gray-400">Rusak</div>
               <input
                 type="number"
                 min="0"
@@ -798,11 +792,11 @@ export default function StockOpnameCount() {
                   }
                 }}
                 placeholder="0"
-                className="w-24 h-11 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 text-xl font-bold text-center outline-none focus:border-primary-600"
+                className="w-24 h-11 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 text-xl font-medium tabular-nums text-center outline-none focus:border-primary-600"
               />
             </div>
             <div className="text-center">
-              <div className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Kadaluarsa</div>
+              <div className="text-[10px] font-medium text-gray-500 dark:text-gray-400">Kadaluarsa</div>
               <input
                 type="number"
                 min="0"
@@ -815,7 +809,7 @@ export default function StockOpnameCount() {
                   }
                 }}
                 placeholder="0"
-                className="w-24 h-11 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 text-xl font-bold text-center outline-none focus:border-primary-600"
+                className="w-24 h-11 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 text-xl font-medium tabular-nums text-center outline-none focus:border-primary-600"
               />
             </div>
             <button
@@ -827,11 +821,12 @@ export default function StockOpnameCount() {
               {recordMutation.isPending ? 'Menyimpan…' : 'Simpan'}
             </button>
             <button
+              type="button"
               onClick={() => setActiveProduct(null)}
-              className="rounded-lg p-2 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-400"
               title="Tutup"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
-              <X className="w-4 h-4" />
+              <X className="h-4 w-4" />
             </button>
           </div>
           <input
@@ -958,10 +953,10 @@ export default function StockOpnameCount() {
           <table className="w-full">
             <thead className="bg-gray-50 dark:bg-gray-950 border-b border-gray-200 dark:border-gray-700">
               <tr>
-                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase">Produk</th>
-                <th className="px-4 py-2.5 text-right text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase">Stok Fisik</th>
-                <th className="px-4 py-2.5 text-left text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase">Kondisi</th>
-                <th className="px-4 py-2.5 text-center text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase">Status</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-medium text-gray-700 dark:text-gray-300">Produk</th>
+                <th className="px-4 py-2.5 text-right text-[11px] font-medium text-gray-700 dark:text-gray-300">Stok fisik</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-medium text-gray-700 dark:text-gray-300">Kondisi</th>
+                <th className="px-4 py-2.5 text-center text-[11px] font-medium text-gray-700 dark:text-gray-300">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -971,7 +966,7 @@ export default function StockOpnameCount() {
                 return (
                   <tr key={item.id} id={`opname-row-${item.id}`} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                     <td className="px-4 py-2.5">
-                      <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
+                      <div className="text-[15px] font-medium text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
                         {counted && <span className="text-green-600 dark:text-green-400">✓</span>}
                         {item.product?.name || '-'}
                       </div>
@@ -1010,12 +1005,13 @@ export default function StockOpnameCount() {
                               ✓ {item.countedBy === me.id ? 'Anda' : 'Petugas lain'}
                             </span>
                             <button
+                              type="button"
                               onClick={() => saveGridRow(item)}
                               disabled={recordMutation.isPending}
-                              className="rounded p-1 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950 disabled:opacity-50"
                               title="Simpan baris ini"
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
                             >
-                              <Save className="w-3.5 h-3.5" />
+                              <Save className="h-4 w-4" />
                             </button>
                             {item.notes && (
                               <span title={item.notes} className="text-[11px] text-gray-400 dark:text-gray-500 cursor-help">
@@ -1024,16 +1020,15 @@ export default function StockOpnameCount() {
                             )}
                           </>
                         ) : (
-                          <span className="rounded-full bg-gray-100 dark:bg-gray-800 px-2.5 py-0.5 text-[10px] font-bold text-gray-500 dark:text-gray-400">
-                            BELUM DIHITUNG
-                          </span>
+                          <StatusDot tone="warn">BELUM DIHITUNG</StatusDot>
                         )}
                         <button
+                          type="button"
                           onClick={() => handleRemove(item)}
-                          className="rounded p-1 text-gray-300 dark:text-gray-600 hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-600 dark:hover:text-red-400"
                           title="Hapus dari opname"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-600 dark:hover:text-red-400"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
                     </td>

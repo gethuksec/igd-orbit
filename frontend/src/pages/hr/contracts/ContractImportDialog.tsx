@@ -157,16 +157,16 @@ export default function ContractImportDialog({
       {step === 2 && dryRun && (
         <>
           <div className="flex flex-wrap gap-2 text-xs">
-            <span className="rounded-full bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 px-3 py-1 font-medium">
+            <span className="text-xs font-medium text-muted-foreground">
               Valid: {dryRun.valid}
             </span>
             {dryRun.invalid > 0 && (
-              <span className="rounded-full bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-200 px-3 py-1 font-medium">
+              <span className="text-xs font-medium text-muted-foreground">
                 Error: {dryRun.invalid}
               </span>
             )}
             {dryRun.multiRowEmployees.length > 0 && (
-              <span className="rounded-full bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 px-3 py-1 font-medium">
+              <span className="text-xs font-medium text-muted-foreground">
                 {dryRun.multiRowEmployees.length} NIP multi-baris — aktifkan dari yang tertua
               </span>
             )}
@@ -189,7 +189,7 @@ export default function ContractImportDialog({
                     <tr key={i} className={bad ? "bg-red-50 dark:bg-red-950" : ""}>
                       <td className="px-3 py-2 text-gray-500 dark:text-gray-400">{r.rowNumber}</td>
                       <td className="px-3 py-2">
-                        <span className="font-mono text-xs font-semibold">{r.nip ?? "—"}</span>
+                        <span className="font-mono text-xs font-medium">{r.nip ?? "—"}</span>
                         <span className="block text-xs text-gray-600 dark:text-gray-400">{r.name ?? "—"}</span>
                       </td>
                       <td className="px-3 py-2 text-xs">
@@ -204,7 +204,7 @@ export default function ContractImportDialog({
                       <td className="px-3 py-2 text-xs">
                         {r.preview.positionCode ?? "—"}
                         {r.preview.gradeCode && (
-                          <span className="ml-1 text-purple-700 dark:text-purple-300 font-semibold">{r.preview.gradeCode}</span>
+                          <span className="ml-1 text-purple-700 dark:text-purple-300 font-medium">{r.preview.gradeCode}</span>
                         )}
                         {r.preview.divisionCode && (
                           <span className="block text-gray-500 dark:text-gray-400">{r.preview.divisionCode}</span>
@@ -242,7 +242,7 @@ export default function ContractImportDialog({
 
           {confirmBox && (
             <div className="rounded-lg border border-primary-300 dark:border-primary-700 bg-primary-50 dark:bg-primary-950 p-4 text-sm">
-              <p className="font-semibold text-gray-900 dark:text-gray-100">
+              <p className="font-medium text-gray-900 dark:text-gray-100">
                 Import {validRows.length} baris sebagai draft?
               </p>
               <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
@@ -266,7 +266,7 @@ export default function ContractImportDialog({
       {step === 3 && result && (
         <>
           <div className="rounded-lg border border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-950 p-4 text-sm">
-            <p className="font-semibold text-green-900 dark:text-green-100 flex items-center gap-2">
+            <p className="font-medium text-green-900 dark:text-green-100 flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5" />
               Import selesai — {created.length} draft dibuat
             </p>
@@ -288,7 +288,7 @@ export default function ContractImportDialog({
                   {created.map((c, i) => (
                     <tr key={i}>
                       <td className="px-3 py-2 text-gray-500 dark:text-gray-400">{c.rowNumber}</td>
-                      <td className="px-3 py-2 font-mono text-xs font-semibold">{c.contractNumber}</td>
+                      <td className="px-3 py-2 font-mono text-xs font-medium">{c.contractNumber}</td>
                       <td className="px-3 py-2 font-mono text-xs">{c.nip}</td>
                     </tr>
                   ))}
@@ -298,7 +298,7 @@ export default function ContractImportDialog({
           )}
           {skipped.length > 0 && (
             <div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                 {skipped.length} baris dilewati
               </p>
