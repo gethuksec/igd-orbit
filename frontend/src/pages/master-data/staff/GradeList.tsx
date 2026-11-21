@@ -129,8 +129,8 @@ export default function GradeList() {
       <BreadcrumbHeader title="Grade" subtitle="Penetapan grade per jabatan staff" />
 
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
-          <p className="text-red-800 font-medium">{(error as Error).message || "Terjadi kesalahan"}</p>
+        <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
+          <p className="text-red-800 dark:text-red-200 font-medium">{(error as Error).message || "Terjadi kesalahan"}</p>
         </div>
       )}
 
@@ -152,7 +152,7 @@ export default function GradeList() {
         />
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 px-4 py-3 flex flex-wrap gap-2 items-center">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 px-4 py-3 flex flex-wrap gap-2 items-center">
         {grades.map((g) => (
           <span
             key={g.id}
@@ -173,10 +173,10 @@ export default function GradeList() {
         onReset={() => setSearchTerm("")}
       />
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-100 text-left text-xs text-gray-400">
+            <tr className="border-b border-gray-100 dark:border-gray-800 text-left text-xs text-gray-400 dark:text-gray-500">
               <th className="px-4 py-3 font-medium">Jabatan</th>
               {grades.map((g) => (
                 <th key={g.id} className="px-2 py-3 font-medium text-center w-16">
@@ -190,7 +190,7 @@ export default function GradeList() {
               return (
                 <tr key={f.key} className="border-b border-gray-50 last:border-0">
                   <td className="px-4 py-2.5">
-                    <div className="text-[15px] font-medium text-gray-900">{f.label}</div>
+                    <div className="text-[15px] font-medium text-gray-900 dark:text-gray-100">{f.label}</div>
                     <div className="text-xs text-muted-foreground font-mono">{f.key}</div>
                   </td>
                   {grades.map((g) => {
@@ -203,7 +203,7 @@ export default function GradeList() {
                             disabled={busy}
                             onClick={() => toggle(f.key, g.id, g.rank)}
                             title={`${row.code} — aktif, klik untuk nonaktifkan`}
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-green-100 text-green-700 border border-green-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors disabled:opacity-50"
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-600 dark:hover:text-red-400 hover:border-red-200 dark:hover:border-red-800 transition-colors disabled:opacity-50"
                           >
                             <Check className="w-4 h-4" />
                           </button>
@@ -213,7 +213,7 @@ export default function GradeList() {
                             disabled={busy}
                             onClick={() => toggle(f.key, g.id, g.rank)}
                             title={`${row.code} — nonaktif, klik untuk aktifkan`}
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 text-gray-400 border border-gray-200 hover:bg-green-50 hover:text-green-700 hover:border-green-200 transition-colors disabled:opacity-50"
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700 hover:bg-green-50 dark:hover:bg-green-950 hover:text-green-700 dark:hover:text-green-300 hover:border-green-200 dark:hover:border-green-800 transition-colors disabled:opacity-50"
                           >
                             <Check className="w-4 h-4" />
                           </button>
@@ -223,7 +223,7 @@ export default function GradeList() {
                             disabled={busy}
                             onClick={() => toggle(f.key, g.id, g.rank)}
                             title={`Tambah rung ${g.code}`}
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-dashed border-gray-300 text-gray-300 hover:border-primary-400 hover:text-primary-500 transition-colors disabled:opacity-50"
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 text-gray-300 dark:text-gray-600 hover:border-primary-400 hover:text-primary-500 dark:hover:text-primary-400 transition-colors disabled:opacity-50"
                           >
                             <Plus className="w-4 h-4" />
                           </button>

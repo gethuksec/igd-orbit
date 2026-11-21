@@ -28,7 +28,7 @@ export default function WarehouseDetail() {
   if (isLoading) {
     return (
       <div className="w-full flex items-center justify-center py-24">
-        <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
+        <Loader2 className="w-8 h-8 text-primary-600 dark:text-primary-400 animate-spin" />
       </div>
     );
   }
@@ -37,8 +37,8 @@ export default function WarehouseDetail() {
     return (
       <div className="w-full space-y-3">
         <BreadcrumbHeader title="Detail Gudang" subtitle="Gudang tidak ditemukan" />
-        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
-          <p className="text-red-800 font-medium">
+        <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
+          <p className="text-red-800 dark:text-red-200 font-medium">
             {(error as Error)?.message || "Gudang tidak ditemukan"}
           </p>
         </div>
@@ -49,13 +49,13 @@ export default function WarehouseDetail() {
   const wh = warehouse;
 
   const infoRow = (icon: React.ReactNode, label: string, value: React.ReactNode) => (
-    <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-3">
-      <div className="flex-shrink-0 p-1.5 bg-white rounded-lg border border-gray-200 text-primary-600">
+    <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700 flex items-start gap-3">
+      <div className="flex-shrink-0 p-1.5 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 text-primary-600 dark:text-primary-400">
         {icon}
       </div>
       <div className="min-w-0">
-        <p className="text-xs text-gray-500 mb-0.5">{label}</p>
-        <div className="text-sm font-semibold text-gray-900 break-words">{value}</div>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">{label}</p>
+        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 break-words">{value}</div>
       </div>
     </div>
   );
@@ -77,7 +77,7 @@ export default function WarehouseDetail() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <WarehouseIcon className="w-5 h-5 text-primary-600" />
+              <WarehouseIcon className="w-5 h-5 text-primary-600 dark:text-primary-400" />
               Informasi Gudang
             </CardTitle>
           </CardHeader>
@@ -100,7 +100,7 @@ export default function WarehouseDetail() {
               wh.scope === "SYSTEM" ? (
                 "Tidak ada — system warehouse"
               ) : (
-                <Link to={`/branches/${wh.outlet?.id || ""}`} className="text-primary-600 hover:text-primary-700">
+                <Link to={`/branches/${wh.outlet?.id || ""}`} className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300">
                   {wh.outlet?.name || "-"}
                   {wh.outlet?.code ? ` (${wh.outlet.code})` : ""}
                 </Link>
@@ -108,17 +108,17 @@ export default function WarehouseDetail() {
             )}
             {infoRow(<MapPin className="w-4 h-4" />, "Kota", wh.city || "-")}
             {infoRow(<MapPin className="w-4 h-4" />, "Alamat", wh.address || "-")}
-            <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 flex items-start gap-3">
-              <div className="flex-shrink-0 p-1.5 bg-white rounded-lg border border-gray-200 text-primary-600">
+            <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700 flex items-start gap-3">
+              <div className="flex-shrink-0 p-1.5 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 text-primary-600 dark:text-primary-400">
                 <WarehouseIcon className="w-4 h-4" />
               </div>
               <div>
-                <p className="text-xs text-gray-500 mb-0.5">Status</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Status</p>
                 <span
                   className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${
                     wh.isActive
-                      ? "bg-green-100 text-green-800 border-green-200"
-                      : "bg-gray-100 text-gray-800 border-gray-200"
+                      ? "bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800"
+                      : "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700"
                   }`}
                 >
                   {wh.isActive ? "Aktif" : "Tidak Aktif"}
@@ -133,7 +133,7 @@ export default function WarehouseDetail() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Phone className="w-5 h-5 text-primary-600" />
+                <Phone className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                 Kontak
               </CardTitle>
             </CardHeader>
@@ -148,7 +148,7 @@ export default function WarehouseDetail() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <WarehouseIcon className="w-5 h-5 text-primary-600" />
+                <WarehouseIcon className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                 Informasi Tambahan
               </CardTitle>
             </CardHeader>

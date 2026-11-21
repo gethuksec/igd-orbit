@@ -893,6 +893,9 @@ model Employee {
   attendances      Attendance[]
   leaveRequests    LeaveRequest[]
   overtimeRequests OvertimeRequest[]
+  liburRequests    LiburRequest[]
+  liburQuotaConfig LiburQuotaConfig?
+  shiftAssignments ShiftAssignment[]
   payrolls         Payroll[]
   kpiRecords       KPIRecord[]
   contracts        Contract[]
@@ -1989,6 +1992,85 @@ model OvertimeRequest {
   @@map("overtime_requests")
 }
 
+// ── Libur (employee monthly off-days, quota + requests) ──
+model LiburQuotaConfig {
+  id          String   @id @default(uuid())
+  employeeId  String?  @unique @map("employee_id") // null = global default
+  quotaDays   Int      @map("quota_days")
+  note        String?  @db.Text
+  createdBy   String?  @map("created_by")
+  updatedBy   String?  @map("updated_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  employee Employee? @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("libur_quota_configs")
+}
+
+model LiburRequest {
+  id           String    @id @default(uuid())
+  employeeId   String    @map("employee_id")
+  date         DateTime  @db.Date
+  targetPeriod String    @map("target_period") // 'YYYY-MM'
+  kind         String    @default("current") // 'current' | 'advance'
+  status       String    @default("pending") // 'pending' | 'approved' | 'rejected' | 'cancelled'
+  requestedBy  String    @map("requested_by") // User ID
+  decidedBy    String?   @map("decided_by")
+  decidedAt    DateTime? @map("decided_at")
+  rejectReason String?   @map("reject_reason") @db.Text
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId])
+  @@index([status])
+  @@index([targetPeriod])
+  @@map("libur_requests")
+}
+
+// ── Shift (work schedules + employee assignments) ──
+model Shift {
+  id               String   @id @default(uuid())
+  code             String   @unique
+  name             String
+  clockIn          String   @map("clock_in") // 'HH:MM'
+  clockOut         String   @map("clock_out") // 'HH:MM'
+  overnight        Boolean  @default(false)
+  lateToleranceMin Int      @default(15) @map("late_tolerance_min")
+  breakHours       Decimal? @map("break_hours") @db.Decimal(4, 2)
+  color            String?
+  isActive         Boolean  @default(true) @map("is_active")
+  deletedAt        DateTime? @map("deleted_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  assignments ShiftAssignment[]
+
+  @@map("shifts")
+}
+
+model ShiftAssignment {
+  id         String    @id @default(uuid())
+  employeeId String    @map("employee_id")
+  shiftId    String    @map("shift_id")
+  startDate  DateTime  @db.Date @map("start_date")
+  endDate    DateTime? @db.Date @map("end_date")
+  weekdays   Int[]     @map("weekdays") // 1=Mon..7=Sun
+  note       String?   @db.Text
+  createdBy  String?   @map("created_by")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  shift    Shift    @relation(fields: [shiftId], references: [id], onDelete: Restrict)
+
+  @@index([employeeId])
+  @@index([shiftId])
+  @@map("shift_assignments")
+}
+
 model Payroll {
   id              String    @id @default(uuid())
   employeeId      String    @map("employee_id")
@@ -2152,7 +2234,7 @@ model WorkingLocation {
 
   // Relations
   branch    Branch?    @relation(fields: [branchId], references: [id], onDelete: SetNull)
-  contracts Contract[]
+  contractWorkingLocations ContractWorkingLocation[]
 
   @@index([code])
   @@index([isActive])
@@ -2164,7 +2246,6 @@ model Contract {
   id                 String    @id @default(uuid())
   contractNumber     String    @unique @map("contract_number") // CTR-YYYYMM-XXXXXX
   employeeId         String    @map("employee_id")
-  workingLocationId  String?   @map("working_location_id")
   type               String // 'trial' | 'probation' | 'pkwt' | 'pkwtt'
   startDate          DateTime  @map("start_date") @db.Date
   endDate            DateTime? @map("end_date") @db.Date // null = permanent (PKWTT tetap)
@@ -2183,7 +2264,6 @@ model Contract {
 
   // Relations
   employee          Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  workingLocation   WorkingLocation? @relation(fields: [workingLocationId], references: [id], onDelete: SetNull)
   position          Position?        @relation(fields: [positionId], references: [id], onDelete: SetNull)
   grade             Grade?           @relation(fields: [gradeId], references: [id], onDelete: SetNull)
   division          Division?        @relation(fields: [divisionId], references: [id], onDelete: SetNull)
@@ -2191,6 +2271,7 @@ model Contract {
   previousContract  Contract?        @relation("ContractChain", fields: [previousContractId], references: [id], onDelete: SetNull)
   nextContracts     Contract[]       @relation("ContractChain")
   contractBranches  ContractBranch[]
+  contractWorkingLocations ContractWorkingLocation[]
 
   @@index([contractNumber])
   @@index([employeeId])
@@ -2215,6 +2296,24 @@ model ContractBranch {
   @@index([contractId])
   @@index([branchId])
   @@map("contract_branches")
+}
+
+// IGDERP-271: working locations are multi-select per contract (rule A ANY-match:
+// clock-in is valid within ANY assigned location radius — no primary concept).
+model ContractWorkingLocation {
+  id               String   @id @default(uuid())
+  contractId       String   @map("contract_id")
+  workingLocationId String  @map("working_location_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  // Relations
+  contract        Contract        @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  workingLocation WorkingLocation @relation(fields: [workingLocationId], references: [id], onDelete: Cascade)
+
+  @@unique([contractId, workingLocationId])
+  @@index([contractId])
+  @@index([workingLocationId])
+  @@map("contract_working_locations")
 }
 
 
@@ -2549,6 +2648,8 @@ model StockRequest {
   branchId      String   @map("branch_id") // outlet, plain ref (no FK)
   staffName     String   @map("staff_name") // ASA/CS display name as selected on intake
   staffUserId   String?  @map("staff_user_id") // resolved users.id (best effort, nullable)
+  requestType   String   @map("request_type") // EXIT (tidak jadi beli) | LIMIT (stok habis)
+  customerName  String?  @map("customer_name") // free-text nama, non-mandatory
   customerType  String   @map("customer_type") // USER | MEMBER
   memberId      String?  @map("member_id") // resolved customers.id on exact code match
   memberRef     String?  @map("member_ref") // free text typed on intake

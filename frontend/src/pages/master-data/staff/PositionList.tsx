@@ -184,7 +184,7 @@ export default function PositionList() {
       key: "rank",
       header: "Level",
       cell: (row) => (
-        <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border bg-purple-100 text-purple-800 border-purple-200">
+        <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-200 border-purple-200 dark:border-purple-800">
           L{row.rank}
         </span>
       ),
@@ -194,7 +194,7 @@ export default function PositionList() {
       header: "Grade",
       cell: (row) =>
         row.grade ? (
-          <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border bg-blue-100 text-blue-800 border-blue-200">
+          <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-800">
             G{row.grade.rank}
           </span>
         ) : (
@@ -232,7 +232,7 @@ export default function PositionList() {
       <BreadcrumbHeader title="Jabatan" subtitle="Master jabatan — pengganti position teks bebas">
         <Button
           onClick={openCreateModal}
-          className="flex items-center gap-2 bg-white text-primary-600 border border-gray-200 hover:bg-primary-50"
+          className="flex items-center gap-2 bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 border border-gray-200 dark:border-gray-700 hover:bg-primary-50 dark:hover:bg-primary-950"
         >
           <Plus className="w-5 h-5" />
           <span>Tambah Jabatan</span>
@@ -240,8 +240,8 @@ export default function PositionList() {
       </BreadcrumbHeader>
 
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
-          <p className="text-red-800 font-medium">{(error as Error).message || "Terjadi kesalahan"}</p>
+        <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
+          <p className="text-red-800 dark:text-red-200 font-medium">{(error as Error).message || "Terjadi kesalahan"}</p>
         </div>
       )}
 
@@ -318,7 +318,7 @@ export default function PositionList() {
                 setToDelete({ id: row.id, name: row.name });
                 setDeleteModalOpen(true);
               }}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-600 dark:hover:text-red-400"
             >
               <Trash2 className="h-4 w-4" />
             </button>
@@ -391,7 +391,7 @@ export default function PositionList() {
               <input
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
                 placeholder="mis. STAFF CASHIER 1"
                 required
               />
@@ -402,7 +402,7 @@ export default function PositionList() {
                 <select
                   value={formData.rank}
                   onChange={(e) => setFormData({ ...formData, rank: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
                 >
                   {[0, 1, 2, 3, 4, 5, 6].map((r) => (
                     <option key={r} value={String(r)}>
@@ -416,7 +416,7 @@ export default function PositionList() {
                 <select
                   value={formData.gradeId}
                   onChange={(e) => setFormData({ ...formData, gradeId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm disabled:bg-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm disabled:bg-gray-100 dark:disabled:bg-gray-800"
                   disabled={!isStaffRank}
                   required={isStaffRank}
                 >
@@ -435,7 +435,7 @@ export default function PositionList() {
                 <select
                   value={formData.divisionId}
                   onChange={(e) => setFormData({ ...formData, divisionId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
                 >
                   <option value="">— Tanpa divisi —</option>
                   {(divisions || []).map((d) => (
@@ -450,7 +450,7 @@ export default function PositionList() {
                 <select
                   value={formData.departmentId}
                   onChange={(e) => setFormData({ ...formData, departmentId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
                 >
                   <option value="">— Tanpa departemen —</option>
                   {(departments || []).map((d) => (
@@ -469,7 +469,7 @@ export default function PositionList() {
                   min={0}
                   value={formData.minSalary}
                   onChange={(e) => setFormData({ ...formData, minSalary: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
                   placeholder="mis. 3000000"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
@@ -481,7 +481,7 @@ export default function PositionList() {
                 <select
                   value={formData.defaultRoleId}
                   onChange={(e) => setFormData({ ...formData, defaultRoleId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
                 >
                   <option value="">— Tanpa role —</option>
                   {(roles || []).map((r) => (
@@ -512,9 +512,9 @@ export default function PositionList() {
           <DialogHeader>
             <DialogTitle>Nonaktifkan Jabatan</DialogTitle>
           </DialogHeader>
-          <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-lg p-3">
-            <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5" />
-            <p className="text-sm text-amber-800">
+          <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+            <p className="text-sm text-amber-800 dark:text-amber-200">
               Jabatan <b>{toDelete?.name}</b> akan dinonaktifkan. Jabatan yang masih dipakai karyawan
               tidak bisa dinonaktifkan — pindahkan dulu.
             </p>

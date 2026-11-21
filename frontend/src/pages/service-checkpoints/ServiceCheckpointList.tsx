@@ -150,7 +150,7 @@ export default function ServiceCheckpointList() {
     <div className="w-full space-y-3">
       <BreadcrumbHeader title="Manajemen Kelengkapan" subtitle="Kelola checklist kelengkapan untuk form servis">
         {hasPermission('service.checkpoint.create') && (
-          <Button onClick={openCreateModal} className="flex items-center gap-2 bg-white text-primary-600 border border-gray-200 hover:bg-primary-50">
+          <Button onClick={openCreateModal} className="flex items-center gap-2 bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 border border-gray-200 dark:border-gray-700 hover:bg-primary-50 dark:hover:bg-primary-950">
             <Plus className="w-5 h-5" />
             <span>Tambah Kelengkapan</span>
           </Button>
@@ -158,8 +158,8 @@ export default function ServiceCheckpointList() {
       </BreadcrumbHeader>
 
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
-          <p className="text-red-800 font-medium">{(error as Error).message || "Terjadi kesalahan"}</p>
+        <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
+          <p className="text-red-800 dark:text-red-200 font-medium">{(error as Error).message || "Terjadi kesalahan"}</p>
         </div>
       )}
 
@@ -224,7 +224,7 @@ export default function ServiceCheckpointList() {
                   setItemToDelete({ id: item.id, name: item.name });
                   setDeleteModalOpen(true);
                 }}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-600 dark:hover:text-red-400"
               >
                 <Trash2 className="h-4 w-4" />
               </button>
@@ -261,41 +261,41 @@ export default function ServiceCheckpointList() {
           </DialogHeader>
           <form onSubmit={handleFormSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nama Item <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Nama Item <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <input
                 type="text" required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="Contoh: Slot SIM, Speaker, LCD..."
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Urutan</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Urutan</label>
               <input
                 type="number" min="0"
                 value={formData.sortOrder}
                 onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) || 0 })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="0 (otomatis = urutan terakhir)"
               />
-              <p className="text-xs text-gray-400 mt-1">Kosongkan untuk urutan otomatis (terakhir).</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Kosongkan untuk urutan otomatis (terakhir).</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setFormData((prev) => ({ ...prev, isActive: !prev.isActive }))}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isActive ? 'bg-green-500' : 'bg-gray-300'}`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isActive ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}
                 >
                   <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.isActive ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
-                <span className="text-sm text-gray-600">{formData.isActive ? 'Aktif' : 'Tidak Aktif'}</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">{formData.isActive ? 'Aktif' : 'Tidak Aktif'}</span>
               </div>
-              <p className="text-xs text-gray-400 mt-1">Item aktif otomatis muncul di form Smart Repair.</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Item aktif otomatis muncul di form Smart Repair.</p>
             </div>
             <div className="flex gap-3 pt-2">
               <button
@@ -334,10 +334,10 @@ export default function ServiceCheckpointList() {
           <div className="space-y-4">
             <div className="flex items-start gap-3">
               <div className="flex-1">
-                <p className="text-sm text-gray-700 mb-2">
+                <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
                   Apakah Anda yakin ingin menghapus kelengkapan <strong>{itemToDelete?.name}</strong>?
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   Data akan dihapus permanen. Service order lama tetap menyimpan snapshot kelengkapan masing-masing.
                 </p>
               </div>

@@ -27,24 +27,24 @@ export function ChartCard({
   onRetry
 }: ChartCardProps) {
   return (
-    <div className={`bg-white rounded-lg shadow-md p-6 ${className}`}>
+    <div className={`bg-white dark:bg-gray-900 rounded-lg shadow-md p-6 ${className}`}>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-indonesia-red-700">{title}</h3>
+        <h3 className="text-lg font-bold text-indonesia-red-700 dark:text-indonesia-red-300">{title}</h3>
         {onExport && !isLoading && !error && !isEmpty && (
           <div className="flex gap-2">
             <button
               onClick={() => onExport('png')}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
               title="Ekspor PNG"
             >
-              <Download className="w-4 h-4 text-gray-600" />
+              <Download className="w-4 h-4 text-gray-600 dark:text-gray-400" />
             </button>
             <button
               onClick={() => onExport('csv')}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
               title="Ekspor CSV"
             >
-              <Download className="w-4 h-4 text-gray-600" />
+              <Download className="w-4 h-4 text-gray-600 dark:text-gray-400" />
             </button>
           </div>
         )}
@@ -52,7 +52,7 @@ export function ChartCard({
       <div className="w-full h-64">
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
-            <Loader2 className="w-8 h-8 text-indonesia-red-600 animate-spin" />
+            <Loader2 className="w-8 h-8 text-indonesia-red-600 dark:text-indonesia-red-400 animate-spin" />
           </div>
         ) : error ? (
           <ChartErrorState onRetry={onRetry} />

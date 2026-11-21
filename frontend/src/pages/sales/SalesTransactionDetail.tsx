@@ -66,7 +66,7 @@ export default function SalesTransactionDetail() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
+        <Loader2 className="w-8 h-8 text-primary-600 dark:text-primary-400 animate-spin" />
       </div>
     );
   }
@@ -74,7 +74,7 @@ export default function SalesTransactionDetail() {
   if (!transaction) {
     return (
       <div className="w-full text-center py-12">
-        <p className="text-gray-600 text-lg">Transaksi tidak ditemukan</p>
+        <p className="text-gray-600 dark:text-gray-400 text-lg">Transaksi tidak ditemukan</p>
         <Button
           variant="link"
           onClick={() => navigate('/sales/history')}
@@ -160,7 +160,7 @@ export default function SalesTransactionDetail() {
                     )}
                     {tx.serviceOrderId && (
                       <Link to={`/service-orders/${tx.serviceOrderId}`}>
-                        <Badge variant="secondary" className="cursor-pointer hover:bg-gray-100">
+                        <Badge variant="secondary" className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800">
                           Dari Service Order ↗
                         </Badge>
                       </Link>
@@ -187,24 +187,24 @@ export default function SalesTransactionDetail() {
 
       {/* Retur info (only for retur-status transactions) */}
       {tx.status === 'retur' && returInfo && (
-        <Card className="border-orange-200">
+        <Card className="border-orange-200 dark:border-orange-800">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg text-orange-700">
+            <CardTitle className="flex items-center gap-2 text-lg text-orange-700 dark:text-orange-300">
               <RotateCcw className="w-5 h-5" />
               Informasi Retur
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
+              <div className="p-3 bg-orange-50 dark:bg-orange-950 rounded-lg border border-orange-200 dark:border-orange-800">
                 <p className="text-xs text-muted-foreground mb-1">No. Retur</p>
                 <p className="text-sm font-semibold">{returInfo.returnNumber}</p>
               </div>
-              <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
+              <div className="p-3 bg-orange-50 dark:bg-orange-950 rounded-lg border border-orange-200 dark:border-orange-800">
                 <p className="text-xs text-muted-foreground mb-1">Tanggal Retur</p>
                 <p className="text-sm font-semibold">{formatDate(returInfo.createdAt)}</p>
               </div>
-              <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
+              <div className="p-3 bg-orange-50 dark:bg-orange-950 rounded-lg border border-orange-200 dark:border-orange-800">
                 <p className="text-xs text-muted-foreground mb-1">Penyelesaian</p>
                 <p className="text-sm font-semibold">
                   {returInfo.settlementType === 'cash'
@@ -214,13 +214,13 @@ export default function SalesTransactionDetail() {
                       : 'Deposit'}
                 </p>
               </div>
-              <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
+              <div className="p-3 bg-orange-50 dark:bg-orange-950 rounded-lg border border-orange-200 dark:border-orange-800">
                 <p className="text-xs text-muted-foreground mb-1">Akun (COA)</p>
                 <p className="text-sm font-semibold">
                   {returInfo.coa ? `${returInfo.coa.code} — ${returInfo.coa.name}` : '-'}
                 </p>
               </div>
-              <div className="md:col-span-2 p-3 bg-orange-50 rounded-lg border border-orange-200">
+              <div className="md:col-span-2 p-3 bg-orange-50 dark:bg-orange-950 rounded-lg border border-orange-200 dark:border-orange-800">
                 <p className="text-xs text-muted-foreground mb-1">Alasan Retur</p>
                 <p className="text-sm">{returInfo.reason}</p>
               </div>
@@ -236,33 +236,33 @@ export default function SalesTransactionDetail() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Receipt className="w-5 h-5 text-primary-600" />
+                <Receipt className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                 Informasi Transaksi
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700">
                   <p className="text-xs text-muted-foreground mb-1">Tanggal Transaksi</p>
                   <p className="text-sm font-semibold text-foreground flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-muted-foreground" />
                     {formatDate(tx.createdAt)}
                   </p>
                 </div>
-                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700">
                   <p className="text-xs text-muted-foreground mb-1">Jenis Transaksi</p>
                   <p className="text-sm font-semibold text-foreground">
                     {tx.transactionType === 'pos' ? 'POS' : tx.transactionType?.toUpperCase() || 'POS'}
                   </p>
                 </div>
-                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700">
                   <p className="text-xs text-muted-foreground mb-1">Cabang</p>
                   <p className="text-sm font-semibold text-foreground flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-muted-foreground" />
                     {branch.name || '--'}
                   </p>
                 </div>
-                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700">
                   <p className="text-xs text-muted-foreground mb-1">Kasir</p>
                   <p className="text-sm font-semibold text-foreground flex items-center gap-2">
                     <User className="w-4 h-4 text-muted-foreground" />
@@ -271,13 +271,13 @@ export default function SalesTransactionDetail() {
                 </div>
               </div>
               {tx.receiptNotes && (
-                <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
                   <p className="text-xs text-muted-foreground mb-1">Catatan Nota</p>
                   <p className="text-sm text-foreground">{tx.receiptNotes}</p>
                 </div>
               )}
               {tx.internalNotes && (
-                <div className="mt-4 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                <div className="mt-4 p-3 bg-purple-50 dark:bg-purple-950 rounded-lg border border-purple-200 dark:border-purple-800">
                   <p className="text-xs text-muted-foreground mb-1">Catatan Internal</p>
                   <p className="text-sm text-foreground">{tx.internalNotes}</p>
                 </div>
@@ -289,7 +289,7 @@ export default function SalesTransactionDetail() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <ShoppingCart className="w-5 h-5 text-primary-600" />
+                <ShoppingCart className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                 Daftar Item ({items.length})
               </CardTitle>
             </CardHeader>
@@ -349,7 +349,7 @@ export default function SalesTransactionDetail() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <DollarSign className="w-5 h-5 text-primary-600" />
+                <DollarSign className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                 Ringkasan Pembayaran
               </CardTitle>
             </CardHeader>
@@ -362,16 +362,16 @@ export default function SalesTransactionDetail() {
                 {discountAmount > 0 && (
                   <div className="flex justify-between items-center py-2 border-b border-border">
                     <span className="text-sm text-muted-foreground">Diskon</span>
-                    <span className="text-sm font-semibold text-red-600">- {formatCurrency(discountAmount)}</span>
+                    <span className="text-sm font-semibold text-red-600 dark:text-red-400">- {formatCurrency(discountAmount)}</span>
                   </div>
                 )}
                 <div className="flex justify-between items-center py-2 border-b border-border">
                   <span className="text-sm text-muted-foreground">Pajak ({Number(tx.taxPercentage || 11)}%)</span>
                   <span className="text-sm font-semibold text-foreground">{formatCurrency(taxAmount)}</span>
                 </div>
-                <div className="flex justify-between items-center py-3 bg-primary-50 rounded-lg px-4 mt-4">
+                <div className="flex justify-between items-center py-3 bg-primary-50 dark:bg-primary-950 rounded-lg px-4 mt-4">
                   <span className="text-base font-bold text-foreground">Total</span>
-                  <span className="text-lg font-bold text-primary-600">{formatCurrency(total)}</span>
+                  <span className="text-lg font-bold text-primary-600 dark:text-primary-400">{formatCurrency(total)}</span>
                 </div>
               </div>
             </CardContent>
@@ -384,7 +384,7 @@ export default function SalesTransactionDetail() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <User className="w-5 h-5 text-primary-600" />
+                <User className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                 Customer
               </CardTitle>
             </CardHeader>
@@ -415,7 +415,7 @@ export default function SalesTransactionDetail() {
                   )}
                   <Link
                     to={`/customers/${customer.id}`}
-                    className="block mt-4 text-center px-4 py-2 bg-primary-50 text-primary-600 rounded-lg hover:bg-primary-100 transition-colors text-sm font-medium"
+                    className="block mt-4 text-center px-4 py-2 bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-950 transition-colors text-sm font-medium"
                   >
                     Lihat Detail Customer
                   </Link>
@@ -431,7 +431,7 @@ export default function SalesTransactionDetail() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  <CreditCard className="w-5 h-5 text-primary-600" />
+                  <CreditCard className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                   Pembayaran
                 </CardTitle>
               </CardHeader>
@@ -447,7 +447,7 @@ export default function SalesTransactionDetail() {
                       </div>
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-xs text-muted-foreground">Jumlah</span>
-                        <span className="text-sm font-bold text-primary-600">
+                        <span className="text-sm font-bold text-primary-600 dark:text-primary-400">
                           {formatCurrency(Number(payment.amount || 0))}
                         </span>
                       </div>
@@ -473,19 +473,19 @@ export default function SalesTransactionDetail() {
 
           {/* Return Detail (voided/cancelled transaction) */}
           {(tx.status === 'void' || tx.status === 'cancelled') && (
-            <Card className="border-red-200">
+            <Card className="border-red-200 dark:border-red-800">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg text-red-600">
+                <CardTitle className="flex items-center gap-2 text-lg text-red-600 dark:text-red-400">
                   <RotateCcw className="w-5 h-5" />
                   Detail Retur
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+                  <div className="p-3 bg-red-50 dark:bg-red-950 rounded-lg border border-red-200 dark:border-red-800">
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-xs text-muted-foreground">Status</span>
-                      <span className="text-sm font-semibold text-red-600">
+                      <span className="text-sm font-semibold text-red-600 dark:text-red-400">
                         {tx.status === 'void' ? 'Dibatalkan (Void)' : 'Dibatalkan'}
                       </span>
                     </div>
@@ -503,9 +503,9 @@ export default function SalesTransactionDetail() {
                     )}
                   </div>
                   {payments.some((p: any) => p.paymentMethod === 'deposit') && (
-                    <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
                       <p className="text-xs text-muted-foreground mb-1">Metode Refund</p>
-                      <p className="text-sm font-semibold text-blue-700">
+                      <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">
                         Deposit (Saldo) — {formatCurrency(
                           payments
                             .filter((p: any) => p.paymentMethod === 'deposit')

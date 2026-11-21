@@ -34,6 +34,7 @@ describe('StockRequestsService', () => {
   });
   const dto = (overrides: any = {}) => ({
     staffName: 'Aldi',
+    requestType: 'LIMIT',
     customerType: 'USER',
     items: [existItem()],
     ...overrides,
@@ -177,6 +178,69 @@ describe('StockRequestsService', () => {
       );
       expect(res.memberId).toBe('cust-1');
       expect(res.memberRef).toBe('MBR-001');
+    });
+
+    it('rejects missing requestType', async () => {
+      mockBranchOk();
+      await expect(
+        service.createIntake('tok', dto({ requestType: undefined })),
+      ).rejects.toThrow(/requestType must be EXIT or LIMIT/);
+      expect(prisma.stockRequest.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects invalid requestType', async () => {
+      mockBranchOk();
+      await expect(
+        service.createIntake('tok', dto({ requestType: 'URGENT' })),
+      ).rejects.toThrow(/requestType must be EXIT or LIMIT/);
+      expect(prisma.stockRequest.create).not.toHaveBeenCalled();
+    });
+
+    it('persists requestType EXIT + free-text customerName without picker', async () => {
+      mockBranchOk();
+      prisma.user.findFirst.mockResolvedValue(null);
+      prisma.product.findUnique.mockResolvedValue(product);
+      prisma.stockRequest.findUnique.mockResolvedValue(null);
+      prisma.stockRequest.create.mockImplementation(async ({ data }: any) => ({ id: 'r', ...data }));
+      const res: any = await service.createIntake(
+        'tok',
+        dto({ requestType: 'EXIT', customerType: undefined, customerName: '  Budi  ' }),
+      );
+      expect(res.requestType).toBe('EXIT');
+      expect(res.customerName).toBe('Budi');
+      expect(res.memberRef).toBe('Budi');
+      expect(res.memberId).toBeNull();
+    });
+
+    it('allows empty nama (non-mandatory) when no customer info given', async () => {
+      mockBranchOk();
+      prisma.user.findFirst.mockResolvedValue(null);
+      prisma.product.findUnique.mockResolvedValue(product);
+      prisma.stockRequest.findUnique.mockResolvedValue(null);
+      prisma.stockRequest.create.mockImplementation(async ({ data }: any) => ({ id: 'r', ...data }));
+      const res: any = await service.createIntake(
+        'tok',
+        dto({ customerType: undefined, memberRef: undefined, customerName: undefined }),
+      );
+      expect(res.requestType).toBe('LIMIT');
+      expect(res.customerName).toBeNull();
+      expect(res.memberId).toBeNull();
+    });
+
+    it('snapshots customerName from picker customer', async () => {
+      mockBranchOk();
+      prisma.user.findFirst.mockResolvedValue(null);
+      prisma.product.findUnique.mockResolvedValue(product);
+      prisma.customer.findUnique.mockResolvedValue({ id: 'cust-9', name: 'Siti', isActive: true });
+      prisma.stockRequest.findUnique.mockResolvedValue(null);
+      prisma.stockRequest.create.mockImplementation(async ({ data }: any) => ({ id: 'r', ...data }));
+      const res: any = await service.createIntake(
+        'tok',
+        dto({ customerType: undefined, customerId: 'cust-9' }),
+      );
+      expect(res.requestType).toBe('LIMIT');
+      expect(res.customerName).toBe('Siti');
+      expect(res.memberId).toBe('cust-9');
     });
   });
 

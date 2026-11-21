@@ -74,21 +74,21 @@ export function DateRangePicker({ onRangeChange, defaultRange = 'today' }: DateR
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indonesia-red-500"
+        className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-indonesia-red-500"
       >
-        <Calendar className="w-4 h-4 text-gray-500" />
+        <Calendar className="w-4 h-4 text-gray-500 dark:text-gray-400" />
         <span className="text-sm font-medium">{displayText}</span>
-        <ChevronDown className="w-4 h-4 text-gray-500" />
+        <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
       </button>
 
       {isOpen && (
         <>
-          <div className="absolute top-full left-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 z-50 min-w-[280px]">
+          <div className="absolute top-full left-0 mt-2 bg-white dark:bg-gray-900 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 min-w-[280px]">
             <div className="p-2">
               <button
                 onClick={() => handlePresetSelect('today')}
                 className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 text-sm ${
-                  selectedPreset === 'today' ? 'bg-indonesia-red-50 text-indonesia-red-700' : ''
+                  selectedPreset === 'today' ? 'bg-indonesia-red-50 dark:bg-indonesia-red-950 text-indonesia-red-700 dark:text-indonesia-red-300' : ''
                 }`}
               >
                 Hari Ini
@@ -96,7 +96,7 @@ export function DateRangePicker({ onRangeChange, defaultRange = 'today' }: DateR
               <button
                 onClick={() => handlePresetSelect('yesterday')}
                 className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 text-sm ${
-                  selectedPreset === 'yesterday' ? 'bg-indonesia-red-50 text-indonesia-red-700' : ''
+                  selectedPreset === 'yesterday' ? 'bg-indonesia-red-50 dark:bg-indonesia-red-950 text-indonesia-red-700 dark:text-indonesia-red-300' : ''
                 }`}
               >
                 Kemarin
@@ -104,7 +104,7 @@ export function DateRangePicker({ onRangeChange, defaultRange = 'today' }: DateR
               <button
                 onClick={() => handlePresetSelect('last7days')}
                 className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 text-sm ${
-                  selectedPreset === 'last7days' ? 'bg-indonesia-red-50 text-indonesia-red-700' : ''
+                  selectedPreset === 'last7days' ? 'bg-indonesia-red-50 dark:bg-indonesia-red-950 text-indonesia-red-700 dark:text-indonesia-red-300' : ''
                 }`}
               >
                 7 Hari Terakhir
@@ -112,7 +112,7 @@ export function DateRangePicker({ onRangeChange, defaultRange = 'today' }: DateR
               <button
                 onClick={() => handlePresetSelect('last30days')}
                 className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 text-sm ${
-                  selectedPreset === 'last30days' ? 'bg-indonesia-red-50 text-indonesia-red-700' : ''
+                  selectedPreset === 'last30days' ? 'bg-indonesia-red-50 dark:bg-indonesia-red-950 text-indonesia-red-700 dark:text-indonesia-red-300' : ''
                 }`}
               >
                 30 Hari Terakhir
@@ -120,7 +120,7 @@ export function DateRangePicker({ onRangeChange, defaultRange = 'today' }: DateR
               <button
                 onClick={() => handlePresetSelect('thisMonth')}
                 className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 text-sm ${
-                  selectedPreset === 'thisMonth' ? 'bg-indonesia-red-50 text-indonesia-red-700' : ''
+                  selectedPreset === 'thisMonth' ? 'bg-indonesia-red-50 dark:bg-indonesia-red-950 text-indonesia-red-700 dark:text-indonesia-red-300' : ''
                 }`}
               >
                 Bulan Ini
@@ -128,7 +128,7 @@ export function DateRangePicker({ onRangeChange, defaultRange = 'today' }: DateR
               <button
                 onClick={() => handlePresetSelect('lastMonth')}
                 className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 text-sm ${
-                  selectedPreset === 'lastMonth' ? 'bg-indonesia-red-50 text-indonesia-red-700' : ''
+                  selectedPreset === 'lastMonth' ? 'bg-indonesia-red-50 dark:bg-indonesia-red-950 text-indonesia-red-700 dark:text-indonesia-red-300' : ''
                 }`}
               >
                 Bulan Lalu
@@ -136,7 +136,7 @@ export function DateRangePicker({ onRangeChange, defaultRange = 'today' }: DateR
               <button
                 onClick={() => handlePresetSelect('custom')}
                 className={`w-full text-left px-3 py-2 rounded hover:bg-gray-100 text-sm ${
-                  selectedPreset === 'custom' ? 'bg-indonesia-red-50 text-indonesia-red-700' : ''
+                  selectedPreset === 'custom' ? 'bg-indonesia-red-50 dark:bg-indonesia-red-950 text-indonesia-red-700 dark:text-indonesia-red-300' : ''
                 }`}
               >
                 Kustom
@@ -144,28 +144,28 @@ export function DateRangePicker({ onRangeChange, defaultRange = 'today' }: DateR
             </div>
 
             {selectedPreset === 'custom' && (
-              <div className="p-4 border-t border-gray-200">
+              <div className="p-4 border-t border-gray-200 dark:border-gray-700">
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Tanggal Mulai
                     </label>
                     <input
                       type="date"
                       value={customStart}
                       onChange={(e) => setCustomStart(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indonesia-red-500"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indonesia-red-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Tanggal Akhir
                     </label>
                     <input
                       type="date"
                       value={customEnd}
                       onChange={(e) => setCustomEnd(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indonesia-red-500"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indonesia-red-500"
                     />
                   </div>
                   <button

@@ -62,7 +62,7 @@ export default function LabelPrintSheet() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-100 print:bg-white">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-800 print:bg-white">
       <style>{`${pageRule}
         @media print {
           .no-print { display: none !important; }
@@ -71,12 +71,12 @@ export default function LabelPrintSheet() {
         .label-qr svg { width: 100%; height: 100%; }
       `}</style>
 
-      <div className="no-print sticky top-0 z-10 bg-white border-b px-6 py-3 flex items-center justify-between">
+      <div className="no-print sticky top-0 z-10 bg-white dark:bg-gray-900 border-b px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Printer className="w-5 h-5 text-gray-500" />
+          <Printer className="w-5 h-5 text-gray-500 dark:text-gray-400" />
           <div>
             <div className="font-semibold">Cetak Label</div>
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-gray-500 dark:text-gray-400">
               {jobs.length} job · {flatLabels.length} label
               {settings ? ` · ${settings.paperType === 'A4' ? `${settings.columns} kolom (A4)` : 'thermal'}` : ''}
             </div>
@@ -107,10 +107,10 @@ export default function LabelPrintSheet() {
 
       {isLoading ? (
         <div className="flex justify-center py-24">
-          <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+          <Loader2 className="w-6 h-6 animate-spin text-gray-400 dark:text-gray-500" />
         </div>
       ) : flatLabels.length === 0 ? (
-        <div className="text-center py-24 text-gray-500">Tidak ada label untuk dicetak.</div>
+        <div className="text-center py-24 text-gray-500 dark:text-gray-400">Tidak ada label untuk dicetak.</div>
       ) : (
         <div className="p-6 print:p-0">
           <div

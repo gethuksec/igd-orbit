@@ -47,17 +47,17 @@ const GR_HISTORY_STATUSES = ['approved', 'rejected', 'cancelled'];
 const PO_HISTORY_STATUSES = ['approved', 'ordered', 'received', 'rejected', 'cancelled'];
 
 const GR_HISTORY_BADGE: Record<string, { label: string; className: string }> = {
-  approved: { label: 'Disetujui', className: 'bg-emerald-100 text-emerald-800 border-emerald-300' },
+  approved: { label: 'Disetujui', className: 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700' },
   rejected: { label: 'Ditolak', className: 'bg-red-900 text-white border-red-900' },
-  cancelled: { label: 'Dibatalkan', className: 'bg-slate-200 text-slate-700 border-slate-300' },
+  cancelled: { label: 'Dibatalkan', className: 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-300' },
 };
 
 const PO_HISTORY_BADGE: Record<string, { label: string; className: string }> = {
-  approved: { label: 'Disetujui', className: 'bg-emerald-100 text-emerald-800 border-emerald-300' },
-  ordered: { label: 'Dipesan', className: 'bg-blue-100 text-blue-800 border-blue-300' },
-  received: { label: 'Diterima', className: 'bg-teal-100 text-teal-800 border-teal-300' },
+  approved: { label: 'Disetujui', className: 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700' },
+  ordered: { label: 'Dipesan', className: 'bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-700' },
+  received: { label: 'Diterima', className: 'bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-200 border-teal-300 dark:border-teal-700' },
   rejected: { label: 'Ditolak', className: 'bg-red-900 text-white border-red-900' },
-  cancelled: { label: 'Dibatalkan', className: 'bg-slate-200 text-slate-700 border-slate-300' },
+  cancelled: { label: 'Dibatalkan', className: 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-300' },
 };
 
 /** Approval tier per PO amount: <5M CSO, 5M-50M CSO+CFO, >50M CSO+CFO+OWNER. */
@@ -406,7 +406,7 @@ export default function ApprovalSettingsPage() {
                     >
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800">
+                          <Badge variant="outline" className="border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 text-amber-800 dark:text-amber-200">
                             {gr.grNumber}
                           </Badge>
                           <span className="font-semibold">{productName}</span>
@@ -472,7 +472,7 @@ export default function ApprovalSettingsPage() {
                   >
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="outline" className="border-blue-300 bg-blue-50 text-blue-800">
+                        <Badge variant="outline" className="border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950 text-blue-800 dark:text-blue-200">
                           {po.poNumber}
                         </Badge>
                         <span className="font-semibold">{po.supplier?.name || '-'}</span>
@@ -524,7 +524,7 @@ export default function ApprovalSettingsPage() {
                     {grHistory.map((gr: any) => {
                       const badge = GR_HISTORY_BADGE[gr.status] || {
                         label: gr.status,
-                        className: 'bg-slate-200 text-slate-700 border-slate-300',
+                        className: 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-300',
                       };
                       const { productName } = grMainLine(gr);
                       return (
@@ -565,7 +565,7 @@ export default function ApprovalSettingsPage() {
                     {poHistory.map((po: any) => {
                       const badge = PO_HISTORY_BADGE[po.status] || {
                         label: po.status,
-                        className: 'bg-slate-200 text-slate-700 border-slate-300',
+                        className: 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-300',
                       };
                       return (
                         <div

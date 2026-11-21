@@ -82,55 +82,55 @@ export default function LowStockAlerts() {
 
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
-          <p className="text-red-800 font-medium">{(error as Error).message || 'Terjadi kesalahan'}</p>
+        <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
+          <p className="text-red-800 dark:text-red-200 font-medium">{(error as Error).message || 'Terjadi kesalahan'}</p>
         </div>
       )}
 
       {/* Stats */}
       {alerts && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-600">Total Alert</span>
-              <AlertTriangle className="w-5 h-5 text-red-600" />
+              <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Alert</span>
+              <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
             </div>
-            <h3 className="text-3xl font-bold text-gray-900">{alerts.totalAlerts || 0}</h3>
-            <p className="text-xs text-gray-500 mt-1">Produk perlu restock</p>
+            <h3 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{alerts.totalAlerts || 0}</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Produk perlu restock</p>
           </div>
-          <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-600">Total Cabang</span>
-              <Warehouse className="w-5 h-5 text-blue-600" />
+              <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Cabang</span>
+              <Warehouse className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
-            <h3 className="text-3xl font-bold text-gray-900">
+            <h3 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
               {Object.keys(alerts.byBranch || {}).length}
             </h3>
-            <p className="text-xs text-gray-500 mt-1">Cabang terpengaruh</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Cabang terpengaruh</p>
           </div>
-          <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-600">Total Estimasi Biaya</span>
-              <DollarSign className="w-5 h-5 text-green-600" />
+              <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Estimasi Biaya</span>
+              <DollarSign className="w-5 h-5 text-green-600 dark:text-green-400" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-900">
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               {formatCurrency(
                 alerts.items?.reduce((sum: number, item: any) => sum + (item.estimatedCost || 0), 0) || 0,
               )}
             </h3>
-            <p className="text-xs text-gray-500 mt-1">Untuk restock semua</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Untuk restock semua</p>
           </div>
         </div>
       )}
 
       {/* Branch Filter */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-4">
         <div className="flex items-center gap-4">
-          <label className="text-sm font-medium text-gray-700">Filter Cabang:</label>
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter Cabang:</label>
           <select
             value={selectedBranch}
             onChange={(e) => setSelectedBranch(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
           >
             <option value="ALL">Semua Cabang</option>
             {branches?.map((branch: any) => (
@@ -144,71 +144,71 @@ export default function LowStockAlerts() {
 
       {/* Alerts by Branch */}
       {isLoading ? (
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-16 text-center">
-          <Loader2 className="w-16 h-16 text-primary-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600 font-semibold text-lg">Memuat data peringatan...</p>
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-16 text-center">
+          <Loader2 className="w-16 h-16 text-primary-600 dark:text-primary-400 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600 dark:text-gray-400 font-semibold text-lg">Memuat data peringatan...</p>
         </div>
       ) : alerts && alerts.items && alerts.items.length > 0 ? (
         Object.entries(alerts.byBranch || {}).map(([branchName, items]: [string, any]) => (
-          <div key={branchName} className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <Warehouse className="w-5 h-5 text-primary-600" />
+          <div key={branchName} className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+              <Warehouse className="w-5 h-5 text-primary-600 dark:text-primary-400" />
               {branchName} ({items.length} item)
             </h2>
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+                <thead className="bg-gradient-to-r from-gray-50 dark:from-gray-900 to-gray-100 dark:to-gray-800 border-b border-gray-200 dark:border-gray-700">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Produk</th>
-                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Produk</th>
+                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">
                       Stok Tersedia
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">
+                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">
                       Reorder Point
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">
+                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">
                       Saran Order
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">
+                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">
                       Estimasi Biaya
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-700 uppercase">Aksi</th>
+                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Aksi</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                   {items.map((item: any) => (
-                    <tr key={item.id} className="hover:bg-gray-50">
+                    <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <AlertTriangle className="w-4 h-4 text-red-600" />
+                          <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
                           <div>
-                            <div className="text-sm font-medium text-gray-900">
+                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                               {item.product?.name || '-'}
                             </div>
-                            <div className="text-xs text-gray-500">SKU: {item.product?.sku || '-'}</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">SKU: {item.product?.sku || '-'}</div>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <div className="text-sm font-semibold text-red-600">{item.quantityAvailable}</div>
+                        <div className="text-sm font-semibold text-red-600 dark:text-red-400">{item.quantityAvailable}</div>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <div className="text-sm font-semibold text-gray-900">{item.reorderPoint}</div>
+                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{item.reorderPoint}</div>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <div className="text-sm font-semibold text-blue-600">
+                        <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
                           {item.suggestedOrderQuantity}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <div className="text-sm font-semibold text-gray-900">
+                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                           {formatCurrency(item.estimatedCost || 0)}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-center">
                         <Link
                           to={`/products/${item.productId}`}
-                          className="text-sm text-primary-600 hover:text-primary-700 hover:underline"
+                          className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 hover:underline"
                         >
                           Lihat Produk
                         </Link>
@@ -221,13 +221,13 @@ export default function LowStockAlerts() {
           </div>
         ))
       ) : (
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 p-16 text-center">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-16 text-center">
           <div className="flex flex-col items-center gap-4">
-            <div className="p-4 bg-green-100 rounded-full">
-              <CheckCircle className="w-16 h-16 text-green-600" />
+            <div className="p-4 bg-green-100 dark:bg-green-950 rounded-full">
+              <CheckCircle className="w-16 h-16 text-green-600 dark:text-green-400" />
             </div>
-            <p className="text-gray-600 font-semibold text-lg">Tidak ada peringatan stok rendah</p>
-            <p className="text-sm text-gray-500">Semua produk memiliki stok yang cukup</p>
+            <p className="text-gray-600 dark:text-gray-400 font-semibold text-lg">Tidak ada peringatan stok rendah</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Semua produk memiliki stok yang cukup</p>
           </div>
         </div>
       )}

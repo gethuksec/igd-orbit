@@ -509,7 +509,7 @@ export default function GoodsReceiptForm() {
                           <span
                             className={
                               overRemaining
-                                ? 'text-red-600 font-semibold'
+                                ? 'text-red-600 dark:text-red-400 font-semibold'
                                 : ''
                             }
                           >
@@ -545,7 +545,7 @@ export default function GoodsReceiptForm() {
                         />
                         <div className="h-4">
                           {overRemaining && (
-                            <p className="text-xs text-red-600">Melebihi sisa PO</p>
+                            <p className="text-xs text-red-600 dark:text-red-400">Melebihi sisa PO</p>
                           )}
                         </div>
                       </TableCell>

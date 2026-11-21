@@ -19,6 +19,7 @@ import {
   ServiceDashboard,
 } from './pages/dashboard';
 import { InstallPrompt } from './components/InstallPrompt';
+import { useThemeStore } from './stores/themeStore';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { initAnalytics } from './utils/analytics';
 // Master Data
@@ -163,6 +164,10 @@ import ContractList from './pages/hr/contracts/ContractList';
 import LeaveList from './pages/hr/leave/LeaveList';
 import LeaveDetail from './pages/hr/leave/LeaveDetail';
 import LeaveRequestForm from './pages/hr/leave/LeaveRequestForm';
+import LiburQuotaPage from './pages/hr/libur/LiburQuotaPage';
+import LiburRequestPage from './pages/hr/libur/LiburRequestPage';
+import ShiftingPage from './pages/hr/shifting/ShiftingPage';
+import ShiftMasterPage from './pages/master-data/staff/ShiftMasterPage';
 import PayrollList from './pages/hr/payroll/PayrollList';
 import PayrollDetail from './pages/hr/payroll/PayrollDetail';
 import PayrollCalculationForm from './pages/hr/payroll/PayrollCalculationForm';
@@ -190,6 +195,7 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  const resolvedTheme = useThemeStore((s) => s.resolved);
   useEffect(() => {
     // Initialize Google Analytics if measurement ID is provided
     const gaId = import.meta.env.VITE_GA_MEASUREMENT_ID;
@@ -538,14 +544,13 @@ function App() {
             <Route path="/customer-types/:id" element={<ProtectedRoute><DashboardLayout><CustomerTypeDetail /></DashboardLayout></ProtectedRoute>} />
             <Route path="/customer-types/:id/edit" element={<ProtectedRoute><DashboardLayout><CustomerTypeForm /></DashboardLayout></ProtectedRoute>} />
 
-            {/* Master Data - Staff (HR masters, IGDERP-261) */}
-            <Route path="/master-data/staff/cuti" element={<ProtectedRoute><DashboardLayout><LeaveTypeList /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/master-data/staff/denda" element={<ProtectedRoute><DashboardLayout><PenaltyTypeList /></DashboardLayout></ProtectedRoute>} />
-            {/* Master Data - Staff (org masters, IGDERP-277) */}
-            <Route path="/master-data/staff/divisi" element={<ProtectedRoute><DashboardLayout><DivisionList /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/master-data/staff/grade" element={<ProtectedRoute><DashboardLayout><GradeList /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/master-data/staff/jabatan" element={<ProtectedRoute><DashboardLayout><PositionList /></DashboardLayout></ProtectedRoute>} />
-            <Route path="/master-data/staff/working-location" element={<ProtectedRoute><DashboardLayout><WorkingLocationList /></DashboardLayout></ProtectedRoute>} />
+            {/* Master Data - Staff (HR masters, under Staff > Master Data) + Libur/Shift */}
+            <Route path="/hr/master-data/cuti" element={<ProtectedRoute><DashboardLayout><LeaveTypeList /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/hr/master-data/denda" element={<ProtectedRoute><DashboardLayout><PenaltyTypeList /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/hr/master-data/grade" element={<ProtectedRoute><DashboardLayout><GradeList /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/hr/master-data/jabatan" element={<ProtectedRoute><DashboardLayout><PositionList /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/hr/master-data/working-location" element={<ProtectedRoute><DashboardLayout><WorkingLocationList /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/hr/master-data/shift" element={<ProtectedRoute><DashboardLayout><ShiftMasterPage /></DashboardLayout></ProtectedRoute>} />
 
             {/* Master Data - Payment Terms */}
             <Route path="/payment-terms" element={<ProtectedRoute><DashboardLayout><PaymentTermList /></DashboardLayout></ProtectedRoute>} />
@@ -1727,6 +1732,36 @@ function App() {
               }
             />
             <Route
+              path="/hr/libur"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <LiburQuotaPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr/libur/pengajuan"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <LiburRequestPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr/shifting"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <ShiftingPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/hr/contracts"
               element={
                 <ProtectedRoute>
@@ -1928,7 +1963,7 @@ function App() {
           </Routes>
           <InstallPrompt />
         </BrowserRouter>
-        <Toaster position="top-right" />
+        <Toaster position="top-right" theme={resolvedTheme} />
       </QueryClientProvider>
     </HelmetProvider>
   );

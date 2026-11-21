@@ -122,8 +122,8 @@ export default function OpnameApproverCard() {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-bold text-gray-900">Stock Opname Approver</h2>
-        <p className="text-sm text-gray-500">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Stock Opname Approver</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
           Approver default sesi opname baru + override per outlet. Approval ditolak (403) untuk
           selain approver yang ditetapkan (kecuali OWNER/SUPERADMIN).
         </p>
@@ -131,19 +131,19 @@ export default function OpnameApproverCard() {
 
       {isLoading ? (
         <div className="flex justify-center py-6">
-          <Loader2 className="w-6 h-6 text-primary-600 animate-spin" />
+          <Loader2 className="w-6 h-6 text-primary-600 dark:text-primary-400 animate-spin" />
         </div>
       ) : (
         <>
           <div className="flex flex-wrap items-end gap-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Peran approver default (headstore)
               </label>
               <select
                 value={effectiveRole}
                 onChange={(e) => setRoleDraft(e.target.value)}
-                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-primary-500"
+                className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm outline-none focus:border-primary-500"
               >
                 {roleOptions.map((r) => (
                   <option key={r} value={r}>
@@ -162,18 +162,18 @@ export default function OpnameApproverCard() {
             </Button>
           </div>
 
-          <div className="border-t border-gray-100 pt-4">
-            <h3 className="text-sm font-bold text-gray-900 mb-2">Override per outlet</h3>
+          <div className="border-t border-gray-100 dark:border-gray-800 pt-4">
+            <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-2">Override per outlet</h3>
             <div className="flex flex-wrap items-end gap-2">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Outlet</label>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Outlet</label>
                 <select
                   value={overrideOutlet}
                   onChange={(e) => {
                     setOverrideOutlet(e.target.value);
                     setOverrideUser('');
                   }}
-                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-primary-500"
+                  className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm outline-none focus:border-primary-500"
                 >
                   <option value="">Pilih outlet</option>
                   {branches.map((b: any) => (
@@ -184,12 +184,12 @@ export default function OpnameApproverCard() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Approver</label>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Approver</label>
                 <select
                   value={overrideUser}
                   onChange={(e) => setOverrideUser(e.target.value)}
                   disabled={!overrideOutlet}
-                  className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-primary-500 disabled:bg-gray-50 disabled:text-gray-400"
+                  className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm outline-none focus:border-primary-500 disabled:bg-gray-50 dark:disabled:bg-gray-950 disabled:text-gray-400 dark:disabled:text-gray-500"
                 >
                   <option value="">
                     {overrideOutlet ? 'Pilih pengguna outlet ini' : 'Pilih outlet dulu'}
@@ -220,7 +220,7 @@ export default function OpnameApproverCard() {
                 {(setting?.overrides ?? []).map((o: any) => (
                   <div
                     key={o.outletId}
-                    className="flex items-center justify-between gap-2 rounded-lg bg-gray-50 border border-gray-200 px-3 py-2 text-sm"
+                    className="flex items-center justify-between gap-2 rounded-lg bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm"
                   >
                     <span>
                       <b>{outletName(o.outletId)}</b> → {userName(o.userId)}
@@ -228,7 +228,7 @@ export default function OpnameApproverCard() {
                     <button
                       onClick={() => clearOverride.mutate(o.outletId)}
                       disabled={clearOverride.isPending}
-                      className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                      className="rounded p-1 text-gray-400 dark:text-gray-500 hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-50"
                       title="Hapus override (kembali ke default)"
                     >
                       <Trash2 className="w-4 h-4" />

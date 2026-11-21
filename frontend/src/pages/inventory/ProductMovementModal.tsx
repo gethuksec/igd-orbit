@@ -24,25 +24,25 @@ function typeBadge(type: string) {
   switch (type) {
     case 'IN':
       return (
-        <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700">
+        <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 dark:text-green-300">
           <ArrowUp className="w-3 h-3" /> Masuk
         </span>
       );
     case 'OUT':
       return (
-        <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-700">
+        <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-700 dark:text-red-300">
           <ArrowDown className="w-3 h-3" /> Keluar
         </span>
       );
     case 'TRANSFER':
       return (
-        <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700">
+        <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 dark:text-blue-300">
           <ArrowRightLeft className="w-3 h-3" /> Transfer
         </span>
       );
     default:
       return (
-        <span className="inline-flex items-center gap-1 text-xs font-semibold text-yellow-700">
+        <span className="inline-flex items-center gap-1 text-xs font-semibold text-yellow-700 dark:text-yellow-300">
           <Package className="w-3 h-3" /> {type}
         </span>
       );
@@ -159,9 +159,9 @@ export default function ProductMovementModal({ product, open, onClose }: Props) 
               Tidak ada pergerakan untuk filter ini.
             </div>
           ) : (
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead className="sticky top-0 bg-white">
-                <tr className="text-left text-xs uppercase tracking-wider text-gray-500">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+              <thead className="sticky top-0 bg-white dark:bg-gray-900">
+                <tr className="text-left text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
                   <th className="py-2 pr-2">Tanggal</th>
                   <th className="py-2 pr-2">Tipe</th>
                   {/* IGDERP-194: warehouse column (backend already includes it) */}
@@ -172,7 +172,7 @@ export default function ProductMovementModal({ product, open, onClose }: Props) 
                   <th className="py-2">Keterangan</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {movements.map((m: any) => (
                   <tr key={m.id}>
                     <td className="py-2 pr-2 whitespace-nowrap text-xs">
@@ -190,7 +190,7 @@ export default function ProductMovementModal({ product, open, onClose }: Props) 
                     <td className="py-2 pr-2 text-right">{m.quantityBefore ?? '-'}</td>
                     <td
                       className={`py-2 pr-2 text-right font-semibold ${
-                        Number(m.quantityChange) < 0 ? 'text-red-600' : 'text-green-600'
+                        Number(m.quantityChange) < 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
                       }`}
                     >
                       {Number(m.quantityChange) > 0 ? '+' : ''}

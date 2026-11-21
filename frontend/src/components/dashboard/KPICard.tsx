@@ -23,7 +23,7 @@ export function KPICard({
   changeType = 'neutral',
   sparklineData,
   icon: Icon,
-  iconColor = 'text-indonesia-red-600',
+  iconColor = 'text-indonesia-red-600 dark:text-indonesia-red-400',
   gradient,
   textColor,
   border,
@@ -35,26 +35,26 @@ export function KPICard({
 
   const changeColor =
     changeType === 'positive'
-      ? 'text-success-600'
+      ? 'text-success-600 dark:text-emerald-400'
       : changeType === 'negative'
-        ? 'text-danger-600'
-        : 'text-gray-600';
+        ? 'text-danger-600 dark:text-red-400'
+        : 'text-gray-600 dark:text-gray-400';
 
   return (
     <div
-      className={`bg-white rounded-lg shadow-md p-4 ${border || ''} ${
+      className={`bg-white dark:bg-gray-900 rounded-lg shadow-md p-4 ${border || ''} ${
         gradient ? `bg-gradient-to-br ${gradient} text-white` : ''
       }`}
     >
       <div className="flex items-center justify-between mb-4">
-        <h3 className={`text-sm font-medium ${textColor || 'text-gray-600'}`}>{title}</h3>
+        <h3 className={`text-sm font-medium ${textColor || 'text-gray-600 dark:text-gray-400'}`}>{title}</h3>
         {Icon && (
-          <div className={`p-2 rounded-lg ${gradient ? 'bg-white/20' : 'bg-indonesia-red-50'}`}>
+          <div className={`p-2 rounded-lg ${gradient ? 'bg-white/20' : 'bg-indonesia-red-50 dark:bg-indonesia-red-950'}`}>
             <Icon className={`w-5 h-5 ${iconColor}`} />
           </div>
         )}
       </div>
-      <p className={`text-3xl font-bold mb-2 ${textColor || 'text-gray-900'}`}>{value}</p>
+      <p className={`text-3xl font-bold mb-2 ${textColor || 'text-gray-900 dark:text-gray-100'}`}>{value}</p>
       {change && (
         <div className="flex items-center gap-2">
           <span className={`text-sm font-medium ${changeColor}`}>{change}</span>

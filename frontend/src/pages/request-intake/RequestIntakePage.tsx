@@ -38,9 +38,9 @@ const emptyRow = (): RowState => ({
 });
 
 const inputCls =
-  'min-h-[46px] text-[15px] border-gray-300 focus-visible:ring-red-600 focus-visible:border-red-600';
+  'min-h-[46px] text-[15px] border-gray-300 dark:border-gray-600 focus-visible:ring-red-600 focus-visible:border-red-600';
 const selectCls =
-  'w-full min-h-[46px] text-[15px] px-3 border-[1.5px] border-gray-300 rounded-md bg-white focus:outline-none focus:border-red-600';
+  'w-full min-h-[46px] text-[15px] px-3 border-[1.5px] border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-900 focus:outline-none focus:border-red-600';
 
 function ItemRow({
   index,
@@ -148,23 +148,23 @@ function ItemRow({
             type="button"
             disabled={!canRemove}
             onClick={onRemove}
-            className={`text-[13px] font-semibold px-2 py-1 ${canRemove ? 'text-red-600' : 'text-gray-400'}`}
+            className={`text-[13px] font-semibold px-2 py-1 ${canRemove ? 'text-red-600 dark:text-red-400' : 'text-gray-400 dark:text-gray-500'}`}
           >
             Hapus
           </button>
         </div>
 
         <div>
-          <Label className="text-[13.5px] font-semibold">Produk <span className="text-red-600">*</span></Label>
+          <Label className="text-[13.5px] font-semibold">Produk <span className="text-red-600 dark:text-red-400">*</span></Label>
           {row.productId || row.listing === 'NEW' ? (
             <div className="flex gap-2 mt-1">
-              <div className="flex-1 min-h-[46px] text-[15px] border-[1.5px] border-gray-300 rounded-md bg-white px-3 flex items-center gap-2">
+              <div className="flex-1 min-h-[46px] text-[15px] border-[1.5px] border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-900 px-3 flex items-center gap-2">
                 <span className="font-semibold truncate">
                   {row.productName}{' '}
-                  {row.listing === 'NEW' && <span className="text-green-700 font-bold">NEW</span>}
+                  {row.listing === 'NEW' && <span className="text-green-700 dark:text-green-300 font-bold">NEW</span>}
                 </span>
                 <button type="button" onClick={clearProduct} aria-label="Ganti produk" className="ml-auto shrink-0 p-1">
-                  <X className="w-4 h-4 text-gray-400" />
+                  <X className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                 </button>
               </div>
             </div>
@@ -186,18 +186,18 @@ function ItemRow({
                 }}
               />
               {open && (searching || results.length > 0 || search.trim().length >= 2) && (
-                <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg mt-1 shadow-lg max-h-56 overflow-auto">
-                  {searching && <p className="px-3 py-2.5 text-xs text-gray-500">Mencari…</p>}
+                <div className="absolute z-10 w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg mt-1 shadow-lg max-h-56 overflow-auto">
+                  {searching && <p className="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">Mencari…</p>}
                   {results.map((p) => (
                     <button
                       key={p.id}
                       type="button"
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => pickProduct(p)}
-                      className="block w-full text-left px-3 py-2.5 text-sm border-b border-gray-100 last:border-0 active:bg-red-50"
+                      className="block w-full text-left px-3 py-2.5 text-sm border-b border-gray-100 dark:border-gray-800 last:border-0 active:bg-red-50 dark:active:bg-red-950"
                     >
                       <span className="font-semibold">{p.name}</span>
-                      <span className="block text-xs text-gray-500">
+                      <span className="block text-xs text-gray-500 dark:text-gray-400">
                         {p.barcode || p.sku} • {p.category?.name || '-'}
                       </span>
                     </button>
@@ -207,7 +207,7 @@ function ItemRow({
                       type="button"
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => chooseNewProduct(search)}
-                      className="block w-full text-left px-3 py-2.5 text-sm font-bold text-red-600 border-t-2 border-dashed border-gray-200 active:bg-red-50"
+                      className="block w-full text-left px-3 py-2.5 text-sm font-bold text-red-600 dark:text-red-400 border-t-2 border-dashed border-gray-200 dark:border-gray-700 active:bg-red-50 dark:active:bg-red-950"
                     >
                       ＋ Tambah baru: “{search.trim()}”
                     </button>
@@ -263,8 +263,9 @@ export default function RequestIntakePage() {
   const [quickSaving, setQuickSaving] = useState(false);
   const [quickErr, setQuickErr] = useState('');
   const [rows, setRows] = useState<RowState[]>([emptyRow()]);
+  const [requestType, setRequestType] = useState<'EXIT' | 'LIMIT' | ''>('');
   const [submitting, setSubmitting] = useState(false);
-  const [done, setDone] = useState<{ no: string; summary: string[]; customerName: string } | null>(null);
+  const [done, setDone] = useState<{ no: string; summary: string[]; customerName: string; requestType: string } | null>(null);
   const [formErr, setFormErr] = useState('');
 
   const ctx = useQuery({
@@ -334,8 +335,8 @@ export default function RequestIntakePage() {
       setFormErr('Pilih nama pengaju dulu.');
       return;
     }
-    if (!customer) {
-      setFormErr('Pilih pelanggan dulu (cari atau tambah baru).');
+    if (!requestType) {
+      setFormErr('Pilih tipe request dulu (Tidak jadi beli / Stok habis).');
       return;
     }
     for (let i = 0; i < rows.length; i++) {
@@ -350,7 +351,8 @@ export default function RequestIntakePage() {
     try {
       const res = await stockRequestsService.createIntake(token, {
         staffName,
-        customerId: customer.id,
+        requestType,
+        ...(customer ? { customerId: customer.id } : {}),
         items: rows.map((r) => ({
           barcode: r.barcode.trim(),
           listing: r.listing,
@@ -367,7 +369,8 @@ export default function RequestIntakePage() {
         summary: (res.items || []).map(
           (it) => `${it.productName}${it.listing === 'NEW' ? ' NEW' : ''}${it.note ? ` — ${it.note}` : ''}`,
         ),
-        customerName: customer.name,
+        customerName: customer?.name || '—',
+        requestType,
       });
       window.scrollTo(0, 0);
     } catch (e: any) {
@@ -380,20 +383,20 @@ export default function RequestIntakePage() {
 
   if (ctx.isLoading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
-        <p className="text-gray-500">Memuat form request…</p>
+      <div className="min-h-screen bg-gray-100 dark:bg-gray-800 flex items-center justify-center p-6">
+        <p className="text-gray-500 dark:text-gray-400">Memuat form request…</p>
       </div>
     );
   }
 
   if (ctx.isError || !ctx.data) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-gray-100 dark:bg-gray-800 flex items-center justify-center p-6">
         <Card className="max-w-sm w-full">
           <CardContent className="p-6 text-center space-y-3">
-            <AlertCircle className="w-10 h-10 mx-auto text-red-600" />
+            <AlertCircle className="w-10 h-10 mx-auto text-red-600 dark:text-red-400" />
             <h1 className="font-bold text-lg">Tautan tidak valid</h1>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               Link request ini tidak dikenal atau sudah tidak berlaku. Minta link terbaru ke SODO/outlet Anda.
             </p>
           </CardContent>
@@ -406,7 +409,7 @@ export default function RequestIntakePage() {
 
   if (done) {
     return (
-      <div className="min-h-screen bg-gray-100">
+      <div className="min-h-screen bg-gray-100 dark:bg-gray-800">
         <div className="max-w-md mx-auto pb-10">
           <header className="bg-red-600 text-white px-4 py-4 sticky top-0 z-10">
             <h1 className="font-bold text-[17px]">Request Stok</h1>
@@ -415,16 +418,16 @@ export default function RequestIntakePage() {
             </p>
           </header>
           <div className="px-5 pt-8 text-center">
-            <div className="w-[76px] h-[76px] rounded-full bg-green-50 border-2 border-green-200 text-green-700 flex items-center justify-center mx-auto">
+            <div className="w-[76px] h-[76px] rounded-full bg-green-50 dark:bg-green-950 border-2 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 flex items-center justify-center mx-auto">
               <CheckCircle2 className="w-9 h-9" />
             </div>
             <h2 className="font-bold text-xl mt-3">Request terkirim!</h2>
-            <div className="inline-block font-extrabold text-xl bg-white border-[1.5px] border-dashed border-gray-300 rounded-lg px-5 py-2 mt-2">
+            <div className="inline-block font-extrabold text-xl bg-white dark:bg-gray-900 border-[1.5px] border-dashed border-gray-300 dark:border-gray-600 rounded-lg px-5 py-2 mt-2">
               {done.no}
             </div>
           </div>
-          <ul className="bg-white border border-gray-200 rounded-xl mx-3 mt-4 px-4 py-2 text-sm list-disc">
-            <li className="ml-4 my-2"><b>Pengaju:</b> {staffName} • <b>Customer:</b> {done.customerName}</li>
+          <ul className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl mx-3 mt-4 px-4 py-2 text-sm list-disc">
+            <li className="ml-4 my-2"><b>Pengaju:</b> {staffName} • <b>Tipe:</b> {done.requestType === 'EXIT' ? 'Tidak jadi beli' : 'Stok habis'} • <b>Customer:</b> {done.customerName}</li>
             {done.summary.map((s, i) => (
               <li key={i} className="ml-4 my-2">{s}</li>
             ))}
@@ -436,6 +439,7 @@ export default function RequestIntakePage() {
                 setDone(null);
                 setRows([emptyRow()]);
                 setStaffName('');
+                setRequestType('');
                 setCustomer(null);
                 setCustSearch('');
                 window.scrollTo(0, 0);
@@ -450,7 +454,7 @@ export default function RequestIntakePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-800">
       <div className="max-w-md mx-auto pb-28">
         <header className="bg-red-600 text-white px-4 py-4 sticky top-0 z-10">
           <h1 className="font-bold text-[17px]">Request Stok</h1>
@@ -462,9 +466,9 @@ export default function RequestIntakePage() {
         <div className="px-3 pt-3 space-y-3">
           <Card>
             <CardContent className="p-4 space-y-3">
-              <h2 className="text-xs uppercase tracking-wide text-gray-500 font-bold">Requester</h2>
+              <h2 className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 font-bold">Requester</h2>
               <div>
-                <Label className="text-[13.5px] font-semibold">Nama <span className="text-red-600">*</span></Label>
+                <Label className="text-[13.5px] font-semibold">Nama <span className="text-red-600 dark:text-red-400">*</span></Label>
                 <select className={`${selectCls} mt-1`} value={staffName} onChange={(e) => setStaffName(e.target.value)}>
                   <option value="">— Pilih nama —</option>
                   {staff.map((s) => (
@@ -477,16 +481,48 @@ export default function RequestIntakePage() {
 
           <Card>
             <CardContent className="p-4 space-y-3">
-              <h2 className="text-xs uppercase tracking-wide text-gray-500 font-bold">Customer</h2>
+              <h2 className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 font-bold">Tipe Request</h2>
               <div>
-                <Label className="text-[13.5px] font-semibold">Cari pelanggan <span className="text-red-600">*</span></Label>
+                <Label className="text-[13.5px] font-semibold">Tipe <span className="text-red-600 dark:text-red-400">*</span></Label>
+                <div className="space-y-2 mt-2" role="radiogroup" aria-label="Tipe request">
+                  {([
+                    { v: 'EXIT', label: 'Tidak jadi beli' },
+                    { v: 'LIMIT', label: 'Stok habis' },
+                  ] as const).map((o) => (
+                    <label
+                      key={o.v}
+                      className={`flex items-center gap-3 rounded-lg border-[1.5px] px-3 min-h-[46px] text-[15px] cursor-pointer ${
+                        requestType === o.v ? 'border-red-600 bg-red-50 dark:bg-red-950 font-semibold' : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="request-type"
+                        value={o.v}
+                        checked={requestType === o.v}
+                        onChange={() => setRequestType(o.v)}
+                        className="w-4 h-4 accent-red-600"
+                      />
+                      {o.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <h2 className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 font-bold">Customer</h2>
+              <div>
+                <Label className="text-[13.5px] font-semibold">Nama <span className="font-normal text-gray-400 dark:text-gray-500">(opsional)</span></Label>
                 <div className="flex gap-2 mt-1">
                   {customer ? (
-                    <div className="flex-1 min-h-[46px] text-[15px] border-[1.5px] border-gray-300 rounded-md bg-white px-3 flex items-center gap-2">
+                    <div className="flex-1 min-h-[46px] text-[15px] border-[1.5px] border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-900 px-3 flex items-center gap-2">
                       <span className="font-semibold truncate">
                         ✓ {customer.name}
                       </span>
-                      <span className="text-xs text-gray-500 truncate">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
                         {[customer.phone, customer.subdistrict].filter(Boolean).join(' • ') || '—'}
                       </span>
                       <button
@@ -498,7 +534,7 @@ export default function RequestIntakePage() {
                         aria-label="Ganti pelanggan"
                         className="ml-auto shrink-0 p-1"
                       >
-                        <X className="w-4 h-4 text-gray-400" />
+                        <X className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                       </button>
                     </div>
                   ) : (
@@ -514,7 +550,7 @@ export default function RequestIntakePage() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="min-h-[46px] min-w-[46px] px-0 border-gray-300 font-bold text-xl"
+                    className="min-h-[46px] min-w-[46px] px-0 border-gray-300 dark:border-gray-600 font-bold text-xl"
                     onClick={() => {
                       setQuickErr('');
                       setQuickOpen(true);
@@ -524,7 +560,7 @@ export default function RequestIntakePage() {
                     <Plus className="w-5 h-5 mx-auto" />
                   </Button>
                 </div>
-                {!customer && custSearching && <p className="text-xs text-gray-500 mt-1">Mencari…</p>}
+                {!customer && custSearching && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Mencari…</p>}
                 {!customer && custResults.length > 0 && (
                   <div className="mt-2 space-y-1.5">
                     {custResults.map((c) => (
@@ -537,17 +573,17 @@ export default function RequestIntakePage() {
                           setCustResults([]);
                           setCustErr('');
                         }}
-                        className="block w-full text-left px-3 py-2.5 text-sm border border-gray-200 bg-white rounded-lg active:bg-red-50"
+                        className="block w-full text-left px-3 py-2.5 text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg active:bg-red-50 dark:active:bg-red-950"
                       >
                         <span className="font-semibold">{c.name}</span>
-                        <span className="block text-xs text-gray-500">
+                        <span className="block text-xs text-gray-500 dark:text-gray-400">
                           {[c.phone, c.subdistrict].filter(Boolean).join(' • ') || '—'}
                         </span>
                       </button>
                     ))}
                   </div>
                 )}
-                {custErr && <p className="text-[12.5px] text-red-600 mt-1.5">{custErr}</p>}
+                {custErr && <p className="text-[12.5px] text-red-600 dark:text-red-400 mt-1.5">{custErr}</p>}
               </div>
             </CardContent>
           </Card>
@@ -568,18 +604,18 @@ export default function RequestIntakePage() {
           <button
             type="button"
             onClick={() => setRows((prev) => [...prev, emptyRow()])}
-            className="flex w-full min-h-[50px] items-center justify-center gap-2 border-2 border-dashed border-gray-300 bg-white rounded-xl text-red-600 text-[15px] font-bold active:border-red-600 active:bg-red-50"
+            className="flex w-full min-h-[50px] items-center justify-center gap-2 border-2 border-dashed border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 rounded-xl text-red-600 dark:text-red-400 text-[15px] font-bold active:border-red-600 active:bg-red-50 dark:active:bg-red-950"
           >
             ＋ Tambah barang
           </button>
           {formErr && (
-            <div className="text-sm rounded-lg px-3 py-2.5 bg-red-50 text-red-700 border border-red-200 flex gap-2">
+            <div className="text-sm rounded-lg px-3 py-2.5 bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 flex gap-2">
               <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" /> {formErr}
             </div>
           )}
         </div>
 
-        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-200 px-3 py-2.5">
+        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-3 py-2.5">
           <Button
             className="w-full min-h-[52px] text-base font-extrabold bg-red-600 hover:bg-red-700"
             onClick={submit}
@@ -590,24 +626,24 @@ export default function RequestIntakePage() {
         </div>
 
         <div className="mt-6 flex justify-center">
-          <Badge variant="secondary" className="text-[11px] text-gray-400">ORBIT • Request Stok</Badge>
+          <Badge variant="secondary" className="text-[11px] text-gray-400 dark:text-gray-500">ORBIT • Request Stok</Badge>
         </div>
       </div>
 
       {quickOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={() => setQuickOpen(false)}>
-          <div className="w-full max-w-md bg-white rounded-t-2xl p-5 pb-6" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-t-2xl p-5 pb-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="font-bold text-[15px]">Pelanggan baru</h3>
               </div>
               <button type="button" onClick={() => setQuickOpen(false)} aria-label="Tutup">
-                <X className="w-5 h-5 text-gray-400" />
+                <X className="w-5 h-5 text-gray-400 dark:text-gray-500" />
               </button>
             </div>
             <div className="space-y-3 mt-4">
               <div>
-                <Label className="text-[13.5px] font-semibold">Nama <span className="text-red-600">*</span></Label>
+                <Label className="text-[13.5px] font-semibold">Nama <span className="text-red-600 dark:text-red-400">*</span></Label>
                 <Input
                   className={`${inputCls} mt-1`}
                   value={quickName}
@@ -623,7 +659,7 @@ export default function RequestIntakePage() {
                 />
               </div>
               <div>
-                <Label className="text-[13.5px] font-semibold">Kecamatan <span className="text-red-600">*</span></Label>
+                <Label className="text-[13.5px] font-semibold">Kecamatan <span className="text-red-600 dark:text-red-400">*</span></Label>
                 <select className={`${selectCls} mt-1`} value={quickKec} onChange={(e) => setQuickKec(e.target.value)}>
                   <option value=""></option>
                   {(kecamatanJember as string[]).map((k) => (
@@ -631,7 +667,7 @@ export default function RequestIntakePage() {
                   ))}
                 </select>
               </div>
-              {quickErr && <p className="text-[12.5px] text-red-600">{quickErr}</p>}
+              {quickErr && <p className="text-[12.5px] text-red-600 dark:text-red-400">{quickErr}</p>}
               <div className="flex gap-2 pt-1">
                 <Button type="button" variant="outline" className="flex-1 min-h-[48px]" onClick={() => setQuickOpen(false)}>
                   Batal

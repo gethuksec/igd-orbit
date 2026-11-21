@@ -76,16 +76,6 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
           { label: 'Kelengkapan', key: 'service.checkpoint.view' },
         ],
       },
-      {
-        label: 'Staff',
-        children: [
-          { label: 'Cuti', key: 'master_data.attribute.view' },
-          { label: 'Denda', key: 'master_data.attribute.view' },
-          { label: 'Divisi', key: 'master_data.attribute.view' },
-          { label: 'Grade', key: 'master_data.attribute.view' },
-          { label: 'Jabatan', key: 'master_data.attribute.view' },
-        ],
-      },
     ],
   },
 
@@ -350,23 +340,9 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
         ],
       },
       {
-        label: 'Kasbon',
+        label: 'Kontrak',
         children: [
-          { label: 'Kelola Kasbon', key: 'hr.kasbon.view' },
-        ],
-      },
-      {
-        label: 'Departemen',
-        children: [
-          { label: 'Lihat', key: 'hr.employee.view' },
-          { label: 'Tambah', key: 'hr.employee.create' },
-          { label: 'Edit', key: 'hr.employee.edit' },
-        ],
-      },
-      {
-        label: 'Divisi',
-        children: [
-          { label: 'Lihat Divisi', key: 'hr.division.view' },
+          { label: 'Lihat Kontrak', key: 'hr.employee.view' },
         ],
       },
       {
@@ -385,6 +361,84 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
         label: 'Payroll',
         children: [
           { label: 'Lihat Payroll', key: 'hr.payroll.view' },
+        ],
+      },
+      {
+        label: 'Libur',
+        children: [
+          {
+            label: 'Libur karyawan',
+            children: [
+              { label: 'Lihat Kuota', key: 'hr.libur.view' },
+            ],
+          },
+          {
+            label: 'Pengajuan libur',
+            children: [
+              { label: 'Kelola Pengajuan', key: 'hr.libur.view' },
+            ],
+          },
+        ],
+      },
+      {
+        label: 'Shifting',
+        children: [
+          { label: 'Kelola Shifting', key: 'hr.shift.view' },
+        ],
+      },
+      {
+        label: 'Master Data',
+        children: [
+          {
+            label: 'Tipe Cuti',
+            children: [
+              { label: 'Lihat Tipe Cuti', key: 'master_data.attribute.view' },
+            ],
+          },
+          {
+            label: 'Tipe Denda',
+            children: [
+              { label: 'Lihat Denda', key: 'master_data.attribute.view' },
+            ],
+          },
+          {
+            label: 'Departemen',
+            children: [
+              { label: 'Lihat', key: 'hr.employee.view' },
+              { label: 'Tambah', key: 'hr.employee.create' },
+              { label: 'Edit', key: 'hr.employee.edit' },
+            ],
+          },
+          {
+            label: 'Divisi',
+            children: [
+              { label: 'Lihat Divisi', key: 'hr.division.view' },
+            ],
+          },
+          {
+            label: 'Grade',
+            children: [
+              { label: 'Lihat Grade', key: 'master_data.attribute.view' },
+            ],
+          },
+          {
+            label: 'Jabatan',
+            children: [
+              { label: 'Lihat Jabatan', key: 'master_data.attribute.view' },
+            ],
+          },
+          {
+            label: 'Working Location',
+            children: [
+              { label: 'Lihat Working Location', key: 'master_data.attribute.view' },
+            ],
+          },
+          {
+            label: 'Shift kerja',
+            children: [
+              { label: 'Lihat Shift', key: 'master_data.attribute.view' },
+            ],
+          },
         ],
       },
     ],

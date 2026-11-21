@@ -120,8 +120,8 @@ export default function WarehouseFormModal({ open, onClose, warehouseId }: Wareh
   };
 
   const inputCls =
-    "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent";
-  const labelCls = "block text-sm font-medium text-gray-700 mb-1";
+    "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent";
+  const labelCls = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1";
 
   return (
     <Dialog
@@ -133,7 +133,7 @@ export default function WarehouseFormModal({ open, onClose, warehouseId }: Wareh
       <DialogContent className="sm:max-w-2xl max-h-[min(640px,90vh)] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <WarehouseIcon className="w-5 h-5 text-primary-600" />
+            <WarehouseIcon className="w-5 h-5 text-primary-600 dark:text-primary-400" />
             {isEdit ? "Edit Gudang" : "Tambah Gudang"}
             {isEdit && warehouse?.code ? (
               <span className="text-xs font-normal text-muted-foreground">Kode: {warehouse.code}</span>
@@ -143,13 +143,13 @@ export default function WarehouseFormModal({ open, onClose, warehouseId }: Wareh
 
         {isEdit && loadingWarehouse ? (
           <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
+            <Loader2 className="w-8 h-8 text-primary-600 dark:text-primary-400 animate-spin" />
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className={labelCls}>
-                Nama Gudang <span className="text-red-500">*</span>
+                Nama Gudang <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <input
                 type="text"
@@ -172,7 +172,7 @@ export default function WarehouseFormModal({ open, onClose, warehouseId }: Wareh
             </div>
             <div>
               <label className={labelCls}>
-                Jenis Gudang <span className="text-red-500">*</span>
+                Jenis Gudang <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <select
                 required
@@ -191,14 +191,14 @@ export default function WarehouseFormModal({ open, onClose, warehouseId }: Wareh
                 <option value="GOOD">GOOD — Stok normal</option>
                 <option value="BAD">BAD — Central Bad Stock</option>
               </select>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 Scope: {form.scope === "SYSTEM" ? "System-wide" : "Outlet"}
               </p>
             </div>
             {form.scope === "OUTLET" ? (
               <div>
                 <label className={labelCls}>
-                  Outlet <span className="text-red-500">*</span>
+                  Outlet <span className="text-red-500 dark:text-red-400">*</span>
                 </label>
                 <select
                   required
@@ -215,7 +215,7 @@ export default function WarehouseFormModal({ open, onClose, warehouseId }: Wareh
                 </select>
               </div>
             ) : (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950 p-3 text-sm text-amber-900 dark:text-amber-100">
                 Central Bad Stock adalah satu gudang system-wide tanpa outlet pemilik.
               </div>
             )}
@@ -290,7 +290,7 @@ export default function WarehouseFormModal({ open, onClose, warehouseId }: Wareh
                   type="button"
                   onClick={() => setForm((prev) => ({ ...prev, isActive: !prev.isActive }))}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    form.isActive ? "bg-green-500" : "bg-gray-300"
+                    form.isActive ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600"
                   }`}
                 >
                   <span
@@ -299,7 +299,7 @@ export default function WarehouseFormModal({ open, onClose, warehouseId }: Wareh
                     }`}
                   />
                 </button>
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-gray-600 dark:text-gray-400">
                   {form.isActive ? "Aktif" : "Tidak Aktif"}
                 </span>
               </div>

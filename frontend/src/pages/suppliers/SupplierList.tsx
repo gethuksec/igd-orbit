@@ -222,7 +222,7 @@ export default function SupplierList() {
       <BreadcrumbHeader title="Manajemen Pemasok" subtitle="Kelola data pemasok dan vendor">
         <Button
           onClick={openCreateModal}
-          className="flex items-center gap-2 bg-white text-primary-600 border border-gray-200 hover:bg-primary-50"
+          className="flex items-center gap-2 bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 border border-gray-200 dark:border-gray-700 hover:bg-primary-50 dark:hover:bg-primary-950"
         >
           <Plus className="w-5 h-5" />
           <span>Tambah Pemasok</span>
@@ -230,8 +230,8 @@ export default function SupplierList() {
       </BreadcrumbHeader>
 
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
-          <p className="text-red-800 font-medium">
+        <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
+          <p className="text-red-800 dark:text-red-200 font-medium">
             {(error as Error).message || "Terjadi kesalahan"}
           </p>
         </div>
@@ -316,7 +316,7 @@ export default function SupplierList() {
                 setDeleteModalOpen(true);
               }}
               title="Hapus"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-600 dark:hover:text-red-400"
             >
               <Trash2 className="h-4 w-4" />
             </button>
@@ -377,7 +377,7 @@ export default function SupplierList() {
         <form onSubmit={handleFormSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1">
-              Nama Pemasok <span className="text-red-500">*</span>
+              Nama Pemasok <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <Input
               type="text"
@@ -400,7 +400,7 @@ export default function SupplierList() {
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">
-              Telepon <span className="text-red-500">*</span>
+              Telepon <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <Input
               type="tel"

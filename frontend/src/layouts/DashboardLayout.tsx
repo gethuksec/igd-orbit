@@ -48,6 +48,10 @@ import {
   ScanBarcode,
   Zap,
   ScrollText,
+  Gavel,
+  Briefcase,
+  MapPin,
+  Database,
 } from 'lucide-react';
 import type { Branch } from '@/services/public.service';
 import { publicService } from '@/services/public.service';
@@ -67,7 +71,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { isBranchVisible } from '@/components/shared/PermissionAccordion';
 import { PERMISSION_CATALOG } from '@/config/permission-catalog';
 import type { PermissionNode } from '@/types/permission';
-import { MenuItem, MenuGroup } from '@/components/shared';
+import { MenuItem, MenuGroup, ThemeToggle } from '@/components/shared';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -372,13 +376,33 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       children: [
         { icon: Users, label: 'Data Karyawan', path: '/hr/employees', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: Clock, label: 'Presensi', path: '/hr/attendance', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
-        { icon: Wallet, label: 'Kasbon', path: '/hr/kasbon', permission: 'hr.kasbon.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
-        { icon: Building2, label: 'Departemen', path: '/hr/departments', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
-        { icon: ClipboardList, label: 'Divisi', path: '/hr/divisions', permission: 'hr.division.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: ScrollText, label: 'Kontrak', path: '/hr/contracts', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: CalendarDays, label: 'Cuti', path: '/hr/leave', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: Target, label: 'KPI', path: '/hr/kpi', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: Banknote, label: 'Payroll', path: '/hr/payroll', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+        {
+          icon: CalendarDays,
+          label: 'Libur',
+          children: [
+            { icon: CalendarDays, label: 'Libur karyawan', path: '/hr/libur', permission: 'hr.libur.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+            { icon: ClipboardList, label: 'Pengajuan libur', path: '/hr/libur/pengajuan', permission: 'hr.libur.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+          ],
+        },
+        { icon: ArrowRightLeft, label: 'Shifting', path: '/hr/shifting', permission: 'hr.shift.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+        {
+          icon: Database,
+          label: 'Master Data',
+          children: [
+            { icon: CalendarDays, label: 'Tipe Cuti', path: '/hr/master-data/cuti', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+            { icon: Gavel, label: 'Tipe Denda', path: '/hr/master-data/denda', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+            { icon: Building2, label: 'Departemen', path: '/hr/departments', permission: 'hr.employee.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+            { icon: Building2, label: 'Divisi', path: '/hr/divisions', permission: 'hr.division.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+            { icon: Award, label: 'Grade', path: '/hr/master-data/grade', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+            { icon: Briefcase, label: 'Jabatan', path: '/hr/master-data/jabatan', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+            { icon: MapPin, label: 'Working Location', path: '/hr/master-data/working-location', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+            { icon: Clock, label: 'Shift kerja', path: '/hr/master-data/shift', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+          ],
+        },
       ],
     },
     {
@@ -685,7 +709,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               Pengaturan
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">
+            <DropdownMenuItem onClick={handleLogout} className="text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400">
               <LogOut className="w-4 h-4 mr-2" />
               Keluar
             </DropdownMenuItem>
@@ -696,10 +720,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 w-full overflow-x-hidden">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 w-full overflow-x-hidden">
       {/* Desktop Sidebar */}
       <aside
-        className={`fixed top-0 left-0 z-40 h-screen transition-all duration-300 ease-in-out bg-white border-r border-border shadow-xl hidden lg:block ${
+        className={`fixed top-0 left-0 z-40 h-screen transition-all duration-300 ease-in-out bg-white dark:bg-gray-900 border-r border-border shadow-xl hidden lg:block ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         style={{ width: `${SIDEBAR_WIDTH}px` }}
@@ -732,7 +756,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         }}
       >
         {/* Top Bar */}
-        <header className="sticky top-0 z-30 bg-white border-b border-border shadow-sm">
+        <header className="sticky top-0 z-30 bg-white dark:bg-gray-900 border-b border-border shadow-sm">
           <div className="flex items-center justify-between h-16 px-4">
             {/* Left: Toggle */}
             <div className="flex items-center gap-4 flex-1 min-w-0">
@@ -777,6 +801,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             )}
 
             {/* Notifications */}
+              <ThemeToggle />
               <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
                 <Bell className="w-5 h-5" />
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary-600 rounded-full" />
@@ -817,7 +842,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     Pengaturan
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">
+                  <DropdownMenuItem onClick={handleLogout} className="text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400">
                     <LogOut className="w-4 h-4 mr-2" />
                     Keluar
                   </DropdownMenuItem>
@@ -828,7 +853,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </header>
 
         {/* Page Content */}
-        <main className="min-h-[calc(100vh-4rem)] p-3 bg-gray-50 w-full overflow-x-hidden">
+        <main className="min-h-[calc(100vh-4rem)] p-3 bg-gray-50 dark:bg-gray-950 w-full overflow-x-hidden">
           {children}
         </main>
       </div>

@@ -91,7 +91,7 @@ export function InventoryDashboard() {
     <div className="w-full space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-indonesia-red-700">
+        <h1 className="text-3xl font-bold text-indonesia-red-700 dark:text-indonesia-red-300">
           {t('dashboard.inventory.title')}
         </h1>
         <div className="flex items-center gap-4">
@@ -125,8 +125,8 @@ export function InventoryDashboard() {
               : formatCurrency(inventoryKPIs?.totalStockValue || 0)
           }
           icon={TrendingUp}
-          gradient="from-white to-gray-100"
-          textColor="text-indonesia-red-600"
+          gradient="from-white dark:from-gray-900 to-gray-100 dark:to-gray-800"
+          textColor="text-indonesia-red-600 dark:text-indonesia-red-400"
           border="border-l-4 border-indonesia-red-600"
         />
         <KPICard
@@ -154,8 +154,8 @@ export function InventoryDashboard() {
             (inventoryKPIs?.outOfStockItems || 0) > 0 ? 'negative' : 'neutral'
           }
           icon={Box}
-          gradient="from-white to-gray-100"
-          textColor="text-indonesia-red-600"
+          gradient="from-white dark:from-gray-900 to-gray-100 dark:to-gray-800"
+          textColor="text-indonesia-red-600 dark:text-indonesia-red-400"
           border="border-l-4 border-indonesia-red-600"
         />
       </div>
@@ -179,22 +179,22 @@ export function InventoryDashboard() {
             </ResponsiveContainer>
           }
         />
-        <div className="bg-white rounded-lg shadow-md p-4">
-          <h3 className="text-lg font-bold text-indonesia-red-700 mb-4">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-4">
+          <h3 className="text-lg font-bold text-indonesia-red-700 dark:text-indonesia-red-300 mb-4">
             {t('dashboard.inventory.stockValueByCategory')}
           </h3>
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-indonesia-red-50 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-indonesia-red-50 dark:bg-indonesia-red-950 rounded-lg">
               <span className="font-medium">Aksesoris</span>
-              <span className="font-bold text-indonesia-red-600">{formatCurrency(200000000)}</span>
+              <span className="font-bold text-indonesia-red-600 dark:text-indonesia-red-400">{formatCurrency(200000000)}</span>
             </div>
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-950 rounded-lg">
               <span className="font-medium">Spare Parts</span>
-              <span className="font-bold text-gray-700">{formatCurrency(150000000)}</span>
+              <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(150000000)}</span>
             </div>
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-950 rounded-lg">
               <span className="font-medium">Tools</span>
-              <span className="font-bold text-gray-700">{formatCurrency(100000000)}</span>
+              <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(100000000)}</span>
             </div>
           </div>
         </div>
@@ -230,8 +230,8 @@ export function InventoryDashboard() {
             </ResponsiveContainer>
           }
         />
-        <div className="bg-white rounded-lg shadow-md p-4">
-          <h3 className="text-lg font-bold text-indonesia-red-700 mb-4">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-4">
+          <h3 className="text-lg font-bold text-indonesia-red-700 dark:text-indonesia-red-300 mb-4">
             {t('dashboard.inventory.topMovingProducts')}
           </h3>
           <div className="overflow-x-auto">
@@ -246,14 +246,14 @@ export function InventoryDashboard() {
               </thead>
               <tbody>
                 {(topMovingProducts || []).map((product, idx) => (
-                  <tr key={idx} className="border-b hover:bg-gray-50">
+                  <tr key={idx} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
                     <td className="py-2 px-4">{product.product}</td>
                     <td className="text-right py-2 px-4">{formatNumber(product.qtyIn)}</td>
                     <td className="text-right py-2 px-4">{formatNumber(product.qtyOut)}</td>
                     <td className="text-right py-2 px-4">
                       <span
                         className={
-                          product.netChange > 0 ? 'text-success-600' : 'text-danger-600'
+                          product.netChange > 0 ? 'text-success-600 dark:text-emerald-400' : 'text-danger-600 dark:text-red-400'
                         }
                       >
                         {product.netChange > 0 ? '+' : ''}
@@ -270,20 +270,20 @@ export function InventoryDashboard() {
 
       {/* Alerts & Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <div className="bg-white rounded-lg shadow-md p-4">
-          <h3 className="text-lg font-bold text-indonesia-red-700 mb-4">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-4">
+          <h3 className="text-lg font-bold text-indonesia-red-700 dark:text-indonesia-red-300 mb-4">
             {t('dashboard.inventory.lowStockAlerts')}
           </h3>
           <div className="space-y-3">
             {(lowStockAlerts || []).map((alert, idx) => (
-              <div key={idx} className="p-3 border border-warning-300 rounded-lg bg-warning-50">
+              <div key={idx} className="p-3 border border-warning-300 dark:border-amber-700 rounded-lg bg-warning-50 dark:bg-amber-950">
                 <div className="flex justify-between items-start mb-2">
                   <span className="font-medium">{alert.product}</span>
                   <button className="px-3 py-1 bg-indonesia-red-600 text-white rounded text-sm hover:bg-indonesia-red-700">
                     Buat PO
                   </button>
                 </div>
-                <div className="text-sm text-gray-600 space-y-1">
+                <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
                   <p>Stok saat ini: {alert.currentQty} (Reorder: {alert.reorderPoint})</p>
                   <p>Pesanan terakhir: {alert.lastOrderDate}</p>
                   <p>Disarankan: {alert.suggestedQty} unit</p>
@@ -293,28 +293,28 @@ export function InventoryDashboard() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-4">
-          <h3 className="text-lg font-bold text-indonesia-red-700 mb-4">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-4">
+          <h3 className="text-lg font-bold text-indonesia-red-700 dark:text-indonesia-red-300 mb-4">
             {t('dashboard.inventory.pendingTransfers')}
           </h3>
           <div className="space-y-3">
             {(pendingTransfers || []).map((transfer) => (
               <div
                 key={transfer.id}
-                className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
+                className="p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
               >
                 <div className="flex justify-between items-start mb-2">
                   <div>
                     <span className="font-medium">{transfer.id}</span>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
                       {transfer.from} → {transfer.to}
                     </p>
                   </div>
                   <span
                     className={`px-2 py-1 rounded text-xs ${
                       transfer.status === 'pending'
-                        ? 'bg-warning-100 text-warning-700'
-                        : 'bg-success-100 text-success-700'
+                        ? 'bg-warning-100 dark:bg-amber-950 text-warning-700 dark:text-amber-300'
+                        : 'bg-success-100 dark:bg-emerald-950 text-success-700 dark:text-emerald-300'
                     }`}
                   >
                     {transfer.status}
@@ -324,7 +324,7 @@ export function InventoryDashboard() {
                   <button className="px-3 py-1 bg-indonesia-red-600 text-white rounded text-sm hover:bg-indonesia-red-700">
                     Setujui
                   </button>
-                  <button className="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300">
+                  <button className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-sm hover:bg-gray-300 dark:hover:bg-gray-600">
                     Detail
                   </button>
                 </div>
@@ -335,8 +335,8 @@ export function InventoryDashboard() {
       </div>
 
       {/* Stock Aging */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-lg font-bold text-indonesia-red-700 mb-4">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-6">
+        <h3 className="text-lg font-bold text-indonesia-red-700 dark:text-indonesia-red-300 mb-4">
           {t('dashboard.inventory.slowMovingItems')}
         </h3>
         <div className="overflow-x-auto">
@@ -351,12 +351,12 @@ export function InventoryDashboard() {
             </thead>
             <tbody>
               {(slowMovingItems || []).map((item, idx) => (
-                <tr key={idx} className="border-b hover:bg-gray-50">
+                <tr key={idx} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
                   <td className="py-2 px-4">{item.product}</td>
                   <td className="text-right py-2 px-4">{item.daysNoMovement} hari</td>
                   <td className="text-right py-2 px-4">{formatCurrency(item.stockValue)}</td>
                   <td className="py-2 px-4">
-                    <span className="px-2 py-1 bg-warning-100 text-warning-700 rounded text-xs">
+                    <span className="px-2 py-1 bg-warning-100 dark:bg-amber-950 text-warning-700 dark:text-amber-300 rounded text-xs">
                       Diskon/Promo
                     </span>
                   </td>

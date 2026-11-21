@@ -132,7 +132,7 @@ export default function UserList() {
             {user.fullName?.charAt(0).toUpperCase() || '?'}
           </div>
           <div>
-            <div className="text-[15px] font-medium text-foreground hover:text-primary-600 transition-colors">
+            <div className="text-[15px] font-medium text-foreground hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
               {user.fullName}
             </div>
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
@@ -167,7 +167,7 @@ export default function UserList() {
               return (
                 <span
                   key={role.id}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary-50 text-primary-700 border border-primary-100 rounded-md text-xs font-medium"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary-50 dark:bg-primary-950 text-primary-700 dark:text-primary-300 border border-primary-100 rounded-md text-xs font-medium"
                 >
                   <Shield className="w-3 h-3" />
                   {roleName}
@@ -216,7 +216,7 @@ export default function UserList() {
     <div className="space-y-6">
       <BreadcrumbHeader title="Manajemen Pengguna" subtitle="Kelola pengguna dan akses sistem">
         <RequirePermission permission="users.create" fallbackRoles={['SUPERADMIN', 'CHR']}>
-          <Button size="sm" className="bg-white text-primary-600 hover:bg-primary-50 font-semibold" onClick={() => setFormModal({ open: true, user: null })}>
+          <Button size="sm" className="bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950 font-semibold" onClick={() => setFormModal({ open: true, user: null })}>
             <Plus className="w-4 h-4" />
             Tambah Pengguna
           </Button>
@@ -317,7 +317,7 @@ export default function UserList() {
                   setUserToDelete({ id: user.id, fullName: user.fullName });
                   setDeleteModalOpen(true);
                 }}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-600 dark:hover:text-red-400"
               >
                 <Trash2 className="h-4 w-4" />
               </button>
@@ -378,10 +378,10 @@ export default function UserList() {
           <div className="space-y-4">
             <div className="flex items-start gap-3">
               <div className="flex-1">
-                <p className="text-sm text-gray-700 mb-2">
+                <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
                   Apakah Anda yakin ingin menghapus pengguna <strong>{userToDelete?.fullName}</strong>?
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   Tindakan ini tidak dapat dibatalkan. Semua data pengguna akan dihapus secara permanen.
                 </p>
               </div>

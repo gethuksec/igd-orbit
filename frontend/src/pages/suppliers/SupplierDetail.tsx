@@ -59,7 +59,7 @@ export default function SupplierDetail() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
+        <Loader2 className="w-8 h-8 text-primary-600 dark:text-primary-400 animate-spin" />
       </div>
     );
   }
@@ -67,8 +67,8 @@ export default function SupplierDetail() {
   if (error) {
     return (
       <div className="w-full text-center py-12">
-        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm max-w-md mx-auto">
-          <p className="text-red-800 font-medium">
+        <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4 shadow-sm max-w-md mx-auto">
+          <p className="text-red-800 dark:text-red-200 font-medium">
             {(error as Error).message || 'Terjadi kesalahan saat memuat data supplier'}
           </p>
         </div>
@@ -86,7 +86,7 @@ export default function SupplierDetail() {
   if (!supplier) {
     return (
       <div className="w-full text-center py-12">
-        <p className="text-gray-600 text-lg">Supplier tidak ditemukan</p>
+        <p className="text-gray-600 dark:text-gray-400 text-lg">Supplier tidak ditemukan</p>
         <Button
           variant="link"
           onClick={() => navigate('/suppliers')}
@@ -111,7 +111,7 @@ export default function SupplierDetail() {
           variant="ghost"
           size="icon"
           onClick={() => navigate('/suppliers')}
-          className="mt-2 text-gray-600 hover:bg-gray-100 shrink-0"
+          className="mt-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 shrink-0"
         >
           <ArrowLeft className="w-5 h-5" />
         </Button>
@@ -121,12 +121,12 @@ export default function SupplierDetail() {
             subtitle={
               <div className="flex items-center gap-3">
                 <span className="text-sm font-mono opacity-90">{supplier.customerCode || supplier.code}</span>
-                <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded">Wholesale</span>
+                <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 rounded">Wholesale</span>
                 <span
                   className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold border ${
                     supplier.isActive
-                      ? 'bg-green-100 text-green-800 border-green-200'
-                      : 'bg-gray-100 text-gray-800 border-gray-200'
+                      ? 'bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700'
                   }`}
                 >
                   {supplier.isActive ? 'Aktif' : 'Tidak Aktif'}
@@ -137,7 +137,7 @@ export default function SupplierDetail() {
             {id && (
               <Link
                 to={`/suppliers/${id}/edit`}
-                className="flex items-center gap-2 px-4 py-2 bg-white text-primary-600 rounded-lg hover:bg-primary-50 transition-all shadow-md font-medium"
+                className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-950 transition-all shadow-md font-medium"
               >
                 <Edit className="w-4 h-4" />
                 <span>Edit</span>
@@ -154,18 +154,18 @@ export default function SupplierDetail() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Building2 className="w-5 h-5 text-primary-600" />
+                <Building2 className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                 Kontak
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                  <Phone className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+                <div className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-950 rounded-lg">
+                  <Phone className="w-4 h-4 text-gray-500 dark:text-gray-400 mt-0.5 flex-shrink-0" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs text-gray-500 mb-1">Telepon</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Telepon</p>
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-gray-900">{supplier.phone}</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{supplier.phone}</p>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -181,17 +181,17 @@ export default function SupplierDetail() {
                       </Button>
                     </div>
                     {supplierData.alternatePhone && (
-                      <p className="text-xs text-gray-600 mt-1">Alt: {supplierData.alternatePhone}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Alt: {supplierData.alternatePhone}</p>
                     )}
                   </div>
                 </div>
                 {supplier.email && (
-                  <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                    <Mail className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+                  <div className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-950 rounded-lg">
+                    <Mail className="w-4 h-4 text-gray-500 dark:text-gray-400 mt-0.5 flex-shrink-0" />
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs text-gray-500 mb-1">Email</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Email</p>
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-gray-900 break-all">{supplier.email}</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 break-all">{supplier.email}</p>
                         <a
                           href={`mailto:${supplier.email}?subject=Halo ${supplier.name}`}
                           className="p-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
@@ -204,13 +204,13 @@ export default function SupplierDetail() {
                   </div>
                 )}
                 {supplier.address && (
-                  <div className="md:col-span-2 flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                    <MapPin className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+                  <div className="md:col-span-2 flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-950 rounded-lg">
+                    <MapPin className="w-4 h-4 text-gray-500 dark:text-gray-400 mt-0.5 flex-shrink-0" />
                     <div className="min-w-0">
-                      <p className="text-xs text-gray-500 mb-1">Alamat</p>
-                      <p className="text-sm font-semibold text-gray-900">{supplier.address}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Alamat</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{supplier.address}</p>
                       {(supplierData.city || supplierData.province) && (
-                        <p className="text-xs text-gray-600 mt-1">
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                           {[supplierData.city, supplierData.province, supplierData.postalCode].filter(Boolean).join(', ')}
                         </p>
                       )}
@@ -219,9 +219,9 @@ export default function SupplierDetail() {
                 )}
               </div>
               {supplierData.contactPerson && (
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <p className="text-xs text-gray-500 mb-1">Contact Person</p>
-                  <p className="text-sm font-semibold text-gray-900">{supplierData.contactPerson}</p>
+                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Contact Person</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{supplierData.contactPerson}</p>
                 </div>
               )}
             </CardContent>
@@ -231,7 +231,7 @@ export default function SupplierDetail() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Package className="w-5 h-5 text-primary-600" />
+                <Package className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                 Daftar Produk ({totalProducts})
               </CardTitle>
             </CardHeader>
@@ -242,26 +242,26 @@ export default function SupplierDetail() {
                     <Link
                       key={product.id}
                       to={`/products/${product.id}`}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors"
+                      className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                     >
                       <div className="flex-1">
-                        <p className="text-sm font-semibold text-gray-900">{product.name}</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{product.name}</p>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs text-gray-500 font-mono">{product.sku}</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">{product.sku}</span>
                           {product.category && (
-                            <span className="text-xs text-gray-500">• {product.category.name}</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">• {product.category.name}</span>
                           )}
                         </div>
                       </div>
                       <div className="text-right ml-4">
-                        <p className="text-xs text-gray-500">Stok</p>
-                        <p className="text-sm font-bold text-primary-600">{product.totalStock || 0}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Stok</p>
+                        <p className="text-sm font-bold text-primary-600 dark:text-primary-400">{product.totalStock || 0}</p>
                       </div>
                     </Link>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-400">
+                <div className="text-center py-8 text-gray-400 dark:text-gray-500">
                   <Package className="w-10 h-10 mx-auto mb-2 opacity-30" />
                   <p className="text-sm font-medium">Belum ada produk</p>
                 </div>
@@ -273,7 +273,7 @@ export default function SupplierDetail() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <ShoppingCart className="w-5 h-5 text-primary-600" />
+                <ShoppingCart className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                 Purchase History ({totalPurchases})
               </CardTitle>
             </CardHeader>
@@ -283,28 +283,28 @@ export default function SupplierDetail() {
                   {purchasesList.map((purchase: any) => (
                     <div
                       key={purchase.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors"
+                      className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                     >
                       <div className="flex-1">
-                        <p className="text-sm font-semibold text-gray-900">{purchase.product?.name || '-'}</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{purchase.product?.name || '-'}</p>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
                             Qty: {Math.abs(purchase.quantity || 0)} {purchase.product?.sku || ''}
                           </span>
                           {purchase.branch && (
-                            <span className="text-xs text-gray-500">• {purchase.branch.name}</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">• {purchase.branch.name}</span>
                           )}
                         </div>
                         <div className="flex items-center gap-2 mt-1">
                           <span className={`text-xs px-2 py-0.5 rounded ${
                             purchase.movementType === 'IN' 
-                              ? 'bg-green-100 text-green-700' 
-                              : 'bg-red-100 text-red-700'
+                              ? 'bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300' 
+                              : 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300'
                           }`}>
                             {purchase.movementType || purchase.referenceType}
                           </span>
                         </div>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                           {purchase.createdAt
                             ? new Date(purchase.createdAt).toLocaleDateString('id-ID', {
                                 year: 'numeric',
@@ -317,8 +317,8 @@ export default function SupplierDetail() {
                         </p>
                       </div>
                       <div className="text-right ml-4">
-                        <p className="text-xs text-gray-500">Quantity</p>
-                        <p className="text-sm font-bold text-primary-600">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Quantity</p>
+                        <p className="text-sm font-bold text-primary-600 dark:text-primary-400">
                           {Math.abs(purchase.quantity || 0)}
                         </p>
                       </div>
@@ -326,7 +326,7 @@ export default function SupplierDetail() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-400">
+                <div className="text-center py-8 text-gray-400 dark:text-gray-500">
                   <ShoppingCart className="w-10 h-10 mx-auto mb-2 opacity-30" />
                   <p className="text-sm font-medium">Belum ada purchase history</p>
                 </div>
@@ -341,26 +341,26 @@ export default function SupplierDetail() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Building2 className="w-5 h-5 text-primary-600" />
+                <Building2 className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                 Informasi
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                <div className="p-3 bg-gradient-to-br from-primary-50 to-primary-100 rounded-lg border border-primary-200">
-                  <p className="text-xs text-primary-600 mb-1">Kode Supplier</p>
-                  <p className="text-base font-bold text-primary-900 font-mono">
+                <div className="p-3 bg-gradient-to-br from-primary-50 dark:from-primary-950 to-primary-100 dark:to-primary-950 rounded-lg border border-primary-200 dark:border-primary-800">
+                  <p className="text-xs text-primary-600 dark:text-primary-400 mb-1">Kode Supplier</p>
+                  <p className="text-base font-bold text-primary-900 dark:text-primary-100 font-mono">
                     {supplier.customerCode || supplier.code || '-'}
                   </p>
                 </div>
-                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-xs text-gray-500 mb-1">Jenis Supplier</p>
-                  <p className="text-sm font-semibold text-gray-900">Wholesale</p>
+                <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Jenis Supplier</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Wholesale</p>
                 </div>
                 {supplierData.createdAt && (
-                  <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                    <p className="text-xs text-gray-500 mb-1">Terdaftar Sejak</p>
-                    <p className="text-sm font-semibold text-gray-900">
+                  <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Terdaftar Sejak</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                       {new Date(supplierData.createdAt).toLocaleDateString('id-ID', {
                         year: 'numeric',
                         month: 'long',
@@ -378,12 +378,12 @@ export default function SupplierDetail() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  <FileText className="w-5 h-5 text-primary-600" />
+                  <FileText className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                   Keterangan
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 p-3 rounded-lg border border-gray-200">
+                <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap bg-gray-50 dark:bg-gray-950 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
                   {supplierData.notes}
                 </p>
               </CardContent>

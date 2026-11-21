@@ -127,26 +127,26 @@ export function InstallPrompt() {
   if (isStandalone()) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 bg-white rounded-lg shadow-xl border-2 border-indonesia-red-600 p-4 max-w-sm z-50 print:hidden">
+    <div className="fixed bottom-4 right-4 bg-white dark:bg-gray-900 rounded-lg shadow-xl border-2 border-indonesia-red-600 p-4 max-w-sm z-50 print:hidden">
       <div className="flex items-start">
         <div className="flex-shrink-0">
-          <div className="w-12 h-12 bg-indonesia-red-50 rounded-lg flex items-center justify-center">
-            <Download className="w-6 h-6 text-indonesia-red-600" />
+          <div className="w-12 h-12 bg-indonesia-red-50 dark:bg-indonesia-red-950 rounded-lg flex items-center justify-center">
+            <Download className="w-6 h-6 text-indonesia-red-600 dark:text-indonesia-red-400" />
           </div>
         </div>
         <div className="ml-3 flex-1">
           <div className="flex items-start justify-between">
-            <h3 className="text-sm font-semibold text-gray-900">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
               Pasang Aplikasi ORBIT
             </h3>
             <button
               onClick={dismiss}
-              className="ml-2 text-gray-400 hover:text-gray-600"
+              className="ml-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
             Akses lebih cepat dengan memasang aplikasi di perangkat Anda
           </p>
           <div className="mt-4 flex space-x-2">
@@ -158,7 +158,7 @@ export function InstallPrompt() {
             </button>
             <button
               onClick={dismiss}
-              className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium"
+              className="bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg text-sm font-medium"
             >
               Nanti
             </button>

@@ -189,11 +189,11 @@ export default function StockOpnameStartModal({
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Gudang <span className="text-red-500">*</span></label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Gudang <span className="text-red-500 dark:text-red-400">*</span></label>
             <select
               value={warehouseId}
               onChange={(e) => setWarehouseId(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-primary-500"
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm outline-none focus:border-primary-500"
             >
               <option value="">Pilih gudang</option>
               {outletWarehouses.length > 0 && (
@@ -218,7 +218,7 @@ export default function StockOpnameStartModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Tipe <span className="text-red-500">*</span></label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Tipe <span className="text-red-500 dark:text-red-400">*</span></label>
             <div className="grid grid-cols-2 gap-2">
               {(
                 [
@@ -232,37 +232,37 @@ export default function StockOpnameStartModal({
                   onClick={() => setOpnameType(t.v)}
                   className={`rounded-xl border-2 px-3 py-2.5 text-left transition-colors ${
                     opnameType === t.v
-                      ? 'border-primary-600 bg-red-50'
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-primary-600 bg-red-50 dark:bg-red-950'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                   }`}
                 >
-                  <span className="block text-sm font-bold text-gray-900">
+                  <span className="block text-sm font-bold text-gray-900 dark:text-gray-100">
                     {t.icon} {t.v}
                   </span>
-                  <span className="block text-xs text-gray-500 mt-0.5">{t.hint}</span>
+                  <span className="block text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t.hint}</span>
                 </button>
               ))}
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Tanggal <span className="text-red-500">*</span></label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Tanggal <span className="text-red-500 dark:text-red-400">*</span></label>
             <input
               type="date"
               value={opnameDate}
               onChange={(e) => setOpnameDate(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-500"
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm outline-none focus:border-primary-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Approver <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              Approver <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <select
               value={approverId}
               onChange={(e) => setApproverId(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-primary-500"
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm outline-none focus:border-primary-500"
             >
               <option value="">
                 {defaultApproverName
@@ -278,12 +278,12 @@ export default function StockOpnameStartModal({
               ))}
             </select>
             {approverMissing && (
-              <div className="mt-1.5 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
+              <div className="mt-1.5 rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 px-3 py-2 text-xs text-red-700 dark:text-red-300">
                 Belum ada approver untuk outlet ini. Atur dulu di{' '}
                 <Link
                   to="/admin/approval"
                   onClick={onClose}
-                  className="font-semibold underline hover:text-red-800"
+                  className="font-semibold underline hover:text-red-800 dark:hover:text-red-200"
                 >
                   Administrator → Approval
                 </Link>{' '}
@@ -293,35 +293,35 @@ export default function StockOpnameStartModal({
           </div>
 
           <div className="relative">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Kategori <span className="text-red-500">*</span></label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Kategori <span className="text-red-500 dark:text-red-400">*</span></label>
             <button
               type="button"
               onClick={() => setCatOpen((o) => !o)}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-left outline-none focus:border-primary-500 flex items-center justify-between gap-2"
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-left outline-none focus:border-primary-500 flex items-center justify-between gap-2"
             >
-              <span className={selectedCategories.length === 0 ? 'text-gray-400' : ''}>
+              <span className={selectedCategories.length === 0 ? 'text-gray-400 dark:text-gray-500' : ''}>
                 {allSelected
                   ? `Semua kategori (${categories.length})`
                   : selectedCategories.length === 0
                     ? 'Pilih kategori'
                     : `${selectedCategories.length} dari ${categories.length} kategori`}
               </span>
-              <span className="text-gray-400">▾</span>
+              <span className="text-gray-400 dark:text-gray-500">▾</span>
             </button>
             {catOpen && (
-              <div className="absolute z-20 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg">
-                <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 text-xs">
+              <div className="absolute z-20 mt-1 w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg">
+                <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 dark:border-gray-800 text-xs">
                   <button
                     type="button"
                     onClick={() => setSelectedCategories(categories.map((c: any) => c.id))}
-                    className="text-primary-600 font-medium hover:underline"
+                    className="text-primary-600 dark:text-primary-400 font-medium hover:underline"
                   >
                     Pilih semua
                   </button>
                   <button
                     type="button"
                     onClick={() => setSelectedCategories([])}
-                    className="text-gray-500 font-medium hover:underline"
+                    className="text-gray-500 dark:text-gray-400 font-medium hover:underline"
                   >
                     Kosongkan
                   </button>
@@ -330,7 +330,7 @@ export default function StockOpnameStartModal({
                   {categories.map((c: any) => (
                     <label
                       key={c.id}
-                      className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-gray-50 cursor-pointer"
+                      className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
                     >
                       <input
                         type="checkbox"
@@ -347,11 +347,11 @@ export default function StockOpnameStartModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Anggota <span className="text-red-500">*</span></label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Anggota <span className="text-red-500 dark:text-red-400">*</span></label>
             <button
               type="button"
               onClick={() => setMemberOpen((v) => !v)}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm flex items-center justify-between"
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm flex items-center justify-between"
             >
               <span>
                 {selectedMembers.length === 0
@@ -363,18 +363,18 @@ export default function StockOpnameStartModal({
               <span>{memberOpen ? '▴' : '▾'}</span>
             </button>
             {memberOpen && (
-              <div className="mt-1 rounded-lg border border-gray-300 p-1.5">
+              <div className="mt-1 rounded-lg border border-gray-300 dark:border-gray-600 p-1.5">
                 <div className="flex items-center justify-between px-2 py-1 text-xs">
                   <button
                     type="button"
-                    className="text-primary-600 font-semibold hover:underline"
+                    className="text-primary-600 dark:text-primary-400 font-semibold hover:underline"
                     onClick={() => setSelectedMembers(allUsers.map((u: any) => u.id))}
                   >
                     Pilih semua
                   </button>
                   <button
                     type="button"
-                    className="text-gray-500 font-semibold hover:underline"
+                    className="text-gray-500 dark:text-gray-400 font-semibold hover:underline"
                     onClick={() => setSelectedMembers([])}
                   >
                     Hapus
@@ -384,7 +384,7 @@ export default function StockOpnameStartModal({
                   {allUsers.map((u: any) => (
                     <label
                       key={u.id}
-                      className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-gray-50 cursor-pointer"
+                      className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
                     >
                       <input
                         type="checkbox"
@@ -396,14 +396,14 @@ export default function StockOpnameStartModal({
                     </label>
                   ))}
                   {allUsers.length === 0 && (
-                    <span className="block px-2 py-1.5 text-sm text-gray-400">Memuat…</span>
+                    <span className="block px-2 py-1.5 text-sm text-gray-400 dark:text-gray-500">Memuat…</span>
                   )}
                 </div>
               </div>
             )}
           </div>
 
-          <div className="rounded-lg bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-800">
+          <div className="rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 px-3 py-2 text-xs text-blue-800 dark:text-blue-200">
             Setelah dimulai, kode sesi tampil di halaman hitung — bagikan ke tim penghitung
             untuk gabung via kode.
           </div>

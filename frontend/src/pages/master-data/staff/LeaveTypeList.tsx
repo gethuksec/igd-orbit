@@ -214,11 +214,11 @@ export default function LeaveTypeList() {
       <button
         type="button"
         onClick={onToggle}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${on ? "bg-green-500" : "bg-gray-300"}`}
+        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${on ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600"}`}
       >
         <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${on ? "translate-x-6" : "translate-x-1"}`} />
       </button>
-      <span className="text-sm text-gray-600">{on ? "Ya" : "Tidak"}</span>
+      <span className="text-sm text-gray-600 dark:text-gray-400">{on ? "Ya" : "Tidak"}</span>
     </div>
   );
 
@@ -227,7 +227,7 @@ export default function LeaveTypeList() {
       <BreadcrumbHeader title="Cuti" subtitle="Kelola tipe cuti, kuota & aturan pengajuan">
         <Button
           onClick={openCreateModal}
-          className="flex items-center gap-2 bg-white text-primary-600 border border-gray-200 hover:bg-primary-50"
+          className="flex items-center gap-2 bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 border border-gray-200 dark:border-gray-700 hover:bg-primary-50 dark:hover:bg-primary-950"
         >
           <Plus className="w-5 h-5" />
           <span>Tambah Cuti</span>
@@ -235,8 +235,8 @@ export default function LeaveTypeList() {
       </BreadcrumbHeader>
 
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
-          <p className="text-red-800 font-medium">{(error as Error).message || "Terjadi kesalahan"}</p>
+        <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
+          <p className="text-red-800 dark:text-red-200 font-medium">{(error as Error).message || "Terjadi kesalahan"}</p>
         </div>
       )}
 
@@ -307,7 +307,7 @@ export default function LeaveTypeList() {
                 setToDelete({ id: row.id, name: row.name });
                 setDeleteModalOpen(true);
               }}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-600 dark:hover:text-red-400"
             >
               <Trash2 className="h-4 w-4" />
             </button>
@@ -364,81 +364,81 @@ export default function LeaveTypeList() {
             className="space-y-4"
           >
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nama Tipe Cuti <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Nama Tipe Cuti <span className="text-red-500 dark:text-red-400">*</span>
               </label>
               <input
                 type="text"
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="cth: Cuti Melahirkan"
               />
             </div>
             {editing && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Berbayar (paid leave)</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Berbayar (paid leave)</label>
               {toggle(formData.isPaid, () => setFormData((p) => ({ ...p, isPaid: !p.isPaid })))}
             </div>
             )}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Kuota per tahun (hari)</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kuota per tahun (hari)</label>
               <input
                 type="number"
                 min={0}
                 value={formData.quotaDays}
                 onChange={(e) => setFormData({ ...formData, quotaDays: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="12"
               />
             </div>
             {editing && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Max pengajuan (hari setelah mulai)</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Max pengajuan (hari setelah mulai)</label>
               <input
                 type="number"
                 min={0}
                 value={formData.maxApplyDelayDays}
                 onChange={(e) => setFormData({ ...formData, maxApplyDelayDays: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="kosong = wajib H-3"
               />
-              <p className="text-xs text-gray-500 mt-1">0 = boleh diajukan di hari H (seperti Sakit).</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">0 = boleh diajukan di hari H (seperti Sakit).</p>
             </div>
             )}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Max pengajuan per bulan (x)</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Max pengajuan per bulan (x)</label>
               <input
                 type="number"
                 min={1}
                 value={formData.maxRequestsPerMonth}
                 onChange={(e) => setFormData({ ...formData, maxRequestsPerMonth: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="kosong = tanpa batas"
               />
-              <p className="text-xs text-gray-500 mt-1">1 = sebulan 1x (seperti Sakit).</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">1 = sebulan 1x (seperti Sakit).</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Masa kerja minimum (bulan)</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Masa kerja minimum (bulan)</label>
               <input
                 type="number"
                 min={0}
                 value={formData.minTenureMonths}
                 onChange={(e) => setFormData({ ...formData, minTenureMonths: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="kosong = tanpa syarat"
               />
-              <p className="text-xs text-gray-500 mt-1">cth: 12 = baru boleh ambil setelah 1 tahun kerja.</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">cth: 12 = baru boleh ambil setelah 1 tahun kerja.</p>
             </div>
             {editing && (
             <div>
-              <label className="flex items-center gap-2 text-sm text-gray-700">
+              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                 <input
                   type="checkbox"
                   checked={formData.requiresAttachment}
                   onChange={(e) => setFormData({ ...formData, requiresAttachment: e.target.checked })}
-                  className="rounded border-gray-300"
+                  className="rounded border-gray-300 dark:border-gray-600"
                 />
                 Wajib lampiran
               </label>
@@ -446,16 +446,16 @@ export default function LeaveTypeList() {
             )}
             {editing && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => setFormData((prev) => ({ ...prev, isActive: !prev.isActive }))}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isActive ? "bg-green-500" : "bg-gray-300"}`}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.isActive ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600"}`}
                   >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.isActive ? "translate-x-6" : "translate-x-1"}`} />
                   </button>
-                  <span className="text-sm text-gray-600">{formData.isActive ? "Aktif" : "Tidak Aktif"}</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">{formData.isActive ? "Aktif" : "Tidak Aktif"}</span>
                 </div>
               </div>
             )}
@@ -467,7 +467,7 @@ export default function LeaveTypeList() {
                   setEditing(null);
                   setFormData(defaultForm);
                 }}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors"
                 disabled={saveMutation.isPending}
               >
                 Batal
@@ -510,10 +510,10 @@ export default function LeaveTypeList() {
           <div className="space-y-4">
             <div className="flex items-start gap-3">
               <div className="flex-1">
-                <p className="text-sm text-gray-700 mb-2">
+                <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
                   Apakah Anda yakin ingin menghapus tipe cuti <strong>{toDelete?.name}</strong>?
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   Tindakan ini akan melakukan soft delete. Data tidak akan muncul di daftar, tetapi masih
                   tersimpan di database.
                 </p>
@@ -526,7 +526,7 @@ export default function LeaveTypeList() {
                   setToDelete(null);
                 }}
                 disabled={deleteMutation.isPending}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors"
               >
                 Batal
               </button>

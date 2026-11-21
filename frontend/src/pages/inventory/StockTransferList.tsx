@@ -12,9 +12,9 @@ const PAGE_SIZE = 20;
 
 const statusBadge = (status: string) => {
   const styles: Record<string, string> = {
-    completed: 'bg-emerald-100 text-emerald-700',
-    pending: 'bg-amber-100 text-amber-700',
-    cancelled: 'bg-red-100 text-red-700',
+    completed: 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300',
+    pending: 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300',
+    cancelled: 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300',
   };
   const labels: Record<string, string> = {
     completed: 'Selesai',
@@ -24,7 +24,7 @@ const statusBadge = (status: string) => {
   return (
     <span
       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-        styles[status] || 'bg-gray-100 text-gray-600'
+        styles[status] || 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
       }`}
     >
       {labels[status] || status}
@@ -90,9 +90,9 @@ export default function StockTransferList() {
       />
 
       {/* ── Documents table ── */}
-      <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
         {docs.length === 0 ? (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             {result.meta.total === 0
               ? 'Belum ada dokumen transfer.'
               : 'Tidak ada dokumen yang cocok dengan pencarian.'}
@@ -100,53 +100,53 @@ export default function StockTransferList() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+              <thead className="bg-gradient-to-r from-gray-50 dark:from-gray-900 to-gray-100 dark:to-gray-800 border-b border-gray-200 dark:border-gray-700">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">No. Transfer</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Tanggal</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Dari</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Ke</th>
-                  <th className="px-4 py-3 text-center text-xs font-bold text-gray-700 uppercase">Produk</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Petugas</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">No. Transfer</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Tanggal</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Dari</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Ke</th>
+                  <th className="px-4 py-3 text-center text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Produk</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Petugas</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {docs.map((doc: StockTransfer) => (
                   <tr
                     key={doc.id}
-                    className="hover:bg-gray-50 cursor-pointer"
+                    className="hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
                     onClick={() => navigate(`/inventory/transfer/${doc.id}`)}
                   >
-                    <td className="px-4 py-3 text-sm font-medium text-primary-600">
+                    <td className="px-4 py-3 text-sm font-medium text-primary-600 dark:text-primary-400">
                       {doc.transferNumber}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
+                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
                       {new Date(doc.createdAt).toLocaleDateString('id-ID')}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
-                      <div className="font-medium text-gray-800">
+                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+                      <div className="font-medium text-gray-800 dark:text-gray-200">
                         {doc.fromWarehouse?.name || '-'}
                       </div>
-                      <div className="text-xs text-gray-400">
+                      <div className="text-xs text-gray-400 dark:text-gray-500">
                         {branchName(doc.fromBranchId) || '—'}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
-                      <div className="font-medium text-gray-800">
+                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+                      <div className="font-medium text-gray-800 dark:text-gray-200">
                         {doc.toWarehouse?.name || '-'}
                       </div>
-                      <div className="text-xs text-gray-400">
+                      <div className="text-xs text-gray-400 dark:text-gray-500">
                         {branchName(doc.toBranchId) || 'Central Bad Stock'}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <div className="inline-flex items-center gap-1 text-sm text-gray-700">
-                        <ArrowRightLeft className="w-3.5 h-3.5 text-gray-400" />
+                      <div className="inline-flex items-center gap-1 text-sm text-gray-700 dark:text-gray-300">
+                        <ArrowRightLeft className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
                         {doc.items.length}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{doc.picName || '-'}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{doc.picName || '-'}</td>
                     <td className="px-4 py-3">{statusBadge(doc.status)}</td>
                   </tr>
                 ))}
@@ -158,7 +158,7 @@ export default function StockTransferList() {
         {/* ── Pagination ── */}
         {result.meta.totalPages > 1 && (
           <div className="mt-4 flex items-center justify-between">
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               Total {result.meta.total} dokumen — halaman {result.meta.page} dari{' '}
               {result.meta.totalPages}
             </p>
