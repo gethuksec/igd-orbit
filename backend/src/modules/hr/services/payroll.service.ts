@@ -85,6 +85,34 @@ export class PayrollService {
       throw new NotFoundException('No active employees found');
     }
 
+    // IGDERP-289: resolve the masters selected on the hitung page.
+    // Inactive/unknown IDs are rejected — the checklist only offers active masters.
+    const requestedIds = [...new Set((dto.components || []).map((c) => c.masterId))];
+    const masters = await this.prisma.payrollComponentMaster.findMany({
+      where: { id: { in: requestedIds }, deletedAt: null },
+    });
+    const foundIds = new Set(masters.map((m) => m.id));
+    const unknownIds = requestedIds.filter((id) => !foundIds.has(id));
+    if (unknownIds.length > 0) {
+      throw new BadRequestException(`Komponen tidak dikenal: ${unknownIds.join(', ')}`);
+    }
+    const inactiveMasters = masters.filter((m) => !m.isActive);
+    if (inactiveMasters.length > 0) {
+      throw new BadRequestException(
+        `Komponen nonaktif tidak bisa dihitung: ${inactiveMasters.map((m) => m.code).join(', ')}`,
+      );
+    }
+    const notesById = new Map((dto.components || []).map((c) => [c.masterId, c.notes]));
+    const selectedMasters = masters.map((master) => ({ master, notes: notesById.get(master.id) }));
+
+    // Penalty rates backing the NOMINAL-* deduction rows (fallback = nilai sheet).
+    const dendaRates = await this.prisma.penaltyType.findMany({
+      where: {
+        code: { in: ['DENDA-TERLAMBAT', 'DENDA-ALPHA', 'DENDA-LEBIH-LIBUR', 'DENDA-PULANG-CEPAT'] },
+        isActive: true,
+      },
+    });
+
     const payrollResults = [];
 
     for (const employee of employees) {
@@ -118,219 +146,169 @@ export class PayrollService {
       // probation-gated (trial/probation get no KPI until lulus probation).
       const kpi = await this.kpiService.payrollKpi(employee.id, dto.period_month, dto.period_year);
 
-      // Calculate components
+      // Master-driven components (IGDERP-289): only the masters selected on
+      // the hitung page resolve into rows. Amount rules follow the
+      // Format_HR_ORBIT.xlsx Payroll sheet formulas (R=Q*M, V=SWITCH N,
+      // W=SWITCH O, Z=Y*15000, AG=15000*AF, AI=100000*AH, AK=60000*AJ,
+      // AL=40000*0.25, AP=AN*AO). Category (+/-) comes from the master.
       const components: Array<{ type: string; name: string; amount: Decimal; formula?: string; notes?: string }> = [];
+
+      const selectedByCode = new Map(selectedMasters.map((m) => [m.master.code, m]));
+      const hasMaster = (code: string) => selectedByCode.has(code);
+      const pushMaster = (code: string, amount: Decimal, formula?: string) => {
+        const m = selectedByCode.get(code);
+        if (!m) return;
+        components.push({
+          type: m.master.category,
+          name: m.master.name,
+          amount,
+          formula,
+          notes: m.notes || undefined,
+        });
+      };
 
       // EARNINGS
       const basicSalary = employee.basicSalary;
-      components.push({
-        type: 'earning',
-        name: 'Basic Salary',
-        amount: basicSalary,
-        formula: 'Fixed',
-      });
+      const dailyRate = basicSalary.dividedBy(30); // Q = gaji/30 (kolom Q sheet = 0, staf bulanan)
+      const overtimeHours = new Decimal(attendanceSummary.totalOvertimeHours || 0);
 
-      // Tenure allowance
-      const tenureAllowance = this.calculateTenureAllowance(employee.hireDate, basicSalary);
-      if (tenureAllowance.greaterThan(0)) {
-        components.push({
-          type: 'earning',
-          name: 'Tenure Allowance',
-          amount: tenureAllowance,
-          formula: `${Math.floor((new Date().getTime() - (employee.hireDate?.getTime() || 0)) / (1000 * 60 * 60 * 24 * 365))} years × 2%`,
-        });
+      // GAJI-POKOK (P): prefill kontrak basicSalary
+      if (hasMaster('GAJI-POKOK')) {
+        pushMaster('GAJI-POKOK', basicSalary, 'Kontrak basicSalary');
       }
 
-      // Position allowance (TUNJANGAN JABATAN) - based on position
-      // IGDERP-277: reads the Position relation name (same substring behavior as
-      // before — the allowance move onto the Position row itself is IGDERP-271).
-      // Example: HEADSTORE = 1,500,000, ASSISTANT = 700,000, TEKNISI-1 = 700,000
-      let positionAllowance = new Decimal(0);
-      const positionName = (employee as any).position?.name as string | undefined;
-      if (positionName) {
-        const positionLower = positionName.toLowerCase();
-        if (positionLower.includes('headstore') || positionLower.includes('head store')) {
-          positionAllowance = new Decimal(1500000);
-        } else if (positionLower.includes('assistant')) {
-          positionAllowance = new Decimal(700000);
-        } else if (positionLower.includes('teknisi') || positionLower.includes('technician')) {
-          positionAllowance = new Decimal(700000);
+      // TOTAL-GAJI-HARIAN (R = Q*M)
+      if (hasMaster('TOTAL-GAJI-HARIAN')) {
+        pushMaster(
+          'TOTAL-GAJI-HARIAN',
+          dailyRate.times(attendanceSummary.presentDays),
+          `Q x M (Q = gaji/30, M = ${attendanceSummary.presentDays} hadir)`,
+        );
+      }
+
+      // TUNJANGAN-MASA-KERJA: 2% per tahun, maks 20%
+      if (hasMaster('TUNJ-MASA-KERJA')) {
+        const tenureAllowance = this.calculateTenureAllowance(employee.hireDate, basicSalary);
+        if (tenureAllowance.greaterThan(0)) {
+          pushMaster(
+            'TUNJ-MASA-KERJA',
+            tenureAllowance,
+            `${Math.floor((new Date().getTime() - (employee.hireDate?.getTime() || 0)) / (1000 * 60 * 60 * 24 * 365))} tahun x 2%`,
+          );
         } else {
-          // Default: 10% of basic salary for other positions
-          positionAllowance = basicSalary.times(0.1);
+          pushMaster('TUNJ-MASA-KERJA', new Decimal(0), 'Belum 1 tahun masa kerja');
         }
       }
-      if (positionAllowance.greaterThan(0)) {
-        components.push({
-          type: 'earning',
-          name: 'Tunjangan Jabatan',
-          amount: positionAllowance,
-          formula: positionName ? `Position: ${positionName}` : '10% of basic salary',
-        });
+
+      // Manual earnings: HR mengisi via penyesuaian (tidak ada input jumlah di halaman hitung)
+      for (const code of ['SELISIH', 'TUNJ-JABATAN', 'KEKURANGAN-BLN-LALU']) {
+        if (hasMaster(code)) {
+          pushMaster(code, new Decimal(0), 'Manual — diisi HR');
+        }
       }
 
-      // Overtime pay (LEMBUR) - JAM, NOMINAL
-      let overtimePay = new Decimal(0);
-      const overtimeHours = new Decimal(attendanceSummary.totalOvertimeHours || 0);
-      if (employee.hourlyRate && attendanceSummary.totalOvertimeHours > 0) {
-        const hourlyRate = employee.hourlyRate;
-        // 1.5x for weekday, 2x for weekend (simplified - using 1.5x)
-        overtimePay = hourlyRate.times(overtimeHours).times(1.5);
-        components.push({
-          type: 'earning',
-          name: 'Lembur',
-          amount: overtimePay,
-          formula: `${attendanceSummary.totalOvertimeHours} jam × ${hourlyRate.toNumber()} × 1.5`,
-          notes: `${attendanceSummary.totalOvertimeHours} jam`,
-        });
+      // TUNJANGAN-KELUARGA (V = SWITCH N): butuh data status keluarga karyawan
+      if (hasMaster('TUNJ-KELUARGA')) {
+        pushMaster('TUNJ-KELUARGA', new Decimal(0), 'Perlu data status keluarga karyawan (K-0..K-3)');
       }
 
-      // KPI Bonus (IGDERP-266: locked NILAI x division default_amount)
-      if (kpi.bonus.greaterThan(0)) {
-        components.push({
-          type: 'earning',
-          name: 'KPI Bonus',
-          amount: kpi.bonus,
-          formula: `NILAI: ${kpi.nilai.toNumber()}`,
-        });
-      } else if (kpi.reason) {
-        components.push({
-          type: 'earning',
-          name: 'KPI Bonus',
-          amount: new Decimal(0),
-          formula: kpi.reason,
-        });
+      // TUNJANGAN-PENDIDIKAN (W = SWITCH O): butuh data pendidikan karyawan
+      if (hasMaster('TUNJ-PENDIDIKAN')) {
+        pushMaster('TUNJ-PENDIDIKAN', new Decimal(0), 'Perlu data pendidikan karyawan (SMA/K, S-1, S-2)');
       }
 
-      // Holiday Incentive (INSENTIF LIBUR) - HARI, NOMINAL
-      // Calculate based on holidays worked
-      const holidayIncentiveRate = new Decimal(0); // Would be configured
-      const holidayIncentiveDays = 0; // Would come from attendance data
-      const holidayIncentiveAmount = holidayIncentiveRate.times(holidayIncentiveDays);
-      if (holidayIncentiveAmount.greaterThan(0)) {
-        components.push({
-          type: 'earning',
-          name: 'Insentif Libur',
-          amount: holidayIncentiveAmount,
-          formula: `${holidayIncentiveDays} hari × ${holidayIncentiveRate.toNumber()}`,
-          notes: `${holidayIncentiveDays} hari`,
-        });
+      // TRANSPORTASI (X): nominal tetap dari master
+      if (hasMaster('TRANSPORTASI')) {
+        const m = selectedByCode.get('TRANSPORTASI')!;
+        const fixed = m.master.defaultAmount ? new Decimal(m.master.defaultAmount.toString()) : new Decimal(0);
+        pushMaster('TRANSPORTASI', fixed, 'Nominal tetap master');
+      }
+
+      // NOMINAL-LEMBUR (Z = Y*15000)
+      if (hasMaster('NOMINAL-LEMBUR')) {
+        pushMaster(
+          'NOMINAL-LEMBUR',
+          overtimeHours.times(15000),
+          `${attendanceSummary.totalOvertimeHours} jam x 15.000`,
+        );
+      }
+
+      // TOTAL-KPI (AP = AN*AO, IGDERP-266: locked NILAI x division default)
+      if (hasMaster('TOTAL-KPI')) {
+        if (kpi.bonus.greaterThan(0)) {
+          pushMaster('TOTAL-KPI', kpi.bonus, `NILAI: ${kpi.nilai.toNumber()}`);
+        } else {
+          pushMaster('TOTAL-KPI', new Decimal(0), kpi.reason || undefined);
+        }
       }
 
       // DEDUCTIONS
-      // Late/No Checklog (TERLAMBAT/TIDAK CHECKLOG) - HARI, NOMINAL
-      // Based on CSV: per day, not per minute
-      const latePenaltyPerDay = new Decimal(0); // Would be configured (e.g., Rp 50,000 per day)
-      const lateDays = attendanceSummary.lateCount; // Days with late/no checklog
-      const latePenalty = latePenaltyPerDay.times(lateDays);
-      if (latePenalty.greaterThan(0)) {
-        components.push({
-          type: 'deduction',
-          name: 'Terlambat/Tidak Checklog',
-          amount: latePenalty,
-          formula: `${lateDays} hari × ${latePenaltyPerDay.toNumber()}`,
-          notes: `${lateDays} hari`,
-        });
+      const dendaRate = (code: string, fallback: number) => {
+        const row = dendaRates.find((d) => d.code === code);
+        const v = row?.defaultAmount ? Number(row.defaultAmount.toString()) : NaN;
+        return Number.isFinite(v) && v > 0 ? v : fallback;
+      };
+
+      // NOMINAL-TFS (AG = 15.000*AF, links DENDA-TERLAMBAT)
+      if (hasMaster('NOMINAL-TFS')) {
+        const rate = dendaRate('DENDA-TERLAMBAT', 15000);
+        pushMaster('NOMINAL-TFS', new Decimal(attendanceSummary.lateCount).times(rate), `${attendanceSummary.lateCount} hari x ${rate.toLocaleString('id-ID')}`);
       }
 
-      // Absence deduction
-      const dailyRate = basicSalary.dividedBy(30); // Simplified
-      const absenceDeduction = dailyRate.times(attendanceSummary.absenceCount);
-      if (absenceDeduction.greaterThan(0)) {
-        components.push({
-          type: 'deduction',
-          name: 'Absence Deduction',
-          amount: absenceDeduction,
-          formula: `${attendanceSummary.absenceCount} days × ${dailyRate.toNumber()}`,
-        });
+      // NOMINAL-BA (AI = 100.000*AH, links DENDA-ALPHA)
+      if (hasMaster('NOMINAL-BA')) {
+        const rate = dendaRate('DENDA-ALPHA', 100000);
+        pushMaster('NOMINAL-BA', new Decimal(attendanceSummary.absenceCount).times(rate), `${attendanceSummary.absenceCount} hari x ${rate.toLocaleString('id-ID')}`);
       }
 
-      // Early leave penalty (PULANG CEPAT) - HARI, NOMINAL
-      const earlyLeavePenaltyPerDay = new Decimal(0); // Would be configured (e.g., Rp 25,000 per day)
-      const earlyLeaveDays = attendanceSummary.earlyLeaveCount;
-      const earlyLeavePenalty = earlyLeavePenaltyPerDay.times(earlyLeaveDays);
-      if (earlyLeavePenalty.greaterThan(0)) {
-        components.push({
-          type: 'deduction',
-          name: 'Pulang Cepat',
-          amount: earlyLeavePenalty,
-          formula: `${earlyLeaveDays} hari × ${earlyLeavePenaltyPerDay.toNumber()}`,
-          notes: `${earlyLeaveDays} hari`,
-        });
+      // NOMINAL-LEBIH-LIBUR (AK = 60.000*AJ, links DENDA-LEBIH-LIBUR)
+      if (hasMaster('NOMINAL-LBL-LIBUR')) {
+        const rate = dendaRate('DENDA-LEBIH-LIBUR', 60000);
+        pushMaster('NOMINAL-LBL-LIBUR', new Decimal(attendanceSummary.leaveCount).times(rate), `${attendanceSummary.leaveCount} hari x ${rate.toLocaleString('id-ID')}`);
       }
 
-      // Conflict Holiday/No Info (BENTROK LIBUR/TANPA KETERANGAN) - HARI, NOMINAL
-      // This would come from attendance data where status is conflict or no info
-      const conflictHolidayPenaltyPerDay = new Decimal(0); // Would be configured
-      const conflictHolidayDays = 0; // Would come from attendance data
-      const conflictHolidayPenalty = conflictHolidayPenaltyPerDay.times(conflictHolidayDays);
-      if (conflictHolidayPenalty.greaterThan(0)) {
-        components.push({
-          type: 'deduction',
-          name: 'Bentrok Libur/Tanpa Keterangan',
-          amount: conflictHolidayPenalty,
-          formula: `${conflictHolidayDays} hari × ${conflictHolidayPenaltyPerDay.toNumber()}`,
-          notes: `${conflictHolidayDays} hari`,
-        });
+      // NOMINAL-PULANG-CEPAT (AL = 40.000*0.25, flat bila ada kejadian)
+      if (hasMaster('NOMINAL-PLG-CEPAT')) {
+        const amount = attendanceSummary.earlyLeaveCount > 0 ? new Decimal(10000) : new Decimal(0);
+        pushMaster('NOMINAL-PLG-CEPAT', amount, '40.000 x 0,25');
       }
 
-      // Extra Leave (LEBIH LIBUR) - HARI, NOMINAL
-      // This would come from leave data where employee took more leave than allowed
-      const extraLeavePenaltyPerDay = new Decimal(0); // Would be configured
-      const extraLeaveDays = 0; // Would come from leave balance calculation
-      const extraLeavePenalty = extraLeavePenaltyPerDay.times(extraLeaveDays);
-      if (extraLeavePenalty.greaterThan(0)) {
-        components.push({
-          type: 'deduction',
-          name: 'Lebih Libur',
-          amount: extraLeavePenalty,
-          formula: `${extraLeaveDays} hari × ${extraLeavePenaltyPerDay.toNumber()}`,
-          notes: `${extraLeaveDays} hari`,
-        });
+      // Manual deductions: HR mengisi via penyesuaian
+      for (const code of ['KELALAIAN', 'PENYESUAIAN']) {
+        if (hasMaster(code)) {
+          pushMaster(code, new Decimal(0), 'Manual — diisi HR');
+        }
       }
 
-      // Unpaid leave deduction
-      const unpaidLeaveDeduction = dailyRate.times(unpaidLeaveDays);
-      if (unpaidLeaveDeduction.greaterThan(0)) {
+      // Custom HR masters (di luar 22 bawaan): resolusi generik per sumber
+      const KNOWN_CODES = new Set([
+        'GAJI-POKOK', 'TOTAL-GAJI-HARIAN', 'TUNJ-MASA-KERJA', 'SELISIH',
+        'TUNJ-JABATAN', 'TUNJ-KELUARGA', 'TUNJ-PENDIDIKAN', 'TRANSPORTASI',
+        'NOMINAL-LEMBUR', 'TOTAL-KPI', 'KEKURANGAN-BLN-LALU', 'NOMINAL-TFS',
+        'NOMINAL-BA', 'NOMINAL-LBL-LIBUR', 'NOMINAL-PLG-CEPAT', 'KELALAIAN', 'PENYESUAIAN',
+      ]);
+      const gradeCode = (employee as any).position?.grade?.code as string | undefined;
+      for (const { master, notes } of selectedMasters) {
+        if (KNOWN_CODES.has(master.code)) continue;
+        let amount = new Decimal(0);
+        let formula = 'Manual — diisi HR';
+        if (master.source === 'fixed') {
+          amount = master.defaultAmount ? new Decimal(master.defaultAmount.toString()) : new Decimal(0);
+          formula = 'Nominal tetap master';
+        } else if (master.source === 'grade') {
+          const tiers = (master.tiers || {}) as Record<string, any>;
+          const v = gradeCode ? Number(tiers[gradeCode]) : NaN;
+          amount = Number.isFinite(v) ? new Decimal(v) : new Decimal(0);
+          formula = gradeCode ? `Grade ${gradeCode}` : 'Grade karyawan belum diset';
+        } else if (master.source === 'computed') {
+          formula = 'Belum ada resolver untuk sumber ini';
+        }
         components.push({
-          type: 'deduction',
-          name: 'Unpaid Leave Deduction',
-          amount: unpaidLeaveDeduction,
-          formula: `${unpaidLeaveDays} days × ${dailyRate.toNumber()}`,
-        });
-      }
-
-      // Previous Month Adjustment (PENYESUAIAN BULAN LALU) - DASAR, AMOUNT
-      // This would come from previous month's payroll adjustment
-      const previousMonthAdjustmentBase = new Decimal(0); // DASAR
-      const previousMonthAdjustmentAmount = new Decimal(0); // AMOUNT
-      if (!previousMonthAdjustmentAmount.equals(0)) {
-        components.push({
-          type: previousMonthAdjustmentAmount.greaterThan(0) ? 'earning' : 'deduction',
-          name: 'Penyesuaian Bulan Lalu',
-          amount: previousMonthAdjustmentAmount.abs(),
-          formula: `Dasar: ${previousMonthAdjustmentBase.toNumber()}, Amount: ${previousMonthAdjustmentAmount.toNumber()}`,
-          notes: `Dasar: ${previousMonthAdjustmentBase.toNumber()}`,
-        });
-      }
-
-      // Negligence (KELALAIAN) - additional deduction for negligence
-      const negligenceDeduction = new Decimal(0); // Would be configured or from incident reports
-      if (negligenceDeduction.greaterThan(0)) {
-        components.push({
-          type: 'deduction',
-          name: 'Kelalaian',
-          amount: negligenceDeduction,
-        });
-      }
-
-      // Withheld Salary (GAJI DITAHAN) - salary withheld for various reasons
-      const withheldSalary = new Decimal(0); // Would be configured or from HR decisions
-      if (withheldSalary.greaterThan(0)) {
-        components.push({
-          type: 'deduction',
-          name: 'Gaji Ditahan',
-          amount: withheldSalary,
+          type: master.category,
+          name: master.name,
+          amount,
+          formula,
+          notes: notes || undefined,
         });
       }
 

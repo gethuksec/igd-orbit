@@ -507,11 +507,8 @@ export const hrService = {
     employee_ids?: string[];
     period_month: number;
     period_year: number;
-    components?: Array<{
-      component_type: 'earning' | 'deduction';
-      component_name: string;
-      amount: number;
-      is_taxable?: boolean;
+    components: Array<{
+      masterId: string;
       notes?: string;
     }>;
   }) {

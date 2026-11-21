@@ -1790,15 +1790,16 @@ async function main() {
   // 16b2. Payroll component master — IGDERP-284 (thread 20261120).
   // Non-denda income/deduction backing the create-period checklist + template
   // columns. Source: Format_HR_ORBIT.xlsx Payroll sheet formulas-as-text.
-  // TUNJ-JABATAN tiers come from the Excel AN nested-IF ladder (-1:700k,
-  // -2:400k, -3:200k); G4-G6 left for HR to complete via the CRUD UI.
+  // Evidence (Payroll sheet): kolom U TUNJ-JABATAN diisi manual per baris;
+  // ladder nested-IF justru menggerakkan kolom AN (KPI AMOUNT). Jadi jabatan
+  // = manual, tiers dikosongkan (tetap didukung untuk master custom).
   console.log('💰 Creating payroll component master...');
   const payrollComponents = [
     { code: 'GAJI-POKOK', name: 'Gaji Pokok', category: 'earning', source: 'manual', description: 'Prefill kontrak basicSalary', sortOrder: 10 },
     { code: 'TOTAL-GAJI-HARIAN', name: 'Total Gaji Harian', category: 'earning', source: 'computed', description: 'Gaji harian x jumlah kehadiran', sortOrder: 20 },
     { code: 'TUNJ-MASA-KERJA', name: 'Tunjangan Masa Kerja', category: 'earning', source: 'computed', description: 'Tenure DATEDIF', sortOrder: 30 },
     { code: 'SELISIH', name: 'Selisih', category: 'earning', source: 'manual', description: 'Manual HR', sortOrder: 40 },
-    { code: 'TUNJ-JABATAN', name: 'Tunjangan Jabatan', category: 'earning', source: 'grade', description: 'Prefill grade master tiers, editable override', tiers: { G1: 700000, G2: 400000, G3: 200000 }, sortOrder: 50 },
+    { code: 'TUNJ-JABATAN', name: 'Tunjangan Jabatan', category: 'earning', source: 'manual', description: 'Manual HR (nilai per karyawan)', tiers: null, sortOrder: 50 },
     { code: 'TUNJ-KELUARGA', name: 'Tunjangan Keluarga', category: 'earning', source: 'computed', description: 'SWITCH status keluarga', sortOrder: 60 },
     { code: 'TUNJ-PENDIDIKAN', name: 'Tunjangan Pendidikan', category: 'earning', source: 'computed', description: 'SWITCH pendidikan', sortOrder: 70 },
     { code: 'TRANSPORTASI', name: 'Transportasi', category: 'earning', source: 'fixed', description: 'Nominal tetap HR', defaultAmount: 0, sortOrder: 80 },
