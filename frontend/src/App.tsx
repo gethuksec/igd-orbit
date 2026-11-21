@@ -187,7 +187,10 @@ import MLogin from './pages/m/MLogin';
 import MHome from './pages/m/MHome';
 import MHistory from './pages/m/MHistory';
 import MSchedule from './pages/m/MSchedule';
-import MTeam from './pages/m/MTeam';
+import MEmployee from './pages/m/MEmployee';
+import MEmployeeDetail from './pages/m/MEmployeeDetail';
+import MRequest from './pages/m/MRequest';
+import MRequestForm from './pages/m/MRequestForm';
 import MProfile from './pages/m/MProfile';
 import MInbox from './pages/m/MInbox';
 import PayrollCalculationForm from './pages/hr/payroll/PayrollCalculationForm';
@@ -255,22 +258,28 @@ function App() {
             <Route path="/" element={<HostLanding />} />
             <Route path="/login" element={<Login />} />
             <Route path="/track" element={<ServiceTracking />} />
-            {/* IGDERP-276: mobile employee app (phone-first shell, real APIs) */}
+            {/* IGDERP-276d: mockup IA — Home / Employee / Request / Inbox / Profile.
+                Sub-pages (absen, riwayat, slip, cuti, shift, jadwal) are reached
+                from cards and hub buttons, not from tabs. */}
             <Route path="/m" element={<MobileShell />}>
               <Route path="login" element={<MLogin />} />
               <Route index element={<MHome />} />
               <Route path="absen" element={<ClockInOut />} />
+              <Route path="riwayat" element={<MHistory />} />
+              <Route path="slip" element={<MySlips />} />
+              <Route path="employee" element={<MEmployee />} />
+              <Route path="employee/:id" element={<MEmployeeDetail />} />
+              <Route path="request" element={<MRequest />} />
+              <Route path="request/new" element={<MRequestForm />} />
               <Route path="cuti" element={<LeaveList />} />
               <Route path="cuti/new" element={<LeaveRequestForm />} />
               <Route path="cuti/:id" element={<LeaveDetail />} />
-              <Route path="slip" element={<MySlips />} />
               <Route path="shift" element={<ShiftSwapList />} />
               <Route path="shift/new" element={<ShiftSwapForm />} />
               <Route path="jadwal" element={<MSchedule />} />
-              <Route path="riwayat" element={<MHistory />} />
-              <Route path="tim" element={<MTeam />} />
-              <Route path="masuk" element={<MInbox />} />
-              <Route path="saya" element={<MProfile />} />
+              <Route path="inbox" element={<MInbox />} />
+              <Route path="approvals" element={<ApprovalsInbox />} />
+              <Route path="profile" element={<MProfile />} />
             </Route>
             <Route path="/track/:serviceNumber" element={<ServiceTracking />} />
             {/* Short alias for nota print / WA share — same page, shorter URL */}
