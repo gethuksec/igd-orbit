@@ -176,6 +176,7 @@ export class ShiftAssignmentsService {
         startDate: new Date(dto.startDate),
         endDate: dto.endDate ? new Date(dto.endDate) : null,
         weekdays: (dto as any).weekdays,
+        offDates: ((dto as any).offDates ?? []).map((d: string) => new Date(d)),
         note: (dto as any).note,
       },
       include: { employee: true, shift: true },
@@ -211,6 +212,9 @@ export class ShiftAssignmentsService {
       updateData.endDate = (dto as any).endDate ? new Date((dto as any).endDate) : null;
     }
     if ((dto as any).weekdays !== undefined) updateData.weekdays = (dto as any).weekdays;
+    if ((dto as any).offDates !== undefined) {
+      updateData.offDates = ((dto as any).offDates ?? []).map((d: string) => new Date(d));
+    }
     if ((dto as any).note !== undefined) updateData.note = (dto as any).note;
 
     const updated = await (this.prisma as any).shiftAssignment.update({
