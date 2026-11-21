@@ -117,6 +117,17 @@ export class AttendanceController {
   }
 
   /**
+   * List overtime requests (approval queue)
+   * GET /api/v1/attendance/overtime/requests
+   */
+  @Get('overtime/requests')
+  @UseGuards(RolesGuard)
+  @Roles('SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS', 'CHR', 'SPV')
+  async listOvertimeRequests(@Query('status') status?: string) {
+    return this.attendanceService.listOvertimeRequests(status);
+  }
+
+  /**
    * Manual adjustment
    * POST /api/v1/attendance/:id/adjust
    */

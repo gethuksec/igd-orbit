@@ -348,7 +348,7 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
       {
         label: 'Cuti',
         children: [
-          { label: 'Setujui Cuti', key: 'hr.leave.approve' },
+          { label: 'Lihat Cuti', key: 'hr.leave.view' },
         ],
       },
       {
@@ -387,6 +387,18 @@ export const PERMISSION_CATALOG: PermissionNode[] = [
         label: 'Shifting',
         children: [
           { label: 'Kelola Shifting', key: 'hr.shift.view' },
+        ],
+      },
+      {
+        label: 'Tukar shift',
+        children: [
+          { label: 'Lihat Tukar shift', key: 'hr.shift.view' },
+        ],
+      },
+      {
+        label: 'Lembur',
+        children: [
+          { label: 'Lihat Lembur', key: 'hr.overtime.view' },
         ],
       },
       {

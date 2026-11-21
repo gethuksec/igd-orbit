@@ -54,7 +54,7 @@ export interface Attendance {
   clockInLng?: number;
   clockOutLat?: number;
   clockOutLng?: number;
-  status: 'present' | 'absent' | 'leave' | 'holiday';
+  status: 'present' | 'absent' | 'leave' | 'holiday' | 'not-clocked';
   isLate: boolean;
   lateMinutes: number;
   isEarlyLeave: boolean;
@@ -69,6 +69,18 @@ export interface Attendance {
     id: string;
     name: string;
   };
+}
+
+export interface OvertimeRequest {
+  id: string;
+  employeeId: string;
+  attendanceId?: string | null;
+  date: string;
+  hours: number;
+  reason: string;
+  estimatedAmount?: number | null;
+  status: 'pending' | 'approved' | 'rejected';
+  employee?: Employee;
 }
 
 export interface LeaveRequest {
@@ -341,6 +353,7 @@ export const hrService = {
   },
 
   /**
+  /**
    * Reject overtime
    */
   async rejectOvertime(overtimeId: string, reason: string) {
@@ -358,6 +371,16 @@ export const hrService = {
       params: { id: overtimeId },
     });
     return response.data.data || response.data;
+  },
+
+  /**
+   * List overtime requests (approval queue)
+   */
+  async getOvertimeRequests(status?: string): Promise<OvertimeRequest[]> {
+    const response = await api.get('/attendance/overtime/requests', { params: { status } });
+    const body = response.data;
+    return body?.data ?? body ?? [];
+  },
   },
 
   // ============================================
