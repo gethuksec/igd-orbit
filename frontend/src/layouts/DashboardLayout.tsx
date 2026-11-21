@@ -51,6 +51,7 @@ import {
   Gavel,
   Briefcase,
   MapPin,
+  Database,
 } from 'lucide-react';
 import type { Branch } from '@/services/public.service';
 import { publicService } from '@/services/public.service';
@@ -375,16 +376,33 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       children: [
         { icon: Users, label: 'Data Karyawan', path: '/hr/employees', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: Clock, label: 'Presensi', path: '/hr/attendance', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
-        { icon: Building2, label: 'Departemen', path: '/hr/departments', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: ScrollText, label: 'Kontrak', path: '/hr/contracts', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+        { icon: CalendarDays, label: 'Cuti', path: '/hr/leave', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: Target, label: 'KPI', path: '/hr/kpi', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: Banknote, label: 'Payroll', path: '/hr/payroll', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
-        { icon: CalendarDays, label: 'Cuti', path: '/master-data/staff/cuti', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
-        { icon: Gavel, label: 'Denda', path: '/master-data/staff/denda', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
-        { icon: Building2, label: 'Divisi', path: '/master-data/staff/divisi', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
-        { icon: Award, label: 'Grade', path: '/master-data/staff/grade', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
-        { icon: Briefcase, label: 'Jabatan', path: '/master-data/staff/jabatan', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
-        { icon: MapPin, label: 'Working Location', path: '/master-data/staff/working-location', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS'] },
+        {
+          icon: CalendarDays,
+          label: 'Libur',
+          children: [
+            { icon: CalendarDays, label: 'Libur karyawan', path: '/hr/libur', permission: 'hr.libur.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+            { icon: ClipboardList, label: 'Pengajuan libur', path: '/hr/libur/pengajuan', permission: 'hr.libur.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+          ],
+        },
+        { icon: ArrowRightLeft, label: 'Shifting', path: '/hr/shifting', permission: 'hr.shift.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+        {
+          icon: Database,
+          label: 'Master Data',
+          children: [
+            { icon: CalendarDays, label: 'Tipe Cuti', path: '/hr/master-data/cuti', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+            { icon: Gavel, label: 'Tipe Denda', path: '/hr/master-data/denda', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+            { icon: Building2, label: 'Departemen', path: '/hr/departments', permission: 'hr.employee.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+            { icon: Building2, label: 'Divisi', path: '/hr/divisions', permission: 'hr.division.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+            { icon: Award, label: 'Grade', path: '/hr/master-data/grade', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+            { icon: Briefcase, label: 'Jabatan', path: '/hr/master-data/jabatan', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+            { icon: MapPin, label: 'Working Location', path: '/hr/master-data/working-location', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+            { icon: Clock, label: 'Shift kerja', path: '/hr/master-data/shift', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+          ],
+        },
       ],
     },
     {
