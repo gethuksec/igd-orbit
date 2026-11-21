@@ -7,12 +7,15 @@ import {
   Query,
   UseGuards,
   Request,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../shared/guards/roles.guard';
 import { Roles } from '../../shared/decorators/roles.decorator';
 import { PayrollService } from './services/payroll.service';
 import { CalculatePayrollDto } from './dto/calculate-payroll.dto';
+import { SetPayslipPinDto, UnlockPayslipDto } from './dto/payslip-pin.dto';
 
 interface ExpressRequest extends Request {
   user: {
@@ -115,6 +118,39 @@ export class PayrollController {
   async generatePayslip(@Param('id') id: string) {
     const payslipUrl = await this.payrollService.generatePayslip(id);
     return { payslipUrl };
+  }
+
+  /**
+   * Set or change own payslip PIN
+   * POST /api/v1/payroll/pin { pin, oldPin? }
+   */
+  @Post('pin')
+  async setPayslipPin(@Request() req: ExpressRequest, @Body() dto: SetPayslipPinDto) {
+    return this.payrollService.setPayslipPin(req.user.id, dto);
+  }
+
+  /**
+   * List own payslips (PIN-gated)
+   * POST /api/v1/payroll/my-slips { pin }
+   */
+  @Post('my-slips')
+  @HttpCode(HttpStatus.OK)
+  async mySlips(@Request() req: ExpressRequest, @Body() dto: UnlockPayslipDto) {
+    return this.payrollService.mySlips(req.user.id, dto.pin);
+  }
+
+  /**
+   * Open own payslip detail (PIN-gated)
+   * POST /api/v1/payroll/:id/unlock { pin }
+   */
+  @Post(':id/unlock')
+  @HttpCode(HttpStatus.OK)
+  async unlockSlip(
+    @Request() req: ExpressRequest,
+    @Param('id') id: string,
+    @Body() dto: UnlockPayslipDto,
+  ) {
+    return this.payrollService.unlockSlip(req.user.id, id, dto.pin);
   }
 }
 

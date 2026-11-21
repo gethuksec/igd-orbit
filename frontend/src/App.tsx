@@ -171,6 +171,10 @@ import AssignShiftPage from './pages/hr/shifting/AssignShiftPage';
 import ShiftMasterPage from './pages/master-data/staff/ShiftMasterPage';
 import PayrollList from './pages/hr/payroll/PayrollList';
 import PayrollDetail from './pages/hr/payroll/PayrollDetail';
+import MySlips from './pages/hr/payroll/MySlips';
+import ApprovalsInbox from './pages/hr/approvals/ApprovalsInbox';
+import ShiftSwapList from './pages/hr/shift-swap/ShiftSwapList';
+import ShiftSwapForm from './pages/hr/shift-swap/ShiftSwapForm';
 import PayrollCalculationForm from './pages/hr/payroll/PayrollCalculationForm';
 import PayslipView from './pages/hr/payroll/PayslipView';
 import KPIRecordsList from './pages/hr/kpi/KPIRecordsList';
@@ -1330,6 +1334,46 @@ function App() {
                 <ProtectedRoute>
                   <DashboardLayout>
                     <PayrollCalculationForm />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr/payroll/my-slips"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <MySlips />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr/approvals"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <ApprovalsInbox />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr/shift-swap"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <ShiftSwapList />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr/shift-swap/new"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <ShiftSwapForm />
                   </DashboardLayout>
                 </ProtectedRoute>
               }

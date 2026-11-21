@@ -150,6 +150,9 @@ model Branch {
   intakeToken     String?  @unique @map("intake_token") // unguessable public intake token (GForm-style link gate)
   intakeSlug      String?  @unique @map("intake_slug") // human-friendly public intake slug, e.g. jember-pusat-x7k2 (stable across token rotations)
   operatingHours  Json?    @map("operating_hours") // JSONB: {"monday": {"open": "08:00", "close": "22:00"}, ...}
+  latitude        Decimal? @map("latitude") @db.Decimal(10, 7) // IGDERP-275: attendance GPS anchor
+  longitude       Decimal? @map("longitude") @db.Decimal(10, 7) // IGDERP-275: attendance GPS anchor
+  attendanceRadiusM Int      @default(100) @map("attendance_radius_m") // IGDERP-275: clock-in radius
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
@@ -867,6 +870,7 @@ model Employee {
   id             String    @id @default(uuid())
   userId         String    @unique @map("user_id")
   employeeCode   String    @unique @map("employee_code") // EMP-XXXX
+  nik            String?   @unique // IGDERP-275: Nomor Induk Karyawan (login + PWA identity)
   branchId       String?   @map("branch_id")
   departmentId   String?   @map("department_id")
   divisionId     String?   @map("division_id") // IGDERP-277: division below department
@@ -879,6 +883,7 @@ model Employee {
   bankName       String?   @map("bank_name")
   taxId          String?   @map("tax_id") // NPWP
   bpjsNumber     String?   @map("bpjs_number")
+  payslipPinHash String?   @map("payslip_pin_hash") // IGDERP-275: bcrypt hash of employee payslip PIN
   isActive       Boolean   @default(true) @map("is_active")
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
@@ -893,6 +898,8 @@ model Employee {
   attendances      Attendance[]
   leaveRequests    LeaveRequest[]
   overtimeRequests OvertimeRequest[]
+  shiftSwapRequests ShiftSwapRequest[] @relation("ShiftSwapRequester")
+  targetedSwaps    ShiftSwapRequest[] @relation("ShiftSwapTarget")
   liburRequests    LiburRequest[]
   liburQuotaConfig LiburQuotaConfig?
   shiftAssignments ShiftAssignment[]
@@ -1901,6 +1908,12 @@ model Attendance {
   clockOutMethod     String?   @map("clock_out_method")
   clockInLocation    String?   @map("clock_in_location") // GPS or branch
   clockOutLocation   String?   @map("clock_out_location")
+  clockInPhotoUrl    String?   @map("clock_in_photo_url") // IGDERP-275: mandatory selfie (mobile)
+  clockOutPhotoUrl   String?   @map("clock_out_photo_url") // IGDERP-275: mandatory selfie (mobile)
+  clockInLat         Decimal?  @map("clock_in_lat") @db.Decimal(10, 7) // IGDERP-275: GPS proof
+  clockInLng         Decimal?  @map("clock_in_lng") @db.Decimal(10, 7)
+  clockOutLat        Decimal?  @map("clock_out_lat") @db.Decimal(10, 7)
+  clockOutLng        Decimal?  @map("clock_out_lng") @db.Decimal(10, 7)
   status             String    @default("present") // 'present', 'absent', 'leave', 'holiday'
   isLate             Boolean   @default(false) @map("is_late")
   lateMinutes        Int       @default(0) @map("late_minutes")
@@ -1940,9 +1953,13 @@ model LeaveRequest {
   totalDays          Int       @map("total_days")
   reason             String    @db.Text
   attachmentUrl      String?   @map("attachment_url")
-  status             String    @default("pending") // 'pending', 'approved', 'rejected', 'cancelled'
+  status             String    @default("pending") // IGDERP-275: 'pending' → 'manager_approved' → 'approved' | 'rejected' | 'cancelled'
   requestedBy        String    @map("requested_by") // User ID
-  approvedBy         String?   @map("approved_by") // User ID
+  managerApprovedBy  String?   @map("manager_approved_by") // IGDERP-275: step-1 (HS/SPV) user ID
+  managerApprovedAt  DateTime? @map("manager_approved_at")
+  hrApprovedBy       String?   @map("hr_approved_by") // IGDERP-275: step-2 (CHR) user ID
+  hrApprovedAt       DateTime? @map("hr_approved_at")
+  approvedBy         String?   @map("approved_by") // User ID (legacy single-step / final approver)
   rejectedBy         String?   @map("rejected_by") // User ID
   rejectionReason    String?   @map("rejection_reason") @db.Text
   approvedAt         DateTime? @map("approved_at")
@@ -1973,9 +1990,13 @@ model OvertimeRequest {
   hours           Decimal   @db.Decimal(5, 2)
   reason          String    @db.Text
   estimatedAmount Decimal?  @map("estimated_amount") @db.Decimal(15, 2)
-  status          String    @default("pending") // 'pending', 'approved', 'rejected'
+  status          String    @default("pending") // IGDERP-275: 'pending' → 'manager_approved' → 'approved' | 'rejected'
   requestedBy     String    @map("requested_by") // User ID
-  approvedBy      String?   @map("approved_by") // User ID
+  managerApprovedBy String? @map("manager_approved_by") // IGDERP-275: step-1 (HS/SPV)
+  managerApprovedAt DateTime? @map("manager_approved_at")
+  hrApprovedBy    String?   @map("hr_approved_by") // IGDERP-275: step-2 (CHR)
+  hrApprovedAt    DateTime? @map("hr_approved_at")
+  approvedBy      String?   @map("approved_by") // User ID (final approver)
   approvedAt      DateTime? @map("approved_at")
   rejectedBy      String?   @map("rejected_by") // User ID
   rejectedAt      DateTime? @map("rejected_at")
@@ -1991,6 +2012,43 @@ model OvertimeRequest {
   @@index([date])
   @@index([status])
   @@map("overtime_requests")
+}
+
+// ── Shift swap (IGDERP-275): tukar shift antar karyawan, 2-step approval ──
+model ShiftSwapRequest {
+  id               String    @id @default(uuid())
+  employeeId       String    @map("employee_id") // requester
+  targetEmployeeId String    @map("target_employee_id") // tukar dengan siapa
+  date             DateTime  @db.Date @map("date") // tanggal shift yang ditukar
+  fromShiftId      String    @map("from_shift_id") // shift requester saat ini
+  toShiftId        String    @map("to_shift_id") // shift tujuan (milik target)
+  reason           String?   @db.Text
+  status           String    @default("pending") // 'pending' → 'manager_approved' → 'approved' | 'rejected' | 'cancelled'
+  requestedBy      String    @map("requested_by") // User ID
+  managerApprovedBy String?  @map("manager_approved_by")
+  managerApprovedAt DateTime? @map("manager_approved_at")
+  hrApprovedBy     String?   @map("hr_approved_by")
+  hrApprovedAt     DateTime? @map("hr_approved_at")
+  approvedBy       String?   @map("approved_by")
+  approvedAt       DateTime? @map("approved_at")
+  rejectedBy       String?   @map("rejected_by")
+  rejectedAt       DateTime? @map("rejected_at")
+  rejectionReason  String?   @map("rejection_reason") @db.Text
+  cancelledAt      DateTime? @map("cancelled_at")
+  cancelledBy      String?   @map("cancelled_by")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  employee       Employee @relation("ShiftSwapRequester", fields: [employeeId], references: [id], onDelete: Cascade)
+  targetEmployee Employee @relation("ShiftSwapTarget", fields: [targetEmployeeId], references: [id], onDelete: Cascade)
+  fromShift      Shift    @relation("ShiftSwapFrom", fields: [fromShiftId], references: [id], onDelete: Restrict)
+  toShift        Shift    @relation("ShiftSwapTo", fields: [toShiftId], references: [id], onDelete: Restrict)
+
+  @@index([employeeId])
+  @@index([targetEmployeeId])
+  @@index([date])
+  @@index([status])
+  @@map("shift_swap_requests")
 }
 
 // ── Libur (employee monthly off-days, quota + requests) ──
@@ -2049,6 +2107,9 @@ model Shift {
 
   assignments ShiftAssignment[]
   rosterEntries ShiftRosterEntry[]
+
+  swapFromRequests ShiftSwapRequest[] @relation("ShiftSwapFrom")
+  swapToRequests   ShiftSwapRequest[] @relation("ShiftSwapTo")
 
   @@map("shifts")
 }

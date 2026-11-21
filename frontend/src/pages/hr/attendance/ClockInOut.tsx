@@ -1,12 +1,11 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { BreadcrumbHeader } from '@/components/shared';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { MapPin, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { MapPin, CheckCircle, XCircle, AlertCircle, Camera, Navigation, Loader2 } from 'lucide-react';
 import { hrService } from '@/services/hr.service';
 import { formatDateTime } from '@/utils/format';
 import { toast } from 'sonner';
-import { useBranchFilter } from '@/components/branch/BranchFilter';
 import { useBranchStore } from '@/stores/branchStore';
 import { api } from '@/services/api';
 
@@ -19,15 +18,62 @@ const getCurrentUser = () => {
   }
 };
 
+/** Downscale a photo to max 1280px JPEG so uploads stay under the 2MB cap. */
+function compressImage(file: File): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const max = 1280;
+      const scale = Math.min(1, max / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return reject(new Error('Canvas tidak didukung'));
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(
+        (blob) => (blob ? resolve(blob) : reject(new Error('Kompresi foto gagal'))),
+        'image/jpeg',
+        0.82,
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Foto tidak terbaca'));
+    };
+    img.src = url;
+  });
+}
+
+function getPosition(): Promise<GeolocationPosition> {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('GPS tidak didukung perangkat ini'));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 0,
+    });
+  });
+}
+
 export default function ClockInOut() {
   const queryClient = useQueryClient();
-  const { availableBranches } = useBranchStore();
-  const { branchId: selectedBranchId, setBranchId: setSelectedBranchId } = useBranchFilter({ defaultAll: false });
   const currentUser = getCurrentUser();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const { availableBranches } = useBranchStore();
 
-  const [clockMethod, setClockMethod] = useState<'fingerprint' | 'manual'>('manual');
+  const [branchId, setBranchId] = useState('');
   const [notes, setNotes] = useState('');
-  const [location, setLocation] = useState('');
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [coords, setCoords] = useState<{ lat: number; lng: number; accuracy?: number } | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [outsideMsg, setOutsideMsg] = useState<string | null>(null);
 
   // Get today's attendance
   const today = new Date().toISOString().split('T')[0];
@@ -42,7 +88,7 @@ export default function ClockInOut() {
     },
   });
 
-  // Get employee info
+  // Get employee info (defaults the branch)
   const { data: employee } = useQuery({
     queryKey: ['employee-current'],
     queryFn: async () => {
@@ -53,272 +99,306 @@ export default function ClockInOut() {
     enabled: !!currentUser?.id,
   });
 
-  const clockInMutation = useMutation({
-    mutationFn: () =>
-      hrService.clockIn({
-        branch_id: selectedBranchId,
-        method: clockMethod,
-        clock_in_location: location || undefined,
-        notes: notes || undefined,
-      }),
-    onSuccess: () => {
-      toast.success('Clock in berhasil!');
-      queryClient.invalidateQueries({ queryKey: ['attendance-today'] });
-      queryClient.invalidateQueries({ queryKey: ['attendances'] });
-      refetchAttendance();
-      setNotes('');
-      setLocation('');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Gagal clock in');
-    },
-  });
-
-  const clockOutMutation = useMutation({
-    mutationFn: () =>
-      hrService.clockOut({
-        branch_id: selectedBranchId,
-        method: clockMethod,
-        clock_out_location: location || undefined,
-        notes: notes || undefined,
-      }),
-    onSuccess: () => {
-      toast.success('Clock out berhasil!');
-      queryClient.invalidateQueries({ queryKey: ['attendance-today'] });
-      queryClient.invalidateQueries({ queryKey: ['attendances'] });
-      refetchAttendance();
-      setNotes('');
-      setLocation('');
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Gagal clock out');
-    },
-  });
+  const employeeBranchId = employee?.employee?.branchId || employee?.branchId || '';
+  const effectiveBranchId = branchId || employeeBranchId;
 
   const canClockIn = !todayAttendance?.clockIn;
   const canClockOut = todayAttendance?.clockIn && !todayAttendance?.clockOut;
 
+  const handlePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f) return;
+    try {
+      const blob = await compressImage(f);
+      setPhotoFile(new File([blob], 'selfie.jpg', { type: 'image/jpeg' }));
+      setPhotoPreview(URL.createObjectURL(blob));
+      setOutsideMsg(null);
+    } catch (err: any) {
+      toast.error(err.message || 'Foto tidak terbaca');
+    }
+  };
+
+  const handleLocate = async () => {
+    setLocating(true);
+    try {
+      const pos = await getPosition();
+      setCoords({
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        accuracy: pos.coords.accuracy,
+      });
+      setOutsideMsg(null);
+    } catch {
+      toast.error('Gagal mengambil lokasi GPS. Nyalakan GPS & izinkan akses lokasi.');
+    } finally {
+      setLocating(false);
+    }
+  };
+
+  const readyToSubmit = !!photoFile && !!coords && !!effectiveBranchId;
+
+  const submitMutation = useMutation({
+    mutationFn: async () => {
+      if (!photoFile || !coords) throw new Error('Foto & GPS wajib');
+      const { url } = await hrService.uploadSelfie(photoFile);
+      const payload = {
+        branch_id: effectiveBranchId,
+        method: 'mobile' as const,
+        latitude: coords.lat,
+        longitude: coords.lng,
+        photoUrl: url,
+        notes: notes || undefined,
+      };
+      return canClockIn ? hrService.clockIn(payload) : hrService.clockOut(payload);
+    },
+    onSuccess: () => {
+      toast.success(canClockIn ? 'Clock in berhasil!' : 'Clock out berhasil!');
+      queryClient.invalidateQueries({ queryKey: ['attendance-today'] });
+      queryClient.invalidateQueries({ queryKey: ['attendances'] });
+      refetchAttendance();
+      setNotes('');
+      setPhotoFile(null);
+      setPhotoPreview(null);
+      setCoords(null);
+      setOutsideMsg(null);
+    },
+    onError: (error: any) => {
+      const msg: string = error.response?.data?.message || error.message || 'Gagal clock';
+      if (/luar lokasi/i.test(msg)) {
+        setOutsideMsg(msg); // "di luar lokasi" popup (meeting 16 Nov)
+      } else {
+        toast.error(msg);
+      }
+    },
+  });
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-4 md:space-y-6">
       {/* Header */}
-      <BreadcrumbHeader title="Clock In / Out" subtitle={<>{employee?.fullName || employee?.email || 'Karyawan'} - {formatDateTime(new Date())}</>} />
+      <BreadcrumbHeader title="Absen" subtitle={<>{employee?.fullName || employee?.email || 'Karyawan'} - {formatDateTime(new Date())}</>} />
+
+      {/* Di-luar-lokasi popup */}
+      {outsideMsg && (
+        <div className="bg-red-50 dark:bg-red-950 border-2 border-red-500 rounded-xl p-4 flex items-start gap-3">
+          <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-bold text-red-800 dark:text-red-200">Di luar lokasi</p>
+            <p className="text-sm text-red-700 dark:text-red-300 mt-1">{outsideMsg}</p>
+            <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+              Mendekatlah ke cabang lalu ambil ulang lokasi & foto.
+            </p>
+          </div>
+          <button onClick={() => setOutsideMsg(null)} className="text-red-500 p-1" aria-label="Tutup">
+            <XCircle className="w-5 h-5" />
+          </button>
+        </div>
+      )}
 
       {/* Today's Status */}
       {todayAttendance && (
-        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Status Hari Ini</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-3">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-4 md:p-6">
+          <h2 className="text-base md:text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">Status Hari Ini</h2>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
                 <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100">Clock In</h3>
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Masuk</h3>
               </div>
               {todayAttendance.clockIn ? (
-                <div>
-                  <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                    {formatDateTime(todayAttendance.clockIn)}
-                  </p>
-                  {todayAttendance.isLate && (
-                    <p className="text-sm text-red-600 dark:text-red-400 mt-1 flex items-center gap-1">
-                      <AlertCircle className="w-4 h-4" />
-                      Terlambat {todayAttendance.lateMinutes} menit
-                    </p>
-                  )}
-                </div>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  {formatDateTime(todayAttendance.clockIn)}
+                </p>
               ) : (
-                <p className="text-sm text-gray-400 dark:text-gray-500">Belum clock in</p>
+                <p className="text-sm text-gray-400">Belum absen</p>
+              )}
+              {todayAttendance.isLate && (
+                <p className="text-xs text-red-600 mt-1">Terlambat {todayAttendance.lateMinutes} mnt</p>
               )}
             </div>
-
-            <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-3">
+            <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
                 <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100">Clock Out</h3>
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Pulang</h3>
               </div>
               {todayAttendance.clockOut ? (
-                <div>
-                  <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
-                    {formatDateTime(todayAttendance.clockOut)}
-                  </p>
-                  {todayAttendance.isEarlyLeave && (
-                    <p className="text-sm text-orange-600 dark:text-orange-400 mt-1 flex items-center gap-1">
-                      <AlertCircle className="w-4 h-4" />
-                      Pulang cepat {todayAttendance.earlyLeaveMinutes} menit
-                    </p>
-                  )}
-                </div>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  {formatDateTime(todayAttendance.clockOut)}
+                </p>
               ) : (
-                <p className="text-sm text-gray-400 dark:text-gray-500">Belum clock out</p>
+                <p className="text-sm text-gray-400">Belum absen</p>
               )}
             </div>
           </div>
-
-          {todayAttendance.totalHours && todayAttendance.totalHours > 0 && (
-            <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
-              <p className="text-sm text-gray-600 dark:text-gray-400">Total Jam Kerja</p>
-              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{todayAttendance.totalHours} jam</p>
+          {!!todayAttendance.totalHours && todayAttendance.totalHours > 0 && (
+            <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+              <p className="text-xs text-gray-600 dark:text-gray-400">Total Jam Kerja</p>
+              <p className="text-xl font-bold text-blue-600 dark:text-blue-400">{todayAttendance.totalHours} jam</p>
             </div>
           )}
         </div>
       )}
 
-      {/* Clock In/Out Form */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6">
-        <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-          {canClockIn ? 'Clock In' : canClockOut ? 'Clock Out' : 'Sudah Clock In & Out'}
+      {/* Clock Form */}
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-4 md:p-6">
+        <h2 className="text-base md:text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
+          {canClockIn ? 'Absen Masuk' : canClockOut ? 'Absen Pulang' : 'Absen Hari Ini Selesai'}
         </h2>
 
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (canClockIn) {
-              clockInMutation.mutate();
-            } else if (canClockOut) {
-              clockOutMutation.mutate();
-            }
-          }}
-          className="space-y-6"
-        >
-          {/* Branch Selection */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Cabang <span className="text-red-500 dark:text-red-400">*</span>
-            </label>
-            <select
-              value={selectedBranchId}
-              onChange={(e) => setSelectedBranchId(e.target.value)}
-              required
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">Pilih Cabang</option>
-              {availableBranches.map((branch) => (
-                <option key={branch.id} value={branch.id}>
-                  {branch.name} ({branch.code})
-                </option>
-              ))}
-            </select>
-          </div>
+        {(canClockIn || canClockOut) ? (
+          <div className="space-y-4">
+            {/* Branch */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Cabang <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={effectiveBranchId}
+                onChange={(e) => setBranchId(e.target.value)}
+                required
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Pilih Cabang</option>
+                {availableBranches.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name} ({b.code})
+                  </option>
+                ))}
+                {employeeBranchId && !availableBranches.some((b) => b.id === employeeBranchId) && (
+                  <option value={employeeBranchId}>Cabang saya</option>
+                )}
+              </select>
+            </div>
 
-          {/* Clock Method */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Metode <span className="text-red-500 dark:text-red-400">*</span>
-            </label>
-            <select
-              value={clockMethod}
-              onChange={(e) => setClockMethod(e.target.value as 'fingerprint' | 'manual')}
-              required
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="manual">Manual</option>
-              <option value="fingerprint">Fingerprint</option>
-            </select>
-          </div>
-
-          {/* Location */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Lokasi (Opsional)
-            </label>
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 w-5 h-5" />
+            {/* Selfie */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Foto Selfie <span className="text-red-500">*</span>
+              </label>
               <input
-                type="text"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="Masukkan lokasi atau GPS"
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                capture="user"
+                className="hidden"
+                onChange={handlePhoto}
+              />
+              {photoPreview ? (
+                <div className="relative">
+                  <img src={photoPreview} alt="Selfie" className="w-full max-h-72 object-cover rounded-lg" />
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    className="absolute bottom-3 right-3 px-4 py-2 bg-black/70 text-white rounded-lg text-sm font-semibold flex items-center gap-2"
+                  >
+                    <Camera className="w-4 h-4" /> Foto ulang
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  className="w-full py-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 flex flex-col items-center gap-2 active:bg-gray-50 dark:active:bg-gray-800"
+                >
+                  <Camera className="w-10 h-10" />
+                  <span className="font-semibold">Ketuk untuk foto selfie</span>
+                  <span className="text-xs">Kamera depan terbuka otomatis</span>
+                </button>
+              )}
+            </div>
+
+            {/* GPS */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Lokasi GPS <span className="text-red-500">*</span>
+              </label>
+              {coords ? (
+                <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
+                  <MapPin className="w-6 h-6 text-green-600 shrink-0" />
+                  <div className="flex-1 text-sm">
+                    <p className="font-semibold text-green-800 dark:text-green-200">Lokasi terkunci</p>
+                    <p className="text-green-700 dark:text-green-300 text-xs">
+                      {coords.lat.toFixed(6)}, {coords.lng.toFixed(6)}
+                      {coords.accuracy != null && ` (±${Math.round(coords.accuracy)}m)`}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleLocate}
+                    disabled={locating}
+                    className="px-3 py-2 text-sm font-semibold text-green-700 dark:text-green-300 underline"
+                  >
+                    Perbarui
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleLocate}
+                  disabled={locating}
+                  className="w-full py-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 font-semibold flex items-center justify-center gap-2 active:bg-gray-50 dark:active:bg-gray-800 disabled:opacity-50"
+                >
+                  {locating ? <Loader2 className="w-6 h-6 animate-spin" /> : <Navigation className="w-6 h-6" />}
+                  {locating ? 'Mengambil lokasi...' : 'Ketuk untuk kunci lokasi GPS'}
+                </button>
+              )}
+            </div>
+
+            {/* Notes */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Catatan (opsional)
+              </label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={2}
+                placeholder="Keterangan tambahan..."
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-base resize-none"
               />
             </div>
-          </div>
 
-          {/* Notes */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              {canClockIn ? 'Catatan Clock In' : 'Catatan Clock Out'} (Opsional)
-            </label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={4}
-              placeholder={
-                canClockIn
-                  ? 'Contoh: Terlambat karena macet, izin ke dokter, dll...'
-                  : 'Contoh: Pulang cepat karena ada keperluan, lembur sampai jam X, dll...'
-              }
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
-            />
-            {canClockIn && (
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Jika terlambat, silakan jelaskan alasan di sini untuk keperluan absensi.
+            {/* Submit */}
+            <div className="flex gap-3 pt-2 sticky bottom-0 bg-white dark:bg-gray-900 pb-1">
+              <Link
+                to="/hr/attendance"
+                className="px-6 py-4 border border-gray-300 dark:border-gray-600 rounded-lg font-semibold text-gray-700 dark:text-gray-300 text-center"
+              >
+                Batal
+              </Link>
+              <button
+                type="button"
+                onClick={() => submitMutation.mutate()}
+                disabled={!readyToSubmit || submitMutation.isPending}
+                className={`flex-1 px-6 py-4 rounded-lg font-bold text-white text-base flex items-center justify-center gap-2 disabled:opacity-50 ${
+                  canClockIn ? 'bg-green-600 active:bg-green-700' : 'bg-red-600 active:bg-red-700'
+                }`}
+              >
+                {submitMutation.isPending ? (
+                  <><Loader2 className="w-5 h-5 animate-spin" /> Mengirim...</>
+                ) : canClockIn ? (
+                  <><CheckCircle className="w-5 h-5" /> Absen Masuk</>
+                ) : (
+                  <><XCircle className="w-5 h-5" /> Absen Pulang</>
+                )}
+              </button>
+            </div>
+            {!readyToSubmit && (
+              <p className="text-xs text-gray-500 text-center">
+                {!effectiveBranchId ? 'Pilih cabang, ' : ''}{!photoFile ? 'ambil foto selfie, ' : ''}{!coords ? 'kunci lokasi GPS' : ''} untuk absen
               </p>
             )}
-            {canClockOut && (
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Jika pulang cepat atau ada keperluan, silakan jelaskan di sini.
-              </p>
-            )}
           </div>
-
-          {/* Actions */}
-          <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <Link
-              to="/hr/attendance"
-              className="flex-1 px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-center"
-            >
-              Batal
+        ) : (
+          <div className="text-center py-6">
+            <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
+            <p className="font-semibold text-gray-900 dark:text-gray-100">Absen hari ini selesai</p>
+            <Link to="/hr/attendance" className="mt-3 inline-block text-primary-600 font-semibold">
+              Lihat riwayat absensi
             </Link>
-            {canClockIn && (
-              <button
-                type="submit"
-                disabled={clockInMutation.isPending || !selectedBranchId}
-                className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {clockInMutation.isPending ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Clocking In...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="w-5 h-5" />
-                    Clock In
-                  </>
-                )}
-              </button>
-            )}
-            {canClockOut && (
-              <button
-                type="submit"
-                disabled={clockOutMutation.isPending || !selectedBranchId}
-                className="flex-1 px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {clockOutMutation.isPending ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Clocking Out...
-                  </>
-                ) : (
-                  <>
-                    <XCircle className="w-5 h-5" />
-                    Clock Out
-                  </>
-                )}
-              </button>
-            )}
-            {!canClockIn && !canClockOut && (
-              <button
-                disabled
-                className="flex-1 px-6 py-3 bg-gray-400 text-white rounded-lg font-semibold cursor-not-allowed"
-              >
-                Sudah Clock In & Out
-              </button>
-            )}
           </div>
-        </form>
+        )}
       </div>
     </div>
   );
 }
-

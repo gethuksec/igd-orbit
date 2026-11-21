@@ -5,7 +5,9 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../shared/services/prisma.service';
+import { PasswordService } from '../../../shared/services/password.service';
 import { CalculatePayrollDto } from '../dto/calculate-payroll.dto';
+import { SetPayslipPinDto } from '../dto/payslip-pin.dto';
 import { Decimal } from '@prisma/client/runtime/library';
 import { AttendanceService } from './attendance.service';
 import { JournalEntriesService } from '../../finance/services/journal-entries.service';
@@ -16,6 +18,7 @@ export class PayrollService {
     private prisma: PrismaService,
     private attendanceService: AttendanceService,
     private journalEntriesService: JournalEntriesService,
+    private passwordService: PasswordService,
   ) {}
 
   /**
@@ -846,6 +849,86 @@ export class PayrollService {
       totalDeductions: payroll.totalDeductions.toNumber(),
       nettSalary: payroll.nettSalary.toNumber(),
     };
+  }
+
+  /**
+   * IGDERP-275: set or change the employee payslip PIN.
+   * First set needs no old PIN; changing requires the current one.
+   */
+  async setPayslipPin(userId: string, dto: SetPayslipPinDto) {
+    const employee = await this.prisma.employee.findUnique({ where: { userId } });
+    if (!employee) throw new NotFoundException('Employee not found');
+
+    if (employee.payslipPinHash) {
+      if (!dto.oldPin) {
+        throw new BadRequestException('Current PIN is required to change PIN');
+      }
+      const ok = await this.passwordService.comparePassword(dto.oldPin, employee.payslipPinHash);
+      if (!ok) throw new ForbiddenException('Current PIN is incorrect');
+    }
+
+    await this.prisma.employee.update({
+      where: { id: employee.id },
+      data: { payslipPinHash: await this.passwordService.hashPassword(dto.pin) },
+    });
+    return { message: 'Payslip PIN saved' };
+  }
+
+  /** Resolve the caller's employee row or 404. */
+  private async ownEmployee(userId: string) {
+    const employee = await this.prisma.employee.findUnique({ where: { userId } });
+    if (!employee) throw new NotFoundException('Employee not found');
+    return employee;
+  }
+
+  /** PIN gate for all self-service slip reads. Default PIN is 123456 until the employee sets their own. */
+  private async assertPayslipPin(employee: { payslipPinHash: string | null }, pin: string) {
+    if (!employee.payslipPinHash) {
+      if (pin !== '123456') throw new ForbiddenException('Incorrect payslip PIN');
+      return;
+    }
+    const ok = await this.passwordService.comparePassword(pin, employee.payslipPinHash);
+    if (!ok) throw new ForbiddenException('Incorrect payslip PIN');
+  }
+
+  /**
+   * IGDERP-275: list own payroll slips (periods + totals) after PIN check.
+   */
+  async mySlips(userId: string, pin: string) {
+    const employee = await this.ownEmployee(userId);
+    await this.assertPayslipPin(employee, pin);
+    const rows = await this.prisma.payroll.findMany({
+      where: { employeeId: employee.id },
+      orderBy: [{ periodYear: 'desc' }, { periodMonth: 'desc' }],
+    });
+    return {
+      data: rows.map((p) => ({
+        id: p.id,
+        payrollNumber: p.payrollNumber,
+        periodMonth: p.periodMonth,
+        periodYear: p.periodYear,
+        status: p.status,
+        totalEarnings: p.totalEarnings.toNumber(),
+        totalDeductions: p.totalDeductions.toNumber(),
+        nettSalary: p.nettSalary.toNumber(),
+      })),
+      total: rows.length,
+      hasPin: true,
+    };
+  }
+
+  /**
+   * IGDERP-275: full slip detail (components included) after PIN check.
+   * Only the owner's own slip can be unlocked.
+   */
+  async unlockSlip(userId: string, payrollId: string, pin: string) {
+    const employee = await this.ownEmployee(userId);
+    await this.assertPayslipPin(employee, pin);
+    const slip: any = await this.findById(payrollId);
+    if (slip.employeeId !== employee.id) {
+      throw new ForbiddenException('You can only open your own payslip');
+    }
+    return slip;
   }
 }
 

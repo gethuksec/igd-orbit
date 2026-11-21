@@ -61,7 +61,7 @@ export class AuthService {
   }
 
   /**
-   * Validate user credentials
+   * Validate user credentials (email only).
    * @param email - User email
    * @param password - Plain text password
    * @returns User object if valid, null otherwise

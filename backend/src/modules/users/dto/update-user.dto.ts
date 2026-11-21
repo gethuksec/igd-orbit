@@ -59,6 +59,10 @@ export class UpdateUserDto {
   @IsOptional()
   employeeCode?: string;
 
+  @IsString({ message: 'NIK must be a string' })
+  @IsOptional()
+  nik?: string;
+
   @IsUUID('4', { message: 'Department ID must be a valid UUID' })
   @IsOptional()
   departmentId?: string;
