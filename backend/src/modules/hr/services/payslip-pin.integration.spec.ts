@@ -3,6 +3,7 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../../shared/services/prisma.service';
 import { PasswordService } from '../../../shared/services/password.service';
 import { AttendanceService } from './attendance.service';
+import { KPIService } from './kpi.service';
 import { JournalEntriesService } from '../../finance/services/journal-entries.service';
 import { PayrollService } from './payroll.service';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
@@ -45,6 +46,7 @@ describe('PayrollService payslip PIN (IGDERP-275 integration)', () => {
         { provide: PrismaService, useValue: prisma },
         PasswordService,
         { provide: AttendanceService, useValue: {} },
+        { provide: KPIService, useValue: {} },
         { provide: JournalEntriesService, useValue: {} },
       ],
     }).compile();
