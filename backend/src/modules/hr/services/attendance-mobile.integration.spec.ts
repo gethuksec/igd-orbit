@@ -69,10 +69,14 @@ describe('AttendanceService mobile + overtime 2-step (IGDERP-275 integration)', 
     );
   });
 
-  it('mobile clock-in rejects outside radius', async () => {
+  it('mobile clock-in outside radius needs alasan, then records pending', async () => {
     await expect(
       service.clockIn('u-1', dto({ latitude: -7.24 })),
-    ).rejects.toThrow(/Di luar lokasi/);
+    ).rejects.toThrow(/Alasan wajib/);
+    const res: any = await service.clockIn('u-1', dto({ latitude: -7.24, notes: 'Macet parah' }));
+    const payload = prisma.attendance.upsert.mock.calls[0][0];
+    expect(payload.create.approvalStatus).toBe('pending');
+    expect(res.approvalStatus).toBe('pending');
   });
 
   it('non-mobile clock-in needs no GPS/photo (back-compat)', async () => {
