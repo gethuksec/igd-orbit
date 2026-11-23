@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
 import { Plus, FileText, CheckCircle, Clock, Award, Trash2, AlertTriangle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { contractsService, type Contract } from "@/services/contracts.service";
@@ -46,7 +45,6 @@ function fmtRp(v: number | null | undefined) {
 
 export default function ContractList() {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const [typeFilter, setTypeFilter] = useState("");
@@ -248,16 +246,6 @@ export default function ContractList() {
         emptyIcon={<FileText className="w-16 h-16" />}
         actions={(row: Contract) => (
           <div className="flex items-center justify-end gap-1">
-            {row.employee?.userId && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate(`/hr/employees/${row.employee!.userId}`)}
-                title="Timeline"
-              >
-                Timeline
-              </Button>
-            )}
             {row.status === "draft" && (
               <Button
                 variant="ghost"
