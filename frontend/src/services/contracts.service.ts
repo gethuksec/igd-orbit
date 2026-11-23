@@ -132,6 +132,10 @@ export const contractsService = {
     return response.data.data || response.data;
   },
 
+  async remove(id: string): Promise<void> {
+    await api.delete(`/contracts/${id}`);
+  },
+
   async dryRunImport(file: File): Promise<ContractImportDryRun> {
     const form = new FormData();
     form.append("file", file);
