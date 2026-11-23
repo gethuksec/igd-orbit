@@ -82,6 +82,7 @@ describe('SalesReturnsService', () => {
     warehouse: {
       findUnique: jest.fn().mockResolvedValue(badWarehouse),
     },
+    stockOpname: { findFirst: jest.fn().mockResolvedValue(null) },
     productStock: {
       findUnique: jest.fn().mockResolvedValue(null),
       upsert: jest.fn().mockResolvedValue({ id: 'ps-bad' }),

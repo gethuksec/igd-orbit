@@ -99,6 +99,7 @@ describe('ProductsService — XLSX product import', () => {
       warehouse: { findMany: jest.fn() },
       customer: { findMany: jest.fn() },
       productStock: { upsert: jest.fn() },
+      stockOpname: { findFirst: jest.fn().mockResolvedValue(null) },
     };
     prisma.product.findUnique.mockResolvedValue(null);
     prisma.product.findFirst.mockResolvedValue(null);

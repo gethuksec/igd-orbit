@@ -69,6 +69,7 @@ describe('PurchaseReturnsService (S4 — IGDERP-84 manual + IGDERP-83 receiving)
       },
       purchaseReturnItem: { findMany: jest.fn() },
       warehouse: { findFirst: jest.fn() },
+      stockOpname: { findFirst: jest.fn().mockResolvedValue(null) },
       customer: { findUnique: jest.fn() },
       product: { findMany: jest.fn() },
     };

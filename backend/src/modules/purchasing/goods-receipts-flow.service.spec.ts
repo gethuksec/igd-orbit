@@ -98,6 +98,7 @@ describe('GoodsReceiptsService IGDERP-80 flows (revisit / receiving / rejected->
         findFirst: jest.fn().mockResolvedValue(centralGood),
       },
       purchaseAttachment: { count: jest.fn().mockResolvedValue(0) },
+      stockOpname: { findFirst: jest.fn().mockResolvedValue(null) },
       goodsReceiptEvent: { create: jest.fn().mockResolvedValue({ id: 'ev-1' }) },
       $transaction: jest.fn(async (callback: any) => callback(tx)),
     };

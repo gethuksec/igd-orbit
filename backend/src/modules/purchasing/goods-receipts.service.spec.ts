@@ -111,6 +111,7 @@ describe('GoodsReceiptsService.approve — central-good landing (IGDERP-159)', (
       goodsReceipt: { findUnique: jest.fn().mockResolvedValue(gr), update: jest.fn() },
       warehouse: { findFirst: jest.fn().mockResolvedValue(centralGood) },
       purchaseAttachment: { count: jest.fn().mockResolvedValue(0) },
+      stockOpname: { findFirst: jest.fn().mockResolvedValue(null) },
       $transaction: jest.fn(async (callback: any) => callback(tx)),
     };
     approval.assertApprover.mockClear().mockResolvedValue({ kind: 'default' });
