@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import IntakeDialog from "@/components/hr/IntakeDialog";
 import { ContractImportButton } from "./ContractImportDialog";
+import ContractDetailDialog from "./ContractDetailDialog";
 
 const STAGE_LABEL: Record<string, string> = {
   trial: "Trial",
@@ -52,6 +53,7 @@ export default function ContractList() {
   const [intakeOpen, setIntakeOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [contractToDelete, setContractToDelete] = useState<{ id: string; contractNumber: string } | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
   const limit = 20;
 
   const { data, isLoading, error, refetch } = useQuery({
@@ -244,6 +246,7 @@ export default function ContractList() {
         isLoading={isLoading}
         emptyMessage="Tidak ada kontrak ditemukan"
         emptyIcon={<FileText className="w-16 h-16" />}
+        onRowClick={(row: Contract) => setDetailId(row.id)}
         actions={(row: Contract) => (
           <div className="flex items-center justify-end gap-1">
             {row.status === "draft" && (
@@ -252,7 +255,8 @@ export default function ContractList() {
                 size="sm"
                 className="text-red-600 hover:bg-red-50"
                 title="Hapus draft"
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   setContractToDelete({ id: row.id, contractNumber: row.contractNumber });
                   setDeleteModalOpen(true);
                 }}
@@ -270,6 +274,8 @@ export default function ContractList() {
         onClose={() => setIntakeOpen(false)}
         onSuccess={() => queryClient.invalidateQueries({ queryKey: ["contracts"] })}
       />
+
+      <ContractDetailDialog contractId={detailId} onClose={() => setDetailId(null)} />
 
       {/* Delete Confirmation Dialog — draft only */}
       <Dialog
