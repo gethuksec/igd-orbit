@@ -9,6 +9,12 @@ import { toast } from "sonner";
 
 const DOW_LABELS = ["S", "S", "R", "K", "J", "S", "M"];
 
+// IGDERP-293: format with LOCAL calendar getters. toISOString() is UTC and
+// shifts every cell back one day for browsers east of UTC (WIB), silently
+// dropping the month's last day from the grid and the submit payload.
+const fmtDay = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
 function nextMonthRange(): { start: string; end: string } {
   const now = new Date();
   const first = new Date(now.getFullYear(), now.getMonth() + 1, 1);
@@ -109,7 +115,7 @@ export default function AssignShiftPage() {
     const cur = new Date(`${nm.start}T00:00:00`);
     const last = new Date(`${nm.end}T00:00:00`);
     while (cur <= last) {
-      out.push(cur.toISOString().slice(0, 10));
+      out.push(fmtDay(cur));
       cur.setDate(cur.getDate() + 1);
     }
     return out;
@@ -144,6 +150,10 @@ export default function AssignShiftPage() {
   const libur = days.filter((d) => picks[d] === null).length;
   const empty = days.filter((d) => picks[d] === undefined).length;
 
+  // IGDERP-293 BUG 2: keep the last submit failure visible inline — a toast
+  // alone can be missed, and a silent page looks like a dead button.
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
   const submitMutation = useMutation({
     mutationFn: () =>
       rosterService.submitRoster({
@@ -152,13 +162,18 @@ export default function AssignShiftPage() {
         end: nm.end,
         entries: days.map((date) => ({ date, shiftId: picks[date] ?? null })),
       }),
+    onMutate: () => setSubmitError(null),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ["shift-roster"] });
       queryClient.invalidateQueries({ queryKey: ["shift-roster-assign"] });
       toast.success(`Roster tersubmit (${res.submitted} hari)`);
       setHydrated(false);
     },
-    onError: (e: any) => toast.error(e.response?.data?.message || "Gagal submit roster"),
+    onError: (e: any) => {
+      const msg = e.response?.data?.message || "Gagal submit roster";
+      setSubmitError(msg);
+      toast.error(msg);
+    },
   });
 
   const applyBulk = (mode: "workdays" | "sundays-off") => {
@@ -288,10 +303,19 @@ export default function AssignShiftPage() {
               </div>
             </div>
           </div>
+          {submitError && (
+            <div className="px-4 py-2.5 border-t border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 text-sm">
+              {submitError}
+            </div>
+          )}
           <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-950">
             <span className="text-sm font-medium tabular-nums text-muted-foreground">
               {plotted} plotted · {libur} libur
-              {empty > 0 && <b className="font-medium text-amber-700"> · {empty} tanggal kosong</b>}
+              {empty > 0 && (
+                <b className="font-medium text-amber-700">
+                  {" "}· {empty} tanggal kosong — lengkapi semua tanggal untuk submit
+                </b>
+              )}
               {empty === 0 && <span className="font-medium text-green-700"> · lengkap, siap submit</span>}
             </span>
             <Button disabled={empty > 0 || submitMutation.isPending} onClick={() => submitMutation.mutate()}>
