@@ -1630,6 +1630,92 @@ async function main() {
   }
   console.log('🚫 Retired department codes:', RETIRED_DEPARTMENT_CODES.join(', '));
 
+  // 16a. KPI master per division (IGDERP-266) — seed aspect lists from the
+  // Format_HR_ORBIT.xlsx Kpi sheet. default_amount stays 0 until HR sets it
+  // (lock requires > 0). Marketing / Finance / HRD divisions get no aspects
+  // yet — their lists are still pending from the business side.
+  console.log('📊 Seeding KPI division masters...');
+  const KPI_SEED: Array<{
+    division: string;
+    aspects: Array<{
+      code: string;
+      name: string;
+      description: string;
+      weight: number;
+      targetType: 'FIXED' | 'PERIOD';
+      fixedTarget: number | null;
+      isKolektif: boolean;
+      sortOrder: number;
+    }>;
+  }> = [
+    {
+      division: 'DIV-OPS-SRV',
+      aspects: [
+        { code: 'HP_DONE', name: 'HP Done (kolektif)', description: '(Pencapaian : Target done) * 100%', weight: 0.2, targetType: 'PERIOD', fixedTarget: null, isKolektif: true, sortOrder: 1 },
+        { code: 'KUALITAS', name: 'Kualitas kerja', description: 'Tingkat produktifitas pengerjaan service', weight: 0.3, targetType: 'FIXED', fixedTarget: 100, isKolektif: false, sortOrder: 2 },
+        { code: 'PENGEMBANGAN', name: 'Pengembangan diri', description: 'Upgrade kemampuan pengerjaan service', weight: 0.1, targetType: 'FIXED', fixedTarget: 100, isKolektif: false, sortOrder: 3 },
+        { code: 'TEAMWORK', name: 'Teamwork', description: 'Kerjasama antar tim dan kontribusi ke perusahaan', weight: 0.2, targetType: 'FIXED', fixedTarget: 100, isKolektif: false, sortOrder: 4 },
+        { code: 'INTEGRITAS', name: 'Integritas', description: 'Etika atau sikap kerja dan religiusitas', weight: 0.2, targetType: 'FIXED', fixedTarget: 100, isKolektif: false, sortOrder: 5 },
+      ],
+    },
+    {
+      division: 'DIV-OPS-SE',
+      aspects: [
+        { code: 'CSAT', name: 'CSAT', description: '(Pencapaian : Target rating) * 100%', weight: 0.1, targetType: 'PERIOD', fixedTarget: null, isKolektif: false, sortOrder: 1 },
+        { code: 'TRANSAKSI', name: 'Transaksi', description: '(Jumlah deal : Target deal) * 100%', weight: 0.3, targetType: 'PERIOD', fixedTarget: null, isKolektif: false, sortOrder: 2 },
+        { code: 'OMZET', name: 'Omzet', description: '(Value : Target omzet) * 100% + Cross/Up Selling', weight: 0.2, targetType: 'PERIOD', fixedTarget: null, isKolektif: false, sortOrder: 3 },
+        { code: 'TEAMWORK', name: 'Teamwork', description: 'Kerjasama antar tim, profesionalisme, sesuai arahan', weight: 0.2, targetType: 'FIXED', fixedTarget: 100, isKolektif: false, sortOrder: 4 },
+        { code: 'INTEGRITAS', name: 'Integritas', description: 'Etika atau sikap kerja dan religiusitas serta menjalankan komitmen', weight: 0.2, targetType: 'FIXED', fixedTarget: 100, isKolektif: false, sortOrder: 5 },
+      ],
+    },
+    {
+      division: 'DIV-SUP-SC',
+      aspects: [
+        { code: 'OMZET_KOL', name: 'Omzet (kolektif)', description: '(Value : Target omzet) * 100% + Cross/Up Selling', weight: 0.1, targetType: 'PERIOD', fixedTarget: null, isKolektif: true, sortOrder: 1 },
+        { code: 'TRANSAKSI_KOL', name: 'Transaksi (kolektif)', description: '(Jumlah deal : Target deal) * 100%', weight: 0.3, targetType: 'PERIOD', fixedTarget: null, isKolektif: true, sortOrder: 2 },
+        { code: 'STOCK_BAL', name: 'Stock Balancing', description: 'Akurasi stok fisik vs system dan kelengkapan (request Stock/drop list)', weight: 0.2, targetType: 'FIXED', fixedTarget: 100, isKolektif: false, sortOrder: 3 },
+        { code: 'ACC_RESP', name: 'Accounting & Response', description: 'Akurasi saldo outlet + pengelolaan keuangan dan kecepatan respon online', weight: 0.2, targetType: 'FIXED', fixedTarget: 100, isKolektif: false, sortOrder: 4 },
+        { code: 'INTEGRITAS', name: 'Integritas', description: 'Etika atau sikap kerja dan religiusitas, kerjasama serta menjalankan komitmen', weight: 0.2, targetType: 'FIXED', fixedTarget: 100, isKolektif: false, sortOrder: 5 },
+      ],
+    },
+  ];
+  for (const group of KPI_SEED) {
+    const div = divByCode.get(group.division);
+    if (!div) continue;
+    await prisma.kpiDivisionConfig.upsert({
+      where: { divisionId: div.id },
+      update: { isActive: true },
+      create: { divisionId: div.id, defaultAmount: 0, isActive: true },
+    });
+    for (const a of group.aspects) {
+      await prisma.kpiAspect.upsert({
+        where: { divisionId_code: { divisionId: div.id, code: a.code } },
+        update: {
+          name: a.name,
+          description: a.description,
+          weight: a.weight,
+          targetType: a.targetType,
+          fixedTarget: a.fixedTarget,
+          isKolektif: a.isKolektif,
+          sortOrder: a.sortOrder,
+          isActive: true,
+        },
+        create: {
+          divisionId: div.id,
+          code: a.code,
+          name: a.name,
+          description: a.description,
+          weight: a.weight,
+          targetType: a.targetType,
+          fixedTarget: a.fixedTarget,
+          isKolektif: a.isKolektif,
+          sortOrder: a.sortOrder,
+          isActive: true,
+        },
+      });
+    }
+  }
+
   // 16b. Grades + Positions (IGDERP-277)
   console.log('🏗️ Creating grades, positions...');
   const gradeByCode = new Map<string, { id: string }>();
@@ -1700,6 +1786,45 @@ async function main() {
   ];
   for (const pt of penaltyTypes) {
     await prisma.penaltyType.upsert({ where: { code: pt.code }, update: { ...pt, isActive: true }, create: pt as any });
+  }
+  // 16b2. Payroll component master — IGDERP-284 (thread 20261120).
+  // Non-denda income/deduction backing the create-period checklist + template
+  // columns. Source: Format_HR_ORBIT.xlsx Payroll sheet formulas-as-text.
+  // Evidence (Payroll sheet): kolom U TUNJ-JABATAN diisi manual per baris;
+  // ladder nested-IF justru menggerakkan kolom AN (KPI AMOUNT). Jadi jabatan
+  // = manual, tiers dikosongkan (tetap didukung untuk master custom).
+  console.log('💰 Creating payroll component master...');
+  const payrollComponents = [
+    { code: 'GAJI-POKOK', name: 'Gaji Pokok', category: 'earning', source: 'manual', description: 'Prefill kontrak basicSalary', sortOrder: 10 },
+    { code: 'TOTAL-GAJI-HARIAN', name: 'Total Gaji Harian', category: 'earning', source: 'computed', description: 'Gaji harian x jumlah kehadiran', sortOrder: 20 },
+    { code: 'TUNJ-MASA-KERJA', name: 'Tunjangan Masa Kerja', category: 'earning', source: 'computed', description: 'Tenure DATEDIF', sortOrder: 30 },
+    { code: 'SELISIH', name: 'Selisih', category: 'earning', source: 'manual', description: 'Manual HR', sortOrder: 40 },
+    { code: 'TUNJ-JABATAN', name: 'Tunjangan Jabatan', category: 'earning', source: 'manual', description: 'Manual HR (nilai per karyawan)', tiers: null, sortOrder: 50 },
+    { code: 'TUNJ-KELUARGA', name: 'Tunjangan Keluarga', category: 'earning', source: 'computed', description: 'SWITCH status keluarga', sortOrder: 60 },
+    { code: 'TUNJ-PENDIDIKAN', name: 'Tunjangan Pendidikan', category: 'earning', source: 'computed', description: 'SWITCH pendidikan', sortOrder: 70 },
+    { code: 'TRANSPORTASI', name: 'Transportasi', category: 'earning', source: 'fixed', description: 'Nominal tetap HR', defaultAmount: 0, sortOrder: 80 },
+    { code: 'NOMINAL-LEMBUR', name: 'Nominal Lembur', category: 'earning', source: 'computed', description: 'Jam x 15.000', sortOrder: 90 },
+    { code: 'TOTAL-KPI', name: 'Total KPI', category: 'earning', source: 'computed', description: 'Tunjangan x nilai KPI (selalu ada)', sortOrder: 100 },
+    { code: 'KEKURANGAN-BLN-LALU', name: 'Kekurangan Bulan Lalu', category: 'earning', source: 'manual', description: 'Manual HR', sortOrder: 110 },
+    { code: 'NOMINAL-TFS', name: 'Nominal T/F/S (Terlambat)', category: 'deduction', source: 'computed', description: 'Links DENDA-TERLAMBAT, 15.000/hari', sortOrder: 120 },
+    { code: 'NOMINAL-BA', name: 'Nominal B/A (Bentrok/Alpha)', category: 'deduction', source: 'computed', description: 'Links DENDA-ALPHA, 100.000/hari', sortOrder: 130 },
+    { code: 'NOMINAL-LBL-LIBUR', name: 'Nominal Lebih Libur', category: 'deduction', source: 'computed', description: '60.000/hari', sortOrder: 140 },
+    { code: 'NOMINAL-PLG-CEPAT', name: 'Nominal Pulang Cepat', category: 'deduction', source: 'computed', description: '40.000 x 0.25', sortOrder: 150 },
+    { code: 'KELALAIAN', name: 'Kelalaian', category: 'deduction', source: 'manual', description: 'Manual HR, prefill gaji/30x3', sortOrder: 160 },
+    { code: 'PENYESUAIAN', name: 'Penyesuaian / Gaji Ditahan', category: 'deduction', source: 'manual', description: 'Manual HR', sortOrder: 170 },
+    { code: 'BPJS-KESEHATAN', name: 'BPJS Kesehatan', category: 'deduction', source: 'fixed', description: 'Dormant di file sumber', defaultAmount: 0, sortOrder: 180, isActive: false },
+    { code: 'BPJS-JKK', name: 'BPJS JKK', category: 'deduction', source: 'fixed', description: 'Dormant di file sumber', defaultAmount: 0, sortOrder: 190, isActive: false },
+    { code: 'BPJS-JHT', name: 'BPJS JHT', category: 'deduction', source: 'fixed', description: 'Dormant di file sumber', defaultAmount: 0, sortOrder: 200, isActive: false },
+    { code: 'BPJS-JKM', name: 'BPJS JKM', category: 'deduction', source: 'fixed', description: 'Dormant di file sumber', defaultAmount: 0, sortOrder: 210, isActive: false },
+    { code: 'BPJS-JP', name: 'BPJS JP', category: 'deduction', source: 'fixed', description: 'Dormant di file sumber', defaultAmount: 0, sortOrder: 220, isActive: false },
+  ];
+  for (const pc of payrollComponents) {
+    const { isActive, ...rest } = pc as any;
+    await (prisma as any).payrollComponentMaster.upsert({
+      where: { code: pc.code },
+      update: { ...rest, isActive: isActive ?? true },
+      create: { ...rest, isActive: isActive ?? true },
+    });
   }
   // 16c. Working locations (IGDERP-270) — HQ seed. HQ-like sites live here,
   // never as branches, so outlet dropdowns stay pure. Supports N HQ-like rows.

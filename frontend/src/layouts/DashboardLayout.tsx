@@ -379,7 +379,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         { icon: Users, label: 'Data Karyawan', path: '/hr/employees', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: Clock, label: 'Presensi', path: '/hr/attendance', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: ScrollText, label: 'Kontrak', path: '/hr/contracts', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
-        { icon: Target, label: 'KPI', path: '/hr/kpi', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+        { icon: Target, label: 'KPI', path: '/hr/kpi', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR', 'HS', 'SPV'] },
         { icon: Banknote, label: 'Payroll', path: '/hr/payroll', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: CalendarDays, label: 'Libur', path: '/hr/libur', permission: 'hr.libur.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
         { icon: ArrowRightLeft, label: 'Shifting', path: '/hr/shifting', permission: 'hr.shift.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
@@ -400,6 +400,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           children: [
             { icon: CalendarDays, label: 'Tipe Cuti', path: '/hr/master-data/cuti', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
             { icon: Gavel, label: 'Tipe Denda', path: '/hr/master-data/denda', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+            { icon: Wallet, label: 'Komponen Payroll', path: '/hr/master-data/komponen-payroll', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
             { icon: Building2, label: 'Departemen', path: '/hr/departments', permission: 'hr.employee.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
             { icon: Building2, label: 'Divisi', path: '/hr/divisions', permission: 'hr.division.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
             { icon: Award, label: 'Grade', path: '/hr/master-data/grade', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },

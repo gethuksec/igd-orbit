@@ -21,6 +21,7 @@ import {
 import { InstallPrompt } from './components/InstallPrompt';
 import { useThemeStore } from './stores/themeStore';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { getHostApp } from './utils/hostApp';
 import { initAnalytics } from './utils/analytics';
 // Master Data
 import ProductList from './pages/products/ProductList';
@@ -98,6 +99,7 @@ import CustomerTypeDetail from './pages/customer-types/CustomerTypeDetail';
 // Master Data - Staff (HR masters, IGDERP-261)
 import LeaveTypeList from './pages/master-data/staff/LeaveTypeList';
 import PenaltyTypeList from './pages/master-data/staff/PenaltyTypeList';
+import PayrollComponentList from './pages/master-data/staff/PayrollComponentList';
 import DivisionList from './pages/master-data/staff/DivisionList';
 import GradeList from './pages/master-data/staff/GradeList';
 import PositionList from './pages/master-data/staff/PositionList';
@@ -172,11 +174,31 @@ import AssignShiftPage from './pages/hr/shifting/AssignShiftPage';
 import ShiftMasterPage from './pages/master-data/staff/ShiftMasterPage';
 import PayrollList from './pages/hr/payroll/PayrollList';
 import PayrollDetail from './pages/hr/payroll/PayrollDetail';
+import MySlips from './pages/hr/payroll/MySlips';
+import ApprovalsInbox from './pages/hr/approvals/ApprovalsInbox';
+// IGDERP-276: leave pages are unmounted on desktop (ws-289) but live on under /m
+import LeaveList from './pages/hr/leave/LeaveList';
+import LeaveRequestForm from './pages/hr/leave/LeaveRequestForm';
+import LeaveDetail from './pages/hr/leave/LeaveDetail';
+import ShiftSwapList from './pages/hr/shift-swap/ShiftSwapList';
+import ShiftSwapForm from './pages/hr/shift-swap/ShiftSwapForm';
+import MobileShell from './pages/m/MobileShell';
+import MLogin from './pages/m/MLogin';
+import MHome from './pages/m/MHome';
+import MHistory from './pages/m/MHistory';
+import MSchedule from './pages/m/MSchedule';
+import MEmployee from './pages/m/MEmployee';
+import MEmployeeDetail from './pages/m/MEmployeeDetail';
+import MRequest from './pages/m/MRequest';
+import MRequestForm from './pages/m/MRequestForm';
+import MProfile from './pages/m/MProfile';
+import MInbox from './pages/m/MInbox';
 import PayrollCalculationForm from './pages/hr/payroll/PayrollCalculationForm';
 import PayslipView from './pages/hr/payroll/PayslipView';
-import KPIRecordsList from './pages/hr/kpi/KPIRecordsList';
+import KPIDivisionList from './pages/hr/kpi/KPIDivisionList';
+import KPIAssign from './pages/hr/kpi/KPIAssign';
+import KPIDivisionEdit from './pages/hr/kpi/KPIDivisionEdit';
 import KPIDetail from './pages/hr/kpi/KPIDetail';
-import KPIRecordForm from './pages/hr/kpi/KPIRecordForm';
 // User & Role Management
 import UserList from './pages/users/UserList';
 import UserDetail from './pages/users/UserDetail';
@@ -195,6 +217,21 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// Opt-1 multi-host landing: subdomains boot into their module, main host keeps LandingPage.
+// All routes stay reachable on every host — entry point differs, the app is the same.
+function HostLanding() {
+  switch (getHostApp()) {
+    case 'pos':
+      return <Navigate to="/pos" replace />;
+    case 'repair':
+      return <Navigate to="/services/smart-repair" replace />;
+    case 'employee':
+      return <Navigate to="/m" replace />;
+    default:
+      return <LandingPage />;
+  }
+}
 
 function App() {
   const resolvedTheme = useThemeStore((s) => s.resolved);
@@ -218,9 +255,32 @@ function App() {
           <OfflineIndicator />
           <Routes>
             {/* Public Routes */}
-            <Route path="/" element={<LandingPage />} />
+            <Route path="/" element={<HostLanding />} />
             <Route path="/login" element={<Login />} />
             <Route path="/track" element={<ServiceTracking />} />
+            {/* IGDERP-276d: mockup IA — Home / Employee / Request / Inbox / Profile.
+                Sub-pages (absen, riwayat, slip, cuti, shift, jadwal) are reached
+                from cards and hub buttons, not from tabs. */}
+            <Route path="/m" element={<MobileShell />}>
+              <Route path="login" element={<MLogin />} />
+              <Route index element={<MHome />} />
+              <Route path="absen" element={<ClockInOut />} />
+              <Route path="riwayat" element={<MHistory />} />
+              <Route path="slip" element={<MySlips />} />
+              <Route path="employee" element={<MEmployee />} />
+              <Route path="employee/:id" element={<MEmployeeDetail />} />
+              <Route path="request" element={<MRequest />} />
+              <Route path="request/new" element={<MRequestForm />} />
+              <Route path="cuti" element={<LeaveList />} />
+              <Route path="cuti/new" element={<LeaveRequestForm />} />
+              <Route path="cuti/:id" element={<LeaveDetail />} />
+              <Route path="shift" element={<ShiftSwapList />} />
+              <Route path="shift/new" element={<ShiftSwapForm />} />
+              <Route path="jadwal" element={<MSchedule />} />
+              <Route path="inbox" element={<MInbox />} />
+              <Route path="approvals" element={<ApprovalsInbox />} />
+              <Route path="profile" element={<MProfile />} />
+            </Route>
             <Route path="/track/:serviceNumber" element={<ServiceTracking />} />
             {/* Short alias for nota print / WA share — same page, shorter URL */}
             <Route path="/s/:serviceNumber" element={<ServiceTracking />} />
@@ -549,6 +609,7 @@ function App() {
             {/* Master Data - Staff (HR masters, under Staff > Master Data) + Libur/Shift */}
             <Route path="/hr/master-data/cuti" element={<ProtectedRoute><DashboardLayout><LeaveTypeList /></DashboardLayout></ProtectedRoute>} />
             <Route path="/hr/master-data/denda" element={<ProtectedRoute><DashboardLayout><PenaltyTypeList /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/hr/master-data/komponen-payroll" element={<ProtectedRoute><DashboardLayout><PayrollComponentList /></DashboardLayout></ProtectedRoute>} />
             <Route path="/hr/master-data/grade" element={<ProtectedRoute><DashboardLayout><GradeList /></DashboardLayout></ProtectedRoute>} />
             <Route path="/hr/master-data/jabatan" element={<ProtectedRoute><DashboardLayout><PositionList /></DashboardLayout></ProtectedRoute>} />
             <Route path="/hr/master-data/working-location" element={<ProtectedRoute><DashboardLayout><WorkingLocationList /></DashboardLayout></ProtectedRoute>} />
@@ -1356,6 +1417,46 @@ function App() {
               }
             />
             <Route
+              path="/hr/payroll/my-slips"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <MySlips />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr/approvals"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <ApprovalsInbox />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr/shift-swap"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <ShiftSwapList />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr/shift-swap/new"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <ShiftSwapForm />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/hr/payroll/:id"
               element={
                 <ProtectedRoute>
@@ -1380,23 +1481,33 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <KPIRecordsList />
+                    <KPIDivisionList />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
             />
             <Route
-              path="/hr/kpi/new"
+              path="/hr/kpi/assign"
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <KPIRecordForm />
+                    <KPIAssign />
                   </DashboardLayout>
                 </ProtectedRoute>
               }
             />
             <Route
-              path="/hr/kpi/:id"
+              path="/hr/kpi/division/:id"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <KPIDivisionEdit />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hr/kpi/employee/:id"
               element={
                 <ProtectedRoute>
                   <DashboardLayout>

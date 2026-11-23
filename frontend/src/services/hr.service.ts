@@ -44,10 +44,16 @@ export interface Attendance {
   branchId: string;
   clockIn?: string;
   clockOut?: string;
-  clockInMethod?: 'fingerprint' | 'manual';
-  clockOutMethod?: 'fingerprint' | 'manual';
+  clockInMethod?: 'fingerprint' | 'manual' | 'mobile';
+  clockOutMethod?: 'fingerprint' | 'manual' | 'mobile';
   clockInLocation?: string;
   clockOutLocation?: string;
+  clockInPhotoUrl?: string;
+  clockOutPhotoUrl?: string;
+  clockInLat?: number;
+  clockInLng?: number;
+  clockOutLat?: number;
+  clockOutLng?: number;
   status: 'present' | 'absent' | 'leave' | 'holiday' | 'not-clocked';
   isLate: boolean;
   lateMinutes: number;
@@ -86,7 +92,8 @@ export interface LeaveRequest {
   endDate: string;
   totalDays: number;
   reason: string;
-  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+  attachmentUrl?: string;
+  status: 'pending' | 'manager_approved' | 'approved' | 'rejected' | 'cancelled';
   approvedBy?: string;
   approvedAt?: string;
   rejectedBy?: string;
@@ -159,22 +166,65 @@ export interface PayrollComponent {
   notes?: string;
 }
 
-export interface KPIRecord {
+export interface KpiAspect {
   id: string;
-  employeeId: string;
+  divisionId: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  intervalMin: number;
+  intervalMax: number;
+  weight: number;
+  targetType: 'FIXED' | 'PERIOD';
+  fixedTarget?: number | null;
+  isKolektif: boolean;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export interface KpiDivisionRow {
+  division: any;
   periodMonth: number;
   periodYear: number;
-  salesTargetAchievement?: number;
-  serviceQualityScore?: number;
-  customerSatisfaction?: number;
-  attendanceScore?: number;
-  overallScore: number;
-  targetBonus?: number;
-  calculatedBonus?: number;
-  bonusMultiplier?: number;
-  recordedBy: string;
-  notes?: string;
-  employee?: Employee;
+  status: 'unassigned' | 'assigned' | 'approved';
+  employeeCount: number;
+}
+
+export interface KpiAssignContext {
+  division: any;
+  periodMonth: number;
+  periodYear: number;
+  aspects: KpiAspect[];
+  prefill: {
+    month: number;
+    year: number;
+    targets: Record<string, number>;
+    kolektif: Record<string, number>;
+  } | null;
+  defaultAmount: number;
+  weightsSum: number;
+}
+
+export interface KpiGridEmployee {
+  employee: any;
+  excludedReason: string | null;
+  incomplete: string[];
+  total: number | null;
+  nilai: number | null;
+  bonus: number | null;
+  scores: Record<string, number>;
+  note: string | null;
+}
+
+export interface KpiGrid {
+  division: any;
+  config: { divisionId: string; defaultAmount: number; isActive: boolean } | null;
+  aspekts: KpiAspect[];
+  targets: Record<string, number>;
+  kolektif: Record<string, number>;
+  weightsSum: number;
+  lock: { status: string; lockedBy?: string | null; lockedAt?: string | null };
+  employees: KpiGridEmployee[];
 }
 
 export interface AttendanceSummary {
@@ -188,6 +238,33 @@ export interface AttendanceSummary {
   overtimeHours: number;
 }
 
+// IGDERP-275: unified approvals inbox item
+export interface PendingApproval {
+  kind: 'leave' | 'overtime' | 'shift_swap' | 'libur';
+  id: string;
+  status: string;
+  createdAt: string;
+  requester: { employeeId: string; name: string | null; nik: string | null; employeeCode: string };
+  summary: string;
+  canDecide: boolean;
+  decideEndpoint: string;
+}
+
+export interface ShiftSwapRequest {
+  id: string;
+  employeeId: string;
+  targetEmployeeId: string;
+  date: string;
+  fromShiftId: string;
+  toShiftId: string;
+  reason?: string;
+  status: 'pending' | 'manager_approved' | 'approved' | 'rejected' | 'cancelled';
+  employee?: Employee;
+  targetEmployee?: Employee;
+  fromShift?: { id: string; name: string };
+  toShift?: { id: string; name: string };
+}
+
 // ============================================
 // Service Methods
 // ============================================
@@ -198,18 +275,42 @@ export const hrService = {
   // ============================================
 
   /**
-   * Clock in
+   * Clock in (IGDERP-275: method 'mobile' requires latitude/longitude/photoUrl)
    */
-  async clockIn(data: { branch_id: string; method?: 'fingerprint' | 'manual'; clock_in_location?: string; notes?: string }) {
+  async clockIn(data: { branch_id: string; method?: 'fingerprint' | 'manual' | 'mobile'; clock_in_location?: string; latitude?: number; longitude?: number; photoUrl?: string; notes?: string }) {
     const response = await api.post('/attendance/clock-in', data);
     return response.data.data || response.data;
   },
 
   /**
-   * Clock out
+   * Clock out (IGDERP-275: method 'mobile' requires latitude/longitude/photoUrl)
    */
-  async clockOut(data: { branch_id: string; method?: 'fingerprint' | 'manual'; clock_out_location?: string; notes?: string }) {
+  async clockOut(data: { branch_id: string; method?: 'fingerprint' | 'manual' | 'mobile'; clock_out_location?: string; latitude?: number; longitude?: number; photoUrl?: string; notes?: string }) {
     const response = await api.post('/attendance/clock-out', data);
+    return response.data.data || response.data;
+  },
+
+  /**
+   * Selfie upload for mobile clock in/out → { url }
+   */
+  async uploadSelfie(file: File | Blob): Promise<{ url: string }> {
+    const form = new FormData();
+    form.append('photo', file);
+    const response = await api.post('/attendance/selfie', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data.data || response.data;
+  },
+
+  /**
+   * Leave supporting-document upload → { url }
+   */
+  async uploadLeaveAttachment(file: File | Blob): Promise<{ url: string }> {
+    const form = new FormData();
+    form.append('file', file);
+    const response = await api.post('/leave/attachment', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return response.data.data || response.data;
   },
 
@@ -275,6 +376,27 @@ export const hrService = {
   },
 
   /**
+  /**
+   * Reject overtime
+   */
+  async rejectOvertime(overtimeId: string, reason: string) {
+    const response = await api.post('/attendance/overtime/reject', { reason }, {
+      params: { id: overtimeId },
+    });
+    return response.data.data || response.data;
+  },
+
+  /**
+   * Approve overtime — step 2 / final (CHR)
+   */
+  async approveOvertimeHr(overtimeId: string) {
+    const response = await api.post('/attendance/overtime/approve-hr', null, {
+      params: { id: overtimeId },
+    });
+    return response.data.data || response.data;
+  },
+
+  /**
    * List overtime requests (approval queue)
    */
   async getOvertimeRequests(status?: string): Promise<OvertimeRequest[]> {
@@ -295,6 +417,7 @@ export const hrService = {
     start_date: string;
     end_date: string;
     reason: string;
+    attachment_url?: string;
   }) {
     const response = await api.post('/leave/request', data);
     return response.data.data || response.data;
@@ -344,6 +467,16 @@ export const hrService = {
   },
 
   /**
+   * Approve leave — step 2 / final (CHR)
+   */
+  async approveLeaveHr(leaveId: string) {
+    const response = await api.post('/leave/approve-hr', null, {
+      params: { id: leaveId },
+    });
+    return response.data.data || response.data;
+  },
+
+  /**
    * Reject leave
    */
   async rejectLeave(leaveId: string, data: { reason: string; notes?: string }) {
@@ -374,11 +507,8 @@ export const hrService = {
     employee_ids?: string[];
     period_month: number;
     period_year: number;
-    components?: Array<{
-      component_type: 'earning' | 'deduction';
-      component_name: string;
-      amount: number;
-      is_taxable?: boolean;
+    components: Array<{
+      masterId: string;
       notes?: string;
     }>;
   }) {
@@ -452,57 +582,170 @@ export const hrService = {
   },
 
   // ============================================
-  // KPI
+  // IGDERP-275: employee self-service (PWA)
   // ============================================
 
   /**
-   * Record KPI
+   * Unified pending-approvals inbox (dashboard + HP)
    */
-  async recordKPI(data: {
-    employee_id: string;
-    period_month: number;
-    period_year: number;
-    sales_target_achievement?: number;
-    service_quality_score?: number;
-    customer_satisfaction?: number;
-    attendance_score?: number;
-    target_bonus?: number;
-    bonus_multiplier?: number;
-    notes?: string;
-  }) {
-    const response = await api.post('/kpi/records', data);
+  async getPendingApprovals(): Promise<{ data: PendingApproval[]; total: number; awaitingDecision: number }> {
+    const response = await api.get('/approvals/pending');
+    // IGDERP-276: API returns the { data, total, awaitingDecision } wrapper —
+    // pass it through intact (unwrapping here starved the inbox list + subtitle).
+    const d = response.data;
+    if (Array.isArray(d)) {
+      return { data: d, total: d.length, awaitingDecision: d.length };
+    }
+    return {
+      data: d?.data ?? [],
+      total: d?.total ?? 0,
+      awaitingDecision: d?.awaitingDecision ?? d?.data?.length ?? 0,
+    };
+  },
+
+  /**
+   * Set or change own payslip PIN
+   */
+  async setPayslipPin(data: { pin: string; oldPin?: string }) {
+    const response = await api.post('/payroll/pin', data);
     return response.data.data || response.data;
   },
 
   /**
-   * Get employee KPIs
+   * List own payslips (PIN-gated)
    */
-  async getEmployeeKPIs(userId: string, params?: { month?: number; year?: number }): Promise<{ data: KPIRecord[]; total: number }> {
-    const response = await api.get(`/kpi/records/${userId}`, { params });
+  async getMySlips(pin: string) {
+    const response = await api.post('/payroll/my-slips', { pin });
     return response.data.data || response.data;
   },
 
   /**
-   * Get KPI record by ID
+   * Open own payslip detail (PIN-gated)
    */
-  async getKPI(id: string): Promise<KPIRecord> {
-    const response = await api.get(`/kpi/records/${id}`);
+  async unlockSlip(id: string, pin: string): Promise<Payroll> {
+    const response = await api.post(`/payroll/${id}/unlock`, { pin });
     return response.data.data || response.data;
   },
 
   /**
-   * Update KPI score
+   * File a shift swap request (tukar shift)
    */
-  async updateKPIScore(id: string, data: {
-    sales_target_achievement?: number;
-    service_quality_score?: number;
-    customer_satisfaction?: number;
-    attendance_score?: number;
-    overall_score?: number;
-    calculated_bonus?: number;
-    notes?: string;
-  }) {
-    const response = await api.post(`/kpi/records/${id}/score`, data);
+  async requestShiftSwap(data: { target_employee_id: string; date: string; from_shift_id: string; to_shift_id: string; reason?: string }) {
+    const response = await api.post('/shift-swap/request', data);
+    return response.data.data || response.data;
+  },
+
+  /**
+   * List shift swap requests
+   */
+  async getShiftSwaps(params?: { employeeId?: string; status?: string }): Promise<{ data: ShiftSwapRequest[]; total: number }> {
+    const response = await api.get('/shift-swap/requests', { params });
+    if (Array.isArray(response.data)) return { data: response.data, total: response.data.length };
+    return { data: response.data?.data || [], total: response.data?.total || 0 };
+  },
+
+  /**
+   * Approve shift swap — step 1 (HS/SPV)
+   */
+  async approveShiftSwap(id: string) {
+    const response = await api.post('/shift-swap/approve', null, { params: { id } });
+    return response.data.data || response.data;
+  },
+
+  /**
+   * Approve shift swap — step 2 / final (CHR)
+   */
+  async approveShiftSwapHr(id: string) {
+    const response = await api.post('/shift-swap/approve-hr', null, { params: { id } });
+    return response.data.data || response.data;
+  },
+
+  /**
+   * Reject shift swap
+   */
+  async rejectShiftSwap(id: string, reason: string) {
+    const response = await api.post('/shift-swap/reject', { reason }, { params: { id } });
+    return response.data.data || response.data;
+  },
+
+  /**
+   * Cancel own shift swap request
+   */
+  async cancelShiftSwap(id: string) {
+    const response = await api.post('/shift-swap/cancel', null, { params: { id } });
+    return response.data.data || response.data;
+  },
+
+  // ============================================
+  // KPI
+  // ============================================
+  // KPI master per division (IGDERP-266)
+  // ============================================
+
+  async listDivisions() {
+    const response = await api.get('/divisions');
+    return response.data.data || response.data;
+  },
+
+  async listKpiDivisions(): Promise<KpiDivisionRow[]> {
+    const response = await api.get('/kpi/divisions');
+    return response.data.data || response.data;
+  },
+
+  async getKpiAssignContext(divisionId: string): Promise<KpiAssignContext> {
+    const response = await api.get(`/kpi/divisions/${divisionId}/assign-context`);
+    return response.data.data || response.data;
+  },
+
+  async assignKpiPeriod(divisionId: string, data: any): Promise<KpiGrid> {
+    const response = await api.post(`/kpi/divisions/${divisionId}/assign`, data);
+    return response.data.data || response.data;
+  },
+  async listKpiAspects(divisionId: string): Promise<KpiAspect[]> {
+    const response = await api.get(`/kpi/divisions/${divisionId}/aspects`);
+    return response.data.data || response.data;
+  },
+
+  async createKpiAspect(divisionId: string, data: any) {
+    const response = await api.post(`/kpi/divisions/${divisionId}/aspects`, data);
+    return response.data.data || response.data;
+  },
+
+  async updateKpiAspect(id: string, data: any) {
+    const response = await api.put(`/kpi/aspects/${id}`, data);
+    return response.data.data || response.data;
+  },
+
+  async getKpiConfig(divisionId: string) {
+    const response = await api.get(`/kpi/divisions/${divisionId}/config`);
+    return response.data.data || response.data;
+  },
+
+  async upsertKpiConfig(divisionId: string, data: { default_amount?: number; is_active?: boolean }) {
+    const response = await api.put(`/kpi/divisions/${divisionId}/config`, data);
+    return response.data.data || response.data;
+  },
+
+  async getKpiGrid(divisionId: string, month: number, year: number): Promise<KpiGrid> {
+    const response = await api.get(`/kpi/divisions/${divisionId}/grid`, { params: { month, year } });
+    return response.data.data || response.data;
+  },
+
+  async saveKpiGrid(divisionId: string, data: any): Promise<KpiGrid> {
+    const response = await api.put(`/kpi/divisions/${divisionId}/grid`, data);
+    return response.data.data || response.data;
+  },
+
+  async approveKpiPeriod(divisionId: string, period_month: number, period_year: number) {
+    const response = await api.post(`/kpi/divisions/${divisionId}/approve`, { period_month, period_year });
+    return response.data.data || response.data;
+  },
+
+  /**
+   * Staff read-only view (by user id)
+   */
+  async getEmployeeKpi(userId: string, params?: { month?: number; year?: number }) {
+    const response = await api.get(`/kpi/employee/${userId}`, { params });
     return response.data.data || response.data;
   },
 };

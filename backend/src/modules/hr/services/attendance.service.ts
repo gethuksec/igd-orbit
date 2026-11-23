@@ -5,6 +5,9 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../shared/services/prisma.service';
+import { StorageService } from '../../../shared/services/storage.service';
+import { assertFileMagic } from '../../../shared/utils/file-magic';
+import { extname } from 'path';
 import { ShiftsService } from '../../shifts/shifts.service';
 import { ClockInDto } from '../dto/clock-in.dto';
 import { ClockOutDto } from '../dto/clock-out.dto';
@@ -12,12 +15,96 @@ import { ManualAdjustmentDto } from '../dto/manual-adjustment.dto';
 import { OvertimeRequestDto } from '../dto/overtime-request.dto';
 import { Decimal } from '@prisma/client/runtime/library';
 
+/**
+ * IGDERP-275: haversine distance in meters between two WGS84 points.
+ * Exported for unit tests.
+ */
+export function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+export interface MobileClockProof {
+  latitude?: number;
+  longitude?: number;
+  photoUrl?: string;
+}
+
+/**
+ * IGDERP-275: mobile clock requires selfie photo + GPS. Branches without
+ * geotag (latitude/longitude null) skip the radius check so legacy data
+ * keeps working; the PWA must still send proof.
+ * Throws BadRequestException carrying distance info for the "di luar lokasi" popup.
+ */
+export function assertMobileClockProof(
+  dto: MobileClockProof,
+  branch: { latitude?: unknown; longitude?: unknown; attendanceRadiusM?: unknown; name?: string },
+): { distanceMeters: number | null } {
+  if (
+    dto.latitude === undefined ||
+    dto.latitude === null ||
+    dto.longitude === undefined ||
+    dto.longitude === null
+  ) {
+    throw new BadRequestException('Lokasi GPS wajib untuk absen via HP');
+  }
+  if (!dto.photoUrl) {
+    throw new BadRequestException('Foto selfie wajib untuk absen via HP');
+  }
+  const bLat = branch.latitude == null ? null : Number(branch.latitude);
+  const bLng = branch.longitude == null ? null : Number(branch.longitude);
+  if (bLat === null || bLng === null || Number.isNaN(bLat) || Number.isNaN(bLng)) {
+    return { distanceMeters: null }; // branch not geotagged → check skipped
+  }
+  const radius = Number(branch.attendanceRadiusM ?? 100);
+  const distanceMeters = Math.round(haversineMeters(Number(dto.latitude), Number(dto.longitude), bLat, bLng));
+  if (distanceMeters > radius) {
+    throw new BadRequestException(
+      `Di luar lokasi: ${distanceMeters}m dari ${branch.name || 'cabang'} (radius ${radius}m)`,
+    );
+  }
+  return { distanceMeters };
+}
+
 @Injectable()
 export class AttendanceService {
+  private readonly storage = new StorageService();
+
   constructor(
     private prisma: PrismaService,
     private shifts: ShiftsService,
   ) {}
+
+  /**
+   * IGDERP-275: selfie upload for mobile clock in/out.
+   * Returns the public URL the PWA then sends as photoUrl. Max 2MB (phone
+   * front cameras); the PWA should compress client-side before upload.
+   */
+  async uploadSelfie(
+    file: { originalname: string; mimetype: string; size: number; buffer: Buffer } | undefined,
+    userId: string,
+  ) {
+    if (!file || !file.buffer || file.size === 0) {
+      throw new BadRequestException('Foto selfie wajib diunggah');
+    }
+    if (!file.mimetype || !file.mimetype.startsWith('image/')) {
+      throw new BadRequestException('File selfie wajib gambar: ' + (file.originalname || 'tanpa nama'));
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      throw new BadRequestException('Maksimal 2MB per foto selfie: ' + (file.originalname || 'tanpa nama'));
+    }
+    assertFileMagic(file.buffer, file.mimetype, file.originalname || 'selfie');
+    const ext = (extname(file.originalname || '').toLowerCase() || '.jpg').replace(/[^a-z0-9.]/g, '') || '.jpg';
+    const name = `selfie-${userId}-${Date.now()}${ext}`;
+    const url = this.storage.save('attendance-selfies', name, file.buffer);
+    return { url };
+  }
 
   /**
    * Clock in
@@ -65,6 +152,12 @@ export class AttendanceService {
 
     if (!branch) {
       throw new NotFoundException('Branch not found');
+    }
+
+    // IGDERP-275: mobile clock requires selfie + GPS inside branch radius
+    const isMobile = dto.method === 'mobile';
+    if (isMobile) {
+      assertMobileClockProof(dto, branch as any);
     }
 
     // Calculate if late — IGDERP-265 Q6 (roster-first): resolved shift time
@@ -126,6 +219,9 @@ export class AttendanceService {
         clockIn: now,
         clockInMethod: dto.method,
         clockInLocation: dto.clock_in_location,
+        clockInPhotoUrl: dto.photoUrl ?? undefined,
+        clockInLat: dto.latitude != null ? new Decimal(dto.latitude) : undefined,
+        clockInLng: dto.longitude != null ? new Decimal(dto.longitude) : undefined,
         internalNotes: dto.notes,
         isLate,
         lateMinutes,
@@ -139,6 +235,9 @@ export class AttendanceService {
         clockIn: now,
         clockInMethod: dto.method,
         clockInLocation: dto.clock_in_location,
+        clockInPhotoUrl: dto.photoUrl ?? undefined,
+        clockInLat: dto.latitude != null ? new Decimal(dto.latitude) : undefined,
+        clockInLng: dto.longitude != null ? new Decimal(dto.longitude) : undefined,
         internalNotes: dto.notes,
         status: 'present',
         isLate,
@@ -194,6 +293,11 @@ export class AttendanceService {
       throw new BadRequestException('Cannot clock out without clocking in first');
     }
 
+    // IGDERP-275: mobile clock-out requires selfie + GPS inside branch radius
+    if (dto.method === 'mobile') {
+      assertMobileClockProof(dto, attendance.branch as any);
+    }
+
     // Calculate work hours
     const now = new Date();
     const clockInTime = attendance.clockIn;
@@ -231,6 +335,9 @@ export class AttendanceService {
         clockOut: now,
         clockOutMethod: dto.method,
         clockOutLocation: dto.clock_out_location,
+        clockOutPhotoUrl: dto.photoUrl ?? undefined,
+        clockOutLat: dto.latitude != null ? new Decimal(dto.latitude) : undefined,
+        clockOutLng: dto.longitude != null ? new Decimal(dto.longitude) : undefined,
         internalNotes: dto.notes ? (attendance.internalNotes ? `${attendance.internalNotes}\n[Clock Out] ${dto.notes}` : `[Clock Out] ${dto.notes}`) : attendance.internalNotes,
         isEarlyLeave,
         earlyLeaveMinutes,
@@ -439,13 +546,14 @@ export class AttendanceService {
   }
 
   /**
-   * Approve overtime
+   * Approve overtime — step 1 (manager: HS/SPV).
+   * IGDERP-275: pending → manager_approved. Final approval is step 2 (CHR).
    */
   async approveOvertime(overtimeId: string, userId: string, userRoles: string[]) {
     // Check permission
     const hasPermission = ['HS', 'SPV'].some((role) => userRoles.includes(role));
     if (!hasPermission) {
-      throw new ForbiddenException('Only HS or SPV can approve overtime');
+      throw new ForbiddenException('Only HS or SPV can approve overtime (step 1)');
     }
 
     const overtimeRequest = await this.prisma.overtimeRequest.findUnique({
@@ -461,11 +569,51 @@ export class AttendanceService {
       throw new BadRequestException('Overtime request is not pending');
     }
 
+    if (overtimeRequest.requestedBy === userId) {
+      throw new ForbiddenException('Requester cannot approve their own overtime');
+    }
+
+    return this.prisma.overtimeRequest.update({
+      where: { id: overtimeId },
+      data: {
+        status: 'manager_approved',
+        managerApprovedBy: userId,
+        managerApprovedAt: new Date(),
+      },
+    });
+  }
+
+  /**
+   * Approve overtime — step 2 (HR: CHR). Finalizes the request and
+   * stamps the linked attendance row.
+   * IGDERP-275: manager_approved → approved.
+   */
+  async approveOvertimeHr(overtimeId: string, userId: string, userRoles: string[]) {
+    const hasPermission = ['CHR'].some((role) => userRoles.includes(role));
+    if (!hasPermission) {
+      throw new ForbiddenException('Only CHR can finalize overtime approval (step 2)');
+    }
+
+    const overtimeRequest = await this.prisma.overtimeRequest.findUnique({
+      where: { id: overtimeId },
+      include: { attendance: true },
+    });
+
+    if (!overtimeRequest) {
+      throw new NotFoundException('Overtime request not found');
+    }
+
+    if (overtimeRequest.status !== 'manager_approved') {
+      throw new BadRequestException('Overtime request needs manager approval first');
+    }
+
     // Update overtime request
     const updatedRequest = await this.prisma.overtimeRequest.update({
       where: { id: overtimeId },
       data: {
         status: 'approved',
+        hrApprovedBy: userId,
+        hrApprovedAt: new Date(),
         approvedBy: userId,
         approvedAt: new Date(),
       },
@@ -484,6 +632,43 @@ export class AttendanceService {
     }
 
     return updatedRequest;
+  }
+
+  /**
+   * Reject overtime — step 1 rejects `pending` (HS/SPV), step 2 rejects
+   * `manager_approved` (CHR). IGDERP-275.
+   */
+  async rejectOvertime(overtimeId: string, reason: string, userId: string, userRoles: string[]) {
+    const isManager = ['HS', 'SPV'].some((role) => userRoles.includes(role));
+    const isHr = ['CHR'].some((role) => userRoles.includes(role));
+    if (!isManager && !isHr) {
+      throw new ForbiddenException('Only HS, SPV, or CHR can reject overtime');
+    }
+
+    const overtimeRequest = await this.prisma.overtimeRequest.findUnique({
+      where: { id: overtimeId },
+    });
+
+    if (!overtimeRequest) {
+      throw new NotFoundException('Overtime request not found');
+    }
+
+    const canReject =
+      (isManager && overtimeRequest.status === 'pending') ||
+      (isHr && ['pending', 'manager_approved'].includes(overtimeRequest.status));
+    if (!canReject) {
+      throw new BadRequestException('Overtime request is not awaiting your decision');
+    }
+
+    return this.prisma.overtimeRequest.update({
+      where: { id: overtimeId },
+      data: {
+        status: 'rejected',
+        rejectedBy: userId,
+        rejectedAt: new Date(),
+        rejectionReason: reason,
+      },
+    });
   }
 
   /**

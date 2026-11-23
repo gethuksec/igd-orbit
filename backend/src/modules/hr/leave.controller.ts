@@ -6,9 +6,13 @@ import {
   Param,
   Query,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
   Request,
   NotFoundException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../../shared/guards/jwt-auth.guard';
 import { RolesGuard } from '../../shared/guards/roles.guard';
 import { Roles } from '../../shared/decorators/roles.decorator';
@@ -33,6 +37,24 @@ export class LeaveController {
     private readonly leaveService: LeaveService,
     private readonly prisma: PrismaService,
   ) {}
+
+  /**
+   * Supporting-document upload for leave requests
+   * POST /api/v1/leave/attachment (multipart: file) → { url }
+   */
+  @Post('attachment')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 2 * 1024 * 1024, files: 1 },
+    }),
+  )
+  async uploadAttachment(
+    @Request() req: ExpressRequest,
+    @UploadedFile() file?: { originalname: string; mimetype: string; size: number; buffer: Buffer },
+  ) {
+    if (!file) throw new BadRequestException('File lampiran wajib diunggah (field: file)');
+    return this.leaveService.uploadAttachment(file, req.user.id);
+  }
 
   /**
    * Request leave
@@ -88,6 +110,20 @@ export class LeaveController {
     @Body() dto: ApproveLeaveDto,
   ) {
     return this.leaveService.approveLeave(leaveId, dto, req.user.id, req.user.roles);
+  }
+
+  /**
+   * Approve leave — step 2 / final (HR: CHR)
+   * POST /api/v1/leave/approve-hr?id=
+   */
+  @Post('approve-hr')
+  @UseGuards(RolesGuard)
+  @Roles('CHR')
+  async approveLeaveHr(
+    @Request() req: ExpressRequest,
+    @Query('id') leaveId: string,
+  ) {
+    return this.leaveService.approveLeaveHr(leaveId, req.user.id, req.user.roles);
   }
 
   /**

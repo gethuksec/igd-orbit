@@ -11,7 +11,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-      FRONTEND_URL: http://igd.ad8ya.cloud
+      FRONTEND_URL: http://igd.ad8ya.cloud,https://igd.ad8ya.cloud,https://employee-igd.ad8ya.cloud,https://pos-igd.ad8ya.cloud,https://sr-igd.ad8ya.cloud
       DATABASE_URL: postgresql://developer:asd1234!Ff@postgresql:5432/igd_orbit_db?schema=public
       REDIS_URL: redis://:asd2134!Ff@redis:6379
       REDIS_HOST: redis
@@ -62,6 +62,18 @@ services:
       - "traefik.http.routers.igd-orbit-employee-secure.entrypoints=https"
       - "traefik.http.routers.igd-orbit-employee-secure.tls=true"
       - "traefik.http.routers.igd-orbit-employee-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.igd-orbit-pos.rule=Host(`pos-igd.ad8ya.cloud`)"
+      - "traefik.http.routers.igd-orbit-pos.entrypoints=internal-http"
+      - "traefik.http.routers.igd-orbit-pos-secure.rule=Host(`pos-igd.ad8ya.cloud`)"
+      - "traefik.http.routers.igd-orbit-pos-secure.entrypoints=https"
+      - "traefik.http.routers.igd-orbit-pos-secure.tls=true"
+      - "traefik.http.routers.igd-orbit-pos-secure.tls.certresolver=cloudflare"
+      - "traefik.http.routers.igd-orbit-sr.rule=Host(`sr-igd.ad8ya.cloud`)"
+      - "traefik.http.routers.igd-orbit-sr.entrypoints=internal-http"
+      - "traefik.http.routers.igd-orbit-sr-secure.rule=Host(`sr-igd.ad8ya.cloud`)"
+      - "traefik.http.routers.igd-orbit-sr-secure.entrypoints=https"
+      - "traefik.http.routers.igd-orbit-sr-secure.tls=true"
+      - "traefik.http.routers.igd-orbit-sr-secure.tls.certresolver=cloudflare"
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
       interval: 30s

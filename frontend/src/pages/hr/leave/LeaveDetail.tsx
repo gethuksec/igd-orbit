@@ -37,8 +37,20 @@ export default function LeaveDetail() {
     enabled: !!id,
   });
 
+  const isManager = userRoles.some((r) => ['HS', 'SPV'].includes(r));
+  const isHr = userRoles.some((r) => ['CHR'].includes(r));
+  const isStep1 = leaveRequest?.status === 'pending';
+  const isStep2 = leaveRequest?.status === 'manager_approved';
+  // IGDERP-275 2-step: HS/SPV decide pending, CHR finalizes manager_approved
+  const canApprove = (isManager && isStep1) || (isHr && isStep2);
+  const canReject =
+    (isManager && isStep1) || (isHr && (isStep1 || isStep2));
+
   const approveMutation = useMutation({
-    mutationFn: () => hrService.approveLeave(id!, { notes: approveNotes }),
+    mutationFn: () =>
+      isStep2 && isHr
+        ? hrService.approveLeaveHr(id!)
+        : hrService.approveLeave(id!, { notes: approveNotes }),
     onSuccess: () => {
       toast.success('Cuti berhasil disetujui');
       queryClient.invalidateQueries({ queryKey: ['leave-request', id] });
@@ -64,9 +76,6 @@ export default function LeaveDetail() {
       toast.error(error.response?.data?.message || 'Gagal menolak cuti');
     },
   });
-
-  const canApprove = userRoles.some((r) => ['HS', 'SPV', 'CHR'].includes(r));
-  const canReject = userRoles.some((r) => ['HS', 'SPV', 'CHR'].includes(r));
 
   if (isLoading) {
     return (
@@ -100,6 +109,13 @@ export default function LeaveDetail() {
           <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-200">
             <Clock className="w-4 h-4" />
             Pending
+          </span>
+        );
+      case 'manager_approved':
+        return (
+          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200">
+            <Clock className="w-4 h-4" />
+            Disetujui Atasan — menunggu HR
           </span>
         );
       case 'approved':
@@ -152,15 +168,15 @@ export default function LeaveDetail() {
       {/* Header */}
       <BreadcrumbHeader title="Detail Cuti" subtitle={leaveRequest.employee?.user?.fullName || leaveRequest.employee?.employeeCode || 'N/A'}>
         <div className="flex items-center gap-2">
-            {canApprove && leaveRequest.status === 'pending' && (
+            {canApprove && (
               <button
                 onClick={() => setShowApproveModal(true)}
                 className="px-4 py-2 bg-white dark:bg-gray-900 text-green-600 dark:text-green-400 rounded-lg font-semibold hover:bg-green-50 dark:hover:bg-green-950 transition-colors"
               >
-                Approve
+                {isStep2 ? 'Final Approve (HR)' : 'Approve'}
               </button>
             )}
-            {canReject && leaveRequest.status === 'pending' && (
+            {canReject && (
               <button
                 onClick={() => setShowRejectModal(true)}
                 className="px-4 py-2 bg-white dark:bg-gray-900 text-red-600 dark:text-red-400 rounded-lg font-semibold hover:bg-red-50 dark:hover:bg-red-950 transition-colors"

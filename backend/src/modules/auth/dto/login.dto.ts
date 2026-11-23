@@ -2,7 +2,7 @@ import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
 
 /**
  * Login DTO
- * Validates login request payload
+ * Validates login request payload. Email only (no NIK login).
  */
 export class LoginDto {
   @IsEmail({}, { message: 'Email must be a valid email address' })
