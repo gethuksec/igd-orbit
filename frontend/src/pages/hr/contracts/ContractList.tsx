@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
-import { Plus, FileText, CheckCircle, Clock, Award } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Plus, FileText, CheckCircle, Clock, Award, Trash2, AlertTriangle, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { contractsService, type Contract } from "@/services/contracts.service";
 import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable, StatusDot } from "@/components/shared";
 import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import IntakeDialog from "@/components/hr/IntakeDialog";
 import { ContractImportButton } from "./ContractImportDialog";
 
@@ -44,12 +45,13 @@ function fmtRp(v: number | null | undefined) {
 
 export default function ContractList() {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [intakeOpen, setIntakeOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [contractToDelete, setContractToDelete] = useState<{ id: string; contractNumber: string } | null>(null);
   const limit = 20;
 
   const { data, isLoading, error, refetch } = useQuery({
@@ -71,6 +73,19 @@ export default function ContractList() {
     }, 500);
     return () => clearTimeout(debounce);
   }, [searchTerm, refetch]);
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => contractsService.remove(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["contracts"] });
+      toast.success("Kontrak draft berhasil dihapus");
+      setDeleteModalOpen(false);
+      setContractToDelete(null);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || "Gagal menghapus kontrak");
+    },
+  });
 
   const rows = data?.data ?? [];
   const total = data?.meta?.total ?? rows.length;
@@ -231,14 +246,18 @@ export default function ContractList() {
         emptyIcon={<FileText className="w-16 h-16" />}
         actions={(row: Contract) => (
           <div className="flex items-center justify-end gap-1">
-            {row.employee?.userId && (
+            {row.status === "draft" && (
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate(`/hr/employees/${row.employee!.userId}`)}
-                title="Timeline"
+                className="text-red-600 hover:bg-red-50"
+                title="Hapus draft"
+                onClick={() => {
+                  setContractToDelete({ id: row.id, contractNumber: row.contractNumber });
+                  setDeleteModalOpen(true);
+                }}
               >
-                Timeline
+                <Trash2 className="w-4 h-4" />
               </Button>
             )}
           </div>
@@ -251,6 +270,52 @@ export default function ContractList() {
         onClose={() => setIntakeOpen(false)}
         onSuccess={() => queryClient.invalidateQueries({ queryKey: ["contracts"] })}
       />
+
+      {/* Delete Confirmation Dialog — draft only */}
+      <Dialog
+        open={deleteModalOpen}
+        onOpenChange={(open) => {
+          if (!open) { setDeleteModalOpen(false); setContractToDelete(null); }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Konfirmasi Hapus</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 p-2 bg-red-100 rounded-full">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-gray-700 mb-2">
+                  Apakah Anda yakin ingin menghapus kontrak draft <strong>{contractToDelete?.contractNumber}</strong>?
+                </p>
+                <p className="text-xs text-gray-500">
+                  Hanya kontrak berstatus draft yang dapat dihapus. Kontrak aktif / expired / terminated / renewed
+                  adalah arsip dan tidak dapat dihapus.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => { setDeleteModalOpen(false); setContractToDelete(null); }}
+                disabled={deleteMutation.isPending}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+              >Batal</button>
+              <button
+                onClick={() => { if (contractToDelete) deleteMutation.mutate(contractToDelete.id); }}
+                disabled={deleteMutation.isPending}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {deleteMutation.isPending ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Menghapus...</>
+                ) : 'Hapus'}
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
