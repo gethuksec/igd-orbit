@@ -29,7 +29,9 @@ export default function MLogin() {
         }
         if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
       }
-      navigate(params.get('next') || '/m', { replace: true });
+      // IGDERP-298: generated-password accounts rotate first.
+      const mustChange = (data.user as any)?.mustChangePassword === true;
+      navigate(mustChange ? '/m/profile' : params.get('next') || '/m', { replace: true });
     } catch (err: any) {
       setError(err.response?.data?.message || 'Email atau kata sandi salah');
     } finally {

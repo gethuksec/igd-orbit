@@ -7,6 +7,8 @@ export interface User {
   phone?: string;
   isActive: boolean;
   canChangePassword?: boolean;
+  // IGDERP-298: generated-password accounts must rotate at next login.
+  mustChangePassword?: boolean;
   roles?: UserRole[];
   branchIds?: string[];
   createdAt: string;

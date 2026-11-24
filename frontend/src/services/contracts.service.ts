@@ -175,8 +175,13 @@ export interface ContractImportRowReport {
     positionCode?: string | null;
     gradeCode?: string | null;
     divisionCode?: string | null;
+    departmentCode?: string | null;
     branchCodes?: string[];
     basicSalary?: number | null;
+    isNew?: boolean;
+    email?: string | null;
+    phone?: string | null;
+    education?: string | null;
   };
 }
 
@@ -189,6 +194,13 @@ export interface ContractImportDryRun {
 }
 
 export interface ContractImportCommit extends ContractImportDryRun {
-  created: { rowNumber: number; contractNumber: string; nip: string }[];
+  created: {
+    rowNumber: number;
+    contractNumber: string;
+    nip: string;
+    isNew?: boolean;
+    tempPassword?: string;
+    note?: string;
+  }[];
   skipped: { rowNumber: number; nip?: string; errors: string[] }[];
 }

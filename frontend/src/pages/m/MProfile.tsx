@@ -37,6 +37,10 @@ export default function MProfile() {
     onSuccess: () => {
       setPw({ cur: '', next: '' });
       setShowPw(false);
+      // IGDERP-298: rotation clears the flag (BE cleared it too).
+      qc.setQueryData(['m-me'], (old: any) =>
+        old ? { ...old, mustChangePassword: false } : old,
+      );
       setMsg('Password berhasil diganti');
     },
     onError: (e: any) => setMsg(e?.response?.data?.message || 'Gagal ganti password'),
@@ -76,6 +80,14 @@ export default function MProfile() {
       <div className="px-4 mt-3 space-y-3">
         {!!msg && (
           <p className="text-sm text-gray-700 bg-gray-100 rounded-xl px-3 py-2">{msg}</p>
+        )}
+
+        {/* IGDERP-298: generated-password accounts must rotate at first login. */}
+        {(me as any)?.mustChangePassword === true && (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+            <p className="text-sm font-bold text-amber-900">Akun memakai password sementara — wajib diganti sekarang.</p>
+            <p className="text-xs text-amber-800 mt-1">Isi Ganti password di bawah — form sudah terbuka.</p>
+          </div>
         )}
 
         {/* Data diri */}
@@ -134,7 +146,7 @@ export default function MProfile() {
             <h2 className="font-bold text-gray-900">Ganti password</h2>
             <ChevronRight className={`w-5 h-5 text-gray-400 transition ${showPw ? 'rotate-90' : ''}`} />
           </button>
-          {showPw && (
+          {(showPw || (me as any)?.mustChangePassword === true) && (
             <div className="pt-3 space-y-2">
               <input
                 type="password"

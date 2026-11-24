@@ -42,6 +42,29 @@ export class PasswordService {
   }
 
   /**
+   * Generate a strong random password satisfying validatePasswordStrength
+   * (upper + lower + digit + special, min 8). Used for import-created
+   * accounts (IGDERP-298) — never stored or transmitted in plaintext.
+   */
+  generateStrongPassword(length: number = 12): string {
+    const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const lower = 'abcdefghijkmnpqrstuvwxyz';
+    const digits = '23456789';
+    const special = '!@#$%^&*-_=+';
+    const all = upper + lower + digits + special;
+    const pick = (s: string) => s[randomBytes(1)[0] % s.length];
+    const chars = [pick(upper), pick(lower), pick(digits), pick(special)];
+    const n = Math.max(length, 8);
+    for (let i = chars.length; i < n; i++) chars.push(pick(all));
+    // Fisher-Yates shuffle so character classes aren't positional.
+    for (let i = chars.length - 1; i > 0; i--) {
+      const j = randomBytes(1)[0] % (i + 1);
+      [chars[i], chars[j]] = [chars[j], chars[i]];
+    }
+    return chars.join('');
+  }
+
+  /**
    * Validate password strength
    * Requirements:
    * - Minimum 8 characters

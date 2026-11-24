@@ -92,6 +92,14 @@ export default function Profile() {
       {/* Header */}
       <BreadcrumbHeader title="Profile Saya" subtitle="Kelola informasi profile Anda" />
 
+      {/* IGDERP-298: generated-password accounts must rotate at first login. */}
+      {(user?.mustChangePassword ?? currentUser?.mustChangePassword) === true && (
+        <div className="rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 p-4 text-sm text-amber-900 dark:text-amber-200">
+          <p className="font-semibold">Akun Anda memakai password sementara — wajib diganti sekarang.</p>
+          <p className="mt-1">Isi form Ubah Password di bawah. Sampai diganti, Anda akan diarahkan kembali ke halaman ini setiap login.</p>
+        </div>
+      )}
+
       {/* Profile Card */}
       <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 p-6 space-y-6">
         <div className="flex items-center justify-between">
@@ -274,6 +282,18 @@ function PasswordChangeSection({ user, onPasswordChanged }: { user: any; onPassw
     onSuccess: (result) => {
       if (result.status === 'approved') {
         toast.success('Password berhasil diubah!');
+        // IGDERP-298: clear the rotation flag locally (BE already cleared it).
+        try {
+          const raw = localStorage.getItem('user');
+          if (raw) {
+            const stored = JSON.parse(raw);
+            if (stored?.mustChangePassword) {
+              localStorage.setItem('user', JSON.stringify({ ...stored, mustChangePassword: false }));
+            }
+          }
+        } catch {
+          // Ignore
+        }
       } else if (result.status === 'pending') {
         toast.success('Permintaan perubahan password telah dikirim dan menunggu persetujuan');
       }

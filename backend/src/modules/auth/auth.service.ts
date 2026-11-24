@@ -290,6 +290,8 @@ export class AuthService {
         fullName: user.fullName,
         phone: user.phone,
         profilePhotoUrl: user.profilePhotoUrl,
+        // IGDERP-298: generated-password accounts must rotate at next login.
+        mustChangePassword: (user as any).mustChangePassword ?? false,
         roles,
         role: role
           ? {
@@ -585,6 +587,8 @@ export class AuthService {
       isVerified: user.isVerified,
       twoFactorEnabled: user.twoFactorEnabled,
       canChangePassword: user.canChangePassword,
+      // IGDERP-298: generated-password accounts must rotate at next login.
+      mustChangePassword: (user as any).mustChangePassword ?? false,
       roles,
       permissions,
       branchIds: branchIds && branchIds.length > 0 ? branchIds : null,
@@ -641,9 +645,10 @@ export class AuthService {
 
     if (user.canChangePassword) {
       // User has permission: update password directly and create approved record
+      // IGDERP-298: rotation clears the generated-password enforcement flag.
       await this.prisma.user.update({
         where: { id: userId },
-        data: { passwordHash: newPasswordHash },
+        data: { passwordHash: newPasswordHash, mustChangePassword: false },
       });
 
       await this.prisma.passwordChangeRequest.create({
@@ -725,8 +730,9 @@ export class AuthService {
     // Update user's password and approve the request
     await this.prisma.$transaction([
       this.prisma.user.update({
+        // IGDERP-298: rotation clears the generated-password enforcement flag.
         where: { id: request.userId },
-        data: { passwordHash: request.newPasswordHash },
+        data: { passwordHash: request.newPasswordHash, mustChangePassword: false },
       }),
       this.prisma.passwordChangeRequest.update({
         where: { id: requestId },

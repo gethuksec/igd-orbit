@@ -77,7 +77,11 @@ export default function Login() {
         localStorage.setItem('user', JSON.stringify(data.user));
       }
 
-      const target = getNextPath(location.search) || getDefaultRouteForUser(data.user);
+      const target =
+        (data.user as any)?.mustChangePassword === true
+          ? // IGDERP-298: generated-password accounts rotate first.
+            '/profile'
+          : getNextPath(location.search) || getDefaultRouteForUser(data.user);
       navigate(target, { replace: true });
     } catch (err: any) {
       console.error('Login error:', err);
