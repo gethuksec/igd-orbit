@@ -332,7 +332,16 @@ export default function AttendanceList() {
       header: 'Status',
       cell: (row) => {
         const meta = STATUS_META[row.displayStatus] || STATUS_META.alpha;
-        return <StatusDot tone={meta.tone}>{meta.label}</StatusDot>;
+        return (
+          <div>
+            <StatusDot tone={meta.tone}>{meta.label}</StatusDot>
+            {row.needsApproval && (
+              <div className="mt-1 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                Menunggu ACC atasan
+              </div>
+            )}
+          </div>
+        );
       },
     },
   ];

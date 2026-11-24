@@ -167,8 +167,12 @@ export default function ClockInOut() {
       };
       return canClockIn ? hrService.clockIn(payload) : hrService.clockOut(payload);
     },
-    onSuccess: () => {
-      toast.success(canClockIn ? 'Clock in berhasil!' : 'Clock out berhasil!');
+    onSuccess: (res: any) => {
+      if (res?.approvalStatus === 'pending') {
+        toast.success('Absen di luar lokasi tercatat — menunggu persetujuan atasan');
+      } else {
+        toast.success(canClockIn ? 'Clock in berhasil!' : 'Clock out berhasil!');
+      }
       queryClient.invalidateQueries({ queryKey: ['attendance-today'] });
       queryClient.invalidateQueries({ queryKey: ['attendances'] });
       refetchAttendance();
@@ -205,7 +209,7 @@ export default function ClockInOut() {
             <p className="font-bold text-red-800 dark:text-red-200">Di luar lokasi</p>
             <p className="text-sm text-red-700 dark:text-red-300 mt-1">{outsideMsg}</p>
             <p className="text-sm text-red-600 dark:text-red-400 mt-1">
-              Mendekatlah ke cabang lalu ambil ulang lokasi & foto.
+              Isi alasan/catatan lalu kirim ulang — absen di luar lokasi menunggu persetujuan atasan.
             </p>
           </div>
           <button onClick={() => setOutsideMsg(null)} className="text-red-500 p-1" aria-label="Tutup">
@@ -380,13 +384,13 @@ export default function ClockInOut() {
             {/* Notes */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                Catatan (opsional)
+                Catatan / Alasan
               </label>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}
-                placeholder="Keterangan tambahan..."
+                placeholder="Keterangan tambahan... (wajib diisi bila absen di luar lokasi kerja)"
                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-base resize-none"
               />
             </div>

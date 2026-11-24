@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../../../shared/services/prisma.service';
 import { ShiftsService } from '../../shifts/shifts.service';
-import { AttendanceService, mobileClockOutside } from './attendance.service';
+import { AttendanceService, mobileClockOutside, isOutsideAllAnchors } from './attendance.service';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 
 /**
@@ -174,6 +174,29 @@ describe('AttendanceService roster + luar-lokasi approval (WS-290)', () => {
     });
   });
 
+  describe('IGDERP-305: pending luar-lokasi displays as alpha until ACC', () => {
+    it('pending approvalStatus → displayStatus alpha (not hadir), counted as alpha', async () => {
+      baseRosterMocks([emp('e1'), emp('e2')], [
+        { id: 'a1', employeeId: 'e1', status: 'present', isLate: false, clockIn: new Date(), approvalStatus: 'pending', internalNotes: 'Dinas luar' },
+        { id: 'a2', employeeId: 'e2', status: 'present', isLate: false, clockIn: new Date(), approvalStatus: 'none' },
+      ]);
+      const res: any = await service.getRoster(DAY, {});
+      const byId = Object.fromEntries(res.data.map((r: any) => [r.employeeId, r]));
+      expect(byId.e1.displayStatus).toBe('alpha');
+      expect(byId.e1.needsApproval).toBe(true);
+      expect(byId.e2.displayStatus).toBe('hadir');
+      expect(res.counts).toMatchObject({ alpha: 1, hadir: 1 });
+    });
+
+    it('approved luar-lokasi → back to hadir', async () => {
+      baseRosterMocks([emp('e1')], [
+        { id: 'a1', employeeId: 'e1', status: 'present', isLate: false, clockIn: new Date(), approvalStatus: 'approved' },
+      ]);
+      const res: any = await service.getRoster(DAY, {});
+      expect(res.data[0]).toMatchObject({ displayStatus: 'hadir', needsApproval: false, approvalStatus: 'approved' });
+    });
+  });
+
   describe('approve/reject', () => {
     it('approve: non-approver role → forbidden', async () => {
       await expect(service.approveAttendance('a1', 'u-9', ['STAFF'])).rejects.toThrow(ForbiddenException);
@@ -196,6 +219,101 @@ describe('AttendanceService roster + luar-lokasi approval (WS-290)', () => {
       const res: any = await service.rejectAttendance('a1', 'u-9', ['HS']);
       expect(res.approvalStatus).toBe('rejected');
       expect(res.status).toBe('absent');
+    });
+  });
+});
+
+/**
+ * IGDERP-305: multi-anchor luar-lokasi — untagged branch + contract
+ * working-location anchors (mirrors live data: all branches NULL lat/lng,
+ * HQ Jember WL -8.1845,113.6687 r=100m).
+ */
+describe('AttendanceService IGDERP-305 anchors (WS-290 follow-up)', () => {
+  const HQ = {
+    id: 'wl-hq', code: 'HQ-JBR', latitude: -8.1845, longitude: 113.6687, radiusM: 100, isActive: true,
+  };
+  const proof = (latitude: number, longitude: number) => ({ latitude, longitude, photoUrl: 'http://x/s.jpg' });
+
+  it('inside any one anchor → not outside (nearest distance reported)', () => {
+    expect(isOutsideAllAnchors(proof(-8.1845, 113.6687), [{ latitude: null, longitude: null }, HQ])).toMatchObject({
+      outside: false,
+    });
+  });
+
+  it('outside every anchor → outside (QA repro ≈700m from HQ)', () => {
+    const r = isOutsideAllAnchors(proof(-8.189, 113.673), [{ latitude: null, longitude: null }, HQ]);
+    expect(r.outside).toBe(true);
+    expect(r.distanceMeters).toBeGreaterThan(100);
+  });
+
+  it('no tagged anchor at all → legacy skip (not outside)', () => {
+    expect(isOutsideAllAnchors(proof(-8.189, 113.673), [{ latitude: null, longitude: null }, {}])).toEqual({
+      outside: false,
+      distanceMeters: null,
+    });
+  });
+
+  it('missing GPS/photo still throws', () => {
+    expect(() => isOutsideAllAnchors({ photoUrl: 'http://x/s.jpg' } as any, [HQ])).toThrow(BadRequestException);
+    expect(() => isOutsideAllAnchors({ latitude: -8.18, longitude: 113.66 } as any, [HQ])).toThrow(BadRequestException);
+  });
+
+  describe('clockIn resolves contract working-location anchors', () => {
+    let service: AttendanceService;
+    let prisma: any;
+    const untaggedBranch = {
+      id: 'b-1', name: 'IGD Jember Pusat', latitude: null, longitude: null, attendanceRadiusM: 100, operatingHours: null,
+    };
+    const employee = { id: 'emp-1', userId: 'u-1', isActive: true, branchId: 'b-1' };
+
+    beforeEach(async () => {
+      prisma = {
+        employee: { findUnique: jest.fn().mockResolvedValue(employee) },
+        branch: { findUnique: jest.fn().mockResolvedValue(untaggedBranch) },
+        attendance: {
+          findUnique: jest.fn().mockResolvedValue(null),
+          upsert: jest.fn(async ({ create }: any) => ({ id: 'att-1', ...create })),
+          update: jest.fn(),
+        },
+        workingLocation: { findMany: jest.fn().mockResolvedValue([]) },
+        contract: { findMany: jest.fn().mockResolvedValue([{ id: 'c-1' }]) },
+        contractWorkingLocation: { findMany: jest.fn().mockResolvedValue([{ workingLocation: HQ }]) },
+      };
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          AttendanceService,
+          { provide: PrismaService, useValue: prisma },
+          { provide: ShiftsService, useValue: { resolveShiftForDate: jest.fn(async () => null) } },
+        ],
+      }).compile();
+      service = module.get<AttendanceService>(AttendanceService);
+    });
+
+    const dto = (over: any = {}) => ({
+      method: 'mobile', branch_id: 'b-1', latitude: -8.189, longitude: 113.673, photoUrl: 'http://x/s.jpg', ...over,
+    });
+
+    it('untagged branch + contract HQ anchor: far from HQ + alasan → pending', async () => {
+      const res: any = await service.clockIn('u-1', dto({ notes: 'Dinas luar' }));
+      expect(prisma.attendance.upsert.mock.calls[0][0].create.approvalStatus).toBe('pending');
+      expect(res.approvalStatus).toBe('pending');
+    });
+
+    it('at the HQ anchor → not pending', async () => {
+      const res: any = await service.clockIn('u-1', dto({ latitude: -8.1845, longitude: 113.6687, notes: 'Hadir' }));
+      expect(prisma.attendance.upsert.mock.calls[0][0].create.approvalStatus).toBe('none');
+      expect(res.approvalStatus).toBe('none');
+    });
+
+    it('far from every anchor without alasan → throws', async () => {
+      await expect(service.clockIn('u-1', dto())).rejects.toThrow(BadRequestException);
+    });
+
+    it('SUPERADMIN can approve pending (matches @Roles guard)', async () => {
+      prisma.attendance.findUnique.mockResolvedValue({ id: 'a1', status: 'present', approvalStatus: 'pending' });
+      prisma.attendance.update.mockImplementation(async ({ data }: any) => ({ id: 'a1', status: 'present', ...data }));
+      const res: any = await service.approveAttendance('a1', 'u-0', ['SUPERADMIN'], 'OK');
+      expect(res.approvalStatus).toBe('approved');
     });
   });
 });
