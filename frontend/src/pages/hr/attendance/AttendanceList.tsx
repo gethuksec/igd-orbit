@@ -3,6 +3,7 @@ import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable, StatusDot } from 
 import type { Column } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
@@ -11,6 +12,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  Image as ImageIcon,
+  MapPin,
   Palmtree,
   XCircle,
 } from 'lucide-react';
@@ -77,7 +80,7 @@ function displayNameOf(row: RosterRow): string {
   return row.employee?.user?.fullName || row.employee?.employeeCode || 'N/A';
 }
 
-function ClockInCell({ row }: { row: RosterRow }) {
+function ClockInCell({ row, onOpen }: { row: RosterRow; onOpen: (row: RosterRow) => void }) {
   const hide = row.displayStatus === 'cuti' || row.displayStatus === 'libur';
   const t = hm(row.clockIn);
   if (!t) {
@@ -92,17 +95,29 @@ function ClockInCell({ row }: { row: RosterRow }) {
     return <span className="text-sm text-muted-foreground">—</span>;
   }
   const bad = !!row.scheduleIn && t > row.scheduleIn;
+  const hasGps = row.clockInLat != null && row.clockInLng != null;
   return (
-    <div>
-      <div className={`text-sm font-medium tabular-nums ${bad ? 'text-red-600 dark:text-red-400' : ''}`}>{t}</div>
+    <button
+      type="button"
+      className="cursor-pointer rounded text-left hover:underline"
+      onClick={(e) => {
+        e.stopPropagation();
+        onOpen(row);
+      }}
+      title="Klik untuk lokasi"
+    >
+      <div className={`flex items-center gap-1 text-sm font-medium tabular-nums ${bad ? 'text-red-600 dark:text-red-400' : ''}`}>
+        {t}
+        {hasGps && <MapPin className="h-3 w-3 text-blue-600 dark:text-blue-400" />}
+      </div>
       {row.scheduleIn && !hide && (
         <div className="mt-0.5 text-xs tabular-nums text-muted-foreground">{row.scheduleIn}</div>
       )}
-    </div>
+    </button>
   );
 }
 
-function ClockOutCell({ row }: { row: RosterRow }) {
+function ClockOutCell({ row, onOpen }: { row: RosterRow; onOpen: (row: RosterRow) => void }) {
   const hide = row.displayStatus === 'cuti' || row.displayStatus === 'libur';
   const t = hm(row.clockOut);
   if (!t) {
@@ -117,17 +132,35 @@ function ClockOutCell({ row }: { row: RosterRow }) {
     return <span className="text-sm text-muted-foreground">—</span>;
   }
   const bad = !!row.scheduleOut && t < row.scheduleOut;
+  const hasGps = row.clockOutLat != null && row.clockOutLng != null;
   return (
-    <div>
-      <div className={`text-sm font-medium tabular-nums ${bad ? 'text-red-600 dark:text-red-400' : ''}`}>{t}</div>
+    <button
+      type="button"
+      className="cursor-pointer rounded text-left hover:underline"
+      onClick={(e) => {
+        e.stopPropagation();
+        onOpen(row);
+      }}
+      title="Klik untuk lokasi"
+    >
+      <div className={`flex items-center gap-1 text-sm font-medium tabular-nums ${bad ? 'text-red-600 dark:text-red-400' : ''}`}>
+        {t}
+        {hasGps && <MapPin className="h-3 w-3 text-blue-600 dark:text-blue-400" />}
+      </div>
       {row.scheduleOut && !hide && (
         <div className="mt-0.5 text-xs tabular-nums text-muted-foreground">{row.scheduleOut}</div>
       )}
-    </div>
+    </button>
   );
 }
 
-function LocationBlock({ label, time, schedule, loc, lat, lng }: {
+/** OpenStreetMap embed centered on the clock coordinate. */
+function osmEmbed(lat: number, lng: number): string {
+  const d = 0.004;
+  return `https://www.openstreetmap.org/export/embed.html?bbox=${lng - d}%2C${lat - d}%2C${lng + d}%2C${lat + d}&layer=mapnik&marker=${lat}%2C${lng}`;
+}
+
+function MapCard({ label, time, schedule, loc, lat, lng }: {
   label: string;
   time: string | null;
   schedule: string | null;
@@ -135,28 +168,85 @@ function LocationBlock({ label, time, schedule, loc, lat, lng }: {
   lat?: number | null;
   lng?: number | null;
 }) {
-  const [open, setOpen] = useState(false);
   const t = hm(time);
-  const place = loc || (lat != null && lng != null ? `${lat}, ${lng}` : 'Lokasi tidak tercatat');
+  const place = loc || (lat != null && lng != null ? `${lat}, ${lng}` : null);
   return (
-    <div
-      className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/50"
-      onClick={() => setOpen((v) => !v)}
-      title="Klik untuk lokasi"
-    >
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
-      <p className={`mt-1 font-mono text-xl font-medium tabular-nums ${t ? '' : 'text-muted-foreground'}`}>
-        {t || '—'}
-      </p>
-      {schedule && <p className="mt-0.5 text-xs tabular-nums text-muted-foreground">{schedule}</p>}
-      {open && (
-        <div className="mt-2 border-t border-dashed pt-2">
-          <p className="text-xs">{place}</p>
-          {lat != null && lng != null && (
+    <div className="overflow-hidden rounded-lg border">
+      <div className="px-3 pb-1 pt-2.5">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">{label}</p>
+        <p className="font-mono text-lg font-bold tabular-nums">
+          {t || '—'}{' '}
+          {schedule && <span className="text-xs font-normal text-muted-foreground">· jadwal {schedule}</span>}
+        </p>
+      </div>
+      {lat != null && lng != null ? (
+        <>
+          <iframe
+            title={`Peta ${label}`}
+            src={osmEmbed(lat, lng)}
+            className="h-44 w-full border-y"
+            loading="lazy"
+          />
+          <div className="px-3 py-2.5">
+            {place && <p className="text-xs font-medium">{place}</p>}
             <p className="mt-0.5 font-mono text-[11px] tabular-nums text-muted-foreground">
               {lat}, {lng}
             </p>
-          )}
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${lat}%2C${lng}`}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-1 inline-block text-xs font-semibold text-blue-600 hover:underline dark:text-blue-400"
+            >
+              Buka di Maps →
+            </a>
+          </div>
+        </>
+      ) : (
+        <div className="px-3 py-5 text-center">
+          <MapPin className="mx-auto h-6 w-6 text-muted-foreground/40" />
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            {t ? 'Tidak ada lokasi tercatat.' : `Belum ada jam ${label.toLowerCase()}.`}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PhotoCard({ label, time, photoUrl }: {
+  label: string;
+  time: string | null;
+  photoUrl?: string | null;
+}) {
+  const t = hm(time);
+  return (
+    <div className="overflow-hidden rounded-lg border">
+      <div className="px-3 pb-1 pt-2.5">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+          {label}{t ? ` · ${t}` : ''}
+        </p>
+      </div>
+      {photoUrl ? (
+        <>
+          <img src={photoUrl} alt={`Foto ${label}`} className="max-h-64 w-full border-y object-cover" loading="lazy" />
+          <div className="px-3 py-2.5">
+            <a
+              href={photoUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs font-semibold text-blue-600 hover:underline dark:text-blue-400"
+            >
+              Unduh asli →
+            </a>
+          </div>
+        </>
+      ) : (
+        <div className="px-3 py-5 text-center">
+          <ImageIcon className="mx-auto h-6 w-6 text-muted-foreground/40" />
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            {t ? 'Tidak ada foto terlampir.' : `Belum ada foto ${label.toLowerCase()}.`}
+          </p>
         </div>
       )}
     </div>
@@ -168,8 +258,15 @@ export default function AttendanceList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [selected, setSelected] = useState<RosterRow | null>(null);
+  const [tab, setTab] = useState('peta');
   const { branchId, setBranchId } = useBranchFilter();
   const queryClient = useQueryClient();
+
+  /** Popup selalu dibuka di tab Peta untuk jadwal yang sudah clock. */
+  const openDetail = (row: RosterRow) => {
+    setTab('peta');
+    setSelected(row);
+  };
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['roster', date, searchTerm, statusFilter, branchId],
@@ -228,8 +325,8 @@ export default function AttendanceList() {
         </div>
       ),
     },
-    { key: 'in', header: 'Clock in', cell: (row) => <ClockInCell row={row} /> },
-    { key: 'out', header: 'Clock out', cell: (row) => <ClockOutCell row={row} /> },
+    { key: 'in', header: 'Clock in', cell: (row) => <ClockInCell row={row} onOpen={openDetail} /> },
+    { key: 'out', header: 'Clock out', cell: (row) => <ClockOutCell row={row} onOpen={openDetail} /> },
     {
       key: 'status',
       header: 'Status',
@@ -334,7 +431,7 @@ export default function AttendanceList() {
         isLoading={isLoading}
         emptyMessage="Tidak ada data absensi"
         emptyIcon={<Clock className="w-16 h-16" />}
-        onRowClick={(row: RosterRow) => setSelected(row)}
+        onRowClick={(row: RosterRow) => openDetail(row)}
         actions={(row: RosterRow) =>
           row.needsApproval && !String(row.id).startsWith('missing-') ? (
             <div className="flex items-center justify-end gap-1">
@@ -367,7 +464,7 @@ export default function AttendanceList() {
       />
 
       <p className="text-center text-xs text-muted-foreground">
-        Klik baris untuk melihat detail kehadiran · Setujui/Tolak hanya muncul untuk clock in/out di luar lokasi kerja
+        Klik baris atau jam untuk melihat peta & detail kehadiran · Setujui/Tolak hanya muncul untuk clock in/out di luar lokasi kerja
       </p>
 
       <Dialog
@@ -376,7 +473,7 @@ export default function AttendanceList() {
           if (!open) setSelected(null);
         }}
       >
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>{selected ? displayNameOf(selected) : ''}</DialogTitle>
           </DialogHeader>
@@ -397,24 +494,68 @@ export default function AttendanceList() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <LocationBlock
-                  label="Masuk"
-                  time={selected.clockIn}
-                  schedule={selected.scheduleIn}
-                  loc={selected.clockInLocation}
-                  lat={selected.clockInLat}
-                  lng={selected.clockInLng}
-                />
-                <LocationBlock
-                  label="Keluar"
-                  time={selected.clockOut}
-                  schedule={selected.scheduleOut}
-                  loc={selected.clockOutLocation}
-                  lat={selected.clockOutLat}
-                  lng={selected.clockOutLng}
-                />
-              </div>
+              <Tabs value={tab} onValueChange={setTab}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="peta" className="flex items-center gap-1.5">
+                    <MapPin className="h-3.5 w-3.5" />
+                    Peta
+                    {(selected.clockInLat != null || selected.clockOutLat != null) && (
+                      <span className="rounded-full bg-muted px-1.5 text-[11px]">
+                        {(selected.clockInLat != null ? 1 : 0) + (selected.clockOutLat != null ? 1 : 0)}
+                      </span>
+                    )}
+                  </TabsTrigger>
+                  <TabsTrigger value="lampiran" className="flex items-center gap-1.5">
+                    <ImageIcon className="h-3.5 w-3.5" />
+                    Lampiran
+                    {(selected.clockInPhotoUrl || selected.clockOutPhotoUrl) && (
+                      <span className="rounded-full bg-muted px-1.5 text-[11px]">
+                        {(selected.clockInPhotoUrl ? 1 : 0) + (selected.clockOutPhotoUrl ? 1 : 0)}
+                      </span>
+                    )}
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="peta">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <MapCard
+                      label="Masuk"
+                      time={selected.clockIn}
+                      schedule={selected.scheduleIn}
+                      loc={selected.clockInLocation}
+                      lat={selected.clockInLat}
+                      lng={selected.clockInLng}
+                    />
+                    <MapCard
+                      label="Keluar"
+                      time={selected.clockOut}
+                      schedule={selected.scheduleOut}
+                      loc={selected.clockOutLocation}
+                      lat={selected.clockOutLat}
+                      lng={selected.clockOutLng}
+                    />
+                  </div>
+                </TabsContent>
+                <TabsContent value="lampiran">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <PhotoCard
+                      label="Masuk"
+                      time={selected.clockIn}
+                      photoUrl={selected.clockInPhotoUrl}
+                    />
+                    <PhotoCard
+                      label="Keluar"
+                      time={selected.clockOut}
+                      photoUrl={selected.clockOutPhotoUrl}
+                    />
+                  </div>
+                </TabsContent>
+              </Tabs>
+
+              {selected.isLate && selected.lateMinutes > 0 && (
+                <div className="rounded-lg bg-red-50 p-2.5 text-sm text-red-600 dark:bg-red-950 dark:text-red-400">
+                  Terlambat {selected.lateMinutes} menit dari jadwal {selected.scheduleIn}
+                </div>
+              )}
 
               {selected.note && (
                 <div className="bg-orange-50 dark:bg-orange-950 border-l-4 border-orange-500 rounded-lg p-4">
