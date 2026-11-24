@@ -2061,6 +2061,8 @@ model Attendance {
   clockInLng         Decimal?  @map("clock_in_lng") @db.Decimal(10, 7)
   clockOutLat        Decimal?  @map("clock_out_lat") @db.Decimal(10, 7)
   clockOutLng        Decimal?  @map("clock_out_lng") @db.Decimal(10, 7)
+  clockInStreet      String?   @map("clock_in_street") // reverse-geocoded street at clock-in
+  clockOutStreet     String?   @map("clock_out_street") // reverse-geocoded street at clock-out
   status             String    @default("present") // 'present', 'absent', 'leave', 'holiday'
   isLate             Boolean   @default(false) @map("is_late")
   lateMinutes        Int       @default(0) @map("late_minutes")

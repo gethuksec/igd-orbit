@@ -49,6 +49,8 @@ export interface RosterRow {
   clockOut: string | null;
   clockInLocation?: string | null;
   clockOutLocation?: string | null;
+  clockInStreet?: string | null;
+  clockOutStreet?: string | null;
   clockInMethod?: string | null;
   clockOutMethod?: string | null;
   clockInLat?: number | null;
