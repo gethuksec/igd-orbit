@@ -441,4 +441,100 @@ describe('KPIService approve + probation + payroll link', () => {
     expect(res.nilai.toNumber()).toBe(1.2);
     expect(res.reason).toBeNull();
   });
+
+  it('payrollKpi returns zero + reason for trial/probation (auto-0, no system setup)', async () => {
+    const stubs = gridStubs({ contractType: 'probation' });
+    stubs.kpiPeriodLock.findUnique = jest.fn().mockResolvedValue({ status: 'approved' });
+    stubs.employee.findUnique = jest.fn().mockResolvedValue({ id: 'e1', divisionId: 'div-srv' });
+    const { service }: any = await boot(stubs);
+    const res: any = await service.payrollKpi('e1', CM, CY);
+    expect(res.bonus.toNumber()).toBe(0);
+    expect(res.reason).toMatch(/probation/);
+  });
+});
+
+describe('KPIService D6 split (dept subtree scope + aspect freeze)', () => {
+  function deptStubs() {
+    return {
+      department: {
+        ...mockDelegate(),
+        findMany: jest.fn().mockResolvedValue([
+          { id: 'dept-root', parentDepartmentId: null },
+          { id: 'dept-child', parentDepartmentId: 'dept-root' },
+          { id: 'dept-leaf', parentDepartmentId: 'dept-child' },
+          { id: 'dept-other', parentDepartmentId: null },
+        ]),
+      },
+      division: {
+        ...mockDelegate(),
+        findMany: jest.fn().mockResolvedValue([{ id: 'div-leaf' }, { id: 'div-child' }]),
+      },
+    };
+  }
+
+  it('dept heads see their subtree divisions plus own division', async () => {
+    const { service, prisma }: any = await boot({
+      ...deptStubs(),
+      employee: {
+        ...mockDelegate(),
+        findUnique: jest.fn().mockResolvedValue({ id: 'e-hs', userId: 'u-hs', departmentId: 'dept-child', divisionId: 'div-own' }),
+      },
+    });
+    const scope: any = await service.scopeDivisionIds('u-hs', ['HS']);
+    expect(new Set(scope)).toEqual(new Set(['div-leaf', 'div-child', 'div-own']));
+    expect(prisma.division.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { departmentId: { in: expect.arrayContaining(['dept-child', 'dept-leaf']) } } }),
+    );
+  });
+
+  it('root head sees the whole subtree, other branches excluded', async () => {
+    const { service }: any = await boot({
+      ...deptStubs(),
+      employee: {
+        ...mockDelegate(),
+        findUnique: jest.fn().mockResolvedValue({ id: 'e-l1', userId: 'u-l1', departmentId: 'dept-root', divisionId: 'div-own' }),
+      },
+    });
+    const scope: any = await service.scopeDivisionIds('u-l1', ['SPV']);
+    expect(scope).toEqual(expect.arrayContaining(['div-leaf', 'div-child', 'div-own']));
+  });
+
+  it('blocks structural aspect edits once scores exist', async () => {
+    const { service }: any = await boot({
+      kpiAspect: { ...mockDelegate(), findUnique: jest.fn().mockResolvedValue({ id: 'a1', divisionId: 'div-srv' }) },
+      kpiScore: { ...mockDelegate(), findFirst: jest.fn().mockResolvedValue({ id: 's1' }) },
+      kpiPeriodTarget: { ...mockDelegate(), findFirst: jest.fn().mockResolvedValue(null) },
+      kpiPeriodActual: { ...mockDelegate(), findFirst: jest.fn().mockResolvedValue(null) },
+      kpiPeriodLock: { ...mockDelegate(), findFirst: jest.fn().mockResolvedValue(null) },
+    });
+    await expect(service.updateAspect('a1', { weight: 0.5 })).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('blocks structural aspect edits once a period shell exists', async () => {
+    const { service }: any = await boot({
+      kpiAspect: { ...mockDelegate(), findUnique: jest.fn().mockResolvedValue({ id: 'a1', divisionId: 'div-srv' }) },
+      kpiScore: { ...mockDelegate(), findFirst: jest.fn().mockResolvedValue(null) },
+      kpiPeriodTarget: { ...mockDelegate(), findFirst: jest.fn().mockResolvedValue(null) },
+      kpiPeriodActual: { ...mockDelegate(), findFirst: jest.fn().mockResolvedValue(null) },
+      kpiPeriodLock: { ...mockDelegate(), findFirst: jest.fn().mockResolvedValue({ status: 'assigned' }) },
+    });
+    await expect(service.updateAspect('a1', { weight: 0.5 })).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('allows metadata edits on in-use aspects', async () => {
+    const { service, prisma }: any = await boot({
+      kpiAspect: {
+        ...mockDelegate(),
+        findUnique: jest.fn().mockResolvedValue({ id: 'a1', divisionId: 'div-srv' }),
+        update: jest.fn().mockResolvedValue({ id: 'a1', name: 'New name' }),
+      },
+      kpiScore: { ...mockDelegate(), findFirst: jest.fn().mockResolvedValue({ id: 's1' }) },
+      kpiPeriodTarget: { ...mockDelegate(), findFirst: jest.fn().mockResolvedValue(null) },
+      kpiPeriodActual: { ...mockDelegate(), findFirst: jest.fn().mockResolvedValue(null) },
+      kpiPeriodLock: { ...mockDelegate(), findFirst: jest.fn().mockResolvedValue(null) },
+    });
+    const res: any = await service.updateAspect('a1', { name: 'New name' });
+    expect(res.name).toBe('New name');
+    expect(prisma.kpiAspect.update).toHaveBeenCalled();
+  });
 });

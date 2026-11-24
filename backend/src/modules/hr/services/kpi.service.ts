@@ -113,12 +113,47 @@ export class KPIService {
     });
   }
 
-  // ---------- scoping: full-scope roles see all, superiors see own division ----------
+  // ---------- scoping: full-scope roles see all, dept heads (L1-L3) see their subtree ----------
+  // Employee.departmentId anchors the head; all divisions whose department
+  // sits in that subtree are in scope, plus the head's own divisionId as
+  // fallback (accounts without a department keep legacy own-division scope).
 
   async scopeDivisionIds(userId: string, roles: string[] = []): Promise<string[] | null> {
     if (roles.some((r) => FULL_SCOPE_ROLES.includes(r))) return null;
     const emp = await (this.prisma as any).employee.findUnique({ where: { userId } });
-    if (!emp?.divisionId) throw new ForbiddenException('No division scope for this account');
+    if (!emp) throw new ForbiddenException('No division scope for this account');
+    if (emp.departmentId) {
+      const depts: Array<{ id: string; parentDepartmentId: string | null }> = await (
+        this.prisma as any
+      ).department.findMany({ select: { id: true, parentDepartmentId: true } });
+      const children = new Map<string, string[]>();
+      for (const d of depts) {
+        if (!d.parentDepartmentId) continue;
+        const list = children.get(d.parentDepartmentId) ?? [];
+        list.push(d.id);
+        children.set(d.parentDepartmentId, list);
+      }
+      const deptIds = new Set<string>([emp.departmentId]);
+      const queue = [emp.departmentId];
+      while (queue.length > 0) {
+        const cur = queue.pop() as string;
+        for (const kid of children.get(cur) ?? []) {
+          if (!deptIds.has(kid)) {
+            deptIds.add(kid);
+            queue.push(kid);
+          }
+        }
+      }
+      const divisions: Array<{ id: string }> = await (this.prisma as any).division.findMany({
+        where: { departmentId: { in: [...deptIds] } },
+        select: { id: true },
+      });
+      const ids = new Set<string>(divisions.map((d) => d.id));
+      if (emp.divisionId) ids.add(emp.divisionId);
+      if (ids.size === 0) throw new ForbiddenException('No division scope for this account');
+      return [...ids];
+    }
+    if (!emp.divisionId) throw new ForbiddenException('No division scope for this account');
     return [emp.divisionId];
   }
 
@@ -338,6 +373,34 @@ export class KPIService {
         where: { divisionId_code: { divisionId: existing.divisionId, code: data.code } },
       });
       if (dup) throw new ConflictException(`Aspect code '${data.code}' already exists in this division`);
+    }
+    // D6 freeze (approved): structural edits are blocked once the aspect is
+    // in use (scores / PERIOD targets / kolektif actuals) or the division has
+    // any started period shell. Metadata (name/description/sort_order) stays
+    // editable; structural changes apply to future periods via a new aspect.
+    const STRUCTURAL = new Set([
+      'code',
+      'weight',
+      'target_type',
+      'fixed_target',
+      'is_kolektif',
+      'interval_min',
+      'interval_max',
+      'is_active',
+    ]);
+    const touchesStructural = Object.keys(data).some((k) => STRUCTURAL.has(k));
+    if (touchesStructural) {
+      const [score, target, actual, shell] = await Promise.all([
+        (this.prisma as any).kpiScore.findFirst({ where: { aspectId: id } }),
+        (this.prisma as any).kpiPeriodTarget.findFirst({ where: { aspectId: id } }),
+        (this.prisma as any).kpiPeriodActual.findFirst({ where: { aspectId: id } }),
+        (this.prisma as any).kpiPeriodLock.findFirst({ where: { divisionId: existing.divisionId } }),
+      ]);
+      if (score || target || actual || shell) {
+        throw new ForbiddenException(
+          'Aspect is in use — edits apply to future periods only, create a new aspect instead',
+        );
+      }
     }
     const patch: any = {};
     if (data.code !== undefined) patch.code = data.code;
