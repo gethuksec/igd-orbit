@@ -11,6 +11,7 @@ import { extname } from 'path';
 import { ShiftsService } from '../../shifts/shifts.service';
 import { ClockInDto } from '../dto/clock-in.dto';
 import { ClockOutDto } from '../dto/clock-out.dto';
+import { resolveStreetLabel } from './street-geocode';
 import { ManualAdjustmentDto } from '../dto/manual-adjustment.dto';
 import { OvertimeRequestDto } from '../dto/overtime-request.dto';
 import { Decimal } from '@prisma/client/runtime/library';
@@ -350,6 +351,13 @@ export class AttendanceService {
       }
     }
 
+    // Street name stored at clock time (reverse-geocode; null on any
+    // failure so a geocode outage never blocks the clock tap).
+    let clockInStreet: string | null = null;
+    if (dto.latitude != null && dto.longitude != null) {
+      clockInStreet = await resolveStreetLabel(dto.latitude, dto.longitude);
+    }
+
     // Create or update attendance record
     const attendance = await this.prisma.attendance.upsert({
       where: {
@@ -362,6 +370,7 @@ export class AttendanceService {
         clockIn: now,
         clockInMethod: dto.method,
         clockInLocation: dto.clock_in_location,
+        ...(dto.latitude != null && dto.longitude != null ? { clockInStreet } : {}),
         clockInPhotoUrl: dto.photoUrl ?? undefined,
         clockInLat: dto.latitude != null ? new Decimal(dto.latitude) : undefined,
         clockInLng: dto.longitude != null ? new Decimal(dto.longitude) : undefined,
@@ -379,6 +388,7 @@ export class AttendanceService {
         clockIn: now,
         clockInMethod: dto.method,
         clockInLocation: dto.clock_in_location,
+        clockInStreet: clockInStreet ?? undefined,
         clockInPhotoUrl: dto.photoUrl ?? undefined,
         clockInLat: dto.latitude != null ? new Decimal(dto.latitude) : undefined,
         clockInLng: dto.longitude != null ? new Decimal(dto.longitude) : undefined,
@@ -483,6 +493,12 @@ export class AttendanceService {
       }
     }
 
+    // Street name stored at clock time (same failure tolerance as clock-in).
+    let clockOutStreet: string | null = null;
+    if (dto.latitude != null && dto.longitude != null) {
+      clockOutStreet = await resolveStreetLabel(dto.latitude, dto.longitude);
+    }
+
     // Update attendance
     const updated = await this.prisma.attendance.update({
       where: { id: attendance.id },
@@ -490,6 +506,7 @@ export class AttendanceService {
         clockOut: now,
         clockOutMethod: dto.method,
         clockOutLocation: dto.clock_out_location,
+        ...(dto.latitude != null && dto.longitude != null ? { clockOutStreet } : {}),
         clockOutPhotoUrl: dto.photoUrl ?? undefined,
         clockOutLat: dto.latitude != null ? new Decimal(dto.latitude) : undefined,
         clockOutLng: dto.longitude != null ? new Decimal(dto.longitude) : undefined,
@@ -1116,6 +1133,8 @@ export class AttendanceService {
         clockOut: rec?.clockOut ?? null,
         clockInLocation: rec?.clockInLocation ?? null,
         clockOutLocation: rec?.clockOutLocation ?? null,
+        clockInStreet: (rec as any)?.clockInStreet ?? null,
+        clockOutStreet: (rec as any)?.clockOutStreet ?? null,
         clockInMethod: rec?.clockInMethod ?? null,
         clockOutMethod: rec?.clockOutMethod ?? null,
         scheduleIn: schedule.in,

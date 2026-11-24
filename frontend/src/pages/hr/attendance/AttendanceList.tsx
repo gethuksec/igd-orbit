@@ -161,28 +161,31 @@ function osmEmbed(lat: number, lng: number): string {
   return `https://www.openstreetmap.org/export/embed.html?bbox=${lng - d}%2C${lat - d}%2C${lng + d}%2C${lat + d}&layer=mapnik&marker=${lat}%2C${lng}`;
 }
 
-function MapCard({ label, time, schedule, loc, lat, lng }: {
+function MapCard({ label, time, schedule, loc, street, lat, lng }: {
   label: string;
   time: string | null;
   schedule: string | null;
   loc?: string | null;
+  street?: string | null;
   lat?: number | null;
   lng?: number | null;
 }) {
   const t = hm(time);
-  const place = loc || (lat != null && lng != null ? `${lat}, ${lng}` : null);
-  const [street, setStreet] = useState<string | null>(null);
+  const place = street || loc || (lat != null && lng != null ? `${lat}, ${lng}` : null);
+  const [liveStreet, setLiveStreet] = useState<string | null>(null);
   useEffect(() => {
-    setStreet(null);
-    if (lat == null || lng == null) return;
+    setLiveStreet(null);
+    // Stored street (resolved at clock time) wins; live lookup is fallback.
+    if (street || lat == null || lng == null) return;
     let alive = true;
     reverseGeocodeStreet(lat, lng).then((s) => {
-      if (alive && s) setStreet(s);
+      if (alive && s) setLiveStreet(s);
     });
     return () => {
       alive = false;
     };
-  }, [lat, lng]);
+  }, [street, lat, lng]);
+  const shown = street || liveStreet || place;
   return (
     <div className="overflow-hidden rounded-lg border">
       <div className="px-3 pb-1 pt-2.5">
@@ -201,7 +204,7 @@ function MapCard({ label, time, schedule, loc, lat, lng }: {
             loading="lazy"
           />
           <div className="px-3 py-2.5">
-            {(street || place) && <p className="text-xs font-medium">{street || place}</p>}
+            {shown && <p className="text-xs font-medium">{shown}</p>}
             <p className="mt-0.5 font-mono text-[11px] tabular-nums text-muted-foreground">
               {lat}, {lng}
             </p>
@@ -544,6 +547,7 @@ export default function AttendanceList() {
                       time={selected.clockIn}
                       schedule={selected.scheduleIn}
                       loc={selected.clockInLocation}
+                      street={selected.clockInStreet}
                       lat={selected.clockInLat}
                       lng={selected.clockInLng}
                     />
@@ -552,6 +556,7 @@ export default function AttendanceList() {
                       time={selected.clockOut}
                       schedule={selected.scheduleOut}
                       loc={selected.clockOutLocation}
+                      street={selected.clockOutStreet}
                       lat={selected.clockOutLat}
                       lng={selected.clockOutLng}
                     />
