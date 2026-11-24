@@ -1,20 +1,22 @@
 import { useState } from 'react';
-import { BreadcrumbHeader, StatCard, StatusDot } from '@/components/shared';
+import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable, StatusDot } from '@/components/shared';
+import type { Column } from '@/components/shared';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
-  AlertCircle,
   Calendar,
   CheckCircle,
   ChevronLeft,
   ChevronRight,
   Clock,
   Palmtree,
-  X,
   XCircle,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { hrService, type RosterRow, type RosterDisplayStatus } from '@/services/hr.service';
-import { BranchFilterSelect, useBranchFilter } from '@/components/branch/BranchFilter';
+import { useBranchFilter } from '@/components/branch/BranchFilter';
 import { formatDate } from '@/utils/format';
 
 // Default date filter: today (local) — Presensi opens on today's roster.
@@ -62,6 +64,19 @@ const STATUS_META: Record<RosterDisplayStatus, { label: string; tone: 'ok' | 'wa
   libur: { label: 'Libur', tone: 'off' },
 };
 
+function initialsOf(row: RosterRow): string {
+  return (row.employee?.user?.fullName || row.employee?.employeeCode || '?')
+    .split(' ')
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+}
+
+function displayNameOf(row: RosterRow): string {
+  return row.employee?.user?.fullName || row.employee?.employeeCode || 'N/A';
+}
+
 function ClockInCell({ row }: { row: RosterRow }) {
   const hide = row.displayStatus === 'cuti' || row.displayStatus === 'libur';
   const t = hm(row.clockIn);
@@ -69,19 +84,19 @@ function ClockInCell({ row }: { row: RosterRow }) {
     if (row.scheduleIn && !hide) {
       return (
         <div>
-          <div className="text-sm text-gray-400 dark:text-gray-500">—</div>
-          <div className="mt-0.5 text-xs tabular-nums text-gray-500 dark:text-gray-400">{row.scheduleIn}</div>
+          <div className="text-sm text-muted-foreground">—</div>
+          <div className="mt-0.5 text-xs tabular-nums text-muted-foreground">{row.scheduleIn}</div>
         </div>
       );
     }
-    return <span className="text-sm text-gray-400 dark:text-gray-500">—</span>;
+    return <span className="text-sm text-muted-foreground">—</span>;
   }
   const bad = !!row.scheduleIn && t > row.scheduleIn;
   return (
     <div>
-      <div className={`text-sm font-medium tabular-nums ${bad ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-gray-100'}`}>{t}</div>
+      <div className={`text-sm font-medium tabular-nums ${bad ? 'text-red-600 dark:text-red-400' : ''}`}>{t}</div>
       {row.scheduleIn && !hide && (
-        <div className="mt-0.5 text-xs tabular-nums text-gray-500 dark:text-gray-400">{row.scheduleIn}</div>
+        <div className="mt-0.5 text-xs tabular-nums text-muted-foreground">{row.scheduleIn}</div>
       )}
     </div>
   );
@@ -94,19 +109,19 @@ function ClockOutCell({ row }: { row: RosterRow }) {
     if (row.scheduleOut && !hide) {
       return (
         <div>
-          <div className="text-sm text-gray-400 dark:text-gray-500">—</div>
-          <div className="mt-0.5 text-xs tabular-nums text-gray-500 dark:text-gray-400">{row.scheduleOut}</div>
+          <div className="text-sm text-muted-foreground">—</div>
+          <div className="mt-0.5 text-xs tabular-nums text-muted-foreground">{row.scheduleOut}</div>
         </div>
       );
     }
-    return <span className="text-sm text-gray-400 dark:text-gray-500">—</span>;
+    return <span className="text-sm text-muted-foreground">—</span>;
   }
   const bad = !!row.scheduleOut && t < row.scheduleOut;
   return (
     <div>
-      <div className={`text-sm font-medium tabular-nums ${bad ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-gray-100'}`}>{t}</div>
+      <div className={`text-sm font-medium tabular-nums ${bad ? 'text-red-600 dark:text-red-400' : ''}`}>{t}</div>
       {row.scheduleOut && !hide && (
-        <div className="mt-0.5 text-xs tabular-nums text-gray-500 dark:text-gray-400">{row.scheduleOut}</div>
+        <div className="mt-0.5 text-xs tabular-nums text-muted-foreground">{row.scheduleOut}</div>
       )}
     </div>
   );
@@ -125,20 +140,20 @@ function LocationBlock({ label, time, schedule, loc, lat, lng }: {
   const place = loc || (lat != null && lng != null ? `${lat}, ${lng}` : 'Lokasi tidak tercatat');
   return (
     <div
-      className="cursor-pointer rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+      className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/50"
       onClick={() => setOpen((v) => !v)}
       title="Klik untuk lokasi"
     >
-      <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{label}</p>
-      <p className={`mt-1 font-mono text-xl font-medium tabular-nums ${t ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}`}>
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p className={`mt-1 font-mono text-xl font-medium tabular-nums ${t ? '' : 'text-muted-foreground'}`}>
         {t || '—'}
       </p>
-      {schedule && <p className="mt-0.5 text-xs tabular-nums text-gray-500 dark:text-gray-400">{schedule}</p>}
+      {schedule && <p className="mt-0.5 text-xs tabular-nums text-muted-foreground">{schedule}</p>}
       {open && (
-        <div className="mt-2 border-t border-dashed border-gray-200 pt-2 dark:border-gray-700">
-          <p className="text-xs text-gray-600 dark:text-gray-300">{place}</p>
+        <div className="mt-2 border-t border-dashed pt-2">
+          <p className="text-xs">{place}</p>
           {lat != null && lng != null && (
-            <p className="mt-0.5 font-mono text-[11px] tabular-nums text-gray-500 dark:text-gray-400">
+            <p className="mt-0.5 font-mono text-[11px] tabular-nums text-muted-foreground">
               {lat}, {lng}
             </p>
           )}
@@ -151,7 +166,7 @@ function LocationBlock({ label, time, schedule, loc, lat, lng }: {
 export default function AttendanceList() {
   const [date, setDate] = useState(todayLocal);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState('');
   const [selected, setSelected] = useState<RosterRow | null>(null);
   const { branchId, setBranchId } = useBranchFilter();
   const queryClient = useQueryClient();
@@ -162,7 +177,7 @@ export default function AttendanceList() {
       hrService.getRoster({
         date,
         search: searchTerm || undefined,
-        status: statusFilter,
+        status: statusFilter || undefined,
         branchId: branchId || undefined,
       }),
   });
@@ -175,248 +190,211 @@ export default function AttendanceList() {
     mutationFn: (id: string) => hrService.approveAttendance(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['roster'] });
+      toast.success('Kehadiran disetujui');
       setSelected(null);
+    },
+    onError: (e: any) => {
+      toast.error(e.response?.data?.message || 'Gagal menyetujui kehadiran');
     },
   });
   const reject = useMutation({
     mutationFn: (id: string) => hrService.rejectAttendance(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['roster'] });
+      toast.success('Kehadiran ditolak');
       setSelected(null);
+    },
+    onError: (e: any) => {
+      toast.error(e.response?.data?.message || 'Gagal menolak kehadiran');
     },
   });
 
+  const columns: Column<RosterRow>[] = [
+    {
+      key: 'nama',
+      header: 'Nama',
+      cell: (row) => (
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-sm font-medium text-muted-foreground">
+            {initialsOf(row)}
+          </div>
+          <div>
+            <div className="text-[15px] font-medium">{displayNameOf(row)}</div>
+            <div className="text-xs text-muted-foreground">
+              {row.employee?.employeeCode}
+              {row.branch ? ` · ${row.branch.name}` : ''}
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    { key: 'in', header: 'Clock in', cell: (row) => <ClockInCell row={row} /> },
+    { key: 'out', header: 'Clock out', cell: (row) => <ClockOutCell row={row} /> },
+    {
+      key: 'status',
+      header: 'Status',
+      cell: (row) => {
+        const meta = STATUS_META[row.displayStatus] || STATUS_META.alpha;
+        return <StatusDot tone={meta.tone}>{meta.label}</StatusDot>;
+      },
+    },
+  ];
+
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full space-y-3">
       <BreadcrumbHeader title="Absensi" subtitle="Kehadiran seluruh karyawan hari ini">
-        <Link
-          to="/hr/attendance/clock"
-          className="rounded-lg bg-white px-6 py-3 font-semibold text-primary-600 transition-colors hover:bg-primary-50 dark:bg-gray-900 dark:text-primary-400 dark:hover:bg-primary-950"
-        >
-          Clock In/Out
+        <Link to="/hr/attendance/clock">
+          <Button className="flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            <span>Clock In/Out</span>
+          </Button>
         </Link>
       </BreadcrumbHeader>
 
-      {/* Date strip: defaults today, arrows + picker filter the day */}
-      <div className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white p-3 shadow-md dark:border-gray-800 dark:bg-gray-900">
-        <button
+      {error && (
+        <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
+          <p className="text-red-800 dark:text-red-200 font-medium">Gagal memuat data absensi</p>
+        </div>
+      )}
+
+      {/* Date strip: defaults today, arrows filter the day */}
+      <div className="flex items-center gap-3 rounded-md border bg-card p-3">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
           onClick={() => setDate((d) => shiftDay(d, -1))}
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-900 dark:border-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-100"
           title="Hari sebelumnya"
         >
           <ChevronLeft className="h-4 w-4" />
-        </button>
-        <div className="text-sm font-medium tabular-nums text-gray-900 dark:text-gray-100">
+        </Button>
+        <div className="text-sm font-medium tabular-nums">
           {dayLabel(date)}
-          <span className="block text-xs font-normal text-gray-500 dark:text-gray-400">
+          <span className="block text-xs font-normal text-muted-foreground">
             Shift berlaku: Pagi 08:00–17:00 · Siang 13:00–21:00
           </span>
         </div>
-        <button
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
           onClick={() => setDate((d) => shiftDay(d, 1))}
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-900 dark:border-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-100"
           title="Hari berikutnya"
         >
           <ChevronRight className="h-4 w-4" />
-        </button>
-        <span className="ml-auto text-xs tabular-nums text-gray-500 dark:text-gray-400">
+        </Button>
+        <span className="ml-auto text-xs tabular-nums text-muted-foreground">
           {rows.length} karyawan · {pendingCount} perlu persetujuan
         </span>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
-        <StatCard icon={<CheckCircle className="h-5 w-5" />} label="Hadir" value={counts.hadir} />
-        <StatCard icon={<Clock className="h-5 w-5" />} label="Terlambat" value={counts.terlambat} />
-        <StatCard icon={<XCircle className="h-5 w-5" />} label="Alpha" value={counts.alpha} />
-        <StatCard icon={<Calendar className="h-5 w-5" />} label="Cuti" value={counts.cuti} />
-        <StatCard icon={<Palmtree className="h-5 w-5" />} label="Libur" value={counts.libur} />
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <StatCard icon={<CheckCircle className="h-5 w-5" />} label="Hadir" value={isLoading ? '-' : counts.hadir} />
+        <StatCard icon={<Clock className="h-5 w-5" />} label="Terlambat" value={isLoading ? '-' : counts.terlambat} />
+        <StatCard icon={<XCircle className="h-5 w-5" />} label="Alpha" value={isLoading ? '-' : counts.alpha} />
+        <StatCard icon={<Calendar className="h-5 w-5" />} label="Cuti" value={isLoading ? '-' : counts.cuti} />
+        <StatCard icon={<Palmtree className="h-5 w-5" />} label="Libur" value={isLoading ? '-' : counts.libur} />
       </div>
 
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-2">
-        <input
-          type="search"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Cari nama atau NIP"
-          className="h-9 min-w-52 flex-1 rounded-lg border border-input bg-background px-3 text-sm focus:ring-2 focus:ring-primary-500"
-        />
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => e.target.value && setDate(e.target.value)}
-          className="h-9 rounded-lg border border-input bg-background px-3 text-sm tabular-nums focus:ring-2 focus:ring-primary-500"
-        />
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="h-9 rounded-lg border border-input bg-background px-3 text-sm focus:ring-2 focus:ring-primary-500"
-        >
-          <option value="all">Semua status</option>
-          <option value="hadir">Hadir</option>
-          <option value="terlambat">Terlambat</option>
-          <option value="alpha">Alpha</option>
-          <option value="cuti">Cuti</option>
-          <option value="libur">Libur</option>
-        </select>
-        <BranchFilterSelect value={branchId} onChange={setBranchId} allowAll />
-        <span className="ml-auto text-xs text-gray-500 dark:text-gray-400">
-          Menampilkan {rows.length} dari {rows.length} karyawan
-        </span>
-      </div>
+      <FilterToolbar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Cari nama atau NIP"
+        fields={[
+          {
+            key: 'status',
+            label: 'Status',
+            type: 'select',
+            options: [
+              { value: 'hadir', label: 'Hadir' },
+              { value: 'terlambat', label: 'Terlambat' },
+              { value: 'alpha', label: 'Alpha' },
+              { value: 'cuti', label: 'Cuti' },
+              { value: 'libur', label: 'Libur' },
+            ],
+          },
+          { key: 'date', label: 'Tanggal', type: 'date-range' },
+        ]}
+        values={{ status: statusFilter, dateFrom: date, dateTo: date }}
+        onFieldChange={(key, v) => {
+          if (key === 'status') setStatusFilter(v || '');
+          else if (key === 'dateFrom' || key === 'dateTo') { if (v) setDate(v); }
+        }}
+        onReset={() => {
+          setStatusFilter('');
+          setDate(todayLocal());
+        }}
+        branchFilter={{ value: branchId, onChange: setBranchId, allowAll: true }}
+      />
 
-      {/* Table */}
-      <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-md dark:border-gray-800 dark:bg-gray-900">
-        {isLoading ? (
-          <div className="p-12 text-center">
-            <div className="inline-block h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600"></div>
-            <p className="mt-4 text-gray-600 dark:text-gray-400">Memuat data...</p>
-          </div>
-        ) : error ? (
-          <div className="p-12 text-center">
-            <AlertCircle className="mx-auto mb-4 h-12 w-12 text-red-500 dark:text-red-400" />
-            <p className="text-red-600 dark:text-red-400">Gagal memuat data absensi</p>
-          </div>
-        ) : rows.length === 0 ? (
-          <div className="p-12 text-center">
-            <Clock className="mx-auto mb-4 h-12 w-12 text-gray-400 dark:text-gray-500" />
-            <p className="text-gray-600 dark:text-gray-400">Tidak ada data absensi</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-950">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Nama</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Clock in</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Clock out</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-900">
-                {rows.map((row) => {
-                  const meta = STATUS_META[row.displayStatus] || STATUS_META.alpha;
-                  return (
-                    <tr
-                      key={row.id}
-                      onClick={() => setSelected(row)}
-                      className={`cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 ${
-                        row.needsApproval ? 'bg-orange-50 dark:bg-orange-950/30' : ''
-                      }`}
-                    >
-                      <td className="whitespace-nowrap px-6 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-sm font-medium text-muted-foreground">
-                            {(row.employee?.user?.fullName || row.employee?.employeeCode || '?')
-                              .split(' ')
-                              .map((w) => w[0])
-                              .slice(0, 2)
-                              .join('')
-                              .toUpperCase()}
-                          </div>
-                          <div>
-                            <div className="text-[15px] font-medium text-gray-900 dark:text-gray-100">
-                              {row.employee?.user?.fullName || row.employee?.employeeCode || 'N/A'}
-                            </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
-                              {row.employee?.employeeCode}
-                              {row.branch ? ` · ${row.branch.name}` : ''}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-3">
-                        <ClockInCell row={row} />
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-3">
-                        <ClockOutCell row={row} />
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-3">
-                        <StatusDot tone={meta.tone}>{meta.label}</StatusDot>
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-3" onClick={(e) => e.stopPropagation()}>
-                        {row.needsApproval && !String(row.id).startsWith('missing-') ? (
-                          <div className="flex gap-1.5">
-                            <button
-                              onClick={() => approve.mutate(row.id)}
-                              disabled={approve.isPending || reject.isPending}
-                              className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-green-700 disabled:opacity-50"
-                            >
-                              Setujui
-                            </button>
-                            <button
-                              onClick={() => reject.mutate(row.id)}
-                              disabled={approve.isPending || reject.isPending}
-                              className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50 disabled:opacity-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950"
-                            >
-                              Tolak
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="text-sm text-gray-400 dark:text-gray-500">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <DataTable
+        columns={columns}
+        data={rows}
+        keyExtractor={(r: RosterRow) => r.id}
+        isLoading={isLoading}
+        emptyMessage="Tidak ada data absensi"
+        emptyIcon={<Clock className="w-16 h-16" />}
+        onRowClick={(row: RosterRow) => setSelected(row)}
+        actions={(row: RosterRow) =>
+          row.needsApproval && !String(row.id).startsWith('missing-') ? (
+            <div className="flex items-center justify-end gap-1">
+              <Button
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  approve.mutate(row.id);
+                }}
+                disabled={approve.isPending || reject.isPending}
+              >
+                Setujui
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-red-600 hover:bg-red-50"
+                title="Tolak"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  reject.mutate(row.id);
+                }}
+                disabled={approve.isPending || reject.isPending}
+              >
+                Tolak
+              </Button>
+            </div>
+          ) : undefined
+        }
+      />
+
       <p className="text-center text-xs text-muted-foreground">
         Klik baris untuk melihat detail kehadiran · Setujui/Tolak hanya muncul untuk clock in/out di luar lokasi kerja
       </p>
 
-      {/* Detail modal */}
-      {selected && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          onClick={() => setSelected(null)}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            className="max-h-[calc(100vh-3rem)] w-full max-w-lg overflow-auto rounded-2xl border bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center gap-3 border-b border-gray-200 p-5 pb-4 dark:border-gray-700">
-              <div className="flex h-11 w-11 items-center justify-center rounded-lg border bg-muted text-sm font-medium text-muted-foreground">
-                {(selected.employee?.user?.fullName || selected.employee?.employeeCode || '?')
-                  .split(' ')
-                  .map((w) => w[0])
-                  .slice(0, 2)
-                  .join('')
-                  .toUpperCase()}
-              </div>
-              <div>
-                <p className="text-base font-medium text-gray-900 dark:text-gray-100">
-                  {selected.employee?.user?.fullName || selected.employee?.employeeCode}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {selected.employee?.employeeCode}
-                  {selected.branch ? ` · ${selected.branch.name}` : ''}
-                </p>
-              </div>
-              <button
-                onClick={() => setSelected(null)}
-                className="ml-auto flex h-9 w-9 items-center justify-center rounded-lg border text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-900 dark:border-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-100"
-                title="Tutup"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="flex flex-col gap-4 p-5">
-              <div className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-3 text-sm dark:bg-gray-950">
-                <span className="text-gray-500 dark:text-gray-400">
-                  Shift{selected.shiftName ? ` · ${selected.shiftName}` : ''}
-                </span>
-                <span className="font-medium tabular-nums text-gray-900 dark:text-gray-100">
-                  {formatDate(selected.date || date)}
-                </span>
+      <Dialog
+        open={!!selected}
+        onOpenChange={(open) => {
+          if (!open) setSelected(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{selected ? displayNameOf(selected) : ''}</DialogTitle>
+          </DialogHeader>
+          {selected && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-lg border bg-muted text-sm font-medium text-muted-foreground">
+                  {initialsOf(selected)}
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">
+                    {selected.employee?.employeeCode}
+                    {selected.branch ? ` · ${selected.branch.name}` : ''}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Shift{selected.shiftName ? ` · ${selected.shiftName}` : ''} · {formatDate(selected.date || date)}
+                  </p>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -439,34 +417,35 @@ export default function AttendanceList() {
               </div>
 
               {selected.note && (
-                <div className="rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900 dark:border-orange-800 dark:bg-orange-950/40 dark:text-orange-200">
+                <div className="bg-orange-50 dark:bg-orange-950 border-l-4 border-orange-500 rounded-lg p-4">
                   <p className="mb-0.5 text-xs font-medium">Note</p>
-                  {selected.note}
+                  <p className="text-sm">{selected.note}</p>
                 </div>
               )}
 
               {selected.needsApproval && !String(selected.id).startsWith('missing-') && (
                 <div className="flex gap-2">
-                  <button
+                  <Button
+                    className="flex-1"
                     onClick={() => approve.mutate(selected.id)}
                     disabled={approve.isPending || reject.isPending}
-                    className="flex-1 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:opacity-50"
                   >
                     Setujui kehadiran
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 text-red-600 hover:bg-red-50"
                     onClick={() => reject.mutate(selected.id)}
                     disabled={approve.isPending || reject.isPending}
-                    className="flex-1 rounded-lg border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-700 transition-colors hover:bg-red-50 disabled:opacity-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950"
                   >
                     Tolak
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
-          </div>
-        </div>
-      )}
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
