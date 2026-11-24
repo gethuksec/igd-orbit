@@ -80,6 +80,56 @@ export class PositionsService {
     return position;
   }
 
+  /**
+   * D4 — grades available for a position (IGDERP-301).
+   * Staff titles (rank 6) expand to one row per grade (TITLE-G1..G6):
+   * the grade matrix for the title family is the 6 active grades, and
+   * `positions` carries the concrete row per rung so FE can remap
+   * positionId when the grade changes. Non-staff titles carry no grade —
+   * returns empty lists so FE disables the grade dropdown gracefully.
+   */
+  async getGradesByPosition(positionId: string) {
+    const position = await this.prisma.position.findUnique({
+      where: { id: positionId },
+      include: {
+        grade: { select: { id: true, code: true, name: true, rank: true } },
+      },
+    });
+    if (!position) {
+      throw new NotFoundException('Position not found');
+    }
+    if ((position as any).rank !== STAFF_RANK) {
+      return {
+        positionId: (position as any).id,
+        titleCode: (position as any).code,
+        rank: (position as any).rank,
+        gradeId: null,
+        grades: [],
+        positions: [],
+      };
+    }
+    const titleCode = ((position as any).code as string).replace(/-\d+$/, '');
+    const [family, grades] = await Promise.all([
+      this.prisma.position.findMany({
+        where: { code: { startsWith: `${titleCode}-` }, isActive: true },
+        select: { id: true, code: true, gradeId: true },
+        orderBy: { code: 'asc' },
+      }),
+      this.prisma.grade.findMany({
+        where: { isActive: true },
+        orderBy: { rank: 'asc' },
+      }),
+    ]);
+    return {
+      positionId: (position as any).id,
+      titleCode,
+      rank: (position as any).rank,
+      gradeId: (position as any).gradeId ?? null,
+      grades,
+      positions: family,
+    };
+  }
+
   private assertGradeRule(rank: number, gradeId?: string | null) {
     if (rank === STAFF_RANK && !gradeId) {
       throw new BadRequestException('Staff positions (rank 6) require a grade');

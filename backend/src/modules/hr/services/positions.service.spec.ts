@@ -107,3 +107,38 @@ describe('PositionsService (IGDERP-277)', () => {
     await expect(service.findById('nope')).rejects.toBeInstanceOf(NotFoundException);
   });
 });
+
+describe('PositionsService.getGradesByPosition (IGDERP-301 D4)', () => {
+  it('returns the grade matrix for staff titles', async () => {
+    const { service, prisma }: any = await boot();
+    prisma.position.findUnique.mockResolvedValue({ id: 'p-tc2', code: 'TC-2', rank: 6, gradeId: 'g2' });
+    prisma.position.findMany.mockResolvedValue([
+      { id: 'p-tc1', code: 'TC-1', gradeId: 'g1' },
+      { id: 'p-tc2', code: 'TC-2', gradeId: 'g2' },
+    ]);
+    prisma.grade.findMany.mockResolvedValue([
+      { id: 'g1', code: 'G1', rank: 1 },
+      { id: 'g2', code: 'G2', rank: 2 },
+    ]);
+    const res: any = await service.getGradesByPosition('p-tc2');
+    expect(res.titleCode).toBe('TC');
+    expect(res.grades).toHaveLength(2);
+    expect(res.positions).toHaveLength(2);
+    expect(res.gradeId).toBe('g2');
+  });
+
+  it('returns empty lists for non-staff titles', async () => {
+    const { service: svc2, prisma: prisma2 }: any = await boot();
+    prisma2.position.findUnique.mockResolvedValue({ id: 'p-mu', code: 'MU', rank: 2, gradeId: null });
+    const res: any = await svc2.getGradesByPosition('p-mu');
+    expect(res.grades).toEqual([]);
+    expect(res.positions).toEqual([]);
+    expect(res.titleCode).toBe('MU');
+  });
+
+  it('404s unknown position ids', async () => {
+    const { service, prisma }: any = await boot();
+    prisma.position.findUnique.mockResolvedValue(null);
+    await expect(service.getGradesByPosition('nope')).rejects.toBeInstanceOf(NotFoundException);
+  });
+});
