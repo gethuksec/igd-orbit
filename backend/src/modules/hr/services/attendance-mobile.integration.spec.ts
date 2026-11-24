@@ -26,7 +26,7 @@ describe('AttendanceService mobile + overtime 2-step (IGDERP-275 integration)', 
     branch_id: 'b-1',
     latitude: -7.25,
     longitude: 112.75,
-    photoUrl: 'http://x/selfie.jpg',
+    photoUrl: '/uploads/attendance-selfies/selfie-u-1.jpg',
     ...over,
   });
 
@@ -58,7 +58,7 @@ describe('AttendanceService mobile + overtime 2-step (IGDERP-275 integration)', 
     const res: any = await service.clockIn('u-1', dto());
     expect(prisma.attendance.upsert).toHaveBeenCalled();
     const payload = prisma.attendance.upsert.mock.calls[0][0];
-    expect(payload.create.clockInPhotoUrl).toBe('http://x/selfie.jpg');
+    expect(payload.create.clockInPhotoUrl).toBe('/uploads/attendance-selfies/selfie-u-1.jpg');
     expect(Number(payload.create.clockInLat)).toBeCloseTo(-7.25, 5);
     expect(res.clockInMethod).toBe('mobile');
   });
@@ -100,10 +100,10 @@ describe('AttendanceService mobile + overtime 2-step (IGDERP-275 integration)', 
       method: 'mobile',
       latitude: -7.25,
       longitude: 112.75,
-      photoUrl: 'http://x/out.jpg',
+      photoUrl: '/uploads/attendance-selfies/selfie-u-1-out.jpg',
     } as any);
     const payload = prisma.attendance.update.mock.calls[0][0];
-    expect(payload.data.clockOutPhotoUrl).toBe('http://x/out.jpg');
+    expect(payload.data.clockOutPhotoUrl).toBe('/uploads/attendance-selfies/selfie-u-1-out.jpg');
     expect(res.clockOutMethod).toBe('mobile');
   });
 
