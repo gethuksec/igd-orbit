@@ -329,6 +329,13 @@ export class ContractsService {
       }
     }
     await this.assertRefs(dto);
+    // IGDERP-299 (D1 anti-replace): a fresh row must not shadow an active
+    // contract — renewals/promotions/adjustments link via previousContractId.
+    if (!dto.previousContractId && (await hasActiveContract(this.prisma as any, dto.employeeId))) {
+      throw new BadRequestException(
+        'Karyawan sudah memiliki kontrak aktif — gunakan perpanjangan/penyesuaian (previous contract), bukan kontrak baru',
+      );
+    }
     // Import lands drafts with caps deferred — enforced at activation instead.
     if (!opts?.deferCaps) {
       await this.assertCaps(dto.employeeId, dto.type, startDate, endDate);
@@ -759,5 +766,130 @@ export class ContractsService {
         include: { employee: true, userBranches: { include: { role: true, branch: true } } },
       });
     });
+  }
+
+  /**
+   * Import-as-intake row (IGDERP-298): writes the User (server-generated
+   * password hash, mustChangePassword=true) + Employee (employeeCode = NIP,
+   * education snapshot) + first Contract (draft) + ContractBranch rows in
+   * ONE transaction. Caps are deferred to activation like the draft import.
+   * Unlike single intake the role is optional — without a suggested role
+   * (or branches) the UserBranch access rows are skipped and reported via
+   * `accessNote`; HR provisions access via the user menu.
+   */
+  async intakeFromImport(dto: {
+    fullName: string;
+    email: string;
+    phone?: string | null;
+    employeeCode: string;
+    education?: string | null;
+    type: string;
+    startDate: string;
+    endDate?: string | null;
+    positionId?: string | null;
+    gradeId?: string | null;
+    divisionId?: string | null;
+    departmentId?: string | null;
+    branchIds: string[];
+    primaryBranchId?: string | null;
+    basicSalary?: number | null;
+    passwordHash: string;
+  }): Promise<{ contractNumber: string; employeeId: string; userId: string; accessNote?: string }> {
+    const startDate = new Date(dto.startDate);
+    const endDate = dto.endDate ? new Date(dto.endDate) : null;
+    const cap = CONTRACT_CAPS[dto.type];
+    if (!cap) throw new BadRequestException(`Unknown contract type '${dto.type}'`);
+    if (dto.type === 'pkwtt' && endDate !== null) {
+      throw new BadRequestException('PKWTT is permanent — end date must be empty');
+    }
+    if (dto.type !== 'pkwtt') {
+      if (!endDate) throw new BadRequestException(`End date is required for type '${dto.type}'`);
+      if (endDate <= startDate) throw new BadRequestException('End date must be after start date');
+    }
+    const takenEmail = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    if (takenEmail) throw new ConflictException('Email already registered');
+    const takenCode = await this.prisma.employee.findUnique({ where: { employeeCode: dto.employeeCode } });
+    if (takenCode) throw new ConflictException(`NIP ${dto.employeeCode} sudah terdaftar`);
+    let roleId: string | null = null;
+    if (dto.positionId) {
+      const position = await this.prisma.position.findUnique({ where: { id: dto.positionId } });
+      if (!position || !(position as any).isActive) throw new BadRequestException('Position not found or inactive');
+      roleId = ((position as any).defaultRoleId as string | null) ?? null;
+    }
+    const branchIds = dto.branchIds ?? [];
+    if (branchIds.length > 0) {
+      const branches = await this.prisma.branch.findMany({ where: { id: { in: branchIds } } });
+      const found = new Set(branches.filter((b) => (b as any).isActive).map((b) => (b as any).id));
+      if (branchIds.some((id) => !found.has(id))) {
+        throw new BadRequestException('Branch not found or inactive');
+      }
+    }
+    const contractNumber = await this.generateContractNumber(new Date());
+    const primaryBranchId = dto.primaryBranchId ?? branchIds[0] ?? null;
+    const out = await this.prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          email: dto.email,
+          phone: dto.phone ?? null,
+          passwordHash: dto.passwordHash,
+          fullName: dto.fullName,
+          mustChangePassword: true,
+          isActive: true,
+          isVerified: false,
+        },
+      });
+      await tx.employee.create({
+        data: {
+          userId: user.id,
+          employeeCode: dto.employeeCode,
+          branchId: primaryBranchId,
+          departmentId: dto.departmentId ?? null,
+          divisionId: dto.divisionId ?? null,
+          positionId: dto.positionId ?? null,
+          hireDate: startDate,
+          basicSalary: dto.basicSalary !== undefined && dto.basicSalary !== null ? new Decimal(dto.basicSalary) : null,
+          education: dto.education ?? null,
+          isActive: true,
+        },
+      });
+      const employee = await tx.employee.findUniqueOrThrow({ where: { userId: user.id } });
+      await tx.contract.create({
+        data: {
+          contractNumber,
+          employeeId: employee.id,
+          type: dto.type,
+          startDate,
+          endDate,
+          basicSalary: dto.basicSalary !== undefined && dto.basicSalary !== null ? new Decimal(dto.basicSalary) : null,
+          positionId: dto.positionId ?? null,
+          gradeId: dto.gradeId ?? null,
+          divisionId: dto.divisionId ?? null,
+          departmentId: dto.departmentId ?? null,
+          changeReason: 'initial',
+          status: 'draft',
+          contractBranches:
+            branchIds.length > 0
+              ? {
+                  create: branchIds.map((branchId) => ({
+                    branchId,
+                    isPrimary: branchId === primaryBranchId,
+                  })),
+                }
+              : undefined,
+        },
+      });
+      let accessNote: string | undefined;
+      if (roleId && branchIds.length > 0) {
+        for (const branchId of branchIds) {
+          await tx.userBranch.create({
+            data: { userId: user.id, roleId, branchId, isPrimary: branchId === primaryBranchId },
+          });
+        }
+      } else {
+        accessNote = 'Akses outlet belum dibuat (role/penempatan belum lengkap) — lengkapi via menu user';
+      }
+      return { contractNumber, employeeId: employee.id, userId: user.id, accessNote };
+    });
+    return out;
   }
 }

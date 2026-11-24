@@ -1,15 +1,22 @@
 /**
- * IGDERP-271 — contract bulk import from the payroll workbook layout.
+ * IGDERP-298 — contract bulk import-as-intake workbook.
  *
- * Source of truth for the FILE SHAPE is the HR payroll sheet
- * (Format_HR_ORBIT.xlsx → `Payroll`): real headers live in row 2 (row 1
- * carries merged group labels), data starts at row 3. No new template —
- * the parser alias-matches headers, so minor renames don't break it.
+ * Main sheet `Payroll` (single header row, `*` = required — the parser
+ * strips stars so old files still load):
+ *   NAMA* | NIP* | EMAIL | NO HP | JABATAN* | GRADE* | DIVISI |
+ *   JENIS KONTRAK* | TGL MULAI* | TGL SELESAI | AREA | GAJI POKOK* |
+ *   PENDIDIKAN TERAKHIR*
+ * - EMAIL required for new-NIP rows, ignored for existing NIP.
+ * - GRADE 1-6, blank only for L0-L5 heads (MM/MO/MS/MU/HS/SPV…).
+ * - DIVISI optional override (auto-derived from JABATAN otherwise).
+ * - TGL SELESAI empty for PKWTT. Legacy headers still parse:
+ *   LEVEL→JABATAN (combined "teknisi 2" split in the service),
+ *   SECTOR→DIVISI, TANGGAL MASUK→TGL MULAI, WAKTU KONTRAK→TGL SELESAI.
+ * Reference sheets: `Daftar Outlet`, `Daftar Jabatan`, `Daftar Pendidikan`.
  *
  * Pure parse only (no DB, no writes): returns raw rows; the import service
- * resolves masters (NIP → employee, LEVEL → position+grade, SECTOR →
- * division, AREA → penempatan branches) and reports misses as
- * incomplete flags — imports always land as drafts.
+ * resolves masters and reports misses — imports land as drafts (existing
+ * NIP) or single-intake rows (new NIP, IGDERP-298).
  */
 const ExcelJS = require('exceljs');
 
@@ -17,13 +24,17 @@ export interface ContractImportColumnDef {
   key:
     | 'name'
     | 'nip'
-    | 'level'
+    | 'email'
+    | 'phone'
+    | 'jabatan'
+    | 'grade'
+    | 'divisi'
     | 'contractType'
-    | 'contractTime'
-    | 'sector'
-    | 'hireDate'
+    | 'startDate'
+    | 'endDate'
     | 'area'
-    | 'basicSalary';
+    | 'basicSalary'
+    | 'education';
   label: string;
   aliases: string[];
   required: boolean;
@@ -32,57 +43,86 @@ export interface ContractImportColumnDef {
 export const CONTRACT_IMPORT_COLUMNS: ContractImportColumnDef[] = [
   {
     key: 'name',
-    label: 'NAMA',
+    label: 'NAMA*',
     aliases: ['nama', 'name', 'namakaryawan', 'nama_karyawan', 'fullname', 'nama_lengkap'],
     required: true,
   },
   {
     key: 'nip',
-    label: 'NIP',
+    label: 'NIP*',
     aliases: ['nip', 'employeecode', 'employee_code', 'kodekaryawan', 'kode_karyawan', 'nik', 'nomorinduk'],
     required: true,
   },
   {
-    key: 'level',
-    label: 'LEVEL',
-    aliases: ['level', 'posisi', 'jabatan', 'position', 'title'],
+    key: 'email',
+    label: 'EMAIL',
+    aliases: ['email', 'e-mail', 'surel', 'emailkaryawan'],
+    required: false,
+  },
+  {
+    key: 'phone',
+    label: 'NO HP',
+    aliases: ['nohp', 'hp', 'phone', 'no_hp', 'nomorhp', 'nomor_hp', 'telepon', 'telp', 'whatsapp', 'wa'],
+    required: false,
+  },
+  {
+    key: 'jabatan',
+    label: 'JABATAN*',
+    // 'level'/'posisi' kept for legacy payroll sheets — a combined value
+    // like "teknisi 2" is split into jabatan + grade by the service.
+    aliases: ['jabatan', 'posisi', 'title', 'level', 'levelhead', 'jabatantitle'],
+    required: true,
+  },
+  {
+    key: 'grade',
+    label: 'GRADE*',
+    aliases: ['grade', 'g', 'gradelevel', 'tingkat', 'golongan', 'grades'],
+    required: true,
+  },
+  {
+    key: 'divisi',
+    label: 'DIVISI',
+    aliases: ['divisi', 'division', 'sector', 'sektor', 'bidang', 'departemen', 'dept'],
     required: false,
   },
   {
     key: 'contractType',
-    label: 'JENIS KONTRAK',
+    label: 'JENIS KONTRAK*',
     aliases: ['jeniskontrak', 'jenis_kontrak', 'contracttype', 'tipekontrak', 'tipe_kontrak', 'jeniskontrakkerja'],
-    required: false,
+    required: true,
   },
   {
-    key: 'contractTime',
-    label: 'WAKTU KONTRAK',
-    aliases: ['waktukontrak', 'waktu_kontrak', 'kontrakberakhir', 'berakhir', 'enddate', 'contractend', 'masakontrak'],
-    required: false,
+    key: 'startDate',
+    label: 'TGL MULAI*',
+    aliases: [
+      'tglmulai', 'tanggalmulai', 'tanggal_mulai',
+      'tanggalmasuk', 'tanggal_masuk', 'hiredate', 'tglmasuk', 'tgl_masuk', 'startdate',
+    ],
+    required: true,
   },
   {
-    key: 'sector',
-    label: 'SECTOR',
-    aliases: ['sector', 'sektor', 'divisi', 'division', 'bidang'],
-    required: false,
-  },
-  {
-    key: 'hireDate',
-    label: 'TANGGAL MASUK',
-    aliases: ['tanggalmasuk', 'tanggal_masuk', 'hiredate', 'tglmasuk', 'tgl_masuk', 'startdate', 'tanggalmulai'],
+    key: 'endDate',
+    label: 'TGL SELESAI',
+    aliases: ['tglselesai', 'tanggalselesai', 'waktukontrak', 'waktu_kontrak', 'kontrakberakhir', 'berakhir', 'enddate', 'contractend', 'masakontrak'],
     required: false,
   },
   {
     key: 'area',
     label: 'AREA',
-    aliases: ['area', 'penempatan', 'outlet', 'branch', 'cabang', 'lokasi'],
+    aliases: ['area', 'penempatan', 'outlet', 'branch', 'cabang', 'lokasi', 'penempatanoutlet'],
     required: false,
   },
   {
     key: 'basicSalary',
-    label: 'GAJI POKOK',
+    label: 'GAJI POKOK*',
     aliases: ['gajipokok', 'gaji_pokok', 'basicsalary', 'gaji', 'salary', 'pokok'],
-    required: false,
+    required: true,
+  },
+  {
+    key: 'education',
+    label: 'PENDIDIKAN TERAKHIR*',
+    aliases: ['pendidikanterakhir', 'pendidikan_terakhir', 'pendidikan', 'education', 'jenjang', 'jenjangpendidikan', 'pendidikanformal'],
+    required: true,
   },
 ];
 
@@ -96,13 +136,17 @@ export interface RawContractImportRow {
   rowNumber: number;
   name?: string;
   nip?: string;
-  level?: string;
+  email?: string;
+  phone?: string;
+  jabatan?: string;
+  grade?: string;
+  divisi?: string;
   contractTypeRaw: any;
-  contractTimeRaw: any;
-  sector?: string;
-  hireDateRaw: any;
+  startDateRaw: any;
+  endDateRaw: any;
   area?: string;
   basicSalaryRaw: any;
+  education?: string;
 }
 
 /** Parse an uploaded payroll workbook buffer into raw rows (no DB, no writes). */
@@ -160,31 +204,39 @@ export async function parseContractImportBuffer(buffer: Buffer): Promise<RawCont
     if (rowNumber <= headerRowNum) return;
     const name = str(row, 'name');
     const nip = str(row, 'nip');
-    const level = str(row, 'level');
+    const email = str(row, 'email');
+    const phone = str(row, 'phone');
+    const jabatan = str(row, 'jabatan');
+    const grade = str(row, 'grade');
+    const divisi = str(row, 'divisi');
     const contractTypeRaw = rawCell(row, 'contractType');
-    const contractTimeRaw = rawCell(row, 'contractTime');
-    const sector = str(row, 'sector');
-    const hireDateRaw = rawCell(row, 'hireDate');
+    const startDateRaw = rawCell(row, 'startDate');
+    const endDateRaw = rawCell(row, 'endDate');
     const area = str(row, 'area');
     const basicSalaryRaw = rawCell(row, 'basicSalary');
+    const education = str(row, 'education');
     const hasAny =
-      name || nip || level || sector || area ||
+      name || nip || email || phone || jabatan || grade || divisi || area || education ||
       (contractTypeRaw !== '' && contractTypeRaw !== null && contractTypeRaw !== undefined) ||
-      (hireDateRaw !== '' && hireDateRaw !== null && hireDateRaw !== undefined) ||
-      (contractTimeRaw !== '' && contractTimeRaw !== null && contractTimeRaw !== undefined) ||
+      (startDateRaw !== '' && startDateRaw !== null && startDateRaw !== undefined) ||
+      (endDateRaw !== '' && endDateRaw !== null && endDateRaw !== undefined) ||
       (basicSalaryRaw !== '' && basicSalaryRaw !== null && basicSalaryRaw !== undefined);
     if (!hasAny) return; // trailing blank
     rows.push({
       rowNumber,
       name: name || undefined,
       nip: nip || undefined,
-      level: level || undefined,
+      email: email || undefined,
+      phone: phone || undefined,
+      jabatan: jabatan || undefined,
+      grade: grade || undefined,
+      divisi: divisi || undefined,
       contractTypeRaw,
-      contractTimeRaw,
-      sector: sector || undefined,
-      hireDateRaw,
+      startDateRaw,
+      endDateRaw,
       area: area || undefined,
       basicSalaryRaw,
+      education: education || undefined,
     });
   });
   if (rows.length === 0) throw new Error('Tidak ada baris data di file');
@@ -192,41 +244,169 @@ export async function parseContractImportBuffer(buffer: Buffer): Promise<RawCont
   return rows;
 }
 
-/** Template workbook: single 'Payroll' sheet, ONE header row, pre-filled with all
- * current employees (NAMA/NIP/LEVEL/BIDANG/MULAI KERJA/AREA/GAJI from the master;
- * JENIS + WAKTU KONTRAK left for HR to fill). Round-trips through the parser. */
+/** Pendidikan jenjang reference (IGDERP-298; full master lands with D9). */
+export interface EducationLevelDef {
+  code: string;
+  name: string;
+  aliases: string[];
+}
+
+export const EDUCATION_LEVELS: EducationLevelDef[] = [
+  { code: 'SD', name: 'SD', aliases: ['sd', 'sekolahdasar'] },
+  { code: 'SMP', name: 'SMP', aliases: ['smp', 'sltp', 'sekolahmenengahpertama'] },
+  { code: 'SMA', name: 'SMA', aliases: ['sma', 'smu', 'slta', 'sekolahmenengahatas'] },
+  { code: 'SMK', name: 'SMK', aliases: ['smk', 'sekolahmenengahkejuruan'] },
+  { code: 'D3', name: 'D3', aliases: ['d3', 'diploma', 'diploma3', 'akademi'] },
+  { code: 'S1', name: 'S1', aliases: ['s1', 'sarjana', 'strata1', 'sarjana1'] },
+  { code: 'S2', name: 'S2', aliases: ['s2', 'magister', 'strata2', 'pascasarjana'] },
+  { code: 'S3', name: 'S3', aliases: ['s3', 'doktor', 'strata3'] },
+];
+
+const normEdu = (v: any) =>
+  String(v ?? '')
+    .toLowerCase()
+    .replace(/[_\s./-]+/g, '');
+
+/** Normalize a PENDIDIKAN TERAKHIR* cell to a jenjang code, or null. */
+export function normalizeEducation(v: any): string | null {
+  const n = normEdu(v);
+  if (!n) return null;
+  for (const lvl of EDUCATION_LEVELS) {
+    if (n === normEdu(lvl.code) || lvl.aliases.includes(n)) return lvl.code;
+  }
+  return null;
+}
+
+export interface ContractImportOutletRef {
+  code: string;
+  name: string;
+}
+
+export interface ContractImportTitleRef {
+  code: string;
+  name: string;
+  departmentCode?: string | null;
+  divisionCode?: string | null;
+  grades: string; // e.g. '1-6' for staff titles, '—' for single-row heads
+}
+
+/** Template workbook: `Payroll` + 3 reference sheets, ONE header row. */
 export interface ContractImportPrefillRow {
   name: string;
   nip: string;
-  level?: string | null;
-  sector?: string | null;
-  hireDate?: Date | null;
+  email?: string | null;
+  phone?: string | null;
+  jabatan?: string | null;
+  grade?: string | null;
+  divisi?: string | null;
+  startDate?: Date | null;
   area?: string | null;
   basicSalary?: number | null;
+  education?: string | null;
 }
 
-export async function buildContractImportTemplate(prefill: ContractImportPrefillRow[]): Promise<Buffer> {
+export interface ContractImportTemplateRefs {
+  outlets: ContractImportOutletRef[];
+  titles: ContractImportTitleRef[];
+}
+
+const REQUIRED_RED = 'FFFF0000';
+const HEADER_FILL = 'FF1F6F43';
+
+export async function buildContractImportTemplate(
+  prefill: ContractImportPrefillRow[],
+  refs: ContractImportTemplateRefs = { outlets: [], titles: [] },
+): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
-  const labels = CONTRACT_IMPORT_COLUMNS.map((c) => c.label);
   const data = wb.addWorksheet('Payroll');
+
+  const labels = CONTRACT_IMPORT_COLUMNS.map((c) => c.label);
   const header = data.addRow(labels);
   header.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-  header.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F6F43' } };
+  header.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: HEADER_FILL } };
   header.alignment = { vertical: 'middle' };
+  // Mandatory columns marked red (client request).
+  CONTRACT_IMPORT_COLUMNS.forEach((c, i) => {
+    if (c.required) header.getCell(i + 1).font = { bold: true, color: { argb: REQUIRED_RED } };
+  });
+
+  // Column order follows CONTRACT_IMPORT_COLUMNS.
   for (const r of prefill) {
     data.addRow([
       r.name,
       r.nip,
-      r.level ?? '',
-      '', // JENIS — HR fills
-      '', // WAKTU KONTRAK — HR fills
-      r.sector ?? '',
-      r.hireDate ?? '',
+      r.email ?? '',
+      r.phone ?? '',
+      r.jabatan ?? '',
+      r.grade ?? '',
+      r.divisi ?? '',
+      '', // JENIS KONTRAK — HR fills
+      r.startDate ?? '',
+      '', // TGL SELESAI — HR fills
       r.area ?? '',
       r.basicSalary ?? '',
+      r.education ?? '',
     ]);
   }
   data.columns = CONTRACT_IMPORT_COLUMNS.map(() => ({ width: 20 }));
+
+  // Reference sheets for dropdown validation.
+  const outletWs = wb.addWorksheet('Daftar Outlet');
+  outletWs.addRow(['KODE', 'NAMA']);
+  for (const o of refs.outlets) outletWs.addRow([o.code, o.name]);
+  outletWs.columns = [{ width: 18 }, { width: 36 }];
+
+  const titleWs = wb.addWorksheet('Daftar Jabatan');
+  titleWs.addRow(['KODE JABATAN', 'NAMA', 'DEPT', 'DIVISI', 'GRADE']);
+  for (const t of refs.titles) {
+    titleWs.addRow([t.code, t.name, t.departmentCode ?? '', t.divisionCode ?? '', t.grades]);
+  }
+  titleWs.columns = [{ width: 16 }, { width: 34 }, { width: 14 }, { width: 16 }, { width: 10 }];
+
+  const eduWs = wb.addWorksheet('Daftar Pendidikan');
+  eduWs.addRow(['JENJANG']);
+  for (const lvl of EDUCATION_LEVELS) eduWs.addRow([lvl.code]);
+  eduWs.columns = [{ width: 18 }];
+
+  // Dropdown validations on the main sheet (rows 2..5001).
+  const lastRow = Math.max(prefill.length + 1, 2) + 4000;
+  const colLetter = (key: ContractImportColumnDef['key']) => {
+    const idx = CONTRACT_IMPORT_COLUMNS.findIndex((c) => c.key === key);
+    return idx >= 0 ? String.fromCharCode('A'.charCodeAt(0) + idx) : null;
+  };
+  try {
+    const jabCol = colLetter('jabatan');
+    if (jabCol && refs.titles.length > 0) {
+      data.dataValidations.add(`${jabCol}2:${jabCol}${lastRow}`, {
+        type: 'list',
+        allowBlank: false,
+        showErrorMessage: true,
+        formulae: [`'Daftar Jabatan'!$A$2:$A$${refs.titles.length + 1}`],
+      });
+    }
+    const gradeCol = colLetter('grade');
+    if (gradeCol) {
+      data.dataValidations.add(`${gradeCol}2:${gradeCol}${lastRow}`, {
+        type: 'whole',
+        operator: 'between',
+        allowBlank: true,
+        showErrorMessage: true,
+        formulae: [1, 6],
+      });
+    }
+    const eduCol = colLetter('education');
+    if (eduCol) {
+      data.dataValidations.add(`${eduCol}2:${eduCol}${lastRow}`, {
+        type: 'list',
+        allowBlank: false,
+        showErrorMessage: true,
+        formulae: [`'Daftar Pendidikan'!$A$2:$A$${EDUCATION_LEVELS.length + 1}`],
+      });
+    }
+  } catch {
+    // Validation is best-effort UX — the service re-validates every row.
+  }
+
   const buf = await wb.xlsx.writeBuffer();
   return Buffer.from(buf as any);
 }

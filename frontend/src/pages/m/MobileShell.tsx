@@ -8,6 +8,7 @@ export interface MeUser {
   id: string;
   email: string;
   fullName?: string;
+  mustChangePassword?: boolean;
   roles?: string[];
   employee?: {
     fullName?: string;

@@ -88,8 +88,8 @@ export default function ContractImportDialog({
       headerActions={
         <div className="flex justify-end">
           <span className="text-xs text-gray-500 dark:text-gray-400">
-            Sumber: sheet Payroll (NAMA, NIP, LEVEL, JENIS KONTRAK, WAKTU KONTRAK, SECTOR, TANGGAL MASUK,
-            AREA, GAJI POKOK)
+            Sumber: sheet Payroll (NAMA*, NIP*, EMAIL, NO HP, JABATAN*, GRADE*, DIVISI, JENIS
+            KONTRAK*, TGL MULAI*, TGL SELESAI, AREA, GAJI POKOK*, PENDIDIKAN TERAKHIR*)
           </span>
         </div>
       }
@@ -148,8 +148,9 @@ export default function ContractImportDialog({
             </Button>
           </div>
           <ImportNotice>
-            Hasil import selalu <strong>draft</strong> — caps diberlakukan saat aktivasi. Baris tanpa NIP
-            yang cocok ditolak; nilai master yang tidak dikenal dikosongkan dan ditandai untuk dilengkapi HR.
+            Hasil import selalu <strong>draft</strong> — caps diberlakukan saat aktivasi. NIP baru
+            membuat akun + karyawan sekaligus (password sementara dibuat sistem, wajib diganti saat login
+            pertama). Baris menyentuh karyawan berkontrak aktif ditolak.
           </ImportNotice>
         </>
       )}
@@ -191,6 +192,11 @@ export default function ContractImportDialog({
                       <td className="px-3 py-2">
                         <span className="font-mono text-xs font-medium">{r.nip ?? "—"}</span>
                         <span className="block text-xs text-gray-600 dark:text-gray-400">{r.name ?? "—"}</span>
+                        {r.preview.isNew && (
+                          <span className="mt-1 inline-block rounded bg-blue-100 dark:bg-blue-900 px-1.5 py-0.5 text-[11px] font-medium text-blue-800 dark:text-blue-200">
+                            Karyawan baru{r.preview.email ? ` · ${r.preview.email}` : ""}
+                          </span>
+                        )}
                       </td>
                       <td className="px-3 py-2 text-xs">
                         {r.preview.type ?? "—"} · {r.preview.startDate ?? "—"} –{" "}
@@ -247,7 +253,8 @@ export default function ContractImportDialog({
               </p>
               <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                 Nomor kontrak dibuat otomatis (CTR-YYYYMM-XXXXXX). Baris error dilewati. Caps + kelengkapan
-                diperiksa saat aktivasi per kontrak.
+                diperiksa saat aktivasi per kontrak. NIP baru ikut membuat akun login (password sementara
+                tampil sekali setelah import — salin dan teruskan ke karyawan).
               </p>
               <div className="flex gap-2 mt-3">
                 <Button type="button" variant="outline" onClick={() => setConfirmBox(false)}>
@@ -272,6 +279,12 @@ export default function ContractImportDialog({
             </p>
             <p className="text-xs text-green-800 dark:text-green-200 mt-1">
               Lengkapi working location, posisi, gaji, dan penempatan lalu aktifkan per kontrak.
+              {created.some((c) => c.isNew) && (
+                <span className="block mt-1 font-medium">
+                  Password sementara di bawah tampil sekali saja — salin sekarang dan teruskan ke karyawan.
+                  Karyawan wajib menggantinya saat login pertama.
+                </span>
+              )}
             </p>
           </div>
           {created.length > 0 && (
@@ -282,6 +295,7 @@ export default function ContractImportDialog({
                     <th className="px-3 py-2">Baris</th>
                     <th className="px-3 py-2">Nomor</th>
                     <th className="px-3 py-2">NIP</th>
+                    <th className="px-3 py-2">Password sementara</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -289,7 +303,18 @@ export default function ContractImportDialog({
                     <tr key={i}>
                       <td className="px-3 py-2 text-gray-500 dark:text-gray-400">{c.rowNumber}</td>
                       <td className="px-3 py-2 font-mono text-xs font-medium">{c.contractNumber}</td>
-                      <td className="px-3 py-2 font-mono text-xs">{c.nip}</td>
+                      <td className="px-3 py-2 font-mono text-xs">
+                        {c.nip}
+                        {c.isNew && (
+                          <span className="ml-1 rounded bg-blue-100 dark:bg-blue-900 px-1.5 py-0.5 text-[11px] font-medium text-blue-800 dark:text-blue-200">
+                            baru
+                          </span>
+                        )}
+                        {c.note && (
+                          <span className="block text-[11px] text-amber-700 dark:text-amber-300">{c.note}</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 font-mono text-xs">{c.tempPassword ?? "—"}</td>
                     </tr>
                   ))}
                 </tbody>
