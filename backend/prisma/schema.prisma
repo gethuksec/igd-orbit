@@ -2071,6 +2071,9 @@ model Attendance {
   overtimeHours      Decimal?  @default(0) @map("overtime_hours") @db.Decimal(5, 2)
   overtimeApproved   Boolean   @default(false) @map("overtime_approved")
   overtimeApprovedBy String?   @map("overtime_approved_by") // User ID
+  approvalStatus     String    @default("none") @map("approval_status") // 'none' | 'pending' | 'approved' | 'rejected' (luar lokasi)
+  approvedBy         String?   @map("approved_by") // User ID (atasan yang ACC/tolak)
+  approvedAt         DateTime? @map("approved_at")
   receiptNotes       String?   @map("receipt_notes") @db.Text
   internalNotes      String?   @map("internal_notes") @db.Text
   adjustedBy         String?   @map("adjusted_by") // User ID
