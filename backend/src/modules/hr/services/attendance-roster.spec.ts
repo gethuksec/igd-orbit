@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../../../shared/services/prisma.service';
 import { ShiftsService } from '../../shifts/shifts.service';
-import { AttendanceService, mobileClockOutside, isOutsideAllAnchors } from './attendance.service';
+import { AttendanceService, mobileClockOutside, isOutsideAllAnchors, wibParts, wibTimeInstant } from './attendance.service';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 
 /**
@@ -314,6 +314,111 @@ describe('AttendanceService IGDERP-305 anchors (WS-290 follow-up)', () => {
       prisma.attendance.update.mockImplementation(async ({ data }: any) => ({ id: 'a1', status: 'present', ...data }));
       const res: any = await service.approveAttendance('a1', 'u-0', ['SUPERADMIN'], 'OK');
       expect(res.approvalStatus).toBe('approved');
+    });
+  });
+});
+
+/**
+ * IGDERP-307: late/early math uses WIB wall time (server runs UTC). A
+ * 13:58 WIB clock (06:58 UTC) against an 08:00 start previously compared
+ * 06:58 < 08:00 and stored isLate=false. Fixed UTC instants make these
+ * cases timezone-independent (2026-11-24 is a Tuesday).
+ */
+describe('AttendanceService IGDERP-307 late in WIB', () => {
+  let service: AttendanceService;
+  let prisma: any;
+  let resolveShift: jest.Mock;
+  const pagi = { id: 's-1', name: 'Pagi', clockIn: '08:00', clockOut: '17:00', lateToleranceMin: 15, deletedAt: null };
+  const employee = { id: 'emp-1', userId: 'u-1', isActive: true, branchId: 'b-1' };
+
+  beforeEach(async () => {
+    resolveShift = jest.fn(async () => ({ shift: pagi, source: 'roster', offDate: false }));
+    prisma = {
+      employee: { findUnique: jest.fn().mockResolvedValue(employee) },
+      branch: { findUnique: jest.fn().mockResolvedValue({ id: 'b-1', operatingHours: null }) },
+      attendance: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        upsert: jest.fn(async ({ create }: any) => ({ id: 'att-1', ...create })),
+        update: jest.fn(async ({ data }: any) => ({ id: 'att-1', ...data })),
+      },
+    };
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        AttendanceService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: ShiftsService, useValue: { resolveShiftForDate: (...a: any[]) => resolveShift(...a) } },
+      ],
+    }).compile();
+    service = module.get<AttendanceService>(AttendanceService);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  const clockDto = () => ({ method: 'manual', branch_id: 'b-1' });
+
+  it('wib helpers: 06:58 UTC is 13:58 WIB Tuesday; 08:00 WIB start is 01:00 UTC', () => {
+    const at = new Date('2026-11-24T06:58:00.000Z');
+    expect(wibParts(at)).toMatchObject({ hh: 13, mm: 58, weekday: 2 });
+    expect(wibTimeInstant(at, '08:00').toISOString()).toBe('2026-11-24T01:00:00.000Z');
+  });
+
+  it('QA repro: 13:58 WIB vs 08:00 start → isLate, lateMinutes 358', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-11-24T06:58:00.000Z'));
+    const res: any = await service.clockIn('u-1', clockDto());
+    const create = prisma.attendance.upsert.mock.calls[0][0].create;
+    expect(create.isLate).toBe(true);
+    expect(create.lateMinutes).toBe(358);
+    expect(res.isLate).toBe(true);
+  });
+
+  it('08:10 WIB (within 15m tolerance) → not late, minutes reset', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-11-24T01:10:00.000Z'));
+    const res: any = await service.clockIn('u-1', clockDto());
+    expect(prisma.attendance.upsert.mock.calls[0][0].create).toMatchObject({ isLate: false, lateMinutes: 0 });
+    expect(res.isLate).toBe(false);
+  });
+
+  it('07:50 WIB early arrival → not late', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-11-24T00:50:00.000Z'));
+    await service.clockIn('u-1', clockDto());
+    expect(prisma.attendance.upsert.mock.calls[0][0].create).toMatchObject({ isLate: false, lateMinutes: 0 });
+  });
+
+  it('roster-libur day → never late, even at 13:58 WIB', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-11-24T06:58:00.000Z'));
+    resolveShift.mockResolvedValue({ shift: null, source: 'roster-libur', offDate: true });
+    await service.clockIn('u-1', clockDto());
+    expect(prisma.attendance.upsert.mock.calls[0][0].create).toMatchObject({ isLate: false, lateMinutes: 0 });
+  });
+
+  it('branch-hours fallback path also uses WIB', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-11-24T06:58:00.000Z'));
+    resolveShift.mockResolvedValue({ shift: null, source: 'none', offDate: false });
+    prisma.branch.findUnique.mockResolvedValue({
+      id: 'b-1',
+      operatingHours: { tuesday: { open: '08:00', close: '17:00' } },
+    });
+    await service.clockIn('u-1', clockDto());
+    expect(prisma.attendance.upsert.mock.calls[0][0].create).toMatchObject({ isLate: true, lateMinutes: 358 });
+  });
+
+  it('clockOut 16:00 WIB vs 17:00 close → early leave 60m', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-11-24T09:00:00.000Z')); // 16:00 WIB Tue
+    prisma.attendance.findUnique.mockResolvedValue({
+      id: 'att-1',
+      employeeId: 'emp-1',
+      clockIn: new Date('2026-11-24T01:00:00.000Z'),
+      clockOut: null,
+      breakTime: null,
+      internalNotes: null,
+      branch: { operatingHours: { tuesday: { open: '08:00', close: '17:00' } } },
+    });
+    await service.clockOut('u-1', { method: 'manual', branch_id: 'b-1' } as any);
+    expect(prisma.attendance.update.mock.calls[0][0].data).toMatchObject({
+      isEarlyLeave: true,
+      earlyLeaveMinutes: 60,
     });
   });
 });
