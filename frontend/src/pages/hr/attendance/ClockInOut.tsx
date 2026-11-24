@@ -74,6 +74,18 @@ export default function ClockInOut() {
   const [coords, setCoords] = useState<{ lat: number; lng: number; accuracy?: number } | null>(null);
   const [locating, setLocating] = useState(false);
   const [outsideMsg, setOutsideMsg] = useState<string | null>(null);
+  // IGDERP-297: non-radius failures (e.g. 400 validation) previously only
+  // fired a toast that is easy to miss on the PWA — keep them visible inline.
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  /** Backend may return message as string or string[] — always flatten. */
+  const extractErrorMsg = (error: any): string => {
+    const raw = error?.response?.data?.message;
+    if (Array.isArray(raw)) return raw.join(', ') || 'Gagal clock';
+    if (typeof raw === 'string' && raw.trim()) return raw;
+    if (typeof error?.message === 'string' && error.message.trim()) return error.message;
+    return 'Gagal clock';
+  };
 
   // Get today's attendance
   const today = new Date().toISOString().split('T')[0];
@@ -114,6 +126,7 @@ export default function ClockInOut() {
       setPhotoFile(new File([blob], 'selfie.jpg', { type: 'image/jpeg' }));
       setPhotoPreview(URL.createObjectURL(blob));
       setOutsideMsg(null);
+      setSubmitError(null);
     } catch (err: any) {
       toast.error(err.message || 'Foto tidak terbaca');
     }
@@ -129,6 +142,7 @@ export default function ClockInOut() {
         accuracy: pos.coords.accuracy,
       });
       setOutsideMsg(null);
+      setSubmitError(null);
     } catch {
       toast.error('Gagal mengambil lokasi GPS. Nyalakan GPS & izinkan akses lokasi.');
     } finally {
@@ -140,6 +154,7 @@ export default function ClockInOut() {
 
   const submitMutation = useMutation({
     mutationFn: async () => {
+      setSubmitError(null);
       if (!photoFile || !coords) throw new Error('Foto & GPS wajib');
       const { url } = await hrService.uploadSelfie(photoFile);
       const payload = {
@@ -162,12 +177,16 @@ export default function ClockInOut() {
       setPhotoPreview(null);
       setCoords(null);
       setOutsideMsg(null);
+      setSubmitError(null);
     },
     onError: (error: any) => {
-      const msg: string = error.response?.data?.message || error.message || 'Gagal clock';
+      const msg = extractErrorMsg(error);
       if (/luar lokasi/i.test(msg)) {
+        setSubmitError(null);
         setOutsideMsg(msg); // "di luar lokasi" popup (meeting 16 Nov)
       } else {
+        setOutsideMsg(null);
+        setSubmitError(msg);
         toast.error(msg);
       }
     },
@@ -190,6 +209,20 @@ export default function ClockInOut() {
             </p>
           </div>
           <button onClick={() => setOutsideMsg(null)} className="text-red-500 p-1" aria-label="Tutup">
+            <XCircle className="w-5 h-5" />
+          </button>
+        </div>
+      )}
+
+      {/* Submit error (IGDERP-297: validation/network failures stay visible) */}
+      {submitError && (
+        <div className="bg-red-50 dark:bg-red-950 border-2 border-red-500 rounded-xl p-4 flex items-start gap-3">
+          <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-bold text-red-800 dark:text-red-200">Gagal absen</p>
+            <p className="text-sm text-red-700 dark:text-red-300 mt-1">{submitError}</p>
+          </div>
+          <button onClick={() => setSubmitError(null)} className="text-red-500 p-1" aria-label="Tutup">
             <XCircle className="w-5 h-5" />
           </button>
         </div>
@@ -254,7 +287,7 @@ export default function ClockInOut() {
               </label>
               <select
                 value={effectiveBranchId}
-                onChange={(e) => setBranchId(e.target.value)}
+                onChange={(e) => { setBranchId(e.target.value); setSubmitError(null); setOutsideMsg(null); }}
                 required
                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >

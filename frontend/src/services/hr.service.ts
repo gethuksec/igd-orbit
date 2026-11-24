@@ -37,6 +37,56 @@ export interface Employee {
   };
 }
 
+export type RosterDisplayStatus = 'hadir' | 'terlambat' | 'alpha' | 'cuti' | 'libur';
+
+export interface RosterRow {
+  id: string;
+  employeeId: string;
+  date: string;
+  displayStatus: RosterDisplayStatus;
+  status: string | null;
+  clockIn: string | null;
+  clockOut: string | null;
+  clockInLocation?: string | null;
+  clockOutLocation?: string | null;
+  clockInMethod?: string | null;
+  clockOutMethod?: string | null;
+  clockInLat?: number | null;
+  clockInLng?: number | null;
+  clockOutLat?: number | null;
+  clockOutLng?: number | null;
+  clockInPhotoUrl?: string | null;
+  clockOutPhotoUrl?: string | null;
+  scheduleIn: string | null;
+  scheduleOut: string | null;
+  shiftName: string | null;
+  isLate: boolean;
+  lateMinutes: number;
+  isEarlyLeave: boolean;
+  earlyLeaveMinutes: number;
+  totalHours?: number | null;
+  needsApproval: boolean;
+  approvalStatus: string;
+  note?: string | null;
+  employee?: {
+    id: string;
+    employeeCode: string;
+    user?: { fullName: string } | null;
+  };
+  branch?: {
+    id: string;
+    name: string;
+  } | null;
+}
+
+export interface RosterCounts {
+  hadir: number;
+  terlambat: number;
+  alpha: number;
+  cuti: number;
+  libur: number;
+}
+
 export interface Attendance {
   id: string;
   employeeId: string;
@@ -337,6 +387,45 @@ export const hrService = {
       };
     }
     return { data: [], total: 0 };
+  },
+
+  /**
+   * Daily presensi roster — all employees with schedule + display status.
+   */
+  async getRoster(params?: {
+    date?: string;
+    branchId?: string;
+    search?: string;
+    status?: string;
+  }): Promise<{ date: string; data: RosterRow[]; counts: RosterCounts; total: number }> {
+    const zero: RosterCounts = { hadir: 0, terlambat: 0, alpha: 0, cuti: 0, libur: 0 };
+    const response = await api.get('/attendance/roster', { params });
+    const body = response.data;
+    if (body && Array.isArray(body.data) && body.counts) {
+      return {
+        date: body.date,
+        data: body.data,
+        counts: body.counts,
+        total: body.total ?? body.data.length,
+      };
+    }
+    return { date: '', data: [], counts: zero, total: 0 };
+  },
+
+  /**
+   * Approve pending luar-lokasi presensi
+   */
+  async approveAttendance(id: string, reason?: string) {
+    const response = await api.post(`/attendance/${id}/approve`, reason ? { reason } : {});
+    return response.data.data || response.data;
+  },
+
+  /**
+   * Reject pending luar-lokasi presensi (falls back to alpha)
+   */
+  async rejectAttendance(id: string, reason?: string) {
+    const response = await api.post(`/attendance/${id}/reject`, reason ? { reason } : {});
+    return response.data.data || response.data;
   },
 
   /**

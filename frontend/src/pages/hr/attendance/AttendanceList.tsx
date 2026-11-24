@@ -1,13 +1,25 @@
 import { useState } from 'react';
-import { BreadcrumbHeader, FilterToolbar, StatusDot, StatCard } from '@/components/shared';
-import { useQuery } from '@tanstack/react-query';
+import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable, StatusDot } from '@/components/shared';
+import type { Column } from '@/components/shared';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Clock, Calendar, User, CheckCircle, XCircle, AlertCircle, Eye } from 'lucide-react';
-import { hrService, type Attendance } from '@/services/hr.service';
-import { formatDate, formatDateTime } from '@/utils/format';
+import {
+  Calendar,
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Palmtree,
+  XCircle,
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { hrService, type RosterRow, type RosterDisplayStatus } from '@/services/hr.service';
 import { useBranchFilter } from '@/components/branch/BranchFilter';
+import { formatDate } from '@/utils/format';
 
-// Default date filter: today (local) — Presensi opens on today's records.
+// Default date filter: today (local) — Presensi opens on today's roster.
 function todayLocal(): string {
   const d = new Date();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -15,302 +27,425 @@ function todayLocal(): string {
   return `${d.getFullYear()}-${m}-${day}`;
 }
 
+const DAYS = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+const MONTHS = [
+  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+];
+
+function dayLabel(iso: string): string {
+  const p = iso.split('-');
+  if (p.length !== 3) return iso;
+  const d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+  return `${DAYS[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function shiftDay(iso: string, delta: number): string {
+  const p = iso.split('-');
+  const d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]) + delta);
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
+/** HH:MM (local) from ISO datetime, '' when empty. */
+function hm(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+const STATUS_META: Record<RosterDisplayStatus, { label: string; tone: 'ok' | 'warn' | 'off' | 'bad' }> = {
+  hadir: { label: 'Hadir', tone: 'ok' },
+  terlambat: { label: 'Terlambat', tone: 'warn' },
+  alpha: { label: 'Alpha', tone: 'bad' },
+  cuti: { label: 'Cuti', tone: 'warn' },
+  libur: { label: 'Libur', tone: 'off' },
+};
+
+function initialsOf(row: RosterRow): string {
+  return (row.employee?.user?.fullName || row.employee?.employeeCode || '?')
+    .split(' ')
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+}
+
+function displayNameOf(row: RosterRow): string {
+  return row.employee?.user?.fullName || row.employee?.employeeCode || 'N/A';
+}
+
+function ClockInCell({ row }: { row: RosterRow }) {
+  const hide = row.displayStatus === 'cuti' || row.displayStatus === 'libur';
+  const t = hm(row.clockIn);
+  if (!t) {
+    if (row.scheduleIn && !hide) {
+      return (
+        <div>
+          <div className="text-sm text-muted-foreground">—</div>
+          <div className="mt-0.5 text-xs tabular-nums text-muted-foreground">{row.scheduleIn}</div>
+        </div>
+      );
+    }
+    return <span className="text-sm text-muted-foreground">—</span>;
+  }
+  const bad = !!row.scheduleIn && t > row.scheduleIn;
+  return (
+    <div>
+      <div className={`text-sm font-medium tabular-nums ${bad ? 'text-red-600 dark:text-red-400' : ''}`}>{t}</div>
+      {row.scheduleIn && !hide && (
+        <div className="mt-0.5 text-xs tabular-nums text-muted-foreground">{row.scheduleIn}</div>
+      )}
+    </div>
+  );
+}
+
+function ClockOutCell({ row }: { row: RosterRow }) {
+  const hide = row.displayStatus === 'cuti' || row.displayStatus === 'libur';
+  const t = hm(row.clockOut);
+  if (!t) {
+    if (row.scheduleOut && !hide) {
+      return (
+        <div>
+          <div className="text-sm text-muted-foreground">—</div>
+          <div className="mt-0.5 text-xs tabular-nums text-muted-foreground">{row.scheduleOut}</div>
+        </div>
+      );
+    }
+    return <span className="text-sm text-muted-foreground">—</span>;
+  }
+  const bad = !!row.scheduleOut && t < row.scheduleOut;
+  return (
+    <div>
+      <div className={`text-sm font-medium tabular-nums ${bad ? 'text-red-600 dark:text-red-400' : ''}`}>{t}</div>
+      {row.scheduleOut && !hide && (
+        <div className="mt-0.5 text-xs tabular-nums text-muted-foreground">{row.scheduleOut}</div>
+      )}
+    </div>
+  );
+}
+
+function LocationBlock({ label, time, schedule, loc, lat, lng }: {
+  label: string;
+  time: string | null;
+  schedule: string | null;
+  loc?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+}) {
+  const [open, setOpen] = useState(false);
+  const t = hm(time);
+  const place = loc || (lat != null && lng != null ? `${lat}, ${lng}` : 'Lokasi tidak tercatat');
+  return (
+    <div
+      className="cursor-pointer rounded-lg border p-3 transition-colors hover:bg-muted/50"
+      onClick={() => setOpen((v) => !v)}
+      title="Klik untuk lokasi"
+    >
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p className={`mt-1 font-mono text-xl font-medium tabular-nums ${t ? '' : 'text-muted-foreground'}`}>
+        {t || '—'}
+      </p>
+      {schedule && <p className="mt-0.5 text-xs tabular-nums text-muted-foreground">{schedule}</p>}
+      {open && (
+        <div className="mt-2 border-t border-dashed pt-2">
+          <p className="text-xs">{place}</p>
+          {lat != null && lng != null && (
+            <p className="mt-0.5 font-mono text-[11px] tabular-nums text-muted-foreground">
+              {lat}, {lng}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AttendanceList() {
-  const [page, setPage] = useState(1);
+  const [date, setDate] = useState(todayLocal);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [startDate, setStartDate] = useState(todayLocal);
-  const [endDate, setEndDate] = useState(todayLocal);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [selected, setSelected] = useState<RosterRow | null>(null);
   const { branchId, setBranchId } = useBranchFilter();
-  const limit = 20;
+  const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['attendances', page, searchTerm, statusFilter, startDate, endDate, branchId],
-    queryFn: async () => {
-      const params: any = {};
+    queryKey: ['roster', date, searchTerm, statusFilter, branchId],
+    queryFn: () =>
+      hrService.getRoster({
+        date,
+        search: searchTerm || undefined,
+        status: statusFilter || undefined,
+        branchId: branchId || undefined,
+      }),
+  });
 
-      if (searchTerm) {
-        params.search = searchTerm;
-      }
+  const rows = data?.data || [];
+  const counts = data?.counts || { hadir: 0, terlambat: 0, alpha: 0, cuti: 0, libur: 0 };
+  const pendingCount = rows.filter((r) => r.needsApproval).length;
 
-      if (statusFilter !== 'all') {
-        params.status = statusFilter;
-      }
-
-      if (startDate) {
-        params.startDate = startDate;
-      }
-
-      if (endDate) {
-        params.endDate = endDate;
-      }
-
-      if (branchId) {
-        params.branchId = branchId;
-      }
-
-      return hrService.getAttendances(params);
+  const approve = useMutation({
+    mutationFn: (id: string) => hrService.approveAttendance(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['roster'] });
+      toast.success('Kehadiran disetujui');
+      setSelected(null);
+    },
+    onError: (e: any) => {
+      toast.error(e.response?.data?.message || 'Gagal menyetujui kehadiran');
+    },
+  });
+  const reject = useMutation({
+    mutationFn: (id: string) => hrService.rejectAttendance(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['roster'] });
+      toast.success('Kehadiran ditolak');
+      setSelected(null);
+    },
+    onError: (e: any) => {
+      toast.error(e.response?.data?.message || 'Gagal menolak kehadiran');
     },
   });
 
-  const attendances = data?.data || [];
-  const total = data?.total || 0;
-  const totalPages = Math.ceil(total / limit);
-
-  const getStatusBadge = (attendance: Attendance) => {
-    switch (attendance.status) {
-      case 'present':
-        return <StatusDot tone="ok">Present</StatusDot>;
-      case 'absent':
-        return <StatusDot tone="bad">Absent</StatusDot>;
-      case 'leave':
-        return <StatusDot tone="warn">Leave</StatusDot>;
-      case 'holiday':
-        return <StatusDot tone="off">Holiday</StatusDot>;
-      case 'not-clocked':
-        return <StatusDot tone="off">Belum presensi</StatusDot>;
-      default:
-        return null;
-    }
-  };
+  const columns: Column<RosterRow>[] = [
+    {
+      key: 'nama',
+      header: 'Nama',
+      cell: (row) => (
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-sm font-medium text-muted-foreground">
+            {initialsOf(row)}
+          </div>
+          <div>
+            <div className="text-[15px] font-medium">{displayNameOf(row)}</div>
+            <div className="text-xs text-muted-foreground">
+              {row.employee?.employeeCode}
+              {row.branch ? ` · ${row.branch.name}` : ''}
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    { key: 'in', header: 'Clock in', cell: (row) => <ClockInCell row={row} /> },
+    { key: 'out', header: 'Clock out', cell: (row) => <ClockOutCell row={row} /> },
+    {
+      key: 'status',
+      header: 'Status',
+      cell: (row) => {
+        const meta = STATUS_META[row.displayStatus] || STATUS_META.alpha;
+        return <StatusDot tone={meta.tone}>{meta.label}</StatusDot>;
+      },
+    },
+  ];
 
   return (
-    <div className="w-full space-y-6">
-      {/* Header */}
-      <BreadcrumbHeader title="Absensi" subtitle="Kelola absensi karyawan">
-        <Link
-            to="/hr/attendance/clock"
-            className="px-6 py-3 bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 rounded-lg font-semibold hover:bg-primary-50 dark:hover:bg-primary-950 transition-colors"
-          >
-            Clock In/Out
-          </Link>
+    <div className="w-full space-y-3">
+      <BreadcrumbHeader title="Absensi" subtitle="Kehadiran seluruh karyawan hari ini">
+        <Link to="/hr/attendance/clock">
+          <Button className="flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            <span>Clock In/Out</span>
+          </Button>
+        </Link>
       </BreadcrumbHeader>
 
-      {/* Toolbar: search inline + branch inline + filter popup (IGDERP-110) */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-950 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
+          <p className="text-red-800 dark:text-red-200 font-medium">Gagal memuat data absensi</p>
+        </div>
+      )}
+
+      {/* Date strip: defaults today, arrows filter the day */}
+      <div className="flex items-center gap-3 rounded-md border bg-card p-3">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          onClick={() => setDate((d) => shiftDay(d, -1))}
+          title="Hari sebelumnya"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <div className="text-sm font-medium tabular-nums">
+          {dayLabel(date)}
+          <span className="block text-xs font-normal text-muted-foreground">
+            Shift berlaku: Pagi 08:00–17:00 · Siang 13:00–21:00
+          </span>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          onClick={() => setDate((d) => shiftDay(d, 1))}
+          title="Hari berikutnya"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+        <span className="ml-auto text-xs tabular-nums text-muted-foreground">
+          {rows.length} karyawan · {pendingCount} perlu persetujuan
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <StatCard icon={<CheckCircle className="h-5 w-5" />} label="Hadir" value={isLoading ? '-' : counts.hadir} />
+        <StatCard icon={<Clock className="h-5 w-5" />} label="Terlambat" value={isLoading ? '-' : counts.terlambat} />
+        <StatCard icon={<XCircle className="h-5 w-5" />} label="Alpha" value={isLoading ? '-' : counts.alpha} />
+        <StatCard icon={<Calendar className="h-5 w-5" />} label="Cuti" value={isLoading ? '-' : counts.cuti} />
+        <StatCard icon={<Palmtree className="h-5 w-5" />} label="Libur" value={isLoading ? '-' : counts.libur} />
+      </div>
+
       <FilterToolbar
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
-        searchPlaceholder="Cari nama karyawan atau employee code..."
-        branchFilter={{ value: branchId, onChange: setBranchId, allowAll: true }}
+        searchPlaceholder="Cari nama atau NIP"
         fields={[
           {
             key: 'status',
             label: 'Status',
             type: 'select',
             options: [
-              { value: 'present', label: 'Present' },
-              { value: 'absent', label: 'Absent' },
-              { value: 'leave', label: 'Leave' },
-              { value: 'holiday', label: 'Holiday' },
-              { value: 'not-clocked', label: 'Belum presensi' },
+              { value: 'hadir', label: 'Hadir' },
+              { value: 'terlambat', label: 'Terlambat' },
+              { value: 'alpha', label: 'Alpha' },
+              { value: 'cuti', label: 'Cuti' },
+              { value: 'libur', label: 'Libur' },
             ],
           },
-          {
-            key: 'date',
-            label: 'Tanggal',
-            type: 'date-range',
-          },
+          { key: 'date', label: 'Tanggal', type: 'date-range' },
         ]}
-        values={{
-          status: statusFilter === 'all' ? '' : statusFilter,
-          dateFrom: startDate,
-          dateTo: endDate,
-        }}
+        values={{ status: statusFilter, dateFrom: date, dateTo: date }}
         onFieldChange={(key, v) => {
-          if (key === 'status') {
-            setStatusFilter(v || 'all');
-            setPage(1);
-          } else if (key === 'dateFrom') {
-            setStartDate(v);
-            setPage(1);
-          } else if (key === 'dateTo') {
-            setEndDate(v);
-            setPage(1);
-          }
+          if (key === 'status') setStatusFilter(v || '');
+          else if (key === 'dateFrom' || key === 'dateTo') { if (v) setDate(v); }
         }}
         onReset={() => {
-          setStatusFilter('all');
-          setStartDate(todayLocal());
-          setEndDate(todayLocal());
-          setPage(1);
+          setStatusFilter('');
+          setDate(todayLocal());
         }}
+        branchFilter={{ value: branchId, onChange: setBranchId, allowAll: true }}
       />
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard icon={<Clock className="h-5 w-5" />} label="Total Records" value={total} />
-        <StatCard
-          icon={<CheckCircle className="h-5 w-5" />}
-          label="Present"
-          value={attendances.filter((a) => a.status === 'present').length}
-        />
-        <StatCard
-          icon={<XCircle className="h-5 w-5" />}
-          label="Absent"
-          value={attendances.filter((a) => a.status === 'absent').length}
-        />
-        <StatCard
-          icon={<Calendar className="h-5 w-5" />}
-          label="On Leave"
-          value={attendances.filter((a) => a.status === 'leave').length}
-        />
-      </div>
-
-      {/* Table */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-100 dark:border-gray-800 overflow-hidden">
-        {isLoading ? (
-          <div className="p-12 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="mt-4 text-gray-600 dark:text-gray-400">Memuat data...</p>
-          </div>
-        ) : error ? (
-          <div className="p-12 text-center">
-            <AlertCircle className="w-12 h-12 text-red-500 dark:text-red-400 mx-auto mb-4" />
-            <p className="text-red-600 dark:text-red-400">Gagal memuat data absensi</p>
-          </div>
-        ) : attendances.length === 0 ? (
-          <div className="p-12 text-center">
-            <Clock className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-            <p className="text-gray-600 dark:text-gray-400">Tidak ada data absensi</p>
-          </div>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-gray-950 border-b border-gray-200 dark:border-gray-700">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
-                      Tanggal
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
-                      Karyawan
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
-                      Clock In
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
-                      Clock Out
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
-                      Total Hours
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
-                      Status
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-700 dark:text-gray-300">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                  {attendances.map((attendance) => (
-                    <tr key={attendance.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-[15px] font-medium text-gray-900 dark:text-gray-100">{formatDate(attendance.date)}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
-                            <User className="h-5 w-5" />
-                          </div>
-                          <div>
-                            <div className="text-[15px] font-medium text-gray-900 dark:text-gray-100">
-                              {attendance.employee?.user?.fullName || attendance.employee?.employeeCode || 'N/A'}
-                            </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">{attendance.employee?.employeeCode}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {attendance.clockIn ? (
-                          <div>
-                            <div className="text-sm font-medium tabular-nums text-gray-900 dark:text-gray-100">
-                              {formatDateTime(attendance.clockIn)}
-                            </div>
-                            {attendance.isLate && (
-                              <div className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1 mt-1">
-                                <AlertCircle className="w-3 h-3" />
-                                Terlambat {attendance.lateMinutes} menit
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-sm text-gray-400 dark:text-gray-500">-</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {attendance.clockOut ? (
-                          <div>
-                            <div className="text-sm font-medium tabular-nums text-gray-900 dark:text-gray-100">
-                              {formatDateTime(attendance.clockOut)}
-                            </div>
-                            {attendance.isEarlyLeave && (
-                              <div className="text-xs text-orange-600 dark:text-orange-400 flex items-center gap-1 mt-1">
-                                <AlertCircle className="w-3 h-3" />
-                                Pulang cepat {attendance.earlyLeaveMinutes} menit
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-sm text-gray-400 dark:text-gray-500">-</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {attendance.totalHours ? (
-                          <div className="text-sm font-medium tabular-nums text-gray-900 dark:text-gray-100">{attendance.totalHours} jam</div>
-                        ) : (
-                          <span className="text-sm text-gray-400 dark:text-gray-500">-</span>
-                        )}
-                        {attendance.overtimeHours && attendance.overtimeHours > 0 && (
-                          <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">+{attendance.overtimeHours} OT</div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(attendance)}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {!String(attendance.id).startsWith("missing-") && (
-                          <Link
-                            to={`/hr/attendance/${attendance.id}`}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                            title="Detail"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Link>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+      <DataTable
+        columns={columns}
+        data={rows}
+        keyExtractor={(r: RosterRow) => r.id}
+        isLoading={isLoading}
+        emptyMessage="Tidak ada data absensi"
+        emptyIcon={<Clock className="w-16 h-16" />}
+        onRowClick={(row: RosterRow) => setSelected(row)}
+        actions={(row: RosterRow) =>
+          row.needsApproval && !String(row.id).startsWith('missing-') ? (
+            <div className="flex items-center justify-end gap-1">
+              <Button
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  approve.mutate(row.id);
+                }}
+                disabled={approve.isPending || reject.isPending}
+              >
+                Setujui
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-red-600 hover:bg-red-50"
+                title="Tolak"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  reject.mutate(row.id);
+                }}
+                disabled={approve.isPending || reject.isPending}
+              >
+                Tolak
+              </Button>
             </div>
+          ) : undefined
+        }
+      />
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                <div className="text-sm tabular-nums text-gray-600 dark:text-gray-400">
-                  Menampilkan {(page - 1) * limit + 1} - {Math.min(page * limit, total)} dari {total}
+      <p className="text-center text-xs text-muted-foreground">
+        Klik baris untuk melihat detail kehadiran · Setujui/Tolak hanya muncul untuk clock in/out di luar lokasi kerja
+      </p>
+
+      <Dialog
+        open={!!selected}
+        onOpenChange={(open) => {
+          if (!open) setSelected(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{selected ? displayNameOf(selected) : ''}</DialogTitle>
+          </DialogHeader>
+          {selected && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-lg border bg-muted text-sm font-medium text-muted-foreground">
+                  {initialsOf(selected)}
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800"
-                  >
-                    Previous
-                  </button>
-                  <button
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800"
-                  >
-                    Next
-                  </button>
+                <div>
+                  <p className="text-xs text-muted-foreground">
+                    {selected.employee?.employeeCode}
+                    {selected.branch ? ` · ${selected.branch.name}` : ''}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Shift{selected.shiftName ? ` · ${selected.shiftName}` : ''} · {formatDate(selected.date || date)}
+                  </p>
                 </div>
               </div>
-            )}
-          </>
-        )}
-      </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <LocationBlock
+                  label="Masuk"
+                  time={selected.clockIn}
+                  schedule={selected.scheduleIn}
+                  loc={selected.clockInLocation}
+                  lat={selected.clockInLat}
+                  lng={selected.clockInLng}
+                />
+                <LocationBlock
+                  label="Keluar"
+                  time={selected.clockOut}
+                  schedule={selected.scheduleOut}
+                  loc={selected.clockOutLocation}
+                  lat={selected.clockOutLat}
+                  lng={selected.clockOutLng}
+                />
+              </div>
+
+              {selected.note && (
+                <div className="bg-orange-50 dark:bg-orange-950 border-l-4 border-orange-500 rounded-lg p-4">
+                  <p className="mb-0.5 text-xs font-medium">Note</p>
+                  <p className="text-sm">{selected.note}</p>
+                </div>
+              )}
+
+              {selected.needsApproval && !String(selected.id).startsWith('missing-') && (
+                <div className="flex gap-2">
+                  <Button
+                    className="flex-1"
+                    onClick={() => approve.mutate(selected.id)}
+                    disabled={approve.isPending || reject.isPending}
+                  >
+                    Setujui kehadiran
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 text-red-600 hover:bg-red-50"
+                    onClick={() => reject.mutate(selected.id)}
+                    disabled={approve.isPending || reject.isPending}
+                  >
+                    Tolak
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
-

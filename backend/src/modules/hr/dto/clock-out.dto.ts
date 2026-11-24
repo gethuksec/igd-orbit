@@ -1,5 +1,6 @@
-import { IsEnum, IsOptional, IsString, IsNumber, IsUrl } from 'class-validator';
+import { IsEnum, IsOptional, IsString, IsNumber, Matches } from 'class-validator';
 import { Type } from 'class-transformer';
+import { SELFIE_URL_MESSAGE, SELFIE_URL_PATTERN } from './selfie-url';
 
 export class ClockOutDto {
   @IsEnum(['fingerprint', 'manual', 'mobile'])
@@ -26,6 +27,6 @@ export class ClockOutDto {
 
   @IsOptional()
   @IsString()
-  @IsUrl({}, { message: 'photoUrl must be a valid URL from /attendance/selfie upload' })
+  @Matches(SELFIE_URL_PATTERN, { message: SELFIE_URL_MESSAGE })
   photoUrl?: string;
 }

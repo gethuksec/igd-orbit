@@ -72,6 +72,37 @@ export function assertMobileClockProof(
   return { distanceMeters };
 }
 
+/**
+ * WS-290: mobile clock distance check that does NOT throw when outside the
+ * radius — returns { outside } so the caller can record a pending
+ * luar-lokasi approval instead (alasan mandatory). GPS + selfie presence
+ * is still enforced exactly like assertMobileClockProof.
+ */
+export function mobileClockOutside(
+  dto: MobileClockProof,
+  branch: { latitude?: unknown; longitude?: unknown; attendanceRadiusM?: unknown },
+): { outside: boolean; distanceMeters: number | null } {
+  if (
+    dto.latitude === undefined ||
+    dto.latitude === null ||
+    dto.longitude === undefined ||
+    dto.longitude === null
+  ) {
+    throw new BadRequestException('Lokasi GPS wajib untuk absen via HP');
+  }
+  if (!dto.photoUrl) {
+    throw new BadRequestException('Foto selfie wajib untuk absen via HP');
+  }
+  const bLat = branch.latitude == null ? null : Number(branch.latitude);
+  const bLng = branch.longitude == null ? null : Number(branch.longitude);
+  if (bLat === null || bLng === null || Number.isNaN(bLat) || Number.isNaN(bLng)) {
+    return { outside: false, distanceMeters: null }; // branch not geotagged → check skipped
+  }
+  const radius = Number(branch.attendanceRadiusM ?? 100);
+  const distanceMeters = Math.round(haversineMeters(Number(dto.latitude), Number(dto.longitude), bLat, bLng));
+  return { outside: distanceMeters > radius, distanceMeters };
+}
+
 @Injectable()
 export class AttendanceService {
   private readonly storage = new StorageService();
@@ -154,10 +185,18 @@ export class AttendanceService {
       throw new NotFoundException('Branch not found');
     }
 
-    // IGDERP-275: mobile clock requires selfie + GPS inside branch radius
+    // WS-290: mobile clock outside the branch radius no longer hard-rejects —
+    // with mandatory alasan it records a pending luar-lokasi approval instead.
     const isMobile = dto.method === 'mobile';
+    let pendingApproval = false;
     if (isMobile) {
-      assertMobileClockProof(dto, branch as any);
+      const check = mobileClockOutside(dto, branch as any);
+      if (check.outside) {
+        if (!dto.notes || !dto.notes.trim()) {
+          throw new BadRequestException('Alasan wajib diisi untuk absen di luar lokasi');
+        }
+        pendingApproval = true;
+      }
     }
 
     // Calculate if late — IGDERP-265 Q6 (roster-first): resolved shift time
@@ -226,6 +265,7 @@ export class AttendanceService {
         isLate,
         lateMinutes,
         status: 'present',
+        ...(pendingApproval ? { approvalStatus: 'pending' } : {}),
         updatedAt: new Date(),
       },
       create: {
@@ -242,6 +282,7 @@ export class AttendanceService {
         status: 'present',
         isLate,
         lateMinutes,
+        approvalStatus: pendingApproval ? 'pending' : 'none',
       },
       include: {
         employee: {
@@ -293,9 +334,17 @@ export class AttendanceService {
       throw new BadRequestException('Cannot clock out without clocking in first');
     }
 
-    // IGDERP-275: mobile clock-out requires selfie + GPS inside branch radius
+    // WS-290: mobile clock-out outside radius → pending approval (alasan mandatory).
+    // A record already pending from clock-in stays pending.
+    let clockOutOutside = false;
     if (dto.method === 'mobile') {
-      assertMobileClockProof(dto, attendance.branch as any);
+      const check = mobileClockOutside(dto, attendance.branch as any);
+      clockOutOutside = check.outside;
+      if (check.outside) {
+        if (!dto.notes || !dto.notes.trim()) {
+          throw new BadRequestException('Alasan wajib diisi untuk absen di luar lokasi');
+        }
+      }
     }
 
     // Calculate work hours
@@ -342,6 +391,7 @@ export class AttendanceService {
         isEarlyLeave,
         earlyLeaveMinutes,
         totalHours: workHours.greaterThan(0) ? workHours : new Decimal(0),
+        ...(clockOutOutside ? { approvalStatus: 'pending' } : {}),
         updatedAt: new Date(),
       },
       include: {
@@ -793,6 +843,257 @@ export class AttendanceService {
     }
 
     return { data: rows, total: rows.length };
+  }
+
+  /**
+   * WS-290: daily presensi roster — every active employee (branch-scoped)
+   * with their attendance record (if any), resolved shift schedule and a
+   * display status in {hadir, terlambat, alpha, cuti, libur}.
+   * needsApproval = record.approvalStatus === 'pending' (luar lokasi).
+   */
+  async getRoster(
+    dateInput: Date | string,
+    opts: {
+      userId?: string;
+      branchId?: string;
+      branchIds?: string[];
+      search?: string;
+      status?: string;
+    } = {},
+  ) {
+    const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
+    const day = new Date(d);
+    day.setHours(0, 0, 0, 0);
+
+    const empWhere: any = { isActive: true };
+    if (opts.branchId) {
+      empWhere.branchId = opts.branchId;
+    } else if (opts.branchIds?.length) {
+      empWhere.branchId = { in: opts.branchIds };
+    }
+    if (opts.search) {
+      empWhere.OR = [
+        { user: { fullName: { contains: opts.search, mode: 'insensitive' } } },
+        { employeeCode: { contains: opts.search, mode: 'insensitive' } },
+      ];
+    }
+    if (opts.userId) {
+      const self = await this.prisma.employee.findUnique({ where: { userId: opts.userId } });
+      empWhere.id = self ? self.id : '__none__';
+    }
+
+    const employees: any[] = await this.prisma.employee.findMany({
+      where: empWhere,
+      include: {
+        user: true,
+        branch: true,
+        position: { select: { rank: true, defaultShiftId: true } },
+        defaultShift: true,
+      },
+      orderBy: { employeeCode: 'asc' },
+    });
+    const ids = employees.map((e) => e.id);
+    if (!ids.length) {
+      return { date: day, data: [], counts: { hadir: 0, terlambat: 0, alpha: 0, cuti: 0, libur: 0 }, total: 0 };
+    }
+
+    const db = this.prisma as any;
+    const [entries, assignments, records, leaves] = await Promise.all([
+      db.shiftRosterEntry.findMany({
+        where: { employeeId: { in: ids }, date: day },
+        include: { shift: true },
+      }),
+      db.shiftAssignment.findMany({
+        where: {
+          employeeId: { in: ids },
+          startDate: { lte: day },
+          OR: [{ endDate: null }, { endDate: { gte: day } }],
+        },
+        include: { shift: true },
+      }),
+      this.prisma.attendance.findMany({
+        where: { employeeId: { in: ids }, date: day },
+        include: { branch: true },
+      }),
+      this.prisma.leaveRequest.findMany({
+        where: {
+          employeeId: { in: ids },
+          status: 'approved',
+          startDate: { lte: day },
+          endDate: { gte: day },
+        },
+        select: { employeeId: true },
+      }),
+    ]);
+
+    // Title-default shifts (position.defaultShiftId) in one query.
+    const titleShiftIds = [...new Set(employees.map((e) => e.position?.defaultShiftId).filter(Boolean))];
+    const titleShifts = titleShiftIds.length
+      ? await db.shift.findMany({ where: { id: { in: titleShiftIds }, deletedAt: null } })
+      : [];
+    const titleShiftById = new Map(titleShifts.map((s: any) => [s.id, s]));
+
+    const entryByEmp = new Map(entries.map((r: any) => [r.employeeId, r]));
+    const assignByEmp = new Map<string, any[]>();
+    for (const a of assignments) {
+      if (!assignByEmp.has(a.employeeId)) assignByEmp.set(a.employeeId, []);
+      assignByEmp.get(a.employeeId)!.push(a);
+    }
+    const recByEmp = new Map(records.map((r: any) => [r.employeeId, r]));
+    const leaveSet = new Set(leaves.map((l: any) => l.employeeId));
+    const weekday = ((day.getDay() + 6) % 7) + 1; // 1=Mon..7=Sun
+
+    const schedOf = (shift: any) =>
+      shift && shift.deletedAt === null
+        ? { in: shift.clockIn ?? null, out: shift.clockOut ?? null, name: shift.name ?? null }
+        : null;
+
+    const all = employees.map((e) => {
+      const rec = recByEmp.get(e.id);
+      let schedule = { in: null as string | null, out: null as string | null, name: null as string | null };
+      let libur = false;
+      const exempt = e.position && e.position.rank <= 2; // L1-2: no shift hours
+      if (!exempt) {
+        const entry: any = entryByEmp.get(e.id);
+        if (entry) {
+          if (!entry.shiftId) {
+            libur = true;
+          } else {
+            const s = schedOf(entry.shift);
+            if (s) schedule = s;
+          }
+        } else {
+          const hit = (assignByEmp.get(e.id) ?? []).find((a) => (a.weekdays ?? []).includes(weekday));
+          if (hit?.shift && hit.shift.deletedAt === null) {
+            const off = (hit.offDates ?? []).some(
+              (x: Date | string) => new Date(x).toDateString() === day.toDateString(),
+            );
+            if (off) {
+              libur = true;
+            } else {
+              schedule = schedOf(hit.shift)!;
+            }
+          } else if (e.defaultShift && e.defaultShift.deletedAt === null) {
+            schedule = schedOf(e.defaultShift)!;
+          } else if (e.position?.defaultShiftId) {
+            const s = schedOf(titleShiftById.get(e.position.defaultShiftId));
+            if (s) schedule = s;
+          }
+        }
+      }
+
+      let displayStatus: string;
+      if (rec) {
+        if (rec.status === 'present') displayStatus = rec.isLate ? 'terlambat' : 'hadir';
+        else if (rec.status === 'absent') displayStatus = 'alpha';
+        else if (rec.status === 'leave') displayStatus = 'cuti';
+        else if (rec.status === 'holiday') displayStatus = 'libur';
+        else displayStatus = 'hadir';
+      } else if (libur) {
+        displayStatus = 'libur';
+      } else if (leaveSet.has(e.id)) {
+        displayStatus = 'cuti';
+      } else {
+        displayStatus = 'alpha';
+      }
+
+      return {
+        id: rec?.id ?? `missing-${e.id}`,
+        employeeId: e.id,
+        date: day,
+        displayStatus,
+        status: rec?.status ?? null,
+        clockIn: rec?.clockIn ?? null,
+        clockOut: rec?.clockOut ?? null,
+        clockInLocation: rec?.clockInLocation ?? null,
+        clockOutLocation: rec?.clockOutLocation ?? null,
+        clockInMethod: rec?.clockInMethod ?? null,
+        clockOutMethod: rec?.clockOutMethod ?? null,
+        scheduleIn: schedule.in,
+        scheduleOut: schedule.out,
+        shiftName: schedule.name,
+        isLate: rec?.isLate ?? false,
+        lateMinutes: rec?.lateMinutes ?? 0,
+        isEarlyLeave: rec?.isEarlyLeave ?? false,
+        earlyLeaveMinutes: rec?.earlyLeaveMinutes ?? 0,
+        totalHours: rec?.totalHours?.toNumber?.() ?? null,
+        clockInLat: rec?.clockInLat?.toNumber?.() ?? null,
+        clockInLng: rec?.clockInLng?.toNumber?.() ?? null,
+        clockOutLat: rec?.clockOutLat?.toNumber?.() ?? null,
+        clockOutLng: rec?.clockOutLng?.toNumber?.() ?? null,
+        clockInPhotoUrl: rec?.clockInPhotoUrl ?? null,
+        clockOutPhotoUrl: rec?.clockOutPhotoUrl ?? null,
+        needsApproval: (rec as any)?.approvalStatus === 'pending',
+        approvalStatus: (rec as any)?.approvalStatus ?? 'none',
+        note: rec?.internalNotes ?? null,
+        employee: { id: e.id, employeeCode: e.employeeCode, user: e.user ? { fullName: e.user.fullName } : null },
+        branch: rec?.branch ?? e.branch ?? null,
+      };
+    });
+
+    const counts = { hadir: 0, terlambat: 0, alpha: 0, cuti: 0, libur: 0 };
+    for (const r of all) {
+      if ((counts as any)[r.displayStatus] !== undefined) (counts as any)[r.displayStatus] += 1;
+    }
+    const q = (opts.status || '').toLowerCase();
+    const data = q && q !== 'all' ? all.filter((r) => r.displayStatus === q) : all;
+    return { date: day, data, counts, total: data.length };
+  }
+
+  /**
+   * WS-290: approve a pending luar-lokasi attendance (atasan: HS/SPV/CHR).
+   * Status stays as recorded; approval clears the pending flag.
+   */
+  async approveAttendance(id: string, userId: string, userRoles: string[], reason?: string) {
+    const hasPermission = ['HS', 'SPV', 'CHR'].some((role) => userRoles.includes(role));
+    if (!hasPermission) {
+      throw new ForbiddenException('Only HS, SPV, or CHR can approve presensi');
+    }
+    const rec = await this.prisma.attendance.findUnique({ where: { id } });
+    if (!rec) throw new NotFoundException('Attendance record not found');
+    if ((rec as any).approvalStatus !== 'pending') {
+      throw new BadRequestException('Attendance ini tidak menunggu persetujuan');
+    }
+    return this.prisma.attendance.update({
+      where: { id },
+      data: {
+        approvalStatus: 'approved',
+        approvedBy: userId,
+        approvedAt: new Date(),
+        adjustedBy: userId,
+        adjustmentReason: reason || 'Disetujui atasan',
+        updatedAt: new Date(),
+      } as any,
+      include: { employee: { include: { user: true } }, branch: true },
+    });
+  }
+
+  /**
+   * WS-290: reject a pending luar-lokasi attendance — falls back to alpha.
+   */
+  async rejectAttendance(id: string, userId: string, userRoles: string[], reason?: string) {
+    const hasPermission = ['HS', 'SPV', 'CHR'].some((role) => userRoles.includes(role));
+    if (!hasPermission) {
+      throw new ForbiddenException('Only HS, SPV, or CHR can reject presensi');
+    }
+    const rec = await this.prisma.attendance.findUnique({ where: { id } });
+    if (!rec) throw new NotFoundException('Attendance record not found');
+    if ((rec as any).approvalStatus !== 'pending') {
+      throw new BadRequestException('Attendance ini tidak menunggu persetujuan');
+    }
+    return this.prisma.attendance.update({
+      where: { id },
+      data: {
+        approvalStatus: 'rejected',
+        status: 'absent',
+        approvedBy: userId,
+        approvedAt: new Date(),
+        adjustedBy: userId,
+        adjustmentReason: reason || 'Ditolak atasan',
+        updatedAt: new Date(),
+      } as any,
+      include: { employee: { include: { user: true } }, branch: true },
+    });
   }
 
   /**

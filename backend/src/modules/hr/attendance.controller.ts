@@ -29,6 +29,13 @@ interface ExpressRequest extends Request {
   };
 }
 
+/**
+ * Roles that see presensi across all staff (no self-scoping).
+ * SUPERADMIN included: the god account has no employee row, so scoping
+ * it to "self" would return an empty roster (WS-290b).
+ */
+const MANAGERIAL_ROLES = ['OWNER', 'CFO', 'CHR', 'HS', 'SPV', 'SUPERADMIN'];
+
 @Controller('attendance')
 @UseGuards(JwtAuthGuard)
 export class AttendanceController {
@@ -73,6 +80,33 @@ export class AttendanceController {
   }
 
   /**
+   * Daily presensi roster — all employees with schedule + display status.
+   * GET /api/v1/attendance/roster?date=YYYY-MM-DD&branchId=&search=&status=
+   */
+  @Get('roster')
+  async getRoster(
+    @Request() req: ExpressRequest,
+    @Query('date') date?: string,
+    @Query('branchId') branchId?: string,
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+  ) {
+    const hasHighLevelRole = MANAGERIAL_ROLES.some((role) => req.user.roles.includes(role));
+    const userId = hasHighLevelRole ? undefined : req.user.id;
+    let branchIds: string[] | undefined;
+    if (!branchId) {
+      branchIds = resolveBranchFilter(req, undefined).branchIds;
+    }
+    return this.attendanceService.getRoster(date || new Date(), {
+      userId,
+      branchId,
+      branchIds,
+      search,
+      status,
+    });
+  }
+
+  /**
    * List attendance records
    * GET /api/v1/attendance
    */
@@ -89,7 +123,7 @@ export class AttendanceController {
     const start = startDate ? new Date(startDate) : undefined;
     const end = endDate ? new Date(endDate) : undefined;
     // Only filter by userId if user doesn't have high-level roles (for viewing all)
-    const hasHighLevelRole = ['OWNER', 'CFO', 'CHR', 'HS', 'SPV'].some((role) => req.user.roles.includes(role));
+    const hasHighLevelRole = MANAGERIAL_ROLES.some((role) => req.user.roles.includes(role));
     const userId = hasHighLevelRole ? undefined : req.user.id;
     // "Semua Cabang" default (22-Agu-2026): no branchId → restrict to user's branches
     let branchIds: string[] | undefined;
@@ -144,6 +178,36 @@ export class AttendanceController {
       req.user.id,
       req.user.roles,
     );
+  }
+
+  /**
+   * Approve pending luar-lokasi presensi (atasan: HS/SPV/CHR)
+   * POST /api/v1/attendance/:id/approve (body: { reason? })
+   */
+  @Post(':id/approve')
+  @UseGuards(RolesGuard)
+  @Roles('HS', 'SPV', 'CHR', 'SUPERADMIN')
+  async approveAttendance(
+    @Request() req: ExpressRequest,
+    @Param('id') id: string,
+    @Body() body: { reason?: string },
+  ) {
+    return this.attendanceService.approveAttendance(id, req.user.id, req.user.roles, body?.reason);
+  }
+
+  /**
+   * Reject pending luar-lokasi presensi — falls back to alpha
+   * POST /api/v1/attendance/:id/reject (body: { reason? })
+   */
+  @Post(':id/reject')
+  @UseGuards(RolesGuard)
+  @Roles('HS', 'SPV', 'CHR', 'SUPERADMIN')
+  async rejectAttendance(
+    @Request() req: ExpressRequest,
+    @Param('id') id: string,
+    @Body() body: { reason?: string },
+  ) {
+    return this.attendanceService.rejectAttendance(id, req.user.id, req.user.roles, body?.reason);
   }
 
   /**
