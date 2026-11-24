@@ -103,6 +103,59 @@ export function mobileClockOutside(
   return { outside: distanceMeters > radius, distanceMeters };
 }
 
+export interface ClockAnchor {
+  latitude?: unknown;
+  longitude?: unknown;
+  attendanceRadiusM?: unknown;
+  radiusM?: unknown;
+  name?: string;
+}
+
+export function clockAnchorRadius(a: ClockAnchor): number {
+  const raw = (a as any).attendanceRadiusM ?? (a as any).radiusM ?? 100;
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : 100;
+}
+
+/**
+ * IGDERP-305: ANY-match across all resolved anchors. Inside when within at
+ * least one anchor radius; outside only when outside EVERY tagged anchor.
+ * No tagged anchor at all → { outside: false } (legacy skip). GPS + selfie
+ * presence enforced exactly like mobileClockOutside.
+ */
+export function isOutsideAllAnchors(
+  dto: MobileClockProof,
+  anchors: ClockAnchor[],
+): { outside: boolean; distanceMeters: number | null } {
+  if (
+    dto.latitude === undefined ||
+    dto.latitude === null ||
+    dto.longitude === undefined ||
+    dto.longitude === null
+  ) {
+    throw new BadRequestException('Lokasi GPS wajib untuk absen via HP');
+  }
+  if (!dto.photoUrl) {
+    throw new BadRequestException('Foto selfie wajib untuk absen via HP');
+  }
+  const tagged = (anchors ?? []).filter((a) => {
+    if (!a) return false;
+    const lat = a.latitude == null ? null : Number(a.latitude);
+    const lng = a.longitude == null ? null : Number(a.longitude);
+    return lat !== null && lng !== null && !Number.isNaN(lat) && !Number.isNaN(lng);
+  });
+  if (!tagged.length) return { outside: false, distanceMeters: null };
+  let nearest: number | null = null;
+  for (const a of tagged) {
+    const d = Math.round(
+      haversineMeters(Number(dto.latitude), Number(dto.longitude), Number(a.latitude), Number(a.longitude)),
+    );
+    if (nearest === null || d < nearest) nearest = d;
+    if (d <= clockAnchorRadius(a)) return { outside: false, distanceMeters: nearest };
+  }
+  return { outside: true, distanceMeters: nearest };
+}
+
 @Injectable()
 export class AttendanceService {
   private readonly storage = new StorageService();
@@ -135,6 +188,54 @@ export class AttendanceService {
     const name = `selfie-${userId}-${Date.now()}${ext}`;
     const url = this.storage.save('attendance-selfies', name, file.buffer);
     return { url };
+  }
+
+  /**
+   * IGDERP-305: resolve every radius anchor for a mobile clock — the
+   * selected branch (when geotagged), working locations linked to that
+   * branch, and the employee's active-contract working locations (e.g. HQ
+   * Jember for Pusat staff whose outlet branch was never geotagged, so a
+   * branch-only check silently skips and luar-lokasi never becomes pending).
+   */
+  private async resolveClockAnchors(
+    employeeId: string,
+    branch: { id: string; latitude?: unknown; longitude?: unknown; attendanceRadiusM?: unknown },
+  ): Promise<ClockAnchor[]> {
+    const anchors: ClockAnchor[] = [];
+    if (branch) anchors.push(branch);
+    try {
+      const db = this.prisma as any;
+      if (typeof db.workingLocation?.findMany === 'function') {
+        const linked: any[] = await db.workingLocation.findMany({
+          where: { branchId: branch.id, isActive: true },
+        });
+        anchors.push(...linked);
+      }
+    } catch {
+      // legacy DB without working_locations → branch anchor only
+    }
+    try {
+      const db = this.prisma as any;
+      if (typeof db.contract?.findMany === 'function' && typeof db.contractWorkingLocation?.findMany === 'function') {
+        const contracts: any[] = await db.contract.findMany({
+          where: { employeeId, status: 'active' },
+          select: { id: true },
+        });
+        const ids = contracts.map((c) => c.id);
+        if (ids.length) {
+          const links: any[] = await db.contractWorkingLocation.findMany({
+            where: { contractId: { in: ids } },
+            include: { workingLocation: true },
+          });
+          for (const l of links) {
+            if (l?.workingLocation && l.workingLocation.isActive !== false) anchors.push(l.workingLocation);
+          }
+        }
+      }
+    } catch {
+      // contract anchors are optional enrichment
+    }
+    return anchors;
   }
 
   /**
@@ -185,12 +286,15 @@ export class AttendanceService {
       throw new NotFoundException('Branch not found');
     }
 
-    // WS-290: mobile clock outside the branch radius no longer hard-rejects —
-    // with mandatory alasan it records a pending luar-lokasi approval instead.
+    // IGDERP-305: mobile clock outside EVERY known anchor (branch +
+    // branch-linked + active-contract working locations) no longer
+    // hard-rejects — with mandatory alasan it records a pending luar-lokasi
+    // approval instead. No tagged anchor at all → check skipped (legacy).
     const isMobile = dto.method === 'mobile';
     let pendingApproval = false;
     if (isMobile) {
-      const check = mobileClockOutside(dto, branch as any);
+      const anchors = await this.resolveClockAnchors(employee.id, branch as any);
+      const check = isOutsideAllAnchors(dto, anchors);
       if (check.outside) {
         if (!dto.notes || !dto.notes.trim()) {
           throw new BadRequestException('Alasan wajib diisi untuk absen di luar lokasi');
@@ -334,11 +438,13 @@ export class AttendanceService {
       throw new BadRequestException('Cannot clock out without clocking in first');
     }
 
-    // WS-290: mobile clock-out outside radius → pending approval (alasan mandatory).
-    // A record already pending from clock-in stays pending.
+    // IGDERP-305: mobile clock-out outside every known anchor → pending
+    // approval (alasan mandatory). A record already pending from clock-in
+    // stays pending. No tagged anchor at all → check skipped (legacy).
     let clockOutOutside = false;
     if (dto.method === 'mobile') {
-      const check = mobileClockOutside(dto, attendance.branch as any);
+      const anchors = await this.resolveClockAnchors(attendance.employeeId, attendance.branch as any);
+      const check = isOutsideAllAnchors(dto, anchors);
       clockOutOutside = check.outside;
       if (check.outside) {
         if (!dto.notes || !dto.notes.trim()) {
@@ -984,7 +1090,10 @@ export class AttendanceService {
 
       let displayStatus: string;
       if (rec) {
-        if (rec.status === 'present') displayStatus = rec.isLate ? 'terlambat' : 'hadir';
+        // IGDERP-305: luar-lokasi pending counts as alpha (default alpha →
+        // hadir only after ACC atasan langsung), so it never inflates hadir.
+        if ((rec as any).approvalStatus === 'pending') displayStatus = 'alpha';
+        else if (rec.status === 'present') displayStatus = rec.isLate ? 'terlambat' : 'hadir';
         else if (rec.status === 'absent') displayStatus = 'alpha';
         else if (rec.status === 'leave') displayStatus = 'cuti';
         else if (rec.status === 'holiday') displayStatus = 'libur';
@@ -1045,7 +1154,7 @@ export class AttendanceService {
    * Status stays as recorded; approval clears the pending flag.
    */
   async approveAttendance(id: string, userId: string, userRoles: string[], reason?: string) {
-    const hasPermission = ['HS', 'SPV', 'CHR'].some((role) => userRoles.includes(role));
+    const hasPermission = ['HS', 'SPV', 'CHR', 'SUPERADMIN'].some((role) => userRoles.includes(role));
     if (!hasPermission) {
       throw new ForbiddenException('Only HS, SPV, or CHR can approve presensi');
     }
@@ -1072,7 +1181,7 @@ export class AttendanceService {
    * WS-290: reject a pending luar-lokasi attendance — falls back to alpha.
    */
   async rejectAttendance(id: string, userId: string, userRoles: string[], reason?: string) {
-    const hasPermission = ['HS', 'SPV', 'CHR'].some((role) => userRoles.includes(role));
+    const hasPermission = ['HS', 'SPV', 'CHR', 'SUPERADMIN'].some((role) => userRoles.includes(role));
     if (!hasPermission) {
       throw new ForbiddenException('Only HS, SPV, or CHR can reject presensi');
     }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable, StatusDot } from '@/components/shared';
 import type { Column } from '@/components/shared';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { hrService, type RosterRow, type RosterDisplayStatus } from '@/services/hr.service';
+import { reverseGeocodeStreet } from '@/utils/reverse-geocode';
 import { useBranchFilter } from '@/components/branch/BranchFilter';
 import { formatDate } from '@/utils/format';
 
@@ -170,6 +171,18 @@ function MapCard({ label, time, schedule, loc, lat, lng }: {
 }) {
   const t = hm(time);
   const place = loc || (lat != null && lng != null ? `${lat}, ${lng}` : null);
+  const [street, setStreet] = useState<string | null>(null);
+  useEffect(() => {
+    setStreet(null);
+    if (lat == null || lng == null) return;
+    let alive = true;
+    reverseGeocodeStreet(lat, lng).then((s) => {
+      if (alive && s) setStreet(s);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [lat, lng]);
   return (
     <div className="overflow-hidden rounded-lg border">
       <div className="px-3 pb-1 pt-2.5">
@@ -188,7 +201,7 @@ function MapCard({ label, time, schedule, loc, lat, lng }: {
             loading="lazy"
           />
           <div className="px-3 py-2.5">
-            {place && <p className="text-xs font-medium">{place}</p>}
+            {(street || place) && <p className="text-xs font-medium">{street || place}</p>}
             <p className="mt-0.5 font-mono text-[11px] tabular-nums text-muted-foreground">
               {lat}, {lng}
             </p>
@@ -332,7 +345,16 @@ export default function AttendanceList() {
       header: 'Status',
       cell: (row) => {
         const meta = STATUS_META[row.displayStatus] || STATUS_META.alpha;
-        return <StatusDot tone={meta.tone}>{meta.label}</StatusDot>;
+        return (
+          <div>
+            <StatusDot tone={meta.tone}>{meta.label}</StatusDot>
+            {row.needsApproval && (
+              <div className="mt-1 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                Menunggu ACC atasan
+              </div>
+            )}
+          </div>
+        );
       },
     },
   ];
