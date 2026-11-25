@@ -7,7 +7,7 @@ import {
 import { PrismaService } from '../../shared/services';
 import { CreateBrandDto, UpdateBrandDto, ListBrandsDto } from './dto';
 import { Prisma } from '@prisma/client';
-import { randomBytes } from 'crypto';
+import { generateMasterCode } from '../../common/master-code.util';
 
 /**
  * Brands Service
@@ -19,7 +19,7 @@ export class BrandsService {
 
   /**
    * Generate unique brand code
-   * Format: BRD-{random}
+   * Format: flat 10-char alphanumeric [A-Z0-9] (IGDERP-316)
    * @returns Generated code string
    */
   async generateCode(): Promise<string> {
@@ -29,8 +29,7 @@ export class BrandsService {
     const maxAttempts = 10;
 
     while (!isUnique && attempts < maxAttempts) {
-      const random = randomBytes(4).toString('hex').toUpperCase();
-      code = `BRD-${random}`;
+      code = generateMasterCode();
 
       const existing = await this.prisma.brand.findUnique({
         where: { code },
@@ -102,19 +101,60 @@ export class BrandsService {
       this.prisma.brand.count({ where }),
     ]);
 
+    const rows = brands.map((brand) => ({
+      id: brand.id,
+      code: brand.code,
+      name: brand.name,
+      description: brand.description,
+      logoUrl: brand.logoUrl,
+      website: (brand as any).website || null,
+      productCount: brand._count.products,
+      totalSku: brand._count.products,
+      totalStock: 0,
+      isActive: brand.isActive,
+      createdAt: brand.createdAt,
+      updatedAt: brand.updatedAt,
+    }));
+
+    // Enhancement-only aggregate: totalStock (sum of quantityAvailable over
+    // the brand's products). Degrades to 0 on query failure.
+    try {
+      const ids = rows.map((r) => r.id);
+      if (ids.length > 0) {
+        const products = await this.prisma.product.findMany({
+          where: { brandId: { in: ids } },
+          select: { id: true, brandId: true },
+        });
+        const productIds = products.map((p) => p.id);
+        const stockByProduct = new Map<string, number>();
+        if (productIds.length > 0) {
+          const sums = await this.prisma.productStock.groupBy({
+            by: ['productId'],
+            where: { productId: { in: productIds } },
+            _sum: { quantityAvailable: true },
+          });
+          for (const s of sums) {
+            stockByProduct.set(s.productId, Number(s._sum.quantityAvailable ?? 0));
+          }
+        }
+        const stockByBrand = new Map<string, number>();
+        for (const p of products) {
+          if (!p.brandId) continue;
+          stockByBrand.set(
+            p.brandId,
+            (stockByBrand.get(p.brandId) ?? 0) + (stockByProduct.get(p.id) ?? 0),
+          );
+        }
+        for (const r of rows) {
+          r.totalStock = stockByBrand.get(r.id) ?? 0;
+        }
+      }
+    } catch (e) {
+      console.warn('brands.findAll aggregates degraded:', (e as Error)?.message || e);
+    }
+
     return {
-      data: brands.map((brand) => ({
-        id: brand.id,
-        code: brand.code,
-        name: brand.name,
-        description: brand.description,
-        logoUrl: brand.logoUrl,
-        website: (brand as any).website || null,
-        productCount: brand._count.products,
-        isActive: brand.isActive,
-        createdAt: brand.createdAt,
-        updatedAt: brand.updatedAt,
-      })),
+      data: rows,
       meta: {
         total,
         page: pageNum,

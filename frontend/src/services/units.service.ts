@@ -77,4 +77,13 @@ export const unitsService = {
       throw error;
     }
   },
+
+  async generateCode(): Promise<{ code: string }> {
+    try {
+      const response = await api.get('/units/generate-code');
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
 };

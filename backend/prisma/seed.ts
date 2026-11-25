@@ -338,10 +338,10 @@ async function main() {
 
   console.log('📁 Creating categories...');
   await prisma.category.upsert({
-    where: { code: 'CAT-ELEC' },
+    where: { code: 'ELEC000001' },
     update: {},
     create: {
-      code: 'CAT-ELEC',
+      code: 'ELEC000001',
       name: 'Elektronik',
       description: 'Produk elektronik umum',
       isActive: true,
@@ -349,10 +349,10 @@ async function main() {
   });
 
   const catPhone = await prisma.category.upsert({
-    where: { code: 'CAT-PHONE' },
+    where: { code: 'PHONE00001' },
     update: {},
     create: {
-      code: 'CAT-PHONE',
+      code: 'PHONE00001',
       name: 'Handphone',
       description: 'Smartphone dan aksesoris',
       isActive: true,
@@ -360,10 +360,10 @@ async function main() {
   });
 
   const catLaptop = await prisma.category.upsert({
-    where: { code: 'CAT-LAPTOP' },
+    where: { code: 'LAPTOP0001' },
     update: {},
     create: {
-      code: 'CAT-LAPTOP',
+      code: 'LAPTOP0001',
       name: 'Laptop',
       description: 'Laptop dan komputer',
       isActive: true,
@@ -371,10 +371,10 @@ async function main() {
   });
 
   const catSparepart = await prisma.category.upsert({
-    where: { code: 'CAT-SPAREPART' },
+    where: { code: 'SPAREPART1' },
     update: {},
     create: {
-      code: 'CAT-SPAREPART',
+      code: 'SPAREPART1',
       name: 'Sparepart',
       description: 'Sparepart untuk perbaikan handphone dan laptop',
       isActive: true,
@@ -382,10 +382,10 @@ async function main() {
   });
 
   const catAccessories = await prisma.category.upsert({
-    where: { code: 'CAT-ACCESSORIES' },
+    where: { code: 'ACCESSORY1' },
     update: {},
     create: {
-      code: 'CAT-ACCESSORIES',
+      code: 'ACCESSORY1',
       name: 'Accessories',
       description: 'Aksesoris handphone dan laptop',
       isActive: true,
@@ -395,10 +395,10 @@ async function main() {
   // 6. Create Brands
   console.log('🏷️ Creating brands...');
   const brandSamsung = await prisma.brand.upsert({
-    where: { code: 'BRAND-SAMSUNG' },
+    where: { code: 'SAMSUNG001' },
     update: {},
     create: {
-      code: 'BRAND-SAMSUNG',
+      code: 'SAMSUNG001',
       name: 'Samsung',
       description: 'Samsung Electronics',
       isActive: true,
@@ -406,10 +406,10 @@ async function main() {
   });
 
   const brandApple = await prisma.brand.upsert({
-    where: { code: 'BRAND-APPLE' },
+    where: { code: 'APPLE00001' },
     update: {},
     create: {
-      code: 'BRAND-APPLE',
+      code: 'APPLE00001',
       name: 'Apple',
       description: 'Apple Inc.',
       isActive: true,
@@ -417,10 +417,10 @@ async function main() {
   });
 
   const brandAsus = await prisma.brand.upsert({
-    where: { code: 'BRAND-ASUS' },
+    where: { code: 'ASUS000001' },
     update: {},
     create: {
-      code: 'BRAND-ASUS',
+      code: 'ASUS000001',
       name: 'ASUS',
       description: 'ASUS Computer',
       isActive: true,
@@ -428,10 +428,10 @@ async function main() {
   });
 
   const brandGeneric = await prisma.brand.upsert({
-    where: { code: 'BRAND-GENERIC' },
+    where: { code: 'GENERIC001' },
     update: {},
     create: {
-      code: 'BRAND-GENERIC',
+      code: 'GENERIC001',
       name: 'Generic',
       description: 'Brand generic untuk sparepart dan accessories',
       isActive: true,
@@ -439,10 +439,10 @@ async function main() {
   });
 
   const brandXiaomi = await prisma.brand.upsert({
-    where: { code: 'BRAND-XIAOMI' },
+    where: { code: 'XIAOMI0001' },
     update: {},
     create: {
-      code: 'BRAND-XIAOMI',
+      code: 'XIAOMI0001',
       name: 'Xiaomi',
       description: 'Xiaomi Electronics',
       isActive: true,
@@ -452,14 +452,14 @@ async function main() {
   // 7. Create Units
   console.log('📦 Creating units...');
   const unitPcs = await prisma.unit.upsert({
-    where: { code: 'PCS' },
+    where: { code: 'PCS0000001' },
     update: {},
-    create: { code: 'PCS', name: 'pcs', isActive: true },
+    create: { code: 'PCS0000001', name: 'pcs', isActive: true },
   });
   const unitService = await prisma.unit.upsert({
-    where: { code: 'SERVICE' },
+    where: { code: 'SERVICE001' },
     update: {},
-    create: { code: 'SERVICE', name: 'service', isActive: true },
+    create: { code: 'SERVICE001', name: 'service', isActive: true },
   });
 
   // 7. Create Products

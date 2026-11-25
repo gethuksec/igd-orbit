@@ -43,6 +43,18 @@ export class UnitsController {
   }
 
   /**
+   * Generate a fresh unique unit code for the popup Generate button.
+   * GET /api/v1/units/generate-code
+   * NOTE: registered before ':id' — Express matches routes in order.
+   */
+  @Get('generate-code')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA')
+  async generateCode() {
+    return { code: await this.unitsService.generateCode() };
+  }
+
+  /**
    * Get unit detail
    * GET /api/v1/units/:id
    * Permissions: OWNER, CFO, MGR, CSO, CMO, SPV, HS, ASA

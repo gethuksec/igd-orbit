@@ -9,7 +9,6 @@ import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { formatDateTimeId } from "@/lib/utils";
 
 type StatusFilter = "all" | "active" | "inactive";
 
@@ -23,9 +22,22 @@ export default function SizeList() {
   // Modal state
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [editingSize, setEditingSize] = useState<any>(null);
-  const [formData, setFormData] = useState({ name: "", isActive: true });
+  const [formData, setFormData] = useState({ code: "", name: "", isActive: true });
+  const [generatingCode, setGeneratingCode] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [sizeToDelete, setSizeToDelete] = useState<{ id: string; name: string } | null>(null);
+
+  const handleGenerateCode = async () => {
+    setGeneratingCode(true);
+    try {
+      const { code } = await sizesService.generateCode();
+      setFormData((prev) => ({ ...prev, code }));
+    } catch {
+      toast.error("Gagal generate kode");
+    } finally {
+      setGeneratingCode(false);
+    }
+  };
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["sizes", page, searchTerm, statusFilter],
@@ -60,17 +72,19 @@ export default function SizeList() {
 
   const saveMutation = useMutation({
     mutationFn: (data: any) => {
+      const submitData = { ...data };
+      if (!submitData.code) delete submitData.code;
       if (editingSize) {
-        return api.put(`/sizes/${editingSize.id}`, data);
+        return api.put(`/sizes/${editingSize.id}`, submitData);
       }
-      return api.post("/sizes", data);
+      return api.post("/sizes", submitData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sizes"] });
       toast.success(editingSize ? "Ukuran berhasil diupdate" : "Ukuran berhasil ditambahkan");
       setFormModalOpen(false);
       setEditingSize(null);
-      setFormData({ name: "", isActive: true });
+      setFormData({ code: "", name: "", isActive: true });
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || "Terjadi kesalahan");
@@ -79,13 +93,13 @@ export default function SizeList() {
 
   const openCreateModal= () => {
     setEditingSize(null);
-    setFormData({ name: "", isActive: true });
+    setFormData({ code: "", name: "", isActive: true });
     setFormModalOpen(true);
   };
 
   const openEditModal = (size: any) => {
     setEditingSize(size);
-    setFormData({ name: size.name || "", isActive: size.isActive ?? true });
+    setFormData({ code: size.code || "", name: size.name || "", isActive: size.isActive ?? true });
     setFormModalOpen(true);
   };
 
@@ -93,9 +107,6 @@ export default function SizeList() {
     e.preventDefault();
     saveMutation.mutate(formData);
   };
-
-
-  const activeCount = sizes.filter((s: any) => s.isActive).length;
 
 
   const deleteMutation = useMutation({
@@ -117,22 +128,21 @@ export default function SizeList() {
 
       header: "Ukuran",
       cell: (size) => (
-        <div className="flex items-center gap-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
-            <Maximize2 className="h-5 w-5" />
-          </div>
-          <div>
-            <div className="text-[15px] font-medium text-foreground">{size.name}</div>
-            <div className="text-xs text-muted-foreground mt-1 font-mono">{size.code || "-"}</div>
-          </div>
-        </div>
+        <div className="text-[15px] font-medium text-foreground">{size.name}</div>
       ),
     },
     {
-      key: "productCount",
-      header: "Produk",
+      key: "totalSku",
+      header: "Total SKU",
       cell: (size) => (
-        <div className="text-sm font-medium tabular-nums text-foreground">{size.productCount || 0}</div>
+        <div className="text-sm font-medium tabular-nums text-foreground">{size.totalSku ?? size.productCount ?? 0}</div>
+      ),
+    },
+    {
+      key: "totalStock",
+      header: "Total Stok",
+      cell: (size) => (
+        <div className="text-sm font-medium tabular-nums text-foreground">{size.totalStock ?? 0}</div>
       ),
     },
     {
@@ -142,15 +152,6 @@ export default function SizeList() {
         <StatusDot tone={size.isActive ? "ok" : "off"}>
           {size.isActive ? "Aktif" : "Tidak Aktif"}
         </StatusDot>
-      ),
-    },
-    {
-      key: "updatedAt",
-      header: "Terakhir Diupdate",
-      cell: (r: any) => (
-        <div className="text-sm tabular-nums text-muted-foreground">
-          {formatDateTimeId(r.updatedAt)}
-        </div>
       ),
     },
   ];
@@ -170,10 +171,8 @@ export default function SizeList() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-3">
         <StatCard icon={<Maximize2 className="h-5 w-5" />} label="Total Ukuran" value={isLoading ? "-" : pagination.total} subtitle="Semua ukuran terdaftar" />
-        <StatCard icon={<Maximize2 className="h-5 w-5" />} label="Total Terisi" value={isLoading ? "-" : sizes.length} subtitle="Ukuran pada halaman ini" />
-        <StatCard icon={<Maximize2 className="h-5 w-5" />} label="Ukuran Aktif" value={isLoading ? "-" : activeCount} />
       </div>
 
       <FilterToolbar
@@ -240,7 +239,7 @@ export default function SizeList() {
       <Dialog
         open={formModalOpen}
         onOpenChange={(open) => {
-          if (!open) { setFormModalOpen(false); setEditingSize(null); setFormData({ name: "", isActive: true }); }
+          if (!open) { setFormModalOpen(false); setEditingSize(null); setFormData({ code: "", name: "", isActive: true }); }
         }}
       >
         <DialogContent className="sm:max-w-md">
@@ -248,6 +247,29 @@ export default function SizeList() {
             <DialogTitle>{editingSize ? "Edit Ukuran" : "Tambah Ukuran"}</DialogTitle>
           </DialogHeader>
         <form onSubmit={handleFormSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Kode
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={formData.code}
+                onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
+                maxLength={10}
+                className="flex-1 min-w-0 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono uppercase"
+                placeholder="Otomatis jika kosong"
+              />
+              <button
+                type="button"
+                onClick={handleGenerateCode}
+                disabled={generatingCode}
+                className="shrink-0 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors disabled:opacity-50 text-sm"
+              >
+                {generatingCode ? "..." : "Generate"}
+              </button>
+            </div>
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Nama Ukuran <span className="text-red-500 dark:text-red-400">*</span>
@@ -276,7 +298,7 @@ export default function SizeList() {
           <div className="flex gap-3 pt-2">
             <button
               type="button"
-              onClick={() => { setFormModalOpen(false); setEditingSize(null); setFormData({ name: "", isActive: true }); }}
+              onClick={() => { setFormModalOpen(false); setEditingSize(null); setFormData({ code: "", name: "", isActive: true }); }}
               className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors"
               disabled={saveMutation.isPending}
             >Batal</button>

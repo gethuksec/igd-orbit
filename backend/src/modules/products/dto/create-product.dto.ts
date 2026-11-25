@@ -145,6 +145,12 @@ export class CreateProductDto {
   @IsOptional()
   grade?: string;
 
+  @Transform(({ value }) => (value === '' ? undefined : value))
+  @IsOptional()
+  @ValidateIf((o) => o.gradeId !== undefined && o.gradeId !== null)
+  @IsUUID('4', { message: 'Grade ID must be a valid UUID' })
+  gradeId?: string;
+
   @IsObject({ message: 'Member pricing must be an object' })
   @IsOptional()
   memberPricing?: Record<string, any>; // JSON object

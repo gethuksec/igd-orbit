@@ -503,11 +503,31 @@ model Category {
   products            Product[]
   subCategoryProducts Product[]  @relation("ProductSubCategory")
   opnameAssignments   OpnameAssignment[]
+  grades              CategoryGrade[]
 
   @@index([code])
   @@index([parentCategoryId])
   @@index([isActive])
   @@map("categories")
+}
+
+model CategoryGrade {
+  id         String   @id @default(uuid())
+  categoryId String   @map("category_id")
+  code       String   @unique
+  name       String
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  category Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  products Product[] @relation("ProductGrade")
+
+  @@unique([categoryId, name])
+  @@index([categoryId])
+  @@index([code])
+  @@map("category_grades")
 }
 
 model Brand {
@@ -657,6 +677,7 @@ model Product {
   trackExpiry           Boolean   @default(false) @map("track_expiry") // Menggunakan Tgl Kadaluarsa(Y/N)
   expiryReturnLimitDays Int?      @map("expiry_return_limit_days") // Batas Retur Kadaluarsa (hari)
   grade                 String?   // Grade (free text, from xlsx import template)
+  gradeId               String?   @map("grade_id") // Scoped grade (CategoryGrade, IGDERP-317)
   memberPricing         Json?     @map("member_pricing") // JSONB: {"platinum": {"discount": 10}, "gold": {"discount": 5}, ...}
   images                Json? // JSONB array: ["url1", "url2", ...]
   description           String?   @db.Text
@@ -666,6 +687,7 @@ model Product {
 
   // Relations
   category           Category               @relation(fields: [categoryId], references: [id])
+  categoryGrade      CategoryGrade?         @relation("ProductGrade", fields: [gradeId], references: [id], onDelete: Restrict)
   subCategory        Category?              @relation("ProductSubCategory", fields: [subCategoryId], references: [id], onDelete: SetNull)
   brand              Brand?                 @relation(fields: [brandId], references: [id], onDelete: SetNull)
   color              Color?                 @relation("ProductColor", fields: [colorId], references: [id], onDelete: SetNull)

@@ -11,6 +11,7 @@ import { ProductTransformer, TransformedProduct, ProductListAnnotations, emptyAn
 import { Prisma } from '@prisma/client';
 import { assertNoFreezeOpname } from '../inventory/opname-freeze.guard';
 import { randomBytes } from 'crypto';
+import { generateMasterCode } from '../../common/master-code.util';
 
 type CompareOp = 'gt' | 'lt' | 'eq';
 
@@ -149,6 +150,69 @@ export class ProductsService {
     if (!PRODUCT_BARCODE_RE.test(barcode)) {
       throw new BadRequestException('Barcode harus berupa angka dengan minimal 12 digit');
     }
+  }
+
+  /**
+   * IGDERP-317 — resolve a scoped grade to its display name.
+   * The grade must exist, belong to the product's category, and be active.
+   * Returns the grade name (kept in sync with legacy `grade` text).
+   */
+  async resolveGradeName(categoryId: string, gradeId: string): Promise<string> {
+    const grade = await this.prisma.categoryGrade.findUnique({
+      where: { id: gradeId },
+      select: { id: true, categoryId: true, name: true, isActive: true },
+    });
+    if (!grade) {
+      throw new NotFoundException('Grade not found');
+    }
+    if (grade.categoryId !== categoryId) {
+      throw new BadRequestException('Grade does not belong to the product category');
+    }
+    if (!grade.isActive) {
+      throw new BadRequestException('Grade is not active');
+    }
+    return grade.name;
+  }
+
+  /**
+   * IGDERP-317 — find-or-create a grade by name inside a category scope
+   * (import auto-create path). Matches case-insensitively; creates with a
+   * fresh generated code when missing. Returns { id, name }.
+   */
+  async findOrCreateGrade(categoryId: string, name: string): Promise<{ id: string; name: string }> {
+    const trimmed = (name || '').trim();
+    if (!trimmed) {
+      throw new BadRequestException('Grade name is required');
+    }
+    const existing = await this.prisma.categoryGrade.findFirst({
+      where: { categoryId, name: { equals: trimmed, mode: 'insensitive' } },
+      select: { id: true, name: true, isActive: true },
+    });
+    if (existing) {
+      return { id: existing.id, name: existing.name };
+    }
+    let code: string | undefined;
+    let attempts = 0;
+    while (attempts < 10) {
+      const candidate = generateMasterCode();
+      const taken = await this.prisma.categoryGrade.findUnique({
+        where: { code: candidate },
+        select: { id: true },
+      });
+      if (!taken) {
+        code = candidate;
+        break;
+      }
+      attempts++;
+    }
+    if (!code) {
+      throw new BadRequestException('Failed to generate unique grade code after multiple attempts');
+    }
+    const created = await this.prisma.categoryGrade.create({
+      data: { categoryId, name: trimmed, code },
+      select: { id: true, name: true },
+    });
+    return created;
   }
 
   /**
@@ -743,6 +807,7 @@ export class ProductsService {
                 unit: { select: { id: true, name: true } },
         size: { select: { id: true, name: true } },
         color: { select: { id: true, name: true } },
+        categoryGrade: { select: { id: true, code: true, name: true } },
         supplier: {
           select: {
             id: true,
@@ -927,6 +992,13 @@ export class ProductsService {
       }
     }
 
+    // IGDERP-317: validate scoped grade (must belong to this category, active)
+    let gradeName: string | null = null;
+    const gradeId = (createProductDto as any).gradeId || null;
+    if (gradeId) {
+      gradeName = await this.resolveGradeName(category.id, gradeId);
+    }
+
     // Warning: Selling price < cost price (not error, just warning)
     if (createProductDto.sellingPrice < createProductDto.costPrice) {
       // Log warning but allow creation
@@ -976,7 +1048,8 @@ export class ProductsService {
       trackBatch: createProductDto.trackBatch || false,
       trackExpiry: createProductDto.trackExpiry || false,
       expiryReturnLimitDays: createProductDto.expiryReturnLimitDays || null,
-      grade: (createProductDto as any).grade || null,
+      grade: gradeName ?? (createProductDto as any).grade ?? null,
+      gradeId: gradeId,
       memberPricing: createProductDto.memberPricing || null,
       images: createProductDto.images || null,
     };
@@ -988,6 +1061,7 @@ export class ProductsService {
         category: true,
         brand: true,
         productStocks: true,
+        categoryGrade: { select: { id: true, code: true, name: true } },
       },
     });
 
@@ -1030,7 +1104,6 @@ export class ProductsService {
       await this.validateBarcode(updateProductDto.barcode, id);
     }
 
-    // Validate category if updating
     if (updateProductDto.categoryId) {
       const category = await this.prisma.category.findUnique({
         where: { id: updateProductDto.categoryId },
@@ -1054,6 +1127,20 @@ export class ProductsService {
 
     // Prepare update data
     const updateData: any = {};
+
+    // IGDERP-317: validate scoped grade against the effective category
+    // (updated value wins, else the product's current category)
+    if ((updateProductDto as any).gradeId !== undefined) {
+      const nextGradeId = (updateProductDto as any).gradeId || null;
+      if (nextGradeId) {
+        const effectiveCategoryId = updateProductDto.categoryId || product.categoryId;
+        const gradeName = await this.resolveGradeName(effectiveCategoryId, nextGradeId);
+        updateData.gradeId = nextGradeId;
+        updateData.grade = gradeName;
+      } else {
+        updateData.gradeId = null;
+      }
+    }
 
     if (updateProductDto.sku !== undefined) {
       updateData.sku = updateProductDto.sku;
@@ -1157,6 +1244,10 @@ export class ProductsService {
     }
     if ((updateProductDto as any).grade !== undefined) {
       updateData.grade = (updateProductDto as any).grade || null;
+      // Legacy free-text grade set explicitly clears the scoped link
+      if (updateData.gradeId === undefined) {
+        updateData.gradeId = null;
+      }
     }
 
     // Update product
@@ -1166,6 +1257,7 @@ export class ProductsService {
       include: {
         category: true,
         brand: true,
+        categoryGrade: { select: { id: true, code: true, name: true } },
         productStocks: {
           include: {
             warehouse: {
@@ -1619,6 +1711,7 @@ export class ProductsService {
                 unit: { select: { id: true, name: true } },
         size: { select: { id: true, name: true } },
         color: { select: { id: true, name: true } },
+        categoryGrade: { select: { id: true, code: true, name: true } },
         supplier: {
           select: {
             id: true,
@@ -2091,6 +2184,7 @@ export class ProductsService {
           unit: { select: { id: true, name: true } },
           size: { select: { id: true, name: true } },
           color: { select: { id: true, name: true } },
+        categoryGrade: { select: { id: true, code: true, name: true } },
           supplier: { select: { id: true, name: true } },
           productStocks: {
             include: { warehouse: { select: { id: true, name: true } } },
@@ -2451,6 +2545,17 @@ export class ProductsService {
           }
         }
 
+        // IGDERP-317: resolve grade text against the category's grades
+        // (match case-insensitive, auto-create when missing). The legacy
+        // grade text is still written for transition compatibility.
+        let gradeId: string | undefined;
+        let gradeText: string | undefined = row.grade?.trim() || undefined;
+        if (gradeText) {
+          const grade = await this.findOrCreateGrade(categoryId, gradeText);
+          gradeId = grade.id;
+          gradeText = grade.name;
+        }
+
         const productData: any = {
           name: row.name,
           printedName: row.printedName || row.name,
@@ -2461,7 +2566,8 @@ export class ProductsService {
           unitId: row.unitId || undefined,
           sizeId: row.sizeId || undefined,
           colorId: row.colorId || undefined,
-          grade: row.grade || undefined,
+          grade: gradeText || undefined,
+          gradeId: gradeId || undefined,
           costPrice: row.costPrice,
           sellingPrice: row.sellingPrice,
           isService: row.isService || false,
@@ -2532,47 +2638,33 @@ export class ProductsService {
   }
 
   /**
-   * Generate a unique category code from a name
-   * Format: CAT-{SLUGIFIED_NAME} (with random suffix on conflict)
+   * Generate a unique category code (IGDERP-316: flat 10-char [A-Z0-9]).
    */
   private async generateCategoryCode(name: string): Promise<string> {
-    const baseCode = 'CAT-' + name
-      .toUpperCase()
-      .replace(/[^A-Z0-9 ]/g, '')
-      .replace(/\s+/g, '_')
-      .slice(0, 20);
-
-    let code = baseCode;
+    void name;
     let attempts = 0;
     while (attempts < 10) {
+      const code = generateMasterCode();
       const existing = await this.prisma.category.findUnique({ where: { code } });
       if (!existing) return code;
       attempts++;
-      code = `${baseCode}_${randomBytes(2).toString('hex').toUpperCase()}`;
     }
-    return code;
+    throw new BadRequestException('Failed to generate unique category code');
   }
 
   /**
-   * Generate a unique brand code from a name
-   * Format: BRAND-{SLUGIFIED_NAME} (with random suffix on conflict)
+   * Generate a unique brand code (IGDERP-316: flat 10-char [A-Z0-9]).
    */
-  private async generateBrandCode(name: string): Promise<string> {
-    const baseCode = 'BRAND-' + name
-      .toUpperCase()
-      .replace(/[^A-Z0-9 ]/g, '')
-      .replace(/\s+/g, '_')
-      .slice(0, 20);
-
-    let code = baseCode;
+  private async generateBrandCode(brandName: string): Promise<string> {
+    void brandName;
     let attempts = 0;
     while (attempts < 10) {
+      const code = generateMasterCode();
       const existing = await this.prisma.brand.findUnique({ where: { code } });
       if (!existing) return code;
       attempts++;
-      code = `${baseCode}_${randomBytes(2).toString('hex').toUpperCase()}`;
     }
-    return code;
+    throw new BadRequestException('Failed to generate unique brand code');
   }
 
   /**
