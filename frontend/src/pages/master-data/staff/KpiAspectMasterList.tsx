@@ -1,81 +1,113 @@
 import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { BreadcrumbHeader } from '@/components/shared';
+import { BreadcrumbHeader, DataTable, type Column } from '@/components/shared';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { hrService } from '@/services/hr.service';
+import { api } from '@/services/api';
 import { KpiAspectTable } from '@/pages/hr/kpi/KpiAspectTable';
 import { toast } from 'sonner';
 
+interface DivSummary {
+  division: any;
+  deptName: string;
+  active: number;
+  sum: number;
+  amount: number | null;
+}
+
+const EPS = 1e-9;
+
 /**
- * Master Data — Aspek KPI per divisi (D6 Phase 1).
- * Dept heads (L1-L3) kelola aspek + target + bobot di sini;
- * Assign KPI (Phase 2) tinggal prefill dari master ini.
- * Structural edits dibekukan BE setelah aspek dipakai periode berjalan.
+ * Master Data — Aspek KPI (D6 Phase 1, mock v2).
+ * Default view: division table; row click opens the aspect CRUD detail.
+ * Only dept heads (HS/SPV scoped) + CHR see this page.
  */
 export default function KpiAspectMasterList() {
   const queryClient = useQueryClient();
-  const [divisionId, setDivisionId] = useState('');
+  const [selectedId, setSelectedId] = useState('');
   const [amount, setAmount] = useState('');
 
-  const { data: rows = [], isLoading: divLoading } = useQuery({
+  const { data: rows = [], isLoading } = useQuery({
     queryKey: ['kpi-divisions-master'],
     queryFn: () => hrService.listKpiDivisions(),
   });
 
-  const activeId = divisionId || rows[0]?.division?.id || '';
+  const { data: departments = [] } = useQuery({
+    queryKey: ['departments-options'],
+    queryFn: async () => {
+      const res = await api.get('/departments');
+      return (res.data?.data ?? []) as { id: string; name: string }[];
+    },
+  });
+
+  const deptNameOf = (id?: string) => departments.find((d) => d.id === id)?.name || '—';
+
+  const { data: summaries = [], isLoading: sumLoading } = useQuery({
+    queryKey: ['kpi-master-summary', rows.map((r: any) => r.division.id).join(',')],
+    queryFn: async (): Promise<DivSummary[]> =>
+      Promise.all(
+        rows.map(async (r: any) => {
+          const [aspects, cfg] = await Promise.all([
+            hrService.listKpiAspects(r.division.id),
+            hrService.getKpiConfig(r.division.id).catch(() => null),
+          ]);
+          const active = (aspects || []).filter((a: any) => a.isActive !== false);
+          const sum = active.reduce((s: number, a: any) => s + Number(a.weight || 0), 0);
+          const amt = (cfg as any)?.defaultAmount ?? (cfg as any)?.config?.defaultAmount ?? null;
+          return {
+            division: r.division,
+            deptName: deptNameOf(r.division.departmentId),
+            active: active.length,
+            sum,
+            amount: amt !== null && amt !== undefined ? Number(amt) : null,
+          };
+        }),
+      ),
+    enabled: rows.length > 0,
+  });
+
+  const selected = summaries.find((s) => s.division.id === selectedId) ||
+    rows.find((r: any) => r.division.id === selectedId)?.division;
 
   const { data: config } = useQuery({
-    queryKey: ['kpi-config-master', activeId],
-    queryFn: () => hrService.getKpiConfig(activeId),
-    enabled: !!activeId,
+    queryKey: ['kpi-config-master', selectedId],
+    queryFn: () => hrService.getKpiConfig(selectedId),
+    enabled: !!selectedId,
   });
 
   useEffect(() => {
-    if (config && (config as any).defaultAmount !== undefined && (config as any).defaultAmount !== null) {
-      setAmount(String((config as any).defaultAmount));
-    } else {
-      setAmount('');
-    }
-  }, [config]);
+    const v = (config as any)?.defaultAmount;
+    setAmount(v !== undefined && v !== null ? String(v) : '');
+  }, [config, selectedId]);
 
   const saveAmount = useMutation({
-    mutationFn: () => hrService.upsertKpiConfig(activeId, { default_amount: parseFloat(amount) }),
+    mutationFn: () => hrService.upsertKpiConfig(selectedId, { default_amount: parseFloat(amount) }),
     onSuccess: () => {
       toast.success('Default KPI divisi tersimpan');
-      queryClient.invalidateQueries({ queryKey: ['kpi-config-master', activeId] });
-      queryClient.invalidateQueries({ queryKey: ['kpi-divisions'] });
+      queryClient.invalidateQueries({ queryKey: ['kpi-config-master', selectedId] });
+      queryClient.invalidateQueries({ queryKey: ['kpi-master-summary'] });
     },
     onError: (e: any) => {
       toast.error(e.response?.data?.message || 'Gagal menyimpan default KPI');
     },
   });
 
-  return (
-    <div className="w-full space-y-6">
-      <BreadcrumbHeader
-        title="Aspek KPI"
-        subtitle="Phase 1 — dept head kelola aspek + target + bobot per divisi"
-      />
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">Divisi</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <select
-            value={activeId}
-            onChange={(e) => setDivisionId(e.target.value)}
-            className="w-full sm:max-w-sm px-3 py-2 border rounded-lg text-sm bg-background"
-            disabled={divLoading || rows.length === 0}
-          >
-            {rows.map((r) => (
-              <option key={r.division.id} value={r.division.id}>
-                {r.division.name} ({r.division.code})
-              </option>
-            ))}
-          </select>
-          <div className="flex items-center gap-2">
+  if (selectedId) {
+    const div = (selected as DivSummary)?.division ?? (selected as any) ?? {};
+    return (
+      <div className="w-full space-y-6">
+        <BreadcrumbHeader
+          title={`Aspek KPI — ${div?.name || '...'}`}
+          subtitle="Phase 1 — dept head kelola aspek + target + bobot"
+        >
+          <Button variant="outline" size="sm" onClick={() => setSelectedId('')}>
+            Kembali ke daftar divisi
+          </Button>
+        </BreadcrumbHeader>
+        <Card>
+          <CardContent className="flex items-center gap-2 py-4">
             <span className="text-xs text-muted-foreground whitespace-nowrap">Default (Rp)</span>
             <Input
               value={amount}
@@ -87,34 +119,89 @@ export default function KpiAspectMasterList() {
             <Button
               size="sm"
               variant="outline"
-              disabled={!activeId || amount === '' || saveAmount.isPending}
+              disabled={amount === '' || saveAmount.isPending}
               onClick={() => saveAmount.mutate()}
             >
               {saveAmount.isPending ? 'Menyimpan...' : 'Simpan'}
             </Button>
-          </div>
-        </CardContent>
-      </Card>
-      {activeId ? (
+          </CardContent>
+        </Card>
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium">Aspek + bobot</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <KpiAspectTable divisionId={activeId} />
+            <KpiAspectTable divisionId={selectedId} />
             <p className="px-5 py-3 text-xs text-muted-foreground border-t">
               Aspek yang sudah dipakai periode berjalan dikunci — perubahan struktural
               berlaku untuk periode berikutnya (buat aspek baru).
             </p>
           </CardContent>
         </Card>
-      ) : (
-        <Card>
-          <CardContent className="p-8 text-sm text-muted-foreground">
-            {divLoading ? 'Memuat divisi...' : 'Tidak ada divisi dalam lingkup Anda'}
-          </CardContent>
-        </Card>
-      )}
+      </div>
+    );
+  }
+
+  const columns: Column<DivSummary>[] = [
+    {
+      key: 'division',
+      header: 'Divisi',
+      cell: (s) => (
+        <div>
+          <p className="font-medium">{s.division?.name}</p>
+          <p className="font-mono text-xs text-muted-foreground">{s.deptName}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'aspects',
+      header: 'Aspek',
+      headerClassName: 'text-right',
+      className: 'text-right font-mono tabular-nums',
+      cell: (s) => (s.active > 0 ? `${s.active} aktif` : '—'),
+    },
+    {
+      key: 'weights',
+      header: 'Bobot',
+      headerClassName: 'text-right',
+      className: 'text-right font-mono tabular-nums',
+      cell: (s) => (
+        <span style={{ color: Math.abs(s.sum - 1) > EPS ? '#b91c1c' : undefined }}>
+          {s.sum.toFixed(2)}
+        </span>
+      ),
+    },
+    {
+      key: 'amount',
+      header: 'Default',
+      headerClassName: 'text-right',
+      className: 'text-right font-mono tabular-nums',
+      cell: (s) => (s.amount !== null ? `Rp${s.amount.toLocaleString('id-ID')}` : '—'),
+    },
+  ];
+
+  return (
+    <div className="w-full space-y-6">
+      <BreadcrumbHeader
+        title="Aspek KPI"
+        subtitle="Phase 1 — pilih divisi untuk kelola aspek + target + bobot"
+      />
+      <DataTable
+        columns={columns}
+        data={summaries}
+        keyExtractor={(s) => s.division.id}
+        isLoading={isLoading || sumLoading}
+        emptyMessage="Tidak ada divisi dalam lingkup Anda"
+        onRowClick={(s) => setSelectedId(s.division.id)}
+        actions={(s) => (
+          <Button size="sm" variant="outline" onClick={() => setSelectedId(s.division.id)}>
+            Buka
+          </Button>
+        )}
+      />
+      <p className="text-xs text-muted-foreground">
+        Bobot di bawah 1,00 menandai barisan — Assign di menu KPI tetap nonaktif sampai diperbaiki di sini.
+      </p>
     </div>
   );
 }
