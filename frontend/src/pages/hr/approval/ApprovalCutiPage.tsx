@@ -13,6 +13,7 @@ import { toast } from "sonner";
 
 function statusPill(status: string) {
   if (status === "approved") return <StatusDot tone="ok">Disetujui</StatusDot>;
+  if (status === "manager_approved") return <StatusDot tone="info">Disetujui atasan</StatusDot>;
   if (status === "rejected") return <StatusDot tone="bad">Ditolak</StatusDot>;
   if (status === "cancelled") return <StatusDot tone="off">Dibatalkan</StatusDot>;
   return <StatusDot tone="warn">Menunggu</StatusDot>;
@@ -161,6 +162,7 @@ export default function ApprovalCutiPage() {
             type: "select",
             options: [
               { value: "pending", label: "Menunggu" },
+              { value: "manager_approved", label: "Disetujui atasan" },
               { value: "approved", label: "Disetujui" },
               { value: "rejected", label: "Ditolak" },
               { value: "cancelled", label: "Dibatalkan" },

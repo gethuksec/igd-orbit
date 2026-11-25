@@ -1,13 +1,14 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
-export type StatusTone = 'ok' | 'warn' | 'off' | 'bad';
+export type StatusTone = 'ok' | 'warn' | 'off' | 'bad' | 'info';
 
 const toneClass: Record<StatusTone, string> = {
   ok: 'bg-green-600',
   warn: 'bg-amber-700',
   off: 'bg-slate-300',
   bad: 'bg-red-600',
+  info: 'bg-blue-600',
 };
 
 interface StatusDotProps {
