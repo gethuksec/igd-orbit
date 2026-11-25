@@ -20,7 +20,7 @@ import { api } from '../../services/api';
 import { productsService } from '../../services/products.service';
 import { customerTiersService } from '../../services/customer-tiers.service';
 import ProductImportModal from './ProductImportModal';
-import ProductMovementModal from '../inventory/ProductMovementModal';
+import ProductActivityModal from './ProductActivityModal';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { formatDateTimeId } from "@/lib/utils";
@@ -483,7 +483,7 @@ export default function ProductList() {
         <button
           type="button"
           onClick={() => setLogProduct(product)}
-          title="Riwayat pergerakan"
+          title="Riwayat aktivitas"
           className="inline-flex items-center gap-1 text-sm text-primary-600 dark:text-primary-400 hover:underline"
         >
           <History className="h-4 w-4" />
@@ -838,8 +838,8 @@ export default function ProductList() {
         }}
       />
 
-      {/* Riwayat pergerakan — same popup as the stock menu */}
-      <ProductMovementModal
+      {/* Riwayat aktivitas — same popup shell as the stock menu, full timeline */}
+      <ProductActivityModal
         product={logProduct}
         open={!!logProduct}
         onClose={() => setLogProduct(null)}
