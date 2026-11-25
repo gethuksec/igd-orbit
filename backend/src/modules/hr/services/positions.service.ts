@@ -23,6 +23,7 @@ export class PositionsService {
   private include = {
     division: { select: { id: true, code: true, name: true } },
     department: { select: { id: true, code: true, name: true } },
+    parentPosition: { select: { id: true, code: true, name: true, rank: true } },
     grade: { select: { id: true, code: true, name: true, rank: true } },
     defaultRole: { select: { id: true, code: true, name: true } },
     defaultShift: { select: { id: true, code: true, name: true, clockIn: true, clockOut: true } },
@@ -81,12 +82,13 @@ export class PositionsService {
   }
 
   /**
-   * D4 — grades available for a position (IGDERP-301).
-   * Staff titles (rank 6) expand to one row per grade (TITLE-G1..G6):
-   * the grade matrix for the title family is the 6 active grades, and
-   * `positions` carries the concrete row per rung so FE can remap
-   * positionId when the grade changes. Non-staff titles carry no grade —
-   * returns empty lists so FE disables the grade dropdown gracefully.
+   * D4 — grades available for a position (IGDERP-301, N+1 revision).
+   * Every title carries a grade (non-staff defaults to G1). Staff titles
+   * (rank 6) expand to one row per grade (TITLE-G1..G6): the grade matrix
+   * for the title family is the 6 active grades, and `positions` carries the
+   * concrete row per rung so FE can remap positionId when the grade changes.
+   * Non-staff titles are single rows — `grades` lists the 6 options and
+   * `positions` is empty (no remap; the grade is stored on the same row).
    */
   async getGradesByPosition(positionId: string) {
     const position = await this.prisma.position.findUnique({
@@ -99,12 +101,16 @@ export class PositionsService {
       throw new NotFoundException('Position not found');
     }
     if ((position as any).rank !== STAFF_RANK) {
+      const grades = await this.prisma.grade.findMany({
+        where: { isActive: true },
+        orderBy: { rank: 'asc' },
+      });
       return {
         positionId: (position as any).id,
         titleCode: (position as any).code,
         rank: (position as any).rank,
-        gradeId: null,
-        grades: [],
+        gradeId: (position as any).gradeId ?? null,
+        grades,
         positions: [],
       };
     }
@@ -134,9 +140,48 @@ export class PositionsService {
     if (rank === STAFF_RANK && !gradeId) {
       throw new BadRequestException('Staff positions (rank 6) require a grade');
     }
-    if (rank !== STAFF_RANK && gradeId) {
-      throw new BadRequestException('Only staff positions (rank 6) may carry a grade');
+    // N+1 revision: every title carries a grade; non-staff defaults to G1
+    // (defaulted in create/update when omitted). Explicit values are validated
+    // by assertRefsExist.
+  }
+
+  /**
+   * N+1 guard: parent must exist + be active, must not be self, must sit
+   * higher (numerically smaller rank), and must not create a cycle.
+   */
+  private async assertParentRule(selfId: string | null, parentId: string | null | undefined, rank: number) {
+    if (!parentId) return; // null = top of chain (MU) or unchanged on update
+    if (selfId && parentId === selfId) {
+      throw new BadRequestException('A position cannot be its own atasan (N+1)');
     }
+    const parent = await this.prisma.position.findUnique({ where: { id: parentId } });
+    if (!parent || !parent.isActive) {
+      throw new BadRequestException('Parent position not found or inactive');
+    }
+    if (parent.rank >= rank) {
+      throw new BadRequestException('Atasan (N+1) must sit higher than the title (smaller rank number)');
+    }
+    // Walk the ancestors; the chain must never loop back to self.
+    const seen = new Set<string>();
+    let cursor: string | null = parent.parentPositionId ?? null;
+    for (let depth = 0; depth < 25 && cursor; depth++) {
+      if (selfId && cursor === selfId) {
+        throw new BadRequestException('Atasan (N+1) would create a reporting cycle');
+      }
+      if (seen.has(cursor)) break;
+      seen.add(cursor);
+      const next = await this.prisma.position.findUnique({
+        where: { id: cursor },
+        select: { parentPositionId: true },
+      });
+      cursor = (next?.parentPositionId as string | null) ?? null;
+    }
+  }
+
+  /** Non-staff titles default to grade G1 when no grade is given. */
+  private async defaultGradeId(): Promise<string | null> {
+    const g1 = await this.prisma.grade.findUnique({ where: { code: 'G1' } });
+    return g1 && g1.isActive ? g1.id : null;
   }
 
   private async assertRefsExist(dto: { divisionId?: string | null; departmentId?: string | null; gradeId?: string | null; defaultRoleId?: string | null; defaultShiftId?: string | null }) {
@@ -180,8 +225,13 @@ export class PositionsService {
     if (existing) {
       throw new ConflictException('Position code already exists');
     }
-    this.assertGradeRule(dto.rank, dto.gradeId);
-    await this.assertRefsExist(dto);
+    let gradeId = dto.gradeId ?? null;
+    if (dto.rank !== STAFF_RANK && !gradeId) {
+      gradeId = await this.defaultGradeId(); // non-staff defaults to G1
+    }
+    this.assertGradeRule(dto.rank, gradeId);
+    await this.assertParentRule(null, (dto as any).parentPositionId, dto.rank);
+    await this.assertRefsExist({ ...dto, gradeId });
     return this.prisma.position.create({
       data: {
         code,
@@ -189,7 +239,8 @@ export class PositionsService {
         rank: dto.rank,
         divisionId: dto.divisionId,
         departmentId: dto.departmentId,
-        gradeId: dto.gradeId,
+        parentPositionId: (dto as any).parentPositionId ?? null,
+        gradeId,
         minSalary: dto.minSalary ?? null,
         defaultRoleId: dto.defaultRoleId,
         defaultShiftId: (dto as any).defaultShiftId ?? null,
@@ -205,9 +256,17 @@ export class PositionsService {
       throw new NotFoundException('Position not found');
     }
     const rank = dto.rank ?? existing.rank;
-    const gradeId = dto.gradeId !== undefined ? dto.gradeId : existing.gradeId;
+    let gradeId = dto.gradeId !== undefined ? dto.gradeId : existing.gradeId;
+    if (rank !== STAFF_RANK && !gradeId) {
+      gradeId = await this.defaultGradeId(); // non-staff defaults to G1
+    }
     this.assertGradeRule(rank, gradeId);
-    await this.assertRefsExist(dto);
+    const parentPositionId =
+      (dto as any).parentPositionId !== undefined
+        ? ((dto as any).parentPositionId as string | null)
+        : undefined;
+    await this.assertParentRule(id, parentPositionId, rank);
+    await this.assertRefsExist({ ...dto, gradeId });
     return this.prisma.position.update({
       where: { id },
       data: {
@@ -215,7 +274,8 @@ export class PositionsService {
         rank: dto.rank,
         divisionId: dto.divisionId !== undefined ? dto.divisionId : undefined,
         departmentId: dto.departmentId !== undefined ? dto.departmentId : undefined,
-        gradeId: dto.gradeId !== undefined ? dto.gradeId : undefined,
+        parentPositionId: parentPositionId !== undefined ? parentPositionId : undefined,
+        gradeId: gradeId !== (existing as any).gradeId ? gradeId : undefined,
         minSalary: dto.minSalary !== undefined ? dto.minSalary : undefined,
         defaultRoleId: dto.defaultRoleId !== undefined ? dto.defaultRoleId : undefined,
         defaultShiftId: (dto as any).defaultShiftId !== undefined ? (dto as any).defaultShiftId : undefined,
@@ -236,6 +296,14 @@ export class PositionsService {
     if (existing._count.employees > 0) {
       throw new BadRequestException(
         'Cannot deactivate position with employees attached — move them first',
+      );
+    }
+    const n1Children = await this.prisma.position.count({
+      where: { parentPositionId: id, isActive: true },
+    });
+    if (n1Children > 0) {
+      throw new BadRequestException(
+        'Cannot deactivate position while it is the atasan (N+1) of other active titles — reassign their N+1 first',
       );
     }
     await this.prisma.position.update({

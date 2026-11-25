@@ -65,7 +65,7 @@ export class AttendanceController {
    */
   @Post('overtime/reject')
   @UseGuards(RolesGuard)
-  @Roles('HS', 'SPV', 'CHR')
+  // N+1: pending rejects are atasan-only (service-enforced); gate stays open.
   async rejectOvertime(
     @Request() req: ExpressRequest,
     @Query('id') overtimeId: string,
@@ -242,12 +242,12 @@ export class AttendanceController {
   }
 
   /**
-   * Approve overtime — step 1 (manager: HS/SPV)
+   * Approve overtime — step 1 (direct atasan, N+1)
    * POST /api/v1/attendance/overtime/approve?id=
    */
   @Post('overtime/approve')
   @UseGuards(RolesGuard)
-  @Roles('HS', 'SPV')
+  // N+1: service enforces the direct-atasan check; gate stays open.
   async approveOvertime(
     @Request() req: ExpressRequest,
     @Query('id') overtimeId: string,

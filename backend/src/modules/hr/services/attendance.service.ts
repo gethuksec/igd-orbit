@@ -15,6 +15,7 @@ import { resolveStreetLabel } from './street-geocode';
 import { ManualAdjustmentDto } from '../dto/manual-adjustment.dto';
 import { OvertimeRequestDto } from '../dto/overtime-request.dto';
 import { Decimal } from '@prisma/client/runtime/library';
+import { assertN1Approver } from './n1-approver';
 
 /**
  * IGDERP-275: haversine distance in meters between two WGS84 points.
@@ -754,16 +755,10 @@ export class AttendanceService {
   }
 
   /**
-   * Approve overtime — step 1 (manager: HS/SPV).
-   * IGDERP-275: pending → manager_approved. Final approval is step 2 (CHR).
+   * Approve overtime — step 1 (direct atasan, N+1).
+   * pending → manager_approved. Final approval is step 2 (CHR).
    */
   async approveOvertime(overtimeId: string, userId: string, userRoles: string[]) {
-    // Check permission
-    const hasPermission = ['HS', 'SPV'].some((role) => userRoles.includes(role));
-    if (!hasPermission) {
-      throw new ForbiddenException('Only HS or SPV can approve overtime (step 1)');
-    }
-
     const overtimeRequest = await this.prisma.overtimeRequest.findUnique({
       where: { id: overtimeId },
       include: { attendance: true },
@@ -780,6 +775,10 @@ export class AttendanceService {
     if (overtimeRequest.requestedBy === userId) {
       throw new ForbiddenException('Requester cannot approve their own overtime');
     }
+
+    // N+1: only the requester's direct parent title in the same branch
+    // (or SUPERADMIN/OWNER bypass) may take step 1.
+    await assertN1Approver(this.prisma, overtimeRequest.employeeId, userId, userRoles);
 
     return this.prisma.overtimeRequest.update({
       where: { id: overtimeId },
@@ -843,15 +842,11 @@ export class AttendanceService {
   }
 
   /**
-   * Reject overtime — step 1 rejects `pending` (HS/SPV), step 2 rejects
-   * `manager_approved` (CHR). IGDERP-275.
+   * Reject overtime — step 1 rejects `pending` (direct atasan N+1), step 2
+   * rejects `manager_approved` (CHR). SUPERADMIN/OWNER bypass either step.
    */
   async rejectOvertime(overtimeId: string, reason: string, userId: string, userRoles: string[]) {
-    const isManager = ['HS', 'SPV'].some((role) => userRoles.includes(role));
     const isHr = ['CHR'].some((role) => userRoles.includes(role));
-    if (!isManager && !isHr) {
-      throw new ForbiddenException('Only HS, SPV, or CHR can reject overtime');
-    }
 
     const overtimeRequest = await this.prisma.overtimeRequest.findUnique({
       where: { id: overtimeId },
@@ -861,10 +856,14 @@ export class AttendanceService {
       throw new NotFoundException('Overtime request not found');
     }
 
-    const canReject =
-      (isManager && overtimeRequest.status === 'pending') ||
-      (isHr && ['pending', 'manager_approved'].includes(overtimeRequest.status));
-    if (!canReject) {
+    if (overtimeRequest.status === 'pending') {
+      // N+1: only the direct atasan (or bypass) may reject at step 1.
+      await assertN1Approver(this.prisma, overtimeRequest.employeeId, userId, userRoles);
+    } else if (overtimeRequest.status === 'manager_approved') {
+      if (!isHr) {
+        throw new ForbiddenException('Only CHR can reject after manager approval');
+      }
+    } else {
       throw new BadRequestException('Overtime request is not awaiting your decision');
     }
 

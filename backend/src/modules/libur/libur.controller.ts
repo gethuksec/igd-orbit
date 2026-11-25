@@ -26,7 +26,6 @@ import {
 
 const READ_ROLES = ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS', 'CHR'];
 const WRITE_ROLES = ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'CHR'];
-const ATASAN_ROLES = ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'CHR', 'HS', 'MS', 'SPV'];
 
 interface AuthedRequest extends Request {
   user: { id: string; roles: string[] };
@@ -94,22 +93,21 @@ export class LiburController {
     return this.svc.bulkReject(dto, req.user.id);
   }
 
+  // N+1: any authenticated user may reach the atasan step — LiburService
+  // enforces the direct-parent check. The role gate stays off so L5/L4/L3
+  // atasans (AS-SE, SPV-*, HS, MO, ...) are not blocked at the door.
   @Post('requests/:id/atasan-approve')
-  @UseGuards(RolesGuard)
-  @Roles(...ATASAN_ROLES)
   async atasanApprove(@Param('id') id: string, @Request() req: AuthedRequest) {
-    return this.svc.atasanApprove(id, req.user.id);
+    return this.svc.atasanApprove(id, req.user.id, req.user.roles);
   }
 
   @Post('requests/:id/atasan-reject')
-  @UseGuards(RolesGuard)
-  @Roles(...ATASAN_ROLES)
   async atasanReject(
     @Param('id') id: string,
     @Body() dto: RejectLiburRequestDto,
     @Request() req: AuthedRequest,
   ) {
-    return this.svc.atasanReject(id, dto, req.user.id);
+    return this.svc.atasanReject(id, dto, req.user.id, req.user.roles);
   }
 
   @Post('requests/:id/approve')

@@ -7,10 +7,11 @@ import {
 import { PrismaService } from '../../../shared/services/prisma.service';
 import { ShiftSwapRequestDto } from '../dto/shift-swap-request.dto';
 import { RejectShiftSwapDto } from '../dto/reject-shift-swap.dto';
+import { assertN1Approver } from './n1-approver';
 
 /**
  * IGDERP-275: shift swap (tukar shift) with 2-step approval.
- * pending (requester files) → manager_approved (HS/SPV) → approved (CHR).
+ * pending (requester files) → manager_approved (direct atasan N+1) → approved (CHR).
  * On final approval the two employees' shift assignments covering `date`
  * are swapped.
  */
@@ -104,13 +105,14 @@ export class ShiftSwapService {
   }
 
   async approve(swapId: string, userId: string, userRoles: string[]) {
-    const isManager = ['HS', 'SPV'].some((r) => userRoles.includes(r));
-    if (!isManager) throw new ForbiddenException('Only HS or SPV can approve shift swap (step 1)');
-
     const swap = await this.prisma.shiftSwapRequest.findUnique({ where: { id: swapId } });
     if (!swap) throw new NotFoundException('Shift swap request not found');
     if (swap.status !== 'pending') throw new BadRequestException('Shift swap request is not pending');
     if (swap.requestedBy === userId) throw new ForbiddenException('Requester cannot approve their own swap');
+
+    // N+1: only the requester's direct parent title in the same branch
+    // (or SUPERADMIN/OWNER bypass) may take step 1.
+    await assertN1Approver(this.prisma, swap.employeeId, userId, userRoles);
 
     return this.prisma.shiftSwapRequest.update({
       where: { id: swapId },
@@ -218,16 +220,18 @@ export class ShiftSwapService {
   }
 
   async reject(swapId: string, dto: RejectShiftSwapDto, userId: string, userRoles: string[]) {
-    const isManager = ['HS', 'SPV'].some((r) => userRoles.includes(r));
     const isHr = ['CHR'].some((r) => userRoles.includes(r));
-    if (!isManager && !isHr) throw new ForbiddenException('Only HS, SPV, or CHR can reject shift swap');
 
     const swap = await this.prisma.shiftSwapRequest.findUnique({ where: { id: swapId } });
     if (!swap) throw new NotFoundException('Shift swap request not found');
-    const canReject =
-      (isManager && swap.status === 'pending') ||
-      (isHr && ['pending', 'manager_approved'].includes(swap.status));
-    if (!canReject) throw new BadRequestException('Shift swap request is not awaiting your decision');
+    if (swap.status === 'pending') {
+      // N+1: only the direct atasan (or bypass) may reject at step 1.
+      await assertN1Approver(this.prisma, swap.employeeId, userId, userRoles);
+    } else if (swap.status === 'manager_approved') {
+      if (!isHr) throw new ForbiddenException('Only CHR can reject after manager approval');
+    } else {
+      throw new BadRequestException('Shift swap request is not awaiting your decision');
+    }
 
     return this.prisma.shiftSwapRequest.update({
       where: { id: swapId },

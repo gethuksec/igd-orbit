@@ -56,7 +56,7 @@ export class ShiftSwapController {
    */
   @Post('approve')
   @UseGuards(RolesGuard)
-  @Roles('HS', 'SPV')
+  // N+1: service enforces the direct-atasan check; gate stays open.
   async approve(@Request() req: ExpressRequest, @Query('id') swapId: string) {
     return this.shiftSwapService.approve(swapId, req.user.id, req.user.roles);
   }
@@ -78,7 +78,7 @@ export class ShiftSwapController {
    */
   @Post('reject')
   @UseGuards(RolesGuard)
-  @Roles('HS', 'SPV', 'CHR')
+  // N+1: pending rejects are atasan-only (service-enforced); gate stays open.
   async reject(
     @Request() req: ExpressRequest,
     @Query('id') swapId: string,

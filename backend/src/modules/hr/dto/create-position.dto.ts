@@ -35,6 +35,10 @@ export class CreatePositionDto {
 
   @IsUUID('4')
   @IsOptional()
+  parentPositionId?: string | null; // N+1: direct atasan title; null = top (MU)
+
+  @IsUUID('4')
+  @IsOptional()
   gradeId?: string;
 
   @IsNumber({}, { message: 'minSalary must be a number' })

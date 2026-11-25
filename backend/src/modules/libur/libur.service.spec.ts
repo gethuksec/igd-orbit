@@ -48,6 +48,7 @@ describe('LiburService', () => {
         upsert: jest.fn(),
         delete: jest.fn(),
       },
+      userBranch: { findMany: jest.fn(async () => []) },
     };
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -257,6 +258,27 @@ describe('LiburService', () => {
   });
 
   describe('two-step + bulk (IGDERP-265 gaps)', () => {
+    // e1 sits on SE (parent AS-SE, branch b1); u-as holds AS-SE in b1.
+    const wireLiburN1 = () => {
+      prisma.employee.findUnique.mockImplementation(async ({ where }: any) => {
+        if (where.id === 'e1') {
+          return {
+            id: 'e1',
+            branchId: 'b1',
+            positionId: 'p-se',
+            position: { id: 'p-se', parentPositionId: 'p-as' },
+          };
+        }
+        if (where.userId === 'u-as') {
+          return { id: 'emp-as', positionId: 'p-as', branchId: 'b1', isActive: true };
+        }
+        if (where.userId === 'u-hs') {
+          return { id: 'emp-hs', positionId: 'p-hs', branchId: 'b1', isActive: true };
+        }
+        return null;
+      });
+    };
+
     it('atasanApprove flips atasanStatus, keeps status pending', async () => {
       prisma.liburRequest.findUnique.mockResolvedValue({
         id: 'r1',
@@ -268,16 +290,33 @@ describe('LiburService', () => {
       });
       prisma.liburRequest.update.mockImplementation(async ({ data }: any) => ({ id: 'r1', ...data }));
       prisma.liburRequest.findMany.mockResolvedValue([]);
-      const res: any = await service.atasanApprove('r1', 'u-hs');
+      wireLiburN1();
+      const res: any = await service.atasanApprove('r1', 'u-as', ['AS-SE']);
       expect(res.atasanStatus).toBe('approved');
       expect(res.status).toBeUndefined();
       expect(res.consecutiveWarning).toEqual([]);
     });
 
+    it('atasanApprove rejects a same-branch higher rank from another line (HS)', async () => {
+      prisma.liburRequest.findUnique.mockResolvedValue({
+        id: 'r1',
+        employeeId: 'e1',
+        targetPeriod: service.currentPeriod(),
+        date: new Date().toISOString(),
+        status: 'pending',
+        atasanStatus: 'pending',
+      });
+      wireLiburN1();
+      await expect(service.atasanApprove('r1', 'u-hs', ['HS'])).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
+    });
+
     it('atasanReject closes the request terminally', async () => {
-      prisma.liburRequest.findUnique.mockResolvedValue({ id: 'r1', status: 'pending', atasanStatus: 'pending' });
+      prisma.liburRequest.findUnique.mockResolvedValue({ id: 'r1', employeeId: 'e1', status: 'pending', atasanStatus: 'pending' });
       prisma.liburRequest.update.mockImplementation(async ({ data }: any) => ({ id: 'r1', ...data }));
-      const res: any = await service.atasanReject('r1', { reason: 'kurang orang' } as any, 'u-hs');
+      wireLiburN1();
+      const res: any = await service.atasanReject('r1', { reason: 'kurang orang' } as any, 'u-as', ['AS-SE']);
       expect(res).toMatchObject({ status: 'rejected', atasanStatus: 'rejected' });
     });
 

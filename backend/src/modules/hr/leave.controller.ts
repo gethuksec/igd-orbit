@@ -103,10 +103,9 @@ export class LeaveController {
    */
   @Post('approve')
   @UseGuards(RolesGuard)
-  // IGDERP-314: must match LeaveService.approveLeave (HS/SPV only).
-  // CHR acts at step 2 (approve-hr); leaving CHR here produced a guard
-  // pass followed by a service 403 with a contradictory message.
-  @Roles('HS', 'SPV')
+  // N+1: the service enforces the direct-atasan check; the gate stays open
+  // so L5/L4/L3 atasans (AS-SE, SPV-*, HS, MO, ...) are not blocked.
+  // SUPERADMIN still bypasses at guard level; OWNER via service bypass.
   async approveLeave(
     @Request() req: ExpressRequest,
     @Query('id') leaveId: string,
@@ -135,7 +134,8 @@ export class LeaveController {
    */
   @Post('reject')
   @UseGuards(RolesGuard)
-  @Roles('HS', 'SPV', 'CHR')
+  // N+1: pending rejects are atasan-only (service-enforced, CHR included
+  // only after manager approval); the gate stays open for line atasans.
   async rejectLeave(
     @Request() req: ExpressRequest,
     @Query('id') leaveId: string,

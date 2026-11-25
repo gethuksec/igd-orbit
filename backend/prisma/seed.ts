@@ -1765,6 +1765,45 @@ async function main() {
     }
   }
   console.log(`✅ Positions seeded: ${positionCount} rows`);
+  // 16b2. N+1 wiring (thread 20261125-hierarchy): second pass sets
+  // parentPositionId from ORG_POSITION_TITLES.parentTitleCode (grade rows
+  // share their family's parent) and backfills G1 on non-staff rows.
+  const g1Grade = gradeByCode.get('G1')!;
+  for (const t of ORG_POSITION_TITLES) {
+    const parentCode = t.parentTitleCode ?? null;
+    let parentId: string | null = null;
+    if (parentCode) {
+      const parentRow = await prisma.position.findFirst({
+        where: { code: parentCode, isActive: true },
+      });
+      if (!parentRow) throw new Error(`N+1 seed: parent title ${parentCode} has no position row`);
+      parentId = parentRow.id;
+    }
+    if (t.rank === 6) {
+      for (const g of ORG_GRADES) {
+        await prisma.position.update({
+          where: { code: `${t.titleCode}-${g.rank}` },
+          data: { parentPositionId: parentId },
+        });
+      }
+    } else {
+      await prisma.position.update({
+        where: { code: t.titleCode },
+        data: { parentPositionId: parentId },
+      });
+      // Non-staff defaults to G1; never overwrite a grade HR set deliberately.
+      await prisma.position.updateMany({
+        where: { code: t.titleCode, gradeId: null },
+        data: { gradeId: g1Grade.id },
+      });
+    }
+  }
+  // Legacy rows predating the G1 default: fill nulls on non-staff titles.
+  await prisma.position.updateMany({
+    where: { rank: { not: 6 }, gradeId: null },
+    data: { gradeId: g1Grade.id },
+  });
+  console.log('✅ N+1 chain wired + non-staff grades backfilled to G1');
   // 16b. HR master data — IGDERP-261 (7-Nov agreed rules; nominal HR fills denda amounts)
   console.log('📋 Creating HR master data...');
   const leaveTypes = [
