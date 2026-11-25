@@ -1073,10 +1073,13 @@ export class AttendanceService {
         where: { employeeId: { in: ids }, date: day },
         include: { branch: true },
       }),
+      // IGDERP-315: overlay step-1 (manager_approved) leave too, so the
+      // Presensi roster signals upcoming leave before CHR finalizes.
+      // Attendance placeholder rows are still written only at step 2.
       this.prisma.leaveRequest.findMany({
         where: {
           employeeId: { in: ids },
-          status: 'approved',
+          status: { in: ['approved', 'manager_approved'] },
           startDate: { lte: day },
           endDate: { gte: day },
         },
