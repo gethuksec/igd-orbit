@@ -26,6 +26,46 @@ type ProductWithRelations = Product & {
 };
 
 /**
+ * Sales velocity class (IGDERP-310).
+ * fast = avg >= 1/day over the last 30d; medium = >= 3/week;
+ * slow = any sale in the last 90d (or a young product with no history yet);
+ * dead = no sale in the last 90d and warehouse age above 90d.
+ */
+export type SalesClass = 'fast' | 'medium' | 'slow' | 'dead';
+
+/**
+ * Per-row list annotations (IGDERP-310): sales, purchase-modal, and age signals.
+ * Built by ProductsService.buildListAnnotations for the current page.
+ */
+export interface ProductListAnnotations {
+  totalSold: number; // All-time gross units sold (never sold = 0)
+  lastRestockAt: Date | null; // Latest IN movement, null when never restocked
+  firstStockAt: Date | null; // Earliest IN movement (warehouse age base)
+  lastPurchaseAt: Date | null; // Latest goods-receipt date (purchase age base)
+  lastPurchasePrice: number | null; // Latest goods-receipt unit price (modal terakhir)
+  avgPurchasePrice: number | null; // Weighted-average goods-receipt price (modal purata)
+  sold90d: number; // Gross units sold in the last 90 days
+  sold30d: number; // Gross units sold in the last 30 days
+  sold7d: number; // Gross units sold in the last 7 days
+  lastSaleAt: Date | null; // Latest sale date, null when never sold
+}
+
+/** Empty annotation row (no history yet). */
+export function emptyAnnotations(): ProductListAnnotations {
+  return {
+    totalSold: 0,
+    lastRestockAt: null,
+    firstStockAt: null,
+    lastPurchaseAt: null,
+    lastPurchasePrice: null,
+    avgPurchasePrice: null,
+    sold90d: 0,
+    sold30d: 0,
+    sold7d: 0,
+    lastSaleAt: null,
+  };
+}
+/**
  * Stock summary type
  */
 interface StockSummary {
@@ -107,6 +147,16 @@ export interface TransformedProduct {
   stockSummary?: StockSummary;
   totalSold?: number; // All-time units sold (list annotation)
   lastRestockAt?: Date | null; // Latest IN movement, null when never restocked
+  firstStockAt?: Date | null; // Earliest IN movement (IGDERP-310)
+  lastPurchaseAt?: Date | null; // Latest goods-receipt date (IGDERP-310)
+  lastSaleAt?: Date | null; // Latest sale date (IGDERP-310)
+  grade?: string | null;
+  modalTerakhir?: number | null; // Last purchase price; null when never purchased (IGDERP-310)
+  modalPurata?: number | null; // Weighted-average purchase price; null when never purchased (IGDERP-310)
+  nilaiStok?: number; // (modalPurata ?? costPrice) * net stock (IGDERP-310)
+  umurHari?: number | null; // Days since last purchase/IN/created (IGDERP-310)
+  usiaHari?: number | null; // Days since first IN/created (IGDERP-310)
+  kelas?: SalesClass | null; // Sales velocity class (IGDERP-310)
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
@@ -144,6 +194,29 @@ export class ProductTransformer {
   }
 
   /**
+   * Whole days between now and the given date (null-safe).
+   */
+  private static daysSince(d: Date | null | undefined, now: number = Date.now()): number | null {
+    if (!d) return null;
+    const t = new Date(d).getTime();
+    if (!Number.isFinite(t)) return null;
+    return Math.max(0, Math.floor((now - t) / 86400000));
+  }
+
+  /**
+   * Sales velocity class from gross windowed sales (IGDERP-310).
+   * fast = >= 30 units in 30d (~1/day); medium = >= 12 in 30d or >= 3 in 7d
+   * (~3/week); slow = any sale in 90d or a young product with no history;
+   * dead = no sale in 90d and warehouse age above 90d.
+   */
+  static classifySales(sold30d: number, sold7d: number, sold90d: number, usiaHari: number | null): SalesClass {
+    if (sold90d <= 0) return usiaHari !== null && usiaHari > 90 ? 'dead' : 'slow';
+    if (sold30d >= 30) return 'fast';
+    if (sold30d >= 12 || sold7d >= 3) return 'medium';
+    return 'slow';
+  }
+
+  /**
    * Transform product entity to safe response
    * @param product - Product entity with relations
    * @param includeStockSummary - Whether to include detailed stock summary
@@ -152,7 +225,7 @@ export class ProductTransformer {
   static transform(
     product: ProductWithRelations,
     includeStockSummary: boolean = false,
-    annotations?: Map<string, { totalSold: number; lastRestockAt: Date | null }>,
+    annotations?: Map<string, ProductListAnnotations>,
   ): TransformedProduct {
     // Calculate total stock across all branches
     const stocks = product.productStocks || [];
@@ -208,6 +281,19 @@ export class ProductTransformer {
         images = null;
       }
     }
+
+    // IGDERP-310: purchase-modal / age / velocity derivation (list annotations;
+    // null when the caller did not build them, e.g. the detail endpoint).
+    const ann = annotations?.get(product.id);
+    const costPrice = this.toNumber(product.costPrice);
+    const modalTerakhir = ann?.lastPurchasePrice ?? null;
+    const modalPurata = ann?.avgPurchasePrice ?? null;
+    const nilaiStok = (modalPurata ?? costPrice) * totalStock;
+    const umurBase = ann?.lastPurchaseAt ?? ann?.lastRestockAt ?? product.createdAt;
+    const usiaBase = ann?.firstStockAt ?? product.createdAt;
+    const umurHari = this.daysSince(umurBase);
+    const usiaHari = this.daysSince(usiaBase);
+    const kelas = ann ? ProductTransformer.classifySales(ann.sold30d, ann.sold7d, ann.sold90d, usiaHari) : null;
 
     return {
       id: product.id,
@@ -279,6 +365,16 @@ export class ProductTransformer {
       stockSummary,
       totalSold: annotations?.get(product.id)?.totalSold,
       lastRestockAt: annotations?.get(product.id)?.lastRestockAt ?? null,
+      firstStockAt: ann?.firstStockAt ?? null,
+      lastPurchaseAt: ann?.lastPurchaseAt ?? null,
+      lastSaleAt: ann?.lastSaleAt ?? null,
+      grade: (product as any).grade ?? null,
+      modalTerakhir,
+      modalPurata,
+      nilaiStok,
+      umurHari,
+      usiaHari,
+      kelas,
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
       deletedAt: product.deletedAt,
@@ -294,7 +390,7 @@ export class ProductTransformer {
   static transformMany(
     products: ProductWithRelations[],
     includeStockSummary: boolean = false,
-    annotations?: Map<string, { totalSold: number; lastRestockAt: Date | null }>,
+    annotations?: Map<string, ProductListAnnotations>,
   ): TransformedProduct[] {
     return products.map((product) => this.transform(product, includeStockSummary, annotations));
   }

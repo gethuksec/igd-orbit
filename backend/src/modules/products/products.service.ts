@@ -7,12 +7,31 @@ import {
 import { PrismaService } from '../../shared/services';
 import { buildPerWordSearch } from '../../shared/services/search.utils';
 import { CreateProductDto, UpdateProductDto, ListProductsDto } from './dto';
-import { ProductTransformer, TransformedProduct } from './transformers/product.transformer';
+import { ProductTransformer, TransformedProduct, ProductListAnnotations, emptyAnnotations } from './transformers/product.transformer';
 import { Prisma } from '@prisma/client';
 import { assertNoFreezeOpname } from '../inventory/opname-freeze.guard';
 import { randomBytes } from 'crypto';
 
 type CompareOp = 'gt' | 'lt' | 'eq';
+
+/**
+ * Master product rework A (IGDERP-309): 12-digit numeric barcode.
+ * Format = DDMMYYYY (Asia/Jakarta date) + lifetime sequence, min 4 digits,
+ * zero-padded, growing past 9999 (so barcodes become 13+ digits eventually).
+ * The sequence never resets — uniqueness comes from the global counter.
+ */
+export const PRODUCT_BARCODE_RE = /^\d{12,}$/;
+
+export function buildProductBarcode(at: Date, seq: number): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Jakarta',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).formatToParts(at);
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? '';
+  return `${get('day')}${get('month')}${get('year')}${String(seq).padStart(4, '0')}`;
+}
 
 /** Apply a gt/lt/eq compare operator onto a Prisma numeric filter object. */
 function applyCompareOp(existing: any, op: CompareOp, value: number): any {
@@ -95,6 +114,41 @@ export class ProductsService {
     }
 
     return true;
+  }
+
+  /**
+   * Master product rework A (IGDERP-309): generate the next 12-digit barcode.
+   * Consumes one value from the global `product_barcode_seq` (concurrency-safe:
+   * Postgres sequences never hand out the same value twice) and prefixes it
+   * with the DDMMYYYY creation date. The sequence never resets.
+   */
+  async generateBarcode(at: Date = new Date()): Promise<string> {
+    let rows: Array<{ next: unknown }>;
+    try {
+      rows = await this.prisma.$queryRaw<Array<{ next: unknown }>>`
+        SELECT nextval('product_barcode_seq') AS next
+      `;
+    } catch {
+      throw new BadRequestException(
+        'Urutan barcode belum tersedia — jalankan migrasi database terbaru',
+      );
+    }
+    const seq = Number(rows?.[0]?.next);
+    if (!Number.isFinite(seq) || seq <= 0) {
+      throw new BadRequestException('Gagal membuat barcode baru');
+    }
+    return buildProductBarcode(at, seq);
+  }
+
+  /**
+   * Enforce the 12-digit numeric scheme on newly provided barcodes.
+   * Unchanged values on update are skipped by the caller (legacy rows are
+   * normalised by the backfill migration instead of rejected here).
+   */
+  assertBarcodeFormat(barcode: string): void {
+    if (!PRODUCT_BARCODE_RE.test(barcode)) {
+      throw new BadRequestException('Barcode harus berupa angka dengan minimal 12 digit');
+    }
   }
 
   /**
@@ -538,15 +592,20 @@ export class ProductsService {
   }
 
   /**
-   * Build per-row list annotations (totalSold, lastRestockAt) for the current
-   * page. Rendered by the transformer so the FE table can show them.
+   * Build per-row list annotations (IGDERP-310: totalSold, restock bounds,
+   * windowed sales for the velocity class, and purchase-modal signals from
+   * goods receipts) for the current page. Rendered by the transformer so the
+   * FE table can show class/modal/umur/usia/nilai columns.
    */
-  private async buildListAnnotations(
-    productIds: string[],
-  ): Promise<Map<string, { totalSold: number; lastRestockAt: Date | null }>> {
-    const annotations = new Map<string, { totalSold: number; lastRestockAt: Date | null }>();
+  private async buildListAnnotations(productIds: string[]): Promise<Map<string, ProductListAnnotations>> {
+    const annotations = new Map<string, ProductListAnnotations>();
     if (productIds.length === 0) return annotations;
-    const [soldSums, lastIns] = await Promise.all([
+    for (const id of productIds) annotations.set(id, emptyAnnotations());
+    const now = Date.now();
+    const d90 = new Date(now - 90 * 86400000);
+    const d30 = new Date(now - 30 * 86400000);
+    const d7 = new Date(now - 7 * 86400000);
+    const [soldSums, inBounds, sold90, sold30, sold7, lastSales, purchases] = await Promise.all([
       this.prisma.salesTransactionItem.groupBy({
         by: ['productId'],
         where: { productId: { in: productIds } },
@@ -556,16 +615,110 @@ export class ProductsService {
         by: ['productId'],
         where: { productId: { in: productIds }, movementType: 'IN' },
         _max: { createdAt: true },
+        _min: { createdAt: true },
       }),
+      this.prisma.salesTransactionItem.groupBy({
+        by: ['productId'],
+        where: { productId: { in: productIds }, createdAt: { gte: d90 } },
+        _sum: { quantity: true },
+      }),
+      this.prisma.salesTransactionItem.groupBy({
+        by: ['productId'],
+        where: { productId: { in: productIds }, createdAt: { gte: d30 } },
+        _sum: { quantity: true },
+      }),
+      this.prisma.salesTransactionItem.groupBy({
+        by: ['productId'],
+        where: { productId: { in: productIds }, createdAt: { gte: d7 } },
+        _sum: { quantity: true },
+      }),
+      this.prisma.salesTransactionItem.groupBy({
+        by: ['productId'],
+        where: { productId: { in: productIds } },
+        _max: { createdAt: true },
+      }),
+      this.buildPurchaseStats(productIds),
     ]);
-    for (const id of productIds) annotations.set(id, { totalSold: 0, lastRestockAt: null });
     for (const s of soldSums) {
       annotations.get(s.productId)!.totalSold = Number(s._sum.quantity ?? 0);
     }
-    for (const r of lastIns) {
-      annotations.get(r.productId)!.lastRestockAt = r._max.createdAt;
+    for (const r of inBounds) {
+      annotations.get(r.productId)!.lastRestockAt = r._max?.createdAt ?? null;
+      annotations.get(r.productId)!.firstStockAt = r._min?.createdAt ?? null;
+    }
+    for (const s of sold90) {
+      annotations.get(s.productId)!.sold90d = Number(s._sum.quantity ?? 0);
+    }
+    for (const s of sold30) {
+      annotations.get(s.productId)!.sold30d = Number(s._sum.quantity ?? 0);
+    }
+    for (const s of sold7) {
+      annotations.get(s.productId)!.sold7d = Number(s._sum.quantity ?? 0);
+    }
+    for (const r of lastSales) {
+      annotations.get(r.productId)!.lastSaleAt = r._max?.createdAt ?? null;
+    }
+    for (const [id, p] of purchases) {
+      const ann = annotations.get(id)!;
+      ann.lastPurchaseAt = p.lastDate;
+      ann.lastPurchasePrice = p.lastPrice;
+      ann.avgPurchasePrice = p.avgPrice;
     }
     return annotations;
+  }
+
+  /**
+   * Purchase-modal signals per product from goods receipts (IGDERP-310):
+   * weighted-average unit price (modal purata) plus the latest receipt's
+   * unit price + date (modal terakhir). Products with no receipt history are
+   * absent from the map and fall back to costPrice at presentation.
+   * Degrades to empty on query failure (e.g. table missing pre-migration).
+   */
+  private async buildPurchaseStats(
+    productIds: string[],
+  ): Promise<Map<string, { avgPrice: number | null; lastPrice: number | null; lastDate: Date | null }>> {
+    const stats = new Map<string, { avgPrice: number | null; lastPrice: number | null; lastDate: Date | null }>();
+    if (productIds.length === 0) return stats;
+    let rows: Array<{ product_id: string; avg_price: number | null; last_price: number | null; last_date: Date | null }>;
+    try {
+      rows = await this.prisma.$queryRaw<
+        Array<{ product_id: string; avg_price: number | null; last_price: number | null; last_date: Date | null }>
+      >`
+        SELECT a.product_id,
+          (a.total_value / NULLIF(a.total_qty, 0))::float8 AS avg_price,
+          l.unit_price::float8 AS last_price,
+          l.last_date
+        FROM (
+          SELECT product_id,
+            SUM(quantity_accepted * unit_price) AS total_value,
+            SUM(quantity_accepted) AS total_qty
+          FROM goods_receipt_items
+          WHERE product_id = ANY(${productIds})
+          GROUP BY product_id
+        ) a
+        LEFT JOIN (
+          SELECT DISTINCT ON (gri.product_id)
+            gri.product_id,
+            gri.unit_price,
+            gr.receipt_date AS last_date
+          FROM goods_receipt_items gri
+          JOIN goods_receipts gr ON gr.id = gri.goods_receipt_id
+          WHERE gri.product_id = ANY(${productIds})
+          ORDER BY gri.product_id, gr.receipt_date DESC, gri.created_at DESC
+        ) l ON l.product_id = a.product_id
+      `;
+    } catch (error) {
+      console.warn('buildPurchaseStats degraded (no purchase signals):', (error as Error)?.message || error);
+      return stats;
+    }
+    for (const r of rows || []) {
+      stats.set(r.product_id, {
+        avgPrice: r.avg_price !== null && r.avg_price !== undefined ? Number(r.avg_price) : null,
+        lastPrice: r.last_price !== null && r.last_price !== undefined ? Number(r.last_price) : null,
+        lastDate: r.last_date ? new Date(r.last_date) : null,
+      });
+    }
+    return stats;
   }
 
   /**
@@ -750,8 +903,9 @@ export class ProductsService {
       }
     }
 
-    // Validate barcode if provided
+    // Validate barcode if provided (IGDERP-309: 12-digit numeric scheme)
     if (createProductDto.barcode) {
+      this.assertBarcodeFormat(createProductDto.barcode);
       await this.validateBarcode(createProductDto.barcode);
     }
 
@@ -797,7 +951,7 @@ export class ProductsService {
     // Prepare product data
     const productData: any = {
       sku,
-      barcode: createProductDto.barcode || null,
+      barcode: createProductDto.barcode || (await this.generateBarcode()),
       name: createProductDto.name,
       printedName: createProductDto.printedName || null,
       description: createProductDto.description || null,
@@ -870,8 +1024,9 @@ export class ProductsService {
       }
     }
 
-    // Validate barcode if updating
+    // Validate barcode if updating (IGDERP-309: changed values must fit the 12-digit scheme)
     if (updateProductDto.barcode && updateProductDto.barcode !== product.barcode) {
+      this.assertBarcodeFormat(updateProductDto.barcode);
       await this.validateBarcode(updateProductDto.barcode, id);
     }
 
@@ -1082,7 +1237,7 @@ export class ProductsService {
     // Prepare duplicate data
     const duplicateData: any = {
       sku: newSku,
-      barcode: null, // Clear barcode (must be unique)
+      barcode: await this.generateBarcode(), // Fresh lifetime barcode (must be unique)
       name: `${originalProduct.name} (Copy)`,
       description: originalProduct.description,
       categoryId: originalProduct.categoryId,
@@ -1353,6 +1508,11 @@ export class ProductsService {
 
   /**
    * Get overall product statistics from entire database
+   * IGDERP-310: Nilai Stok uses the purchase-based modal (weighted-average
+   * goods-receipt price, falling back to costPrice when a product has no
+   * receipt history); also returns summed Harga Reguler (sellingPrice) and
+   * Harga Silver (minSellingPrice) across active products for the Produk
+   * Aktif card.
    * @returns Product statistics (total, stock value, low stock count, active count)
    */
   async getStatistics() {
@@ -1372,6 +1532,32 @@ export class ProductsService {
       },
     });
 
+    // Purchase-based modal per product (weighted-average receipt price) for
+    // the Nilai Stok figure; falls back to costPrice per product when absent.
+    // Degrades to the legacy costPrice loop on query failure.
+    let avgModalById = new Map<string, number>();
+    try {
+      const rows = await this.prisma.$queryRaw<Array<{ product_id: string; avg_price: number | null }>>`
+        SELECT product_id,
+          (SUM(quantity_accepted * unit_price) / NULLIF(SUM(quantity_accepted), 0))::float8 AS avg_price
+        FROM goods_receipt_items
+        GROUP BY product_id
+      `;
+      for (const r of rows || []) {
+        if (r.avg_price !== null && r.avg_price !== undefined) {
+          avgModalById.set(r.product_id, Number(r.avg_price));
+        }
+      }
+    } catch (error) {
+      console.warn('getStatistics degraded (costPrice-based stock value):', (error as Error)?.message || error);
+    }
+
+    // Summed Harga Reguler + Harga Silver across active products (Produk Aktif card).
+    const priceSums = await this.prisma.product.aggregate({
+      _sum: { sellingPrice: true, minSellingPrice: true },
+      where: { deletedAt: null, isActive: true },
+    });
+
     // Calculate statistics
     const totalProducts = allProducts.length;
     let totalStockValue = 0;
@@ -1385,8 +1571,9 @@ export class ProductsService {
         0,
       );
 
-      // Add to total stock value (using cost price)
-      totalStockValue += product.costPrice.toNumber() * totalStock;
+      // Add to total stock value (purchase-based modal, fallback cost price)
+      const effModal = avgModalById.get(product.id) ?? product.costPrice.toNumber();
+      totalStockValue += effModal * totalStock;
 
       // Check if low stock (minStock is in ProductStock, use the minimum minStock across all branches)
       const minStocks = product.productStocks
@@ -1409,6 +1596,8 @@ export class ProductsService {
       totalStockValue,
       lowStockCount,
       activeCount,
+      sumRegular: priceSums._sum.sellingPrice ? Number(priceSums._sum.sellingPrice) : 0,
+      sumSilver: priceSums._sum.minSellingPrice ? Number(priceSums._sum.minSellingPrice) : 0,
     };
   }
 

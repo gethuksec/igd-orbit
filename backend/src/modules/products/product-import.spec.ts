@@ -39,7 +39,7 @@ async function xlsx(headers: string[], rows: any[][]): Promise<Buffer> {
  * columns default to 0 (required numeric >= 0). */
 function fullRow(over: Record<string, any> = {}): any[] {
   const base: Record<string, any> = {
-    Barcode: 'B-001',
+    Barcode: '310720160001',
     Item: 'Produk A',
     'Nama Tercetak': 'Produk A Cetak',
     Satuan: 'Pcs',
@@ -100,6 +100,7 @@ describe('ProductsService — XLSX product import', () => {
       customer: { findMany: jest.fn() },
       productStock: { upsert: jest.fn() },
       stockOpname: { findFirst: jest.fn().mockResolvedValue(null) },
+      $queryRaw: jest.fn().mockResolvedValue([{ next: 7 }]),
     };
     prisma.product.findUnique.mockResolvedValue(null);
     prisma.product.findFirst.mockResolvedValue(null);
@@ -116,7 +117,7 @@ describe('ProductsService — XLSX product import', () => {
     prisma.product.update.mockImplementation(async ({ data }: any) => ({
       id: 'prod-1',
       sku: 'PROD-1',
-      barcode: 'B-001',
+      barcode: '310720160001',
       name: 'Produk A',
       costPrice: 100000,
       sellingPrice: 150000,
@@ -146,7 +147,7 @@ describe('ProductsService — XLSX product import', () => {
       expect(out.validCount).toBe(1);
       const r = out.rows[0];
       expect(r).toMatchObject({
-        barcode: 'B-001',
+        barcode: '310720160001',
         name: 'Produk A',
         printedName: 'Produk A Cetak',
         categoryId: 'cat-1',
@@ -245,7 +246,7 @@ describe('ProductsService — XLSX product import', () => {
           rows: [
             {
               rowNumbers: [2],
-              barcode: 'B-001',
+              barcode: '310720160001',
               name: 'Produk A',
               printedName: 'Produk A Cetak',
               categoryId: 'cat-1',
@@ -281,7 +282,7 @@ describe('ProductsService — XLSX product import', () => {
       prisma.product.findFirst.mockResolvedValue({ id: 'prod-1' });
       prisma.product.findUnique.mockImplementation(async ({ where }: any) =>
         where.id === 'prod-1'
-          ? { id: 'prod-1', sku: 'PROD-1', barcode: 'B-001', sellingPrice: 150000 }
+          ? { id: 'prod-1', sku: 'PROD-1', barcode: '310720160001', sellingPrice: 150000 }
           : null,
       );
       const out = await service.confirmProductImport(
@@ -290,7 +291,7 @@ describe('ProductsService — XLSX product import', () => {
           rows: [
             {
               rowNumbers: [2],
-              barcode: 'B-001',
+              barcode: '310720160001',
               name: 'Produk A Baru',
               categoryId: 'cat-1',
               sellingPrice: 160000,
@@ -385,7 +386,7 @@ describe('ProductsService — XLSX product import', () => {
           rows: [
             {
               rowNumbers: [2],
-              barcode: 'B-001',
+              barcode: '310720160001',
               name: 'Produk A',
               categoryId: 'cat-1',
               sellingPrice: 150000,
@@ -407,7 +408,7 @@ describe('ProductsService — XLSX product import', () => {
       prisma.product.findFirst.mockResolvedValue({ id: 'prod-1' });
       prisma.product.findUnique.mockImplementation(async ({ where }: any) =>
         where.id === 'prod-1'
-          ? { id: 'prod-1', sku: 'PROD-1', barcode: 'B-001', sellingPrice: 150000 }
+          ? { id: 'prod-1', sku: 'PROD-1', barcode: '310720160001', sellingPrice: 150000 }
           : null,
       );
       const out = await service.confirmProductImport(
@@ -417,7 +418,7 @@ describe('ProductsService — XLSX product import', () => {
           rows: [
             {
               rowNumbers: [2],
-              barcode: 'B-001',
+              barcode: '310720160001',
               name: 'Produk A Baru',
               categoryId: 'cat-1',
               sellingPrice: 160000,

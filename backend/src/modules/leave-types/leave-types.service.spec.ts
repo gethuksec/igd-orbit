@@ -48,6 +48,36 @@ describe('LeaveTypesService (IGDERP-261)', () => {
     });
   });
 
+  describe('findActiveOptions (IGDERP-308 self-service lookup)', () => {
+    it('returns only active, non-deleted types ordered by name', async () => {
+      prisma.leaveType.findMany.mockResolvedValue([
+        { id: '1', code: 'CUTI-TAHUNAN', name: 'Cuti Tahunan' },
+      ]);
+      const res: any = await service.findActiveOptions();
+      expect(res).toHaveLength(1);
+      expect(prisma.leaveType.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { isActive: true, deletedAt: null },
+          orderBy: { name: 'asc' },
+        }),
+      );
+    });
+
+    it('selects the lean self-service payload (no audit columns)', async () => {
+      prisma.leaveType.findMany.mockResolvedValue([]);
+      await service.findActiveOptions();
+      const select = prisma.leaveType.findMany.mock.calls[0][0].select;
+      expect(select).toMatchObject({
+        id: true,
+        code: true,
+        name: true,
+        requiresAttachment: true,
+      });
+      expect(select).not.toHaveProperty('createdAt');
+      expect(select).not.toHaveProperty('deletedAt');
+    });
+  });
+
   describe('create', () => {
     it('auto-generates a code when omitted', async () => {
       prisma.leaveType.findUnique.mockResolvedValue(null);

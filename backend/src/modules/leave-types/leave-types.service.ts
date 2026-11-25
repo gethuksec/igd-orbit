@@ -103,6 +103,30 @@ export class LeaveTypesService {
     return row;
   }
 
+  /**
+   * Self-service lookup (IGDERP-308): active leave types for any
+   * authenticated employee (PWA /m/cuti/new + ERP request form).
+   * Lean payload, no pagination — master CRUD stays role-locked.
+   */
+  async findActiveOptions() {
+    return (this.prisma as any).leaveType.findMany({
+      where: { isActive: true, deletedAt: null },
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        description: true,
+        isPaid: true,
+        quotaDays: true,
+        maxApplyDelayDays: true,
+        maxRequestsPerMonth: true,
+        minTenureMonths: true,
+        requiresAttachment: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+  }
+
   async create(dto: CreateLeaveTypeDto) {
     let code = (dto as any).code;
     if (!code) {

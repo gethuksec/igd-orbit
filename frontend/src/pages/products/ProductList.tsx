@@ -9,6 +9,7 @@ import {
   Package,
   DollarSign,
   Barcode,
+  History,
   Loader2,
   AlertTriangle,
   CheckCircle2,
@@ -17,9 +18,11 @@ import {
 
 import { api } from '../../services/api';
 import { productsService } from '../../services/products.service';
+import { customerTiersService } from '../../services/customer-tiers.service';
 import ProductImportModal from './ProductImportModal';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { formatDateTimeId } from "@/lib/utils";
 import { Button } from '../../components/ui/button';
 import { BreadcrumbHeader, StatCard, DataTable, FilterToolbar, ExportButton, datedFilename, StatusDot } from '@/components/shared';
 import type { Column } from '@/components/shared';
@@ -188,6 +191,31 @@ export default function ProductList() {
     }).format(amount);
   };
 
+  // IGDERP-310: tier perak untuk lapis harga bawah (merah). Harga silver =
+  // simpanan memberPricing tier SILVER, fallback ke Harga Jual Minimum.
+  const { data: tiersData } = useQuery({
+    queryKey: ['customer-tiers-active'],
+    queryFn: () => customerTiersService.getAll({ limit: 50 }),
+    staleTime: 300000,
+  });
+  const silverTier = (tiersData?.data || []).find((t: any) => t.code === 'SILVER');
+  const silverPriceOf = (product: any): number | null => {
+    const stored = silverTier ? product?.memberPricing?.[silverTier.id] : undefined;
+    if (typeof stored === 'number' && stored > 0) return stored;
+    if (stored && typeof stored.price === 'number' && stored.price > 0) return stored.price;
+    if (stored && typeof stored.discount === 'number') {
+      return Math.round((product?.sellingPrice || 0) * (1 - stored.discount / 100));
+    }
+    return product?.minSellingPrice ?? null;
+  };
+  const relationName = (v: any): string => (typeof v === 'string' ? v : v?.name || '');
+  const classStyle: Record<string, string> = {
+    fast: 'text-green-600 dark:text-green-400',
+    medium: 'text-blue-600 dark:text-blue-400',
+    slow: 'text-amber-600 dark:text-amber-400',
+    dead: 'text-red-600 dark:text-red-400',
+  };
+
   const [showImportModal, setShowImportModal] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<{ id: string; name: string } | null>(null);
@@ -208,8 +236,19 @@ export default function ProductList() {
 
   const columns: Column<any>[] = [
     {
+      key: 'barcode',
+      header: 'Barcode',
+      cell: (product) => (
+        <span className="font-mono text-[13px] tabular-nums text-foreground">
+          {product.barcode || '-'}
+        </span>
+      ),
+    },
+    {
       key: 'product',
       header: 'Produk',
+      stickyLeft: true,
+      frozenWidth: 280,
       cell: (product) => (
         <div className="flex items-center gap-4">
           <Link to={`/products/${product.id}`} className="flex-shrink-0 hover:opacity-80 transition-opacity">
@@ -244,18 +283,24 @@ export default function ProductList() {
       ),
     },
     {
-      key: 'sellingPrice',
-      header: 'Harga Jual',
-      cell: (product) => (
-        <div className="flex flex-col">
-          <span className="font-medium tabular-nums text-foreground">{formatCurrency(product.sellingPrice)}</span>
-          {(product as any).minSellingPrice ? (
-            <span className="text-xs text-red-600 dark:text-red-400">{formatCurrency((product as any).minSellingPrice)}</span>
-          ) : (
-            <span className="text-xs text-muted-foreground">-</span>
-          )}
-        </div>
-      ),
+      key: 'price',
+      header: 'Harga',
+      cell: (product) => {
+        const silver = silverPriceOf(product);
+        return (
+          <div
+            className="flex flex-col"
+            title={`User: ${formatCurrency(product.sellingPrice)}${silver ? ` • Silver: ${formatCurrency(silver)}` : ''}`}
+          >
+            <span className="font-medium tabular-nums text-foreground">{formatCurrency(product.sellingPrice)}</span>
+            {silver ? (
+              <span className="text-xs text-red-600 dark:text-red-400 tabular-nums">{formatCurrency(silver)}</span>
+            ) : (
+              <span className="text-xs text-muted-foreground">-</span>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: 'stock',
@@ -308,15 +353,6 @@ export default function ProductList() {
       ),
     },
     {
-      key: 'sold',
-      header: 'Terjual',
-      cell: (product) => (
-        <span className="font-mono text-base font-medium tabular-nums text-foreground">
-          {(product as any).totalSold ?? 0}
-        </span>
-      ),
-    },
-    {
       key: 'category',
       header: 'Kategori',
       cell: (product) => (
@@ -326,17 +362,148 @@ export default function ProductList() {
       ),
     },
     {
+      key: 'grade',
+      header: 'Grade',
+      cell: (product) => (
+        <span className="text-sm text-foreground">{(product as any).grade || '-'}</span>
+      ),
+    },
+    {
       key: 'brand',
-      header: 'Merk',
+      header: 'Merek',
       cell: (product) => (
         <span className="text-sm text-foreground">{product.brand?.name || '-'}</span>
       ),
     },
     {
-      key: 'costPrice',
-      header: 'Harga Beli',
+      key: 'color',
+      header: 'Warna',
       cell: (product) => (
-        <div className="text-sm font-medium tabular-nums text-foreground">{formatCurrency(product.costPrice)}</div>
+        <span className="text-sm text-foreground">{relationName((product as any).color) || '-'}</span>
+      ),
+    },
+    {
+      key: 'class',
+      header: 'Class',
+      cell: (product) => {
+        const kelas = (product as any).kelas as string | null;
+        if (!kelas) return <span className="text-sm text-muted-foreground">-</span>;
+        return (
+          <span
+            className={`text-sm font-semibold capitalize tabular-nums ${classStyle[kelas] || ''}`}
+            title="fast: ≥1x/hari • medium: ≥3x/minggu • slow: < itu • dead: 90 hari tak terjual"
+          >
+            {kelas}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'modal',
+      header: 'Modal',
+      cell: (product) => {
+        const v = (product as any).modalTerakhir ?? product.costPrice;
+        const hasHist = (product as any).modalTerakhir != null;
+        return (
+          <div
+            className="text-sm font-medium tabular-nums text-foreground"
+            title={hasHist ? 'Harga beli terakhir (goods receipt)' : 'Belum ada pembelian — modal master'}
+          >
+            {formatCurrency(v)}
+          </div>
+        );
+      },
+    },
+    {
+      key: 'modalPurata',
+      header: 'Modal Purata',
+      cell: (product) => {
+        const v = (product as any).modalPurata ?? product.costPrice;
+        const hasHist = (product as any).modalPurata != null;
+        return (
+          <div
+            className="text-sm font-medium tabular-nums text-foreground"
+            title={hasHist ? 'Rata-rata tertimbang harga beli (goods receipt)' : 'Belum ada pembelian — modal master'}
+          >
+            {formatCurrency(v)}
+          </div>
+        );
+      },
+    },
+    {
+      key: 'umur',
+      header: 'Umur',
+      cell: (product) => {
+        const v = (product as any).umurHari;
+        return (
+          <span
+            className="text-sm tabular-nums text-foreground"
+            title="Hari sejak terakhir dibeli"
+          >
+            {v != null ? `${v} hr` : '-'}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'usia',
+      header: 'Usia',
+      cell: (product) => {
+        const v = (product as any).usiaHari;
+        return (
+          <span
+            className="text-sm tabular-nums text-foreground"
+            title="Lama di gudang (hari)"
+          >
+            {v != null ? `${v} hr` : '-'}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'unit',
+      header: 'Satuan',
+      cell: (product) => (
+        <span className="text-sm text-muted-foreground">{relationName((product as any).unit) || '-'}</span>
+      ),
+    },
+    {
+      key: 'type',
+      header: 'Jenis',
+      cell: (product) => (
+        <span className="text-sm text-muted-foreground">{(product as any).isService ? 'Jasa' : 'Produk'}</span>
+      ),
+    },
+    {
+      key: 'log',
+      header: 'Log',
+      cell: (product) => (
+        <Link
+          to={`/products/${product.id}`}
+          title="Riwayat aktivitas"
+          className="inline-flex items-center gap-1 text-sm text-primary-600 dark:text-primary-400 hover:underline"
+        >
+          <History className="h-4 w-4" />
+          Log
+        </Link>
+      ),
+    },
+    {
+      key: 'isActive',
+      header: 'Status',
+      cell: (product) => (
+        <StatusDot tone={(product as any).isActive ? 'ok' : 'off'}>
+          {(product as any).isActive ? 'Aktif' : 'Tidak Aktif'}
+        </StatusDot>
+      ),
+    },
+    {
+      key: 'updatedAt',
+      header: 'Terakhir Diupdate',
+      cell: (product) => (
+        <div className="text-sm tabular-nums text-muted-foreground">
+          {formatDateTimeId((product as any).updatedAt)}
+        </div>
       ),
     },
   ];
@@ -397,8 +564,14 @@ export default function ProductList() {
         <StatCard
           icon={<CheckCircle2 className="h-5 w-5" />}
           label="Produk Aktif"
-          value={isLoading ? '-' : activeCount}
-          subtitle="Sedang aktif dijual"
+          value={isLoading ? '-' : (statistics?.sumRegular != null ? formatCurrency(statistics.sumRegular) : activeCount)}
+          subtitle={
+            isLoading
+              ? 'Sedang aktif dijual'
+              : (statistics?.sumRegular != null
+                ? `Silver: ${formatCurrency(statistics.sumSilver || 0)} • Aktif: ${activeCount}`
+                : 'Sedang aktif dijual')
+          }
         />
       </div>
 
@@ -574,6 +747,7 @@ export default function ProductList() {
         isLoading={isLoading}
         emptyMessage="Tidak ada produk ditemukan"
         emptyIcon={<Package className="w-16 h-16" />}
+        actionsPosition="left"
         actions={(product: any) => (
           <div className="flex items-center justify-end gap-2">
             <Link
