@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Stamp } from "lucide-react";
-import { hrService, type LeaveRequest } from "@/services/hr.service";
+import { hrService, leaveTypeName, type LeaveRequest } from "@/services/hr.service";
 import { leaveTypesService } from "@/services/leave-types.service";
 import { formatDate } from "@/utils/format";
 import { BreadcrumbHeader, FilterToolbar, DataTable, StatusDot } from "@/components/shared";
@@ -9,22 +9,6 @@ import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-
-function typeLabel(t: unknown): string {
-  if (t && typeof t === "object" && "name" in (t as any)) return (t as any).name;
-  switch (t) {
-    case "annual":
-      return "Cuti tahunan";
-    case "sick":
-      return "Sakit";
-    case "emergency":
-      return "Darurat";
-    case "unpaid":
-      return "Tanpa gaji";
-    default:
-      return String(t ?? "-");
-  }
-}
 
 function statusPill(status: string) {
   if (status === "approved") return <StatusDot tone="ok">Disetujui</StatusDot>;
@@ -71,7 +55,7 @@ export default function ApprovalCutiPage() {
     return (
       r.employee?.user?.fullName?.toLowerCase().includes(s) ||
       r.employee?.employeeCode?.toLowerCase().includes(s) ||
-      String(r.leaveType).toLowerCase().includes(s)
+      leaveTypeName(r.leaveType).toLowerCase().includes(s)
     );
   });
 
@@ -126,7 +110,7 @@ export default function ApprovalCutiPage() {
         </span>
       ),
     },
-    { key: "type", header: "Tipe", cell: (r) => <span className="text-sm">{typeLabel(r.leaveType)}</span> },
+    { key: "type", header: "Tipe", cell: (r) => <span className="text-sm">{leaveTypeName(r.leaveType)}</span> },
     {
       key: "period",
       header: "Periode",
@@ -215,7 +199,7 @@ export default function ApprovalCutiPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {detail?.employee?.user?.fullName} · {detail && typeLabel(detail.leaveType)}
+              {detail?.employee?.user?.fullName} · {detail && leaveTypeName(detail.leaveType)}
             </DialogTitle>
           </DialogHeader>
           {detail && (

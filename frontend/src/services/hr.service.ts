@@ -138,7 +138,9 @@ export interface OvertimeRequest {
 export interface LeaveRequest {
   id: string;
   employeeId: string;
-  leaveType: string;
+  // IGDERP-313: backend includes the leaveType relation object, so the
+  // runtime shape is object|string (legacy rows carry master codes).
+  leaveType: string | { name?: string; code?: string };
   leaveTypeId?: string;
   startDate: string;
   endDate: string;
@@ -300,6 +302,31 @@ export interface PendingApproval {
   summary: string;
   canDecide: boolean;
   decideEndpoint: string;
+  // IGDERP-313: leave period (populated for kind === 'leave').
+  startDate?: string;
+  endDate?: string;
+}
+
+/**
+ * IGDERP-313: normalize the leaveType field, which arrives as a populated
+ * relation object from the API but stays a master-code string on legacy
+ * rows. Never interpolate the raw value into UI text (renders
+ * "[object Object]").
+ */
+export function leaveTypeName(t: LeaveRequest['leaveType']): string {
+  if (t && typeof t === 'object' && 'name' in (t as any)) return (t as any).name || '-';
+  switch (t) {
+    case 'annual':
+      return 'Cuti tahunan';
+    case 'sick':
+      return 'Sakit';
+    case 'emergency':
+      return 'Darurat';
+    case 'unpaid':
+      return 'Tanpa gaji';
+    default:
+      return String(t ?? '-');
+  }
 }
 
 export interface ShiftSwapRequest {

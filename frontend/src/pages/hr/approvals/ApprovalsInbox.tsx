@@ -92,8 +92,13 @@ export default function ApprovalsInbox() {
                   </span>
                 </div>
                 <p className="font-bold text-gray-900 dark:text-gray-100 mt-1.5">{item.requester.name || item.requester.employeeCode}</p>
+                {item.kind === 'leave' && (item.startDate || item.endDate) ? (
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                    {formatDate(item.startDate ?? item.endDate!)} – {formatDate(item.endDate ?? item.startDate!)}
+                  </p>
+                ) : null}
                 <p className="text-sm text-gray-600 dark:text-gray-400">{item.summary}</p>
-                <p className="text-xs text-gray-400 mt-1">{formatDate(item.createdAt)}</p>
+                <p className="text-xs text-gray-400 mt-1">Diajukan {formatDate(item.createdAt)}</p>
               </div>
             </div>
 
