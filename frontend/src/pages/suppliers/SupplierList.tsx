@@ -8,6 +8,7 @@ import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { formatCurrency, formatNumber, formatDate } from "@/utils/format";
 import { generateCode10 } from "@/utils/generateCode";
@@ -504,12 +505,10 @@ export default function SupplierList() {
           <div>
             <label className="block text-sm font-medium mb-1">Status</label>
             {editingSupplier ? (
-              <label className="inline-flex cursor-pointer items-center gap-2.5">
-                <input
-                  type="checkbox"
+              <label className="flex cursor-pointer items-center gap-2.5">
+                <Switch
                   checked={form.isActive}
-                  onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-                  className="h-4 w-4 rounded accent-primary"
+                  onCheckedChange={(v) => setForm({ ...form, isActive: v })}
                 />
                 <StatusDot tone={form.isActive ? "ok" : "off"}>
                   {form.isActive ? "Pemasok aktif" : "Pemasok tidak aktif"}
