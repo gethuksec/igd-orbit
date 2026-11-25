@@ -58,9 +58,11 @@ export default function ApprovalCutiPage() {
       }),
   });
 
+  // IGDERP-308: self-service lookup — approvers without master-data
+  // roles (e.g. HS) can still resolve type names.
   const { data: leaveTypes } = useQuery({
     queryKey: ["leave-types-options"],
-    queryFn: () => leaveTypesService.getAll({ limit: 200 }),
+    queryFn: () => leaveTypesService.getActiveOptions(),
   });
 
   const rows = (data?.data ?? []).filter((r: LeaveRequest) => {
@@ -290,7 +292,7 @@ export default function ApprovalCutiPage() {
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
               >
                 <option value="">Pilih tipe</option>
-                {(leaveTypes?.data ?? []).map((t: any) => (
+                {(leaveTypes ?? []).map((t: any) => (
                   <option key={t.id} value={t.code}>
                     {t.name}
                   </option>

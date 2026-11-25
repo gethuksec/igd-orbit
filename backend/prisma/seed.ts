@@ -178,7 +178,7 @@ async function main() {
     MO: ['dashboard.*.view', 'master_data.*.view', 'sales.*.view', 'service.*.view', 'inventory.*.view', 'purchasing.*.view'],
     MS: ['dashboard.*.view', 'master_data.*.view', 'finance.*.view', 'hr.*.view', 'purchasing.*.view'],
     'SPV-MKT': ['dashboard.*.view', 'master_data.*.view', 'sales.*.view', 'service.*.view'],
-    HS: ['dashboard.*.view', 'master_data.*.view', 'sales.*.view', 'service.*.view', 'inventory.*.view'],
+    HS: ['dashboard.*.view', 'master_data.*.view', 'sales.*.view', 'service.*.view', 'inventory.*.view', 'hr.*.view'], // IGDERP-308: superior sees approval queues
     'SPV-SC': ['dashboard.*.view', 'master_data.*.view', 'sales.*.view', 'inventory.*.view', 'purchasing.*.view'],
     'SPV-FO': ['dashboard.*.view', 'master_data.*.view', 'sales.*.view', 'finance.*.view'],
     'SPV-HRD': ['dashboard.*.view', 'master_data.*.view', 'hr.*.view', 'users.*.view', 'roles.*.view'],

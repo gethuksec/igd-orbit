@@ -50,6 +50,20 @@ export const leaveTypesService = {
     }
   },
 
+  /**
+   * IGDERP-308: self-service lookup — active types for any authenticated
+   * employee (PWA /m/cuti/new + ERP request form). No HR role required.
+   */
+  async getActiveOptions(): Promise<LeaveType[]> {
+    try {
+      const response = await api.get('/leave-types/active');
+      const d = response.data;
+      return d?.data || d || [];
+    } catch (error: any) {
+      return handleApiError(error, []);
+    }
+  },
+
   async getById(id: string): Promise<LeaveType> {
     try {
       const response = await api.get(`/leave-types/${id}`);

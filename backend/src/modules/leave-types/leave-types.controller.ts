@@ -37,6 +37,17 @@ export class LeaveTypesController {
     }
   }
 
+  /**
+   * Self-service lookup (IGDERP-308): active leave types for any
+   * authenticated employee. No RolesGuard — payload is scoped to
+   * active rows only. Declared before ':id' so 'active' is never
+   * swallowed as an id param.
+   */
+  @Get('active')
+  async findActiveOptions() {
+    return this.svc.findActiveOptions();
+  }
+
   @Get(':id')
   @UseGuards(RolesGuard)
   @Roles('SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'MS', 'HS')
