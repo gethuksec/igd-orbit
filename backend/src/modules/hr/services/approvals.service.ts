@@ -45,6 +45,9 @@ export class ApprovalsService {
     const db: any = this.prisma;
     const isLine = LINE_ROLES.some((r) => roles.includes(r));
     const isHr = roles.includes('CHR');
+    // IGDERP-314 follow-up: no CHR user exists on prod — SPV-HRD (HR head)
+    // finalizes step 2. Scoped to their branches (unlike CHR, no see-all).
+    const isHrdFinalizer = roles.includes('SPV-HRD');
     const isAdmin = ['SUPERADMIN', 'OWNER'].some((r) => roles.includes(r));
     const canDecideLiburHr = roles.some((r) => LIBUR_WRITE_ROLES.includes(r));
 
@@ -85,7 +88,9 @@ export class ApprovalsService {
 
     // ── Leave ──
     const leaveStatuses =
-      isAdmin || isHr ? ['pending', 'manager_approved'] : isLine ? ['pending'] : [];
+      isAdmin || isHr
+        ? ['pending', 'manager_approved']
+        : [...(isLine ? ['pending'] : []), ...(isHrdFinalizer ? ['manager_approved'] : [])];
     if (leaveStatuses.length) {
       const rows = await db.leaveRequest.findMany({
         where: { status: { in: leaveStatuses }, employee: branchScope },
@@ -94,7 +99,9 @@ export class ApprovalsService {
       });
       for (const r of rows) {
         const step1 = r.status === 'pending';
-        const canDecide = step1 ? n1Can(r.employee, r.requestedBy) : (isAdmin || isHr) && r.requestedBy !== userId;
+        const canDecide = step1
+          ? n1Can(r.employee, r.requestedBy)
+          : (isAdmin || isHr || isHrdFinalizer) && r.requestedBy !== userId;
         items.push({
           kind: 'leave',
           id: r.id,

@@ -21,10 +21,14 @@ function statusPill(status: string) {
 export default function ApprovalCutiPage() {
   const queryClient = useQueryClient();
   const { hasAnyRole } = usePermissions();
-  // IGDERP-314: mirror LeaveService.approveLeave — step 1 is HS/SPV only.
-  // Viewers without an approver role (HRD/SPV-HRD, juniors) get Detail
-  // instead of buttons that would 403.
+  // IGDERP-314: mirror LeaveService.approveLeave — step 1 is atasan N+1
+  // (HS/SPV see the buttons; the service enforces the holder check).
+  // Viewers without an approver role get Detail instead of buttons
+  // that would 403.
   const canStep1 = hasAnyRole(["HS", "SPV"]);
+  // IGDERP-314 follow-up: step 2 finalizer is CHR, or SPV-HRD as HR head
+  // (no CHR user on prod). Mirrors LeaveService.approveLeaveHr.
+  const canStep2 = hasAnyRole(["CHR", "SPV-HRD"]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("pending");
   const [dateFrom, setDateFrom] = useState("");
@@ -88,6 +92,17 @@ export default function ApprovalCutiPage() {
       toast.success("Cuti ditolak");
     },
     onError: (e: any) => toast.error(e.response?.data?.message || "Gagal menolak"),
+  });
+
+  // IGDERP-314 follow-up: step-2 finalize from the ERP queue (HR head).
+  const approveHrMutation = useMutation({
+    mutationFn: (id: string) => hrService.approveLeaveHr(id),
+    onSuccess: () => {
+      invalidate();
+      setDetail(null);
+      toast.success("Cuti disetujui final");
+    },
+    onError: (e: any) => toast.error(e.response?.data?.message || "Gagal finalisasi"),
   });
 
   const createMutation = useMutation({
@@ -192,6 +207,19 @@ export default function ApprovalCutiPage() {
                   Tolak
                 </Button>
               </>
+            ) : r.status === "manager_approved" && canStep2 ? (
+              <>
+                <Button
+                  size="sm"
+                  onClick={() => approveHrMutation.mutate(r.id)}
+                  disabled={approveHrMutation.isPending}
+                >
+                  Final
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setRejectTarget(r)}>
+                  Tolak
+                </Button>
+              </>
             ) : (
               <Button variant="outline" size="sm" onClick={() => setDetail(r)}>
                 Detail
@@ -224,6 +252,20 @@ export default function ApprovalCutiPage() {
                 <div className="flex gap-2 pt-2">
                   <Button className="flex-1" onClick={() => approveMutation.mutate(detail.id)}>
                     Setujui
+                  </Button>
+                  <Button variant="outline" className="flex-1" onClick={() => setRejectTarget(detail)}>
+                    Tolak
+                  </Button>
+                </div>
+              )}
+              {detail.status === "manager_approved" && canStep2 && (
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    className="flex-1"
+                    onClick={() => approveHrMutation.mutate(detail.id)}
+                    disabled={approveHrMutation.isPending}
+                  >
+                    Final
                   </Button>
                   <Button variant="outline" className="flex-1" onClick={() => setRejectTarget(detail)}>
                     Tolak
