@@ -34,6 +34,7 @@ describe('ProductsService — min<=selling guard (IGDERP-195)', () => {
   let prisma: {
     product: { findUnique: jest.Mock; create: jest.Mock; update: jest.Mock };
     category: { findUnique: jest.Mock };
+    $queryRaw: jest.Mock;
   };
 
   const baseDto = (over: any = {}) => ({
@@ -50,6 +51,7 @@ describe('ProductsService — min<=selling guard (IGDERP-195)', () => {
     prisma = {
       product: { findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
       category: { findUnique: jest.fn() },
+      $queryRaw: jest.fn().mockResolvedValue([{ next: 99 }]),
     };
     prisma.product.findUnique.mockResolvedValue(null);
     prisma.category.findUnique.mockResolvedValue({ id: 'cat-1' });

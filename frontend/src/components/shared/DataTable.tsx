@@ -27,6 +27,8 @@ interface DataTableProps<T> {
   emptyMessage?: string;
   emptyIcon?: ReactNode;
   actions?: (item: T) => ReactNode;
+  actionsPosition?: 'first' | 'last';
+  actionsHeader?: string;
   sortColumn?: string;
   sortDirection?: 'asc' | 'desc';
   onSort?: (column: string) => void;
@@ -44,6 +46,8 @@ export function DataTable<T>({
   emptyMessage = 'No data found',
   emptyIcon,
   actions,
+  actionsPosition = 'last',
+  actionsHeader = 'Actions',
   sortColumn,
   sortDirection,
   onSort,
@@ -56,23 +60,29 @@ export function DataTable<T>({
         <Table>
           <TableHeader>
             <TableRow>
+              {actions && actionsPosition === 'first' && <TableHead className="w-20">{actionsHeader}</TableHead>}
               {columns.map((col) => (
                 <TableHead key={col.key} className={col.headerClassName}>
                   {col.header}
                 </TableHead>
               ))}
-              {actions && <TableHead className="w-20">Actions</TableHead>}
+              {actions && actionsPosition === 'last' && <TableHead className="w-20">{actionsHeader}</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {Array.from({ length: ROWS }).map((_, i) => (
               <TableRow key={i}>
+                {actions && actionsPosition === 'first' && (
+                  <TableCell>
+                    <Skeleton className="h-8 w-16" />
+                  </TableCell>
+                )}
                 {columns.map((col) => (
                   <TableCell key={col.key}>
                     <Skeleton className="h-4 w-full" />
                   </TableCell>
                 ))}
-                {actions && (
+                {actions && actionsPosition === 'last' && (
                   <TableCell>
                     <Skeleton className="h-8 w-16" />
                   </TableCell>
@@ -99,6 +109,7 @@ export function DataTable<T>({
       <Table>
         <TableHeader>
           <TableRow>
+            {actions && actionsPosition === 'first' && <TableHead className="w-20">{actionsHeader}</TableHead>}
             {columns.map((col) => (
               <TableHead
                 key={col.key}
@@ -116,7 +127,7 @@ export function DataTable<T>({
                 </span>
               </TableHead>
             ))}
-            {actions && <TableHead className="w-20">Actions</TableHead>}
+            {actions && actionsPosition === 'last' && <TableHead className="w-20">{actionsHeader}</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -126,12 +137,17 @@ export function DataTable<T>({
               onClick={onRowClick ? () => onRowClick(item) : undefined}
               className={onRowClick ? 'cursor-pointer' : undefined}
             >
+              {actions && actionsPosition === 'first' && (
+                <TableCell>
+                  <div className="flex items-center gap-2">{actions(item)}</div>
+                </TableCell>
+              )}
               {columns.map((col) => (
                 <TableCell key={col.key} className={col.className}>
                   {col.cell(item)}
                 </TableCell>
               ))}
-              {actions && (
+              {actions && actionsPosition === 'last' && (
                 <TableCell>
                   <div className="flex items-center gap-2">{actions(item)}</div>
                 </TableCell>

@@ -40,6 +40,7 @@ describe('ProductsService — list filters', () => {
       salesTransactionItem: { groupBy: jest.fn() },
       stockMovement: { groupBy: jest.fn() },
       category: { findUnique: jest.fn() },
+      $queryRaw: jest.fn().mockResolvedValue([]),
     };
     prisma.product.findMany.mockResolvedValue([baseProduct()]);
     prisma.product.count.mockResolvedValue(1);
