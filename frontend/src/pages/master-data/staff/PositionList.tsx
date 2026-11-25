@@ -21,6 +21,7 @@ interface FormData {
   minSalary: string;
   defaultRoleId: string;
   defaultShiftId: string;
+  parentPositionId: string;
   isActive: boolean;
 }
 
@@ -33,6 +34,7 @@ const defaultForm: FormData = {
   minSalary: "",
   defaultRoleId: "",
   defaultShiftId: "",
+  parentPositionId: "",
   isActive: true,
 };
 
@@ -90,6 +92,14 @@ export default function PositionList() {
       const res = await api.get("/shifts", { params: { limit: 200, status: "active" } });
       return ((res.data?.data ?? []) as { id: string; code: string; name: string }[]);
     },
+  });
+  const { data: parentOptions } = useQuery({
+    queryKey: ["positions-parent-options"],
+    queryFn: async () => {
+      const res = await positionsService.getAll({ limit: 200 });
+      return [...(res.data ?? [])].sort((a, b) => a.rank - b.rank || a.code.localeCompare(b.code));
+    },
+    staleTime: 60_000,
   });
 
   const { data, isLoading, error, refetch } = useQuery({
@@ -160,10 +170,24 @@ export default function PositionList() {
       minSalary: row.minSalary?.toString() ?? "",
       defaultRoleId: row.defaultRoleId || "",
       defaultShiftId: row.defaultShiftId || "",
+      parentPositionId: row.parentPositionId || row.parentPosition?.id || "",
       isActive: row.isActive ?? true,
     });
     setFormModalOpen(true);
   };
+
+  // Only higher levels (smaller rank number) can be the direct atasan, never self.
+  const eligibleParents = (parentOptions || []).filter(
+    (p) => p.rank < Number(formData.rank) && (!editing || p.id !== editing.id),
+  );
+
+  // Rank change can invalidate the chosen atasan — clear it quietly.
+  useEffect(() => {
+    if (!formData.parentPositionId) return;
+    const stillEligible = eligibleParents.some((p) => p.id === formData.parentPositionId);
+    if (!stillEligible) setFormData((f) => ({ ...f, parentPositionId: "" }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.rank]);
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/positions/${id}`),
@@ -209,6 +233,21 @@ export default function PositionList() {
           <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-800">
             G{row.grade.rank}
           </span>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        ),
+    },
+    {
+      key: "parent",
+      header: "Atasan",
+      cell: (row) =>
+        row.parentPosition ? (
+          <div>
+            <div className="text-sm font-medium text-foreground">{row.parentPosition.name}</div>
+            <div className="text-xs text-muted-foreground mt-0.5 font-mono">
+              {row.parentPosition.code} · L{row.parentPosition.rank}
+            </div>
+          </div>
         ) : (
           <span className="text-muted-foreground">—</span>
         ),
@@ -417,6 +456,7 @@ export default function PositionList() {
                 minSalary: formData.minSalary ? Number(formData.minSalary) : undefined,
                 defaultRoleId: formData.defaultRoleId || undefined,
                 defaultShiftId: formData.defaultShiftId || null,
+                parentPositionId: formData.parentPositionId || null,
               });
             }}
             className="space-y-4"
@@ -463,6 +503,24 @@ export default function PositionList() {
                   ))}
                 </select>
               </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Atasan langsung</label>
+              <select
+                value={formData.parentPositionId}
+                onChange={(e) => setFormData({ ...formData, parentPositionId: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
+              >
+                <option value="">— Puncak (tanpa atasan) —</option>
+                {eligibleParents.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.code} · {p.name} (L{p.rank})
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Satu level di atas — yang menyetujui/menolak pengajuan tim ini.
+              </p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
