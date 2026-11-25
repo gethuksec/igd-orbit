@@ -1,14 +1,9 @@
-import { useEffect, useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { BreadcrumbHeader, DataTable, type Column } from '@/components/shared';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Eye } from 'lucide-react';
 import { hrService } from '@/services/hr.service';
 import { api } from '@/services/api';
-import { KpiAspectTable } from '@/pages/hr/kpi/KpiAspectTable';
-import { toast } from 'sonner';
 
 interface DivSummary {
   division: any;
@@ -21,14 +16,13 @@ interface DivSummary {
 const EPS = 1e-9;
 
 /**
- * Master Data — Aspek KPI (template: DataTable, Aksi left icon-only).
- * Default view: division table; the eye icon opens the aspect detail.
+ * Master Data — Aspek KPI division list (mock v9 A).
+ * Template: DataTable, Aksi left icon-only (centered), non-name columns centered.
+ * The eye icon navigates to the division page; no detail state here.
  * Only dept heads (HS/SPV scoped) + CHR see this page.
  */
 export default function KpiAspectMasterList() {
-  const queryClient = useQueryClient();
-  const [selectedId, setSelectedId] = useState('');
-  const [amount, setAmount] = useState('');
+  const navigate = useNavigate();
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ['kpi-divisions-master'],
@@ -69,80 +63,6 @@ export default function KpiAspectMasterList() {
     enabled: rows.length > 0,
   });
 
-  const selected = summaries.find((s) => s.division.id === selectedId) ||
-    rows.find((r: any) => r.division.id === selectedId)?.division;
-
-  const { data: config } = useQuery({
-    queryKey: ['kpi-config-master', selectedId],
-    queryFn: () => hrService.getKpiConfig(selectedId),
-    enabled: !!selectedId,
-  });
-
-  useEffect(() => {
-    const v = (config as any)?.defaultAmount;
-    setAmount(v !== undefined && v !== null ? String(v) : '');
-  }, [config, selectedId]);
-
-  const saveAmount = useMutation({
-    mutationFn: () => hrService.upsertKpiConfig(selectedId, { default_amount: parseFloat(amount) }),
-    onSuccess: () => {
-      toast.success('Pengali KPI divisi tersimpan');
-      queryClient.invalidateQueries({ queryKey: ['kpi-config-master', selectedId] });
-      queryClient.invalidateQueries({ queryKey: ['kpi-master-summary'] });
-    },
-    onError: (e: any) => {
-      toast.error(e.response?.data?.message || 'Gagal menyimpan pengali KPI');
-    },
-  });
-
-  if (selectedId) {
-    const div = (selected as DivSummary)?.division ?? (selected as any) ?? {};
-    return (
-      <div className="w-full space-y-6">
-        <BreadcrumbHeader
-          title={`Aspek KPI — ${div?.name || '...'}`}
-          subtitle="Phase 1 — dept head kelola aspek + target + bobot"
-        >
-          <Button variant="outline" size="sm" onClick={() => setSelectedId('')}>
-            Kembali ke daftar divisi
-          </Button>
-        </BreadcrumbHeader>
-        <Card>
-          <CardContent className="flex items-center gap-2 py-4">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">Pengali (Rp)</span>
-            <Input
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="mis. 700000"
-              inputMode="decimal"
-              className="w-40"
-            />
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={amount === '' || saveAmount.isPending}
-              onClick={() => saveAmount.mutate()}
-            >
-              {saveAmount.isPending ? 'Menyimpan...' : 'Simpan'}
-            </Button>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">Aspek + bobot</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <KpiAspectTable divisionId={selectedId} />
-            <p className="px-5 py-3 text-xs text-muted-foreground border-t">
-              Aspek yang sudah dipakai periode berjalan dikunci — perubahan struktural
-              berlaku untuk periode berikutnya (buat aspek baru).
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   const columns: Column<DivSummary>[] = [
     {
       key: 'division',
@@ -157,15 +77,15 @@ export default function KpiAspectMasterList() {
     {
       key: 'aspects',
       header: 'Aspek',
-      headerClassName: 'text-right',
-      className: 'text-right font-mono tabular-nums',
+      headerClassName: 'text-center',
+      className: 'text-center font-mono tabular-nums',
       cell: (s) => (s.active > 0 ? `${s.active} aktif` : '—'),
     },
     {
       key: 'weights',
       header: 'Bobot',
-      headerClassName: 'text-right',
-      className: 'text-right font-mono tabular-nums',
+      headerClassName: 'text-center',
+      className: 'text-center font-mono tabular-nums',
       cell: (s) => (
         <span style={{ color: Math.abs(s.sum - 1) > EPS ? '#b91c1c' : undefined }}>
           {s.sum.toFixed(2)}
@@ -175,8 +95,8 @@ export default function KpiAspectMasterList() {
     {
       key: 'amount',
       header: 'Pengali',
-      headerClassName: 'text-right',
-      className: 'text-right font-mono tabular-nums',
+      headerClassName: 'text-center',
+      className: 'text-center font-mono tabular-nums',
       cell: (s) => (s.amount !== null ? `Rp${s.amount.toLocaleString('id-ID')}` : '—'),
     },
   ];
@@ -195,11 +115,11 @@ export default function KpiAspectMasterList() {
         isLoading={isLoading || sumLoading}
         emptyMessage="Tidak ada divisi dalam lingkup Anda"
         actions={(s) => (
-          <div className="flex items-center justify-end gap-1">
+          <div className="flex items-center justify-center gap-1">
             <button
               type="button"
               title="Buka"
-              onClick={() => setSelectedId(s.division.id)}
+              onClick={() => navigate(`/hr/master-data/kpi/${s.division.id}`)}
               className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
               <Eye className="h-4 w-4" />

@@ -315,7 +315,8 @@ export class KPIService {
     const division = await (this.prisma as any).division.findUnique({ where: { id: divisionId } });
     if (!division) throw new NotFoundException('Division not found');
     // New aspects from the trimmed UI are always per-employee with a fixed
-    // target; legacy kolektif/PERIOD rows keep working untouched.
+    // target; legacy kolektif/PERIOD rows were converted to FIXED (migration
+    // 20261125100000, fixed_target = 100) and keep working untouched.
     const targetType = data.target_type ?? 'FIXED';
     this.assertAspectPayload({
       weight: data.weight,

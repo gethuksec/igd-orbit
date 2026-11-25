@@ -1651,7 +1651,7 @@ async function main() {
     {
       division: 'DIV-OPS-SRV',
       aspects: [
-        { code: 'HP_DONE', name: 'HP Done (kolektif)', description: '(Pencapaian : Target done) * 100%', weight: 0.2, targetType: 'PERIOD', fixedTarget: null, isKolektif: true, sortOrder: 1 },
+        { code: 'HP_DONE', name: 'HP Done (kolektif)', description: '(Pencapaian : Target done) * 100%', weight: 0.2, targetType: 'FIXED', fixedTarget: 100, isKolektif: false, sortOrder: 1 },
         { code: 'KUALITAS', name: 'Kualitas kerja', description: 'Tingkat produktifitas pengerjaan service', weight: 0.3, targetType: 'FIXED', fixedTarget: 100, isKolektif: false, sortOrder: 2 },
         { code: 'PENGEMBANGAN', name: 'Pengembangan diri', description: 'Upgrade kemampuan pengerjaan service', weight: 0.1, targetType: 'FIXED', fixedTarget: 100, isKolektif: false, sortOrder: 3 },
         { code: 'TEAMWORK', name: 'Teamwork', description: 'Kerjasama antar tim dan kontribusi ke perusahaan', weight: 0.2, targetType: 'FIXED', fixedTarget: 100, isKolektif: false, sortOrder: 4 },
@@ -1661,9 +1661,9 @@ async function main() {
     {
       division: 'DIV-OPS-SE',
       aspects: [
-        { code: 'CSAT', name: 'CSAT', description: '(Pencapaian : Target rating) * 100%', weight: 0.1, targetType: 'PERIOD', fixedTarget: null, isKolektif: false, sortOrder: 1 },
-        { code: 'TRANSAKSI', name: 'Transaksi', description: '(Jumlah deal : Target deal) * 100%', weight: 0.3, targetType: 'PERIOD', fixedTarget: null, isKolektif: false, sortOrder: 2 },
-        { code: 'OMZET', name: 'Omzet', description: '(Value : Target omzet) * 100% + Cross/Up Selling', weight: 0.2, targetType: 'PERIOD', fixedTarget: null, isKolektif: false, sortOrder: 3 },
+        { code: 'CSAT', name: 'CSAT', description: '(Pencapaian : Target rating) * 100%', weight: 0.1, targetType: 'FIXED', fixedTarget: 100, isKolektif: false, sortOrder: 1 },
+        { code: 'TRANSAKSI', name: 'Transaksi', description: '(Jumlah deal : Target deal) * 100%', weight: 0.3, targetType: 'FIXED', fixedTarget: 100, isKolektif: false, sortOrder: 2 },
+        { code: 'OMZET', name: 'Omzet', description: '(Value : Target omzet) * 100% + Cross/Up Selling', weight: 0.2, targetType: 'FIXED', fixedTarget: 100, isKolektif: false, sortOrder: 3 },
         { code: 'TEAMWORK', name: 'Teamwork', description: 'Kerjasama antar tim, profesionalisme, sesuai arahan', weight: 0.2, targetType: 'FIXED', fixedTarget: 100, isKolektif: false, sortOrder: 4 },
         { code: 'INTEGRITAS', name: 'Integritas', description: 'Etika atau sikap kerja dan religiusitas serta menjalankan komitmen', weight: 0.2, targetType: 'FIXED', fixedTarget: 100, isKolektif: false, sortOrder: 5 },
       ],
@@ -1671,8 +1671,8 @@ async function main() {
     {
       division: 'DIV-SUP-SC',
       aspects: [
-        { code: 'OMZET_KOL', name: 'Omzet (kolektif)', description: '(Value : Target omzet) * 100% + Cross/Up Selling', weight: 0.1, targetType: 'PERIOD', fixedTarget: null, isKolektif: true, sortOrder: 1 },
-        { code: 'TRANSAKSI_KOL', name: 'Transaksi (kolektif)', description: '(Jumlah deal : Target deal) * 100%', weight: 0.3, targetType: 'PERIOD', fixedTarget: null, isKolektif: true, sortOrder: 2 },
+        { code: 'OMZET_KOL', name: 'Omzet (kolektif)', description: '(Value : Target omzet) * 100% + Cross/Up Selling', weight: 0.1, targetType: 'FIXED', fixedTarget: 100, isKolektif: false, sortOrder: 1 },
+        { code: 'TRANSAKSI_KOL', name: 'Transaksi (kolektif)', description: '(Jumlah deal : Target deal) * 100%', weight: 0.3, targetType: 'FIXED', fixedTarget: 100, isKolektif: false, sortOrder: 2 },
         { code: 'STOCK_BAL', name: 'Stock Balancing', description: 'Akurasi stok fisik vs system dan kelengkapan (request Stock/drop list)', weight: 0.2, targetType: 'FIXED', fixedTarget: 100, isKolektif: false, sortOrder: 3 },
         { code: 'ACC_RESP', name: 'Accounting & Response', description: 'Akurasi saldo outlet + pengelolaan keuangan dan kecepatan respon online', weight: 0.2, targetType: 'FIXED', fixedTarget: 100, isKolektif: false, sortOrder: 4 },
         { code: 'INTEGRITAS', name: 'Integritas', description: 'Etika atau sikap kerja dan religiusitas, kerjasama serta menjalankan komitmen', weight: 0.2, targetType: 'FIXED', fixedTarget: 100, isKolektif: false, sortOrder: 5 },

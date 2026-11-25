@@ -51,7 +51,6 @@ export function KpiScoreGrid({
   const [kolektif, setKolektif] = useState<Record<string, string>>({});
   const [targets, setTargets] = useState<Record<string, string>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
-  const [amount, setAmount] = useState('');
   const [draftAt, setDraftAt] = useState<string | null>(null);
 
   const gridKey = ['kpi-grid', divisionId, periodMonth, periodYear];
@@ -101,7 +100,6 @@ export function KpiScoreGrid({
     setKolektif(k);
     setTargets(t);
     setNotes(n);
-    setAmount(grid.config ? String(grid.config.defaultAmount) : '');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [grid]);
 
@@ -180,17 +178,6 @@ export function KpiScoreGrid({
     },
   });
 
-  const amountMutation = useMutation({
-    mutationFn: () => hrService.upsertKpiConfig(divisionId, { default_amount: parseFloat(amount || '0') }),
-    onSuccess: () => {
-      toast.success('Pengali insentif tersimpan');
-      queryClient.invalidateQueries({ queryKey: gridKey });
-    },
-    onError: (e: any) => {
-      toast.error(e.response?.data?.message || 'Gagal menyimpan pengali insentif');
-    },
-  });
-
   if (isLoading) {
     return <p className="text-sm text-muted-foreground px-5 py-8">Memuat grid...</p>;
   }
@@ -203,7 +190,7 @@ export function KpiScoreGrid({
   const periodAspects = grid.aspekts.filter((a) => a.targetType === 'PERIOD' && !a.isKolektif);
   const inputCls = readOnly
     ? 'border-transparent bg-transparent px-1 text-muted-foreground'
-    : 'font-mono tabular-nums text-right';
+    : 'font-mono tabular-nums text-center';
 
   return (
     <div>
@@ -227,16 +214,12 @@ export function KpiScoreGrid({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 px-5 py-4 border-b">
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground">Pengali insentif divisi (Rp)</p>
-          <div className="flex gap-2">
-            <Input
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              onBlur={() => amountMutation.mutate()}
-              disabled={readOnly || !canScore}
-              className="font-mono tabular-nums text-right"
-            />
-          </div>
-          <p className="text-xs text-muted-foreground">Dibutuhkan &gt; 0 saat approve</p>
+          <p className="font-mono tabular-nums text-[15px] font-medium">
+            {grid.config && Number(grid.config.defaultAmount) > 0
+              ? fmtRp.format(Number(grid.config.defaultAmount))
+              : '—'}
+          </p>
+          <p className="text-xs text-muted-foreground">Ubah di Master Data → Aspek KPI</p>
         </div>
         {periodAspects.map((a) => (
           <div key={a.id} className="space-y-2">
@@ -245,7 +228,7 @@ export function KpiScoreGrid({
               value={targets[a.id] ?? ''}
               onChange={(e) => setTargets({ ...targets, [a.id]: e.target.value })}
               disabled={readOnly || !canScore}
-              className="font-mono tabular-nums text-right"
+              className="font-mono tabular-nums text-center"
             />
           </div>
         ))}
@@ -256,7 +239,7 @@ export function KpiScoreGrid({
               value={kolektif[a.id] ?? ''}
               onChange={(e) => setKolektif({ ...kolektif, [a.id]: e.target.value })}
               disabled={readOnly || !canScore}
-              className="font-mono tabular-nums text-right"
+              className="font-mono tabular-nums text-center"
             />
             <p className="text-xs text-muted-foreground">Dibagi ke semua baris</p>
           </div>
@@ -267,7 +250,7 @@ export function KpiScoreGrid({
           <TableRow>
             <TableHead>Karyawan</TableHead>
             {individualAspects.map((a) => (
-              <TableHead key={a.id} className="text-right">
+              <TableHead key={a.id} className="text-center">
                 {a.name}
                 <span className="block font-normal">
                   {a.intervalMin}–{a.intervalMax}
@@ -275,9 +258,9 @@ export function KpiScoreGrid({
               </TableHead>
             ))}
             <TableHead>Catatan</TableHead>
-            <TableHead className="text-right">Total</TableHead>
-            <TableHead className="text-right">Nilai</TableHead>
-            <TableHead className="text-right">Bonus</TableHead>
+            <TableHead className="text-center">Total</TableHead>
+            <TableHead className="text-center">Nilai</TableHead>
+            <TableHead className="text-center">Bonus</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -289,7 +272,7 @@ export function KpiScoreGrid({
                 {row.excludedReason && <p className="text-xs text-amber-600 mt-1">{row.excludedReason}</p>}
               </TableCell>
               {individualAspects.map((a) => (
-                <TableCell key={a.id} className="text-right">
+                <TableCell key={a.id} className="text-center">
                   <Input
                     value={scores[row.employee.id]?.[a.id] ?? ''}
                     onChange={(e) =>
@@ -299,7 +282,7 @@ export function KpiScoreGrid({
                       })
                     }
                     disabled={readOnly || !canScore || !!row.excludedReason}
-                    className={`w-20 ml-auto ${inputCls}`}
+                    className={`w-20 mx-auto ${inputCls}`}
                   />
                 </TableCell>
               ))}
@@ -312,13 +295,13 @@ export function KpiScoreGrid({
                   className={readOnly ? 'border-transparent bg-transparent px-1 text-muted-foreground' : ''}
                 />
               </TableCell>
-              <TableCell className="text-right font-mono tabular-nums text-muted-foreground text-[13px]">
+              <TableCell className="text-center font-mono tabular-nums text-muted-foreground text-[13px]">
                 {row.total !== null ? fmt2.format(row.total) : '—'}
               </TableCell>
-              <TableCell className="text-right font-mono tabular-nums font-medium text-lg">
+              <TableCell className="text-center font-mono tabular-nums font-medium text-lg">
                 {row.nilai !== null ? fmt2.format(row.nilai) : '—'}
               </TableCell>
-              <TableCell className="text-right font-mono tabular-nums">
+              <TableCell className="text-center font-mono tabular-nums">
                 {row.bonus !== null ? fmtRp.format(row.bonus) : '—'}
               </TableCell>
             </TableRow>
