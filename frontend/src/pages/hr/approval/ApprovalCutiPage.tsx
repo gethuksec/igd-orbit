@@ -8,6 +8,7 @@ import { BreadcrumbHeader, FilterToolbar, DataTable, StatusDot } from "@/compone
 import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { usePermissions } from "@/hooks/usePermissions";
 import { toast } from "sonner";
 
 function typeLabel(t: unknown): string {
@@ -35,6 +36,11 @@ function statusPill(status: string) {
 
 export default function ApprovalCutiPage() {
   const queryClient = useQueryClient();
+  const { hasAnyRole } = usePermissions();
+  // IGDERP-314: mirror LeaveService.approveLeave — step 1 is HS/SPV only.
+  // Viewers without an approver role (HRD/SPV-HRD, juniors) get Detail
+  // instead of buttons that would 403.
+  const canStep1 = hasAnyRole(["HS", "SPV"]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("pending");
   const [dateFrom, setDateFrom] = useState("");
@@ -193,7 +199,7 @@ export default function ApprovalCutiPage() {
         emptyIcon={<Stamp className="w-16 h-16" />}
         actions={(r: LeaveRequest) => (
           <div className="flex items-center justify-end gap-1">
-            {r.status === "pending" ? (
+            {r.status === "pending" && canStep1 ? (
               <>
                 <Button size="sm" onClick={() => approveMutation.mutate(r.id)} disabled={approveMutation.isPending}>
                   Setujui
@@ -230,7 +236,7 @@ export default function ApprovalCutiPage() {
               <p>
                 <span className="text-muted-foreground">Status:</span> {statusPill(detail.status)}
               </p>
-              {detail.status === "pending" && (
+              {detail.status === "pending" && canStep1 && (
                 <div className="flex gap-2 pt-2">
                   <Button className="flex-1" onClick={() => approveMutation.mutate(detail.id)}>
                     Setujui
