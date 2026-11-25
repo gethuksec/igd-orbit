@@ -103,7 +103,10 @@ export class LeaveController {
    */
   @Post('approve')
   @UseGuards(RolesGuard)
-  @Roles('HS', 'SPV', 'CHR')
+  // IGDERP-314: must match LeaveService.approveLeave (HS/SPV only).
+  // CHR acts at step 2 (approve-hr); leaving CHR here produced a guard
+  // pass followed by a service 403 with a contradictory message.
+  @Roles('HS', 'SPV')
   async approveLeave(
     @Request() req: ExpressRequest,
     @Query('id') leaveId: string,
