@@ -12,6 +12,8 @@ export interface Position {
   defaultRoleId: string | null;
   defaultShiftId?: string | null;
   defaultShift?: { id: string; code: string; name: string } | null;
+  parentPositionId?: string | null;
+  parentPosition?: { id: string; code: string; name: string; rank: number } | null;
   division?: { id: string; code: string; name: string } | null;
   department?: { id: string; code: string; name: string } | null;
   grade?: { id: string; code: string; name: string; rank: number } | null;
