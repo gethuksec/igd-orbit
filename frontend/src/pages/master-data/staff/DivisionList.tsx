@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Edit, Trash2, Building2, AlertTriangle } from "lucide-react";
 import { divisionsService, type Division } from "@/services/divisions.service";
+import { hrService } from "@/services/hr.service";
 import { api } from "@/services/api";
 import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable, StatusDot } from "@/components/shared";
 import type { Column } from "@/components/shared";
@@ -15,9 +16,10 @@ interface FormData {
   name: string;
   departmentId: string;
   isActive: boolean;
+  kpiAmount: string;
 }
 
-const defaultForm: FormData = { name: "", departmentId: "", isActive: true };
+const defaultForm: FormData = { name: "", departmentId: "", isActive: true, kpiAmount: "" };
 
 export default function DivisionList() {
   const queryClient = useQueryClient();
@@ -74,7 +76,20 @@ export default function DivisionList() {
       if (editing) return api.put(`/divisions/${editing.id}`, payload);
       return api.post("/divisions", payload);
     },
-    onSuccess: () => {
+    onSuccess: async (res: any) => {
+      const divisionId: string | undefined =
+        editing?.id ?? res?.data?.id ?? res?.data?.data?.id ?? res?.id;
+      if (divisionId && formData.kpiAmount !== "") {
+        const parsed = parseFloat(formData.kpiAmount);
+        if (!Number.isNaN(parsed)) {
+          try {
+            await hrService.upsertKpiConfig(divisionId, { default_amount: parsed });
+          } catch (e: any) {
+            toast.error(e.response?.data?.message || "Divisi tersimpan, default KPI gagal");
+            return;
+          }
+        }
+      }
       queryClient.invalidateQueries({ queryKey: ["divisions"] });
       toast.success(editing ? "Divisi berhasil diupdate" : "Divisi berhasil ditambahkan");
       setFormModalOpen(false);
@@ -98,8 +113,18 @@ export default function DivisionList() {
       name: row.name || "",
       departmentId: row.departmentId || "",
       isActive: row.isActive ?? true,
+      kpiAmount: "",
     });
     setFormModalOpen(true);
+    hrService
+      .getKpiConfig(row.id)
+      .then((cfg: any) => {
+        const v = cfg?.defaultAmount ?? cfg?.config?.defaultAmount ?? cfg?.data?.defaultAmount;
+        if (v !== undefined && v !== null) {
+          setFormData((f) => ({ ...f, kpiAmount: String(v) }));
+        }
+      })
+      .catch(() => {});
   };
 
   const deleteMutation = useMutation({
@@ -327,7 +352,20 @@ export default function DivisionList() {
               <p className="text-xs text-muted-foreground mt-1">
                 Struktur bisa diubah kapan saja — pindahkan divisi antar departemen lewat kolom ini.
               </p>
-            </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Default KPI (Rp)</label>
+                <input
+                  value={formData.kpiAmount}
+                  onChange={(e) => setFormData({ ...formData, kpiAmount: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
+                  placeholder="mis. 700000"
+                  inputMode="decimal"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Nominal dasar per divisi — payroll menghitung bonus = NILAI × nominal ini.
+                </p>
+              </div>
             <div className="flex gap-2 pt-2">
               <Button type="button" variant="outline" className="flex-1" onClick={() => setFormModalOpen(false)}>
                 Batal

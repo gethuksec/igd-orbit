@@ -407,6 +407,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             { icon: Briefcase, label: 'Jabatan', path: '/hr/master-data/jabatan', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
             { icon: MapPin, label: 'Working Location', path: '/hr/master-data/working-location', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
             { icon: Clock, label: 'Shift kerja', path: '/hr/master-data/shift', permission: 'master_data.*.view', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR'] },
+            { icon: Target, label: 'Aspek KPI', path: '/hr/master-data/kpi', roles: ['SUPERADMIN', 'OWNER', 'CFO', 'CHR', 'HS', 'SPV'] },
           ],
         },
       ],

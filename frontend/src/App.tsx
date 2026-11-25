@@ -172,6 +172,7 @@ import LiburQuotaPage from './pages/hr/libur/LiburQuotaPage';
 import ShiftingPage from './pages/hr/shifting/ShiftingPage';
 import AssignShiftPage from './pages/hr/shifting/AssignShiftPage';
 import ShiftMasterPage from './pages/master-data/staff/ShiftMasterPage';
+import KpiAspectMasterList from './pages/master-data/staff/KpiAspectMasterList';
 import PayrollList from './pages/hr/payroll/PayrollList';
 import PayrollDetail from './pages/hr/payroll/PayrollDetail';
 import MySlips from './pages/hr/payroll/MySlips';
@@ -614,6 +615,7 @@ function App() {
             <Route path="/hr/master-data/jabatan" element={<ProtectedRoute><DashboardLayout><PositionList /></DashboardLayout></ProtectedRoute>} />
             <Route path="/hr/master-data/working-location" element={<ProtectedRoute><DashboardLayout><WorkingLocationList /></DashboardLayout></ProtectedRoute>} />
             <Route path="/hr/master-data/shift" element={<ProtectedRoute><DashboardLayout><ShiftMasterPage /></DashboardLayout></ProtectedRoute>} />
+            <Route path="/hr/master-data/kpi" element={<ProtectedRoute><DashboardLayout><KpiAspectMasterList /></DashboardLayout></ProtectedRoute>} />
 
             {/* Master Data - Payment Terms */}
             <Route path="/payment-terms" element={<ProtectedRoute><DashboardLayout><PaymentTermList /></DashboardLayout></ProtectedRoute>} />
