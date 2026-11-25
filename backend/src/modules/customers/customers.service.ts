@@ -815,6 +815,9 @@ export class CustomersService {
     if (updateCustomerDto.customerType !== undefined) {
       updateData.customerType = updateCustomerDto.customerType;
     }
+    if (updateCustomerDto.isActive !== undefined) {
+      updateData.isActive = updateCustomerDto.isActive;
+    }
     if (tierId !== undefined) {
       updateData.tierId = tierId;
     }
