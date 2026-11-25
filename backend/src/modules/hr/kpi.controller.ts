@@ -16,7 +16,7 @@ import { RolesGuard } from '../../shared/guards/roles.guard';
 import { Roles } from '../../shared/decorators/roles.decorator';
 import { KPIService } from './services/kpi.service';
 import { PrismaService } from '../../shared/services/prisma.service';
-import { CreateAspectDto, UpdateAspectDto, UpsertConfigDto } from './dto/kpi-aspect.dto';
+import { CreateAspectDto, ReorderAspectsDto, UpdateAspectDto, UpsertConfigDto } from './dto/kpi-aspect.dto';
 import { SaveGridDto } from './dto/kpi-grid.dto';
 
 interface ExpressRequest extends Request {
@@ -77,6 +77,17 @@ export class KPIController {
   @Roles('CHR', 'HS', 'SPV')
   async updateAspect(@Request() req: ExpressRequest, @Param('id') id: string, @Body() dto: UpdateAspectDto) {
     return this.kpiService.updateAspect(id, dto, { userId: req.user.id, roles: req.user.roles });
+  }
+
+  @Put('divisions/:divisionId/aspects/order')
+  @UseGuards(RolesGuard)
+  @Roles('CHR', 'HS', 'SPV')
+  async reorderAspects(
+    @Request() req: ExpressRequest,
+    @Param('divisionId') divisionId: string,
+    @Body() dto: ReorderAspectsDto,
+  ) {
+    return this.kpiService.reorderAspects(divisionId, dto.ids, { userId: req.user.id, roles: req.user.roles });
   }
 
   // ---------- division config (default amount) ----------

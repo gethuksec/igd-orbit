@@ -807,6 +807,11 @@ export const hrService = {
     return response.data.data || response.data;
   },
 
+  async reorderKpiAspects(divisionId: string, ids: string[]) {
+    const response = await api.put(`/kpi/divisions/${divisionId}/aspects/order`, { ids });
+    return response.data.data || response.data;
+  },
+
   async getKpiConfig(divisionId: string) {
     const response = await api.get(`/kpi/divisions/${divisionId}/config`);
     return response.data.data || response.data;

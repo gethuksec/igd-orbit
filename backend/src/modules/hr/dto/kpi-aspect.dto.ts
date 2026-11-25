@@ -5,13 +5,15 @@ import {
   IsBoolean,
   IsInt,
   IsIn,
+  IsArray,
   Min,
   Max,
 } from 'class-validator';
 
 export class CreateAspectDto {
+  @IsOptional()
   @IsString()
-  code!: string;
+  code?: string;
 
   @IsString()
   name!: string;
@@ -33,9 +35,10 @@ export class CreateAspectDto {
   @Max(1)
   weight!: number;
 
+  @IsOptional()
   @IsString()
   @IsIn(['FIXED', 'PERIOD'])
-  target_type!: string;
+  target_type?: string;
 
   @IsOptional()
   @IsNumber()
@@ -48,6 +51,12 @@ export class CreateAspectDto {
   @IsOptional()
   @IsInt()
   sort_order?: number;
+}
+
+export class ReorderAspectsDto {
+  @IsArray()
+  @IsString({ each: true })
+  ids!: string[];
 }
 
 export class UpdateAspectDto {
