@@ -14,6 +14,7 @@ export default function ExpeditionForm() {
 
   const [formData, setFormData] = useState({
     name: "",
+    description: "",
     isActive: true,
   });
 
@@ -30,6 +31,7 @@ export default function ExpeditionForm() {
     if (expedition) {
       setFormData({
         name: expedition.name || "",
+        description: expedition.description || "",
         isActive: expedition.isActive !== false,
       });
     }
@@ -37,8 +39,11 @@ export default function ExpeditionForm() {
 
   const mutation = useMutation({
     mutationFn: (data: any) => {
-      const submitData = { ...data };
-      delete submitData.code;
+      const submitData: any = {
+        name: data.name,
+        description: data.description?.trim() ? data.description.trim() : undefined,
+        isActive: data.isActive,
+      };
       if (isEdit) {
         return api.put(`/expeditions/${id}`, submitData);
       }
@@ -98,6 +103,18 @@ export default function ExpeditionForm() {
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="Nama ekspedisi"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Keterangan
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Keterangan ekspedisi (opsional)"
+                rows={2}
               />
             </div>
             {isEdit && expedition?.code && (

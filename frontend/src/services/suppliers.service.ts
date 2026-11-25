@@ -9,6 +9,10 @@ export interface Supplier {
   email?: string;
   address?: string;
   customerType: string; // Always 'wholesale' for suppliers
+  // Live aggregates from GET /suppliers (IGDERP-312) — 0 when no open POs/returns
+  totalHutang?: number; // Σ open PO totals (ordered / partially_received / received)
+  totalPiutang?: number; // Σ completed purchase-return credit
+  stokTerhutang?: number; // Σ outstanding PO item qty (ordered - received)
   tier: {
     id: string;
     code: string;

@@ -116,6 +116,41 @@ export class CustomersService {
   }
 
   /**
+   * Generate unique supplier code (wholesale customers only)
+   * Format: 10-char alphanumeric (A-Z, 0-9), e.g. "7KQ2M9XD4PQ"
+   * Retail/corporate customers keep the CUST- prefix.
+   * @returns Generated code string
+   */
+  async generateSupplierCode(): Promise<string> {
+    const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code: string;
+    let isUnique = false;
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    while (!isUnique && attempts < maxAttempts) {
+      const bytes = randomBytes(10);
+      code = Array.from(bytes, (b) => ALPHABET[b % ALPHABET.length]).join('');
+
+      const existing = await this.prisma.customer.findUnique({
+        where: { customerCode: code },
+      });
+
+      if (!existing) {
+        isUnique = true;
+      }
+
+      attempts++;
+    }
+
+    if (!isUnique) {
+      throw new BadRequestException('Failed to generate unique supplier code after multiple attempts');
+    }
+
+    return code!;
+  }
+
+  /**
    * Seed customer tiers
    * Creates default tiers if they don't exist
    */
@@ -505,9 +540,13 @@ export class CustomersService {
    */
   async create(createCustomerDto: CreateCustomerDto, _userId: string) {
     // Generate customer code if not provided
+    // Wholesale (supplier) codes are 10-char alphanumeric; other types keep CUST- prefix
     let customerCode = createCustomerDto.customerCode;
     if (!customerCode) {
-      customerCode = await this.generateCustomerCode();
+      customerCode =
+        createCustomerDto.customerType === 'wholesale'
+          ? await this.generateSupplierCode()
+          : await this.generateCustomerCode();
     } else {
       // Check code uniqueness
       const existing = await this.prisma.customer.findUnique({

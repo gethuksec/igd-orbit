@@ -19,18 +19,19 @@ export class ExpeditionsService {
 
   /**
    * Generate unique expedition code
-   * Format: EXP-{random}
+   * Format: 10-char alphanumeric (A-Z, 0-9), e.g. "7KQ2M9XD4PQ"
    * @returns Generated code string
    */
   async generateCode(): Promise<string> {
+    const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let code: string;
     let isUnique = false;
     let attempts = 0;
     const maxAttempts = 10;
 
     while (!isUnique && attempts < maxAttempts) {
-      const random = randomBytes(4).toString('hex').toUpperCase();
-      code = `EXP-${random}`;
+      const bytes = randomBytes(10);
+      code = Array.from(bytes, (b) => ALPHABET[b % ALPHABET.length]).join('');
 
       const existing = await this.prisma.expedition.findUnique({
         where: { code },
@@ -84,6 +85,7 @@ export class ExpeditionsService {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
         { code: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
       ];
     }
 
@@ -162,6 +164,7 @@ export class ExpeditionsService {
       data: {
         code,
         name: createExpeditionDto.name,
+        description: createExpeditionDto.description ?? null,
         isActive: true,
       },
     });
@@ -217,6 +220,9 @@ export class ExpeditionsService {
     }
     if (updateExpeditionDto.code !== undefined) {
       updateData.code = updateExpeditionDto.code;
+    }
+    if (updateExpeditionDto.description !== undefined) {
+      updateData.description = updateExpeditionDto.description;
     }
     if (updateExpeditionDto.isActive !== undefined) {
       updateData.isActive = updateExpeditionDto.isActive;
