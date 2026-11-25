@@ -20,6 +20,7 @@ interface SimpleFormData {
   contactPerson: string;
   phone: string;
   email: string;
+  isActive: boolean;
 }
 
 const defaultForm: SimpleFormData = {
@@ -28,6 +29,7 @@ const defaultForm: SimpleFormData = {
   contactPerson: "",
   phone: "",
   email: "",
+  isActive: true,
 };
 
 // Headline order (IGDERP-312): Aksi, Kode, Nama, Telepon, Alamat, Hutang, Piutang, Log
@@ -123,6 +125,7 @@ export default function SupplierList() {
       contactPerson: supplier.contactPerson || "",
       phone: supplier.phone || "",
       email: supplier.email || "",
+      isActive: supplier.isActive ?? true,
     });
     setShowFormModal(true);
   };
@@ -141,6 +144,8 @@ export default function SupplierList() {
       submitData.customerCode = form.customerCode.trim().toUpperCase();
     }
     if (editingSupplier) {
+      // Status toggle is edit-only; new suppliers are always created active
+      submitData.isActive = form.isActive;
       updateMutation.mutate({ id: editingSupplier.id, data: submitData });
     } else {
       createMutation.mutate(submitData);
@@ -498,13 +503,21 @@ export default function SupplierList() {
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Status</label>
-            <StatusDot
-              tone={editingSupplier ? (editingSupplier.isActive ? "ok" : "off") : "ok"}
-            >
-              {editingSupplier
-                ? (editingSupplier.isActive ? "Pemasok aktif" : "Pemasok tidak aktif")
-                : "Pemasok baru selalu dibuat aktif"}
-            </StatusDot>
+            {editingSupplier ? (
+              <label className="inline-flex cursor-pointer items-center gap-2.5">
+                <input
+                  type="checkbox"
+                  checked={form.isActive}
+                  onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
+                  className="h-4 w-4 rounded accent-primary"
+                />
+                <StatusDot tone={form.isActive ? "ok" : "off"}>
+                  {form.isActive ? "Pemasok aktif" : "Pemasok tidak aktif"}
+                </StatusDot>
+              </label>
+            ) : (
+              <StatusDot tone="ok">Pemasok baru selalu dibuat aktif</StatusDot>
+            )}
           </div>
           <div className="flex gap-3 pt-2">
             <Button

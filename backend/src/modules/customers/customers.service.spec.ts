@@ -198,6 +198,34 @@ describe('CustomersService tier handling (IGDERP-68)', () => {
         }),
       );
     });
+
+    it('persists isActive=false on update (supplier status toggle)', async () => {
+      await service.update(
+        'cust-1',
+        { isActive: false } as UpdateCustomerDto,
+        'user-1',
+      );
+
+      expect(prisma.customer.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ isActive: false }),
+        }),
+      );
+    });
+
+    it('persists isActive=true on update (reactivate supplier)', async () => {
+      await service.update(
+        'cust-1',
+        { isActive: true } as UpdateCustomerDto,
+        'user-1',
+      );
+
+      expect(prisma.customer.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ isActive: true }),
+        }),
+      );
+    });
   });
 
   describe('ValidationPipe whitelist (regression: field must survive)', () => {
@@ -230,6 +258,15 @@ describe('CustomersService tier handling (IGDERP-68)', () => {
       )) as UpdateCustomerDto;
 
       expect((out as any).tierCode).toBe('GOLD');
+    });
+
+    it('isActive survives whitelist on UpdateCustomerDto (supplier status toggle)', async () => {
+      const out = (await pipe.transform(
+        { name: 'Test Pemasok', isActive: false },
+        { type: 'body', metatype: UpdateCustomerDto },
+      )) as UpdateCustomerDto;
+
+      expect((out as any).isActive).toBe(false);
     });
   });
 });

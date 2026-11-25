@@ -8,6 +8,7 @@ import {
   IsNumber,
   Min,
   IsInt,
+  IsBoolean,
   IsDateString,
   Matches,
 } from 'class-validator';
@@ -20,6 +21,10 @@ export class CreateCustomerDto {
   @IsString({ message: 'Customer code must be a string' })
   @IsOptional()
   customerCode?: string; // Auto-generate if not provided
+
+  @IsBoolean({ message: 'isActive must be a boolean' })
+  @IsOptional()
+  isActive?: boolean; // Status toggle (supplier list edit modal)
 
   @IsEnum(['retail', 'wholesale', 'corporate'], {
     message: 'Customer type must be one of: retail, wholesale, corporate',
