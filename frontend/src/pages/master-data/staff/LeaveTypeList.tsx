@@ -8,6 +8,7 @@ import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { formatDateTimeId } from "@/lib/utils";
 
 type StatusFilter = "all" | "active" | "inactive";
 
@@ -141,6 +142,7 @@ export default function LeaveTypeList() {
   const columns: Column<LeaveType>[] = [
     {
       key: "name",
+      stickyLeft: true,
       header: "Nama",
       cell: (row) => (
         <div>
@@ -205,6 +207,15 @@ export default function LeaveTypeList() {
         <StatusDot tone={row.isActive ? "ok" : "off"}>
           {row.isActive ? "Aktif" : "Tidak Aktif"}
         </StatusDot>
+      ),
+    },
+    {
+      key: "updatedAt",
+      header: "Terakhir Diupdate",
+      cell: (r: any) => (
+        <div className="text-sm tabular-nums text-muted-foreground">
+          {formatDateTimeId(r.updatedAt)}
+        </div>
       ),
     },
   ];
@@ -289,6 +300,7 @@ export default function LeaveTypeList() {
       />
 
       <DataTable
+        actionsPosition="left"
         columns={columns}
         data={rows}
         keyExtractor={(t: LeaveType) => t.id}

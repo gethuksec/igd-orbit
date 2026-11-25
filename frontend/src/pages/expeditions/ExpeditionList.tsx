@@ -9,6 +9,7 @@ import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { formatDateTimeId } from "@/lib/utils";
 
 type StatusFilter = "all" | "active" | "inactive";
 
@@ -112,6 +113,7 @@ export default function ExpeditionList() {
     {
 
 key: "name",
+      stickyLeft: true,
       header: "Ekspedisi",
       cell: (expedition) => (
         <div className="flex items-center gap-4">
@@ -136,6 +138,15 @@ key: "name",
         <StatusDot tone={expedition.isActive ? "ok" : "off"}>
           {expedition.isActive ? "Aktif" : "Tidak Aktif"}
         </StatusDot>
+      ),
+    },
+    {
+      key: "updatedAt",
+      header: "Terakhir Diupdate",
+      cell: (r: any) => (
+        <div className="text-sm tabular-nums text-muted-foreground">
+          {formatDateTimeId(r.updatedAt)}
+        </div>
       ),
     },
   ];
@@ -206,6 +217,7 @@ key: "name",
       />
 
       <DataTable
+        actionsPosition="left"
         columns={columns}
         data={expeditions}
         keyExtractor={(e: any) => e.id}

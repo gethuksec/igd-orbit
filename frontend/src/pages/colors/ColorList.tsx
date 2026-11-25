@@ -9,6 +9,7 @@ import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { formatDateTimeId } from "@/lib/utils";
 
 type StatusFilter = "all" | "active" | "inactive";
 
@@ -112,6 +113,7 @@ export default function ColorList() {
   const columns: Column<any>[] = [
     {
       key: "name",
+      stickyLeft: true,
       header: "Warna",
       cell: (color) => (
         <div className="flex items-center gap-4">
@@ -145,6 +147,15 @@ export default function ColorList() {
         <StatusDot tone={color.isActive ? "ok" : "off"}>
           {color.isActive ? "Aktif" : "Tidak Aktif"}
         </StatusDot>
+      ),
+    },
+    {
+      key: "updatedAt",
+      header: "Terakhir Diupdate",
+      cell: (r: any) => (
+        <div className="text-sm tabular-nums text-muted-foreground">
+          {formatDateTimeId(r.updatedAt)}
+        </div>
       ),
     },
   ];
@@ -218,6 +229,7 @@ export default function ColorList() {
       />
 
       <DataTable
+        actionsPosition="left"
         columns={columns}
         data={colors}
         keyExtractor={(c: any) => c.id}
