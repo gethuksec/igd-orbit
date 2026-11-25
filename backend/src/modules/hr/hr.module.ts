@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PrismaService } from '../../shared/services/prisma.service';
 import { PasswordService } from '../../shared/services/password.service';
+import { FileTokenService } from '../../shared/services/file-token.service';
 import { AttendanceService } from './services/attendance.service';
 import { LeaveService } from './services/leave.service';
 import { ApprovalsService } from './services/approvals.service';
@@ -44,6 +45,7 @@ import { ShiftsModule } from '../shifts/shifts.module';
   providers: [
     PrismaService,
     PasswordService,
+    FileTokenService,
     AttendanceService,
     LeaveService,
     ApprovalsService,

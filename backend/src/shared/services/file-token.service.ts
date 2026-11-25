@@ -6,7 +6,7 @@ import { createHmac, timingSafeEqual } from 'crypto';
 // send, so file bytes are served at GET /api/v1/files/:kind/:id?token=...
 // where the token IS the auth. Secret: FILE_TOKEN_SECRET, else JWT_SECRET.
 // Payload: kind.id.exp, HMAC-SHA256 hex.
-export type FileKind = 'purchase' | 'service-photo';
+export type FileKind = 'purchase' | 'service-photo' | 'attendance';
 
 const TOKEN_TTL_MS = 5 * 60 * 1000;
 
