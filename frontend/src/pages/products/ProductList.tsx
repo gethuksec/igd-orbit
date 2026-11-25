@@ -20,6 +20,7 @@ import { api } from '../../services/api';
 import { productsService } from '../../services/products.service';
 import { customerTiersService } from '../../services/customer-tiers.service';
 import ProductImportModal from './ProductImportModal';
+import ProductActivityModal from './ProductActivityModal';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { formatDateTimeId } from "@/lib/utils";
@@ -217,6 +218,7 @@ export default function ProductList() {
   };
 
   const [showImportModal, setShowImportModal] = useState(false);
+  const [logProduct, setLogProduct] = useState<any | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<{ id: string; name: string } | null>(null);
   const queryClient = useQueryClient();
@@ -478,14 +480,15 @@ export default function ProductList() {
       key: 'log',
       header: 'Log',
       cell: (product) => (
-        <Link
-          to={`/products/${product.id}`}
+        <button
+          type="button"
+          onClick={() => setLogProduct(product)}
           title="Riwayat aktivitas"
           className="inline-flex items-center gap-1 text-sm text-primary-600 dark:text-primary-400 hover:underline"
         >
           <History className="h-4 w-4" />
           Log
-        </Link>
+        </button>
       ),
     },
     {
@@ -833,6 +836,13 @@ export default function ProductList() {
           refetch();
           queryClient.invalidateQueries({ queryKey: ['products'] });
         }}
+      />
+
+      {/* Riwayat aktivitas — same popup shell as the stock menu, full timeline */}
+      <ProductActivityModal
+        product={logProduct}
+        open={!!logProduct}
+        onClose={() => setLogProduct(null)}
       />
 
       {/* Delete Confirmation Modal */}
