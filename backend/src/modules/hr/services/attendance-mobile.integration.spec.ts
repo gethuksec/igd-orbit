@@ -120,22 +120,38 @@ describe('AttendanceService mobile + overtime 2-step (IGDERP-275 integration)', 
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('overtime: step 1 (HS) → manager_approved, step 2 (CHR) → approved + stamps attendance', async () => {
+  it('overtime: step 1 (direct atasan) → manager_approved, step 2 (CHR) → approved + stamps attendance', async () => {
+    prisma.employee.findUnique.mockImplementation(async ({ where }: any) => {
+      if (where?.id === 'emp-9') {
+        return {
+          id: 'emp-9',
+          branchId: 'b-1',
+          positionId: 'p-se',
+          position: { id: 'p-se', parentPositionId: 'p-as' },
+        };
+      }
+      if (where?.userId === 'u-as') {
+        return { id: 'emp-as', positionId: 'p-as', branchId: 'b-1', isActive: true };
+      }
+      return employee;
+    });
     prisma.overtimeRequest.findUnique.mockResolvedValue({
       id: 'ot-1',
       status: 'pending',
       requestedBy: 'u-staff',
+      employeeId: 'emp-9',
       hours: 2,
       attendance: { id: 'att-1' },
     });
-    const s1: any = await service.approveOvertime('ot-1', 'u-hs', ['HS']);
+    const s1: any = await service.approveOvertime('ot-1', 'u-as', ['AS-SE']);
     expect(s1.status).toBe('manager_approved');
-    expect(s1.managerApprovedBy).toBe('u-hs');
+    expect(s1.managerApprovedBy).toBe('u-as');
 
     prisma.overtimeRequest.findUnique.mockResolvedValue({
       id: 'ot-1',
       status: 'manager_approved',
       requestedBy: 'u-staff',
+      employeeId: 'emp-9',
       hours: 2,
       attendance: { id: 'att-1' },
     });
@@ -144,11 +160,26 @@ describe('AttendanceService mobile + overtime 2-step (IGDERP-275 integration)', 
     expect(prisma.attendance.update).toHaveBeenCalled();
   });
 
-  it('overtime: CHR cannot skip step 1; requester cannot self-approve step 1', async () => {
+  it('overtime: HS on another line cannot take step 1; CHR cannot skip step 1', async () => {
+    prisma.employee.findUnique.mockImplementation(async ({ where }: any) => {
+      if (where?.id === 'emp-9') {
+        return {
+          id: 'emp-9',
+          branchId: 'b-1',
+          positionId: 'p-se',
+          position: { id: 'p-se', parentPositionId: 'p-as' },
+        };
+      }
+      if (where?.userId === 'u-hs') {
+        return { id: 'emp-hs', positionId: 'p-hs', branchId: 'b-1', isActive: true };
+      }
+      return employee;
+    });
     prisma.overtimeRequest.findUnique.mockResolvedValue({
       id: 'ot-1',
       status: 'pending',
-      requestedBy: 'u-hs',
+      requestedBy: 'u-staff',
+      employeeId: 'emp-9',
       attendance: null,
     });
     await expect(service.approveOvertimeHr('ot-1', 'u-chr', ['CHR'])).rejects.toBeInstanceOf(
@@ -159,24 +190,59 @@ describe('AttendanceService mobile + overtime 2-step (IGDERP-275 integration)', 
     );
   });
 
-  it('overtime: step 1 requires HS/SPV role', async () => {
+  it('overtime: step 1 requires the N+1 holder, not any staff role', async () => {
+    prisma.employee.findUnique.mockImplementation(async ({ where }: any) => {
+      if (where?.id === 'emp-9') {
+        return {
+          id: 'emp-9',
+          branchId: 'b-1',
+          positionId: 'p-se',
+          position: { id: 'p-se', parentPositionId: 'p-as' },
+        };
+      }
+      return null;
+    });
+    prisma.overtimeRequest.findUnique.mockResolvedValue({
+      id: 'ot-1',
+      status: 'pending',
+      requestedBy: 'u-staff',
+      employeeId: 'emp-9',
+      attendance: null,
+    });
     await expect(service.approveOvertime('ot-1', 'u-x', ['STAFF'])).rejects.toBeInstanceOf(
       ForbiddenException,
     );
   });
 
-  it('rejectOvertime: HS rejects pending, CHR rejects manager_approved, HS cannot reject manager_approved', async () => {
-    prisma.overtimeRequest.findUnique.mockResolvedValue({ id: 'ot-1', status: 'pending' });
-    const r1: any = await service.rejectOvertime('ot-1', 'x', 'u-hs', ['HS']);
+  it('rejectOvertime: atasan rejects pending, CHR rejects manager_approved, HS rejected', async () => {
+    prisma.employee.findUnique.mockImplementation(async ({ where }: any) => {
+      if (where?.id === 'emp-9') {
+        return {
+          id: 'emp-9',
+          branchId: 'b-1',
+          positionId: 'p-se',
+          position: { id: 'p-se', parentPositionId: 'p-as' },
+        };
+      }
+      if (where?.userId === 'u-as') {
+        return { id: 'emp-as', positionId: 'p-as', branchId: 'b-1', isActive: true };
+      }
+      if (where?.userId === 'u-hs') {
+        return { id: 'emp-hs', positionId: 'p-hs', branchId: 'b-1', isActive: true };
+      }
+      return employee;
+    });
+    prisma.overtimeRequest.findUnique.mockResolvedValue({ id: 'ot-1', status: 'pending', employeeId: 'emp-9' });
+    const r1: any = await service.rejectOvertime('ot-1', 'x', 'u-as', ['AS-SE']);
     expect(r1.status).toBe('rejected');
 
-    prisma.overtimeRequest.findUnique.mockResolvedValue({ id: 'ot-1', status: 'manager_approved' });
+    prisma.overtimeRequest.findUnique.mockResolvedValue({ id: 'ot-1', status: 'manager_approved', employeeId: 'emp-9' });
     const r2: any = await service.rejectOvertime('ot-1', 'x', 'u-chr', ['CHR']);
     expect(r2.status).toBe('rejected');
 
-    prisma.overtimeRequest.findUnique.mockResolvedValue({ id: 'ot-1', status: 'manager_approved' });
+    prisma.overtimeRequest.findUnique.mockResolvedValue({ id: 'ot-1', status: 'manager_approved', employeeId: 'emp-9' });
     await expect(service.rejectOvertime('ot-1', 'x', 'u-hs', ['HS'])).rejects.toBeInstanceOf(
-      BadRequestException,
+      ForbiddenException,
     );
   });
 

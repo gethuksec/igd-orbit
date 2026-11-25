@@ -17,14 +17,29 @@ describe('ShiftSwapService (IGDERP-275 integration)', () => {
   beforeEach(async () => {
     prisma = {
       employee: {
-        findUnique: jest.fn(async ({ where }: any) =>
-          where.userId === 'u-1'
-            ? { id: 'emp-1', userId: 'u-1', isActive: true }
-            : where.id === 'emp-2'
-              ? { id: 'emp-2', userId: 'u-2', isActive: true }
-              : null,
-        ),
+        findUnique: jest.fn(async ({ where }: any) => {
+          if (where.userId === 'u-1' || where.id === 'emp-1') {
+            return {
+              id: 'emp-1',
+              userId: 'u-1',
+              isActive: true,
+              branchId: 'b-1',
+              positionId: 'p-se',
+              position: { id: 'p-se', parentPositionId: 'p-as' },
+            };
+          }
+          if (where.userId === 'u-as') {
+            return { id: 'emp-as', userId: 'u-as', isActive: true, branchId: 'b-1', positionId: 'p-as' };
+          }
+          if (where.userId === 'u-hs') {
+            return { id: 'emp-hs', userId: 'u-hs', isActive: true, branchId: 'b-1', positionId: 'p-hs' };
+          }
+          return where.id === 'emp-2'
+            ? { id: 'emp-2', userId: 'u-2', isActive: true }
+            : null;
+        }),
       },
+      userBranch: { findMany: jest.fn(async () => []) },
       shift: {
         findUnique: jest.fn(async ({ where }: any) =>
           where.id === 's-pagi'
@@ -81,13 +96,14 @@ describe('ShiftSwapService (IGDERP-275 integration)', () => {
     );
   });
 
-  it('step 1 → manager_approved, step 2 → approved', async () => {
+  it('step 1 (direct atasan) → manager_approved, step 2 → approved', async () => {
     prisma.shiftSwapRequest.findUnique.mockResolvedValue({
       id: 'sw-1',
       status: 'pending',
       requestedBy: 'u-1',
+      employeeId: 'emp-1',
     });
-    const s1: any = await service.approve('sw-1', 'u-hs', ['HS']);
+    const s1: any = await service.approve('sw-1', 'u-as', ['AS-SE']);
     expect(s1.status).toBe('manager_approved');
 
     prisma.shiftSwapRequest.findUnique.mockResolvedValue({
@@ -104,16 +120,20 @@ describe('ShiftSwapService (IGDERP-275 integration)', () => {
     expect(s2.status).toBe('approved');
   });
 
-  it('step 2 without step 1 fails; wrong roles fail', async () => {
+  it('step 2 without step 1 fails; wrong line fails step 1', async () => {
     prisma.shiftSwapRequest.findUnique.mockResolvedValue({
       id: 'sw-1',
       status: 'pending',
       requestedBy: 'u-1',
+      employeeId: 'emp-1',
     });
     await expect(service.approveHr('sw-1', 'u-chr', ['CHR'])).rejects.toBeInstanceOf(
       BadRequestException,
     );
     await expect(service.approve('sw-1', 'u-x', ['STAFF'])).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+    await expect(service.approve('sw-1', 'u-hs', ['HS'])).rejects.toBeInstanceOf(
       ForbiddenException,
     );
   });

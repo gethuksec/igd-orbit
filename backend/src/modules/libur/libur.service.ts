@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services';
 import { ShiftsService } from '../shifts/shifts.service';
+import { assertN1Approver } from '../hr/services/n1-approver';
 import {
   BulkDecideLiburDto,
   CreateLiburRequestDto,
@@ -334,8 +335,8 @@ export class LiburService {
     return run.length > 1 ? run : [];
   }
 
-  /** Atasan step 1: approve (request stays pending for HR-final). */
-  async atasanApprove(id: string, userId: string) {
+  /** Atasan step 1: approve (request stays pending for HR-final). N+1 only. */
+  async atasanApprove(id: string, userId: string, userRoles: string[] = []) {
     const db = this.prisma as any;
     const req = await db.liburRequest.findUnique({ where: { id } });
     if (!req) throw new NotFoundException('Libur request not found');
@@ -343,6 +344,9 @@ export class LiburService {
     if ((req as any).atasanStatus === 'rejected') {
       throw new BadRequestException('Request was already rejected by atasan');
     }
+    // N+1: only the requester's direct parent title in the same branch
+    // (or SUPERADMIN/OWNER bypass) may take the atasan step.
+    await assertN1Approver(this.prisma, req.employeeId, userId, userRoles);
     const updated = await db.liburRequest.update({
       where: { id },
       data: {
@@ -358,12 +362,15 @@ export class LiburService {
     };
   }
 
-  /** Atasan step 1: reject (terminal — HR cannot revive). */
-  async atasanReject(id: string, dto: RejectLiburRequestDto, userId: string) {
+  /** Atasan step 1: reject (terminal — HR cannot revive). N+1 only. */
+  async atasanReject(id: string, dto: RejectLiburRequestDto, userId: string, userRoles: string[] = []) {
     const db = this.prisma as any;
     const req = await db.liburRequest.findUnique({ where: { id } });
     if (!req) throw new NotFoundException('Libur request not found');
     if (req.status !== 'pending') throw new BadRequestException('Only pending requests can be rejected');
+    // N+1: only the requester's direct parent title in the same branch
+    // (or SUPERADMIN/OWNER bypass) may take the atasan step.
+    await assertN1Approver(this.prisma, req.employeeId, userId, userRoles);
     return db.liburRequest.update({
       where: { id },
       data: {

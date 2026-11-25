@@ -13,6 +13,7 @@ import { LeaveRequestDto } from '../dto/leave-request.dto';
 import { ApproveLeaveDto } from '../dto/approve-leave.dto';
 import { RejectLeaveDto } from '../dto/reject-leave.dto';
 import { CancelLeaveDto } from '../dto/cancel-leave.dto';
+import { assertN1Approver } from './n1-approver';
 
 @Injectable()
 export class LeaveService {
@@ -311,16 +312,10 @@ export class LeaveService {
   }
 
   /**
-   * Approve leave — step 1 (manager: HS/SPV).
-   * IGDERP-275: pending → manager_approved. Final approval is step 2 (CHR).
+   * Approve leave — step 1 (direct atasan, N+1).
+   * pending → manager_approved. Final approval is step 2 (CHR).
    */
   async approveLeave(leaveId: string, _dto: ApproveLeaveDto, userId: string, userRoles: string[]) {
-    // Check permission
-    const hasPermission = ['HS', 'SPV'].some((role) => userRoles.includes(role));
-    if (!hasPermission) {
-      throw new ForbiddenException('Only HS or SPV can approve leave (step 1)');
-    }
-
     const leaveRequest = await this.prisma.leaveRequest.findUnique({
       where: { id: leaveId },
       include: { employee: true },
@@ -337,6 +332,10 @@ export class LeaveService {
     if (leaveRequest.requestedBy === userId) {
       throw new ForbiddenException('Requester cannot approve their own leave');
     }
+
+    // N+1: only the requester's direct parent title in the same branch
+    // (or SUPERADMIN/OWNER bypass) may take step 1.
+    await assertN1Approver(this.prisma, leaveRequest.employeeId, userId, userRoles);
 
     return this.prisma.leaveRequest.update({
       where: { id: leaveId },
@@ -424,15 +423,11 @@ export class LeaveService {
   }
 
   /**
-   * Reject leave — step 1 rejects `pending` (HS/SPV), step 2 rejects
-   * `manager_approved` (CHR). IGDERP-275.
+   * Reject leave — step 1 rejects `pending` (direct atasan N+1), step 2
+   * rejects `manager_approved` (CHR). SUPERADMIN/OWNER bypass either step.
    */
   async rejectLeave(leaveId: string, dto: RejectLeaveDto, userId: string, userRoles: string[]) {
-    const isManager = ['HS', 'SPV'].some((role) => userRoles.includes(role));
     const isHr = ['CHR'].some((role) => userRoles.includes(role));
-    if (!isManager && !isHr) {
-      throw new ForbiddenException('Only HS, SPV, or CHR can reject leave');
-    }
 
     const leaveRequest = await this.prisma.leaveRequest.findUnique({
       where: { id: leaveId },
@@ -442,10 +437,14 @@ export class LeaveService {
       throw new NotFoundException('Leave request not found');
     }
 
-    const canReject =
-      (isManager && leaveRequest.status === 'pending') ||
-      (isHr && ['pending', 'manager_approved'].includes(leaveRequest.status));
-    if (!canReject) {
+    if (leaveRequest.status === 'pending') {
+      // N+1: only the direct atasan (or bypass) may reject at step 1.
+      await assertN1Approver(this.prisma, leaveRequest.employeeId, userId, userRoles);
+    } else if (leaveRequest.status === 'manager_approved') {
+      if (!isHr) {
+        throw new ForbiddenException('Only CHR can reject after manager approval');
+      }
+    } else {
       throw new BadRequestException('Leave request is not awaiting your decision');
     }
 

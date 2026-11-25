@@ -74,4 +74,27 @@ describe('org-structure contract (IGDERP-277)', () => {
     const fl = ORG_POSITION_TITLES.find((t) => t.titleCode === 'FL')!;
     expect(fl.division).toBe('DIV-OPS-SE');
   });
+
+  it('wires a valid N+1 chain: every title except MU has a higher-rank parent, no cycles', () => {
+    const byCode = new Map(ORG_POSITION_TITLES.map((t) => [t.titleCode, t]));
+    const mu = byCode.get('MU')!;
+    expect(mu.parentTitleCode ?? null).toBeNull();
+    for (const t of ORG_POSITION_TITLES) {
+      if (t.titleCode === 'MU') continue;
+      const parent = byCode.get(t.parentTitleCode!);
+      expect(parent).toBeDefined();
+      expect(parent!.rank).toBeLessThan(t.rank);
+    }
+    // Walk every chain to the top; all must terminate at MU without looping.
+    for (const t of ORG_POSITION_TITLES) {
+      const seen = new Set<string>();
+      let cursor: string | null | undefined = t.parentTitleCode;
+      while (cursor) {
+        expect(seen.has(cursor)).toBe(false);
+        seen.add(cursor);
+        cursor = byCode.get(cursor)!.parentTitleCode;
+      }
+      expect(seen.has('MU') || t.titleCode === 'MU').toBe(true);
+    }
+  });
 });

@@ -456,7 +456,8 @@ model Position {
   rank          Int      @map("rank") // chart level L0-L6 (ordering only, like Role.level)
   divisionId    String?  @map("division_id")
   departmentId  String?  @map("department_id")
-  gradeId       String?  @map("grade_id") // staff-only (rank 6), null otherwise
+  parentPositionId String? @map("parent_position_id") // N+1: direct atasan title; null = top (MU). Vertical approval edge.
+  gradeId       String?  @map("grade_id") // every title carries a grade; non-staff defaults to G1
   minSalary     Decimal? @map("min_salary") @db.Decimal(15, 2) // band floor, open ceiling; set at title create, editable
   defaultRoleId String?  @map("default_role_id") // suggests Role at intake (IGDERP-270), admin can override
   defaultShiftId String? @map("default_shift_id") // Q1 title default shift (IGDERP-265)
@@ -467,6 +468,8 @@ model Position {
   // Relations
   division    Division?   @relation(fields: [divisionId], references: [id], onDelete: SetNull)
   department  Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  parentPosition Position?  @relation("PositionHierarchy", fields: [parentPositionId], references: [id], onDelete: SetNull)
+  childPositions Position[] @relation("PositionHierarchy")
   grade       Grade?      @relation(fields: [gradeId], references: [id], onDelete: SetNull)
   defaultRole Role?       @relation("PositionDefaultRole", fields: [defaultRoleId], references: [id], onDelete: SetNull)
   defaultShift Shift?     @relation("PositionDefaultShift", fields: [defaultShiftId], references: [id], onDelete: SetNull)
@@ -475,6 +478,7 @@ model Position {
 
   @@index([code])
   @@index([rank])
+  @@index([parentPositionId])
   @@index([divisionId])
   @@index([departmentId])
   @@index([gradeId])
