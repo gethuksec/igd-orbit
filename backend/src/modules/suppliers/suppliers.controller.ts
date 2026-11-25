@@ -41,6 +41,11 @@ export class SuppliersController {
    * List suppliers with filters and search
    * GET /api/v1/suppliers
    * Permissions: All authenticated users
+   *
+   * Each row is enriched with live aggregates (all computed from real data):
+   * - totalHutang: sum of open purchase-order totals (ordered / partially_received / received)
+   * - totalPiutang: sum of completed purchase-return credit (supplier owes us)
+   * - stokTerhutang: sum of outstanding PO item quantities (ordered - received)
    */
   @Get()
   async findAll(@Query() query: ListCustomersDto) {
@@ -49,7 +54,81 @@ export class SuppliersController {
       ...query,
       'filter[type]': 'wholesale',
     };
-    return this.customersService.findAll(supplierQuery as ListCustomersDto);
+    const result = await this.customersService.findAll(
+      supplierQuery as ListCustomersDto,
+    );
+    const enriched = await this.enrichWithDebtAggregates(result.data);
+    return { ...result, data: enriched };
+  }
+
+  /**
+   * Attach hutang/piutang/stok-terhutang aggregates to supplier rows.
+   * Missing relations yield 0 — never null — so FE can sum safely.
+   */
+  private async enrichWithDebtAggregates(suppliers: any[]) {
+    if (!suppliers || suppliers.length === 0) {
+      return suppliers;
+    }
+    const ids = suppliers.map((s) => s.id);
+    const OPEN_PO_STATUSES = ['ordered', 'partially_received', 'received'];
+
+    const [poTotals, returnTotals, openItems] = await Promise.all([
+      this.prisma.purchaseOrder.groupBy({
+        by: ['supplierId'],
+        where: { supplierId: { in: ids }, status: { in: OPEN_PO_STATUSES } },
+        _sum: { totalAmount: true },
+      }),
+      this.prisma.purchaseReturn.groupBy({
+        by: ['supplierId'],
+        where: { supplierId: { in: ids }, status: 'completed' },
+        _sum: { totalValue: true },
+      }),
+      this.prisma.purchaseOrderItem.findMany({
+        where: {
+          purchaseOrder: {
+            supplierId: { in: ids },
+            status: { in: OPEN_PO_STATUSES },
+          },
+        },
+        select: {
+          quantityOrdered: true,
+          quantityReceived: true,
+          purchaseOrder: { select: { supplierId: true } },
+        },
+      }),
+    ]);
+
+    const hutangBySupplier = new Map<string, number>();
+    for (const row of poTotals) {
+      hutangBySupplier.set(
+        row.supplierId,
+        Number(row._sum.totalAmount?.toString() ?? 0),
+      );
+    }
+    const piutangBySupplier = new Map<string, number>();
+    for (const row of returnTotals) {
+      piutangBySupplier.set(
+        row.supplierId,
+        Number(row._sum.totalValue?.toString() ?? 0),
+      );
+    }
+    const stokBySupplier = new Map<string, number>();
+    for (const item of openItems) {
+      const sid = item.purchaseOrder.supplierId;
+      const outstanding =
+        Number(item.quantityOrdered?.toString() ?? 0) -
+        Number(item.quantityReceived?.toString() ?? 0);
+      if (outstanding > 0) {
+        stokBySupplier.set(sid, (stokBySupplier.get(sid) ?? 0) + outstanding);
+      }
+    }
+
+    return suppliers.map((s) => ({
+      ...s,
+      totalHutang: hutangBySupplier.get(s.id) ?? 0,
+      totalPiutang: piutangBySupplier.get(s.id) ?? 0,
+      stokTerhutang: stokBySupplier.get(s.id) ?? 0,
+    }));
   }
 
   /**

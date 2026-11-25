@@ -4,6 +4,7 @@ export interface Expedition {
   id: string;
   code: string;
   name: string;
+  description?: string; // Keterangan (IGDERP-312)
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

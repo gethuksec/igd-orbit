@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Truck, Eye, Edit, Trash2, Loader2 } from "lucide-react";
+import { Plus, Truck, Eye, Edit, Trash2, Loader2, RefreshCw } from "lucide-react";
 import { suppliersService } from "../../services/suppliers.service";
 import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable, StatusDot } from "@/components/shared";
 import type { Column } from "@/components/shared";
@@ -9,11 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { formatDateTimeId } from "@/lib/utils";
+import { formatCurrency, formatNumber, formatDate } from "@/utils/format";
+import { generateCode10 } from "@/utils/generateCode";
 
 type StatusFilter = "all" | "active" | "inactive";
 
 interface SimpleFormData {
+  customerCode: string;
   name: string;
   contactPerson: string;
   phone: string;
@@ -21,12 +23,14 @@ interface SimpleFormData {
 }
 
 const defaultForm: SimpleFormData = {
+  customerCode: "",
   name: "",
   contactPerson: "",
   phone: "",
   email: "",
 };
 
+// Headline order (IGDERP-312): Aksi, Kode, Nama, Telepon, Alamat, Hutang, Piutang, Log
 export default function SupplierList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
@@ -107,13 +111,14 @@ export default function SupplierList() {
 
   const openCreateModal = () => {
     setEditingSupplier(null);
-    setForm(defaultForm);
+    setForm({ ...defaultForm, customerCode: generateCode10() });
     setShowFormModal(true);
   };
 
   const openEditModal = (supplier: any) => {
     setEditingSupplier(supplier);
     setForm({
+      customerCode: supplier.customerCode || supplier.code || "",
       name: supplier.name || "",
       contactPerson: supplier.contactPerson || "",
       phone: supplier.phone || "",
@@ -124,19 +129,54 @@ export default function SupplierList() {
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const submitData = {
+    const submitData: any = {
       customerType: "wholesale",
       name: form.name,
       phone: form.phone,
       contactPerson: form.contactPerson || undefined,
       email: form.email || undefined,
     };
+    // Kode only on create — auto 10-char, editable/regenerable; immutable after that
+    if (!editingSupplier && form.customerCode.trim()) {
+      submitData.customerCode = form.customerCode.trim().toUpperCase();
+    }
     if (editingSupplier) {
       updateMutation.mutate({ id: editingSupplier.id, data: submitData });
     } else {
       createMutation.mutate(submitData);
     }
   };
+
+  const rowActions = (supplier: any) => (
+    <div className="flex items-center gap-2">
+      <Link
+        to={`/suppliers/${supplier.id}`}
+        title="Lihat Detail"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      >
+        <Eye className="h-4 w-4" />
+      </Link>
+      <button
+        type="button"
+        onClick={() => openEditModal(supplier)}
+        title="Edit Cepat"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      >
+        <Edit className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          setSupplierToDelete({ id: supplier.id, name: supplier.name });
+          setDeleteModalOpen(true);
+        }}
+        title="Hapus"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-600 dark:hover:text-red-400"
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
+    </div>
+  );
 
   const suppliers = data?.data || [];
   const pagination = data?.meta || {
@@ -148,30 +188,41 @@ export default function SupplierList() {
 
   const columns: Column<any>[] = [
     {
+      key: "code",
+      header: "Kode",
+      cell: (supplier) => (
+        <div className="text-sm font-mono text-foreground whitespace-nowrap">
+          {supplier.customerCode || supplier.code || "-"}
+        </div>
+      ),
+    },
+    {
       key: "name",
       stickyLeft: true,
-      header: "Kode & Nama",
+      header: "Nama",
       cell: (supplier) => (
-        <div className="flex items-center gap-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
             <Truck className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-[15px] font-medium text-foreground">
+            <div className="text-[15px] font-medium text-foreground whitespace-nowrap">
               {supplier.name}
             </div>
-            <div className="text-xs text-muted-foreground mt-1 font-mono">
-              {supplier.customerCode || supplier.code || "-"}
-            </div>
+            {supplier.contactPerson && (
+              <div className="text-xs text-muted-foreground mt-1">
+                {supplier.contactPerson}
+              </div>
+            )}
           </div>
         </div>
       ),
     },
     {
-      key: "contact",
-      header: "Kontak",
+      key: "phone",
+      header: "Telepon",
       cell: (supplier) => (
-        <div className="text-sm text-muted-foreground max-w-md truncate">
+        <div className="text-sm text-muted-foreground whitespace-nowrap">
           {supplier.phone || "-"}
           {supplier.email && <div className="text-xs">{supplier.email}</div>}
         </div>
@@ -192,41 +243,51 @@ export default function SupplierList() {
       ),
     },
     {
-      key: "createdAt",
-      header: "Tanggal Dibuat",
+      key: "hutang",
+      header: "Hutang",
       cell: (supplier) => (
-        <div className="text-sm text-muted-foreground">
-          {supplier.createdAt
-            ? new Date(supplier.createdAt).toLocaleDateString("id-ID", {
-                year: "numeric",
-                month: "short",
-                day: "numeric",
-              })
-            : "-"}
+        <div className="text-sm font-medium tabular-nums text-foreground whitespace-nowrap">
+          {formatCurrency(Number(supplier.totalHutang ?? 0))}
         </div>
       ),
     },
     {
-      key: "isActive",
-      header: "Status",
+      key: "piutang",
+      header: "Piutang",
       cell: (supplier) => (
-        <StatusDot tone={supplier.isActive ? "ok" : "off"}>
-          {supplier.isActive ? "Aktif" : "Tidak Aktif"}
-        </StatusDot>
+        <div className="text-sm font-medium tabular-nums text-foreground whitespace-nowrap">
+          {formatCurrency(Number(supplier.totalPiutang ?? 0))}
+        </div>
       ),
     },
     {
-      key: "updatedAt",
-      header: "Terakhir Diupdate",
-      cell: (r: any) => (
-        <div className="text-sm tabular-nums text-muted-foreground">
-          {formatDateTimeId(r.updatedAt)}
+      key: "log",
+      header: "Log",
+      cell: (supplier) => (
+        <div className="text-sm text-muted-foreground whitespace-nowrap">
+          <div>
+            {supplier.createdAt
+              ? formatDate(supplier.createdAt, "dd MMM yyyy")
+              : "-"}
+          </div>
+          {supplier.updatedAt && supplier.updatedAt !== supplier.createdAt && (
+            <div className="text-xs">
+              Ubah {formatDate(supplier.updatedAt, "dd MMM yyyy")}
+            </div>
+          )}
         </div>
       ),
     },
   ];
 
-  const activeCount = suppliers.filter((s: any) => s.isActive).length;
+  const totalHutangPage = suppliers.reduce(
+    (sum: number, s: any) => sum + Number(s.totalHutang ?? 0),
+    0
+  );
+  const totalStokTerhutangPage = suppliers.reduce(
+    (sum: number, s: any) => sum + Number(s.stokTerhutang ?? 0),
+    0
+  );
 
   return (
     <div className="w-full space-y-3">
@@ -257,21 +318,22 @@ export default function SupplierList() {
         />
         <StatCard
           icon={<Truck className="h-5 w-5" />}
-          label="Total Terisi"
-          value={isLoading ? "-" : suppliers.length}
-          subtitle="Pemasok pada halaman ini"
+          label="Total Hutang"
+          value={isLoading ? "-" : formatCurrency(totalHutangPage)}
+          subtitle="PO terbuka pada halaman ini"
         />
         <StatCard
           icon={<Truck className="h-5 w-5" />}
-          label="Pemasok Aktif"
-          value={isLoading ? "-" : activeCount}
+          label="Total Stok Terhutang"
+          value={isLoading ? "-" : formatNumber(totalStokTerhutangPage)}
+          subtitle="Qty belum diterima halaman ini"
         />
       </div>
 
       <FilterToolbar
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
-        searchPlaceholder="Cari pemasok, kontak, alamat..."
+        searchPlaceholder="Cari pemasok, kode, kontak, alamat..."
         fields={[
           {
             key: "status",
@@ -298,42 +360,13 @@ export default function SupplierList() {
 
       <DataTable
         actionsPosition="left"
+        actions={rowActions}
         columns={columns}
         data={suppliers}
         keyExtractor={(s: any) => s.id}
         isLoading={isLoading}
         emptyMessage="Tidak ada pemasok ditemukan"
         emptyIcon={<Truck className="w-16 h-16" />}
-        actions={(supplier: any) => (
-          <div className="flex items-center justify-end gap-2">
-            <Link
-              to={`/suppliers/${supplier.id}`}
-              title="Lihat Detail"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            >
-              <Eye className="h-4 w-4" />
-            </Link>
-            <button
-              type="button"
-              onClick={() => openEditModal(supplier)}
-              title="Edit Cepat"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            >
-              <Edit className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setSupplierToDelete({ id: supplier.id, name: supplier.name });
-                setDeleteModalOpen(true);
-              }}
-              title="Hapus"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-600 dark:hover:text-red-400"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          </div>
-        )}
       />
 
       {!isLoading && suppliers.length > 0 && (
@@ -389,6 +422,38 @@ export default function SupplierList() {
         <form onSubmit={handleFormSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1">
+              Kode Pemasok
+            </label>
+            <div className="flex gap-2">
+              <Input
+                type="text"
+                value={form.customerCode}
+                onChange={(e) => setForm({ ...form, customerCode: e.target.value.toUpperCase() })}
+                placeholder="Auto 10 karakter"
+                className="font-mono"
+                maxLength={10}
+                disabled={!!editingSupplier}
+              />
+              {!editingSupplier && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  title="Generate kode"
+                  onClick={() => setForm({ ...form, customerCode: generateCode10() })}
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {editingSupplier
+                ? "Kode tidak dapat diubah setelah dibuat"
+                : "10 karakter huruf + angka, dibuat otomatis"}
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">
               Nama Pemasok <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <Input
@@ -430,6 +495,19 @@ export default function SupplierList() {
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               placeholder="email@example.com"
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              <span className="inline-flex items-center gap-1.5">
+                Status
+                <StatusDot tone={editingSupplier ? (editingSupplier.isActive ? "ok" : "off") : "ok"} />
+              </span>
+            </label>
+            <p className="text-xs text-muted-foreground">
+              {editingSupplier
+                ? (editingSupplier.isActive ? "Pemasok aktif" : "Pemasok tidak aktif")
+                : "Pemasok baru selalu dibuat aktif"}
+            </p>
           </div>
           <div className="flex gap-3 pt-2">
             <Button

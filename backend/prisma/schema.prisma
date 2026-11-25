@@ -581,10 +581,11 @@ model Size {
 }
 
 model Expedition {
-  id        String   @id @default(uuid())
-  code      String   @unique
-  name      String
-  isActive  Boolean  @default(true) @map("is_active")
+  id          String    @id @default(uuid())
+  code        String    @unique
+  name        String
+  description String? // Keterangan
+  isActive    Boolean   @default(true) @map("is_active")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")

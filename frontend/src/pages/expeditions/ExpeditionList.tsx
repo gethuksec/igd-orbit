@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {Plus, Eye, Edit, Trash2, Save, Loader2, Truck} from "lucide-react";
+import {Plus, Eye, Edit, Trash2, Save, Loader2, Truck, RefreshCw} from "lucide-react";
 import { expeditionsService } from "../../services/expeditions.service";
 import { api } from "../../services/api";
 import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable, StatusDot } from "@/components/shared";
@@ -9,10 +9,14 @@ import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { formatDateTimeId } from "@/lib/utils";
+import { formatDate } from "@/utils/format";
+import { generateCode10 } from "@/utils/generateCode";
 
 type StatusFilter = "all" | "active" | "inactive";
 
+const defaultFormData = { code: "", name: "", description: "", isActive: true };
+
+// Headline order (IGDERP-312): Aksi, Kode, Nama, Keterangan, Status, Log
 export default function ExpeditionList() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
@@ -23,7 +27,7 @@ export default function ExpeditionList() {
   // Modal state
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [editingExpedition, setEditingExpedition] = useState<any>(null);
-  const [formData, setFormData] = useState({ name: "", isActive: true });
+  const [formData, setFormData] = useState(defaultFormData);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [expeditionToDelete, setExpeditionToDelete] = useState<{ id: string; name: string } | null>(null);
 
@@ -58,19 +62,32 @@ export default function ExpeditionList() {
     totalPages: 1,
   };
 
+  const closeFormModal = () => {
+    setFormModalOpen(false);
+    setEditingExpedition(null);
+    setFormData(defaultFormData);
+  };
+
   const saveMutation = useMutation({
     mutationFn: (data: any) => {
-      if (editingExpedition) {
-        return api.put(`/expeditions/${editingExpedition.id}`, data);
+      const payload: any = {
+        name: data.name,
+        description: data.description?.trim() ? data.description.trim() : undefined,
+        isActive: data.isActive,
+      };
+      // Kode only on create — auto 10-char, editable/regenerable; immutable after that
+      if (!editingExpedition && data.code?.trim()) {
+        payload.code = data.code.trim().toUpperCase();
       }
-      return api.post("/expeditions", data);
+      if (editingExpedition) {
+        return api.put(`/expeditions/${editingExpedition.id}`, payload);
+      }
+      return api.post("/expeditions", payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expeditions"] });
       toast.success(editingExpedition ? "Ekspedisi berhasil diupdate" : "Ekspedisi berhasil ditambahkan");
-      setFormModalOpen(false);
-      setEditingExpedition(null);
-      setFormData({ name: "", isActive: true });
+      closeFormModal();
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || "Terjadi kesalahan");
@@ -79,13 +96,18 @@ export default function ExpeditionList() {
 
   const openCreateModal= () => {
     setEditingExpedition(null);
-    setFormData({ name: "", isActive: true });
+    setFormData({ ...defaultFormData, code: generateCode10() });
     setFormModalOpen(true);
   };
 
   const openEditModal = (expedition: any) => {
     setEditingExpedition(expedition);
-    setFormData({ name: expedition.name || "", isActive: expedition.isActive ?? true });
+    setFormData({
+      code: expedition.code || "",
+      name: expedition.name || "",
+      description: expedition.description || "",
+      isActive: expedition.isActive ?? true,
+    });
     setFormModalOpen(true);
   };
 
@@ -95,6 +117,37 @@ export default function ExpeditionList() {
   };
 
   const activeCount = expeditions.filter((e: any) => e.isActive).length;
+
+  const rowActions = (expedition: any) => (
+    <div className="flex items-center gap-1">
+      <Link
+        to={`/expeditions/${expedition.id}`}
+        title="Lihat Detail"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      >
+        <Eye className="h-4 w-4" />
+      </Link>
+      <button
+        type="button"
+        onClick={() => openEditModal(expedition)}
+        title="Edit"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      >
+        <Edit className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        title="Hapus"
+        onClick={() => {
+          setExpeditionToDelete({ id: expedition.id, name: expedition.name });
+          setDeleteModalOpen(true);
+        }}
+        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-600 dark:hover:text-red-400"
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
+    </div>
+  );
 
 
   const deleteMutation = useMutation({
@@ -111,23 +164,35 @@ export default function ExpeditionList() {
   });
   const columns: Column<any>[] = [
     {
-
-key: "name",
-      stickyLeft: true,
-      header: "Ekspedisi",
+      key: "code",
+      header: "Kode",
       cell: (expedition) => (
-        <div className="flex items-center gap-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
+        <div className="text-sm font-mono text-foreground whitespace-nowrap">
+          {expedition.code || "-"}
+        </div>
+      ),
+    },
+    {
+      key: "name",
+      stickyLeft: true,
+      header: "Nama",
+      cell: (expedition) => (
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
             <Truck className="h-5 w-5" />
           </div>
-          <div>
-            <div className="text-[15px] font-medium text-foreground">
-              {expedition.name}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1 font-mono">
-              {expedition.code || "-"}
-            </div>
+          <div className="text-[15px] font-medium text-foreground whitespace-nowrap">
+            {expedition.name}
           </div>
+        </div>
+      ),
+    },
+    {
+      key: "description",
+      header: "Keterangan",
+      cell: (expedition) => (
+        <div className="text-sm text-muted-foreground max-w-md truncate">
+          {expedition.description || "-"}
         </div>
       ),
     },
@@ -141,11 +206,20 @@ key: "name",
       ),
     },
     {
-      key: "updatedAt",
-      header: "Terakhir Diupdate",
-      cell: (r: any) => (
-        <div className="text-sm tabular-nums text-muted-foreground">
-          {formatDateTimeId(r.updatedAt)}
+      key: "log",
+      header: "Log",
+      cell: (expedition) => (
+        <div className="text-sm text-muted-foreground whitespace-nowrap">
+          <div>
+            {expedition.createdAt
+              ? formatDate(expedition.createdAt, "dd MMM yyyy")
+              : "-"}
+          </div>
+          {expedition.updatedAt && expedition.updatedAt !== expedition.createdAt && (
+            <div className="text-xs">
+              Ubah {formatDate(expedition.updatedAt, "dd MMM yyyy")}
+            </div>
+          )}
         </div>
       ),
     },
@@ -168,18 +242,12 @@ key: "name",
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <StatCard
           icon={<Truck className="h-5 w-5" />}
           label="Total Ekspedisi"
           value={isLoading ? "-" : pagination.total}
           subtitle="Semua ekspedisi terdaftar"
-        />
-        <StatCard
-          icon={<Truck className="h-5 w-5" />}
-          label="Total Terisi"
-          value={isLoading ? "-" : expeditions.length}
-          subtitle="Ekspedisi pada halaman ini"
         />
         <StatCard
           icon={<Truck className="h-5 w-5" />}
@@ -191,7 +259,7 @@ key: "name",
       <FilterToolbar
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
-        searchPlaceholder="Cari nama ekspedisi..."
+        searchPlaceholder="Cari kode, nama, keterangan ekspedisi..."
         fields={[
           {
             key: "status",
@@ -218,42 +286,13 @@ key: "name",
 
       <DataTable
         actionsPosition="left"
+        actions={rowActions}
         columns={columns}
         data={expeditions}
         keyExtractor={(e: any) => e.id}
         isLoading={isLoading}
         emptyMessage="Tidak ada ekspedisi ditemukan"
         emptyIcon={<Truck className="w-16 h-16" />}
-        actions={(expedition: any) => (
-          <div className="flex items-center justify-end gap-1">
-            <Link
-              to={`/expeditions/${expedition.id}`}
-              title="Lihat Detail"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            >
-              <Eye className="h-4 w-4" />
-            </Link>
-            <button
-              type="button"
-              onClick={() => openEditModal(expedition)}
-              title="Edit"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            >
-              <Edit className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              title="Hapus"
-              onClick={() => {
-                setExpeditionToDelete({ id: expedition.id, name: expedition.name });
-                setDeleteModalOpen(true);
-              }}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-600 dark:hover:text-red-400"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          </div>
-        )}
       />
 
       {!isLoading && expeditions.length > 0 && (
@@ -299,7 +338,7 @@ key: "name",
       <Dialog
         open={formModalOpen}
         onOpenChange={(open) => {
-          if (!open) { setFormModalOpen(false); setEditingExpedition(null); setFormData({ name: "", isActive: true }); }
+          if (!open) { closeFormModal(); }
         }}
       >
         <DialogContent className="sm:max-w-md">
@@ -307,6 +346,37 @@ key: "name",
             <DialogTitle>{editingExpedition ? "Edit Ekspedisi" : "Tambah Ekspedisi"}</DialogTitle>
           </DialogHeader>
         <form onSubmit={handleFormSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Kode Ekspedisi
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={formData.code}
+                onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono disabled:bg-gray-50 dark:disabled:bg-gray-950 disabled:text-gray-500"
+                placeholder="Auto 10 karakter"
+                maxLength={10}
+                disabled={!!editingExpedition}
+              />
+              {!editingExpedition && (
+                <button
+                  type="button"
+                  title="Generate kode"
+                  onClick={() => setFormData(prev => ({ ...prev, code: generateCode10() }))}
+                  className="shrink-0 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {editingExpedition
+                ? "Kode tidak dapat diubah setelah dibuat"
+                : "10 karakter huruf + angka, dibuat otomatis"}
+            </p>
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Nama Ekspedisi <span className="text-red-500 dark:text-red-400">*</span>
@@ -317,6 +387,18 @@ key: "name",
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               placeholder="Nama ekspedisi"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Keterangan
+            </label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              placeholder="Keterangan ekspedisi (opsional)"
+              rows={2}
             />
           </div>
           <div>
@@ -335,7 +417,7 @@ key: "name",
           <div className="flex gap-3 pt-2">
             <button
               type="button"
-              onClick={() => { setFormModalOpen(false); setEditingExpedition(null); setFormData({ name: "", isActive: true }); }}
+              onClick={() => { closeFormModal(); }}
               className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors"
               disabled={saveMutation.isPending}
             >Batal</button>

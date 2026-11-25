@@ -84,6 +84,11 @@ export default function ExpeditionDetail() {
               )}
 
               <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Keterangan</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{expedition.description || "-"}</p>
+              </div>
+
+              <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700">
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Status</p>
                 <span
                   className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
