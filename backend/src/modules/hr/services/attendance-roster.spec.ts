@@ -95,6 +95,19 @@ describe('AttendanceService roster + luar-lokasi approval (WS-290)', () => {
       expect(byId).toEqual({ e1: 'libur', e2: 'cuti', e3: 'alpha' });
     });
 
+    it('IGDERP-315: roster leave overlay covers approved + manager_approved', async () => {
+      baseRosterMocks([emp('e1')], [], { leaves: [{ employeeId: 'e1' }] });
+      const res: any = await service.getRoster(DAY, {});
+      expect(prisma.leaveRequest.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ status: { in: ['approved', 'manager_approved'] } }),
+        }),
+      );
+      // Step-1-approved leave already signals cuti on the roster, before
+      // CHR writes the attendance placeholder rows at step 2.
+      expect(res.data.find((r: any) => r.employeeId === 'e1').displayStatus).toBe('cuti');
+    });
+
     it('resolves schedule roster-first: entry shift wins over assignment', async () => {
       const assignShift = { id: 's-9', name: 'Siang', clockIn: '13:00', clockOut: '21:00', deletedAt: null };
       baseRosterMocks([emp('e1')], [], {
