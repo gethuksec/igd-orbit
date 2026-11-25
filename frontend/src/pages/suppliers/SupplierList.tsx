@@ -497,17 +497,14 @@ export default function SupplierList() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">
-              <span className="inline-flex items-center gap-1.5">
-                Status
-                <StatusDot tone={editingSupplier ? (editingSupplier.isActive ? "ok" : "off") : "ok"} />
-              </span>
-            </label>
-            <p className="text-xs text-muted-foreground">
+            <label className="block text-sm font-medium mb-1">Status</label>
+            <StatusDot
+              tone={editingSupplier ? (editingSupplier.isActive ? "ok" : "off") : "ok"}
+            >
               {editingSupplier
                 ? (editingSupplier.isActive ? "Pemasok aktif" : "Pemasok tidak aktif")
                 : "Pemasok baru selalu dibuat aktif"}
-            </p>
+            </StatusDot>
           </div>
           <div className="flex gap-3 pt-2">
             <Button
