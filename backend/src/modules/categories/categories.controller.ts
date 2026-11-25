@@ -65,6 +65,19 @@ export class CategoriesController {
   }
 
   /**
+   * Generate a fresh unique category code for the popup Generate button.
+   * GET /api/v1/categories/generate-code
+   * NOTE: registered before ':id' — Express matches routes in order.
+   * Permissions: OWNER, CFO, MGR, CSO, CMO, SPV, HS, ASA
+   */
+  @Get('generate-code')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA')
+  async generateCode() {
+    return { code: await this.categoriesService.generateCode() };
+  }
+
+  /**
    * Get category with subcategories
    * GET /api/v1/categories/:id
    * Permissions: OWNER, CFO, MGR, CSO, CMO, SPV, HS, ASA

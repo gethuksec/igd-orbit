@@ -77,4 +77,13 @@ export const sizesService = {
       throw error;
     }
   },
+
+  async generateCode(): Promise<{ code: string }> {
+    try {
+      const response = await api.get('/sizes/generate-code');
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
 };

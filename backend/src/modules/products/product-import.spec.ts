@@ -309,6 +309,12 @@ describe('ProductsService — XLSX product import', () => {
     });
 
     it('auto-creates an unknown category at confirm time', async () => {
+      // A freshly generated 10-digit code is unique (code lookup -> null),
+      // while the later create-validation id lookup still resolves.
+      prisma.category.findUnique.mockImplementation(async (args: any) => {
+        if (args?.where?.code) return null;
+        return { id: 'cat-1', name: 'Spare Part' };
+      });
       prisma.category.create.mockResolvedValue({ id: 'cat-new', name: 'Kategori Baru', code: 'CAT-NEW' });
       const out = await service.confirmProductImport(
         {

@@ -77,5 +77,14 @@ export const brandsService = {
       throw error;
     }
   },
+
+  async generateCode(): Promise<{ code: string }> {
+    try {
+      const response = await api.get('/brands/generate-code');
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
 };
 

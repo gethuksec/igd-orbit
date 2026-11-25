@@ -1,14 +1,13 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Layers, Eye, Edit, Trash2, Save, Loader2 } from "lucide-react";
+import { Plus, Layers, Award, Eye, Edit, Trash2, Save, Loader2 } from "lucide-react";
 import { categoriesService } from "../../services/categories.service";
 import { toast } from "sonner";
 import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable, StatusDot } from "@/components/shared";
 import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { formatDateTimeId } from "@/lib/utils";
 
 type StatusFilter = "all" | "active" | "inactive";
 
@@ -24,7 +23,20 @@ export default function CategoryList() {
   // Form Modal state
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<any>(null);
-  const [formData, setFormData] = useState({ name: "", description: "", isActive: true });
+  const [formData, setFormData] = useState({ code: "", name: "", description: "", isActive: true });
+  const [generatingCode, setGeneratingCode] = useState(false);
+
+  const handleGenerateCode = async () => {
+    setGeneratingCode(true);
+    try {
+      const { code } = await categoriesService.generateCode();
+      setFormData((prev) => ({ ...prev, code }));
+    } catch {
+      toast.error("Gagal generate kode");
+    } finally {
+      setGeneratingCode(false);
+    }
+  };
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["categories", page, searchTerm, statusFilter],
@@ -65,6 +77,7 @@ export default function CategoryList() {
   const saveMutation = useMutation({
     mutationFn: (data: any) => {
       const submitData = { ...data };
+      if (!submitData.code) delete submitData.code;
       if (editingCategory) {
         return categoriesService.update(editingCategory.id, submitData);
       }
@@ -75,7 +88,7 @@ export default function CategoryList() {
       toast.success(editingCategory ? "Kategori berhasil diupdate" : "Kategori berhasil ditambahkan");
       setFormModalOpen(false);
       setEditingCategory(null);
-      setFormData({ name: "", description: "", isActive: true });
+      setFormData({ code: "", name: "", description: "", isActive: true });
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || "Terjadi kesalahan");
@@ -84,13 +97,14 @@ export default function CategoryList() {
 
   const openCreateModal = () => {
     setEditingCategory(null);
-    setFormData({ name: "", description: "", isActive: true });
+    setFormData({ code: "", name: "", description: "", isActive: true });
     setFormModalOpen(true);
   };
 
   const openEditModal = (category: any) => {
     setEditingCategory(category);
     setFormData({
+      code: category.code || "",
       name: category.name || "",
       description: category.description || "",
       isActive: category.isActive !== false,
@@ -104,46 +118,47 @@ export default function CategoryList() {
   };
 
   const categories = data?.data || [];
-  const pagination = data?.meta || { page: 1, limit: 20, total: 0, totalPages: 1 };
-
-  const activeCount = categories.filter((c: any) => c.isActive).length;
-  const totalProducts = categories.reduce((acc: number, c: any) => acc + (c.productCount || 0), 0);
+  const pagination = data?.meta || { page: 1, limit: 20, total: 0, totalPages: 1, totalGrades: 0 };
 
   const columns: Column<any>[] = [
+    {
+      key: "code",
+      header: "Kode",
+      cell: (category) => (
+        <div className="text-sm font-mono font-medium tabular-nums text-foreground">
+          {category.code || "-"}
+        </div>
+      ),
+    },
     {
       key: "name",
       stickyLeft: true,
       header: "Kategori",
       cell: (category) => (
-        <div className="flex items-center gap-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
-            <Layers className="h-5 w-5" />
-          </div>
-          <div>
-            <div className="text-[15px] font-medium text-foreground">
-              {category.name}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1 font-mono">
-              {category.code || "-"}
-            </div>
-          </div>
-        </div>
+        <div className="text-[15px] font-medium text-foreground">{category.name}</div>
       ),
     },
     {
-      key: "description",
-      header: "Deskripsi",
+      key: "totalStock",
+      header: "Total Stok",
       cell: (category) => (
-        <div className="text-sm text-muted-foreground max-w-md truncate">
-          {category.description || "-"}
-        </div>
+        <div className="text-sm font-medium tabular-nums text-foreground">{category.totalStock ?? 0}</div>
       ),
     },
     {
-      key: "productCount",
-      header: "Produk",
+      key: "totalSku",
+      header: "Total SKU",
       cell: (category) => (
-        <div className="text-sm font-medium tabular-nums text-foreground">{category.productCount || 0}</div>
+        <div className="text-sm font-medium tabular-nums text-foreground">{category.totalSku ?? category.productCount ?? 0}</div>
+      ),
+    },
+    {
+      key: "grades",
+      header: "Grade",
+      cell: (category) => (
+        <div className="text-sm text-muted-foreground max-w-xs truncate">
+          {(category.grades || []).join(", ") || "-"}
+        </div>
       ),
     },
     {
@@ -153,15 +168,6 @@ export default function CategoryList() {
         <StatusDot tone={category.isActive ? "ok" : "off"}>
           {category.isActive ? "Aktif" : "Tidak Aktif"}
         </StatusDot>
-      ),
-    },
-    {
-      key: "updatedAt",
-      header: "Terakhir Diupdate",
-      cell: (r: any) => (
-        <div className="text-sm tabular-nums text-muted-foreground">
-          {formatDateTimeId(r.updatedAt)}
-        </div>
       ),
     },
   ];
@@ -186,7 +192,7 @@ export default function CategoryList() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <StatCard
           icon={<Layers className="h-5 w-5" />}
           label="Total Kategori"
@@ -194,15 +200,10 @@ export default function CategoryList() {
           subtitle="Semua kategori terdaftar"
         />
         <StatCard
-          icon={<Layers className="h-5 w-5" />}
-          label="Total Produk"
-          value={isLoading ? "-" : totalProducts}
-          subtitle="Dari semua kategori"
-        />
-        <StatCard
-          icon={<Layers className="h-5 w-5" />}
-          label="Kategori Aktif"
-          value={isLoading ? "-" : activeCount}
+          icon={<Award className="h-5 w-5" />}
+          label="Total Grade"
+          value={isLoading ? "-" : (pagination.totalGrades ?? "-")}
+          subtitle="Grade unik semua kategori"
         />
       </div>
 
@@ -321,7 +322,7 @@ export default function CategoryList() {
           if (!open) {
             setFormModalOpen(false);
             setEditingCategory(null);
-            setFormData({ name: "", description: "", isActive: true });
+            setFormData({ code: "", name: "", description: "", isActive: true });
           }
         }}
       >
@@ -330,6 +331,29 @@ export default function CategoryList() {
             <DialogTitle>{editingCategory ? "Edit Kategori" : "Tambah Kategori"}</DialogTitle>
           </DialogHeader>
         <form onSubmit={handleFormSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Kode
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={formData.code}
+                onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                maxLength={10}
+                className="flex-1 min-w-0 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono uppercase"
+                placeholder="Otomatis jika kosong"
+              />
+              <button
+                type="button"
+                onClick={handleGenerateCode}
+                disabled={generatingCode}
+                className="shrink-0 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors disabled:opacity-50 text-sm"
+              >
+                {generatingCode ? "..." : "Generate"}
+              </button>
+            </div>
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Nama Kategori <span className="text-red-500 dark:text-red-400">*</span>
@@ -376,7 +400,7 @@ export default function CategoryList() {
               onClick={() => {
                 setFormModalOpen(false);
                 setEditingCategory(null);
-                setFormData({ name: "", description: "", isActive: true });
+                setFormData({ code: "", name: "", description: "", isActive: true });
               }}
               className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors"
               disabled={saveMutation.isPending}

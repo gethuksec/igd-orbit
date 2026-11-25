@@ -76,13 +76,6 @@ export default function ColorDetail() {
                 <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{color.name}</p>
               </div>
 
-              {color.code && (
-                <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Kode Warna</p>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 font-mono">{color.code}</p>
-                </div>
-              )}
-
               {color.notes && (
                 <div className="p-3 bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-700">
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Catatan</p>

@@ -7,7 +7,7 @@ import {
 import { PrismaService } from '../../shared/services';
 import { CreateSizeDto, UpdateSizeDto, ListSizesDto } from './dto';
 import { Prisma } from '@prisma/client';
-import { randomBytes } from 'crypto';
+import { generateMasterCode } from '../../common/master-code.util';
 
 /**
  * Sizes Service
@@ -19,7 +19,7 @@ export class SizesService {
 
   /**
    * Generate unique size code
-   * Format: SIZ-{random}
+   * Format: flat 10-char alphanumeric [A-Z0-9] (IGDERP-316)
    * @returns Generated code string
    */
   async generateCode(): Promise<string> {
@@ -29,8 +29,7 @@ export class SizesService {
     const maxAttempts = 10;
 
     while (!isUnique && attempts < maxAttempts) {
-      const random = randomBytes(4).toString('hex').toUpperCase();
-      code = `SIZ-${random}`;
+      code = generateMasterCode();
 
       const existing = await this.prisma.size.findUnique({
         where: { code },
@@ -111,16 +110,57 @@ export class SizesService {
       this.prisma.size.count({ where }),
     ]);
 
+    const rows = sizes.map((size) => ({
+      id: size.id,
+      code: size.code,
+      name: size.name,
+      productCount: size._count.products,
+      totalSku: size._count.products,
+      totalStock: 0,
+      isActive: size.isActive,
+      createdAt: size.createdAt,
+      updatedAt: size.updatedAt,
+    }));
+
+    // Enhancement-only aggregate: totalStock (sum of quantityAvailable over
+    // the size's products). Degrades to 0 on query failure.
+    try {
+      const ids = rows.map((r) => r.id);
+      if (ids.length > 0) {
+        const products = await this.prisma.product.findMany({
+          where: { sizeId: { in: ids } },
+          select: { id: true, sizeId: true },
+        });
+        const productIds = products.map((p) => p.id);
+        const stockByProduct = new Map<string, number>();
+        if (productIds.length > 0) {
+          const sums = await this.prisma.productStock.groupBy({
+            by: ['productId'],
+            where: { productId: { in: productIds } },
+            _sum: { quantityAvailable: true },
+          });
+          for (const s of sums) {
+            stockByProduct.set(s.productId, Number(s._sum.quantityAvailable ?? 0));
+          }
+        }
+        const stockBySize = new Map<string, number>();
+        for (const p of products) {
+          if (!p.sizeId) continue;
+          stockBySize.set(
+            p.sizeId,
+            (stockBySize.get(p.sizeId) ?? 0) + (stockByProduct.get(p.id) ?? 0),
+          );
+        }
+        for (const r of rows) {
+          r.totalStock = stockBySize.get(r.id) ?? 0;
+        }
+      }
+    } catch (e) {
+      console.warn('sizes.findAll aggregates degraded:', (e as Error)?.message || e);
+    }
+
     return {
-      data: sizes.map((size) => ({
-        id: size.id,
-        code: size.code,
-        name: size.name,
-        productCount: size._count.products,
-        isActive: size.isActive,
-        createdAt: size.createdAt,
-        updatedAt: size.updatedAt,
-      })),
+      data: rows,
       meta: {
         total,
         page: pageNum,

@@ -19,6 +19,7 @@ export interface CategoryListResponse {
     limit: number;
     total: number;
     totalPages: number;
+    totalGrades?: number;
   };
 }
 
@@ -75,6 +76,15 @@ export const categoriesService = {
   async delete(id: string): Promise<void> {
     try {
       await api.delete(`/categories/${id}`);
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  async generateCode(): Promise<{ code: string }> {
+    try {
+      const response = await api.get('/categories/generate-code');
+      return response.data;
     } catch (error: any) {
       throw error;
     }

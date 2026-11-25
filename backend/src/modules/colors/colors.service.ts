@@ -104,17 +104,58 @@ export class ColorsService {
       this.prisma.color.count({ where }),
     ]);
 
+    const rows = colors.map((color) => ({
+      id: color.id,
+      code: color.code,
+      name: color.name,
+      notes: (color as any).notes || null,
+      productCount: color._count.products,
+      totalSku: color._count.products,
+      totalStock: 0,
+      isActive: color.isActive,
+      createdAt: color.createdAt,
+      updatedAt: color.updatedAt,
+    }));
+
+    // Enhancement-only aggregate: totalStock (sum of quantityAvailable over
+    // the color's products). Degrades to 0 on query failure.
+    try {
+      const ids = rows.map((r) => r.id);
+      if (ids.length > 0) {
+        const products = await this.prisma.product.findMany({
+          where: { colorId: { in: ids } },
+          select: { id: true, colorId: true },
+        });
+        const productIds = products.map((p) => p.id);
+        const stockByProduct = new Map<string, number>();
+        if (productIds.length > 0) {
+          const sums = await this.prisma.productStock.groupBy({
+            by: ['productId'],
+            where: { productId: { in: productIds } },
+            _sum: { quantityAvailable: true },
+          });
+          for (const s of sums) {
+            stockByProduct.set(s.productId, Number(s._sum.quantityAvailable ?? 0));
+          }
+        }
+        const stockByColor = new Map<string, number>();
+        for (const p of products) {
+          if (!p.colorId) continue;
+          stockByColor.set(
+            p.colorId,
+            (stockByColor.get(p.colorId) ?? 0) + (stockByProduct.get(p.id) ?? 0),
+          );
+        }
+        for (const r of rows) {
+          r.totalStock = stockByColor.get(r.id) ?? 0;
+        }
+      }
+    } catch (e) {
+      console.warn('colors.findAll aggregates degraded:', (e as Error)?.message || e);
+    }
+
     return {
-      data: colors.map((color) => ({
-        id: color.id,
-        code: color.code,
-        name: color.name,
-        notes: (color as any).notes || null,
-        productCount: color._count.products,
-        isActive: color.isActive,
-        createdAt: color.createdAt,
-        updatedAt: color.updatedAt,
-      })),
+      data: rows,
       meta: {
         total,
         page: pageNum,

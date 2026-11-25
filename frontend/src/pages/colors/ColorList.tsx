@@ -9,7 +9,6 @@ import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { formatDateTimeId } from "@/lib/utils";
 
 type StatusFilter = "all" | "active" | "inactive";
 
@@ -95,9 +94,6 @@ export default function ColorList() {
     saveMutation.mutate(formData);
   };
 
-  const activeCount = colors.filter((c: any) => c.isActive).length;
-
-
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/colors/${id}`),
     onSuccess: () => {
@@ -116,28 +112,21 @@ export default function ColorList() {
       stickyLeft: true,
       header: "Warna",
       cell: (color) => (
-        <div className="flex items-center gap-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
-            <Palette className="h-5 w-5" />
-          </div>
-          <div>
-            <div className="text-[15px] font-medium text-foreground">
-              {color.name}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1 font-mono">
-              {color.code || "-"}
-            </div>
-          </div>
-        </div>
+        <div className="text-[15px] font-medium text-foreground">{color.name}</div>
       ),
     },
     {
-      key: "notes",
-      header: "Catatan",
+      key: "totalSku",
+      header: "Total SKU",
       cell: (color) => (
-        <div className="text-sm text-muted-foreground max-w-md truncate">
-          {color.notes || "-"}
-        </div>
+        <div className="text-sm font-medium tabular-nums text-foreground">{color.totalSku ?? color.productCount ?? 0}</div>
+      ),
+    },
+    {
+      key: "totalStock",
+      header: "Total Stok",
+      cell: (color) => (
+        <div className="text-sm font-medium tabular-nums text-foreground">{color.totalStock ?? 0}</div>
       ),
     },
     {
@@ -147,15 +136,6 @@ export default function ColorList() {
         <StatusDot tone={color.isActive ? "ok" : "off"}>
           {color.isActive ? "Aktif" : "Tidak Aktif"}
         </StatusDot>
-      ),
-    },
-    {
-      key: "updatedAt",
-      header: "Terakhir Diupdate",
-      cell: (r: any) => (
-        <div className="text-sm tabular-nums text-muted-foreground">
-          {formatDateTimeId(r.updatedAt)}
-        </div>
       ),
     },
   ];
@@ -180,23 +160,12 @@ export default function ColorList() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-3">
         <StatCard
           icon={<Palette className="h-5 w-5" />}
           label="Total Warna"
           value={isLoading ? "-" : pagination.total}
           subtitle="Semua warna terdaftar"
-        />
-        <StatCard
-          icon={<Palette className="h-5 w-5" />}
-          label="Total Terisi"
-          value={isLoading ? "-" : colors.length}
-          subtitle="Warna pada halaman ini"
-        />
-        <StatCard
-          icon={<Palette className="h-5 w-5" />}
-          label="Warna Aktif"
-          value={isLoading ? "-" : activeCount}
         />
       </div>
 

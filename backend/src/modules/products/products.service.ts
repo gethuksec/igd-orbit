@@ -11,6 +11,7 @@ import { ProductTransformer, TransformedProduct, ProductListAnnotations, emptyAn
 import { Prisma } from '@prisma/client';
 import { assertNoFreezeOpname } from '../inventory/opname-freeze.guard';
 import { randomBytes } from 'crypto';
+import { generateMasterCode } from '../../common/master-code.util';
 
 type CompareOp = 'gt' | 'lt' | 'eq';
 
@@ -2532,47 +2533,33 @@ export class ProductsService {
   }
 
   /**
-   * Generate a unique category code from a name
-   * Format: CAT-{SLUGIFIED_NAME} (with random suffix on conflict)
+   * Generate a unique category code (IGDERP-316: flat 10-char [A-Z0-9]).
    */
   private async generateCategoryCode(name: string): Promise<string> {
-    const baseCode = 'CAT-' + name
-      .toUpperCase()
-      .replace(/[^A-Z0-9 ]/g, '')
-      .replace(/\s+/g, '_')
-      .slice(0, 20);
-
-    let code = baseCode;
+    void name;
     let attempts = 0;
     while (attempts < 10) {
+      const code = generateMasterCode();
       const existing = await this.prisma.category.findUnique({ where: { code } });
       if (!existing) return code;
       attempts++;
-      code = `${baseCode}_${randomBytes(2).toString('hex').toUpperCase()}`;
     }
-    return code;
+    throw new BadRequestException('Failed to generate unique category code');
   }
 
   /**
-   * Generate a unique brand code from a name
-   * Format: BRAND-{SLUGIFIED_NAME} (with random suffix on conflict)
+   * Generate a unique brand code (IGDERP-316: flat 10-char [A-Z0-9]).
    */
-  private async generateBrandCode(name: string): Promise<string> {
-    const baseCode = 'BRAND-' + name
-      .toUpperCase()
-      .replace(/[^A-Z0-9 ]/g, '')
-      .replace(/\s+/g, '_')
-      .slice(0, 20);
-
-    let code = baseCode;
+  private async generateBrandCode(brandName: string): Promise<string> {
+    void brandName;
     let attempts = 0;
     while (attempts < 10) {
+      const code = generateMasterCode();
       const existing = await this.prisma.brand.findUnique({ where: { code } });
       if (!existing) return code;
       attempts++;
-      code = `${baseCode}_${randomBytes(2).toString('hex').toUpperCase()}`;
     }
-    return code;
+    throw new BadRequestException('Failed to generate unique brand code');
   }
 
   /**

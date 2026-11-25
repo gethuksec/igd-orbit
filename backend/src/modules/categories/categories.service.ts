@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services';
 import { CreateCategoryDto, UpdateCategoryDto } from './dto';
-import { randomBytes } from 'crypto';
+import { generateMasterCode } from '../../common/master-code.util';
 
 /**
  * Category Tree Node Interface
@@ -37,7 +37,7 @@ export class CategoriesService {
 
   /**
    * Generate unique category code
-   * Format: CAT-{random}
+   * Format: flat 10-char alphanumeric [A-Z0-9] (IGDERP-316)
    * @returns Generated code string
    */
   async generateCode(): Promise<string> {
@@ -47,8 +47,7 @@ export class CategoriesService {
     const maxAttempts = 10;
 
     while (!isUnique && attempts < maxAttempts) {
-      const random = randomBytes(4).toString('hex').toUpperCase();
-      code = `CAT-${random}`;
+      code = generateMasterCode();
 
       const existing = await this.prisma.category.findUnique({
         where: { code },
@@ -229,19 +228,84 @@ export class CategoriesService {
           }
         : null,
       productCount: cat._count.products,
+      totalSku: cat._count.products,
+      totalStock: 0,
+      grades: [] as string[],
       isActive: cat.isActive,
       tierMargins: cat.tierMargins,
       createdAt: cat.createdAt,
       updatedAt: cat.updatedAt,
     }));
 
+    // Enhancement-only aggregates: totalStock (sum of quantityAvailable over
+    // the category's products) + distinct product grades (interim read-only
+    // surface until the CategoryGrade master lands). Degrades to zeros on
+    // query failure so a missing table pre-migration never breaks the list.
+    let totalGrades = 0;
+    try {
+      const categoryIds = categoriesWithCount.map((c) => c.id);
+      if (categoryIds.length > 0) {
+        const products = await this.prisma.product.findMany({
+          where: { categoryId: { in: categoryIds } },
+          select: { id: true, categoryId: true, grade: true },
+        });
+        const productIds = products.map((p) => p.id);
+        const stockByProduct = new Map<string, number>();
+        if (productIds.length > 0) {
+          const sums = await this.prisma.productStock.groupBy({
+            by: ['productId'],
+            where: { productId: { in: productIds } },
+            _sum: { quantityAvailable: true },
+          });
+          for (const s of sums) {
+            stockByProduct.set(s.productId, Number(s._sum.quantityAvailable ?? 0));
+          }
+        }
+        const byCategory = new Map<string, { stock: number; grades: Set<string> }>();
+        for (const p of products) {
+          let entry = byCategory.get(p.categoryId);
+          if (!entry) {
+            entry = { stock: 0, grades: new Set<string>() };
+            byCategory.set(p.categoryId, entry);
+          }
+          entry.stock += stockByProduct.get(p.id) ?? 0;
+          const g = (p.grade || '').trim();
+          if (g) entry.grades.add(g);
+        }
+        for (const c of categoriesWithCount) {
+          const entry = byCategory.get(c.id);
+          c.totalStock = entry ? entry.stock : 0;
+          c.grades = entry ? [...entry.grades].sort().slice(0, 20) : [];
+        }
+        // Total Grade StatCard: distinct grades across the whole FILTERED set
+        // (not just this page), so the number is stable under pagination.
+        const filteredIds = (
+          await this.prisma.category.findMany({ where, select: { id: true } })
+        ).map((r) => r.id);
+        if (filteredIds.length > 0) {
+          const distinctGrades = await this.prisma.product.findMany({
+            where: {
+              categoryId: { in: filteredIds },
+              grade: { not: null },
+            },
+            select: { grade: true },
+            distinct: ['grade'],
+          });
+          totalGrades = distinctGrades.filter((r) => (r.grade || '').trim()).length;
+        }
+      }
+    } catch (e) {
+      console.warn('categories.findAllPaginated aggregates degraded:', (e as Error)?.message || e);
+    }
+
     return {
       data: categoriesWithCount,
       meta: {
+        total,
         page,
         limit,
-        total,
         totalPages: Math.ceil(total / limit),
+        totalGrades,
       },
     };
   }
