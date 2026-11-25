@@ -11,11 +11,12 @@ export default function LeaveRequestForm() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+  // IGDERP-308: self-service lookup — no HR role required (junior-safe).
   const { data: leaveTypesData } = useQuery({
     queryKey: ['leave-types-active'],
-    queryFn: () => leaveTypesService.getAll({ limit: 50, status: 'active' }),
+    queryFn: () => leaveTypesService.getActiveOptions(),
   });
-  const leaveTypes: LeaveType[] = leaveTypesData?.data || [];
+  const leaveTypes: LeaveType[] = Array.isArray(leaveTypesData) ? leaveTypesData : [];
 
   const [formData, setFormData] = useState({
     leave_type: '',

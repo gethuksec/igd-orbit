@@ -1,5 +1,7 @@
 import { api, handleApiError } from './api';
 
+export type ProductSalesClass = 'fast' | 'medium' | 'slow' | 'dead';
+
 export interface Product {
   id: string;
   name: string;
@@ -13,9 +15,21 @@ export interface Product {
   costPrice: number;
   sellingPrice: number;
   minSellingPrice?: number;
-  unit?: string;
-  size?: string;
-  color?: string;
+  unit?: string | { id: string; name: string };
+  size?: string | { id: string; name: string };
+  color?: string | { id: string; name: string };
+  grade?: string | null;
+  modalTerakhir?: number | null;
+  modalPurata?: number | null;
+  nilaiStok?: number;
+  umurHari?: number | null;
+  usiaHari?: number | null;
+  kelas?: ProductSalesClass | null;
+  firstStockAt?: string | null;
+  lastPurchaseAt?: string | null;
+  lastSaleAt?: string | null;
+  lastRestockAt?: string | null;
+  totalSold?: number;
   lengthCm?: number;
   widthCm?: number;
   heightCm?: number;
@@ -126,6 +140,8 @@ export const productsService = {
     totalStockValue: number;
     lowStockCount: number;
     activeCount: number;
+    sumRegular?: number;
+    sumSilver?: number;
   }> {
     const response = await api.get('/products/statistics');
     return response.data;

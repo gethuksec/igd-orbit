@@ -164,11 +164,6 @@ export default function ExpeditionList() {
   });
   const columns: Column<any>[] = [
     {
-      key: "aksi",
-      header: "Aksi",
-      cell: (expedition) => rowActions(expedition),
-    },
-    {
       key: "code",
       header: "Kode",
       cell: (expedition) => (
@@ -179,6 +174,7 @@ export default function ExpeditionList() {
     },
     {
       key: "name",
+      stickyLeft: true,
       header: "Nama",
       cell: (expedition) => (
         <div className="flex items-center gap-3">
@@ -289,6 +285,8 @@ export default function ExpeditionList() {
       />
 
       <DataTable
+        actionsPosition="left"
+        actions={rowActions}
         columns={columns}
         data={expeditions}
         keyExtractor={(e: any) => e.id}

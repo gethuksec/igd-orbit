@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Save, Loader2, Package, DollarSign, FileText, Tag } from 'lucide-react';
@@ -13,14 +13,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select } from '@/components/ui/select';
 import { BreadcrumbHeader } from '@/components/shared';
 
-function generateBarcode(): string {
-  const now = new Date();
-  const yymmdd = now.getFullYear().toString().slice(2) +
-    String(now.getMonth() + 1).padStart(2, '0') +
-    String(now.getDate()).padStart(2, '0');
-  const rand = Math.floor(1000 + Math.random() * 9000);
-  return `BRC-${yymmdd}-${rand}`;
-}
+// IGDERP-309: barcode 12-digit (DDMMYYYY + lifetime sequence) dibuat di backend.
+// Form tidak generate sendiri — kosongkan agar backend yang mengisi.
 
 export default function ProductForm() {
   const { id } = useParams();
@@ -179,6 +173,7 @@ export default function ProductForm() {
       const existingPrintedName = (product as any).printedName || '';
       setPrintedNameEdited(!!existingPrintedName && existingPrintedName !== product.name);
       setUserTypedName(product.name || '');
+      const storedPricing = (product as any).memberPricing || {};
       setFormData({
         name: product.name || '',
         printedName: existingPrintedName || product.name || '',
@@ -209,6 +204,13 @@ export default function ProductForm() {
         expiryReturnLimitDays: (product as any).expiryReturnLimitDays || 0,
         memberPricing: (product as any).memberPricing || {},
       });
+      // IGDERP-311: stored tier prices count as manual overrides — the
+      // auto-cascade below only fills tiers without a stored value.
+      touchedTiers.current = new Set(
+        Object.entries(storedPricing)
+          .filter(([, v]) => (typeof v === 'number' ? v > 0 : v != null))
+          .map(([k]) => k),
+      );
       // IGDERP-65: remember exactly what was loaded so the auto-format
       // effect can tell "untouched after load" apart from "user edited".
       loadedSnapshot.current = {
@@ -221,47 +223,56 @@ export default function ProductForm() {
     }
   }, [product]);
 
+  // IGDERP-311: harga per tipe pelanggan. Tier diurut murah→mahal? tidak —
+  // diurut dari termahal (diskon terkecil): REGULAR/USER teratas, lalu
+  // SILVER, GOLD, PLATINUM. Harga User = Harga Jual, Silver = Harga Minimum,
+  // tier di bawahnya selisih Rp1.000. Nilai ketikan manual tidak ditimpa.
+  const touchedTiers = useRef<Set<string>>(new Set());
+  const sortedTiers = useMemo(() => {
+    if (!customerTiers || !Array.isArray(customerTiers)) return [];
+    return [...customerTiers]
+      .filter((t: any) => t.isActive !== false)
+      .sort((a: any, b: any) => (Number(a.discountPercentage) || 0) - (Number(b.discountPercentage) || 0));
+  }, [customerTiers]);
+  const regularTier = sortedTiers.find((t: any) => t.code === 'REGULAR') || sortedTiers[0];
+  const silverTier = sortedTiers.find((t: any) => t.code === 'SILVER') || sortedTiers[1];
+
   useEffect(() => {
-    if (formData.categoryId && categories && formData.sellingPrice > 0) {
-      const category = Array.isArray(categories)
-        ? categories.find((c: any) => c.id === formData.categoryId)
-        : null;
-      if (category && (category as any).tierMargins && customerTiers && Array.isArray(customerTiers)) {
-        const tierMargins = (category as any).tierMargins || {};
-        const newMemberPricing = { ...formData.memberPricing };
-        let changed = false;
-        for (const tier of customerTiers) {
-          const margin = tierMargins[tier.id];
-          if (margin !== undefined && margin > 0) {
-            const tierPrice = formData.sellingPrice + margin;
-            if (!newMemberPricing[tier.id] || newMemberPricing[tier.id] === 0) {
-              newMemberPricing[tier.id] = tierPrice;
-              changed = true;
-            }
+    if (!sortedTiers.length) return;
+    if (formData.sellingPrice <= 0 && formData.minSellingPrice <= 0) return;
+    const ordered = [
+      regularTier,
+      silverTier,
+      ...sortedTiers.filter((t: any) => t.id !== regularTier?.id && t.id !== silverTier?.id),
+    ].filter(Boolean);
+    const expected: Record<string, number> = {};
+    ordered.forEach((tier: any, i: number) => {
+      if (tier.id === regularTier?.id) {
+        expected[tier.id] = formData.sellingPrice;
+      } else if (tier.id === silverTier?.id) {
+        expected[tier.id] = formData.minSellingPrice;
+      } else {
+        const prevPrice = expected[ordered[i - 1].id] || 0;
+        expected[tier.id] = prevPrice > 1000 ? prevPrice - 1000 : 0;
+      }
+    });
+    setFormData((prev) => {
+      const next = { ...prev.memberPricing };
+      let changed = false;
+      for (const tier of ordered) {
+        const exp = expected[tier.id] || 0;
+        if (exp <= 0) continue;
+        const isAuto = tier.id === regularTier?.id || tier.id === silverTier?.id;
+        if (isAuto || !touchedTiers.current.has(tier.id)) {
+          if (next[tier.id] !== exp) {
+            next[tier.id] = exp;
+            changed = true;
           }
         }
-        if (changed) {
-          setFormData((prev) => ({ ...prev, memberPricing: newMemberPricing }));
-        }
       }
-    }
-  }, [formData.categoryId, formData.sellingPrice, categories, customerTiers]);
-
-  useEffect(() => {
-    if (isEdit) return;
-    if (formData.sellingPrice <= 0) return;
-    if (!customerTiers || !Array.isArray(customerTiers)) return;
-
-    const silverTier = customerTiers.find((t: any) => t.code === 'SILVER' || t.name?.toLowerCase() === 'silver');
-    if (!silverTier) return;
-
-    const silverPrice = formData.memberPricing?.[silverTier.id];
-    const autoMinPrice = typeof silverPrice === 'number' ? silverPrice : formData.sellingPrice;
-
-    if (formData.minSellingPrice <= 0 || formData.minSellingPrice !== autoMinPrice) {
-      setFormData((prev) => ({ ...prev, minSellingPrice: autoMinPrice }));
-    }
-  }, [formData.sellingPrice, formData.memberPricing, customerTiers, isEdit]);
+      return changed ? { ...prev, memberPricing: next } : prev;
+    });
+  }, [formData.sellingPrice, formData.minSellingPrice, sortedTiers, regularTier, silverTier]);
 
   const mutation = useMutation({
     mutationFn: (data: any) => {
@@ -281,10 +292,21 @@ export default function ProductForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const barcode = formData.barcode || generateBarcode();
+    // IGDERP-309: barcode kosong = backend generate 12 digit (DDMMYYYY + no urut lifetime)
+    const barcode = formData.barcode.trim() || undefined;
+    // IGDERP-311: pastikan harga auto (User = Harga Jual, Silver = Harga
+    // Minimum) ikut tersimpan walau effect cascade belum sempat jalan.
+    const memberPricing: Record<string, any> = { ...formData.memberPricing };
+    if (regularTier && formData.sellingPrice > 0) memberPricing[regularTier.id] = formData.sellingPrice;
+    if (silverTier && formData.minSellingPrice > 0) memberPricing[silverTier.id] = formData.minSellingPrice;
+    const cleanedPricing: Record<string, any> = {};
+    for (const [k, v] of Object.entries(memberPricing)) {
+      if (typeof v === 'number' ? v > 0 : v != null) cleanedPricing[k] = v;
+    }
     const submitData = {
       ...formData,
       barcode,
+      memberPricing: Object.keys(cleanedPricing).length > 0 ? cleanedPricing : null,
       subCategoryId: formData.subCategoryId || undefined,
       brandId: formData.brandId || undefined,
       supplierId: formData.supplierId || undefined,
@@ -365,9 +387,9 @@ export default function ProductForm() {
                     type="text"
                     value={formData.barcode}
                     onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
-                    placeholder="Kosongkan untuk auto-generate"
+                    placeholder="Kosongkan untuk generate otomatis (12 digit)"
                   />
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5">Biarkan kosong untuk generate otomatis</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5">Biarkan kosong — backend mengisi barcode 12 digit otomatis</p>
                 </div>
 
                 <div>
@@ -632,6 +654,56 @@ export default function ProductForm() {
                     min="0"
                   />
                 </div>
+              </div>
+
+              <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Harga per Tipe Pelanggan</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-4">
+                  User mengikuti Harga Jual, Silver mengikuti Harga Minimum, tier di bawahnya selisih Rp1.000 otomatis. Ketikan manual tidak ditimpa otomatis.
+                </p>
+                {sortedTiers.length === 0 ? (
+                  <p className="text-xs text-gray-400 dark:text-gray-500">Memuat tipe pelanggan…</p>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {sortedTiers.map((tier: any) => {
+                      const isAuto = tier.id === regularTier?.id || tier.id === silverTier?.id;
+                      const autoFrom =
+                        tier.id === regularTier?.id
+                          ? 'Harga Jual'
+                          : tier.id === silverTier?.id
+                            ? 'Harga Minimum'
+                            : 'tier di atas − Rp1.000';
+                      return (
+                        <div key={tier.id}>
+                          <Label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">
+                            {tier.name}{' '}
+                            {isAuto && (
+                              <span className="ml-1 rounded bg-primary-50 dark:bg-primary-950 px-1.5 py-0.5 text-[10px] font-semibold text-primary-600 dark:text-primary-400">
+                                Auto
+                              </span>
+                            )}
+                          </Label>
+                          <Input
+                            type="number"
+                            value={formData.memberPricing?.[tier.id] ?? ''}
+                            onChange={(e) => {
+                              touchedTiers.current.add(tier.id);
+                              const v = parseFloat(e.target.value) || 0;
+                              setFormData((prev) => ({
+                                ...prev,
+                                memberPricing: { ...prev.memberPricing, [tier.id]: v },
+                              }));
+                            }}
+                            min="0"
+                            step="1000"
+                            placeholder="0"
+                          />
+                          <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">Auto dari {autoFrom}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
 

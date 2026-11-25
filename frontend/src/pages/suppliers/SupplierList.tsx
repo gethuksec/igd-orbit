@@ -188,11 +188,6 @@ export default function SupplierList() {
 
   const columns: Column<any>[] = [
     {
-      key: "aksi",
-      header: "Aksi",
-      cell: (supplier) => rowActions(supplier),
-    },
-    {
       key: "code",
       header: "Kode",
       cell: (supplier) => (
@@ -203,6 +198,7 @@ export default function SupplierList() {
     },
     {
       key: "name",
+      stickyLeft: true,
       header: "Nama",
       cell: (supplier) => (
         <div className="flex items-center gap-3">
@@ -363,6 +359,8 @@ export default function SupplierList() {
       />
 
       <DataTable
+        actionsPosition="left"
+        actions={rowActions}
         columns={columns}
         data={suppliers}
         keyExtractor={(s: any) => s.id}

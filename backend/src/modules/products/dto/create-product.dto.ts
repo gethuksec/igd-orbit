@@ -6,6 +6,7 @@ import {
   IsNumber,
   Min,
   Max,
+  Matches,
   IsBoolean,
   IsObject,
   IsArray,
@@ -20,6 +21,7 @@ import { Transform } from 'class-transformer';
 export class CreateProductDto {
   @IsString({ message: 'Barcode must be a string' })
   @IsOptional()
+  @Matches(/^\d{12,}$/, { message: 'Barcode harus berupa angka dengan minimal 12 digit' })
   barcode?: string;
 
   @IsString({ message: 'SKU must be a string' })

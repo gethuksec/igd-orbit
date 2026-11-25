@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import RequirePermission from '../../components/guards/RequirePermission';
 import { UserFormModal } from './components/UserFormModal';
-
 type StatusFilter = 'all' | 'active' | 'banned';
 
 export default function UserList() {
@@ -124,6 +123,7 @@ export default function UserList() {
   const columns: Column<any>[] = [
     {
       key: 'fullName',
+      stickyLeft: true,
       header: 'Nama & Email',
       sortable: true,
       cell: (user) => (
@@ -180,15 +180,6 @@ export default function UserList() {
         ),
     },
     {
-      key: 'isActive',
-      header: 'Status',
-      cell: (user) => (
-        <StatusDot tone={user.isActive ? 'ok' : 'bad'}>
-          {user.isActive ? 'Aktif' : 'Dibanned'}
-        </StatusDot>
-      ),
-    },
-    {
       key: 'createdAt',
       header: 'Tanggal Dibuat',
       sortable: true,
@@ -206,6 +197,29 @@ export default function UserList() {
               hour: '2-digit',
               minute: '2-digit',
             })}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'isActive',
+      header: 'Status',
+      cell: (user) => (
+        <StatusDot tone={user.isActive ? 'ok' : 'bad'}>
+          {user.isActive ? 'Aktif' : 'Dibanned'}
+        </StatusDot>
+      ),
+    },
+    {
+      key: 'updatedAt',
+      header: 'Terakhir Diupdate',
+      cell: (user) => (
+        <div>
+          <div className="text-sm text-foreground">
+            {user.updatedAt ? new Date(user.updatedAt).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' }) : '-'}
+          </div>
+          <div className="text-xs text-muted-foreground mt-0.5">
+            {user.updatedAt ? new Date(user.updatedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace(/\./g, ':') : ''}
           </div>
         </div>
       ),
@@ -270,6 +284,8 @@ export default function UserList() {
 
       {/* User Table */}
       <DataTable
+        actionsPosition="left"
+        actionsWidth={168}
         columns={columns}
         data={filteredUsers}
         keyExtractor={(user) => user.id}

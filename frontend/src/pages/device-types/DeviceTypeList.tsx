@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { usePermissions } from "@/hooks/usePermissions";
 import { toast } from "sonner";
+import { formatDateTimeId } from "@/lib/utils";
 
 type StatusFilter = "all" | "active" | "inactive";
 
@@ -115,6 +116,7 @@ export default function DeviceTypeList() {
   const columns: Column<any>[] = [
     {
       key: "name",
+      stickyLeft: true,
       header: "Tipe Perangkat",
       cell: (item) => (
         <div className="flex items-center gap-3">
@@ -135,6 +137,15 @@ export default function DeviceTypeList() {
         <StatusDot tone={item.isActive ? "ok" : "off"}>
           {item.isActive ? "Aktif" : "Tidak Aktif"}
         </StatusDot>
+      ),
+    },
+    {
+      key: "updatedAt",
+      header: "Terakhir Diupdate",
+      cell: (r: any) => (
+        <div className="text-sm tabular-nums text-muted-foreground">
+          {formatDateTimeId(r.updatedAt)}
+        </div>
       ),
     },
     {
@@ -201,6 +212,7 @@ export default function DeviceTypeList() {
       />
 
       <DataTable
+        actionsPosition="left"
         columns={columns}
         data={items}
         keyExtractor={(i: any) => i.id}

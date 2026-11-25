@@ -12,6 +12,7 @@ export interface Shift {
   color?: string | null;
   isActive: boolean;
   activeAssignmentsCount?: number;
+  updatedAt?: string;
 }
 
 export interface ShiftListResponse {

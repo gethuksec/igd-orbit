@@ -18,6 +18,7 @@ import RequirePermission from '../../components/guards/RequirePermission';
 import { usePermissions } from '../../hooks/usePermissions';
 import { RoleHierarchyTree } from './components/RoleHierarchyTree';
 import { RoleFormModal } from './components/RoleFormModal';
+import { formatDateTimeId } from '@/lib/utils';
 
 export default function RoleList() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -111,6 +112,7 @@ export default function RoleList() {
   const columns: Column<any>[] = [
     {
       key: 'name',
+      stickyLeft: true,
       header: 'Kode & Nama',
       cell: (role) => (
         <Link to={`/roles/${role.id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
@@ -172,6 +174,15 @@ export default function RoleList() {
         </StatusDot>
       ),
     },
+    {
+      key: 'updatedAt',
+      header: 'Terakhir Diupdate',
+      cell: (r: any) => (
+        <div className='text-sm tabular-nums text-muted-foreground'>
+          {formatDateTimeId(r.updatedAt)}
+        </div>
+      ),
+    },
   ];
 
   return (
@@ -229,6 +240,7 @@ export default function RoleList() {
 
       {/* Role Table */}
       <DataTable
+        actionsPosition="left"
         columns={columns}
         data={roles}
         keyExtractor={(role) => role.id}

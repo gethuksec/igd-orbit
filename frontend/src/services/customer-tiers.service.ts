@@ -9,6 +9,7 @@ export interface CustomerTier {
   level: number;
   isActive: boolean;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface CustomerTierListResponse {
