@@ -120,7 +120,9 @@ export class LeaveController {
    */
   @Post('approve-hr')
   @UseGuards(RolesGuard)
-  @Roles('CHR')
+  // IGDERP-314 follow-up: SPV-HRD finalizes as HR head (no CHR user on
+  // prod); must mirror LeaveService.approveLeaveHr.
+  @Roles('CHR', 'SPV-HRD')
   async approveLeaveHr(
     @Request() req: ExpressRequest,
     @Query('id') leaveId: string,

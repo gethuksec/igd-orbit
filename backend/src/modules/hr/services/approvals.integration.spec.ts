@@ -48,6 +48,17 @@ describe('ApprovalsService inbox (N+1 integration)', () => {
               leaveType: { name: 'Cuti Tahunan' },
               employee: emp('emp-1', 'p-se', 'p-as', 'b-1'),
             },
+            {
+              id: 'lr-2',
+              status: 'manager_approved',
+              createdAt: new Date('2026-11-03'),
+              requestedBy: 'u-staff',
+              totalDays: 1,
+              startDate: new Date('2026-11-30'),
+              endDate: new Date('2026-11-30'),
+              leaveType: { name: 'Cuti Tahunan' },
+              employee: emp('emp-3', 'p-se', 'p-as', 'b-1'),
+            },
           ];
           const scope = where.employee?.branchId?.in as string[] | undefined;
           return rows
@@ -124,6 +135,19 @@ describe('ApprovalsService inbox (N+1 integration)', () => {
     const res = await service.pendingApprovals('u-staff', ['STAFF']);
     expect(res.total).toBe(0);
     expect(prisma.leaveRequest.findMany).not.toHaveBeenCalled();
+  });
+
+  it('SPV-HRD sees manager_approved leave as decidable step-2 (IGDERP-314 follow-up)', async () => {
+    const res = await service.pendingApprovals('u-hrd', ['SPV-HRD'], ['b-1']);
+    const leaves = res.data.filter((i) => i.kind === 'leave');
+    // Pending visible (line role) but not decidable (not the N+1 holder);
+    // manager_approved decidable via the HR-head step-2 grant.
+    expect(leaves.map((l) => l.id).sort()).toEqual(['lr-1', 'lr-2']);
+    expect(leaves.find((l) => l.id === 'lr-1')!.canDecide).toBe(false);
+    const fin = leaves.find((l) => l.id === 'lr-2')!;
+    expect(fin.canDecide).toBe(true);
+    expect(fin.decideEndpoint).toContain('/leave/approve-hr');
+    expect(res.awaitingDecision).toBe(1);
   });
 
   it('leave items carry the request period for inbox cards (IGDERP-313)', async () => {

@@ -130,7 +130,7 @@ describe('LeaveService N+1 approval matrix', () => {
       expect(prisma.attendance.upsert).toHaveBeenCalledTimes(2);
     });
 
-    it.each([['HS'], ['SPV'], ['SPV-HRD'], ['SE'], ['AS-SE']])(
+    it.each([['HS'], ['SPV'], ['SE'], ['AS-SE']])(
       '%s cannot finalize (Forbidden)',
       async (role) => {
         prisma.leaveRequest.findUnique.mockResolvedValue(pending({ status: 'manager_approved' }));
@@ -139,6 +139,13 @@ describe('LeaveService N+1 approval matrix', () => {
         );
       },
     );
+
+    it('SPV-HRD (HR head) finalizes manager_approved → approved (IGDERP-314 follow-up)', async () => {
+      prisma.leaveRequest.findUnique.mockResolvedValue(pending({ status: 'manager_approved' }));
+      const res: any = await service.approveLeaveHr('lr-1', 'user-hrd', ['SPV-HRD']);
+      expect(res.status).toBe('approved');
+      expect(prisma.attendance.upsert).toHaveBeenCalled();
+    });
 
     it('pending request cannot skip step 1', async () => {
       prisma.leaveRequest.findUnique.mockResolvedValue(pending());
@@ -150,7 +157,7 @@ describe('LeaveService N+1 approval matrix', () => {
   });
 
   describe('rejectLeave', () => {
-    it('atasan rejects pending; CHR rejects manager_approved', async () => {
+    it('atasan rejects pending; CHR or SPV-HRD rejects manager_approved', async () => {
       prisma.leaveRequest.findUnique.mockResolvedValue(pending());
       (service as any).prisma.leaveRequest.update.mockResolvedValue({ id: 'lr-1', status: 'rejected' });
       await expect(
@@ -160,6 +167,12 @@ describe('LeaveService N+1 approval matrix', () => {
       prisma.leaveRequest.findUnique.mockResolvedValue(pending({ status: 'manager_approved' }));
       await expect(
         service.rejectLeave('lr-1', { reason: 'no' } as any, 'user-chr', ['CHR']),
+      ).resolves.toBeDefined();
+
+      // IGDERP-314 follow-up: HR head rejects at step 2 as well.
+      prisma.leaveRequest.findUnique.mockResolvedValue(pending({ status: 'manager_approved' }));
+      await expect(
+        service.rejectLeave('lr-1', { reason: 'no' } as any, 'user-hrd', ['SPV-HRD']),
       ).resolves.toBeDefined();
     });
 

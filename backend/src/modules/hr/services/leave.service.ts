@@ -353,13 +353,15 @@ export class LeaveService {
   }
 
   /**
-   * Approve leave — step 2 / final (HR: CHR).
+   * Approve leave — step 2 / final (HR: CHR, or SPV-HRD as HR head —
+   * IGDERP-314 follow-up: no CHR user exists on prod, so the HR-head
+   * role finalizes; CHR keeps access for when the title is staffed).
    * IGDERP-275: manager_approved → approved + attendance placeholders.
    */
   async approveLeaveHr(leaveId: string, userId: string, userRoles: string[]) {
-    const hasPermission = ['CHR'].some((role) => userRoles.includes(role));
+    const hasPermission = ['CHR', 'SPV-HRD'].some((role) => userRoles.includes(role));
     if (!hasPermission) {
-      throw new ForbiddenException('Only CHR can finalize leave approval (step 2)');
+      throw new ForbiddenException('Only CHR or SPV-HRD can finalize leave approval (step 2)');
     }
 
     const leaveRequest = await this.prisma.leaveRequest.findUnique({
@@ -424,10 +426,13 @@ export class LeaveService {
 
   /**
    * Reject leave — step 1 rejects `pending` (direct atasan N+1), step 2
-   * rejects `manager_approved` (CHR). SUPERADMIN/OWNER bypass either step.
+   * rejects `manager_approved` (CHR, or SPV-HRD as HR head — IGDERP-314
+   * follow-up). SUPERADMIN/OWNER bypass either step.
    */
   async rejectLeave(leaveId: string, dto: RejectLeaveDto, userId: string, userRoles: string[]) {
-    const isHr = ['CHR'].some((role) => userRoles.includes(role));
+    // IGDERP-314 follow-up: the step-2 finalizer role (CHR, or SPV-HRD
+    // as HR head) rejects manager_approved.
+    const isHr = ['CHR', 'SPV-HRD'].some((role) => userRoles.includes(role));
 
     const leaveRequest = await this.prisma.leaveRequest.findUnique({
       where: { id: leaveId },
@@ -442,7 +447,7 @@ export class LeaveService {
       await assertN1Approver(this.prisma, leaveRequest.employeeId, userId, userRoles);
     } else if (leaveRequest.status === 'manager_approved') {
       if (!isHr) {
-        throw new ForbiddenException('Only CHR can reject after manager approval');
+        throw new ForbiddenException('Only CHR or SPV-HRD can reject after manager approval');
       }
     } else {
       throw new BadRequestException('Leave request is not awaiting your decision');
