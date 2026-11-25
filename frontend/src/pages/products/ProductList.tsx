@@ -22,6 +22,7 @@ import { customerTiersService } from '../../services/customer-tiers.service';
 import ProductImportModal from './ProductImportModal';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { formatDateTimeId } from "@/lib/utils";
 import { Button } from '../../components/ui/button';
 import { BreadcrumbHeader, StatCard, DataTable, FilterToolbar, ExportButton, datedFilename, StatusDot } from '@/components/shared';
 import type { Column } from '@/components/shared';
@@ -246,6 +247,8 @@ export default function ProductList() {
     {
       key: 'product',
       header: 'Produk',
+      stickyLeft: true,
+      frozenWidth: 280,
       cell: (product) => (
         <div className="flex items-center gap-4">
           <Link to={`/products/${product.id}`} className="flex-shrink-0 hover:opacity-80 transition-opacity">
@@ -483,6 +486,24 @@ export default function ProductList() {
           <History className="h-4 w-4" />
           Log
         </Link>
+      ),
+    },
+    {
+      key: 'isActive',
+      header: 'Status',
+      cell: (product) => (
+        <StatusDot tone={(product as any).isActive ? 'ok' : 'off'}>
+          {(product as any).isActive ? 'Aktif' : 'Tidak Aktif'}
+        </StatusDot>
+      ),
+    },
+    {
+      key: 'updatedAt',
+      header: 'Terakhir Diupdate',
+      cell: (product) => (
+        <div className="text-sm tabular-nums text-muted-foreground">
+          {formatDateTimeId((product as any).updatedAt)}
+        </div>
       ),
     },
   ];
@@ -726,8 +747,7 @@ export default function ProductList() {
         isLoading={isLoading}
         emptyMessage="Tidak ada produk ditemukan"
         emptyIcon={<Package className="w-16 h-16" />}
-        actionsPosition="first"
-        actionsHeader="Aksi"
+        actionsPosition="left"
         actions={(product: any) => (
           <div className="flex items-center justify-end gap-2">
             <Link
