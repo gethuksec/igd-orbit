@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, Loader2 } from 'lucide-react';
-import { hrService } from '../../services/hr.service';
+import { hrService, leaveTypeName } from '../../services/hr.service';
 import { useMe } from './MobileShell';
 
 function pill(status: string) {
@@ -47,7 +47,7 @@ export default function MRequest() {
     ...(((leaves as any)?.data ?? []) as any[]).map((l: any) => ({
       id: String(l.id),
       kind: 'Cuti',
-      title: `${l.leaveType || 'Cuti'} · ${String(l.startDate ?? '').slice(0, 10)}`,
+      title: `${leaveTypeName(l.leaveType) || 'Cuti'} · ${String(l.startDate ?? '').slice(0, 10)}`,
       sub: l.reason || '',
       status: l.status || 'pending',
       to: `/m/cuti/${l.id}`,

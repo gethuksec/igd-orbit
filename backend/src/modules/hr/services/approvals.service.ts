@@ -19,6 +19,10 @@ export interface PendingItem {
   summary: string;
   canDecide: boolean;
   decideEndpoint: string;
+  // IGDERP-313: leave period for inbox cards (approver needs dates
+  // without opening detail). Only populated for kind === 'leave'.
+  startDate?: Date;
+  endDate?: Date;
 }
 
 const LIBUR_WRITE_ROLES = ['SUPERADMIN', 'OWNER', 'HR', 'SPV-HRD', 'CHR'];
@@ -69,6 +73,8 @@ export class ApprovalsService {
           summary: `${r.leaveType?.name ?? 'Cuti'} · ${r.totalDays} hari`,
           canDecide,
           decideEndpoint: step1 ? 'POST /api/v1/leave/approve?id=' : 'POST /api/v1/leave/approve-hr?id=',
+          startDate: r.startDate,
+          endDate: r.endDate,
         });
       }
     }

@@ -3,7 +3,7 @@ import { BreadcrumbHeader, FilterToolbar, StatusDot, StatCard } from '@/componen
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Calendar, User, CheckCircle, XCircle, Clock, AlertCircle, Eye } from 'lucide-react';
-import { hrService, type LeaveRequest } from '@/services/hr.service';
+import { hrService, leaveTypeName, type LeaveRequest } from '@/services/hr.service';
 import { formatDate } from '@/utils/format';
 
 export default function LeaveList() {
@@ -42,7 +42,7 @@ export default function LeaveList() {
     return (
       request.employee?.user?.fullName?.toLowerCase().includes(search) ||
       request.employee?.employeeCode?.toLowerCase().includes(search) ||
-      request.leaveType.toLowerCase().includes(search) ||
+      leaveTypeName(request.leaveType).toLowerCase().includes(search) ||
       request.reason.toLowerCase().includes(search)
     );
   });

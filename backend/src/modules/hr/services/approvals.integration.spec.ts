@@ -27,6 +27,8 @@ describe('ApprovalsService inbox (IGDERP-275 integration)', () => {
               createdAt: new Date('2026-11-01'),
               requestedBy: 'u-staff',
               totalDays: 2,
+              startDate: new Date('2026-11-29'),
+              endDate: new Date('2026-11-30'),
               leaveType: { name: 'Cuti Tahunan' },
               employee: emp('emp-1'),
             },
@@ -92,5 +94,13 @@ describe('ApprovalsService inbox (IGDERP-275 integration)', () => {
     const res = await service.pendingApprovals('u-staff', ['STAFF']);
     expect(res.total).toBe(0);
     expect(prisma.leaveRequest.findMany).not.toHaveBeenCalled();
+  });
+
+  it('leave items carry the request period for inbox cards (IGDERP-313)', async () => {
+    const res = await service.pendingApprovals('u-hs', ['HS'], ['b-1']);
+    const leave = res.data.find((i) => i.kind === 'leave');
+    expect(leave).toBeDefined();
+    expect(leave!.startDate).toEqual(new Date('2026-11-29'));
+    expect(leave!.endDate).toEqual(new Date('2026-11-30'));
   });
 });
