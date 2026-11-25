@@ -51,6 +51,13 @@ export class PositionsController {
     return this.svc.findAll();
   }
 
+  @Get(':id/grades')
+  @UseGuards(RolesGuard)
+  @Roles(...READ_ROLES)
+  async getGrades(@Param('id') id: string) {
+    return this.svc.getGradesByPosition(id);
+  }
+
   @Get(':id')
   @UseGuards(RolesGuard)
   @Roles(...READ_ROLES)

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Plus, FileText, CheckCircle, Clock, Award, Trash2, AlertTriangle, Loader2 } from "lucide-react";
+import { Plus, FileText, CheckCircle, Clock, Award, Trash2, AlertTriangle, Loader2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { contractsService, type Contract } from "@/services/contracts.service";
 import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable, StatusDot } from "@/components/shared";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import IntakeDialog from "@/components/hr/IntakeDialog";
 import { ContractImportButton } from "./ContractImportDialog";
+import ContractEditDialog from "./ContractEditDialog";
 
 const STAGE_LABEL: Record<string, string> = {
   trial: "Trial",
@@ -53,6 +54,7 @@ export default function ContractList() {
   const [statusFilter, setStatusFilter] = useState("");
   const [intakeOpen, setIntakeOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [editContract, setEditContract] = useState<Contract | null>(null);
   const [contractToDelete, setContractToDelete] = useState<{ id: string; contractNumber: string } | null>(null);
   const limit = 20;
 
@@ -252,19 +254,32 @@ export default function ContractList() {
         actions={(row: Contract) => (
           <div className="flex items-center justify-end gap-1">
             {row.status === "draft" && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-red-600 hover:bg-red-50"
-                title="Hapus draft"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setContractToDelete({ id: row.id, contractNumber: row.contractNumber });
-                  setDeleteModalOpen(true);
-                }}
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  title="Ubah draft"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditContract(row);
+                  }}
+                >
+                  <Pencil className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-red-600 hover:bg-red-50"
+                  title="Hapus draft"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setContractToDelete({ id: row.id, contractNumber: row.contractNumber });
+                    setDeleteModalOpen(true);
+                  }}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </>
             )}
           </div>
         )}
@@ -274,6 +289,13 @@ export default function ContractList() {
         open={intakeOpen}
         mode="kontrak"
         onClose={() => setIntakeOpen(false)}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ["contracts"] })}
+      />
+
+      <ContractEditDialog
+        contract={editContract}
+        open={!!editContract}
+        onClose={() => setEditContract(null)}
         onSuccess={() => queryClient.invalidateQueries({ queryKey: ["contracts"] })}
       />
 

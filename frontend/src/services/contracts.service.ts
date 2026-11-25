@@ -106,6 +106,20 @@ export const contractsService = {
     return response.data;
   },
 
+  async getGradesByPosition(
+    positionId: string,
+  ): Promise<{
+    positionId: string;
+    titleCode: string;
+    rank: number;
+    gradeId: string | null;
+    grades: { id: string; code: string; name: string; rank: number }[];
+    positions: { id: string; code: string; gradeId: string | null }[];
+  }> {
+    const response = await api.get(`/positions/${positionId}/grades`);
+    return response.data.data || response.data;
+  },
+
   async intake(payload: IntakePayload) {
     const response = await api.post("/contracts/intake", payload);
     return response.data.data || response.data;

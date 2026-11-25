@@ -248,6 +248,17 @@ describe('ContractsService lifecycle guards (IGDERP-270)', () => {
     await expect(service.remove('c-1')).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it('refuses ref edits on non-draft rows (D2 draft-only guard)', async () => {
+    const { service, prisma }: any = await boot();
+    prisma.contract.findUnique.mockResolvedValue({ id: 'c-1', status: 'active', type: 'pkwt', employeeId: EMP });
+    await expect(service.update('c-1', { positionId: 'pos-x' } as any)).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    await expect(service.update('c-1', { gradeId: 'g-x' } as any)).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+  });
+
   it('404s unknown contracts', async () => {
     const { service, prisma }: any = await boot();
     prisma.contract.findUnique.mockResolvedValue(null);

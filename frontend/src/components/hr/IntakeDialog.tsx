@@ -70,12 +70,19 @@ export default function IntakeDialog({ open, mode, onClose, onSuccess, defaultEm
   const [form, setForm] = useState({ ...emptyForm });
   const [roleTouched, setRoleTouched] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [matrix, setMatrix] = useState<{
+    titleCode: string;
+    grades: { id: string; code: string; name: string; rank?: number }[];
+    positions: { id: string; code: string; gradeId: string | null }[];
+  } | null>(null);
+  const [matrixLoading, setMatrixLoading] = useState(false);
 
   useEffect(() => {
     if (open) {
       setForm({ ...emptyForm, employeeId: defaultEmployeeId ?? "" });
       setRoleTouched(false);
       setSaving(false);
+      setMatrix(null);
     }
   }, [open, mode, defaultEmployeeId]);
 
@@ -151,6 +158,84 @@ export default function IntakeDialog({ open, mode, onClose, onSuccess, defaultEm
   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
 
   const familyOf = (code: string) => code.replace(/-\d$/, "");
+  const titleLabelOf = (p: PositionOption) =>
+    p.rank === 6 ? p.name.replace(/\s+\d$/, "") : p.name;
+
+  // D4 (IGDERP-301): single title picker — staff variants (TC-1..TC-6)
+  // collapse to one title; the grade dropdown then selects the rung and
+  // remaps to the concrete position row on save.
+  const titleOptions = (() => {
+    const seen = new Map<string, { value: string; label: string; sub: string }>();
+    for (const p of positions) {
+      const key = p.rank === 6 ? familyOf(p.code) : p.code;
+      if (!seen.has(key)) {
+        seen.set(key, {
+          value: key,
+          label: titleLabelOf(p),
+          sub: p.rank === 6 ? "Staff · G1–G6" : `Level ${p.rank}`,
+        });
+      }
+    }
+    return [...seen.values()];
+  })();
+
+  const selectedTitle = (() => {
+    const pos = positions.find((p) => p.id === form.positionId) ?? null;
+    if (!pos) return "";
+    return pos.rank === 6 ? familyOf(pos.code) : pos.code;
+  })();
+
+  const selectedIsStaff = (() => {
+    const pos = positions.find((p) => p.id === form.positionId) ?? null;
+    return pos?.rank === 6;
+  })();
+
+  const reloadMatrix = async (positionId: string, titleCode: string) => {
+    setMatrixLoading(true);
+    try {
+      const res = await contractsService.getGradesByPosition(positionId);
+      setMatrix({ titleCode: res.titleCode ?? titleCode, grades: res.grades ?? [], positions: res.positions ?? [] });
+    } catch {
+      // Best-effort: fall back to the local family mapping below.
+      setMatrix(null);
+    } finally {
+      setMatrixLoading(false);
+    }
+  };
+
+  const onTitleChange = async (titleCode: string) => {
+    if (!titleCode) {
+      setForm((f) => ({ ...f, positionId: "", gradeId: "" }));
+      setMatrix(null);
+      return;
+    }
+    const family = positions.filter((p) =>
+      p.rank === 6 ? familyOf(p.code) === titleCode : p.code === titleCode,
+    );
+    if (family.length === 0) return;
+    const isStaff = family[0].rank === 6;
+    // Keep the current grade when it exists in the new family, else first rung.
+    const targetGradeId = isStaff
+      ? (family.some((p) => p.gradeId === form.gradeId) ? form.gradeId : (family[0].gradeId ?? ""))
+      : "";
+    const targetPos = isStaff
+      ? (family.find((p) => p.gradeId === targetGradeId) ?? family[0])
+      : family[0];
+    setForm((f) => ({ ...f, positionId: targetPos.id, gradeId: targetGradeId }));
+    if (isStaff) {
+      void reloadMatrix(targetPos.id, titleCode);
+    } else {
+      // Empty-grade positions: graceful — clear the grade, disable dropdown.
+      setMatrix({ titleCode, grades: [], positions: [] });
+    }
+    if (mode !== "karyawan" || roleTouched || !targetPos) return;
+    try {
+      const res = await contractsService.suggestRole(targetPos.id);
+      if (res.suggestedRole) set("roleId", res.suggestedRole.id);
+    } catch {
+      /* suggestion is best-effort */
+    }
+  };
 
   const onEmployeeChange = (employeeId: string) => {
     setForm((f) => ({ ...f, employeeId, previousContractId: "" }));
@@ -164,23 +249,6 @@ export default function IntakeDialog({ open, mode, onClose, onSuccess, defaultEm
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chain, mode, form.entryType, form.employeeId]);
 
-  const onPositionChange = async (positionId: string) => {
-    const pos = positions.find((p) => p.id === positionId) ?? null;
-    // Staff rows carry their rung; non-staff titles keep the chosen grade.
-    setForm((f) => ({
-      ...f,
-      positionId,
-      gradeId: pos && pos.rank === 6 ? (pos.gradeId ?? f.gradeId) : f.gradeId,
-    }));
-    if (mode !== "karyawan" || roleTouched || !positionId) return;
-    try {
-      const res = await contractsService.suggestRole(positionId);
-      if (res.suggestedRole) set("roleId", res.suggestedRole.id);
-    } catch {
-      /* suggestion is best-effort */
-    }
-  };
-
   const onGradeChange = (gradeId: string) => {
     const pos = positions.find((p) => p.id === form.positionId) ?? null;
     if (!pos || pos.rank !== 6) {
@@ -189,9 +257,15 @@ export default function IntakeDialog({ open, mode, onClose, onSuccess, defaultEm
       return;
     }
     const family = familyOf(pos.code);
-    const match = positions.find(
-      (p) => p.id !== pos.id && familyOf(p.code) === family && p.gradeId === gradeId
-    );
+    // Prefer the BE matrix mapping when loaded, else the local family rows.
+    const matrixRow = matrix && matrix.titleCode === family
+      ? matrix.positions.find((r) => r.gradeId === gradeId)
+      : null;
+    const match = matrixRow
+      ? positions.find((p) => p.id === matrixRow.id)
+      : positions.find(
+          (p) => p.id !== pos.id && familyOf(p.code) === family && p.gradeId === gradeId
+        );
     if (match) {
       setForm((f) => ({ ...f, gradeId, positionId: match.id }));
     } else {
@@ -271,15 +345,15 @@ export default function IntakeDialog({ open, mode, onClose, onSuccess, defaultEm
     value: u.employee.id as string,
     label: `${u.employee.employeeCode} — ${u.fullName || u.email}`,
   }));
-  const positionOptions = positions.map((p) => ({
-    value: p.id,
-    label: p.name,
-    sub: p.grade?.code ?? p.code,
-  }));
   const branchOptions = branches.map((b) => ({ value: b.id, label: b.code, sub: b.name }));
   const locationOptions = locations.map((l) => ({ value: l.id, label: `${l.code} — ${l.name}` }));
   const roleOptions = roles.map((r) => ({ value: r.id, label: r.code, sub: r.name }));
-  const gradeOptions = grades.map((g) => ({ value: g.id, label: g.code, sub: g.name }));
+  // D4: grade options come from the BE matrix for the selected title when
+  // loaded; otherwise fall back to the full grade list. Empty for non-staff.
+  const matrixForTitle = matrix && matrix.titleCode === selectedTitle ? matrix : null;
+  const gradeSource = matrixForTitle ? matrixForTitle.grades : grades;
+  const gradeOptions = (gradeSource ?? []).map((g: any) => ({ value: g.id, label: g.code, sub: g.name }));
+  const gradeDisabled = !selectedTitle || (!!form.positionId && !selectedIsStaff);
   const chainOptions = chain.map((c: any) => ({
     value: c.id,
     label: `${c.contractNumber} · ${c.type}`,
@@ -385,19 +459,23 @@ export default function IntakeDialog({ open, mode, onClose, onSuccess, defaultEm
             <h4 className="text-xs font-bold uppercase tracking-wide text-gray-400 dark:text-gray-500">Kontrak</h4>
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Posisi</label>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Posisi (jabatan)</label>
             <SearchableSelect
-              value={form.positionId}
-              onChange={onPositionChange}
-              options={positionOptions}
+              value={selectedTitle}
+              onChange={onTitleChange}
+              options={titleOptions}
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Grade</label>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+              Grade{matrixLoading ? " (memuat…)" : ""}
+            </label>
             <SearchableSelect
               value={form.gradeId}
               onChange={onGradeChange}
               options={gradeOptions}
+              disabled={gradeDisabled}
+              emptyText={!selectedTitle ? "Pilih posisi dulu" : "Jabatan ini tanpa grade"}
             />
           </div>
           <div>
