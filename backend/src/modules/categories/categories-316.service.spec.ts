@@ -46,12 +46,24 @@ describe('CategoriesService master rework (IGDERP-316)', () => {
             { id: 'p2', categoryId: 'cat1', grade: 'ORI' },
           ];
         }),
+        count: jest.fn().mockResolvedValue(0),
       },
       productStock: {
         groupBy: jest.fn().mockResolvedValue([
           { productId: 'p1', _sum: { quantityAvailable: 10 } },
           { productId: 'p2', _sum: { quantityAvailable: 20 } },
         ]),
+      },
+      categoryGrade: {
+        findMany: jest.fn().mockResolvedValue([
+          { id: 'g1', code: 'GGGGGGGGGG', name: 'A', categoryId: 'cat1' },
+          { id: 'g2', code: 'HHHHHHHHHH', name: 'ORI', categoryId: 'cat1' },
+        ]),
+        count: jest.fn().mockResolvedValue(2),
+        findUnique: jest.fn().mockResolvedValue(null),
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn(),
+        update: jest.fn(),
       },
     };
 
@@ -65,14 +77,18 @@ describe('CategoriesService master rework (IGDERP-316)', () => {
   it('returns totalSku/totalStock/grades per row and filter-scoped totalGrades', async () => {
     const res = await service.findAllPaginated(1, 20);
     expect(res.data[0]).toMatchObject({ totalSku: 2, totalStock: 30 });
-    expect(res.data[0].grades).toEqual(['A', 'ORI']);
+    expect(res.data[0].grades).toEqual([
+      { id: 'g1', code: 'GGGGGGGGGG', name: 'A' },
+      { id: 'g2', code: 'HHHHHHHHHH', name: 'ORI' },
+    ]);
     expect(res.meta).toMatchObject({ totalGrades: 2 });
   });
 
   it('degrades aggregates when stock tables are missing', async () => {
     prisma.productStock.groupBy.mockRejectedValue(new Error('no table'));
+    prisma.categoryGrade.findMany.mockRejectedValue(new Error('no table'));
     const res = await service.findAllPaginated(1, 20);
-    expect(res.data[0]).toMatchObject({ totalSku: 2, totalStock: 0 });
+    expect(res.data[0]).toMatchObject({ totalSku: 2, totalStock: 0, grades: [] });
     expect(res.meta).toMatchObject({ totalGrades: 0 });
   });
 

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Save, Loader2, Package, DollarSign, FileText, Tag } from 'lucide-react';
 import { productsService } from '../../services/products.service';
+import { categoriesService } from '../../services/categories.service';
 import { api } from '../../services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +32,7 @@ export default function ProductForm() {
     subCategoryId: '',
     brandId: '',
     supplierId: '',
+    gradeId: '',
     costPrice: 0,
     sellingPrice: 0,
     minSellingPrice: 0,
@@ -168,6 +170,13 @@ export default function ProductForm() {
     },
   });
 
+  // IGDERP-317: grades scoped to the selected category (active only).
+  const { data: grades = [] } = useQuery({
+    queryKey: ['category-grades', formData.categoryId],
+    queryFn: () => categoriesService.listGrades(formData.categoryId, true),
+    enabled: !!formData.categoryId,
+  });
+
   useEffect(() => {
     if (product) {
       const existingPrintedName = (product as any).printedName || '';
@@ -183,6 +192,7 @@ export default function ProductForm() {
         subCategoryId: (product as any).subCategoryId || '',
         brandId: product.brandId || '',
         supplierId: (product as any).supplierId || '',
+        gradeId: (product as any).gradeId || '',
         costPrice: product.costPrice || 0,
         sellingPrice: product.sellingPrice || 0,
         minSellingPrice: (product as any).minSellingPrice || 0,
@@ -464,7 +474,7 @@ export default function ProductForm() {
                   </Label>
                   <Select
                     value={formData.categoryId}
-                    onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, categoryId: e.target.value, subCategoryId: '', gradeId: '' })}
                     required
                   >
                     <option value="">Pilih Kategori</option>
@@ -521,6 +531,29 @@ export default function ProductForm() {
                       </option>
                     ))}
                   </Select>
+                </div>
+
+                <div>
+                  <Label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2.5">Grade</Label>
+                  <Select
+                    value={formData.gradeId}
+                    onChange={(e) => setFormData({ ...formData, gradeId: e.target.value })}
+                    disabled={!formData.categoryId}
+                  >
+                    <option value="">
+                      {!formData.categoryId ? "Pilih kategori dulu" : grades.length === 0 ? "Tidak ada grade" : "Pilih Grade"}
+                    </option>
+                    {(grades || []).map((grade: any) => (
+                      <option key={grade.id} value={grade.id}>
+                        {grade.name}
+                      </option>
+                    ))}
+                  </Select>
+                  {formData.categoryId && grades.length === 0 && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Kategori ini belum punya grade — tambahkan lewat detail kategori, atau isi lewat import.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

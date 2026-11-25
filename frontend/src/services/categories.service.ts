@@ -89,5 +89,52 @@ export const categoriesService = {
       throw error;
     }
   },
+
+  // IGDERP-317 — CategoryGrade scoped master
+  async listGrades(categoryId: string, activeOnly = false): Promise<any[]> {
+    try {
+      const response = await api.get(`/categories/${categoryId}/grades`, {
+        params: activeOnly ? { activeOnly: 'true' } : undefined,
+      });
+      return response.data.data || response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  async generateGradeCode(): Promise<{ code: string }> {
+    try {
+      const response = await api.get('/categories/generate-grade-code');
+      return response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  async createGrade(categoryId: string, data: any): Promise<any> {
+    try {
+      const response = await api.post(`/categories/${categoryId}/grades`, data);
+      return response.data.data || response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  async updateGrade(categoryId: string, gradeId: string, data: any): Promise<any> {
+    try {
+      const response = await api.put(`/categories/${categoryId}/grades/${gradeId}`, data);
+      return response.data.data || response.data;
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  async deleteGrade(categoryId: string, gradeId: string): Promise<void> {
+    try {
+      await api.delete(`/categories/${categoryId}/grades/${gradeId}`);
+    } catch (error: any) {
+      throw error;
+    }
+  },
 };
 

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../shared/services';
 import { CreateCategoryDto, UpdateCategoryDto } from './dto';
+import { CreateCategoryGradeDto, UpdateCategoryGradeDto } from './dto';
 import { generateMasterCode } from '../../common/master-code.util';
 
 /**
@@ -65,6 +66,184 @@ export class CategoriesService {
     }
 
     return code!;
+  }
+
+  /**
+   * IGDERP-317 — generate a unique grade code (flat 10-char [A-Z0-9]).
+   */
+  async generateGradeCode(): Promise<string> {
+    let code: string;
+    let isUnique = false;
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    while (!isUnique && attempts < maxAttempts) {
+      code = generateMasterCode();
+
+      const existing = await this.prisma.categoryGrade.findUnique({
+        where: { code },
+      });
+
+      if (!existing) {
+        isUnique = true;
+      }
+
+      attempts++;
+    }
+
+    if (!isUnique) {
+      throw new BadRequestException('Failed to generate unique code after multiple attempts');
+    }
+
+    return code!;
+  }
+
+  /**
+   * IGDERP-317 — list grades scoped to one category.
+   */
+  async listGrades(categoryId: string, activeOnly = false) {
+    const category = await this.prisma.category.findUnique({
+      where: { id: categoryId },
+      select: { id: true },
+    });
+    if (!category) {
+      throw new NotFoundException('Category not found');
+    }
+    return this.prisma.categoryGrade.findMany({
+      where: { categoryId, ...(activeOnly ? { isActive: true } : {}) },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  /**
+   * IGDERP-317 — create a grade inside a category scope.
+   * Name must be unique within the category (case-insensitive); code is
+   * global-unique and auto-generated when omitted.
+   */
+  async createGrade(categoryId: string, dto: CreateCategoryGradeDto) {
+    const category = await this.prisma.category.findUnique({
+      where: { id: categoryId },
+      select: { id: true },
+    });
+    if (!category) {
+      throw new NotFoundException('Category not found');
+    }
+    const name = (dto.name || '').trim();
+    if (!name) {
+      throw new BadRequestException('Grade name is required');
+    }
+    const clash = await this.prisma.categoryGrade.findFirst({
+      where: { categoryId, name: { equals: name, mode: 'insensitive' } },
+      select: { id: true },
+    });
+    if (clash) {
+      throw new ConflictException(`Grade '${name}' already exists in this category`);
+    }
+    let code = (dto.code || '').trim().toUpperCase();
+    if (code) {
+      const codeTaken = await this.prisma.categoryGrade.findUnique({
+        where: { code },
+        select: { id: true },
+      });
+      if (codeTaken) {
+        throw new ConflictException(`Grade code '${code}' already exists`);
+      }
+    } else {
+      code = await this.generateGradeCode();
+    }
+    return this.prisma.categoryGrade.create({
+      data: { categoryId, name, code },
+    });
+  }
+
+  /**
+   * IGDERP-317 — update a grade (rename / recode / activate toggle).
+   * Deactivating a grade that is linked to products is blocked.
+   */
+  async updateGrade(categoryId: string, gradeId: string, dto: UpdateCategoryGradeDto) {
+    const grade = await this.prisma.categoryGrade.findUnique({
+      where: { id: gradeId },
+    });
+    if (!grade || grade.categoryId !== categoryId) {
+      throw new NotFoundException('Grade not found in this category');
+    }
+    const data: any = {};
+    if (dto.name !== undefined) {
+      const name = (dto.name || '').trim();
+      if (!name) {
+        throw new BadRequestException('Grade name is required');
+      }
+      const clash = await this.prisma.categoryGrade.findFirst({
+        where: {
+          categoryId,
+          name: { equals: name, mode: 'insensitive' },
+          NOT: { id: gradeId },
+        },
+        select: { id: true },
+      });
+      if (clash) {
+        throw new ConflictException(`Grade '${name}' already exists in this category`);
+      }
+      data.name = name;
+    }
+    if (dto.code !== undefined) {
+      const code = (dto.code || '').trim().toUpperCase();
+      if (!code) {
+        throw new BadRequestException('Grade code is required');
+      }
+      const codeTaken = await this.prisma.categoryGrade.findFirst({
+        where: { code, NOT: { id: gradeId } },
+        select: { id: true },
+      });
+      if (codeTaken) {
+        throw new ConflictException(`Grade code '${code}' already exists`);
+      }
+      data.code = code;
+    }
+    if (dto.isActive !== undefined) {
+      if (dto.isActive === false && grade.isActive) {
+        await this.assertGradeNotLinked(gradeId, 'Cannot deactivate grade with linked product(s)');
+      }
+      data.isActive = dto.isActive;
+    }
+    if (Object.keys(data).length === 0) {
+      return grade;
+    }
+    return this.prisma.categoryGrade.update({
+      where: { id: gradeId },
+      data,
+    });
+  }
+
+  /**
+   * IGDERP-317 — soft-delete a grade (isActive=false). Blocked while any
+   * product still references the grade.
+   */
+  async deleteGrade(categoryId: string, gradeId: string) {
+    const grade = await this.prisma.categoryGrade.findUnique({
+      where: { id: gradeId },
+    });
+    if (!grade || grade.categoryId !== categoryId) {
+      throw new NotFoundException('Grade not found in this category');
+    }
+    await this.assertGradeNotLinked(gradeId, 'Cannot delete grade with linked product(s)');
+    await this.prisma.categoryGrade.update({
+      where: { id: gradeId },
+      data: { isActive: false },
+    });
+  }
+
+  /**
+   * IGDERP-317 — shared guard: a grade with linked products can neither be
+   * deactivated nor deleted.
+   */
+  private async assertGradeNotLinked(gradeId: string, message: string): Promise<void> {
+    const linked = await this.prisma.product.count({
+      where: { gradeId },
+    });
+    if (linked > 0) {
+      throw new BadRequestException(`${message} (${linked}). Reassign those products first.`);
+    }
   }
 
   /**
@@ -230,7 +409,7 @@ export class CategoriesService {
       productCount: cat._count.products,
       totalSku: cat._count.products,
       totalStock: 0,
-      grades: [] as string[],
+      grades: [] as Array<{ id: string; code: string; name: string }>,
       isActive: cat.isActive,
       tierMargins: cat.tierMargins,
       createdAt: cat.createdAt,
@@ -238,16 +417,16 @@ export class CategoriesService {
     }));
 
     // Enhancement-only aggregates: totalStock (sum of quantityAvailable over
-    // the category's products) + distinct product grades (interim read-only
-    // surface until the CategoryGrade master lands). Degrades to zeros on
-    // query failure so a missing table pre-migration never breaks the list.
+    // the category's products) + CategoryGrade rows (IGDERP-317 master).
+    // Degrades to zeros on query failure so a missing table pre-migration
+    // never breaks the list.
     let totalGrades = 0;
     try {
       const categoryIds = categoriesWithCount.map((c) => c.id);
       if (categoryIds.length > 0) {
         const products = await this.prisma.product.findMany({
           where: { categoryId: { in: categoryIds } },
-          select: { id: true, categoryId: true, grade: true },
+          select: { id: true, categoryId: true },
         });
         const productIds = products.map((p) => p.id);
         const stockByProduct = new Map<string, number>();
@@ -261,37 +440,36 @@ export class CategoriesService {
             stockByProduct.set(s.productId, Number(s._sum.quantityAvailable ?? 0));
           }
         }
-        const byCategory = new Map<string, { stock: number; grades: Set<string> }>();
+        const byCategory = new Map<string, number>();
         for (const p of products) {
-          let entry = byCategory.get(p.categoryId);
-          if (!entry) {
-            entry = { stock: 0, grades: new Set<string>() };
-            byCategory.set(p.categoryId, entry);
+          byCategory.set(p.categoryId, (byCategory.get(p.categoryId) ?? 0) + (stockByProduct.get(p.id) ?? 0));
+        }
+        const gradeRows = await this.prisma.categoryGrade.findMany({
+          where: { categoryId: { in: categoryIds }, isActive: true },
+          select: { id: true, code: true, name: true, categoryId: true },
+          orderBy: { name: 'asc' },
+        });
+        const gradesByCategory = new Map<string, Array<{ id: string; code: string; name: string }>>();
+        for (const g of gradeRows) {
+          const list = gradesByCategory.get(g.categoryId) ?? [];
+          if (list.length < 20) {
+            list.push({ id: g.id, code: g.code, name: g.name });
+            gradesByCategory.set(g.categoryId, list);
           }
-          entry.stock += stockByProduct.get(p.id) ?? 0;
-          const g = (p.grade || '').trim();
-          if (g) entry.grades.add(g);
         }
         for (const c of categoriesWithCount) {
-          const entry = byCategory.get(c.id);
-          c.totalStock = entry ? entry.stock : 0;
-          c.grades = entry ? [...entry.grades].sort().slice(0, 20) : [];
+          c.totalStock = byCategory.get(c.id) ?? 0;
+          c.grades = gradesByCategory.get(c.id) ?? [];
         }
-        // Total Grade StatCard: distinct grades across the whole FILTERED set
+        // Total Grade StatCard: active grades across the whole FILTERED set
         // (not just this page), so the number is stable under pagination.
         const filteredIds = (
           await this.prisma.category.findMany({ where, select: { id: true } })
         ).map((r) => r.id);
         if (filteredIds.length > 0) {
-          const distinctGrades = await this.prisma.product.findMany({
-            where: {
-              categoryId: { in: filteredIds },
-              grade: { not: null },
-            },
-            select: { grade: true },
-            distinct: ['grade'],
+          totalGrades = await this.prisma.categoryGrade.count({
+            where: { categoryId: { in: filteredIds }, isActive: true },
           });
-          totalGrades = distinctGrades.filter((r) => (r.grade || '').trim()).length;
         }
       }
     } catch (e) {
@@ -682,6 +860,7 @@ export class CategoriesService {
           select: {
             products: true,
             childCategories: true,
+            grades: true,
           },
         },
       },
@@ -702,6 +881,13 @@ export class CategoriesService {
     if (category._count.childCategories > 0) {
       throw new BadRequestException(
         `Cannot delete category with ${category._count.childCategories} subcategor(ies). Please delete or reassign subcategories first.`,
+      );
+    }
+
+    // IGDERP-317: category with grades cannot be deleted
+    if (category._count.grades > 0) {
+      throw new BadRequestException(
+        `Cannot delete category with ${category._count.grades} grade(s). Please delete the grades first.`,
       );
     }
 

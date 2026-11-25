@@ -93,6 +93,22 @@ describe('ProductsService — XLSX product import', () => {
       product: { findUnique: jest.fn(), findFirst: jest.fn(), create: jest.fn(), update: jest.fn() },
       category: { findMany: jest.fn(), findFirst: jest.fn(), findUnique: jest.fn(), create: jest.fn() },
       brand: { findMany: jest.fn(), findFirst: jest.fn(), findUnique: jest.fn(), create: jest.fn() },
+      categoryGrade: {
+        findMany: jest.fn().mockResolvedValue([]),
+        findFirst: jest.fn().mockResolvedValue(null),
+        // Resolves grades created earlier in the same flow (mirrors the DB:
+        // findOrCreateGrade writes, then create()/update() re-validates).
+        findUnique: jest.fn().mockImplementation(async (args: any) => {
+          if (args?.where?.id === 'grade-new') {
+            return { id: 'grade-new', categoryId: 'cat-1', name: 'Original', isActive: true };
+          }
+          return null;
+        }),
+        create: jest.fn().mockImplementation(async (args: any) => ({
+          id: 'grade-new',
+          name: args?.data?.name || 'Original',
+        })),
+      },
       unit: { findMany: jest.fn() },
       size: { findMany: jest.fn() },
       color: { findMany: jest.fn() },
@@ -268,7 +284,7 @@ describe('ProductsService — XLSX product import', () => {
       expect(out.productIds).toEqual(['prod-new']);
       expect(prisma.product.create).toHaveBeenCalledTimes(1);
       const data = prisma.product.create.mock.calls[0][0].data;
-      expect(data).toMatchObject({ name: 'Produk A', grade: 'Original', categoryId: 'cat-1' });
+      expect(data).toMatchObject({ name: 'Produk A', grade: 'Original', gradeId: 'grade-new', categoryId: 'cat-1' });
       expect(data.sku).toMatch(/^PROD-/); // auto-generated SKU
       expect(prisma.productStock.upsert).toHaveBeenCalledTimes(1);
       expect(prisma.productStock.upsert).toHaveBeenCalledWith({

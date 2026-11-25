@@ -19,6 +19,8 @@ export interface Product {
   size?: string | { id: string; name: string };
   color?: string | { id: string; name: string };
   grade?: string | null;
+  gradeId?: string | null;
+  categoryGrade?: { id: string; code: string; name: string } | null;
   modalTerakhir?: number | null;
   modalPurata?: number | null;
   nilaiStok?: number;

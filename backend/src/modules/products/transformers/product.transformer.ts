@@ -151,6 +151,12 @@ export interface TransformedProduct {
   lastPurchaseAt?: Date | null; // Latest goods-receipt date (IGDERP-310)
   lastSaleAt?: Date | null; // Latest sale date (IGDERP-310)
   grade?: string | null;
+  gradeId?: string | null;
+  categoryGrade?: {
+    id: string;
+    code: string;
+    name: string;
+  } | null;
   modalTerakhir?: number | null; // Last purchase price; null when never purchased (IGDERP-310)
   modalPurata?: number | null; // Weighted-average purchase price; null when never purchased (IGDERP-310)
   nilaiStok?: number; // (modalPurata ?? costPrice) * net stock (IGDERP-310)
@@ -369,6 +375,14 @@ export class ProductTransformer {
       lastPurchaseAt: ann?.lastPurchaseAt ?? null,
       lastSaleAt: ann?.lastSaleAt ?? null,
       grade: (product as any).grade ?? null,
+      gradeId: (product as any).gradeId ?? null,
+      categoryGrade: (product as any).categoryGrade
+        ? {
+            id: (product as any).categoryGrade.id,
+            code: (product as any).categoryGrade.code,
+            name: (product as any).categoryGrade.name,
+          }
+        : null,
       modalTerakhir,
       modalPurata,
       nilaiStok,

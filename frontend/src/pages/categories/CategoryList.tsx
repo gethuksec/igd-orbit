@@ -157,7 +157,10 @@ export default function CategoryList() {
       header: "Grade",
       cell: (category) => (
         <div className="text-sm text-muted-foreground max-w-xs truncate">
-          {(category.grades || []).join(", ") || "-"}
+          {(category.grades || [])
+            .map((g: any) => (typeof g === "string" ? g : g?.name))
+            .filter(Boolean)
+            .join(", ") || "-"}
         </div>
       ),
     },

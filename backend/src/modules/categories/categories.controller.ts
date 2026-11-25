@@ -15,6 +15,7 @@ import { CategoriesService } from './categories.service';
 import { JwtAuthGuard, RolesGuard } from '../../shared/guards';
 import { Roles } from '../../shared/decorators';
 import { CreateCategoryDto, UpdateCategoryDto } from './dto';
+import { CreateCategoryGradeDto, UpdateCategoryGradeDto } from './dto';
 
 /**
  * Categories Controller
@@ -75,6 +76,73 @@ export class CategoriesController {
   @Roles('OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA')
   async generateCode() {
     return { code: await this.categoriesService.generateCode() };
+  }
+
+  /**
+   * Generate a fresh unique grade code for the grade popup Generate button.
+   * GET /api/v1/categories/generate-grade-code
+   * NOTE: registered before ':id' — Express matches routes in order.
+   * Permissions: OWNER, CFO, MGR, CSO, CMO, SPV, HS, ASA
+   */
+  @Get('generate-grade-code')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA')
+  async generateGradeCode() {
+    return { code: await this.categoriesService.generateGradeCode() };
+  }
+
+  /**
+   * List grades scoped to one category.
+   * GET /api/v1/categories/:id/grades?activeOnly=true
+   * Permissions: OWNER, CFO, MGR, CSO, CMO, SPV, HS, ASA
+   */
+  @Get(':id/grades')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'CFO', 'MGR', 'CSO', 'CMO', 'SPV', 'HS', 'ASA')
+  async listGrades(@Param('id') id: string, @Query('activeOnly') activeOnly?: string) {
+    return this.categoriesService.listGrades(id, activeOnly === 'true');
+  }
+
+  /**
+   * Create a grade inside a category.
+   * POST /api/v1/categories/:id/grades
+   * Permissions: CSO, CMO, SPV, HS, ASA
+   */
+  @Post(':id/grades')
+  @UseGuards(RolesGuard)
+  @Roles('CSO', 'CMO', 'SPV', 'HS', 'ASA')
+  @HttpCode(HttpStatus.CREATED)
+  async createGrade(@Param('id') id: string, @Body() dto: CreateCategoryGradeDto) {
+    return this.categoriesService.createGrade(id, dto);
+  }
+
+  /**
+   * Update a grade (rename / recode / activate toggle).
+   * PUT /api/v1/categories/:categoryId/grades/:gradeId
+   * Permissions: CSO, CMO, SPV, HS, ASA
+   */
+  @Put(':categoryId/grades/:gradeId')
+  @UseGuards(RolesGuard)
+  @Roles('CSO', 'CMO', 'SPV', 'HS', 'ASA')
+  async updateGrade(
+    @Param('categoryId') categoryId: string,
+    @Param('gradeId') gradeId: string,
+    @Body() dto: UpdateCategoryGradeDto,
+  ) {
+    return this.categoriesService.updateGrade(categoryId, gradeId, dto);
+  }
+
+  /**
+   * Soft-delete a grade (isActive=false). Blocked while products reference it.
+   * DELETE /api/v1/categories/:categoryId/grades/:gradeId
+   * Permissions: CSO, CMO, SPV, HS, ASA
+   */
+  @Delete(':categoryId/grades/:gradeId')
+  @UseGuards(RolesGuard)
+  @Roles('CSO', 'CMO', 'SPV', 'HS', 'ASA')
+  async deleteGrade(@Param('categoryId') categoryId: string, @Param('gradeId') gradeId: string) {
+    await this.categoriesService.deleteGrade(categoryId, gradeId);
+    return { success: true };
   }
 
   /**
