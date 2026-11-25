@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { formatDateTimeId } from "@/lib/utils";
 
 type StatusFilter = "all" | "active" | "inactive";
 
@@ -148,6 +149,7 @@ export default function SupplierList() {
   const columns: Column<any>[] = [
     {
       key: "name",
+      stickyLeft: true,
       header: "Kode & Nama",
       cell: (supplier) => (
         <div className="flex items-center gap-4">
@@ -190,15 +192,6 @@ export default function SupplierList() {
       ),
     },
     {
-      key: "isActive",
-      header: "Status",
-      cell: (supplier) => (
-        <StatusDot tone={supplier.isActive ? "ok" : "off"}>
-          {supplier.isActive ? "Aktif" : "Tidak Aktif"}
-        </StatusDot>
-      ),
-    },
-    {
       key: "createdAt",
       header: "Tanggal Dibuat",
       cell: (supplier) => (
@@ -210,6 +203,24 @@ export default function SupplierList() {
                 day: "numeric",
               })
             : "-"}
+        </div>
+      ),
+    },
+    {
+      key: "isActive",
+      header: "Status",
+      cell: (supplier) => (
+        <StatusDot tone={supplier.isActive ? "ok" : "off"}>
+          {supplier.isActive ? "Aktif" : "Tidak Aktif"}
+        </StatusDot>
+      ),
+    },
+    {
+      key: "updatedAt",
+      header: "Terakhir Diupdate",
+      cell: (r: any) => (
+        <div className="text-sm tabular-nums text-muted-foreground">
+          {formatDateTimeId(r.updatedAt)}
         </div>
       ),
     },
@@ -286,6 +297,7 @@ export default function SupplierList() {
       />
 
       <DataTable
+        actionsPosition="left"
         columns={columns}
         data={suppliers}
         keyExtractor={(s: any) => s.id}

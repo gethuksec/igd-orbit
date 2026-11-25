@@ -14,13 +14,12 @@ import {
 } from 'lucide-react';
 import { customersService } from '../../services/customers.service';
 import { toast } from 'sonner';
-import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable, RowsPerPageSelect, ExportButton, datedFilename } from '@/components/shared';
+import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable, StatusDot, RowsPerPageSelect, ExportButton, datedFilename } from '@/components/shared';
 import type { Column } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import CustomerFormModal from './CustomerFormModal';
 import CustomerImportModal from './CustomerImportModal';
-
 export default function CustomerList() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -134,6 +133,7 @@ export default function CustomerList() {
   const columns: Column<any>[] = [
     {
       key: 'name',
+      stickyLeft: true,
       header: 'Kode & Nama',
       sortable: true,
       cell: (customer) => (
@@ -203,6 +203,20 @@ export default function CustomerList() {
       header: 'Tanggal Dibuat',
       sortable: true,
       cell: (customer) => formatDate(customer.createdAt),
+    },
+    {
+      key: 'isActive',
+      header: 'Status',
+      cell: (customer) => (
+        <StatusDot tone={customer.isActive ? 'ok' : 'off'}>
+          {customer.isActive ? 'Aktif' : 'Tidak Aktif'}
+        </StatusDot>
+      ),
+    },
+    {
+      key: 'updatedAt',
+      header: 'Terakhir Diupdate',
+      cell: (customer) => formatDate(customer.updatedAt),
     },
   ];
 
@@ -299,6 +313,7 @@ export default function CustomerList() {
       />
 
       <DataTable
+        actionsPosition="left"
         columns={columns}
         data={customers}
         keyExtractor={(c: any) => c.id}

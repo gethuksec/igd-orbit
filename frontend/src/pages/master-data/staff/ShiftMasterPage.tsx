@@ -7,6 +7,7 @@ import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { formatDateTimeId } from "@/lib/utils";
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -116,6 +117,7 @@ export default function ShiftMasterPage() {
   const columns: Column<Shift>[] = [
     {
       key: "code",
+      stickyLeft: true,
       header: "Kode",
       cell: (row) => (
         <div>
@@ -158,6 +160,15 @@ export default function ShiftMasterPage() {
       header: "Status",
       cell: (row) => (
         <StatusDot tone={row.isActive ? "ok" : "off"}>{row.isActive ? "Aktif" : "Tidak Aktif"}</StatusDot>
+      ),
+    },
+    {
+      key: "updatedAt",
+      header: "Terakhir Diupdate",
+      cell: (r: any) => (
+        <div className="text-sm tabular-nums text-muted-foreground">
+          {formatDateTimeId(r.updatedAt)}
+        </div>
       ),
     },
   ];
@@ -221,6 +232,7 @@ export default function ShiftMasterPage() {
       />
 
       <DataTable
+        actionsPosition="left"
         columns={columns}
         data={rows}
         keyExtractor={(t: Shift) => t.id}

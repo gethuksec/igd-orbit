@@ -9,6 +9,7 @@ import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { formatDateTimeId } from "@/lib/utils";
 
 type StatusFilter = "all" | "active" | "inactive";
 
@@ -112,6 +113,7 @@ export default function UnitList() {
   const columns: Column<any>[] = [
     {
       key: "name",
+      stickyLeft: true,
       header: "Satuan",
       cell: (unit) => (
         <div className="flex items-center gap-4">
@@ -139,6 +141,15 @@ export default function UnitList() {
         <StatusDot tone={unit.isActive ? "ok" : "off"}>
           {unit.isActive ? "Aktif" : "Tidak Aktif"}
         </StatusDot>
+      ),
+    },
+    {
+      key: "updatedAt",
+      header: "Terakhir Diupdate",
+      cell: (r: any) => (
+        <div className="text-sm tabular-nums text-muted-foreground">
+          {formatDateTimeId(r.updatedAt)}
+        </div>
       ),
     },
   ];
@@ -193,6 +204,7 @@ export default function UnitList() {
       />
 
       <DataTable
+        actionsPosition="left"
         columns={columns}
         data={units}
         keyExtractor={(u: any) => u.id}

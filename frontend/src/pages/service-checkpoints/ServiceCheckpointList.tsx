@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { usePermissions } from "@/hooks/usePermissions";
 import { toast } from "sonner";
+import { formatDateTimeId } from "@/lib/utils";
 
 type StatusFilter = "all" | "active" | "inactive";
 
@@ -115,6 +116,7 @@ export default function ServiceCheckpointList() {
   const columns: Column<any>[] = [
     {
       key: "name",
+      stickyLeft: true,
       header: "Nama Item",
       cell: (item) => (
         <div className="flex items-center gap-4">
@@ -132,6 +134,15 @@ export default function ServiceCheckpointList() {
         <StatusDot tone={item.isActive ? "ok" : "off"}>
           {item.isActive ? "Aktif" : "Tidak Aktif"}
         </StatusDot>
+      ),
+    },
+    {
+      key: "updatedAt",
+      header: "Terakhir Diupdate",
+      cell: (r: any) => (
+        <div className="text-sm tabular-nums text-muted-foreground">
+          {formatDateTimeId(r.updatedAt)}
+        </div>
       ),
     },
     {
@@ -198,6 +209,7 @@ export default function ServiceCheckpointList() {
       />
 
       <DataTable
+        actionsPosition="left"
         columns={columns}
         data={items}
         keyExtractor={(i: any) => i.id}

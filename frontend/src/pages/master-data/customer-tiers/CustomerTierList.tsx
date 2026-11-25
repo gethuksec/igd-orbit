@@ -9,6 +9,7 @@ import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable, StatusDot } from 
 import type { Column } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { formatDateTimeId } from "@/lib/utils";
 
 type StatusFilter = "all" | "active" | "inactive";
 
@@ -132,6 +133,7 @@ export default function CustomerTierList() {
   const columns: Column<CustomerTier>[] = [
     {
       key: "name",
+      stickyLeft: true,
       header: "Nama Tier",
       cell: (tier) => (
         <div className="flex items-center gap-4">
@@ -170,6 +172,15 @@ export default function CustomerTierList() {
         <StatusDot tone={tier.isActive ? "ok" : "off"}>
           {tier.isActive ? "Aktif" : "Tidak Aktif"}
         </StatusDot>
+      ),
+    },
+    {
+      key: "updatedAt",
+      header: "Terakhir Diupdate",
+      cell: (r: any) => (
+        <div className="text-sm tabular-nums text-muted-foreground">
+          {formatDateTimeId(r.updatedAt)}
+        </div>
       ),
     },
   ];
@@ -243,6 +254,7 @@ export default function CustomerTierList() {
       />
 
       <DataTable
+        actionsPosition="left"
         columns={columns}
         data={tiers}
         keyExtractor={(t: CustomerTier) => t.id}

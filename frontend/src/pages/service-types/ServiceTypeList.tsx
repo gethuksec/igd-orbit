@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { BreadcrumbHeader, StatCard, FilterToolbar, DataTable, StatusDot } from '@/components/shared';
 import type { Column } from '@/components/shared';
+import { formatDateTimeId } from '@/lib/utils';
 
 export default function ServiceTypeList() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -161,6 +162,7 @@ export default function ServiceTypeList() {
   const columns: Column<any>[] = [
     {
       key: 'name',
+      stickyLeft: true,
       header: 'Layanan',
       cell: (st) => (
         <div className="flex items-center gap-4">
@@ -213,6 +215,15 @@ export default function ServiceTypeList() {
         <StatusDot tone={st.isActive ? 'ok' : 'off'}>
           {st.isActive ? 'Aktif' : 'Tidak Aktif'}
         </StatusDot>
+      ),
+    },
+    {
+      key: 'updatedAt',
+      header: 'Terakhir Diupdate',
+      cell: (r: any) => (
+        <div className='text-sm tabular-nums text-muted-foreground'>
+          {formatDateTimeId(r.updatedAt)}
+        </div>
       ),
     },
   ];
@@ -282,6 +293,7 @@ export default function ServiceTypeList() {
       />
 
       <DataTable
+        actionsPosition="left"
         columns={columns}
         data={serviceTypes}
         keyExtractor={(st: any) => st.id}
