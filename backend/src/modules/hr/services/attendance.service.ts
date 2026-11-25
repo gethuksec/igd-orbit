@@ -157,6 +157,42 @@ export function isOutsideAllAnchors(
   return { outside: true, distanceMeters: nearest };
 }
 
+/**
+ * IGDERP-307: business wall time is Asia/Jakarta (WIB, UTC+7); the server
+ * runs UTC. Shift/operating-hours comparisons must use WIB instants —
+ * comparing server-local wall time marks a 13:58 WIB clock "on time"
+ * (06:58 UTC < 08:00). Explicit +7 offset, same convention as IGDERP-136/S2.
+ */
+export const WIB_OFFSET_MS = 7 * 3600 * 1000;
+
+export function wibParts(date: Date) {
+  const w = new Date(date.getTime() + WIB_OFFSET_MS);
+  return {
+    y: w.getUTCFullYear(),
+    m: w.getUTCMonth(),
+    d: w.getUTCDate(),
+    hh: w.getUTCHours(),
+    mm: w.getUTCMinutes(),
+    weekday: w.getUTCDay(), // 0=Sun..6=Sat, WIB wall
+  };
+}
+
+/** Instant a WIB 'HH:MM' wall time occurs on the business day of `date`. */
+export function wibTimeInstant(date: Date, hhmm: string): Date {
+  const { y, m, d } = wibParts(date);
+  const [hh, mm] = String(hhmm).split(':').map(Number);
+  return new Date(Date.UTC(y, m, d, hh, mm) - WIB_OFFSET_MS);
+}
+
+/**
+ * `date` shifted so server-local getters read WIB wall fields. The box runs
+ * Etc/UTC (verified), so getDay/setHours on the shifted instant evaluate
+ * WIB parts — used only to feed UTC-naive legacy resolvers.
+ */
+export function asWibLocal(date: Date): Date {
+  return new Date(date.getTime() + WIB_OFFSET_MS);
+}
+
 @Injectable()
 export class AttendanceService {
   private readonly storage = new StorageService();
@@ -306,20 +342,19 @@ export class AttendanceService {
 
     // Calculate if late — IGDERP-265 Q6 (roster-first): resolved shift time
     // wins; roster libur day never counts late; branch hours are fallback.
+    // IGDERP-307: wall-time comparisons in WIB (server is UTC).
     const now = new Date();
     let isLate = false;
     let lateMinutes = 0;
 
-    const resolved = await this.shifts.resolveShiftForDate(employee.id, now).catch(() => null);
+    const resolved = await this.shifts.resolveShiftForDate(employee.id, asWibLocal(now)).catch(() => null);
     if (resolved && (resolved.source === 'roster-libur' || (resolved as any).offDate)) {
       isLate = false;
       lateMinutes = 0;
     } else if (resolved?.shift) {
-      const [shiftHour, shiftMinute] = String(resolved.shift.clockIn).split(':').map(Number);
-      const expectedStart = new Date(now);
-      expectedStart.setHours(shiftHour, shiftMinute, 0, 0);
+      const expectedStart = wibTimeInstant(now, resolved.shift.clockIn);
       const tolerance = resolved.shift.lateToleranceMin ?? 15;
-      if (now > expectedStart) {
+      if (now.getTime() > expectedStart.getTime()) {
         const diffMs = now.getTime() - expectedStart.getTime();
         lateMinutes = Math.floor(diffMs / (1000 * 60));
         if (lateMinutes > tolerance) {
@@ -329,16 +364,16 @@ export class AttendanceService {
         }
       }
     } else if (branch.operatingHours) {
-      const dayName = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][now.getDay()];
+      const dayName = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][
+        wibParts(now).weekday
+      ];
       const operatingHours = branch.operatingHours as any;
       const dayHours = operatingHours[dayName];
 
       if (dayHours && dayHours.open) {
-        const [openHour, openMinute] = dayHours.open.split(':').map(Number);
-        const expectedStart = new Date(now);
-        expectedStart.setHours(openHour, openMinute, 0, 0);
+        const expectedStart = wibTimeInstant(now, dayHours.open);
 
-        if (now > expectedStart) {
+        if (now.getTime() > expectedStart.getTime()) {
           const diffMs = now.getTime() - expectedStart.getTime();
           lateMinutes = Math.floor(diffMs / (1000 * 60));
           // 15 minutes grace period
@@ -471,21 +506,21 @@ export class AttendanceService {
     const breakTimeHours = attendance.breakTime || new Decimal(1);
     const workHours = new Decimal(totalMinutes / 60).minus(breakTimeHours);
 
-    // Calculate early leave
+    // Calculate early leave (IGDERP-307: WIB wall time, server is UTC).
     let isEarlyLeave = false;
     let earlyLeaveMinutes = 0;
 
     if (attendance.branch.operatingHours) {
-      const dayName = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][now.getDay()];
+      const dayName = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][
+        wibParts(now).weekday
+      ];
       const operatingHours = attendance.branch.operatingHours as any;
       const dayHours = operatingHours[dayName];
 
       if (dayHours && dayHours.close) {
-        const [closeHour, closeMinute] = dayHours.close.split(':').map(Number);
-        const expectedEnd = new Date(now);
-        expectedEnd.setHours(closeHour, closeMinute, 0, 0);
+        const expectedEnd = wibTimeInstant(now, dayHours.close);
 
-        if (now < expectedEnd) {
+        if (now.getTime() < expectedEnd.getTime()) {
           const diffMs = expectedEnd.getTime() - now.getTime();
           earlyLeaveMinutes = Math.floor(diffMs / (1000 * 60));
           isEarlyLeave = true;
