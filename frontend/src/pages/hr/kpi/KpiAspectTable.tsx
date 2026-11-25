@@ -1,43 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { GripVertical, Pencil } from 'lucide-react';
+import { DataTable, type Column } from '@/components/shared';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { hrService, type KpiAspect } from '@/services/hr.service';
-import { KpiAspectFields, emptyAspectForm, type AspectFormValue } from './KpiAspectFields';
 
 const fmt2 = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 /**
- * Editable aspect list for one division (IGDERP-266).
- * Used by the assign wizard (step 1) and the edit Aspek tab.
- * onStats reports the active bobot sum so the wizard can gate Next.
+ * Read-only aspect list for one division (template: DataTable, Aksi left).
+ * Aksi holds a drag grip (reorder, auto-saves) + a pencil to the edit page.
+ * Editing lives on dedicated pages; rows are not clickable.
  */
-export function KpiAspectTable({
-  divisionId,
-  onStats,
-}: {
-  divisionId: string;
-  onStats?: (sum: number, count: number) => void;
-}) {
+export function KpiAspectTable({ divisionId }: { divisionId: string }) {
   const queryClient = useQueryClient();
-  const [adding, setAdding] = useState(false);
-  const [form, setForm] = useState<AspectFormValue>(emptyAspectForm);
-  const [drafts, setDrafts] = useState<Record<string, { weight?: string; target?: string }>>({});
+  const navigate = useNavigate();
+  const dragId = useRef<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   const key = ['kpi-aspects', divisionId];
   const { data: aspects = [], isLoading } = useQuery({
@@ -46,157 +27,148 @@ export function KpiAspectTable({
     enabled: !!divisionId,
   });
 
-  const active = aspects.filter((a) => a.isActive !== false);
-  const sum = active.reduce((s, a) => s + Number(a.weight), 0);
-  useEffect(() => {
-    if (onStats) onStats(sum, active.length);
-  }, [sum, active.length]);
+  // Locked (in-use) aspects stay visible with a marker but keep their order.
+  const sum = aspects
+    .filter((a) => a.isActive !== false)
+    .reduce((s, a) => s + Number(a.weight), 0);
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: key });
     queryClient.invalidateQueries({ queryKey: ['kpi-grid'] });
   };
 
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => hrService.updateKpiAspect(id, data),
+  const reorderMutation = useMutation({
+    mutationFn: (ids: string[]) => hrService.reorderKpiAspects(divisionId, ids),
     onSuccess: invalidate,
     onError: (e: any) => {
-      toast.error(e.response?.data?.message || 'Gagal menyimpan aspek');
-    },
-  });
-
-  const createMutation = useMutation({
-    mutationFn: () =>
-      hrService.createKpiAspect(divisionId, {
-        code: form.code,
-        name: form.name,
-        description: form.description || undefined,
-        weight: parseFloat(form.weight),
-        target_type: form.target_type,
-        fixed_target: form.fixed_target === '' ? null : parseFloat(form.fixed_target),
-        is_kolektif: form.is_kolektif,
-        sort_order: parseInt(form.sort_order || '0', 10),
-      }),
-    onSuccess: () => {
-      toast.success('Aspek ditambahkan');
-      setAdding(false);
-      setForm(emptyAspectForm);
+      toast.error(e.response?.data?.message || 'Gagal menyusun ulang aspek');
       invalidate();
     },
-    onError: (e: any) => {
-      toast.error(e.response?.data?.message || 'Gagal menambah aspek');
-    },
   });
 
-  const commit = (a: KpiAspect, field: 'weight' | 'fixed_target', raw: string) => {
-    const v = parseFloat(raw);
-    if (Number.isNaN(v)) return;
-    if (field === 'weight' && (v <= 0 || v > 1)) {
-      toast.error('Bobot harus di antara 0 dan 1');
-      return;
-    }
-    updateMutation.mutate({ id: a.id, data: { [field]: v } });
+  const move = (fromId: string, toId: string) => {
+    if (fromId === toId) return;
+    const ids = aspects.map((a) => a.id);
+    const from = ids.indexOf(fromId);
+    const to = ids.indexOf(toId);
+    if (from < 0 || to < 0) return;
+    ids.splice(to, 0, ...ids.splice(from, 1));
+    reorderMutation.mutate(ids);
   };
 
-  const targetOf = (a: KpiAspect) =>
-    drafts[a.id]?.target ?? (a.targetType === 'FIXED' ? String(a.fixedTarget ?? '') : '');
-
-  if (isLoading) {
-    return <p className="text-sm text-muted-foreground px-5 py-8">Memuat aspek...</p>;
-  }
+  const columns: Column<KpiAspect>[] = [
+    {
+      key: 'name',
+      header: 'Aspek',
+      cell: (a) => (
+        <span className="font-medium">
+          {a.name}{' '}
+          {a.isActive === false && (
+            <span className="font-normal text-xs text-muted-foreground">(nonaktif)</span>
+          )}
+        </span>
+      ),
+    },
+    {
+      key: 'weight',
+      header: 'Bobot',
+      headerClassName: 'text-right',
+      className: 'text-right font-mono tabular-nums',
+      cell: (a) => fmt2.format(Number(a.weight)),
+    },
+    {
+      key: 'target',
+      header: 'Target',
+      headerClassName: 'text-right',
+      className: 'text-right font-mono tabular-nums',
+      cell: (a) =>
+        a.targetType === 'FIXED' ? (
+          String(a.fixedTarget ?? '—')
+        ) : (
+          <span className="text-muted-foreground">Per periode</span>
+        ),
+    },
+  ];
 
   return (
     <div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Kode</TableHead>
-            <TableHead>Aspek</TableHead>
-            <TableHead className="text-right">Bobot</TableHead>
-            <TableHead>Target</TableHead>
-            <TableHead>Cakupan</TableHead>
-            <TableHead className="text-right">Aksi</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {active.map((a) => (
-            <TableRow key={a.id}>
-              <TableCell className="font-mono text-[13px]">{a.code}</TableCell>
-              <TableCell className="font-medium">{a.name}</TableCell>
-              <TableCell className="text-right">
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="1"
-                  value={drafts[a.id]?.weight ?? String(a.weight)}
-                  onChange={(e) => setDrafts({ ...drafts, [a.id]: { ...drafts[a.id], weight: e.target.value } })}
-                  onBlur={(e) => commit(a, 'weight', e.target.value)}
-                  className="w-20 ml-auto font-mono tabular-nums text-right"
-                />
-              </TableCell>
-              <TableCell>
-                {a.targetType === 'FIXED' ? (
-                  <Input
-                    type="number"
-                    value={targetOf(a)}
-                    onChange={(e) => setDrafts({ ...drafts, [a.id]: { ...drafts[a.id], target: e.target.value } })}
-                    onBlur={(e) => commit(a, 'fixed_target', e.target.value)}
-                    className="w-24 font-mono tabular-nums text-right"
-                  />
-                ) : (
-                  <span className="text-sm text-muted-foreground">Per periode</span>
-                )}
-              </TableCell>
-              <TableCell className="text-sm text-muted-foreground">
-                {a.isKolektif ? 'Kolektif' : 'Per karyawan'}
-              </TableCell>
-              <TableCell className="text-right">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => updateMutation.mutate({ id: a.id, data: { is_active: false } })}
-                >
-                  Hapus
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-          <TableRow className="bg-muted/50">
-            <TableCell />
-            <TableCell className="font-medium">Total bobot</TableCell>
-            <TableCell className="text-right font-mono tabular-nums font-medium">{fmt2.format(sum)}</TableCell>
-            <TableCell />
-            <TableCell />
-            <TableCell />
-          </TableRow>
-        </TableBody>
-      </Table>
-      <div className="flex justify-end px-5 py-4">
-        <Button variant="outline" size="sm" onClick={() => setAdding(true)}>
+      <DataTable
+        actionsPosition="left"
+        actionsWidth={104}
+        columns={columns}
+        data={aspects}
+        keyExtractor={(a) => a.id}
+        isLoading={isLoading}
+        emptyMessage="Belum ada aspek — tambah lewat tombol di bawah"
+        actions={(a) => (
+          <div className="flex items-center gap-1">
+            <span
+              role="button"
+              tabIndex={0}
+              title="Seret untuk susun ulang"
+              draggable
+              onDragStart={(e) => {
+                dragId.current = a.id;
+                e.dataTransfer.effectAllowed = 'move';
+              }}
+              onDragEnd={() => {
+                dragId.current = null;
+                setDragOverId(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key !== 'Enter' && e.key !== ' ') return;
+                toast.message('Seret gagang ini ke baris tujuan untuk menyusun ulang');
+              }}
+              className="inline-flex h-8 w-6 items-center justify-center rounded-md text-muted-foreground cursor-grab active:cursor-grabbing hover:bg-muted hover:text-foreground"
+            >
+              <GripVertical className="h-4 w-4" />
+            </span>
+            <button
+              type="button"
+              title="Edit"
+              onClick={() =>
+                navigate(`/hr/master-data/kpi/${divisionId}/aspek/${a.id}/edit`)
+              }
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+        rowProps={(a) => ({
+          onDragOver: (e) => {
+            if (!dragId.current) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            if (dragOverId !== a.id) setDragOverId(a.id);
+          },
+          onDragLeave: () => {
+            if (dragOverId === a.id) setDragOverId(null);
+          },
+          onDrop: (e) => {
+            e.preventDefault();
+            if (dragId.current) move(dragId.current, a.id);
+            dragId.current = null;
+            setDragOverId(null);
+          },
+          style: dragOverId === a.id ? { background: 'var(--muted)' } : undefined,
+        })}
+      />
+      {!isLoading && aspects.length > 0 && (
+        <div className="flex items-center justify-between px-1 py-3 text-sm">
+          <span className="text-muted-foreground">
+            Seret gagang di kolom Aksi untuk menyusun ulang — urutan tersimpan otomatis.
+          </span>
+          <span className="font-mono tabular-nums">
+            Total bobot <span className="font-medium">{fmt2.format(sum)}</span>
+          </span>
+        </div>
+      )}
+      <div className="flex justify-end px-1 pb-1">
+        <Button variant="outline" size="sm" onClick={() => navigate(`/hr/master-data/kpi/${divisionId}/aspek/new`)}>
           Tambah aspek
         </Button>
       </div>
-      <Dialog open={adding} onOpenChange={setAdding}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Tambah aspek</DialogTitle>
-          </DialogHeader>
-          <KpiAspectFields value={form} onChange={setForm} />
-          <div className="flex gap-3 pt-2">
-            <Button variant="outline" className="flex-1" onClick={() => setAdding(false)}>
-              Batal
-            </Button>
-            <Button
-              className="flex-1"
-              disabled={createMutation.isPending || !form.code || !form.name}
-              onClick={() => createMutation.mutate()}
-            >
-              {createMutation.isPending ? 'Menyimpan...' : 'Tambah'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

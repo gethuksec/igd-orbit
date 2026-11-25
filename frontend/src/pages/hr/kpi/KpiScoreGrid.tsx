@@ -183,11 +183,11 @@ export function KpiScoreGrid({
   const amountMutation = useMutation({
     mutationFn: () => hrService.upsertKpiConfig(divisionId, { default_amount: parseFloat(amount || '0') }),
     onSuccess: () => {
-      toast.success('Default insentif tersimpan');
+      toast.success('Pengali insentif tersimpan');
       queryClient.invalidateQueries({ queryKey: gridKey });
     },
     onError: (e: any) => {
-      toast.error(e.response?.data?.message || 'Gagal menyimpan default insentif');
+      toast.error(e.response?.data?.message || 'Gagal menyimpan pengali insentif');
     },
   });
 
@@ -226,7 +226,7 @@ export function KpiScoreGrid({
       )}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 px-5 py-4 border-b">
         <div className="space-y-2">
-          <p className="text-xs text-muted-foreground">Default insentif divisi (Rp)</p>
+          <p className="text-xs text-muted-foreground">Pengali insentif divisi (Rp)</p>
           <div className="flex gap-2">
             <Input
               value={amount}
@@ -240,7 +240,7 @@ export function KpiScoreGrid({
         </div>
         {periodAspects.map((a) => (
           <div key={a.id} className="space-y-2">
-            <p className="text-xs text-muted-foreground">Target {a.code} (periode)</p>
+            <p className="text-xs text-muted-foreground">Target {a.name} (periode)</p>
             <Input
               value={targets[a.id] ?? ''}
               onChange={(e) => setTargets({ ...targets, [a.id]: e.target.value })}
@@ -251,7 +251,7 @@ export function KpiScoreGrid({
         ))}
         {kolektifAspects.map((a) => (
           <div key={a.id} className="space-y-2">
-            <p className="text-xs text-muted-foreground">{a.code} — aktual kolektif</p>
+            <p className="text-xs text-muted-foreground">{a.name} — aktual kolektif</p>
             <Input
               value={kolektif[a.id] ?? ''}
               onChange={(e) => setKolektif({ ...kolektif, [a.id]: e.target.value })}
@@ -268,7 +268,7 @@ export function KpiScoreGrid({
             <TableHead>Karyawan</TableHead>
             {individualAspects.map((a) => (
               <TableHead key={a.id} className="text-right">
-                {a.code}
+                {a.name}
                 <span className="block font-normal">
                   {a.intervalMin}–{a.intervalMax}
                 </span>

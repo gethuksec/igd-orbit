@@ -39,6 +39,13 @@ export function aspectSkor(capaian: number, target: number, weight: number): num
 
 const EPS = 1e-9;
 
+// Code is internal only (unique per division, ordering fallback) — the UI no
+// longer asks for it, so the backend mints one from the name when absent.
+function slugCode(name: string): string {
+  const s = (name || '').toUpperCase().replace(/[^A-Z0-9]+/g, '').slice(0, 12);
+  return s || 'ASPEK';
+}
+
 // ---- assign/edit flow ----
 // Period shell lives in kpiPeriodLock: absent = Belum assign,
 // 'assigned' = editable, 'approved' = immutable + payroll gate.
@@ -291,13 +298,13 @@ export class KPIService {
   async createAspect(
     divisionId: string,
     data: {
-      code: string;
+      code?: string;
       name: string;
       description?: string;
       interval_min?: number;
       interval_max?: number;
       weight: number;
-      target_type: string;
+      target_type?: string;
       fixed_target?: number | null;
       is_kolektif?: boolean;
       sort_order?: number;
@@ -307,34 +314,86 @@ export class KPIService {
     if (scope) await this.assertDivisionScope(scope.userId, scope.roles ?? [], divisionId);
     const division = await (this.prisma as any).division.findUnique({ where: { id: divisionId } });
     if (!division) throw new NotFoundException('Division not found');
+    // New aspects from the trimmed UI are always per-employee with a fixed
+    // target; legacy kolektif/PERIOD rows keep working untouched.
+    const targetType = data.target_type ?? 'FIXED';
     this.assertAspectPayload({
       weight: data.weight,
-      targetType: data.target_type,
+      targetType,
       intervalMin: data.interval_min,
       intervalMax: data.interval_max,
     });
-    if (data.target_type === 'FIXED' && !(Number(data.fixed_target) > 0)) {
+    if (targetType === 'FIXED' && !(Number(data.fixed_target) > 0)) {
       throw new BadRequestException('FIXED aspects require fixed_target > 0');
     }
-    const dup = await (this.prisma as any).kpiAspect.findUnique({
-      where: { divisionId_code: { divisionId, code: data.code } },
-    });
-    if (dup) throw new ConflictException(`Aspect code '${data.code}' already exists in this division`);
+    // Mint a unique code when the caller omits it; an explicit code that
+    // collides still 409s as before.
+    let code = ((data.code ?? slugCode(data.name)) || 'ASPEK').toUpperCase();
+    for (let n = 0; ; n++) {
+      const attempt = n === 0 ? code : `${code}-${n}`;
+      const dup = await (this.prisma as any).kpiAspect.findUnique({
+        where: { divisionId_code: { divisionId, code: attempt } },
+      });
+      if (!dup) {
+        code = attempt;
+        break;
+      }
+      if (data.code) throw new ConflictException(`Aspect code '${data.code}' already exists in this division`);
+    }
+    let sortOrder = data.sort_order;
+    if (sortOrder === undefined) {
+      const top =
+        (await (this.prisma as any).kpiAspect.findMany({
+          where: { divisionId },
+          select: { sortOrder: true },
+          orderBy: { sortOrder: 'desc' },
+          take: 1,
+        })) ?? [];
+      sortOrder = top.length > 0 ? toNum(top[0].sortOrder ?? 0) + 1 : 0;
+    }
     return (this.prisma as any).kpiAspect.create({
       data: {
         divisionId,
-        code: data.code,
+        code,
         name: data.name,
         description: data.description ?? null,
         intervalMin: new Decimal(data.interval_min ?? 60),
         intervalMax: new Decimal(data.interval_max ?? 140),
         weight: new Decimal(data.weight),
-        targetType: data.target_type,
+        targetType,
         fixedTarget: data.fixed_target != null ? new Decimal(data.fixed_target) : null,
         isKolektif: data.is_kolektif ?? false,
-        sortOrder: data.sort_order ?? 0,
+        sortOrder,
       },
     });
+  }
+
+  /**
+   * Drag-drop ordering: ids must be the FULL ordered aspect list of the
+   * division. sortOrder is metadata, so the D6 freeze does not block it.
+   */
+  async reorderAspects(divisionId: string, ids: string[], scope?: { userId: string; roles?: string[] }) {
+    if (scope) await this.assertDivisionScope(scope.userId, scope.roles ?? [], divisionId);
+    const division = await (this.prisma as any).division.findUnique({ where: { id: divisionId } });
+    if (!division) throw new NotFoundException('Division not found');
+    if (!Array.isArray(ids) || ids.length === 0) {
+      throw new BadRequestException('ids must be a non-empty array of aspect ids');
+    }
+    const rows = await (this.prisma as any).kpiAspect.findMany({
+      where: { divisionId },
+      select: { id: true },
+    });
+    const owned = new Set((rows ?? []).map((r: any) => r.id));
+    for (const id of ids) {
+      if (!owned.has(id)) throw new BadRequestException(`Aspect ${id} does not belong to this division`);
+    }
+    if (ids.length !== owned.size || new Set(ids).size !== ids.length) {
+      throw new BadRequestException('ids must cover every aspect of the division exactly once');
+    }
+    for (let i = 0; i < ids.length; i++) {
+      await (this.prisma as any).kpiAspect.update({ where: { id: ids[i] }, data: { sortOrder: i } });
+    }
+    return this.listAspects(divisionId);
   }
 
   async updateAspect(
@@ -509,7 +568,7 @@ export class KPIService {
         const target = targetByAspect[a.id];
         const capaian = a.isKolektif ? actualByAspect[a.id] : scoreByEmpAspect[`${e.id}|${a.id}`];
         if (!(target > 0) || capaian === undefined || Number.isNaN(capaian)) {
-          incomplete.push(a.code);
+          incomplete.push(a.name);
           continue;
         }
         rowScores[a.id] = capaian;
@@ -583,8 +642,8 @@ export class KPIService {
 
     for (const t of dto.targets ?? []) {
       const a = assertOwned(t.aspectId);
-      if (a.targetType !== 'PERIOD') throw new BadRequestException(`Aspect ${a.code} is FIXED — target is not set per period`);
-      if (!(t.target > 0)) throw new BadRequestException(`Target for ${a.code} must be > 0`);
+      if (a.targetType !== 'PERIOD') throw new BadRequestException(`Aspect ${a.name} is FIXED — target is not set per period`);
+      if (!(t.target > 0)) throw new BadRequestException(`Target for ${a.name} must be > 0`);
       await (this.prisma as any).kpiPeriodTarget.upsert({
         where: { aspectId_periodMonth_periodYear: { aspectId: t.aspectId, periodMonth: month, periodYear: year } },
         create: { aspectId: t.aspectId, periodMonth: month, periodYear: year, target: new Decimal(t.target) },
@@ -593,8 +652,8 @@ export class KPIService {
     }
     for (const k of dto.kolektif ?? []) {
       const a = assertOwned(k.aspectId);
-      if (!a.isKolektif) throw new BadRequestException(`Aspect ${a.code} is not kolektif — score it per employee instead`);
-      if (!(k.value >= 0)) throw new BadRequestException(`Kolektif value for ${a.code} must be >= 0`);
+      if (!a.isKolektif) throw new BadRequestException(`Aspect ${a.name} is not kolektif — score it per employee instead`);
+      if (!(k.value >= 0)) throw new BadRequestException(`Kolektif value for ${a.name} must be >= 0`);
       await (this.prisma as any).kpiPeriodActual.upsert({
         where: {
           divisionId_aspectId_periodMonth_periodYear: { divisionId, aspectId: k.aspectId, periodMonth: month, periodYear: year },
@@ -605,11 +664,11 @@ export class KPIService {
     }
     for (const s of dto.scores ?? []) {
       const a = assertOwned(s.aspectId);
-      if (a.isKolektif) throw new BadRequestException(`Aspect ${a.code} is kolektif — set it once per division, not per employee`);
+      if (a.isKolektif) throw new BadRequestException(`Aspect ${a.name} is kolektif — set it once per division, not per employee`);
       const lo = toNum(a.intervalMin);
       const hi = toNum(a.intervalMax);
       if (!(s.value >= lo && s.value <= hi)) {
-        throw new BadRequestException(`Score for ${a.code} must be within interval ${lo}-${hi}`);
+        throw new BadRequestException(`Score for ${a.name} must be within interval ${lo}-${hi}`);
       }
       const emp = await (this.prisma as any).employee.findUnique({ where: { id: s.employeeId } });
       if (!emp || emp.divisionId !== divisionId) {
@@ -655,8 +714,8 @@ export class KPIService {
     if (Math.abs(grid.weightsSum - 1) > EPS) gaps.push(`active weights sum to ${grid.weightsSum}, must equal 1.0`);
     for (const a of grid.aspekts) {
       const target = grid.targets[a.id];
-      if (!(target > 0)) gaps.push(`target missing for ${a.code}`);
-      if (a.isKolektif && grid.kolektif[a.id] === undefined) gaps.push(`kolektif value missing for ${a.code}`);
+      if (!(target > 0)) gaps.push(`target missing for ${a.name}`);
+      if (a.isKolektif && grid.kolektif[a.id] === undefined) gaps.push(`kolektif value missing for ${a.name}`);
     }
     for (const row of grid.employees) {
       if (row.excludedReason) continue;

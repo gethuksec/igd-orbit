@@ -538,3 +538,98 @@ describe('KPIService D6 split (dept subtree scope + aspect freeze)', () => {
     expect(prisma.kpiAspect.update).toHaveBeenCalled();
   });
 });
+
+describe('KPIService aspect create defaults + reorder (trimmed UI)', () => {
+  it('mints a code from the name when omitted', async () => {
+    const { service, prisma }: any = await boot({
+      division: { ...mockDelegate(), findUnique: jest.fn().mockResolvedValue({ id: 'd' }) },
+      kpiAspect: {
+        ...mockDelegate(),
+        findUnique: jest.fn().mockResolvedValue(null),
+        findMany: jest.fn().mockResolvedValue([]),
+        create: jest.fn().mockImplementation(({ data }: any) => Promise.resolve({ id: 'a-new', ...data })),
+      },
+    });
+    const res: any = await service.createAspect('d', { name: 'Kualitas kerja', weight: 0.3, fixed_target: 100 });
+    expect(res.code).toBe('KUALITASKERJ');
+    expect(res.targetType).toBe('FIXED');
+    expect(res.isKolektif).toBe(false);
+    expect(res.sortOrder).toBe(0);
+    expect(prisma.kpiAspect.create).toHaveBeenCalled();
+  });
+
+  it('suffixes the minted code on collision and continues sortOrder', async () => {
+    const { service, prisma }: any = await boot({
+      division: { ...mockDelegate(), findUnique: jest.fn().mockResolvedValue({ id: 'd' }) },
+      kpiAspect: {
+        ...mockDelegate(),
+        findUnique: jest
+          .fn()
+          .mockResolvedValueOnce({ id: 'dup' })
+          .mockResolvedValue(null),
+        findMany: jest.fn().mockResolvedValue([{ sortOrder: 4 }]),
+        create: jest.fn().mockImplementation(({ data }: any) => Promise.resolve({ id: 'a-new', ...data })),
+      },
+    });
+    const res: any = await service.createAspect('d', { name: 'Kualitas kerja', weight: 0.3, fixed_target: 100 });
+    expect(res.code).toBe('KUALITASKERJ-1');
+    expect(res.sortOrder).toBe(5);
+    expect(prisma.kpiAspect.create).toHaveBeenCalled();
+  });
+
+  it('still 409s on an explicit colliding code', async () => {
+    const { service }: any = await boot({
+      division: { ...mockDelegate(), findUnique: jest.fn().mockResolvedValue({ id: 'd' }) },
+      kpiAspect: {
+        ...mockDelegate(),
+        findUnique: jest.fn().mockResolvedValue({ id: 'dup' }),
+      },
+    });
+    await expect(
+      service.createAspect('d', { code: 'X', name: 'X', weight: 0.2, fixed_target: 100 }),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('reorders the full aspect list and returns the fresh order', async () => {
+    const { service, prisma }: any = await boot({
+      division: { ...mockDelegate(), findUnique: jest.fn().mockResolvedValue({ id: 'd' }) },
+      kpiAspect: {
+        ...mockDelegate(),
+        findMany: jest
+          .fn()
+          .mockResolvedValueOnce([{ id: 'a' }, { id: 'b' }, { id: 'c' }])
+          .mockResolvedValueOnce([{ id: 'c' }, { id: 'a' }, { id: 'b' }]),
+        update: jest.fn().mockResolvedValue({}),
+      },
+    });
+    const res: any = await service.reorderAspects('d', ['c', 'a', 'b']);
+    expect(prisma.kpiAspect.update).toHaveBeenCalledTimes(3);
+    expect(prisma.kpiAspect.update).toHaveBeenNthCalledWith(1, { where: { id: 'c' }, data: { sortOrder: 0 } });
+    expect(prisma.kpiAspect.update).toHaveBeenNthCalledWith(2, { where: { id: 'a' }, data: { sortOrder: 1 } });
+    expect(prisma.kpiAspect.update).toHaveBeenNthCalledWith(3, { where: { id: 'b' }, data: { sortOrder: 2 } });
+    expect(res.map((r: any) => r.id)).toEqual(['c', 'a', 'b']);
+  });
+
+  it('rejects reorder with a foreign aspect id', async () => {
+    const { service }: any = await boot({
+      division: { ...mockDelegate(), findUnique: jest.fn().mockResolvedValue({ id: 'd' }) },
+      kpiAspect: {
+        ...mockDelegate(),
+        findMany: jest.fn().mockResolvedValue([{ id: 'a' }, { id: 'b' }]),
+      },
+    });
+    await expect(service.reorderAspects('d', ['a', 'zzz'])).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rejects reorder that does not cover every aspect exactly once', async () => {
+    const { service }: any = await boot({
+      division: { ...mockDelegate(), findUnique: jest.fn().mockResolvedValue({ id: 'd' }) },
+      kpiAspect: {
+        ...mockDelegate(),
+        findMany: jest.fn().mockResolvedValue([{ id: 'a' }, { id: 'b' }]),
+      },
+    });
+    await expect(service.reorderAspects('d', ['a'])).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.reorderAspects('d', ['a', 'a'])).rejects.toBeInstanceOf(BadRequestException);
+  });
+});

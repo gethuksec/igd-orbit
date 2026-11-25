@@ -89,8 +89,7 @@ export default function KPIAssign() {
                   {aspects.map((a) => (
                     <tr key={a.id} className="border-t first:border-t-0">
                       <td className="px-5 py-2">
-                        <span className="font-medium">{a.code}</span>
-                        <span className="text-muted-foreground"> — {a.name}</span>
+                        <span className="font-medium">{a.name}</span>
                       </td>
                       <td className="px-5 py-2 text-right tabular-nums text-muted-foreground">
                         {Number(a.weight).toFixed(2)} ·{' '}

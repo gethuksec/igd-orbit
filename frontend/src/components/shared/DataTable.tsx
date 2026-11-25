@@ -50,6 +50,11 @@ interface DataTableProps<T> {
   onSort?: (column: string) => void;
   className?: string;
   onRowClick?: (item: T) => void;
+  /**
+   * Optional per-row props spread onto the TableRow (e.g. native drag-drop
+   * handlers for reorderable tables). Return null/undefined for plain rows.
+   */
+  rowProps?: (item: T, index: number) => React.HTMLAttributes<HTMLTableRowElement> | null | undefined;
 }
 
 const ROWS = 5;
@@ -74,6 +79,7 @@ export function DataTable<T>({
   onSort,
   className,
   onRowClick,
+  rowProps,
 }: DataTableProps<T>) {
   const leftActions = actionsPosition === 'left' && !!actions;
   // Frozen data columns stack left-to-right past the actions column.
@@ -222,11 +228,12 @@ export function DataTable<T>({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.map((item) => (
+          {data.map((item, index) => (
             <TableRow
               key={keyExtractor(item)}
               onClick={onRowClick ? () => onRowClick(item) : undefined}
               className={onRowClick ? 'cursor-pointer' : undefined}
+              {...(rowProps?.(item, index) ?? {})}
             >
               {leftActions && renderActionsCell(item)}
               {columns.map((col) => {
