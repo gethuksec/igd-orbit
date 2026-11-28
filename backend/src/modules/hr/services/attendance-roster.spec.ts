@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../../../shared/services/prisma.service';
+import { FileTokenService } from '../../../shared/services/file-token.service';
 import { ShiftsService } from '../../shifts/shifts.service';
 import { AttendanceService, mobileClockOutside, isOutsideAllAnchors, wibParts, wibTimeInstant } from './attendance.service';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
@@ -38,6 +39,7 @@ describe('AttendanceService roster + luar-lokasi approval (WS-290)', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AttendanceService,
+        FileTokenService,
         { provide: PrismaService, useValue: prisma },
         { provide: ShiftsService, useValue: { resolveShiftForDate: jest.fn(async () => null) } },
       ],
@@ -140,6 +142,37 @@ describe('AttendanceService roster + luar-lokasi approval (WS-290)', () => {
       expect(res.total).toBe(1);
       expect(res.data[0].employeeId).toBe('e1');
       expect(res.counts).toMatchObject({ terlambat: 1, alpha: 1 });
+    });
+
+    it('issues signed selfie contentUrls per side; null when a side has no photo', async () => {
+      baseRosterMocks([emp('e1'), emp('e2'), emp('e3')], [
+        {
+          id: 'a1', employeeId: 'e1', status: 'present', isLate: false, clockIn: new Date(), approvalStatus: 'none',
+          clockInPhotoUrl: '/uploads/attendance-selfies/selfie-u1-1.jpg',
+          clockOutPhotoUrl: '/uploads/attendance-selfies/selfie-u1-2.jpg',
+        },
+        {
+          id: 'a2', employeeId: 'e2', status: 'present', isLate: false, clockIn: new Date(), approvalStatus: 'none',
+          clockInPhotoUrl: '/uploads/attendance-selfies/selfie-u2-1.jpg',
+          clockOutPhotoUrl: null,
+        },
+      ]);
+      const res: any = await service.getRoster(DAY, {});
+      const withBoth = res.data.find((r: any) => r.employeeId === 'e1');
+      expect(withBoth.clockInPhotoContentUrl).toMatch(/^\/api\/v1\/files\/attendance\/a1:in\?token=.+/);
+      expect(withBoth.clockOutPhotoContentUrl).toMatch(/^\/api\/v1\/files\/attendance\/a1:out\?token=.+/);
+      // Token actually verifies for the bound side (proves the URL streams).
+      const tokenIn = withBoth.clockInPhotoContentUrl.split('token=')[1];
+      expect(() => service['fileTokens'].verify('attendance', 'a1:in', tokenIn)).not.toThrow();
+      expect(() => service['fileTokens'].verify('attendance', 'a1:out', tokenIn)).toThrow();
+      const inOnly = res.data.find((r: any) => r.employeeId === 'e2');
+      expect(inOnly.clockInPhotoContentUrl).toMatch(/^\/api\/v1\/files\/attendance\/a2:in\?token=.+/);
+      expect(inOnly.clockOutPhotoContentUrl).toBeNull();
+      // Synthetic missing-* row carries no signed URLs.
+      const missing = res.data.find((r: any) => r.employeeId === 'e3');
+      expect(missing.id).toBe('missing-e3');
+      expect(missing.clockInPhotoContentUrl).toBeNull();
+      expect(missing.clockOutPhotoContentUrl).toBeNull();
     });
   });
 
@@ -295,6 +328,7 @@ describe('AttendanceService IGDERP-305 anchors (WS-290 follow-up)', () => {
       const module: TestingModule = await Test.createTestingModule({
         providers: [
           AttendanceService,
+          FileTokenService,
           { provide: PrismaService, useValue: prisma },
           { provide: ShiftsService, useValue: { resolveShiftForDate: jest.fn(async () => null) } },
         ],
@@ -358,6 +392,7 @@ describe('AttendanceService IGDERP-307 late in WIB', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AttendanceService,
+        FileTokenService,
         { provide: PrismaService, useValue: prisma },
         { provide: ShiftsService, useValue: { resolveShiftForDate: (...a: any[]) => resolveShift(...a) } },
       ],

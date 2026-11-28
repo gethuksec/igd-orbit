@@ -567,12 +567,12 @@ export default function AttendanceList() {
                     <PhotoCard
                       label="Masuk"
                       time={selected.clockIn}
-                      photoUrl={selected.clockInPhotoUrl}
+                      photoUrl={selected.clockInPhotoContentUrl || selected.clockInPhotoUrl}
                     />
                     <PhotoCard
                       label="Keluar"
                       time={selected.clockOut}
-                      photoUrl={selected.clockOutPhotoUrl}
+                      photoUrl={selected.clockOutPhotoContentUrl || selected.clockOutPhotoUrl}
                     />
                   </div>
                 </TabsContent>

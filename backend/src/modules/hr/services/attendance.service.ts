@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../../shared/services/prisma.service';
 import { StorageService } from '../../../shared/services/storage.service';
+import { FileTokenService } from '../../../shared/services/file-token.service';
 import { assertFileMagic } from '../../../shared/utils/file-magic';
 import { extname } from 'path';
 import { ShiftsService } from '../../shifts/shifts.service';
@@ -201,7 +202,19 @@ export class AttendanceService {
   constructor(
     private prisma: PrismaService,
     private shifts: ShiftsService,
+    private fileTokens: FileTokenService,
   ) {}
+
+  /**
+   * Signed byte URL for an attendance selfie (IGDERP-254 pattern — raw
+   * /uploads/* keys are storage keys, never fetched directly since static
+   * serve was removed). Side is bound into the signed id (`<id>:in|out`).
+   * Null when the side has no photo (or the row is synthetic).
+   */
+  selfieContentUrl(attendanceId: string | undefined, photoKey: string | null | undefined, side: 'in' | 'out'): string | null {
+    if (!attendanceId || String(attendanceId).startsWith('missing-') || !photoKey) return null;
+    return this.fileTokens.contentUrl('attendance', `${attendanceId}:${side}`);
+  }
 
   /**
    * IGDERP-275: selfie upload for mobile clock in/out.
@@ -957,6 +970,10 @@ export class AttendanceService {
       ...a,
       totalHours: a.totalHours?.toNumber(),
       overtimeHours: a.overtimeHours?.toNumber(),
+      // Signed selfie bytes (IGDERP-254 pattern) — the frontend uses these,
+      // never the raw /uploads/* storage keys (static serve is removed).
+      clockInPhotoContentUrl: this.selfieContentUrl(a.id, (a as any).clockInPhotoUrl, 'in'),
+      clockOutPhotoContentUrl: this.selfieContentUrl(a.id, (a as any).clockOutPhotoUrl, 'out'),
     }));
 
     // Single-day coverage: append employees with no record as "not-clocked"
@@ -1188,6 +1205,10 @@ export class AttendanceService {
         clockOutLng: rec?.clockOutLng?.toNumber?.() ?? null,
         clockInPhotoUrl: rec?.clockInPhotoUrl ?? null,
         clockOutPhotoUrl: rec?.clockOutPhotoUrl ?? null,
+        // Signed selfie bytes (IGDERP-254 pattern) — the frontend uses these,
+        // never the raw /uploads/* storage keys (static serve is removed).
+        clockInPhotoContentUrl: this.selfieContentUrl(rec?.id, rec?.clockInPhotoUrl, 'in'),
+        clockOutPhotoContentUrl: this.selfieContentUrl(rec?.id, rec?.clockOutPhotoUrl, 'out'),
         needsApproval: (rec as any)?.approvalStatus === 'pending',
         approvalStatus: (rec as any)?.approvalStatus ?? 'none',
         note: rec?.internalNotes ?? null,

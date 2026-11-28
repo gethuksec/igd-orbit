@@ -59,6 +59,11 @@ export interface RosterRow {
   clockOutLng?: number | null;
   clockInPhotoUrl?: string | null;
   clockOutPhotoUrl?: string | null;
+  // Signed selfie bytes (GET /api/v1/files/attendance/:id:in|out?token=…).
+  // Raw /uploads/* keys are storage keys only (static serve removed) —
+  // always prefer the contentUrl when present.
+  clockInPhotoContentUrl?: string | null;
+  clockOutPhotoContentUrl?: string | null;
   scheduleIn: string | null;
   scheduleOut: string | null;
   shiftName: string | null;
@@ -102,6 +107,9 @@ export interface Attendance {
   clockOutLocation?: string;
   clockInPhotoUrl?: string;
   clockOutPhotoUrl?: string;
+  // Signed selfie bytes (GET /api/v1/files/attendance/:id:in|out?token=…).
+  clockInPhotoContentUrl?: string | null;
+  clockOutPhotoContentUrl?: string | null;
   clockInLat?: number;
   clockInLng?: number;
   clockOutLat?: number;

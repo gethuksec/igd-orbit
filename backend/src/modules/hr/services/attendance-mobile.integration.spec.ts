@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../../../shared/services/prisma.service';
+import { FileTokenService } from '../../../shared/services/file-token.service';
 import { AttendanceService } from './attendance.service';
 import { ShiftsService } from '../../shifts/shifts.service';
 import { BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
@@ -47,6 +48,7 @@ describe('AttendanceService mobile + overtime 2-step (IGDERP-275 integration)', 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AttendanceService,
+        FileTokenService,
         { provide: PrismaService, useValue: prisma },
         { provide: ShiftsService, useValue: { resolveShiftForDate: jest.fn().mockResolvedValue(null) } },
       ],
